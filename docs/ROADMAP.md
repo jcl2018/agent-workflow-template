@@ -110,10 +110,15 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 - `workflow-regression`: rows, known failures, a workflow, and an issue per failing row.
 - A POC's queue line, the mender, resuming after a usage limit, and optional version bumps on pull requests.
 
+## Operation session: built
+
+- `watch.py go --session`, `board.py` (`board`, `cadence`, `repos`, `note`, `handoff`) and the check-in loop in
+  `skills/workflow-monitoring/references/operation.md`.
+
 ## What is left
 
-1. **Other agents:** Kimi, Qwen and OpenCode support.
-2. **The `full` level:** it has not run yet, on a toy repo or a real one.
-3. **A marketplace listing:** none yet; install by copying `skills/` or with `dev/install-local.sh`.
+1. **The wiki and the Agensi listing:** publish the wiki with `workflow-docs`, and list the package on Agensi.
+2. **Other agents:** Kimi, Qwen and OpenCode support.
+3. **The `full` level:** it has not run yet, on a toy repo or a real one.
 
 Merging, a project board and milestones stay with you.
