@@ -1,11 +1,18 @@
 {
   "base": "main",
   "checks": [
-    "python3 -m unittest discover -s dev/toy/repo"
+    "bash dev/toy/test-docs.sh",
+    "bash dev/toy/test-release.sh",
+    "bash dev/toy/test-goal.sh",
+    "bash dev/toy/test-regression.sh",
+    "python3 dev/package.py --out dist/check.zip",
+    "bash dev/test-package.sh"
   ],
   "agent_command": [
     "claude",
-    "-p"
+    "-p",
+    "--model=sonnet",
+    "--allowedTools=Bash,Read,Write,Edit,Skill"
   ],
   "judge_command": [
     "claude",
@@ -23,6 +30,6 @@
   "version_file": "VERSION",
   "wiki_dir": "docs/wiki",
   "pr_bumps_version": false,
-  "mend": false,
+  "mend": true,
   "resume_on_limit": false
 }
