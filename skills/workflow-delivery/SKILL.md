@@ -24,7 +24,8 @@ go "<the goal>" --done "<line 1>" --done "<line 2>"
 
 ## `go "<goal>" --done "<line>" ... [--level quick|standard|full]`
 
-If the user gave no done lines, write them and show them before you start. Choose the level from this table, or take
+If the user gave no done lines, write them and show them before you start. Each must be provable before the pull
+request, because the judge runs then. Choose the level from this table, or take
 the one the user named.
 
 | Level | Steps | Fresh judge | Use it for |
@@ -61,6 +62,16 @@ Write the steps under `## Plan`, naming the check that proves each done line. Co
 
 Run `goal.py step <slug> build`. Make the change, add tests for each done line, and commit.
 
+Then fill in `## Verify by hand` in the goal file, and commit it: the steps a person follows to see the change work with
+their own eyes. A release refuses without at least one.
+
+```markdown
+1. Run `python3 calc.py median 1 2 3`.
+   Expect: it prints 2.
+```
+
+Write what they can see, not what the tests already prove.
+
 ### 5. Checks
 
 Run `goal.py check <slug>`. On a failure, fix the cause, commit, and run it again.
@@ -68,7 +79,8 @@ Run `goal.py check <slug>`. On a failure, fix the cause, commit, and run it agai
 ### 6. Judge (`standard`, `full`)
 
 Run `goal.py judge <slug>`. It gives a fresh agent only the diff, the goal file and the check results, in an empty
-folder. You never judge your own work.
+folder. You never judge your own work. If a done line needs proof the checks don't print, paste the real command output
+under `## Evidence` in the goal file, and commit it before you judge.
 
 - `VERDICT pass`: go to step 7.
 - A failed verdict: fix what it names, commit, then run steps 5 and 6 again.

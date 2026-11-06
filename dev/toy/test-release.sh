@@ -21,6 +21,13 @@ finish() {  # finish SLUG [extra goal.py new args]: a done quick goal with a pul
   $goal new "$slug" --goal "Add $slug" --done "calc has $slug" --level quick "$@" >/dev/null
   printf '\n\ndef %s():\n    return 1\n' "${slug//-/_}" >> calc.py
   git commit -qam "Add ${slug} to calc"
+  [ -n "$NO_VERIFY" ] || python3 - "$slug" <<'PY'
+import sys
+path = ".loop/goals/%s.md" % sys.argv[1]
+text = open(path).read().replace("## Verify by hand\n", "## Verify by hand\n\n1. Open calc.py.\n   Expect: it has the new function.\n", 1)
+open(path, "w").write(text)
+PY
+  git commit -qam "Verify steps for $slug" || true
   $goal check "$slug" >/dev/null && $goal pr "$slug" >/dev/null
 }
 
@@ -54,6 +61,27 @@ grep -q "^release create v0.1.1 --draft " "$FAKE_GH_DIR/calls.log" && ok "draft 
 grep -Eq "draft=false|release edit|release upload" "$FAKE_GH_DIR/calls.log" && bad "a publish call" || ok "no publish call"
 [ -z "$(git ls-remote --tags origin)" ] && ok "no tag on origin" || bad "tag pushed"
 git ls-remote --heads origin main | grep -q "$(git rev-parse main)" && ok "main not moved (nothing merged)" || bad "main moved"
+
+echo "== 3b. the release page and changelog carry the verify steps"
+grep -q "^### How to verify" CHANGELOG.md && grep -q "Expect: it has the new function" CHANGELOG.md && ok "changelog has verify steps" || bad "changelog verify"
+grep -q "How to verify" "$FAKE_GH_DIR/notes.log" && grep -q "Expect: it has the new function" "$FAKE_GH_DIR/notes.log" && grep -q "Documentation" "$FAKE_GH_DIR/notes.log" && ok "release notes have verify steps and docs" || bad "notes verify"
+
+echo "== 3c. cut refuses with no verify steps"
+NO_VERIFY=1 finish noverify
+$rel ask noverify | grep -q "NONE YET" && ok "ask warns about verify" || bad "ask verify warning"
+$rel cut noverify && bad "cut without verify steps" || ok "cut refused without verify steps"
+[ "$(git log -1 --format=%s)" != "Release v0.1.2" ] && ok "no release commit" || bad "release commit made"
+
+echo "== 3d. four-number versions and bracket changelogs"
+(cd "$here" && python3 - <<'PY'
+import importlib.util
+s = importlib.util.spec_from_file_location("r", "skills/workflow-release/scripts/release.py"); m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+assert m.bump("1.3.3.3", "patch") == "1.3.3.4" and m.bump("1.3.3.3", "minor") == "1.4.0.0" and m.bump("1.3.3.3", "major") == "2.0.0.0"
+assert m.bump("0.1.9", "patch") == "0.1.10" and m.bump("0.1.9", "minor") == "0.2.0"
+out = m.changelog_text("# Changelog\n\nIntro.\n\n## [1.0.0.0] - 2026-01-01\n\nOld.\n", "1.0.0.1", "2026-02-02", ["New"], "1. Step\n   Expect: x")
+assert out.index("Intro.") < out.index("## [1.0.0.1] - 2026-02-02") < out.index("## [1.0.0.0]")
+PY
+) && ok "four numbers and bracket headings" || bad "four numbers"
 
 echo "== 4. batch rules"
 LOOP_BATCH=1 finish three

@@ -7,3 +7,8 @@
 - `claude -p` flags such as `--allowedTools` and `--add-dir` take many values and swallow a trailing prompt. Use the
   `--flag=value` form, or send the prompt on standard input.
 - `.loop/goals/<slug>.md` is committed on the goal's branch, so each pull request carries its goal file.
+- A fresh judge only sees the goal file, the diff and the check output. On the first real run it failed two done lines
+  for missing evidence, correctly. Goals now record such proof under `## Evidence`.
+- A done line that depends on something after the pull request can't be judged. Done lines must be provable before it.
+- Real repos differ from the toy: four-number versions, changelogs with bracket headings and an intro paragraph, tests
+  outside `tests/`, a wiki with pages from another tool, and a pre-push hook that takes minutes.

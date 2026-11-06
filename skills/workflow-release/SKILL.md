@@ -1,6 +1,6 @@
 ---
 name: workflow-release
-description: Once a goal has a pull request and its checks hold, asks `cut` or `leave`. `cut` moves the version, writes the changelog and creates a draft GitHub release for you to publish; `leave` keeps the work unreleased and changes nothing versioned. Use after workflow-delivery opens a pull request, or when asked to release or not release a goal.
+description: Once a goal has a pull request and its checks hold, shows its docs and manual verify steps, then asks `cut` or `leave`. `cut` moves the version, writes the changelog and creates a draft GitHub release for you to publish; `leave` keeps the work unreleased and changes nothing versioned. Use after workflow-delivery opens a pull request, or when asked to release or not release a goal.
 ---
 
 # workflow-release
@@ -21,8 +21,9 @@ python3 scripts/release.py ask <slug>
 
 It refuses unless the goal is `done` with checks `pass` (and the judge `pass`, unless the level is `quick`).
 
-- `WAITING <slug>: ...`: the goal now waits on the user. Show the question and the two exact lines it printed,
-  `cut <slug>` and `leave <slug>`. Then stop. Don't pick one yourself.
+- `WAITING <slug>: ...`: the goal now waits on the user. Show everything it printed: the docs that changed, the wiki
+  link, the steps to verify by hand, the question, and the two exact lines `cut <slug>` and `leave <slug>`. Then stop.
+  Don't pick one yourself.
 - `LEFT <slug> unreleased (answered by the batch)`: a monitored batch goal without `release: ask`. The batch answered
   `leave` by itself. Report it and stop.
 - `ALREADY cut` or `ALREADY leave`: the question was answered before. Report it.
@@ -53,14 +54,20 @@ python3 scripts/release.py cut <slug> [--bump patch|minor|major] [--user]
 
 On the goal's branch `loop/<slug>` it:
 
-1. Reads the version from `version_file` in `.loop/config.json` (default `VERSION`, plain `X.Y.Z`). With no file,
-   the first release is `0.1.0` and the file is created.
-2. Adds an entry to the top of `CHANGELOG.md`: the new version, today's date (UTC), and one line per commit since the
-   base, leaving out commits that only touch `.loop/`.
-3. Commits those two files as `Release vX.Y.Z` and pushes the branch.
-4. Runs `gh release create vX.Y.Z --draft --target loop/<slug>` and prints `DRAFT <url>`.
+1. Refuses if `## Verify by hand` in the goal file has no numbered step with an `Expect:` line, or if a page mapped in
+   `.loop/docs.tsv` is stale.
+2. Reads the version from `version_file` in `.loop/config.json` (default `VERSION`, `X.Y.Z` or `W.X.Y.Z`). `patch` moves
+   the last number. With no file, the first release is `0.1.0` and the file is created.
+3. Adds an entry to `CHANGELOG.md` above the last release: the new version, today's date (UTC), one line per commit since
+   the base, leaving out commits that only touch `.loop/`, and the verify steps.
+4. Commits those two files as `Release vX.Y.Z` and pushes the branch.
+5. Runs `gh release create vX.Y.Z --draft --target loop/<slug>`, with the verify steps and docs in the notes, and prints
+   `DRAFT <url>`.
 
-Tell the user the draft URL and that they publish it. The release commit rides on the goal's pull request, so the
+Then, if `.loop/docs.tsv` exists, publish the docs with `workflow-docs`. If that fails, the draft stands: report the
+failure and the fix it printed.
+
+Tell the user the draft URL, the wiki link, the steps to verify by hand, and that they publish it. The release commit rides on the goal's pull request, so the
 version lands when the user merges it.
 
 If `gh` fails, the script removes only its own release commit, restores the two files, and reports the error.
@@ -79,6 +86,8 @@ Each refusal says `REFUSED:` and a fix. Common ones:
 | Refusal | Fix |
 |---|---|
 | Checks or judge have not passed | Finish the goal with `workflow-delivery` |
+| No steps under `## Verify by hand` | Add a numbered step with an `Expect:` line, and commit it |
+| Pages are stale | Update them with `workflow-docs`, and commit |
 | A batch goal, no `--user` | Wait for the human's own `cut <slug>` |
 | On the wrong branch | Switch to `loop/<slug>` in the goal's worktree |
 | Uncommitted changes | Commit or set them aside |

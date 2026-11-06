@@ -3,11 +3,12 @@
 
 usage: release.py <command> <slug> [options]
 
-  ask SLUG                         ask cut or leave; a batch answers leave by itself
+  ask SLUG                         show the docs and verify steps, then ask cut or leave;
+                                   a batch answers leave by itself
   leave SLUG                       keep the work unreleased; changes nothing versioned
   cut SLUG [--bump patch|minor|major] [--user]
-                                   bump the version, write the changelog, commit, push,
-                                   and create a DRAFT release. You publish it.
+                                   refuse without verify steps or with stale docs; bump the version,
+                                   write the changelog, commit, push, create a DRAFT release. You publish it.
   show SLUG                        print the goal's release field
 
 A batch goal never cuts unless --user is given, and --user means the human's own message said to cut.
@@ -22,7 +23,7 @@ import subprocess
 import sys
 import tempfile
 
-SEMVER = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+VERSION = re.compile(r"^\d+(\.\d+){2,3}$")
 ASK = "Cut a release or leave it unreleased?"
 
 
@@ -114,6 +115,16 @@ def cmd_ask(args):
     save(state, "waiting: " + ASK)
     print("WAITING %s: %s" % (args.slug, ASK))
     print("PR: %s" % state.get("pr"))
+    tree = state.get("worktree") or ""
+    top = git("rev-parse", "--show-toplevel", cwd=tree if tree and os.path.isdir(tree) else None)
+    cfg = read_config(top)
+    base = base_of(top, cfg)
+    for line in docs_lines(top, cfg, base):
+        print(line)
+    stale = stale_pages(top, cfg, base)
+    if stale:
+        print("STALE pages, which cut will refuse: " + ", ".join(stale))
+    print("How to verify:\n%s" % (verify_steps(top, args.slug) or "NONE YET, which cut will refuse."))
     print("Type exactly one of:")
     for word in words:
         print("  " + word)
@@ -146,15 +157,87 @@ def read_config(top):
 
 
 def bump(version, part):
-    match = SEMVER.match(version)
-    if not match:
-        sys.exit("REFUSED: the version %r is not plain X.Y.Z. Fix: set it by hand." % version)
-    major, minor, patch = (int(item) for item in match.groups())
-    if part == "major":
-        return "%d.0.0" % (major + 1)
-    if part == "minor":
-        return "%d.%d.0" % (major, minor + 1)
-    return "%d.%d.%d" % (major, minor, patch + 1)
+    """Move one number and zero the ones after it. Patch is the last number, so 1.3.3.3 becomes 1.3.3.4."""
+    if not VERSION.match(version):
+        sys.exit("REFUSED: the version %r is not X.Y.Z or W.X.Y.Z. Fix: set it by hand." % version)
+    numbers = [int(item) for item in version.split(".")]
+    at = {"major": 0, "minor": 1}.get(part, len(numbers) - 1)
+    numbers[at] += 1
+    numbers[at + 1:] = [0] * (len(numbers) - at - 1)
+    return ".".join(str(item) for item in numbers)
+
+
+def verify_steps(top, slug):
+    """The goal's Verify by hand section, or "" unless it holds a numbered step with an Expect: line."""
+    try:
+        with open(os.path.join(top, ".loop", "goals", slug + ".md")) as handle:
+            text = handle.read()
+    except OSError:
+        return ""
+    if "## Verify by hand" not in text:
+        return ""
+    part = text.split("## Verify by hand", 1)[1].split("\n## ", 1)[0]
+    part = re.sub(r"<!--.*?-->", "", part, flags=re.S).strip()
+    steps = re.search(r"^\s*\d+\.\s+\S", part, re.M)
+    expect = re.search(r"Expect:\s*\S", part)
+    return part if steps and expect else ""
+
+
+def doc_rows(top):
+    rows = {}
+    try:
+        with open(os.path.join(top, ".loop", "docs.tsv")) as handle:
+            for line in handle:
+                if line.strip() and not line.startswith("#"):
+                    page, _, paths = line.rstrip("\n").partition("\t")
+                    rows[page] = [item.strip() for item in paths.split(",") if item.strip()]
+    except OSError:
+        pass
+    return rows
+
+
+def stale_pages(top, cfg, base):
+    """Mapped pages that are missing, or older than a path they describe within this branch."""
+    folder = cfg.get("wiki_dir") or "docs/wiki"
+    out = []
+    for page, paths in sorted(doc_rows(top).items()):
+        rel = "%s/%s.md" % (folder, page)
+        last = git("rev-list", "-1", "HEAD", "--", rel, cwd=top, check=False)
+        if not last:
+            out.append(page + " (missing)")
+            continue
+        start = base if run(["git", "merge-base", "--is-ancestor", last, base], cwd=top).returncode == 0 else last
+        if git("log", "--format=%h", "%s..HEAD" % start, "--", *paths, cwd=top, check=False):
+            out.append(page)
+    return out
+
+
+def docs_changed(top, cfg, base):
+    folder = cfg.get("wiki_dir") or "docs/wiki"
+    out = git("diff", "--name-only", "%s...HEAD" % base, "--", folder, cwd=top, check=False)
+    return [os.path.basename(name)[:-3] for name in out.splitlines() if name.endswith(".md")]
+
+
+def wiki_link(top):
+    url = git("remote", "get-url", "origin", cwd=top, check=False)
+    match = re.search(r"github\.com[:/](.+?)(\.git)?$", url)
+    return "https://github.com/%s/wiki" % match.group(1) if match else ""
+
+
+def base_of(top, cfg):
+    base = cfg.get("base", "main")
+    if run(["git", "rev-parse", "--verify", "--quiet", "origin/" + base], cwd=top).returncode == 0:
+        return "origin/" + base
+    return base
+
+
+def docs_lines(top, cfg, base):
+    if not doc_rows(top):
+        return ["Documentation: not set up (run workflow-docs init)."]
+    changed = docs_changed(top, cfg, base)
+    link = wiki_link(top)
+    lines = ["Documentation changed: %s." % (", ".join(changed) if changed else "none")]
+    return lines + (["Wiki: " + link] if link else [])
 
 
 def loop_only(sha, cwd):
@@ -172,14 +255,16 @@ def subjects(base, cwd):
     return lines
 
 
-def changelog_text(old, version, day, bullets):
-    entry = "## v%s - %s\n\n%s\n" % (version, day, "\n".join("- " + item for item in bullets) or "- No code changes")
+def changelog_text(old, version, day, bullets, steps):
+    title = "## [%s] - %s" % (version, day) if re.search(r"^## \[", old, re.M) else "## v%s - %s" % (version, day)
+    body = "\n".join("- " + item for item in bullets) or "- No code changes"
+    entry = "%s\n\n%s\n\n### How to verify\n\n%s\n" % (title, body, steps)
     if not old.strip():
         return "# Changelog\n\n" + entry
-    if old.startswith("# Changelog"):
-        head, _, rest = old.partition("\n")
-        return head + "\n\n" + entry + "\n" + rest.lstrip("\n")
-    return entry + "\n" + old
+    first = re.search(r"^## ", old, re.M)
+    if first:
+        return old[:first.start()] + entry + "\n" + old[first.start():]
+    return old.rstrip("\n") + "\n\n" + entry
 
 
 def restore(cwd, files, sha_before, message):
@@ -216,9 +301,14 @@ def cmd_cut(args):
     if git("status", "--porcelain", "--untracked-files=no", cwd=cwd):
         sys.exit("REFUSED: uncommitted changes in %s. Fix: commit or set them aside first." % cwd)
     cfg = read_config(cwd)
-    base = cfg.get("base", "main")
-    if run(["git", "rev-parse", "--verify", "--quiet", "origin/" + base], cwd=cwd).returncode == 0:
-        base = "origin/" + base
+    base = base_of(cwd, cfg)
+    steps = verify_steps(cwd, slug)
+    if not steps:
+        sys.exit("REFUSED: %s has no steps under ## Verify by hand. Fix: add a numbered step with an Expect: line to "
+                 ".loop/goals/%s.md, and commit it." % (slug, slug))
+    stale = stale_pages(cwd, cfg, base)
+    if stale:
+        sys.exit("REFUSED: these pages are stale: %s. Fix: update them with workflow-docs, and commit." % ", ".join(stale))
     checked = state.get("checks_sha")
     if checked and checked != git("rev-parse", "HEAD", cwd=cwd):
         later = git("log", "--format=%H", "%s..HEAD" % checked, cwd=cwd, check=False).splitlines()
@@ -253,7 +343,7 @@ def cmd_cut(args):
     with open(vpath, "w") as handle:
         handle.write(version + "\n")
     with open(cpath, "w") as handle:
-        handle.write(changelog_text(old, version, day, bullets))
+        handle.write(changelog_text(old, version, day, bullets, steps))
     added = run(["git", "add", "--"] + files, cwd=cwd)
     made = added.returncode == 0 and run(["git", "commit", "-m", message, "--"] + files, cwd=cwd).returncode == 0
     if not made:
@@ -265,7 +355,9 @@ def cmd_cut(args):
         sys.exit("REFUSED: push failed, release undone: " + pushed.stderr.strip()[:300])
     notes = tempfile.NamedTemporaryFile("w", suffix=".md", prefix="release-notes-", delete=False)
     with notes:
-        notes.write("\n".join("- " + item for item in bullets) + "\n\nPull request: %s\n" % state.get("pr", ""))
+        notes.write("\n".join("- " + item for item in bullets) + "\n\n## How to verify\n\n%s\n\n" % steps)
+        notes.write("## Documentation\n\n%s\n\n" % "\n\n".join(docs_lines(cwd, cfg, base)))
+        notes.write("Pull request: %s\n" % state.get("pr", ""))
     try:
         made = run(["gh", "release", "create", tag, "--draft", "--title", tag, "--notes-file", notes.name,
                     "--target", branch], cwd=cwd)

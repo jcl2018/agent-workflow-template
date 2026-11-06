@@ -1,6 +1,6 @@
 # Loop files
 
-The four workflow skills share this contract. Skill instructions never go in the repo. A repo holds only its own data.
+The five workflow skills share this contract. Skill instructions never go in the repo. A repo holds only its own data.
 
 ## In the repo: `.loop/`
 
@@ -10,6 +10,9 @@ The four workflow skills share this contract. Skill instructions never go in the
 | `.loop/queue.md` | Goals to run, one line each |
 | `.loop/goals/<slug>.md` | One goal: done lines, plan, log |
 | `.loop/findings.md` | Open findings, one line each |
+| `.loop/docs.tsv` | Each wiki page and the paths it describes |
+
+Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -->`, which marks it as safe to update.
 
 ### `config.json`
 
@@ -21,7 +24,8 @@ The four workflow skills share this contract. Skill instructions never go in the
   "judge_command": ["claude", "-p", "--tools", ""],
   "parallel": 3,
   "risky_paths": ["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"],
-  "version_file": "VERSION"
+  "version_file": "VERSION",
+  "wiki_dir": "docs/wiki"
 }
 ```
 
@@ -29,6 +33,11 @@ The four workflow skills share this contract. Skill instructions never go in the
 - `judge_command` reads its prompt on standard input and runs in an empty temporary folder.
 - An empty `judge_command` means no headless judge: print the pack for a fresh agent instead.
 - Permissions are yours. These commands run as you set them, and nothing here turns them off.
+
+### `goals/<slug>.md`
+
+`## Done lines` is frozen. `## Verify by hand` holds numbered steps for a person, each with an `Expect:` line. A release
+refuses without one, and copies the steps into the changelog and the release page.
 
 ### `queue.md`
 
@@ -50,6 +59,7 @@ nothing there can be committed.
 loop/runs/<slug>.json     one goal's state
 loop/logs/<slug>.log      a background agent's output
 loop/dashboard.html       the last dashboard
+loop/wiki.json            the last wiki publish, for restore
 ```
 
 ### `runs/<slug>.json`

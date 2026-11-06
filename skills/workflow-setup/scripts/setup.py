@@ -60,11 +60,18 @@ def survey_checks(repo):
         return ["cargo test"]
     if has("go.mod"):
         return ["go test ./..."]
-    if has("pyproject.toml") or has("pytest.ini") or has("tests") or has("test"):
-        return ["python3 -m pytest -q"] if has("pytest.ini") else ["python3 -m unittest discover"]
-    files = git(repo, "ls-files").splitlines()
-    if any(os.path.basename(name).startswith("test_") and name.endswith(".py") for name in files):
+    if has("pytest.ini"):
+        return ["python3 -m pytest -q"]
+    for folder in ("tests", "test"):
+        if has(folder):
+            return ["python3 -m unittest discover -s " + folder]
+    if has("pyproject.toml"):
         return ["python3 -m unittest discover"]
+    files = git(repo, "ls-files").splitlines()
+    found = [name for name in files if os.path.basename(name).startswith("test_") and name.endswith(".py")]
+    if found:
+        folder = os.path.dirname(found[0])
+        return ["python3 -m unittest discover" + (" -s " + folder if folder else "")]
     for name in ("scripts/validate.sh", "scripts/test.sh", "test.sh"):
         if has(name):
             return ["bash " + name]
@@ -91,6 +98,7 @@ def merged(repo, old):
         "parallel": 3,
         "risky_paths": RISKY,
         "version_file": "VERSION",
+        "wiki_dir": "docs/wiki",
     }
     config.update(old)
     return config
@@ -127,6 +135,9 @@ def main():
         print("NOTE: no check command found; add one to \"checks\"")
     if not config["agent_command"]:
         print("NOTE: no claude or codex on PATH; add \"agent_command\"")
+    else:
+        print("NOTE: a background agent stops at any permission prompt. For workflow-monitoring, add the tools you "
+              "allow to \"agent_command\" yourself, or goals show failed")
     if args.dry_run:
         print("DRY RUN: nothing written")
         return 0
