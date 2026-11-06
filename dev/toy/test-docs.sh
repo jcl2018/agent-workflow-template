@@ -1,5 +1,6 @@
 #!/bin/bash
 # Test workflow-docs on a throwaway toy repo with a bare wiki. usage: test-docs.sh [DIR]
+unset LOOP_BATCH
 set -e
 unset LOOP_BATCH  # these cases expect a human-run goal, not a monitored batch
 here=$(cd "$(dirname "$0")/../.." && pwd)

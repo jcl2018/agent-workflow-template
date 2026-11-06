@@ -61,6 +61,16 @@ See where things stand, or pick up a failed goal:
 `mend` and `resume_on_limit` in `.loop/config.json` let `watch` give a failed goal one fresh agent, and continue after a
 usage limit. Both are off until you turn them on. Background agents need the tools you allow in `agent_command`.
 
+Run an operation session that follows everything and keeps a progress board (see
+`skills/workflow-monitoring/references/operation.md`):
+
+```text
+python3 skills/workflow-monitoring/scripts/board.py board
+python3 skills/workflow-monitoring/scripts/board.py cadence 10
+python3 skills/workflow-monitoring/scripts/board.py repos add ../other-repo
+python3 skills/workflow-monitoring/scripts/watch.py go "<goal>" --done "<line>" --session
+```
+
 Keep tests visible and enforced:
 
 ```text

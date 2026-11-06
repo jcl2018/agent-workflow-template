@@ -5,3 +5,4 @@ Open findings, one line each.
 - project-wiki-2: Failed 3 tries. Last: checks failed
 - project-wiki-2: Failed 3 tries. Last: judge failed
 - project-wiki-2: Failed 3 tries. Last: judge failed
+- operation-session: Failed 3 tries. Last: judge failed

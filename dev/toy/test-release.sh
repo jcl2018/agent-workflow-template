@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test workflow-release on a throwaway toy repo with a fake gh. usage: test-release.sh [DIR]
 # env: AGENT_TEST=1 also runs a headless agent (MODEL, default haiku) that follows SKILL.md to ask and cut.
+unset LOOP_BATCH
 set -e
 unset LOOP_BATCH  # the batch cases below set it themselves; a monitored run must not leak it into the rest
 here=$(cd "$(dirname "$0")/../.." && pwd)

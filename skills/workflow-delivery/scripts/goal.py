@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
-"""Hold one goal's record: its frozen done lines, checks, judge verdict and pull request.
+"""Hold one goal's record: done lines, checks, verdict, pull request.
 
 usage: goal.py <command> <slug> [options]
 
-  new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B]  only when no background agent can run it
-  queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]       add a line to .loop/queue.md
+  new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B]  freeze a goal (no background agent)
+  queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]       add to .loop/queue.md
   step SLUG NAME [--note TEXT]     record the step a goal is on
-  check SLUG                       run the repo's checks and record the result
-  judge SLUG [--design]            pack the evidence and run the fresh judge
-  verdict SLUG --file FILE [--design]  record a verdict a fresh agent wrote
+  check SLUG                       run the repo's checks
+  judge SLUG [--design]            run the fresh judge
+  verdict SLUG --file FILE [--design]  record a fresh agent's verdict
   pr SLUG                          push the branch and open the pull request
   wait SLUG --ask TEXT --words W [--words W]  stop until you answer
   answer SLUG                      clear a wait
   finding SLUG TEXT                file a finding and stop the goal
   show SLUG                        print the goal's state
-
-It runs only git, gh, and your check and judge commands.
 """
 import argparse
 import datetime
@@ -288,12 +286,13 @@ def cmd_check(args):
     commands = config().get("checks", [])
     if not commands:
         fail_stop(state, "The repo has no check commands. Add them to .loop/config.json.")
-    parts, failed = [], False
+    parts, sums, failed = [], [], False
     for command in commands:
         done = subprocess.run(command, shell=True, capture_output=True, text=True, cwd=root())
         parts.append("$ %s\nexit %d\n%s%s" % (command, done.returncode, done.stdout[-4000:], done.stderr[-4000:]))
+        sums.append("CHECK exit %d: %s" % (done.returncode, command))
         failed = failed or done.returncode != 0
-    report = "\n".join(parts)
+    report = "\n".join(sums) + "\n\n" + "\n".join(parts)
     with open(os.path.join(state_dir(), args.slug + ".checks.txt"), "w") as handle:
         handle.write(report)
     state["checks"] = "fail" if failed else "pass"
