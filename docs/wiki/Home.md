@@ -24,9 +24,8 @@ judges it, and you review the pull request. One session governs and the others b
 - "`cut` refuses in a monitored batch unless `--user` is passed; the skill says to pass it only on the human's own
   words." (DECISIONS.md)
 - "`report` left out queued goals that were ready to start. It now lists them." (FINDINGS.md)
-- Toy tests that run with fixtures or a fake agent: `dev/toy/test-goal.sh`, `dev/toy/test-board.sh`,
+- Named toy tests: `dev/toy/test-goal.sh`, `dev/toy/test-board.sh`,
   `dev/toy/test-docs.sh`, `dev/toy/test-release.sh`, `dev/toy/test-regression.sh`.
-- `dev/test-package.sh` checks that `dev/package.sh` refuses a package with a planted fault.
 
 ## What is not proven
 
