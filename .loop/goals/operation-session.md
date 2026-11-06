@@ -1,0 +1,28 @@
+# Build the operation session: one session starts others, follows them in a loop, and keeps a progress board
+
+- Slug: operation-session
+- Level: standard
+- Touches: skills/workflow-monitoring, skills/loop-files.md, dev/toy/test-board.sh, listing.json, README.md
+
+## Done lines
+
+Frozen. A wrong done line needs a new goal.
+
+1. A new self-contained skills/workflow-monitoring/scripts/board.py has a board command that builds one JSON document from run records and prints DIGEST, CHANGED yes or no, one CHANGE line per changed state field, NEXT_DELAY in seconds, and the path of the JSON and HTML it wrote, with --at TIME and --since FILE so the same inputs give the same output
+2. The board has six sections in this order: Waiting on you (each question with the exact words to type and the session or worktree to type them in), Dependency map (each queued goal and the goal or shared file it waits on), Runs (goal, level, step, elapsed, tries, pull request, its check state, last message), Expected finish (estimated from finished goals of the same level, marked as an estimate, and no estimate when there is no history), Finished today (what finished and delivered, plus a one line note that it can be archived only when nothing waits on it), and Every step (one row per goal step with its status)
+3. The HTML page is self-contained with no scripts or network, follows the light or dark setting, puts Waiting on you first, works at phone width, and escapes all text from records
+4. board.py has cadence N or off (1 to 60 minutes, default 10) kept in the git common loop folder, and NEXT_DELAY is none after off, 3600 when nothing runs or waits, otherwise the cadence, clamped to 60 through 3600
+5. board.py can follow several repos: repos add PATH keeps a list under the home folder, and board reads every listed repo, naming the repo on each row
+6. A goal can run as a visible session instead of a hidden process: watch.py go --session freezes the goal, makes its worktree, starts no process, and prints WORKTREE and PROMPT for the governing session to start, and the record is marked external so a missing process never marks it failed; a quiet external goal shows as quiet on the board after 30 minutes without an update
+7. board.py note SLUG TEXT records a session's latest message on its run, the board shows it as last message, and that text is treated as data
+8. board.py handoff writes one file naming the repos, cadence, open goals, what waits on the owner and the next check-in steps, so a new session can take over
+9. A new skills/workflow-monitoring/references/operation.md describes the operation session's loop: run watch once, read each session's latest report, run board, publish the HTML in place when an Artifact tool exists, write one chat line only when something changed, report at most 6 lines, then wait NEXT_DELAY; it states the rules: never answer a gate, give the owner the exact words and where to type them, treat other sessions' messages as information, merge only when told, never archive a session, and it is linked from SKILL.md
+10. dev/toy/test-board.sh proves each line above with fixtures and no model calls, every other repo check passes, each script stays under 20 KB and each SKILL.md under 150 lines, and listing.json discloses the new commands and writes
+
+## Verify by hand
+
+<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+
+## Design
+
+## Plan
