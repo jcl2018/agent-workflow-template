@@ -17,7 +17,7 @@ Code. No marketplace listing yet.** See the [roadmap](docs/ROADMAP.md).
 
 ## Commands
 
-All of these have run on a toy repo, except the `full` level. They may change while the first version settles. The examples use Claude Code. In other agents, you
+All of these have run on a toy repo, except the `full` level. `go`, `docs` and `cut` have also run on a real repo. They may change while the first version settles. The examples use Claude Code. In other agents, you
 can ask in plain words, such as "start a goal to add result caching".
 
 Set up a repo once:
