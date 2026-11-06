@@ -39,27 +39,28 @@ its source or a stale page, so I quote verbatim and run docs check and a name sc
 
 ## Evidence
 
-Source lines behind Home (quoted from FINDINGS.md and DECISIONS.md, which Home repeats word for word):
+Source lines behind Home, printed whole (a bullet runs to its last wrapped line):
 
 ```text
-4:- Codex's `workspace-write` sandbox blocks writes to `.git` and outside the workspace. A goal run needs the git folder
-10:- A fresh judge only sees the goal file, the diff and the check output. On the first real run it failed two done lines
-13:- Real repos differ from the toy: four-number versions, changelogs with bracket headings and an intro paragraph, tests
-15:- Several goals pushing at once can fail with a bare git error, and a plain re-push works. `goal.py pr` retries twice.
-16:- `report` left out queued goals that were ready to start. It now lists them.
-17:- Scripts are close to the 20 KB limit: `goal.py` 20,474 bytes, `watch.py` 19,928. The next feature needs a new script.
+- Codex's `workspace-write` sandbox blocks writes to `.git` and outside the workspace. A goal run needs the git folder
+  and the remote added as writable roots (see `dev/toy/run-goal.sh`).
+- A fresh judge only sees the goal file, the diff and the check output. On the first real run it failed two done lines
+  for missing evidence, correctly. Goals now record such proof under `## Evidence`.
+- A done line that depends on something after the pull request can't be judged. Done lines must be provable before it.
+- Real repos differ from the toy: four-number versions, changelogs with bracket headings and an intro paragraph, tests
+  outside `tests/`, a wiki with pages from another tool, and a pre-push hook that takes minutes.
+- Several goals pushing at once can fail with a bare git error, and a plain re-push works. `goal.py pr` retries twice.
+- `report` left out queued goals that were ready to start. It now lists them.
+- Scripts are close to the 20 KB limit: `goal.py` 20,474 bytes, `watch.py` 19,928. The next feature needs a new script.
+- `goal.py` counts a failed fresh-judge verdict as a try, the same as a failed check.
+- `cut` refuses in a monitored batch unless `--user` is passed; the skill says to pass it only on the human's own words.
 ```
 
-```text
-8:- `goal.py` counts a failed fresh-judge verdict as a try, the same as a failed check.
-10:- `cut` refuses in a monitored batch unless `--user` is passed; the skill says to pass it only on the human's own words.
-```
-
-Gap lines: `grep -n 'full. level' docs/ROADMAP.md` and the timed loop:
+Gap lines:
 
 ```text
 122:3. **The `full` level:** it has not run yet, on a toy repo or a real one.
-skills/workflow-monitoring/references/operation.md:9:Run `scripts/board.py cadence` to see the check-in gap in minutes (default 10, or `off`). Then repeat:
+9:Run `scripts/board.py cadence` to see the check-in gap in minutes (default 10, or `off`). Then repeat:
 ```
 
 The `test-*.sh` names Home cites exist: 
@@ -793,6 +794,56 @@ options:
   --dry-run
 ```
 
+## Real output of commands that only read
+
+`report` (PR links shortened to `<repo>/pull/N`):
+
+```text
+$ python3 skills/workflow-monitoring/scripts/monitor.py report
+SLUG                 LEVEL     STATUS   STEP     TRIES  PR
+board-artifact-page  standard  done     release  0      <repo>/pull/9
+board-truth          standard  done     release  0      <repo>/pull/7
+judge-sees-checks    standard  done     release  0      <repo>/pull/8
+operation-session-2  standard  done     release  0      <repo>/pull/6
+operation-session    standard  done     release  2      <repo>/pull/5
+project-wiki-2       standard  stopped  judge    3      -
+project-wiki-3       standard  running  build    1      -
+project-wiki         standard  stopped  judge    3      -
+
+WAITING ON YOU
+(nothing)
+
+FINDINGS
+- project-wiki-2 (stopped): Failed 3 tries. Last: judge failed
+- project-wiki (stopped): Failed 3 tries. Last: judge failed
+
+QUEUED, NOT STARTED
+(none)
+```
+
+`dashboard`, `cadence`, `board` and `handoff` (`$SCRATCH` is a temporary folder outside the repo):
+
+```text
+$ python3 skills/workflow-monitoring/scripts/monitor.py dashboard --out $SCRATCH/dash.html
+$SCRATCH/dash.html
+$ python3 skills/workflow-monitoring/scripts/board.py cadence
+CADENCE 10
+$ python3 skills/workflow-monitoring/scripts/board.py board --out $SCRATCH/board | head -8
+DIGEST 18 runs: 1 running, 2 waiting on you, 15 done, 2 failed or stopped, 0 queued
+CHANGED yes
+CHANGE agent-workflow-template/board-artifact-page checks: - -> pass
+CHANGE agent-workflow-template/board-artifact-page note: - -> PR #9 open, based on board-truth.
+CHANGE agent-workflow-template/board-artifact-page pr: - -> https://github.com/jcl2018/agent-workflow-template/pull/9
+CHANGE agent-workflow-template/board-artifact-page prstate: - -> merged
+CHANGE agent-workflow-template/board-artifact-page quiet: - -> no
+CHANGE agent-workflow-template/board-artifact-page status: - -> done
+$ python3 skills/workflow-monitoring/scripts/board.py handoff --out $SCRATCH/handoff.md
+HANDOFF $SCRATCH/handoff.md
+```
+
+`go`, `watch`, `resume`, `publish`, `cut`, `poc` and the rest start agents or write outside this repo, so their output
+here is their `--help` above.
+
 ## docs check
 
 ### docs check
@@ -802,10 +853,10 @@ $ python3 skills/workflow-docs/scripts/docs.py check
 DOCS OK: 8 pages
 ```
 
-### private name scan (prints nothing)
+### private name scan (pattern built at run time from the git author's name and email; prints nothing)
 
 ```text
-$ grep -rniE '<the owner names and accounts>' docs README.md .loop/docs.tsv; echo rc=$?
+$ grep -rniE "$(git log -1 --format='%an|%ae' | tr ' ' '|')" docs README.md .loop/docs.tsv; echo rc=$?
 rc=1
 ```
 
@@ -813,7 +864,5 @@ rc=1
 
 ```text
 $ git diff --name-only origin/main | grep -vE '^(docs/|\.loop/|README.md)'; echo rc=$?
-dev/toy/test-docs.sh
-dev/toy/test-release.sh
-rc=0
+rc=1
 ```

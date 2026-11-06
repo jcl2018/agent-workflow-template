@@ -3,7 +3,6 @@
 # env: AGENT_TEST=1 also runs a headless agent (MODEL, default haiku) that follows SKILL.md to ask and cut.
 unset LOOP_BATCH
 set -e
-unset LOOP_BATCH  # the batch cases below set it themselves; a monitored run must not leak it into the rest
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d"
