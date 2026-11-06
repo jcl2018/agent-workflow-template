@@ -4,6 +4,13 @@
 Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests) and finds stale ones. Script:
 `docs.py`.
 
+## Init
+
+`init` is the skill's first step, not a `docs.py` subcommand. It runs `survey`, then `add` for each page you choose (three
+is a good start: how to use the repo, how it's run, how it's released). You replace each placeholder with what is really
+in the repo, keep the first line, and commit the pages and `.loop/docs.tsv` on a branch. If the GitHub wiki has no pages,
+you must create its first page in the browser.
+
 ## Commands
 
 ```text

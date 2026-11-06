@@ -21,7 +21,9 @@ judges it, and you review the pull request. One session governs and the others b
 - The fresh judge failed two done lines for missing evidence on its first real run, correctly (FINDINGS.md).
 - A failed fresh-judge verdict counts as a try, the same as a failed check (DECISIONS.md).
 - `cut` refuses in a monitored batch unless `--user` is passed (DECISIONS.md, `dev/toy/test-release.sh`).
-- The goal, monitoring, regression, docs and release scripts each have a toy-repo test (`dev/toy/test-*.sh`).
+- The goal, regression, docs and release scripts each have a toy-repo test (`dev/toy/test-*.sh`).
+- `dev/toy/test-monitoring.sh` exists but was not re-run after the commands changed; it calls the real `claude` CLI.
+  `dev/toy/test-goal.sh` covers the monitoring logic (`watch.py` and `monitor.py` with a fake agent).
 - `dev/package.sh` refuses a package with one planted fault per rule (`dev/test-package.sh`).
 
 ## What is not proven
