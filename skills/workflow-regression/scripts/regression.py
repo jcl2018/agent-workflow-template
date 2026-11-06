@@ -77,11 +77,13 @@ jobs:
                   continue
               done = subprocess.run(row[2], shell=True, capture_output=True, text=True, timeout=900)
               mark = "<!-- loop-regression %s -->" % row[0]
-              hit = next((item for item in issues if mark in item["body"]), None)
+              hits = [item for item in issues if mark in item["body"]]
+              hit = next((item for item in hits if item["state"] == "OPEN"), hits[0] if hits else None)
               print("%s %s" % ("PASS" if done.returncode == 0 else "FAIL", row[0]))
               if done.returncode == 0:
-                  if hit and hit["state"] == "OPEN":
-                      gh("issue", "close", str(hit["number"]), "--comment", "Passing again.")
+                  for item in hits:
+                      if item["state"] == "OPEN":
+                          gh("issue", "close", str(item["number"]), "--comment", "Passing again.")
               elif row[0] not in known:
                   red.append(row[0])
                   body = "%s\nThe row `%s` fails.\n\n```\n%s\n```\n" % (mark, row[0], (done.stdout + done.stderr)[-1500:])
@@ -299,7 +301,8 @@ def sync_issues(results, live):
     day = today()
     for item in results:
         mark = MARK % item["id"]
-        hit = next((issue for issue in issues if mark in issue.get("body", "")), None)
+        hits = [issue for issue in issues if mark in issue.get("body", "")]
+        hit = next((issue for issue in hits if issue.get("state") == "OPEN"), hits[0] if hits else None)
         number = str(hit["number"]) if hit else ""
         if item["state"] == "FAIL":
             line = "Failing on %s." % day
@@ -317,9 +320,11 @@ def sync_issues(results, live):
                 if line not in said:
                     gh("issue", "comment", number, "--body", line)
                     print("UPDATED issue %s" % number)
-        elif item["state"] == "PASS" and hit and hit.get("state") == "OPEN":
-            gh("issue", "close", number, "--comment", "Passing again on %s." % day)
-            print("CLOSED issue %s" % number)
+        elif item["state"] == "PASS" and live and hits:
+            for issue in hits:
+                if issue.get("state") == "OPEN":
+                    gh("issue", "close", str(issue["number"]), "--comment", "Passing again on %s." % day)
+                    print("CLOSED issue %s" % issue["number"])
         elif item["state"] == "PASS" and not live:
             print("WOULD close any open issue for " + item["id"])
 
