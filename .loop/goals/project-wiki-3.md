@@ -844,6 +844,59 @@ HANDOFF $SCRATCH/handoff.md
 `go`, `watch`, `resume`, `publish`, `cut`, `poc` and the rest start agents or write outside this repo, so their output
 here is their `--help` above.
 
+## Every SKILL.md command heading
+
+```text
+$ grep -n '^## `' skills/*/SKILL.md
+skills/workflow-delivery/SKILL.md:11:## `poc "<question>"`
+skills/workflow-delivery/SKILL.md:27:## `go "<goal>" --done "<line>" ... [--level minimum|quick|standard|full]`
+skills/workflow-docs/SKILL.md:15:## `init`
+skills/workflow-docs/SKILL.md:37:## `check`
+skills/workflow-docs/SKILL.md:52:## `publish`
+skills/workflow-docs/SKILL.md:68:## `restore`
+skills/workflow-monitoring/SKILL.md:21:## `go "<goal>" --done "<line>" ... [--level L] [--touches A,B] [--slug S] [--release ask]`
+skills/workflow-monitoring/SKILL.md:30:## `watch [--max N] [--once] [--interval S]`
+skills/workflow-monitoring/SKILL.md:65:## `report`
+skills/workflow-monitoring/SKILL.md:82:## `dashboard [--out FILE]`
+skills/workflow-monitoring/SKILL.md:95:## `resume SLUG`
+skills/workflow-regression/SKILL.md:20:## `seed`
+skills/workflow-regression/SKILL.md:28:## `add <id> --level <level> --command "<command>" [--goal <slug>:<n>]`
+skills/workflow-regression/SKILL.md:33:## `sync [--write]`
+skills/workflow-regression/SKILL.md:43:## `red <id> --break "<command>"`
+skills/workflow-regression/SKILL.md:55:## `run [land|nightly|<id>] [--timeout S] [--live]`
+skills/workflow-regression/SKILL.md:77:## `workflow`
+```
+
+Real output of the commands that start agents or publish, run in a throwaway toy repo built by `dev/toy/make.sh` and
+set up with `setup.py` (timestamps shortened to `<ts>`). `init` is the `survey` and `add` lines; `check` is under
+"docs check"; `poc` writes nothing by design, so its real output is empty. `report`, `dashboard`, `board`, `cadence`
+and `handoff` are in the section above; every other heading's output is its `--help`.
+
+```text
+$ watch.py go "Toy goal" --done "It works" --session
+<ts> toy-goal: queued
+<ts> toy-goal: frozen 1 done lines at level minimum in $SCRATCH/toy/repo/.git/loop/worktrees/toy-goal
+<ts> toy-goal: visible session: no process started
+WORKTREE $SCRATCH/toy/repo/.git/loop/worktrees/toy-goal
+PROMPT Use the workflow-delivery skill to run this goal in this git worktree, on branch loop/toy-goal:
+$ watch.py watch --once
+toy-goal running step=build pr=-
+$ watch.py resume toy-goal
+REFUSED: toy-goal is running; resume takes only a failed or stopped goal.
+$ docs.py survey
+WIKI other Home
+DIR docs/wiki
+$ docs.py add Using --paths README.md
+PAGE $SCRATCH/toy/repo/docs/wiki/Using.md -> README.md
+$ docs.py publish --dry-run
+UNWRITTEN Using: docs/wiki/Using.md
+REFUSED: fix the pages above first.
+$ release.py cut toy-goal
+REFUSED: toy-goal is a batch goal. A batch may answer leave, never cut. Fix: cut only when the human's own message says "cut toy-goal", then pass --user.
+$ release.py leave toy-goal
+LEFT toy-goal unreleased (answered by the user). Nothing versioned changed.
+```
+
 ## docs check
 
 ### docs check
