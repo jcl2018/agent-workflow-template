@@ -114,7 +114,9 @@ For a visible session's goal, even a `running` one, it starts no process and pri
 
 For a long run across goals or repos, one session can start the others and follow them in a loop. `scripts/board.py`
 builds the progress board (`board`), keeps the check-in `cadence`, follows other repos (`repos add`), records a
-session's latest message (`note SLUG TEXT`) and writes a `handoff` file. `watch.py go --session` freezes a goal and
+session's latest message (`note SLUG TEXT`), tracks a session with no goal record (`session`), retires a superseded goal
+(`retire SLUG --reason TEXT`) and writes a `handoff` file. `scripts/board_page.py` then adds the dependency map to
+`board.json` and draws `board.html` and `board-artifact.html`. `watch.py go --session` freezes a goal and
 makes its worktree but starts no process: it prints `WORKTREE` and `PROMPT`. Start the new session from the main
 project folder and give it that prompt, which names the worktree. The loop and its rules are in
 `references/operation.md`.
@@ -129,6 +131,7 @@ project folder and give it that prompt, which names the worktree. The loop and i
 | `done` | Has a pull request and its checks hold |
 | `stopped` | Stopped itself after 3 failed tries, finding filed |
 | `failed` | The agent ended without finishing (never set for a goal marked `external`) |
+| `retired` | Superseded; set by `board.py retire`, and `watch` and `resume` leave it alone |
 
 ## Rules
 

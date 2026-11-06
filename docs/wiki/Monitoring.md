@@ -2,8 +2,8 @@
 # Monitoring
 
 Skill: `workflow-monitoring`. One session governs and the others build. Scripts: `watch.py` (`go`, `watch`, `resume`),
-`monitor.py` (`report`, `dashboard`) and `board.py` (`board`, `cadence`, `repos`, `note`, `handoff`). Run them from the
-main checkout, on the base branch.
+`monitor.py` (`report`, `dashboard`) and `board.py` (`board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`). Run them from the
+main checkout, on the base branch. `board_page.py` draws the board's pages.
 
 ## Commands
 
@@ -36,12 +36,16 @@ For a long run across goals or repos, one session starts the others and follows 
 (`skills/workflow-monitoring/references/operation.md`). It never builds. `board.py` supports it:
 
 ```text
-board [--at TIME] [--since FILE] [--out DIR]   write board.json, board.html and board-artifact.html; print DIGEST,
-                                               CHANGED, one CHANGE line per change, NO_CHANGE if nothing changed
-                                               while goals are open, NEXT_DELAY and the paths
+board [--at TIME] [--since FILE] [--out DIR]   write board.json; print DIGEST, CHANGED, one CHANGE line per change,
+                                               NO_CHANGE if nothing changed while goals are open, NEXT_DELAY and its path
 cadence [N|off]                                minutes between check-ins, 1-60 (default 10), or off
 repos add PATH | repos list                    follow another repo (~/.workflow-loop/repos), or list them
 note SLUG TEXT                                 record a session's latest message on its run
+session add NAME --repo R [--branch B] [--waits-on X]
+                                               track a session with no goal record, so it gets a lane and shows in Runs
+session update NAME [flags] | session remove NAME
+                                               flags also take --status, --note, --next, --pr and --eta
+retire SLUG --reason TEXT                      mark a superseded goal retired, so it leaves Waiting on you
 handoff [--at TIME] [--out FILE]               write a file a new session can take over from
 ```
 
@@ -49,11 +53,18 @@ Start a visible session from the main project folder, not from `WORKTREE`, becau
 automated turns. Give it the printed `PROMPT`, which names the worktree and says to begin every shell command with `cd`
 to it. The board marks a visible session `(quiet)` after 30 minutes with no update to its record.
 
+`board_page.py [--in FILE] [--out DIR]` reads `board.json`, adds `dependency_map` (`{lanes: [{run, boxes}], arrows:
+[{from, to, on}]}`) and writes `board.html` and `board-artifact.html`. In the map each lane is a run and each box a step,
+coloured by status, with its expected finish. Solid arrows run inside a run, and thick dashed arrows cross runs and say
+why one waits, such as a goal or a shared file. `watch` records `waits_on` on a goal while holding it, so the arrow stays
+through running and today's finished goals. Hover a box for what it is, what's done, what's next and what it unblocks, or
+tap it to open the same text in the list below. The pages have no scripts and load nothing from the network.
+
 The check-in loop, repeated every `cadence` minutes, or every hour when nothing runs or waits:
 
 1. Run `watch.py watch --once`.
 2. Read each session's run record, log tail and note.
-3. Run `board.py board --since <the last board.json>`.
+3. Run `board.py board --since <the last board.json>`, then `board_page.py`.
 4. With an Artifact tool, publish `board-artifact.html` unedited to the same URL each time; otherwise give the owner the
    `board.html` path.
 5. Write one chat line only when `CHANGED` is yes. When the board prints `NO_CHANGE`, write that line instead: it gives

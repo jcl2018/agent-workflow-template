@@ -24,7 +24,8 @@ gap between check-ins, or an hour when nothing runs or waits:
 2. Read each session's latest report: its run record, its log tail, and the note it left. A session leaves a note with
    `board.py note SLUG "<text>"`; the board shows it as the last message.
 3. Run `python3 scripts/board.py board --since <the last board.json>`. It prints `DIGEST`, `CHANGED`, one `CHANGE` line
-   per changed field, `NO_CHANGE` if nothing changed while goals are open, `NEXT_DELAY`, and the paths of `board.json`,
+   per changed field, `NO_CHANGE` if nothing changed while goals are open, `NEXT_DELAY`, and the path of `board.json`.
+   Then run `python3 scripts/board_page.py`, which adds the dependency map to `board.json` and prints the paths of
    `board.html` and `board-artifact.html`.
 4. If you have an Artifact tool, publish `board-artifact.html` as it is, with no hand edits (it has no doctype, html, head
    or body tags): the same artifact URL each time, never a new one. Both pages follow the viewer's light or dark setting,
@@ -36,6 +37,23 @@ gap between check-ins, or an hour when nothing runs or waits:
    Keep the previous `board.json` for the next `--since`.
 
 To pass the loop to a new session, run `board.py handoff` and give it the path.
+
+## Tracking sessions and retiring goals
+
+A session with no goal record still needs a lane. Run `board.py session add NAME --repo R [--branch B] [--waits-on X]`,
+then `session update NAME` with any of those flags or `--status`, `--note`, `--next`, `--pr` and `--eta`, and
+`session remove NAME` when it ends. `--eta` is the finish time shown on its box; give an ISO time.
+
+When a goal is superseded, run `board.py retire SLUG --reason "<why>"`. It leaves Waiting on you and the map, and stays
+in Runs marked `retired`. Only retire a goal the owner has said is superseded. It refuses a goal whose agent is running.
+
+## Reading the dependency map
+
+Each lane is a run and each box a step, coloured by status, with its expected finish. Solid arrows run inside a run.
+Thick dashed arrows cross runs and say why one waits, such as a goal or a shared file. A goal's `waits_on` is recorded
+when `watch` holds it, so the arrow stays through running and today's finished goals. Times come from the median
+finished goal of that level; without one the box says `no estimate`. Hover a box for what it is, what's done, what's
+next and what it unblocks, or tap it to open the same text in the list below. The page has no scripts.
 
 ## Rules
 

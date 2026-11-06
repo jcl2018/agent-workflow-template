@@ -9,6 +9,7 @@ T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 W="python3 $here/skills/workflow-monitoring/scripts/watch.py"
 M="python3 $here/skills/workflow-monitoring/scripts/monitor.py"
 B="python3 $here/skills/workflow-monitoring/scripts/board.py"
+P="python3 $here/skills/workflow-monitoring/scripts/board_page.py"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh" HOME="$T/home" FAKE_AGENT="$T/fake"
 mkdir -p "$HOME" "$FAKE_AGENT"
@@ -142,6 +143,7 @@ $B cadence 10 >/dev/null
 $B board --at $AT --out "$T/b" >/dev/null
 $B board --at $AT --since "$T/b/board.json" --out "$T/b" > "$T/b1"
 check "no change while a goal is open prints the next time" 'grep -qx "NO_CHANGE Nothing changed. Next check-in 12:10 UTC. .*1 running.*" "$T/b1"'
+$P --in "$T/b/board.json" >/dev/null
 check "the page shows it too" 'grep -q "Next check-in 12:10 UTC." "$T/b/board.html"'
 $B board --at $AT --since "$T/b/board.json" --out "$T/b" | grep -q "^NO_CHANGE" && ok "and again on the next quiet check-in" || bad "repeat"
 $B cadence off >/dev/null

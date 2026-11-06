@@ -4,10 +4,10 @@
 usage: watch.py <command> [options]
 
   go "GOAL" --done LINE [--done LINE] [--level L] [--touches A,B] [--slug S] [--release ask] [--session]
-      queue a goal and start it as a background agent in its own worktree;
-      --session makes the worktree, starts no process, and prints WORKTREE and PROMPT
+      queue a goal and start a background agent in its own worktree; --session starts no process, and prints
+      WORKTREE and PROMPT
   watch [--max N] [--once] [--interval S]
-      start queued goals, mend and resume if allowed, print what changed and what waits on you
+      start queued goals, mend and resume if allowed, print what changed and what waits
   resume SLUG
       relaunch a failed or stopped goal; for a visible session, print WORKTREE and PROMPT again
 
@@ -28,7 +28,6 @@ SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 LEVELS = ("minimum", "quick", "standard", "full")
 LIVE = ("running", "waiting")
 LIMIT = re.compile(r"(?i)usage limit|rate limit|limit reached|quota exceeded|too many requests|out of credits")
-MAX_LIMIT_RESUMES = 6
 TEMPLATE = """# {goal}
 
 - Slug: {slug}
@@ -69,8 +68,7 @@ from its step. Do not run goal.py new and never edit the done lines. Stop at the
 merge it. Then follow workflow-release if you have it: {release}
 """ + DATA
 SEAT = """Work in the git worktree {tree} (branch {branch}), even if this session opened elsewhere: begin every shell
-command with `cd {tree} &&`, use full paths for files, and check the branch before you write. "This git worktree" below
-means that folder.
+command with `cd {tree} &&`, use full paths for files, and check the branch before you write.
 
 """
 LEAVE = "this is a monitored batch, so answer leave yourself, never cut."
@@ -178,7 +176,7 @@ def parse_queue():
                 item[key] = value
         slug = item.get("slug", "")
         if not SLUG.match(slug) or slug in seen or not item.get("goal") or not item["done"]:
-            print("SKIPPED queue line: %s" % line.strip()[:60])
+            print("SKIPPED queue line: " + line[:60])
             continue
         if item["level"] not in LEVELS:
             item["level"] = "standard"
@@ -190,6 +188,10 @@ def parse_queue():
 def overlap(a, b):
     a, b = os.path.normpath(a), os.path.normpath(b)
     return a == b or a.startswith(b + os.sep) or b.startswith(a + os.sep)
+
+
+def waits_file(slug):
+    return os.path.join(loop_dir("waits"), slug)
 
 
 def blocker(goal, live):
@@ -293,7 +295,8 @@ def freeze(goal, cfg):
     state = {"slug": slug, "goal": goal["goal"], "level": level, "status": "queued", "step": "", "tries": 0,
              "branch": branch, "worktree": tree, "touches": goal["touches"], "pid": None, "pr": "", "batch": True,
              "done_sha": hashlib.sha256("\n".join(lines).encode()).hexdigest(), "checks": "", "judge": "",
-             "design_review": "", "release": goal.get("release", ""), "waiting": None, "finding": "", "log": []}
+             "design_review": "", "release": goal.get("release", ""), "waiting": None, "finding": "", "log": [],
+             "waits_on": sorted(set(open(waits_file(slug)).read().split())) if os.path.exists(waits_file(slug)) else []}
     save(state, "queued")
     if git("rev-parse", "--verify", "--quiet", "refs/heads/" + branch, check=False):
         git("worktree", "add", tree, branch)
@@ -307,7 +310,7 @@ def freeze(goal, cfg):
     git("add", path, cwd=tree)
     git("commit", "-q", "-m", "Goal: %s" % slug, "--", path, cwd=tree)
     state["step"] = {"minimum": "build", "quick": "plan"}.get(level, "design")
-    save(state, "frozen %d done lines at level %s in %s" % (len(lines), level, tree))
+    save(state, "frozen at level %s in %s" % (level, tree))
     return state
 
 
@@ -329,6 +332,8 @@ def plan(limit):
             continue
         hit = blocker(goal, live)
         if hit:
+            with open(waits_file(goal["slug"]), "a") as handle:
+                handle.write(hit + "\n")
             held.append((goal, "conflict with %s" % hit))
         elif len(live) >= limit:
             held.append((goal, "slots full (%d of %d)" % (len(live), limit)))
@@ -363,7 +368,7 @@ def ensure_tree(state):
     if not os.path.isdir(tree):
         git("worktree", "prune")
         git("worktree", "add", tree, state["branch"])
-        print("RECREATED worktree %s from %s" % (tree, state["branch"]))
+        print("RECREATED worktree " + tree)
     state["worktree"] = tree
 
 
@@ -390,7 +395,7 @@ def keep_moving(cfg, skill_dir):
             continue
         slug = state["slug"]
         tail = log_tail(slug, 2000, state.get("log_mark", 0))
-        if cfg.get("resume_on_limit") and LIMIT.search(tail) and state.get("limit_resumes", 0) < MAX_LIMIT_RESUMES:
+        if cfg.get("resume_on_limit") and LIMIT.search(tail) and state.get("limit_resumes", 0) < 6:
             if not state.get("limit_seen"):
                 state["limit_seen"] = time.time()
                 save(state, "hit a usage limit; waiting to resume")
@@ -446,12 +451,12 @@ def cmd_go(args):
     path = os.path.join(root(), ".loop", "queue.md")
     held = open(path).read() if os.path.exists(path) else ""
     with open(path, "a") as handle:
-        handle.write(("" if held.endswith("\n") or not held else "\n") + "- " + " | ".join(parts) + "\n")
+        handle.write(("\n" if held and held[-1] != "\n" else "") + "- " + " | ".join(parts) + "\n")
     refresh()
     _, waiting = start_round(args, cfg)
     state = load(slug)
     if state and not args.session:
-        print("STARTED %s in %s. This session governs. Run watch." % (slug, state.get("worktree")))
+        print("STARTED %s in %s. Run watch." % (slug, state.get("worktree")))
     for goal, why in waiting:
         if goal["slug"] == slug:
             print("QUEUED %s: %s. Run watch." % (slug, why))
@@ -480,8 +485,7 @@ def cmd_watch(args):
         pending = keep_moving(cfg, args.skill_dir)
         begun, _ = start_round(args, cfg)
         tell(seen, told)
-        running = [state for state in runs() if state.get("status") == "running"]
-        if args.once or not (running or begun or pending):
+        if args.once or not (begun or pending or any(state.get("status") == "running" for state in runs())):
             break
         time.sleep(interval)
     _, held = plan(limit_of(args, cfg))
