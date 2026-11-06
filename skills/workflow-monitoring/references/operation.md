@@ -13,9 +13,10 @@ Run `scripts/board.py cadence` to see the check-in gap in minutes (default 10, o
 2. Read each session's latest report: its run record, its log tail, and the note it left. A session leaves a note with
    `board.py note SLUG "<text>"`; the board shows it as the last message.
 3. Run `python3 scripts/board.py board --since <the last board.json>`. It prints `DIGEST`, `CHANGED`, one `CHANGE` line
-   per changed field, `NEXT_DELAY`, and the paths of `board.json` and `board.html`.
-4. If you have an Artifact tool, publish `board.html` in place: the same artifact URL each time, never a new one.
-   Otherwise give the owner the path.
+   per changed field, `NEXT_DELAY`, and the paths of `board.json`, `board.html` and `board-artifact.html`.
+4. If you have an Artifact tool, publish `board-artifact.html` as it is, with no hand edits (it has no doctype, html, head
+   or body tags): the same artifact URL each time, never a new one. Both pages follow the viewer's light or dark setting,
+   and a manual `data-theme` of `dark` or `light` on the root wins. Otherwise give the owner the `board.html` path.
 5. Write one chat line only when `CHANGED` is yes. Say what changed, and what waits on the owner.
 6. Report at most 6 lines to the owner, with anything waiting on them first.
 7. Wait `NEXT_DELAY` seconds, then go to step 1. `none` means the owner turned the loop off: stop and say so.

@@ -12,6 +12,15 @@ bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 has() { grep -qiF -- "$2" "$1" && ok "$3" || bad "$3"; }
 "$here/dev/toy/make.sh" "$T" >/dev/null || exit 1
 cd "$T/repo" || exit 1
+# a fake gh: pull/1 merged, pull/2 closed, pull/3 open, anything else cannot be answered
+mkdir -p "$T/bin"
+cat > "$T/bin/gh" <<'GH'
+#!/bin/bash
+case "$*" in
+  *pull/1*) echo MERGED;; *pull/2*) echo CLOSED;; *pull/3*) echo OPEN;; *) echo "gh: no answer" >&2; exit 1;;
+esac
+GH
+chmod +x "$T/bin/gh"; export PATH="$T/bin:$PATH"
 python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
 git switch -q main; git merge -q --ff-only workflow-setup
 C=$(cd "$(git rev-parse --git-common-dir)" && pwd); R="$C/loop/runs"; mkdir -p "$R"
@@ -31,6 +40,8 @@ rec old1 done standard pr 2026-01-01T09:00:00Z 'pr="https://x/pull/1"' 'checks="
 rec old2 done standard release 2026-01-01T10:00:00Z 'pr="https://x/pull/2"'
 rec runa running standard build 2026-01-01T11:50:00Z 'checks="pass"' 'note={"text":"<b>hi</b> building","at":"x"}'
 rec waita waiting quick plan 2026-01-01T11:00:00Z 'waiting={"ask":"Cut <i>it</i>?","words":["cut waita","leave waita"]}'
+rec propen running standard pr 2026-01-01T11:55:00Z 'pr="https://x/pull/3"'
+rec prlost running standard pr 2026-01-01T11:55:00Z 'pr="https://x/pull/9"'
 rec failb failed minimum build 2026-01-01T11:00:00Z 'finding="boom <script>alert(1)</script>"'
 rec ext1 running quick build 2026-01-01T11:00:00Z 'external=true' 'pid=999999'
 cat >> .loop/queue.md <<'Q'
@@ -40,7 +51,7 @@ AT=2026-01-01T12:00:00Z
 O="$T/out"; mkdir -p "$O"
 $B board --at $AT --out "$O" > "$T/b1"; $B board --at $AT --out "$T/out2" > "$T/b2"
 sed "s#$T/out2#$O#" "$T/b2" | diff -q - "$T/b1" >/dev/null && cmp -s "$O/board.json" "$T/out2/board.json" && ok "same inputs, same output" || bad "determinism"
-for k in DIGEST CHANGED NEXT_DELAY JSON HTML; do grep -q "^$k " "$T/b1" && ok "prints $k" || bad "prints $k"; done
+for k in DIGEST CHANGED NEXT_DELAY JSON HTML ARTIFACT; do grep -q "^$k " "$T/b1" && ok "prints $k" || bad "prints $k"; done
 has "$T/b1" "CHANGED yes" "first board has changes"
 has "$T/b1" "CHANGE " "prints CHANGE lines"
 $B board --at $AT --since "$O/board.json" --out "$T/out3" > "$T/b3"
@@ -59,7 +70,7 @@ assert names == ["Waiting on you", "Dependency map", "Runs", "Expected finish", 
 pos = [h.index("<h2>" + n) for n in names]
 assert pos == sorted(pos), pos
 w = {x["slug"]: x for x in d["waiting"]}
-assert w["waita"]["words"] == ["cut waita", "leave waita"] and "/wt/waita" in w["waita"]["where"]
+assert w["waita"]["words"] == ["cut waita", "leave waita"] and w["waita"]["where"] == "the governing session, which owns repo/waita" and "/wt/" not in w["waita"]["where"]
 assert "failb" in w and w["failb"]["words"] == ["resume failb"]
 assert any(x["slug"] == "nextq" and "runa" in x["waits_on"] and "f_runa.py" in x["waits_on"] for x in d["dependencies"])
 r = {x["slug"]: x for x in d["runs"]}
@@ -84,6 +95,25 @@ assert "prefers-color-scheme:dark" in h and "name=viewport" in h and "max-width:
 assert h.index("Waiting on you") < h.index("<h2>Runs")
 assert "(quiet)" in h
 PY
+python3 - "$H" "$O/board-artifact.html" <<'PY' && ok "artifact page has no outer tags and both pages honor data-theme" || bad "artifact page"
+import re, sys
+full, art = open(sys.argv[1]).read(), open(sys.argv[2]).read()
+assert art.startswith("<title>Operation board</title><style>")
+assert not re.search(r"<(!doctype|html|head|body)\b|</(html|head|body)>", art, re.I)
+assert "<script" not in art and "&lt;script&gt;alert" in art and "Waiting on you" in art
+for page in (full, art):
+    assert "prefers-color-scheme:dark" in page and ":root:not([data-theme=light])" in page and ":root[data-theme=dark]" in page
+PY
+python3 - "$O/board.json" "$H" <<'PY' && ok "pull request states: open, merged, closed, and unknown when gh cannot answer" || bad "pr states"
+import json, sys
+d = json.load(open(sys.argv[1])); h = open(sys.argv[2]).read()
+r = {x["slug"]: x["prstate"] for x in d["runs"]}
+assert r["old1"] == "merged" and r["old2"] == "closed" and r["propen"] == "open" and r["prlost"] == "unknown" and r["runa"] == "", r
+assert {x["slug"]: x["prstate"] for x in d["finished"]["items"]} == {"old1": "merged", "old2": "closed"}
+assert "https://x/pull/3 (open)" in h and "https://x/pull/9 (unknown)" in h and "https://x/pull/1 (merged)" in h
+PY
+PATH=/usr/bin:/bin $B board --at $AT --out "$T/out8" >/dev/null
+python3 -c "import json,sys;d=json.load(open(sys.argv[1]));assert {x['prstate'] for x in d['runs'] if x['pr']}=={'unknown'}" "$T/out8/board.json" && ok "no gh at all shows unknown" || bad "no gh"
 python3 - "$O/board.json" <<'PY' && ok "a level with no finished goals gets exactly no estimate" || bad "no-history estimate"
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -109,7 +139,7 @@ $B cadence 61 >/dev/null 2>&1 && bad "cadence 61 refused" || ok "cadence 61 refu
 [ -f "$C/loop/cadence" ] && ok "cadence kept in the git common loop folder" || bad "cadence file"
 $B cadence off >/dev/null; [ "$(nd)" = none ] && ok "NEXT_DELAY none after off" || bad "delay none"
 $B cadence 5 >/dev/null
-for s in runa waita failb ext1; do rm "${R:?}/$s.json"; done
+for s in runa waita failb ext1 propen prlost; do rm "${R:?}/$s.json"; done
 [ "$(nd)" = 3600 ] && ok "NEXT_DELAY 3600 when nothing runs or waits" || bad "idle delay: $(nd)"
 $B cadence 7 >/dev/null; [ "$($B cadence)" = "CADENCE 7" ] && ok "cadence is kept" || bad "cadence kept"
 # several repos
@@ -146,7 +176,7 @@ sec = t.split("## Waiting on the owner", 1)[1].split("\n## ", 1)[0]
 line = [l for l in sec.splitlines() if "/waita:" in l]
 assert line, sec
 l = line[0]
-assert "Cut <i>it</i>?" in l and "cut waita or leave waita" in l and "Type in the governing session, which owns /wt/waita: " in l, l
+assert "Cut <i>it</i>?" in l and "cut waita or leave waita" in l and "Type in the governing session, which owns repo/waita: " in l and "/wt/" not in l, l
 PY
 for k in "## Repos" "## Cadence" "## Open goals" "## Waiting on the owner" "## Next check-in steps" "other" "vis"; do has "$hf" "$k" "handoff has $k"; done
 # repo checks
