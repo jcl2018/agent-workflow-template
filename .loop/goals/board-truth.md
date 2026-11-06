@@ -15,8 +15,20 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-monitoring/scripts/board.py board --out /tmp/bt` in a repo with a finished run whose `pr` is a real GitHub PR URL, then open `/tmp/bt/board.html`.
+   Expect: that run's pull request shows `(open)`, `(merged)` or `(closed)` in Runs and Finished today.
+2. Run the same command with `gh` not on PATH (`PATH=/usr/bin:/bin`).
+   Expect: every pull request shows `(unknown)`.
+3. Make a run wait on you and read Waiting on you.
+   Expect: it says `the governing session, which owns <repo>/<goal>`, with no worktree path, and the exact words to type.
 
 ## Design
 
+For each run with a `pr`, board.py asks `gh pr view <url> --json state` from the repo and keeps open, merged or closed; any failure, timeout or odd answer becomes `unknown`. The state rides in the run row, Finished today, the HTML cells and the CHANGE diff. Waiting on you swaps the worktree path for `<repo>/<slug>`, which names the session as the sessions are named. Risk: the 20 KB cap (trimmed docstring) and a slow gh (20 s timeout per run).
+
 ## Plan
+
+1. Add `pr_state` and the `prstate` field to board.py (done line 1; proved by the fake-gh test in test-board.sh).
+2. Change the waiting `where` text to repo/slug (done line 2; proved by the test's `where` and handoff asserts).
+3. Test with a fake gh, a no-gh run, and the existing 20 KB loop (done line 3).
+4. Run `goal.py check` (done line 4).

@@ -5,13 +5,13 @@ usage: board.py <command> [options]
 
   board [--at TIME] [--since FILE] [--out DIR]
                         build board.json and board.html from every followed repo; print DIGEST, CHANGED,
-                        CHANGE lines, NEXT_DELAY and the two paths. Same inputs give the same output.
-  cadence [N|off]       minutes between check-ins, 1 to 60 (default 10), or off; no argument shows it
-  repos add PATH        follow another repo (kept in ~/.workflow-loop/repos); repos list shows them
+                        CHANGE lines, NEXT_DELAY and the two paths.
+  cadence [N|off]       minutes between check-ins, 1-60 (default 10), or off; none shows it
+  repos add PATH        follow another repo (kept in ~/.workflow-loop/repos); repos list lists them
   note SLUG TEXT        record a session's latest message on its run
   handoff [--out FILE]  write one file a new session can take over from
 
-Run records live in <git common dir>/loop/. This reads them and git, and writes only the files named above.
+Run records live in <git common dir>/loop/. PR states come from gh; this writes only the files named above.
 """
 import argparse
 import datetime
@@ -30,12 +30,21 @@ STEPS = {"minimum": ["build", "checks", "pr"], "quick": ["plan", "build", "check
 ORDER = ["design", "design-review", "plan", "build", "checks", "judge", "pr", "release"]
 QUIET = 30 * 60
 SECTIONS = ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step"]
-FIELDS = ("status", "step", "pr", "checks", "quiet", "note")
+FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note")
 
 
 def git(*args, cwd=None):
     done = subprocess.run(["git"] + list(args), cwd=cwd, capture_output=True, text=True)
     return done.stdout.strip() if done.returncode == 0 else ""
+
+
+def pr_state(url, cwd):
+    try:
+        done = subprocess.run(["gh", "pr", "view", url, "--json", "state", "-q", ".state"], cwd=cwd, capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+    state = done.stdout.strip().lower()
+    return state if done.returncode == 0 and state in ("open", "merged", "closed") else "unknown"
 
 
 def clean(value, size=300):
@@ -178,7 +187,7 @@ def collect(name, path, base, at):
         quiet = bool(run.get("external") and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET)
         rows.append({"repo": name, "slug": run["slug"], "goal": clean(run.get("goal"), 80), "level": clean(run.get("level")),
                      "status": clean(run.get("status")), "step": clean(run.get("step")) or "-", "tries": run.get("tries", 0),
-                     "pr": clean(run.get("pr")), "checks": clean(run.get("checks")), "judge": clean(run.get("judge")),
+                     "pr": clean(run.get("pr")), "prstate": pr_state(clean(run.get("pr")), path) if run.get("pr") else "", "checks": clean(run.get("checks")), "judge": clean(run.get("judge")),
                      "external": bool(run.get("external")), "quiet": "yes" if quiet else "no",
                      "note": clean(note.get("text")) if isinstance(note, dict) else "", "worktree": clean(run.get("worktree")),
                      "waiting": run.get("waiting") if isinstance(run.get("waiting"), dict) else None,
@@ -221,7 +230,7 @@ def build(at, since):
                             "words": ["resume %s" % r["slug"]]})
         else:
             continue
-        waiting[-1]["where"] = ("the session working in " if r["external"] else "the governing session, which owns ") + r["worktree"]
+        waiting[-1]["where"] = ("the session working on " if r["external"] else "the governing session, which owns ") + "%s/%s" % (r["repo"], r["slug"])
     history = {}
     for r in rows:
         if r["status"] == "done" and r["took"] > 0:
@@ -234,7 +243,7 @@ def build(at, since):
                 "no estimate: no finished %s goals yet" % r["level"]
             expected.append({"repo": r["repo"], "slug": r["slug"], "level": r["level"], "estimate": guess})
     today = at.strftime("%Y-%m-%d")
-    done = [{"repo": r["repo"], "slug": r["slug"], "pr": r["pr"], "result": "delivered" if r["pr"] else "finished, no pull request"}
+    done = [{"repo": r["repo"], "slug": r["slug"], "pr": r["pr"], "prstate": r["prstate"], "result": "delivered" if r["pr"] else "finished, no pull request"}
             for r in rows if r["status"] == "done" and r["last"].startswith(today)]
     note = ("Nothing waits on you, so these can be archived." if not waiting else
             "%d item(s) wait on you, so do not archive yet." % len(waiting))
@@ -303,13 +312,13 @@ def page(doc):
     out.append("" if doc["waiting"] else "<p>Nothing.</p>")
     out.append("</section>")
     out.append("<h2>%s</h2>%s" % (SECTIONS[1], table(["Repo", "Goal", "Waits on"], [[d["repo"], d["slug"], d["waits_on"]] for d in doc["dependencies"]])))
-    runs = [[r["repo"], r["goal"] or r["slug"], r["level"], r["step"], span(r["elapsed"]), r["tries"], r["pr"] or "-",
+    runs = [[r["repo"], r["goal"] or r["slug"], r["level"], r["step"], span(r["elapsed"]), r["tries"], r["pr"] + " (%s)" % r["prstate"] if r["pr"] else "-",
              "checks %s, judge %s" % (r["checks"] or "-", r["judge"] or "-"),
              r["status"] + (" (quiet)" if r["quiet"] == "yes" else ""), r["note"] or "-"] for r in doc["runs"]]
     out.append("<h2>%s</h2>%s" % (SECTIONS[2], table(["Repo", "Goal", "Level", "Step", "Elapsed", "Tries", "Pull request", "Check state", "Status", "Last message"], runs)))
     out.append("<h2>%s</h2>%s" % (SECTIONS[3], table(["Repo", "Goal", "Level", "Estimate"], [[x["repo"], x["slug"], x["level"], x["estimate"]] for x in doc["expected"]])))
     fin = doc["finished"]
-    out.append("<h2>%s</h2>%s<p class=mute>%s</p>" % (SECTIONS[4], table(["Repo", "Goal", "Result", "Pull request"], [[x["repo"], x["slug"], x["result"], x["pr"] or "-"] for x in fin["items"]]), e(fin["note"])))
+    out.append("<h2>%s</h2>%s<p class=mute>%s</p>" % (SECTIONS[4], table(["Repo", "Goal", "Result", "Pull request"], [[x["repo"], x["slug"], x["result"], x["pr"] + " (%s)" % x["prstate"] if x["pr"] else "-"] for x in fin["items"]]), e(fin["note"])))
     out.append("<h2>%s</h2>%s</body></html>\n" % (SECTIONS[5], table(["Repo", "Goal", "Step", "Status"], [[s["repo"], s["slug"], s["step"], s["status"]] for s in doc["steps"]])))
     return "\n".join(out)
 
