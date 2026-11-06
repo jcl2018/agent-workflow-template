@@ -1,0 +1,80 @@
+# Loop files
+
+The four workflow skills share this contract. Skill instructions never go in the repo. A repo holds only its own data.
+
+## In the repo: `.loop/`
+
+| File | Holds |
+|---|---|
+| `.loop/config.json` | Base branch, check commands, agent commands, risky paths |
+| `.loop/queue.md` | Goals to run, one line each |
+| `.loop/goals/<slug>.md` | One goal: done lines, plan, log |
+| `.loop/findings.md` | Open findings, one line each |
+
+### `config.json`
+
+```json
+{
+  "base": "main",
+  "checks": ["python3 -m unittest"],
+  "agent_command": ["claude", "-p"],
+  "judge_command": ["claude", "-p", "--tools", ""],
+  "parallel": 3,
+  "risky_paths": ["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"],
+  "version_file": "VERSION"
+}
+```
+
+- `agent_command` runs a goal in the background; the prompt is its last argument.
+- `judge_command` reads its prompt on standard input and runs in an empty temporary folder.
+- An empty `judge_command` means no headless judge: print the pack for a fresh agent instead.
+- Permissions are yours. These commands run as you set them, and nothing here turns them off.
+
+### `queue.md`
+
+One goal a line. Other lines are ignored.
+
+```
+- slug: add-median | level: standard | touches: calc.py, test_calc.py | goal: Add median() | done: Odd lists give the middle value | done: Even lists average the two middle values
+```
+
+`level` defaults to `standard`. `touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
+for your answer instead of answering `leave`.
+
+## Outside the repo: run state
+
+Run state lives in `<git common dir>/loop/`, found with `git rev-parse --git-common-dir`. Every worktree sees it, and
+nothing there can be committed.
+
+```
+loop/runs/<slug>.json     one goal's state
+loop/logs/<slug>.log      a background agent's output
+loop/dashboard.html       the last dashboard
+```
+
+### `runs/<slug>.json`
+
+```json
+{
+  "slug": "add-median", "goal": "Add median()", "level": "standard",
+  "status": "running", "step": "build", "tries": 0, "branch": "loop/add-median", "worktree": "/path",
+  "touches": ["calc.py"], "pid": 123, "pr": "https://github.com/o/r/pull/1", "batch": true,
+  "done_sha": "<sha256 of the done lines>", "checks": "pass", "judge": "pass", "release": "ask",
+  "waiting": {"ask": "Cut a release or leave it unreleased?", "words": ["cut add-median", "leave add-median"]},
+  "finding": "", "updated": "2026-01-01T00:00:00Z", "log": ["2026-01-01T00:00:00Z plan"]
+}
+```
+
+| `status` | Means |
+|---|---|
+| `queued` | Not started |
+| `running` | A step is under way |
+| `waiting` | Stopped until you answer; `waiting.words` are the exact words |
+| `done` | Has a pull request and its checks hold; nothing is asked |
+| `stopped` | Stopped itself after 3 failed tries, finding filed |
+| `failed` | The agent ended without finishing |
+
+`step` is one of `design`, `design-review`, `plan`, `build`, `checks`, `judge`, `pr`, `release`.
+`release` is empty, `ask`, `cut` or `leave`.
+
+Writes go through a temporary file and a rename, so a reader never sees half a file.
