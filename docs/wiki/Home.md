@@ -18,16 +18,16 @@ judges it, and you review the pull request. One session governs and the others b
 
 ## What is proven
 
-- The commands have run on a toy repo, except the `full` level (README, `dev/toy/test-*.sh`).
-- `go`, `docs` and `cut` have also run on a real repo (README).
 - The fresh judge failed two done lines for missing evidence on its first real run, correctly (FINDINGS.md).
+- A failed fresh-judge verdict counts as a try, the same as a failed check (DECISIONS.md).
+- `cut` refuses in a monitored batch unless `--user` is passed (DECISIONS.md, `dev/toy/test-release.sh`).
+- The goal, monitoring, regression, docs and release scripts each have a toy-repo test (`dev/toy/test-*.sh`).
 - `dev/package.sh` refuses a package with one planted fault per rule (`dev/test-package.sh`).
 
 ## What is not proven
 
-- The `full` level has not run.
-- Agents other than Claude Code and Codex are untested; Kimi, Qwen and OpenCode are still to come (ROADMAP).
-- There is no marketplace listing yet (README).
 - Real repos differ from the toy: four-number versions, odd changelogs, tests outside `tests/`, slow pre-push hooks
   (FINDINGS.md).
-- Commands may change while the first version settles (README).
+- Several goals pushing at once can fail with a bare git error; `goal.py pr` retries twice (FINDINGS.md).
+- Scripts are close to the 20 KB limit, so the next feature needs a new script (FINDINGS.md).
+- Codex needs extra sandbox setup for a goal run (FINDINGS.md, `dev/toy/run-goal.sh`).

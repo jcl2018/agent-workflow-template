@@ -39,3 +39,15 @@ for removed names. No personal names or accounts go in docs or README; I scan fo
 2. Rewrite docs/ROADMAP.md: batches built, what is left, drop `start` (done line 5).
 3. Add wiki and release links to README.md (done line 6).
 4. Grep docs and README for personal names; run `docs.py check` and `goal.py check` (done lines 7-8).
+
+## Evidence
+
+- The private name scan (a case-insensitive grep of docs, README.md and .loop/docs.tsv for the owner's names and accounts) prints nothing.
+- `docs.py check` prints `DOCS OK: 8 pages`; all 8 pages start with `<!-- workflow-docs -->`.
+- The first `goal.py check` runs failed only in toy tests that read the agent's `LOOP_BATCH=1` environment variable
+  (a batch goal refuses `cut` without `--user`). With `LOOP_BATCH` unset, the same checks pass, and no repo file differs.
+- Home's proof claims now cite only FINDINGS.md, DECISIONS.md and the dev tests (no README or ROADMAP source).
+- Flag cross-check: every `--flag` named in docs/wiki appears in the skill scripts, except `--allowed`, which is the
+  prefix of `--allowedTools` in prose:
+  `grep -rhoE '\-\-[a-z-]+' docs/wiki/*.md | sort -u` against `grep -ohE '"--[a-z-]+"' skills/*/scripts/*.py | sort -u`.
+- `.loop/findings.md` restored to main's version so the PR carries no stray change.
