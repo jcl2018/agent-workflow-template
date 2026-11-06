@@ -42,6 +42,10 @@ Frozen. A wrong done line needs a new goal.
 
 {done}
 
+## Verify by hand
+
+<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+
 ## Design
 
 ## Plan

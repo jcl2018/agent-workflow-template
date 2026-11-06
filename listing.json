@@ -1,5 +1,5 @@
 {
-  "summary": "Four small skills that take a sentence to a judged pull request, run many goals in parallel from one watching session, and cut draft releases. No engine: Markdown instructions and three stdlib Python scripts.",
+  "summary": "Five small skills that take a sentence to a judged pull request, run many goals in parallel from one watching session, keep a wiki current, and cut draft releases with manual verify steps. No engine: Markdown instructions and five stdlib Python scripts.",
   "tags": [
     "workflow",
     "agents",
@@ -25,7 +25,8 @@
     "Run several goals in parallel and see what waits on you",
     "Have a fresh agent judge a change it did not write",
     "Cut a draft GitHub release with a changelog",
-    "Set up a repo's workflow config safely on a branch"
+    "Set up a repo's workflow config safely on a branch",
+    "Keep a GitHub wiki in the repo and find stale pages"
   ],
   "commands": [
     "setup",
@@ -47,17 +48,24 @@
     "pr",
     "wait",
     "answer",
-    "finding"
+    "finding",
+    "survey",
+    "add",
+    "publish",
+    "restore",
+    "init"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
     "run state under the git common dir, in loop/ (never committed)",
     "git worktrees under that loop/ folder",
     "git branches loop/<slug> and workflow-setup, commits on them",
-    "VERSION and CHANGELOG.md on a goal's branch when you cut"
+    "VERSION and CHANGELOG.md on a goal's branch when you cut",
+    ".loop/docs.tsv and docs/wiki/*.md on a branch",
+    "pages it wrote, or that you name, in the repo's GitHub wiki, when you publish"
   ],
   "network": [
-    "github.com (git push, gh pull request and draft release calls, only when you run them)",
+    "github.com (git push, wiki push, gh pull request and draft release calls, only when you run them)",
     "the model host your own claude or codex command already uses"
   ]
 }

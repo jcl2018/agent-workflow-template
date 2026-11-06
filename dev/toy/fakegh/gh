@@ -7,7 +7,8 @@ case "$1 $2" in
      n=$(( $(ls "$d"/pr-* 2>/dev/null | wc -l) + 1 )); echo "$head" > "$d/pr-$n"
      echo "https://example.test/pull/$n";;
   "pr view") echo "no pull requests found" >&2; exit 1;;
-  "release create") echo "https://example.test/releases/draft";;
+  "release create") while [ $# -gt 0 ]; do [ "$1" = --notes-file ] && cat "$2" >> "$d/notes.log"; shift; done
+     echo "https://example.test/releases/draft";;
   "pr list") echo "[]";;
   *) exit 0;;
 esac

@@ -1,16 +1,17 @@
 # Roadmap
 
-## First batch: delivery, monitoring, release
+## First batch: delivery, monitoring, documentation, release
 
-Together these give the whole path: start work, watch it run in parallel, and ship the result.
+Together these give the whole path: start work, watch it run in parallel, document it, and ship the result.
 
-agent-workflow-template is a pack of four focused skills, so an agent loads only the one it needs.
+agent-workflow-template is a pack of five focused skills, so an agent loads only the one it needs.
 
 | Skill | Commands | What it does |
 |---|---|---|
 | `workflow-setup` | `setup` | Surveys a repo and writes its config, on a branch |
 | `workflow-delivery` | `poc`, `go` | Takes a sentence to a judged pull request |
 | `workflow-monitoring` | `start`, `report`, `dashboard`, `resume` | One session runs and watches many |
+| `workflow-docs` | `init`, `check`, `publish`, `restore` | Keeps wiki pages in the repo and finds stale ones |
 | `workflow-release` | `cut`, `leave` | Versions the repo and writes a draft GitHub release |
 
 ### Delivery
@@ -40,12 +41,22 @@ One session starts and watches the others.
 - `resume` picks up a stopped goal. A failed goal never stops the others.
 - Background agents use your own permission settings. agent-workflow-template never turns them off.
 
+### Documentation
+
+- Pages live in `docs/wiki/`, and `.loop/docs.tsv` maps each page to the paths it describes.
+- `check` finds pages that are stale, missing or unwritten.
+- `publish` updates the GitHub wiki. It never deletes a page, and it won't replace a page it didn't write.
+- `restore` reverts the last publish.
+
 ### Release
 
 For any repo using agent-workflow-template:
 
-- Once a goal's checks hold, it asks `cut` or `leave`.
-- `cut` moves the version, writes the changelog and creates a draft GitHub release. You publish it.
+- Once a goal's checks hold, it shows the docs that changed and the verify steps, then asks `cut` or `leave`.
+- Every goal has a `Verify by hand` section, with at least one step and what to expect. `cut` refuses without it.
+- `cut` refuses if a wiki page is stale. It then moves the version, writes the changelog and creates a draft GitHub
+  release carrying the verify steps and docs. You publish it.
+- After a cut, the wiki is published with `workflow-docs`.
 - `leave` keeps the work unreleased. A monitored batch can answer `leave` by itself, but never `cut`.
 
 For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZIP and refuses it if any published rule fails:
@@ -79,9 +90,9 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 6. `setup` runs twice on a repo with no change the second time.
 7. `dev/package.sh` passes, and refuses a package with one planted fault per rule.
 8. One real `quick` goal works on a real repo, and Codex can run the toy `quick` goal.
+9. `publish` updates a real wiki without touching other pages, and a real release carries verify steps and docs.
 
 ## Later, in order
 
 1. **Regression:** nightly and fast levels, a GitHub Actions template, an issue per failing check.
-2. **Documentation:** wiki pages kept in the repo, a stale page check.
-3. **Other agents:** Kimi, Qwen and OpenCode support.
+2. **Other agents:** Kimi, Qwen and OpenCode support.
