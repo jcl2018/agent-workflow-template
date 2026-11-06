@@ -1,8 +1,8 @@
 <!-- workflow-docs -->
 # Documentation
 
-Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests) and finds stale ones. Script:
-`docs.py`.
+Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests; `wiki_dir` in `.loop/config.json`
+changes the folder) and finds stale ones. Script: `docs.py`.
 
 ## Init
 
@@ -31,9 +31,13 @@ restore                         revert the last publish, if nothing came after i
 ```
 
 `.loop/docs.tsv` maps each page to the paths it describes. `check` prints `STALE`, `MISSING`, `UNWRITTEN` or
-`UNMAPPED`, and `DOCS OK` when clean. `publish` refuses while `check` finds problems, never deletes a page, and won't
-replace a page without the marker `<!-- workflow-docs -->` unless you name it with `--adopt`. `restore` refuses if the
-wiki changed since.
+`UNMAPPED`, `NO PAGES` if the map is empty, and `DOCS OK` when clean. Only a commit that changes the page clears
+`STALE`.
+
+`--base REF` counts only changes since `REF`. `publish` has no `--base`, so it counts every commit, and it refuses while
+`check` finds problems. It never deletes a page. It refuses a page in the repo that lost the marker
+`<!-- workflow-docs -->`, and won't replace a wiki page without that marker unless you name it with `--adopt`. `restore`
+refuses if the wiki changed since.
 
 ## Example
 
