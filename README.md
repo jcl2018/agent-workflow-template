@@ -5,7 +5,8 @@ and builds it, a fresh agent that didn't do the work judges it, and you review t
 and the others build.
 
 **Status: early. Copy the `skills/` folders into your agent's skills folder, or run `dev/install-local.sh` for Claude
-Code. No marketplace listing yet.** See the [roadmap](docs/ROADMAP.md).
+Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md), the [roadmap](docs/ROADMAP.md) and the
+[release page](../../releases).
 
 ## What it aims to be
 
