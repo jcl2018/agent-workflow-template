@@ -104,6 +104,14 @@ go back to 0), and launches a new agent told to continue from the goal file and 
 
 Resume a stopped goal only when the user asks. It stopped after 3 failed tries, so tell the user its finding first.
 
+## Operation session
+
+For a long run across goals or repos, one session can start the others and follow them in a loop. `scripts/board.py`
+builds the progress board (`board`), keeps the check-in `cadence`, follows other repos (`repos add`), records a
+session's latest message (`note SLUG TEXT`) and writes a `handoff` file. `watch.py go --session` freezes a goal and
+makes its worktree but starts no process: it prints `WORKTREE` and `PROMPT` for you to start in a visible session.
+The loop and its rules are in `references/operation.md`.
+
 ## Statuses
 
 | `status` | Means |
@@ -113,7 +121,7 @@ Resume a stopped goal only when the user asks. It stopped after 3 failed tries, 
 | `waiting` | Stopped until the user answers; `waiting.words` are the exact words |
 | `done` | Has a pull request and its checks hold |
 | `stopped` | Stopped itself after 3 failed tries, finding filed |
-| `failed` | The agent ended without finishing |
+| `failed` | The agent ended without finishing (never set for a goal marked `external`) |
 
 ## Rules
 

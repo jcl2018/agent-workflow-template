@@ -23,6 +23,24 @@ Frozen. A wrong done line needs a new goal.
 
 <!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
 
+1. Run `python3 skills/workflow-monitoring/scripts/board.py board` in a repo with some runs.
+   Expect: it prints DIGEST, CHANGED, NEXT_DELAY, JSON and HTML lines; open the HTML and see "Waiting on you" first.
+2. Run `python3 skills/workflow-monitoring/scripts/board.py cadence off`, then `board`.
+   Expect: it prints `NEXT_DELAY none`.
+3. Run `python3 skills/workflow-monitoring/scripts/watch.py go "demo" --done "x" --session`.
+   Expect: it prints WORKTREE and PROMPT and starts no process.
+
 ## Design
 
+`board.py` is a separate stdlib script (the 20 KB cap forbids sharing code with monitor.py, and it must stand alone).
+It reads run records from each followed repo's git common dir, builds one JSON document (sections, rows and a flat
+`state` map), and renders HTML from that same document with every value escaped. `--since` diffs the `state` map of the
+previous JSON, so the same inputs and `--at` give the same output. `watch.py go --session` marks the queue line
+`session: yes`; the record gets `external: true`, no pid, and `refresh`/`keep_moving` skip external records.
+Risks: watch.py is near the size cap (trimmed docstrings); notes are untrusted text (collapsed, escaped, never executed).
+
 ## Plan
+1. board.py with board, cadence, repos, note, handoff (done lines 1-5, 7, 8).
+2. watch.py go --session and external records (line 6).
+3. references/operation.md, SKILL.md link, loop-files.md, listing.json, README.md (lines 9, 10).
+4. dev/toy/test-board.sh proves every line with fixtures (line 10); run it and the repo checks.
