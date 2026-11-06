@@ -35,6 +35,8 @@ A background agent runs `step`, `check`, `judge` and `pr` in order and fills in 
 tries it files a finding in `.loop/findings.md` and stops with exit code 3. `pr` pushes the branch and opens the pull
 request, and refuses until the checks (and the judge, where the level needs one) hold on this commit.
 
+The fresh judge is given only the diff, the goal file and the check results, in an empty folder.
+
 ## Example
 
 ```bash

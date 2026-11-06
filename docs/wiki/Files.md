@@ -18,8 +18,8 @@ The full contract is `skills/loop-files.md`.
 
 ## Outside the repo
 
-Run state lives in `<git common dir>/loop/`: `runs/<slug>.json`, `logs/<slug>.log`, `dashboard.html`, `wiki.json`.
-Nothing there is committed.
+Run state lives in `<git common dir>/loop/`: `runs/<slug>.json`, `logs/<slug>.log`, `dashboard.html`, `wiki.json`, `board.json`, `board.html`, `cadence` (minutes between check-ins, or `off`) and
+`handoff.md`. Nothing there is committed. `board.py repos add` keeps a list of repo paths in `~/.workflow-loop/repos`.
 
 ## In this template
 
