@@ -20,6 +20,7 @@ finish() {  # finish SLUG [extra goal.py new args]: a done quick goal with a pul
   local slug=$1; shift
   git switch -q main
   $goal new "$slug" --here --goal "Add $slug" --done "calc has $slug" --level quick "$@" >/dev/null
+  mkdir -p "$(dirname "${FILE:-calc.py}")"
   printf '\n\ndef %s():\n    return 1\n' "${slug//-/_}" >> "${FILE:-calc.py}"
   git add "${FILE:-calc.py}"; git commit -qm "${MSG:-Add ${slug} to calc}"
   [ -n "$NO_VERIFY" ] || python3 - "$slug" <<'PY'
@@ -116,8 +117,23 @@ LOOP_BATCH=1 finish owner --release ask
 out=$($rel ask owner); grep -q "WAITING owner" <<<"$out" && ok "release: ask still waits" || bad "release ask"
 NO_VERIFY=1 LOOP_BATCH=1 finish nosteps
 out=$($rel ask nosteps); grep -q "REFUSED" <<<"$out" && grep -q "WAITING nosteps" <<<"$out" && ok "missing verify steps refuse, owner decides" || bad "nosteps"
+LOOP_BATCH=1 MSG="feat: calc gets a helper" finish featmsg
+out=$($rel ask featmsg); grep -q "NEED minor" <<<"$out" && ok "feat commit cuts a minor" || bad "feat minor"
+LOOP_BATCH=1 FILE=tests/test_more.py finish testsonly
+out=$($rel ask testsonly); grep -q "NEED leave: only docs, tests" <<<"$out" && ok "tests only leaves" || bad "tests leave"
+LOOP_BATCH=1 finish nojudge
+python3 - "$(git rev-parse --git-common-dir)/loop/runs/nojudge.json" <<'PY2'
+import json, sys
+d = json.load(open(sys.argv[1])); d["level"] = "standard"; d["judge"] = ""; json.dump(d, open(sys.argv[1], "w"))
+PY2
+out=$($rel ask nojudge 2>&1 || true); grep -q "judge has not passed" <<<"$out" && ! grep -q "NEED" <<<"$out" && ok "no judge pass, no auto release" || bad "judge gate"
+git switch -q main; mkdir -p docs/wiki; echo page > docs/wiki/Calc.md; printf 'Calc\tcalc.py\n' > .loop/docs.tsv
+git add -A; git commit -qm "Map the Calc page"
+LOOP_BATCH=1 finish stalepage
+out=$($rel ask stalepage); grep -q "REFUSED: these pages are stale" <<<"$out" && grep -q "WAITING stalepage" <<<"$out" && ok "stale page refuses, owner decides" || bad "stale gate"
+git switch -q main; git rm -q .loop/docs.tsv docs/wiki/Calc.md; git commit -qm "Unmap the Calc page"
 grep -Eq "draft=false|release edit|release upload" "$FAKE_GH_DIR/calls.log" && bad "publish call" || ok "auto mode only made drafts"
-[ "$(grep -c '^release create' "$FAKE_GH_DIR/calls.log")" = "$(( $(grep -c '^release create' <(head -n "$n" "$FAKE_GH_DIR/calls.log")) + 2 ))" ] && ok "exactly two auto drafts" || bad "draft count"
+[ "$(grep -c '^release create' "$FAKE_GH_DIR/calls.log")" = "$(( $(grep -c '^release create' <(head -n "$n" "$FAKE_GH_DIR/calls.log")) + 3 ))" ] && ok "exactly three auto drafts" || bad "draft count"
 [ -z "$(git ls-remote --tags origin)" ] && ok "still no tag" || bad "tag pushed"
 [ "$(wc -c < "$here/skills/workflow-release/scripts/release.py")" -lt 20000 ] && ok "release.py under 20 KB" || bad "release.py size"
 git switch -q main; sed -i.bak 's/, "release_auto": true//' .loop/config.json && rm .loop/config.json.bak; git commit -qam "Turn release_auto off"
