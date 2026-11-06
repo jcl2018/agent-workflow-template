@@ -19,7 +19,12 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: it prints `DOCS OK: 8 pages`.
+2. Open `docs/wiki/Home.md` and follow each feature link.
+   Expect: eight pages exist, each starting with `<!-- workflow-docs -->`.
+3. Run `grep -n "start" docs/ROADMAP.md | grep '`start'`.
+   Expect: no output; the removed `start` command is gone.
 
 ## Design
 
