@@ -84,10 +84,13 @@ assert "prefers-color-scheme:dark" in h and "name=viewport" in h and "max-width:
 assert h.index("Waiting on you") < h.index("<h2>Runs")
 assert "(quiet)" in h
 PY
-python3 - "$O/board.json" <<'PY' && ok "no estimate without history of the same level" || bad "no-history estimate"
+python3 - "$O/board.json" <<'PY' && ok "a level with no finished goals gets exactly no estimate" || bad "no-history estimate"
 import json, sys
 d = json.load(open(sys.argv[1]))
-assert all(x["estimate"].startswith(("estimate:", "no estimate")) for x in d["expected"])
+e = {x["slug"]: x["estimate"] for x in d["expected"]}
+assert e["ext1"] == "no estimate: no finished quick goals yet", e
+assert e["runa"].startswith("estimate:"), e
+assert all(v.startswith("estimate:") or v.startswith("no estimate: no finished ") for v in e.values()), e
 PY
 python3 - "$O/board.json" <<'PY' && ok "quiet external goal shown quiet after 30 minutes; fresh one is not" || bad "quiet"
 import json, sys
@@ -134,7 +137,17 @@ python3 -c "import json,sys;d=json.load(open(sys.argv[1]));assert d['external'] 
 $W watch --once > /dev/null 2>&1
 [ "$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['status'])" "$R/vis.json")" = running ] && ok "a missing process never marks an external goal failed" || bad "external survived watch"
 # handoff
+rec waita waiting quick plan 2026-01-01T11:00:00Z 'waiting={"ask":"Cut <i>it</i>?","words":["cut waita","leave waita"]}'
 $B handoff --at $AT > "$T/h.out"; hf=$(sed -n 's/^HANDOFF //p' "$T/h.out")
+python3 - "$hf" <<'PY' && ok "handoff Waiting on the owner holds the question, exact words and where to type" || bad "handoff waiting line"
+import sys
+t = open(sys.argv[1]).read()
+sec = t.split("## Waiting on the owner", 1)[1].split("\n## ", 1)[0]
+line = [l for l in sec.splitlines() if "/waita:" in l]
+assert line, sec
+l = line[0]
+assert "Cut <i>it</i>?" in l and "cut waita or leave waita" in l and "Type in the governing session, which owns /wt/waita: " in l, l
+PY
 for k in "## Repos" "## Cadence" "## Open goals" "## Waiting on the owner" "## Next check-in steps" "other" "vis"; do has "$hf" "$k" "handoff has $k"; done
 # repo checks
 op="$here/skills/workflow-monitoring/references/operation.md"

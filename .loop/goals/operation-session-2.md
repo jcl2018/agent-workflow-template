@@ -15,8 +15,19 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `bash dev/toy/test-board.sh`.
+   Expect: lines "a level with no finished goals gets exactly no estimate" and "handoff Waiting on the owner holds the question, exact words and where to type" are PASS, and the last line is ALL PASS.
+2. Run `python3 -c "import json;print(json.load(open('.loop/config.json'))['checks'][-1])"`.
+   Expect: it prints `bash dev/toy/test-board.sh`.
 
 ## Design
 
+Extend the existing no-history assertion to require the exact text `no estimate: no finished quick goals yet` for the quick level (no finished quick goals in the fixtures) while a standard run keeps a real estimate. Re-add the waiting goal record before the handoff (it is deleted earlier) and assert its section line holds the question, exact words and where. Move the board test to the end of checks. Risk: assertions tied to board.py wording; they fail loudly if it changes.
+
 ## Plan
+
+1. Exact no-estimate assertion in test-board.sh (done line 1).
+2. Handoff waiting-section assertion in test-board.sh (done line 2).
+3. Reorder checks in .loop/config.json so the board test is last (done line 3).
+4. Run goal.py check (done line 4).
+

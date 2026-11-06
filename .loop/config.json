@@ -5,9 +5,9 @@
     "bash dev/toy/test-release.sh",
     "bash dev/toy/test-goal.sh",
     "bash dev/toy/test-regression.sh",
-    "bash dev/toy/test-board.sh",
     "python3 dev/package.py --out dist/check.zip",
-    "bash dev/test-package.sh"
+    "bash dev/test-package.sh",
+    "bash dev/toy/test-board.sh"
   ],
   "agent_command": [
     "claude",
