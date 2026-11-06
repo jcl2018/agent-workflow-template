@@ -7,6 +7,7 @@ Checks run in the order of the roadmap's rule table. Every failure is printed as
 `FAIL <rule>: <what>`. One failure means no ZIP and exit 1.
 """
 import argparse
+import ast
 import json
 import os
 import re
@@ -132,7 +133,15 @@ def check_scripts(root, files):
         text = data.decode("utf-8", "replace")
         if len(data) >= MAX_SCRIPT:
             fail("Scripts", "%s is %d bytes, under 20 KB allowed" % (rel, len(data)))
-        modules = set(re.findall(r"^\s*(?:import|from)\s+([A-Za-z_][A-Za-z0-9_]*)", text, re.M))
+        modules = set()
+        try:
+            for node in ast.walk(ast.parse(text)):
+                if isinstance(node, ast.Import):
+                    modules |= {item.name.split(".")[0] for item in node.names}
+                elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+                    modules.add(node.module.split(".")[0])
+        except SyntaxError as error:
+            fail("Scripts", "%s does not parse: %s" % (rel, error))
         for name in sorted(modules - set(sys.stdlib_module_names)):
             fail("Scripts", "%s imports %s, which is not in the standard library" % (rel, name))
         if "__file__" in text:
