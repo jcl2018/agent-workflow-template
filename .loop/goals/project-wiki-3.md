@@ -1024,6 +1024,14 @@ $ docs.py check        # toy with no pages
 NO PAGES: run add first
 ```
 
-`regression.py add` writes a row the same way `seed` did, and `docs.py check` on this repo is above (`DOCS OK: 8
-pages`). `poc` has no script and writes nothing; `delivery go` is `goal.py new` (help above) plus `watch.py go`
+```text
+$ regression.py add toy-extra --level land --command "python3 -c 'print(1)'" --goal toy-goal:1
+ROW toy-extra land: python3 -c 'print(1)'
+$ cat .loop/regression.tsv
+# id	level	command	goal	seen_red
+check-1	land	python3 -m unittest discover		
+toy-extra	land	python3 -c 'print(1)'	toy-goal:1
+```
+
+`docs.py check` on this repo is above (`DOCS OK: 8 pages`). `poc` has no script and writes nothing; `delivery go` is `goal.py new` (help above) plus `watch.py go`
 (output above).
