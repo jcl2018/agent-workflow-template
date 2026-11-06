@@ -15,8 +15,18 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-monitoring/scripts/board.py board --out /tmp/b` and open `/tmp/b/board-artifact.html`.
+   Expect: it starts with `<title>`, has no doctype, html, head or body tags, and still renders as a board.
+2. Add `data-theme="dark"` to the root of `/tmp/b/board.html`, then `light`, and open it each time.
+   Expect: the page is dark, then light, whatever the system setting is.
 
 ## Design
 
+`page(doc, bare)` builds both pages from one body. The bare page starts with `<title>` and `<style>` and drops the doctype, html, head and body tags, so the Artifact tool needs no hand edit. The CSS defines light tokens on `:root`, dark tokens under `prefers-color-scheme:dark` guarded by `:root:not([data-theme=light])`, and again under `:root[data-theme=dark]`. A manual setting therefore wins over the system one. Risk: the 20 KB cap on board.py, met by trimming the docstring and repeated code. The branch starts from loop/board-truth.
+
 ## Plan
+
+1. board.py: `page(doc, bare)`, the shared CSS tokens, and the new `ARTIFACT` path (done lines 1, 2).
+2. operation.md says to publish board-artifact.html (done line 3).
+3. test-board.sh checks the tags and the theme rules on both pages (done lines 2, 3).
+4. `goal.py check` proves the repo checks and the 20 KB cap (done line 4).

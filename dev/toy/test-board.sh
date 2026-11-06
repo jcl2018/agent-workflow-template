@@ -51,7 +51,7 @@ AT=2026-01-01T12:00:00Z
 O="$T/out"; mkdir -p "$O"
 $B board --at $AT --out "$O" > "$T/b1"; $B board --at $AT --out "$T/out2" > "$T/b2"
 sed "s#$T/out2#$O#" "$T/b2" | diff -q - "$T/b1" >/dev/null && cmp -s "$O/board.json" "$T/out2/board.json" && ok "same inputs, same output" || bad "determinism"
-for k in DIGEST CHANGED NEXT_DELAY JSON HTML; do grep -q "^$k " "$T/b1" && ok "prints $k" || bad "prints $k"; done
+for k in DIGEST CHANGED NEXT_DELAY JSON HTML ARTIFACT; do grep -q "^$k " "$T/b1" && ok "prints $k" || bad "prints $k"; done
 has "$T/b1" "CHANGED yes" "first board has changes"
 has "$T/b1" "CHANGE " "prints CHANGE lines"
 $B board --at $AT --since "$O/board.json" --out "$T/out3" > "$T/b3"
@@ -94,6 +94,15 @@ assert "&lt;b&gt;hi&lt;/b&gt;" in h and "<b>hi</b>" not in h and "&lt;script&gt;
 assert "prefers-color-scheme:dark" in h and "name=viewport" in h and "max-width:600px" in h
 assert h.index("Waiting on you") < h.index("<h2>Runs")
 assert "(quiet)" in h
+PY
+python3 - "$H" "$O/board-artifact.html" <<'PY' && ok "artifact page has no outer tags and both pages honor data-theme" || bad "artifact page"
+import re, sys
+full, art = open(sys.argv[1]).read(), open(sys.argv[2]).read()
+assert art.startswith("<title>Operation board</title><style>")
+assert not re.search(r"<(!doctype|html|head|body)\b|</(html|head|body)>", art, re.I)
+assert "<script" not in art and "&lt;script&gt;alert" in art and "Waiting on you" in art
+for page in (full, art):
+    assert "prefers-color-scheme:dark" in page and ":root:not([data-theme=light])" in page and ":root[data-theme=dark]" in page
 PY
 python3 - "$O/board.json" "$H" <<'PY' && ok "pull request states: open, merged, closed, and unknown when gh cannot answer" || bad "pr states"
 import json, sys
