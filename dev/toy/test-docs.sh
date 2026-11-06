@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test workflow-docs on a throwaway toy repo with a bare wiki. usage: test-docs.sh [DIR]
 set -e
+unset LOOP_BATCH  # these cases expect a human-run goal, not a monitored batch
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d"
