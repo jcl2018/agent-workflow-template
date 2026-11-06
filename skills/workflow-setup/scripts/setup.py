@@ -99,6 +99,9 @@ def merged(repo, old):
         "risky_paths": RISKY,
         "version_file": "VERSION",
         "wiki_dir": "docs/wiki",
+        "pr_bumps_version": False,
+        "mend": False,
+        "resume_on_limit": False,
     }
     config.update(old)
     return config

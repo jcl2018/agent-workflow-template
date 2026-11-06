@@ -10,5 +10,13 @@ case "$1 $2" in
   "release create") while [ $# -gt 0 ]; do [ "$1" = --notes-file ] && cat "$2" >> "$d/notes.log"; shift; done
      echo "https://example.test/releases/draft";;
   "pr list") echo "[]";;
+  "issue list") python3 -c '
+import datetime, json, os
+state = "OPEN" if os.environ.get("FAKE_GH_ISSUE_OPEN") else "CLOSED" if os.environ.get("FAKE_GH_ISSUE_CLOSED") else ""
+day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+notes = [{"body": "Failing on %s." % day}] if os.environ.get("FAKE_GH_ISSUE_COMMENTED") else []
+print(json.dumps([{"number": 7, "state": state, "body": "<!-- loop-regression flag -->", "comments": notes}] if state else []))
+';;
+  "issue create") echo "https://example.test/issues/7";;
   *) exit 0;;
 esac

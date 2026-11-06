@@ -1,16 +1,22 @@
 # Roadmap
 
+## How it runs
+
+One session governs, and the others build. Start every goal with `/workflow-monitoring go`, then run
+`/workflow-monitoring watch`. Each goal gets its own worktree and background agent, at every level.
+
 ## First batch: delivery, monitoring, documentation, release
 
 Together these give the whole path: start work, watch it run in parallel, document it, and ship the result.
 
-agent-workflow-template is a pack of five focused skills, so an agent loads only the one it needs.
+agent-workflow-template is a pack of six focused skills, so an agent loads only the one it needs.
 
 | Skill | Commands | What it does |
 |---|---|---|
 | `workflow-setup` | `setup` | Surveys a repo and writes its config, on a branch |
 | `workflow-delivery` | `poc`, `go` | Takes a sentence to a judged pull request |
-| `workflow-monitoring` | `start`, `report`, `dashboard`, `resume` | One session runs and watches many |
+| `workflow-monitoring` | `go`, `watch`, `report`, `dashboard`, `resume` | One session governs; the others build |
+| `workflow-regression` | `seed`, `add`, `sync`, `red`, `run`, `workflow` | Keeps tests visible and enforced |
 | `workflow-docs` | `init`, `check`, `publish`, `restore` | Keeps wiki pages in the repo and finds stale ones |
 | `workflow-release` | `cut`, `leave` | Versions the repo and writes a draft GitHub release |
 
@@ -20,7 +26,8 @@ agent-workflow-template is a pack of five focused skills, so an agent loads only
 
 | Level | Steps | Fresh judge | Use it for |
 |---|---|---|---|
-| `quick` | Plan, build, checks | No | Small, low-risk changes |
+| `minimum` | Build, checks | No | The default: fast work, with the agent's own planning |
+| `quick` | Written plan, build, checks | No | Small changes that need a plan on record |
 | `standard` | Short design, plan, build, checks | One, at the end | Most work |
 | `full` | Adds a design review before the build | One, plus the review | Risky or large changes |
 
@@ -33,12 +40,14 @@ agent-workflow-template is a pack of five focused skills, so an agent loads only
 
 One session starts and watches the others.
 
-- `start` takes goals from `.loop/queue.md` and gives each its own worktree and background agent, 3 at a time by default.
+- `go` queues a goal and starts it. `watch` takes goals from `.loop/queue.md` and gives each its own worktree and
+  background agent, 3 at a time by default.
 - Goals that declare the same files don't run together.
 - Run state lives in the shared git folder, so every worktree sees it and nothing extra is committed.
 - `report` shows each goal's step, its pull request, and what's waiting on you with the exact words to type.
 - `dashboard` writes one self-contained HTML page. Claude users can also publish it as an Artifact.
 - `resume` picks up a stopped goal. A failed goal never stops the others.
+- With `mend` on, `watch` gives a failed goal one fresh agent. With `resume_on_limit` on, it continues after a usage limit.
 - Background agents use your own permission settings. agent-workflow-template never turns them off.
 
 ### Documentation
@@ -92,7 +101,15 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 8. One real `quick` goal works on a real repo, and Codex can run the toy `quick` goal.
 9. `publish` updates a real wiki without touching other pages, and a real release carries verify steps and docs.
 
+## Second batch: done
+
+- `minimum` level, the new default, with no design round.
+- One governing session: `/workflow-monitoring go` and `watch`.
+- `workflow-regression`: rows, known failures, a workflow, and an issue per failing row.
+- A POC's queue line, the mender, resuming after a usage limit, and optional version bumps on pull requests.
+
 ## Later, in order
 
-1. **Regression:** nightly and fast levels, a GitHub Actions template, an issue per failing check.
-2. **Other agents:** Kimi, Qwen and OpenCode support.
+1. **Other agents:** Kimi, Qwen and OpenCode support.
+
+Merging, a project board and milestones stay with you.

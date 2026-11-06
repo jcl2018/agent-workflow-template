@@ -1,5 +1,5 @@
 {
-  "summary": "Five small skills that take a sentence to a judged pull request, run many goals in parallel from one watching session, keep a wiki current, and cut draft releases with manual verify steps. No engine: Markdown instructions and five stdlib Python scripts.",
+  "summary": "Six small skills: one session governs while background agents take each goal to a pull request, keep a wiki current, run regression tests, and cut draft releases with manual verify steps. No engine: Markdown instructions and seven stdlib Python scripts.",
   "tags": [
     "workflow",
     "agents",
@@ -26,13 +26,14 @@
     "Have a fresh agent judge a change it did not write",
     "Cut a draft GitHub release with a changelog",
     "Set up a repo's workflow config safely on a branch",
-    "Keep a GitHub wiki in the repo and find stale pages"
+    "Keep a GitHub wiki in the repo and find stale pages",
+    "Govern parallel goals from one session",
+    "Keep regression tests visible, with an issue per failure"
   ],
   "commands": [
     "setup",
     "poc",
     "go",
-    "start",
     "report",
     "dashboard",
     "resume",
@@ -53,7 +54,14 @@
     "add",
     "publish",
     "restore",
-    "init"
+    "init",
+    "watch",
+    "queue",
+    "run",
+    "sync",
+    "seed",
+    "red",
+    "workflow"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
@@ -62,10 +70,12 @@
     "git branches loop/<slug> and workflow-setup, commits on them",
     "VERSION and CHANGELOG.md on a goal's branch when you cut",
     ".loop/docs.tsv and docs/wiki/*.md on a branch",
-    "pages it wrote, or that you name, in the repo's GitHub wiki, when you publish"
+    "pages it wrote, or that you name, in the repo's GitHub wiki, when you publish",
+    ".loop/regression.tsv, .loop/regression-known.tsv and .github/workflows/regression.yml",
+    "a version bump commit on a goal's branch, only with pr_bumps_version on"
   ],
   "network": [
-    "github.com (git push, wiki push, gh pull request and draft release calls, only when you run them)",
+    "github.com (git push, wiki push, gh pull request, issue and draft release calls, only when you run them)",
     "the model host your own claude or codex command already uses"
   ]
 }
