@@ -8,7 +8,9 @@ prompt="Follow the skill at $here/skills/workflow-delivery/SKILL.md. Its script 
 cd "$repo"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="${FAKE_GH_DIR:-$repo/../gh}" 
 if [ "${AGENT:-claude}" = codex ]; then
-  codex exec --skip-git-repo-check -s workspace-write ${MODEL:+-m $MODEL} "$prompt"
+  # codex runs a login shell that resets PATH, so name the fake gh in the prompt
+  prompt="$prompt Prefix every goal.py command with PATH=$here/dev/toy/fakegh:\$PATH FAKE_GH_DIR=$FAKE_GH_DIR so the test double of gh is used."
+  codex exec --skip-git-repo-check -s workspace-write -c "sandbox_workspace_write.writable_roots=[\"$(cd "$repo" && git rev-parse --absolute-git-dir)\",\"$(cd "$repo" && git remote get-url origin)\"]" -c model_reasoning_effort=low ${MODEL:+-m $MODEL} "$prompt" </dev/null
 else
   claude -p --model "${MODEL:-haiku}" --allowedTools "Bash,Read,Write,Edit" --add-dir "$here/skills" <<<"$prompt"
 fi

@@ -1,0 +1,63 @@
+{
+  "summary": "Four small skills that take a sentence to a judged pull request, run many goals in parallel from one watching session, and cut draft releases. No engine: Markdown instructions and three stdlib Python scripts.",
+  "tags": [
+    "workflow",
+    "agents",
+    "pull-request",
+    "automation",
+    "git",
+    "release",
+    "code-review",
+    "parallel"
+  ],
+  "keywords": [
+    "agentic workflow",
+    "judge",
+    "pull request",
+    "worktree",
+    "dashboard",
+    "draft release",
+    "changelog",
+    "queue"
+  ],
+  "use_cases": [
+    "Take one sentence to a reviewed pull request",
+    "Run several goals in parallel and see what waits on you",
+    "Have a fresh agent judge a change it did not write",
+    "Cut a draft GitHub release with a changelog",
+    "Set up a repo's workflow config safely on a branch"
+  ],
+  "commands": [
+    "setup",
+    "poc",
+    "go",
+    "start",
+    "report",
+    "dashboard",
+    "resume",
+    "cut",
+    "leave",
+    "ask",
+    "show",
+    "new",
+    "step",
+    "check",
+    "judge",
+    "verdict",
+    "pr",
+    "wait",
+    "answer",
+    "finding"
+  ],
+  "writes": [
+    ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
+    "run state under the git common dir, in loop/ (never committed)",
+    "git worktrees under that loop/ folder",
+    "git branches loop/<slug> and workflow-setup, commits on them",
+    "VERSION and CHANGELOG.md on a goal's branch when you cut"
+  ],
+  "network": [
+    "github.com (git push, gh pull request and draft release calls, only when you run them)",
+    "the model host your own claude or codex command already uses"
+  ]
+}
