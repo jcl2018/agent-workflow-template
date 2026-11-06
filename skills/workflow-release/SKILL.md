@@ -29,6 +29,19 @@ It refuses unless the goal is `done` with checks `pass` (and the judge `pass`, u
   `leave` by itself. Report it and stop.
 - `ALREADY cut` or `ALREADY leave`: the question was answered before. Report it.
 
+With `"release_auto": true` in `.loop/config.json`, a monitored batch goal does not just leave. `ask` prints
+`NEED <leave|patch|minor|ask>: <reason>` from the goal's diff (`.loop/` changes are ignored) and records both:
+
+| Need | When | What happens |
+|---|---|---|
+| `leave` | only docs, tests or `.loop` changed | leaves, as before |
+| `patch` | any other change, such as a fix | cuts a draft, bump `patch`, no `--user` |
+| `minor` | a new non-doc file, or a `feat` commit | cuts a draft, bump `minor`, no `--user` |
+| `ask` | a `BREAKING` or `!:` commit, or a removed file | waits for the owner |
+
+A goal marked `release: ask` still waits. Every refusal of `cut` still applies; if one fires, the owner is asked. The
+release is always a draft. Without `release_auto`, nothing changes.
+
 ## 2. `leave <slug>`
 
 When the user's answer is `leave <slug>`, run:

@@ -17,8 +17,23 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
+1. Run `bash dev/toy/test-release.sh`.
+   Expect: it ends with ALL PASS, and the 4b section shows NEED patch/minor/leave/ask lines and exactly two drafts.
+
 <!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
 
 ## Design
 
+`release.py ask` stays the single entry the batch already reaches. When the goal is a batch goal not marked
+`release: ask` and `release_auto` is true, it classifies the diff against the base: `.loop/` ignored; docs, tests and
+markdown only means leave; a BREAKING or `!:` commit or a removed file means ask; a new non-doc file or `feat` commit
+means minor; else patch. It records need and reason, then calls `cmd_cut` with an internal `auto` flag, so the draft,
+verify-step, stale-page and checks refusals all still run. On any refusal it falls through to the normal wait. Risk: the
+heuristic misreads a change; the draft and the owner's publish step contain that.
+
 ## Plan
+
+1. Add auto_on/auto_need and the batch branch in cmd_ask; accept `auto` in cmd_cut (done lines 1-4).
+2. Extend dev/toy/test-release.sh section 4b with a fake gh for every line (lines 1-5).
+3. Update SKILL.md and docs/wiki/Release.md (line 5); confirm size under 20 KB.
+4. Run goal.py check and judge (line 6).

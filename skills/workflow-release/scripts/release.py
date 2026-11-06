@@ -12,6 +12,8 @@ usage: release.py <command> <slug> [options]
   show SLUG                        print the goal's release field
 
 A batch goal never cuts unless --user is given, and --user means the human's own message said to cut.
+With "release_auto": true in .loop/config.json, a batch ask reads the diff: leave, patch or minor cut or leave by
+itself (a DRAFT, no --user); a breaking change waits.
 It runs git and gh, and nothing else. It never publishes a release, never pushes a tag and never merges.
 """
 import argparse
@@ -105,8 +107,21 @@ def cmd_ask(args):
     if state.get("status") != "done":
         sys.exit("REFUSED: %s is %s, not done. Fix: finish it with workflow-delivery." % (args.slug, state.get("status")))
     finished(state)
+    tree = state.get("worktree") or ""
+    top = git("rev-parse", "--show-toplevel", cwd=tree if tree and os.path.isdir(tree) else None)
     if state.get("batch") and state.get("release") != "ask":
-        return do_leave(state, "the batch")
+        need = auto_need(top, state) if auto_on(top) else None
+        if need is None:
+            return do_leave(state, "the batch")
+        print("NEED %s: %s" % need)
+        if need[0] == "leave":
+            return do_leave(state, "the batch (%s)" % need[1])
+        if need[0] != "ask":
+            try:
+                return cmd_cut(argparse.Namespace(slug=args.slug, bump=need[0], user=False, auto=True))
+            except SystemExit as stop:
+                print(stop, "\nThe owner decides.")
+                state = load(args.slug)
     words = ["cut %s" % args.slug, "leave %s" % args.slug]
     state["status"] = "waiting"
     state["step"] = "release"
@@ -115,8 +130,6 @@ def cmd_ask(args):
     save(state, "waiting: " + ASK)
     print("WAITING %s: %s" % (args.slug, ASK))
     print("PR: %s" % state.get("pr"))
-    tree = state.get("worktree") or ""
-    top = git("rev-parse", "--show-toplevel", cwd=tree if tree and os.path.isdir(tree) else None)
     cfg = read_config(top)
     base = base_of(top, cfg)
     for line in docs_lines(top, cfg, base):
@@ -129,6 +142,36 @@ def cmd_ask(args):
     for word in words:
         print("  " + word)
     return 0
+
+
+def auto_on(top):
+    try:
+        with open(os.path.join(top, ".loop", "config.json")) as handle:
+            return json.load(handle).get("release_auto") is True
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
+def auto_need(top, state):
+    """(need, reason) from the diff: leave, patch, minor or ask; recorded in the run state."""
+    base = base_of(top, read_config(top))
+    rows = [line.split("\t") for line in git("diff", "--name-status", "--no-renames", "%s...HEAD" % base, cwd=top,
+                                             check=False).splitlines()]
+    rows = [(r[0][0], r[-1]) for r in rows if len(r) > 1 and not r[-1].startswith(".loop/")]
+    docs = re.compile(r"^(docs|dev|tests?)/|\.md$|(^|/)test[-_.]|[-_.]test\.")
+    code = [r for r in rows if not docs.search(r[1])]
+    msgs = git("log", "--format=%s%n%b", "%s..HEAD" % base, cwd=top, check=False)
+    if not code:
+        need = ("leave", "only docs, tests or .loop changed")
+    elif re.search(r"BREAKING|^\w+(\([^)]*\))?!:", msgs, re.M) or any(k == "D" for k, _ in code):
+        need = ("ask", "a breaking change: a commit says so or a file was removed")
+    elif any(k == "A" for k, _ in code) or re.search(r"^feat\b", msgs, re.M | re.I):
+        need = ("minor", "a new feature or command")
+    else:
+        need = ("patch", "a fix")
+    state["release_need"], state["release_reason"] = need
+    save(state, "release need %s: %s" % need)
+    return need
 
 
 def cmd_leave(args):
@@ -286,7 +329,7 @@ def restore(cwd, files, sha_before, message):
 def cmd_cut(args):
     state = load(args.slug)
     slug = args.slug
-    if state.get("batch") and not args.user:
+    if state.get("batch") and not args.user and not getattr(args, "auto", False):
         sys.exit("REFUSED: %s is a batch goal. A batch may answer leave, never cut. Fix: cut only when the human's "
                  "own message says \"cut %s\", then pass --user." % (slug, slug))
     finished(state)
