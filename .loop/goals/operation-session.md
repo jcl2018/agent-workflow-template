@@ -44,3 +44,35 @@ Risks: watch.py is near the size cap (trimmed docstrings); notes are untrusted t
 2. watch.py go --session and external records (line 6).
 3. references/operation.md, SKILL.md link, loop-files.md, listing.json, README.md (lines 9, 10).
 4. dev/toy/test-board.sh proves every line with fixtures (line 10); run it and the repo checks.
+
+## Evidence
+
+Output of `bash dev/toy/test-board.sh` (it now runs as a repo check; it also checks the 20 KB script and 150-line SKILL.md limits and the listing.json words):
+
+```
+PASS: operation.md: merge only when told
+PASS: operation.md: never archive
+PASS: SKILL.md links operation.md
+PASS: under 20 KB: goal.py
+PASS: under 20 KB: docs.py
+PASS: under 20 KB: board.py
+PASS: under 20 KB: monitor.py
+PASS: under 20 KB: watch.py
+PASS: under 20 KB: regression.py
+PASS: under 20 KB: release.py
+PASS: under 20 KB: setup.py
+PASS: under 150 lines: workflow-delivery
+PASS: under 150 lines: workflow-docs
+PASS: under 150 lines: workflow-monitoring
+PASS: under 150 lines: workflow-regression
+PASS: under 150 lines: workflow-release
+PASS: under 150 lines: workflow-setup
+PASS: listing.json discloses "board"
+PASS: listing.json discloses "cadence"
+PASS: listing.json discloses "handoff"
+PASS: listing.json discloses "note"
+PASS: listing.json discloses board.json
+PASS: listing.json discloses repos
+
+ALL PASS
+```
