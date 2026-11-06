@@ -282,3 +282,22 @@ test-release.sh: ALL PASS (rc 0)
 ```
 
 Every command and flag on the feature pages (Delivery, Monitoring, Regression, Release, Documentation, Getting-started) appears in the help text above; none were removed.
+
+### Getting-started and Regression examples (grep output)
+```
+30:   `["claude", "-p", "--allowedTools=Bash,Read,Write,Edit"]`. They choose the list. You don't.
+11:  "agent_command": [
+12-    "claude",
+13-    "-p",
+14-    "--model=sonnet",
+15-    "--allowedTools=Bash,Read,Write,Edit,Skill"
+16-  ],
+48:python3 scripts/regression.py red check-1 --break "sed -i.bak 's/return a + b/return a - b/' calc.py"
+skills/workflow-setup/SKILL.md:17:python3 scripts/setup.py --dry-run
+skills/workflow-setup/scripts/setup.py:4:usage: setup.py [--repo DIR] [--branch NAME] [--dry-run]
+skills/workflow-setup/scripts/setup.py:120:    parser.add_argument("--dry-run", action="store_true")
+5:here=$(cd "$(dirname "$0")/.." && pwd); to=${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}
+10:  ln -sfn "$skill" "$to/$name"; echo "LINKED $name"
+```
+
+Correction: the flags `-p` and `--allowedTools` (Getting-started) and the `sed -i.bak` break command (Regression) are backed by the lines above, so they stay.
