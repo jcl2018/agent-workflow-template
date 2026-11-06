@@ -18,7 +18,7 @@ bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 finish() {  # finish SLUG [extra goal.py new args]: a done quick goal with a pull request
   local slug=$1; shift
   git switch -q main
-  $goal new "$slug" --goal "Add $slug" --done "calc has $slug" --level quick "$@" >/dev/null
+  $goal new "$slug" --here --goal "Add $slug" --done "calc has $slug" --level quick "$@" >/dev/null
   printf '\n\ndef %s():\n    return 1\n' "${slug//-/_}" >> calc.py
   git commit -qam "Add ${slug} to calc"
   [ -n "$NO_VERIFY" ] || python3 - "$slug" <<'PY'

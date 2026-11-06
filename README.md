@@ -1,8 +1,8 @@
 # agent-workflow-template
 
 A small agentic workflow you can add to any repo. You state a goal and the checks that prove it's done. An agent plans
-and builds it, a fresh agent that didn't do the work judges it, and you review the pull request. One session can run and
-watch many goals at once.
+and builds it, a fresh agent that didn't do the work judges it, and you review the pull request. One session governs
+and the others build.
 
 **Status: early. Copy the `skills/` folders into your agent's skills folder, or run `dev/install-local.sh` for Claude
 Code. No marketplace listing yet.** See the [roadmap](docs/ROADMAP.md).
@@ -10,8 +10,9 @@ Code. No marketplace listing yet.** See the [roadmap](docs/ROADMAP.md).
 ## What it aims to be
 
 - **Light:** Markdown instructions and a few small scripts, with no engine to run.
-- **Adjustable:** each goal runs at a level, from `quick` to `full`, so small changes skip the heavy steps.
-- **Parallel:** one session starts the others, shows what's waiting on you, and keeps a dashboard.
+- **Adjustable:** each goal runs at a level, from `minimum` to `full`, so small changes skip the heavy steps.
+- **Governed:** the session you talk to never builds. It starts background agents, shows what waits on you, and keeps a
+  dashboard.
 - **Checkable by you:** every release says how to verify it by hand, and your wiki stays in step with the code.
 - **Not tied to one agent:** built for Claude Code and Codex first, then other agents that read `SKILL.md`.
 
@@ -26,29 +27,49 @@ Set up a repo once:
 /workflow-setup
 ```
 
-Try an idea, then build it. `poc` writes nothing and ends with a `go` line you can paste:
+Try an idea, then start it. `poc` writes nothing and ends with a `go` line and a queue line:
 
 ```text
 /workflow-delivery poc "should we cache search results?"
-/workflow-delivery go "add result caching" --level quick
+/workflow-monitoring go "add result caching" --done "repeat searches are served from the cache"
+/workflow-monitoring watch
 ```
+
+**One session governs, and the others build.** `go` starts a background agent in its own worktree, at every level, and
+`watch` keeps goals moving until nothing is left. You stay in one session and review pull requests.
 
 The level sets how much process a goal gets:
 
 | Level | Steps | Use it for |
 |---|---|---|
-| `quick` | Plan, build, checks | Small, low-risk changes |
+| `minimum` | Build, checks | The default: fast work, using the agent's own planning |
+| `quick` | Written plan, build, checks | Small changes you want a plan on record for |
 | `standard` | Short design, plan, build, checks, one fresh judge | Most work |
 | `full` | Adds a design review before the build | Risky or large changes |
 
-Run and watch many goals from one session:
+Changes to CI, auth or data run at `standard` at least.
+
+See where things stand, or pick up a failed goal:
 
 ```text
-/workflow-monitoring start
 /workflow-monitoring report
 /workflow-monitoring dashboard
 /workflow-monitoring resume
 ```
+
+`mend` and `resume_on_limit` in `.loop/config.json` let `watch` give a failed goal one fresh agent, and continue after a
+usage limit. Both are off until you turn them on. Background agents need the tools you allow in `agent_command`.
+
+Keep tests visible and enforced:
+
+```text
+/workflow-regression seed
+/workflow-regression sync
+/workflow-regression run land
+/workflow-regression workflow
+```
+
+A row must be seen failing once before it counts. Known failures don't block, and each other failing row gets one issue.
 
 Keep the wiki in step with the code. Pages live in `docs/wiki/`, so they're reviewed in pull requests:
 

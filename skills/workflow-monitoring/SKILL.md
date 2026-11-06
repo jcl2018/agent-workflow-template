@@ -1,49 +1,66 @@
 ---
 name: workflow-monitoring
-description: Starts many goals from .loop/queue.md at once, each in its own worktree with a background agent, and watches them with a report, an HTML dashboard and resume. Use when asked to run the queue, run several goals in parallel, check on running goals, or pick up a failed or stopped one.
+description: One session governs and the others build. `go` starts a goal as a background agent in its own worktree; `watch` keeps goals moving, mends failures if allowed, and says what waits on you; `report`, `dashboard` and `resume` show and restart them. Use for every goal, and to run the queue or check on running goals.
 ---
 
 # workflow-monitoring
 
-Four commands: `start`, `report`, `dashboard` and `resume`. Run `scripts/monitor.py` with `python3` from the repo's
-main checkout, on the base branch. If the skill's files aren't on disk, write the script to a temporary file, run it,
-and delete it. If `.loop/config.json` is missing, use `workflow-setup` first.
+**One session governs, and the others build.** The session you talk to starts goals and watches them. It never writes
+the code. Each goal runs in its own worktree with its own background agent, at every level.
 
-Each goal runs `go` from `workflow-delivery` in the background. Background agents run `agent_command` from
-`.loop/config.json` exactly as the user set it, so they have the user's own permission settings. Never add a flag that
-loosens them. An agent that can't get a permission stops, and its goal shows `failed`.
+Five commands: `go`, `watch`, `report`, `dashboard` and `resume`. `go`, `watch` and `resume` use `scripts/watch.py`.
+`report` and `dashboard` use `scripts/monitor.py`. Run them with `python3` from the repo's main checkout, on the base
+branch. If the skill's files aren't on disk, write the script to a temporary file, run it, and delete it. If
+`.loop/config.json` is missing, use `workflow-setup` first.
 
-The prompt is the last argument of `agent_command`. If the last flag before it takes several values (for example
-`--allowedTools` or `--add-dir` in claude), it swallows the prompt: write that flag as `--flag=value` or move it earlier.
+Background agents run `agent_command` from `.loop/config.json` exactly as the user set it, so they have the user's own
+permission settings. Never add a flag that loosens them. An agent that can't get a permission stops, and its goal shows
+`failed`. The prompt is the last argument. If the last flag before it takes several values (for example `--allowedTools`
+or `--add-dir` in claude), write that flag as `--flag=value` or move it earlier.
 
-## `start [--max N] [--wait]`
-
-Before the first start, show the user the goals in `.loop/queue.md` and the `agent_command` that will run them.
+## `go "<goal>" --done "<line>" ... [--level L] [--touches A,B] [--slug S] [--release ask]`
 
 ```bash
-python3 scripts/monitor.py start
-python3 scripts/monitor.py start --wait
+python3 scripts/watch.py go "<goal>" --done "<line>" --level minimum --touches "<file,file>"
 ```
 
-For each queued goal with no run yet, it:
+It adds the goal to `.loop/queue.md` and starts it if a slot is free. The level defaults to `minimum`, and risky paths
+raise it to `standard`. Then run `watch`. Don't build the goal here, and don't commit the queue.
 
-1. makes branch `loop/<slug>` from the base branch, in a worktree under `<git common dir>/loop/worktrees/<slug>`;
-2. commits the frozen goal file `.loop/goals/<slug>.md` on that branch, the same file `goal.py new` writes;
-3. writes the run record `<git common dir>/loop/runs/<slug>.json` with `batch: true`;
-4. launches the agent in the worktree, detached, with its output in `<git common dir>/loop/logs/<slug>.log`.
+## `watch [--max N] [--once] [--interval S]`
 
-The prompt names the goal, its done lines, level, slug and touches, says to stop at the pull request and never merge,
-and then to follow `workflow-release`. A batch answers `leave` by itself, never `cut`. A goal marked `release: ask`
-waits for the user instead.
+```bash
+python3 scripts/watch.py watch
+```
 
-- At most `parallel` goals (default 3) run or wait at once. `--max N` changes that for this call.
-- Goals whose `touches` share a file, or where one path is a folder holding the other, never run together. The later
-  one stays queued until the first finishes. A goal with no `touches` conflicts with nothing.
-- Without `--wait` it starts what it can and returns. With `--wait` it checks every 2 seconds, starts goals as slots
-  free, and returns when nothing is queued or running. Waiting goals don't hold it open.
-- A failed goal never stops the others.
+Before the first run in a repo, show the user the queue and the `agent_command`. Each pass, it:
 
-Run state lives in the shared git folder, so every worktree sees it and nothing extra is committed.
+1. marks a `running` goal whose agent has gone as `failed`;
+2. mends and resumes, if the config says so (below);
+3. starts queued goals, up to `parallel` (default 3, or `--max N`);
+4. prints each goal that changed, and each new `WAITS ON YOU` question with the exact words to type.
+
+It ends when nothing is running, startable or waiting out a limit, and then lists what needs the user. `--once` makes
+one pass and returns, so you can use it for a check-in.
+
+To start a goal, it makes branch `loop/<slug>` and a worktree under `<git common dir>/loop/worktrees/<slug>`, commits the
+frozen goal file there, and launches the agent, detached, with its output in `<git common dir>/loop/logs/<slug>.log`. The
+prompt says to stop at the pull request and never merge. A batch answers `leave` by itself, never `cut`. A goal marked
+`release: ask` waits for the user.
+
+Goals whose `touches` share a file, or where one path is a folder holding the other, never run together. A goal with no
+`touches` conflicts with nothing. A failed goal never stops the others.
+
+### Mending and usage limits
+
+Both are off until the user turns them on in `.loop/config.json`.
+
+| Setting | Does |
+|---|---|
+| `mend: true` | Gives a failed or stopped goal one fresh agent, told only the finding and the end of its log |
+| `resume_on_limit: true` | When a log shows a usage limit, waits `limit_wait` seconds (default 1800), then continues the goal, up to 6 times |
+
+A limit doesn't use up the mend. Neither one merges, edits done lines or changes permissions.
 
 ## `report`
 
@@ -78,7 +95,7 @@ the user its path.
 ## `resume SLUG`
 
 ```bash
-python3 scripts/monitor.py resume <slug>
+python3 scripts/watch.py resume <slug>
 ```
 
 It takes only a `failed` or `stopped` goal and refuses anything else with a one-line reason. It keeps the branch and

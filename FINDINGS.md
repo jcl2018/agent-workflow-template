@@ -12,3 +12,6 @@
 - A done line that depends on something after the pull request can't be judged. Done lines must be provable before it.
 - Real repos differ from the toy: four-number versions, changelogs with bracket headings and an intro paragraph, tests
   outside `tests/`, a wiki with pages from another tool, and a pre-push hook that takes minutes.
+- Several goals pushing at once can fail with a bare git error, and a plain re-push works. `goal.py pr` retries twice.
+- `report` left out queued goals that were ready to start. It now lists them.
+- Scripts are close to the 20 KB limit: `goal.py` 20,474 bytes, `watch.py` 19,928. The next feature needs a new script.

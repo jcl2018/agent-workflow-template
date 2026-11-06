@@ -9,6 +9,7 @@ set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; MODEL=${MODEL:-haiku}
 M="python3 $here/skills/workflow-monitoring/scripts/monitor.py"
+W="python3 $here/skills/workflow-monitoring/scripts/watch.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh"
 say() { printf '\n=== %s\n' "$*"; }
 field() { python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get(sys.argv[2]))" "$C/loop/runs/$1.json" "$2" 2>/dev/null; }
@@ -35,8 +36,8 @@ EOF
 git commit -qam "Queue three goals" && git push -q origin main
 C=$(cd "$(git rev-parse --git-common-dir)" && pwd)
 
-say "(1) start --wait with three goals; stats-c is killed mid-run"
-$M start --wait --skill-dir "$here/skills" > "$T/start1.out" 2>&1 &
+say "(1) watch with three goals; stats-c is killed mid-run"
+$W watch --interval 2 --skill-dir "$here/skills" > "$T/start1.out" 2>&1 &
 mon=$!
 for _ in $(seq 60); do [ "$(field stats-c status)" = running ] && break; sleep 1; done
 sleep 25
@@ -53,7 +54,7 @@ cat >> .loop/queue.md <<'EOF'
 - slug: pkg-e | level: quick | touches: pkg/shout.py | goal: Add pkg/shout.py with shout(text) returning text upper-cased | done: pkg.shout.shout("hi") returns "HI" | done: test_shout.py tests shout and passes | release: ask
 EOF
 git commit -qam "Queue two overlapping goals" && git push -q origin main
-$M start --wait --skill-dir "$here/skills" 2>&1 | tee "$T/start2.out"
+$W watch --interval 2 --skill-dir "$here/skills" 2>&1 | tee "$T/start2.out"
 logs pkg-d pkg-e | grep -E 'queued|launched|pull request|waiting'
 if [ "$(field pkg-e status)" != waiting ]; then
   echo "NOTE: the agent did not wait by itself (status $(field pkg-e status)); recording the wait with goal.py"
@@ -71,8 +72,8 @@ grep -c '<script' "$html" | sed 's/^/script tags: /'
 grep -Eo '(src|href)=|https?://[a-z]' "$html" | grep -v 'https://example.test' | sort | uniq -c | sed 's/^/external refs: /'
 
 say "(4) resume the failed goal"
-$M resume stats-a 2>&1 | tail -1
-$M resume stats-c --skill-dir "$here/skills"
+$W resume stats-a 2>&1 | tail -1
+$W resume stats-c --skill-dir "$here/skills"
 for _ in $(seq 300); do [ "$(field stats-c status)" != running ] && break; sleep 2; $M report >/dev/null; done
 logs stats-c | grep -E 'resumed|launched|failed|pull request'
 $M report

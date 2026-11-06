@@ -1,6 +1,6 @@
 # Loop files
 
-The five workflow skills share this contract. Skill instructions never go in the repo. A repo holds only its own data.
+The six workflow skills share this contract. Skill instructions never go in the repo. A repo holds only its own data.
 
 ## In the repo: `.loop/`
 
@@ -11,6 +11,8 @@ The five workflow skills share this contract. Skill instructions never go in the
 | `.loop/goals/<slug>.md` | One goal: done lines, plan, log |
 | `.loop/findings.md` | Open findings, one line each |
 | `.loop/docs.tsv` | Each wiki page and the paths it describes |
+| `.loop/regression.tsv` | Each test row: id, level, command, goal, date seen failing |
+| `.loop/regression-known.tsv` | Rows expected to fail, with a reason; they don't block |
 
 Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -->`, which marks it as safe to update.
 
@@ -25,13 +27,18 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
   "parallel": 3,
   "risky_paths": ["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"],
   "version_file": "VERSION",
-  "wiki_dir": "docs/wiki"
+  "wiki_dir": "docs/wiki",
+  "pr_bumps_version": false,
+  "mend": false,
+  "resume_on_limit": false
 }
 ```
 
 - `agent_command` runs a goal in the background; the prompt is its last argument.
 - `judge_command` reads its prompt on standard input and runs in an empty temporary folder.
 - An empty `judge_command` means no headless judge: print the pack for a fresh agent instead.
+- `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
+- `mend` and `resume_on_limit` let `watch` restart a goal. `limit_wait` and `watch_interval` are optional, in seconds.
 - Permissions are yours. These commands run as you set them, and nothing here turns them off.
 
 ### `goals/<slug>.md`
@@ -47,7 +54,7 @@ One goal a line. Other lines are ignored.
 - slug: add-median | level: standard | touches: calc.py, test_calc.py | goal: Add median() | done: Odd lists give the middle value | done: Even lists average the two middle values
 ```
 
-`level` defaults to `standard`. `touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
+`level` defaults to `minimum`. `touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
 for your answer instead of answering `leave`.
 
 ## Outside the repo: run state
