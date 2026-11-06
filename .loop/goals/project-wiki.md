@@ -23,4 +23,14 @@ Frozen. A wrong done line needs a new goal.
 
 ## Design
 
+Eight pages in docs/wiki, each starting with `<!-- workflow-docs -->`. Every command and flag is copied from the
+SKILL.md files and each script's `--help`. Proof claims come only from README, FINDINGS.md, DECISIONS.md and the
+dev/toy tests. Risk: a page going stale or naming a removed command (`start`). Mitigation: `docs.py check` and a grep
+for removed names. No personal names or accounts go in docs or README; I scan for them by grep.
+
 ## Plan
+
+1. Write the eight pages and `.loop/docs.tsv` via `docs.py add` (done lines 1-4, 7).
+2. Rewrite docs/ROADMAP.md: batches built, what is left, drop `start` (done line 5).
+3. Add wiki and release links to README.md (done line 6).
+4. Grep docs and README for personal names; run `docs.py check` and `goal.py check` (done lines 7-8).
