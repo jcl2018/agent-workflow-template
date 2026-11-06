@@ -47,6 +47,16 @@ mkdir -p .github; echo x > .github/x.yml; git add -A; git commit -qm "Sneak"
 $goal check sneaky | grep -q "NEXT: judge" && ok "raised by the diff" || bad "raise diff"
 git switch -q main
 
+echo "== check summarizes every command's exit code first, even past long output"
+cp .loop/config.json "$d/cfg.bak"
+cfg 'checks=["python3 -c \"print(\\\"x\\\"*20000)\"","exit 3"]'
+git commit -qam "Noisy checks"
+$goal new loud --here --goal "Loud" --done "loud" >/dev/null
+$goal check loud >/dev/null 2>&1
+head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 0: python3" && head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 3: exit 3" && ok "summary shows every check at the top" || bad "check summary"
+[ "$(wc -c < "$here/skills/workflow-delivery/scripts/goal.py")" -lt 20480 ] && ok "goal.py under 20 KB" || bad "goal.py size"
+git switch -q main; git checkout -q -- .loop/config.json 2>/dev/null; cp "$d/cfg.bak" .loop/config.json; git status --porcelain | grep -q config.json && git commit -qam "Restore checks"
+
 echo "== queue adds a line a watcher can read, and poc stays read-only"
 $goal queue fix-a --goal "Fix a" --done "a is fixed" --level minimum --touches "a.py" | grep -q QUEUED && ok "queued" || bad "queue"
 grep -q '^- slug: fix-a | level: minimum | touches: a.py | goal: Fix a | done: a is fixed$' .loop/queue.md && ok "valid line" || bad "queue line"
