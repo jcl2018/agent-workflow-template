@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test workflow-release on a throwaway toy repo with a fake gh. usage: test-release.sh [DIR]
 # env: AGENT_TEST=1 also runs a headless agent (MODEL, default haiku) that follows SKILL.md to ask and cut.
+unset LOOP_BATCH
 set -e
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
