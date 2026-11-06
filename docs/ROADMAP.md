@@ -1,32 +1,87 @@
 # Roadmap
 
-## Feature 1: the goal loop
+## First batch: delivery, monitoring, release
 
-One goal, from a sentence to a judged pull request. This is the smallest version that's useful, so everything else waits.
+Together these give the whole path: start work, watch it run in parallel, and ship the result.
 
-| Part | What it does | Why it can't wait |
+agent-workflow-template is a pack of four focused skills, so an agent loads only the one it needs.
+
+| Skill | Commands | What it does |
 |---|---|---|
-| Goal file | `.loop/goals/<slug>.md` holds the done lines, plan, log and verdict | Everything else reads it |
-| Sizes | S: plan, build, checks. M: adds a short design and a fresh judge | This is where the speed comes from |
-| Checks | `.loop/check.sh` runs the repo's tests plus one command per done line | The judge needs evidence, not claims |
-| Fresh judge | A new agent sees only the diff, the goal file and the check results | The one rule that catches bad work |
-| Findings | Failed work goes in `.loop/findings.md` after 3 tries, and the run stops | Keeps a run from looping forever |
-| Install | Copies `.loop/` in and adds a short `AGENTS.md` block | Without it, the loop can't reach another repo |
+| `workflow-setup` | `setup` | Surveys a repo and writes its config, on a branch |
+| `workflow-delivery` | `poc`, `go` | Takes a sentence to a judged pull request |
+| `workflow-monitoring` | `start`, `report`, `dashboard`, `resume` | One session runs and watches many |
+| `workflow-release` | `cut`, `leave` | Versions the repo and writes a draft GitHub release |
 
-The pull request is the human gate. You set the goal, you review the PR, and the loop never merges.
+### Delivery
+
+`poc` answers a question, writes nothing, and ends with one `go` line. `go` freezes the done lines and runs at a level:
+
+| Level | Steps | Fresh judge | Use it for |
+|---|---|---|---|
+| `quick` | Plan, build, checks | No | Small, low-risk changes |
+| `standard` | Short design, plan, build, checks | One, at the end | Most work |
+| `full` | Adds a design review before the build | One, plus the review | Risky or large changes |
+
+- Any change to CI, auth or data is `standard` at least.
+- The judge sees only the diff, the goal file and the check results.
+- After 3 failed tries, the run files a finding and stops.
+- The pull request is your review. The loop never merges.
+
+### Monitoring
+
+One session starts and watches the others.
+
+- `start` takes goals from `.loop/queue.md` and gives each its own worktree and background agent, 3 at a time by default.
+- Goals that declare the same files don't run together.
+- Run state lives in the shared git folder, so every worktree sees it and nothing extra is committed.
+- `report` shows each goal's step, its pull request, and what's waiting on you with the exact words to type.
+- `dashboard` writes one self-contained HTML page. Claude users can also publish it as an Artifact.
+- `resume` picks up a stopped goal. A failed goal never stops the others.
+- Background agents use your own permission settings. agent-workflow-template never turns them off.
+
+### Release
+
+For any repo using agent-workflow-template:
+
+- Once a goal's checks hold, it asks `cut` or `leave`.
+- `cut` moves the version, writes the changelog and creates a draft GitHub release. You publish it.
+- `leave` keeps the work unreleased. A monitored batch can answer `leave` by itself, but never `cut`.
+
+For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZIP and refuses it if any published rule fails:
+
+| Rule | Check |
+|---|---|
+| Frontmatter | Every `SKILL.md` has `name` and `description`; `name` matches its folder |
+| Listing fields | `summary` is 300 characters at most; 10 tags, 10 keywords, 8 use cases at most |
+| Files | Text only; no executables, bundled dependencies, `.git` or caches |
+| Size | Under 100 files and 5 MB, so upload from an agent also works |
+| Scripts | Each under 20 KB, and each runs alone with its data embedded |
+| Safety | No secrets, obfuscation, encoded text, or instructions aimed at the agent |
+| Disclosure | The listing states every command, file write and network host |
+
+### Agensi rules that shape the design
+
+- **Scripts run alone.** The agent writes each to a temporary file, runs it and deletes it, so a script can't read
+  another package file.
+- **Skill content stays out of repos.** Agents are told not to save it to project folders. `.loop/` therefore holds only
+  the repo's own data: config, goals, queue, findings. The instructions stay in the skill.
+- **The skill must stay available.** On Agensi, each background agent needs the connector too. Installing from this
+  GitHub repo needs no connector.
 
 ### Done means
 
-1. On a toy repo, an S goal and an M goal each end in a PR.
-2. The judge fails a planted bug, and the loop fixes it or files a finding.
-3. Install runs twice on a repo with no changes the second time.
-4. One real S goal works on a real repo.
-5. The skill stays at 5 files and 300 lines at most.
+1. On a toy repo, `quick` and `standard` goals each end in a pull request.
+2. The judge fails a planted bug, and the run fixes it or files a finding.
+3. `start` runs 3 goals in parallel; one fails and the other two finish.
+4. `report` and `dashboard` match the true state, including a goal waiting on you.
+5. `cut` produces a draft release, and `leave` changes nothing versioned.
+6. `setup` runs twice on a repo with no change the second time.
+7. `dev/package.sh` passes, and refuses a package with one planted fault per rule.
+8. One real `quick` goal works on a real repo, and Codex can run the toy `quick` goal.
 
 ## Later, in order
 
 1. **Regression:** nightly and fast levels, a GitHub Actions template, an issue per failing check.
-2. **Documentation:** wiki pages kept in the repo, stale page check, draft releases.
-3. **Operation:** a queue of goals, a status report, unattended runs.
-4. **Other agents:** Kimi, Qwen and OpenCode support.
-5. **Marketplace:** the Agensi package.
+2. **Documentation:** wiki pages kept in the repo, a stale page check.
+3. **Other agents:** Kimi, Qwen and OpenCode support.
