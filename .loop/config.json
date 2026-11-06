@@ -1,0 +1,28 @@
+{
+  "base": "main",
+  "checks": [
+    "python3 -m unittest discover -s dev/toy/repo"
+  ],
+  "agent_command": [
+    "claude",
+    "-p"
+  ],
+  "judge_command": [
+    "claude",
+    "-p",
+    "--tools",
+    ""
+  ],
+  "parallel": 3,
+  "risky_paths": [
+    "^\\.github/",
+    "(^|/)auth",
+    "(^|/)migrations?/",
+    "(^|/)(schema|data)\\b"
+  ],
+  "version_file": "VERSION",
+  "wiki_dir": "docs/wiki",
+  "pr_bumps_version": false,
+  "mend": false,
+  "resume_on_limit": false
+}
