@@ -13,6 +13,9 @@ Each goal runs `go` from `workflow-delivery` in the background. Background agent
 `.loop/config.json` exactly as the user set it, so they have the user's own permission settings. Never add a flag that
 loosens them. An agent that can't get a permission stops, and its goal shows `failed`.
 
+The prompt is the last argument of `agent_command`. If the last flag before it takes several values (for example
+`--allowedTools` or `--add-dir` in claude), it swallows the prompt: write that flag as `--flag=value` or move it earlier.
+
 ## `start [--max N] [--wait]`
 
 Before the first start, show the user the goals in `.loop/queue.md` and the `agent_command` that will run them.
