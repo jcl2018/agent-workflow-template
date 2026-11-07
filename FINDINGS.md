@@ -24,3 +24,4 @@
 - In a pack, a file outside every skill folder reaches no skill unless it's under `shared/`, so the ZIP moves `loop-files.md` there.
 - The first regression workflow run on GitHub failed 2 rows: one needed an agent on the machine, and one looked for a renamed test line.
 - `cut` lists commits not yet on the base branch, so a pull request merged just before it gives an empty changelog that says "No code changes".
+- The first real flow run ran the idea step unattended in about 75 seconds and stopped with three owner items, among them the design approval its unattended mode never gives. So every goal waits on the owner at least once before it builds.

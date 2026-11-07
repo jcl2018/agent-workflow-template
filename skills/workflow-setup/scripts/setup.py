@@ -81,20 +81,19 @@ def survey_checks(repo):
 def survey_agent():
     """The agent commands this machine has. Permissions stay as the user set them."""
     if shutil.which("claude"):
-        return ["claude", "-p"], ["claude", "-p", "--tools", ""]
+        return ["claude", "-p"]
     if shutil.which("codex"):
-        return ["codex", "exec"], ["codex", "exec", "--skip-git-repo-check", "--sandbox", "read-only"]
-    return [], []
+        return ["codex", "exec"]
+    return []
 
 
 def merged(repo, old):
     """The config: values already there win, the survey fills the rest."""
-    agent, judge = survey_agent()
+    agent = survey_agent()
     config = {
         "base": base_branch(repo),
         "checks": survey_checks(repo),
         "agent_command": agent,
-        "judge_command": judge,
         "parallel": 3,
         "risky_paths": RISKY,
         "version_file": "VERSION",

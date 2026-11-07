@@ -1,5 +1,5 @@
 #!/bin/bash
-# One small test for each Delivery and Release criterion, so a regression row doesn't run a whole toy script.
+# One small test for each of several Delivery criteria, so a regression row doesn't run a whole toy script.
 # usage: test-rows.sh ID   exits non-zero if the criterion doesn't hold. No model is called.
 set -u
 unset LOOP_BATCH
@@ -9,25 +9,11 @@ d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
 export LOOP_FLOW="$d/toy/flow.json"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 watch="python3 $here/skills/workflow-monitoring/scripts/watch.py"
-rel="python3 $here/skills/workflow-release/scripts/release.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 cd "$d/toy/repo" || exit 1
 python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 no() { echo "FAIL $id: $1"; exit 1; }
-
-finish() { # finish SLUG STEPS: a finished goal with these verify steps
-  $goal new "$1" --here --goal "Add $1" --done "calc has $1" >/dev/null || no "new"
-  python3 - "$1" "$2" <<'PY'
-import sys
-path = ".loop/goals/%s.md" % sys.argv[1]
-text = open(path).read().replace("## Verify by hand\n", "## Verify by hand\n\n%s\n" % sys.argv[2], 1)
-open(path, "w").write(text)
-PY
-  printf '\n# %s\n' "$1" >> calc.py; git commit -qam "Add $1 to calc"
-  bash "$here/dev/toy/flow-done.sh" "$1" && $goal check "$1" >/dev/null && $goal pr "$1" >/dev/null || no "goal did not finish"
-}
-STEPS=$'1. Open calc.py.\n   Expect: the new line.'
 
 case "$id" in
   DEL-1)
@@ -47,25 +33,22 @@ case "$id" in
     $goal record held plan --file "$R/held.plan.txt" | grep -q "^WAITING held" || no "a pending decision didn't wait"
     python3 -c "import json,sys;s=json.load(open(sys.argv[1]));assert s['status']=='waiting' and s['flow']['plan']=='pending'" "$R/held.json" || no "pending was approved"
     $goal check held >/dev/null; $goal pr held 2>&1 | grep -q "the flow hasn't finished: idea, plan" || no "pr went on with a decision pending";;
-  REL-1)
-    finish none ""
-    $rel cut none >/dev/null 2>&1 && no "cut with no verify steps"
-    git switch -q main
-    finish noexpect "1. Open calc.py."
-    $rel cut noexpect >/dev/null 2>&1 && no "cut with a step that has no Expect line"
-    git switch -q main
-    finish good "$STEPS"
-    $rel cut good >/dev/null || no "cut refused good verify steps";;
-  REL-2)
-    finish good "$STEPS"
-    $rel cut good >/dev/null || no "cut failed"
-    grep -q "^release create .*--draft" "$FAKE_GH_DIR/calls.log" || no "not created as a draft"
-    grep -E "^(pr merge|release edit)" "$FAKE_GH_DIR/calls.log" && no "merged or published"
-    git merge-base --is-ancestor loop/good origin/main && no "the branch reached main";;
-  REL-3)
-    LOOP_BATCH=1 finish batch "$STEPS"
-    $rel cut batch >/dev/null 2>&1 && no "batch cut without --user"
-    $rel cut batch --user >/dev/null || no "batch cut with --user failed";;
+  DEL-8)
+    $goal new nosteps --here --goal "No steps" --done "x" >/dev/null || no "new"
+    printf '\n# nosteps\n' >> calc.py; git commit -qam "Change"
+    for step in idea plan review qa ship; do F="python3 $here/skills/workflow-delivery/scripts/flow.py"; $F nosteps $step --wait 5 >/dev/null; $F nosteps $step --wait 10 >/dev/null
+      $goal record nosteps $step --file "$(git rev-parse --git-common-dir)/loop/runs/nosteps.$step.txt" >/dev/null; done
+    $goal check nosteps >/dev/null
+    $goal pr nosteps 2>&1 | grep -q "no complete steps under ## Verify by hand" || no "pr opened with no verify steps"
+    python3 - <<'PY'
+p = ".loop/goals/nosteps.md"; t = open(p).read().replace("## Verify by hand\n", "## Verify by hand\n\n1. Open calc.py.\n", 1); open(p, "w").write(t)
+PY
+    git commit -qam "A step with no Expect line"; $goal check nosteps >/dev/null
+    $goal pr nosteps 2>&1 | grep -q "no complete steps" || no "pr opened with a step that has no Expect line"
+    python3 - <<'PY'
+p = ".loop/goals/nosteps.md"; t = open(p).read().replace("1. Open calc.py.\n", "1. Open calc.py.\n   Expect: the change.\n", 1); open(p, "w").write(t)
+PY
+    git commit -qam "Complete step"; $goal check nosteps >/dev/null; $goal pr nosteps | grep -q "^PR " || no "pr refused good verify steps";;
   *) no "no such test";;
 esac
 echo "PASS $id"

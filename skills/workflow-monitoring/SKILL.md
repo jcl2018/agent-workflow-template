@@ -18,7 +18,7 @@ permission settings. Never add a flag that loosens them. An agent that can't get
 `failed`. The prompt is the last argument. If the last flag before it takes several values (for example `--allowedTools`
 or `--add-dir` in claude), write that flag as `--flag=value` or move it earlier.
 
-## `go "<goal>" --done "<line>" ... [--touches A,B] [--slug S] [--release ask] [--session]`
+## `go "<goal>" --done "<line>" ... [--touches A,B] [--slug S] [--session]`
 
 ```bash
 python3 scripts/watch.py go "<goal>" --done "<line>" --touches "<file,file>"
@@ -47,8 +47,7 @@ one pass and returns, so you can use it for a check-in. A running visible sessio
 
 To start a goal, it makes branch `loop/<slug>` and a worktree under `<git common dir>/loop/worktrees/<slug>`, commits the
 frozen goal file there, and launches the agent, detached, with its output in `<git common dir>/loop/logs/<slug>.log`. The
-prompt says to stop at the pull request and never merge. A batch answers `leave` by itself, never `cut`. A goal marked
-`release: ask` waits for the user.
+prompt says to stop at the pull request and never merge.
 
 Goals whose `touches` share a file, or where one path is a folder holding the other, never run together. A goal with no
 `touches` conflicts with nothing. A failed goal never stops the others.
@@ -81,7 +80,7 @@ Then it prints:
   `watch` can start it.
 
 Give the user the waiting section first, with the words exactly as printed. When the user answers, go to that goal's
-worktree, run `goal.py answer <slug>`, and do what the answer says (for `cut` or `leave`, use `workflow-release`).
+worktree, run `goal.py answer <slug>`, and do what the answer says.
 
 ## `dashboard [--out FILE]`
 

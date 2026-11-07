@@ -12,11 +12,11 @@ import statistics
 import sys
 
 STEPS = {"goal": ["idea", "plan", "build", "checks", "review", "qa", "ship", "pr"]}
-ORDER = STEPS["goal"] + ["release"]
+ORDER = STEPS["goal"]
 TEXT = {"idea": "Shape the idea into a design", "plan": "Review the design into a plan", "build": "Build the change",
         "checks": "Run the checks", "review": "Review the change", "qa": "Test the change", "ship": "Prepare it to ship",
         "pr": "Open the pull request",
-        "release": "Answer the release question", "session": "A tracked session"}
+        "session": "A tracked session"}
 OPEN = ("running", "waiting", "failed", "stopped", "queued")
 
 
@@ -72,7 +72,7 @@ def sections(doc):
             continue
         mine = STEPS.get(r["level"], STEPS["goal"])
         at_step = ORDER.index(r["step"]) if r["step"] in ORDER else -1
-        for step in mine + (["release"] if r["status"] == "done" or r["step"] == "release" else []):
+        for step in mine:
             index = ORDER.index(step)
             state = "done" if r["status"] == "done" or index < at_step else r["status"] if index == at_step or r["status"] == "retired" else "pending"
             steps.append({"repo": r["repo"], "slug": r["slug"], "step": step, "status": state})

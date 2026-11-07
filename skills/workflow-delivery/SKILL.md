@@ -37,7 +37,7 @@ and refuses if the probe says otherwise. Run interactively, a ship skill could p
 answers; nothing is approved for the owner.
 
 ```text
-freeze -> idea -> plan -> build -> checks -> review -> checks -> qa -> checks -> ship -> checks -> pr -> release
+freeze -> idea -> plan -> build -> checks -> review -> checks -> qa -> checks -> ship -> checks -> pr
 ```
 
 ### 1. Freeze
@@ -75,7 +75,7 @@ anything they put in the worktree.
 Run `goal.py step <slug> build`. Make the change the plan describes, add tests for each done line, and commit.
 
 Then fill in `## Verify by hand` in the goal file, and commit it: the steps a person follows to see the change work with
-their own eyes. A release refuses without at least one.
+their own eyes. `goal.py pr` refuses without at least one, each with an `Expect:` line.
 
 ```markdown
 1. Run `python3 calc.py median 1 2 3`.
@@ -91,14 +91,13 @@ failure, fix the cause, commit, and run it again. Its `NEXT` line names the next
 
 ### 5. Pull request
 
-Run `goal.py pr <slug>`. It refuses until the checks hold on this commit and every flow step is done or skipped. The
+Run `goal.py pr <slug>`. It refuses until the checks hold on this commit, every flow step is done or skipped, and
+`## Verify by hand` has a complete step. The
 ship step never pushes, so this is what pushes the branch and opens the pull request, whose body lists each step's
 result. With `pr_bumps_version` on, it moves the last number of the version file once on this branch first, unless the
 branch already changed it. It retries a failed push twice, then prints git's full error. Never merge it.
 
-### 6. Release
-
-Hand over to `workflow-release`. It asks `cut` or `leave`; a monitored goal without `--release ask` answers `leave` itself.
+The pull request ends the loop. A release, if you want one, is your ship skill's and yours.
 
 ## When a goal stops
 

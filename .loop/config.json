@@ -6,7 +6,6 @@
     "bash dev/toy/test-health.sh",
     "bash dev/toy/test-milestones.sh",
     "bash dev/toy/test-criteria.sh",
-    "bash dev/toy/test-release.sh",
     "bash dev/toy/test-goal.sh",
     "bash dev/toy/test-regression.sh",
     "python3 dev/package.py --out dist/check.zip",

@@ -209,11 +209,11 @@ assert [b["status"] for b in l["repo/first"]["boxes"]] == ["done", "done", "runn
 assert [b["status"] for b in l["repo/shout"]["boxes"]] == ["queued"] * 8
 cross = [a for a in d["arrows"] if a["on"]]
 assert cross == [{"from": "repo/first:pr", "to": "repo/shout:idea", "on": "goal first, shared pkg/shout.py"}], cross
-assert len([a for a in d["arrows"] if not a["on"]]) == 7 + 8 + 7  # donelong also has a release box
+assert len([a for a in d["arrows"] if not a["on"]]) == 7 + 7 + 7
 names = [x["run"] for x in d["lanes"]]
 assert names.index("repo/first") < names.index("repo/shout")
 assert h.count("<a class='box ") == sum(len(x["boxes"]) for x in d["lanes"])
-assert h.count("<path class=wire ") == 1 and h.count("<path class=step ") == 22
+assert h.count("<path class=wire ") == 1 and h.count("<path class=step ") == 21
 assert "goal first, shared pkg/shout.py</text>" in h and "s-running" in h and "s-done" in h
 assert re.search(r"<title>.*Done: .*\nNext: .*\nUnblocks: ", h, re.S)
 PY
