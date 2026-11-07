@@ -1,5 +1,5 @@
 #!/bin/bash
-# Test levels, the queue command, version bumps and the governing watch with a fake agent. No model is called.
+# Test the skill flow, the queue command, version bumps and the governing watch with a fake agent. No model is called.
 # usage: test-goal.sh [DIR]
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
@@ -27,24 +27,66 @@ json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
 }
 
+# A stand-in skill flow: the "skills" print what FAKE_SKILL_OUT says, or STEP: done, and the probe proves the env.
+F="python3 $here/skills/workflow-delivery/scripts/flow.py"
+cat > "$d/skill.sh" <<'A'
+#!/bin/bash
+printf '%s' "${!#}" > "$FAKE_SKILL_DIR/prompt-$(date +%s%N)"
+printf '%b\n' "${FAKE_SKILL_OUT:-STEP: done}"
+A
+mkdir -p "$d/skills-seen"; export FAKE_SKILL_DIR="$d/skills-seen"
+python3 - "$d" <<'PY'
+import json, sys
+d = sys.argv[1]
+spec = {"command": ["bash", d + "/skill.sh"], "env": {"FAKE_MODE": "unattended"}, "probe": ["bash", "-c", "echo $FAKE_MODE"],
+        "probe_expect": "unattended", "steps": {"idea": "my-idea", "plan": "my-plan", "review": "my-review", "qa": "my-qa",
+        "ship": "my-ship"}}
+json.dump(spec, open(d + "/flow.json", "w"))
+spec["env"] = {"FAKE_MODE": "interactive"}
+json.dump(spec, open(d + "/flow-interactive.json", "w"))
+PY
+export LOOP_FLOW="$d/flow.json"
+step() { $F "$1" "$2" --wait 5 >/dev/null; $F "$1" "$2" --wait 10 >/dev/null; $goal record "$1" "$2" --file "$C/loop/runs/$1.$2.txt"; }
+flowall() { for s in idea plan review qa ship; do step "$1" $s >/dev/null; done; }
+
+echo "== with no skill flow set, delivery refuses with one line saying how to set it"
+for cmd in "$goal new nof --here --goal No --done no" "$goal queue nof --goal No --done no" "$W go No --done no --slug nof" "$F nof idea"; do
+  LOOP_FLOW="$d/none.json" $cmd 2>&1 | grep -q "no skill flow is set. Fix: write ~/.workflow-loop/flow.json" || bad "no flow: $cmd"
+done
+ok "new, queue, go and flow.py each refuse with no flow"
+
 echo "== new needs --here: one session governs"
 $goal new blocked --goal "No" --done "no" 2>&1 | grep -q "one session governs" && ok "new refused without --here" || bad "new refused"
 
-echo "== 0 is the default: design, plan, build, checks, no judge"
+echo "== one flow, no levels: a goal starts at the idea step"
 out=$($goal new low --here --goal "Add low" --done "calc has low"); echo "$out"
-grep -q "level=0" <<<"$out" && grep -q "step=design" <<<"$out" && ok "default level 0, starts at design" || bad "level 0 start"
-printf '\n\ndef low():\n    return 1\n' >> calc.py; git commit -qam "Add low"
-$goal check low | grep -q "NEXT: pr" && ok "level 0 goes from checks to pr" || bad "level 0 next"
-$goal pr low | grep -q "^PR " && ok "pr without a judge" || bad "level 0 pr"
-grep -q "Not judged (0)" "$FAKE_GH_DIR/calls.log" && ok "pr says not judged" || bad "pr body"
-git switch -q main
+grep -q "step=idea" <<<"$out" && ! grep -qi "level" .loop/goals/low.md && ok "starts at idea, with no level" || bad "start"
+$goal new lvl --here --goal "L" --done "l" --level 1 2>&1 | grep -q "unrecognized arguments: --level" && ok "--level is gone" || bad "level flag"
 
-echo "== risky paths raise 0 to 1"
-$goal new risky --here --goal "Touch CI" --done "ci" --touches ".github/x.yml" | grep -q "level=1" && ok "raised at the start" || bad "raise start"
-git switch -q main
-$goal new sneaky --here --goal "Sneak" --done "ci" >/dev/null
-mkdir -p .github; echo x > .github/x.yml; git add -A; git commit -qm "Sneak"
-$goal check sneaky | grep -q "NEXT: judge" && ok "raised by the diff" || bad "raise diff"
+echo "== a step runs only in the flow's unattended mode"
+LOOP_FLOW="$d/flow-interactive.json" $F low idea 2>&1 | grep -q "wouldn't run unattended" && [ ! -e "$C/loop/runs/low.idea.txt" ] && ok "a probe that isn't unattended starts nothing" || bad "probe guard"
+step low idea | grep -q "NEXT: flow.py low plan" && ok "idea recorded, plan next" || bad "idea"
+p=$(ls -t "$FAKE_SKILL_DIR"/prompt-* | head -1)
+grep -q "Use the my-idea skill" "$p" && grep -q "Approve nothing, merge nothing and push nothing" "$p" && ok "the step names the private skill and approves nothing" || bad "prompt"
+grep -rq "my-idea" .loop && bad "skill name in the repo" || ok "the skill's name stays out of the repo"
+echo "STEP: done" > "$d/forged.txt"
+$goal record low plan --file "$d/forged.txt" 2>&1 | grep -q "wasn't run by flow.py" && ok "record refuses a reply flow.py didn't run" || bad "forged reply"
+step low plan | grep -q "NEXT: build, then check" && ok "plan recorded, build next" || bad "plan"
+printf '\n\ndef low():\n    return 1\n' >> calc.py; git commit -qam "Add low"
+$goal check low | grep -q "NEXT: flow.py low review" && ok "checks lead to review" || bad "check next"
+$goal pr low 2>&1 | grep -q "the flow hasn't finished: review, qa, ship" && ok "pr refuses until the flow ends" || bad "pr early"
+
+echo "== what a step leaves for the owner waits on the owner; a failed step is a try"
+FAKE_SKILL_OUT='PENDING: approve the plan as written\nSTEP: pending' step low review | grep -q "WAITING low" && [ "$(field low status)" = waiting ] && ok "a pending decision waits" || bad "pending"
+python3 -c "import json,sys;w=json.load(open(sys.argv[1]))['waiting'];assert 'approve the plan' in w['ask'] and w['words']==['go on low','stop low']" "$C/loop/runs/low.json" && ok "Waiting on you gets the decision and the words" || bad "waiting fields"
+$goal answer low >/dev/null
+FAKE_SKILL_OUT='STEP: failed the tests would not run' step low review | grep -q "TRY 1 OF 3 FAILED: review failed" && ok "a failed step costs a try" || bad "failed step"
+FAKE_SKILL_OUT='nothing useful' step low review | grep -q "gave no STEP line" && ok "no STEP line costs a try" || bad "no step line"
+step low review >/dev/null; $goal check low >/dev/null
+FAKE_SKILL_OUT='STEP: skipped no browser on this machine' step low qa | grep -q "RECORDED qa skipped: no browser" && ok "a skipped step says why" || bad "skipped"
+$goal check low >/dev/null; step low ship >/dev/null; $goal check low >/dev/null
+$goal pr low | grep -q "^PR " && ok "pr once every step is done or skipped" || bad "pr"
+grep -q -- "- qa: skipped: no browser on this machine" "$FAKE_GH_DIR/calls.log" && ok "the pull request lists each step's result" || bad "pr body"
 git switch -q main
 
 echo "== check summarizes every command's exit code first, even past long output"
@@ -57,109 +99,23 @@ head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 0: python3" &&
 [ "$(wc -c < "$here/skills/workflow-delivery/scripts/goal.py")" -lt 19500 ] && ok "goal.py keeps room under 20 KB" || bad "goal.py size"
 git switch -q main; git checkout -q -- .loop/config.json 2>/dev/null; cp "$d/cfg.bak" .loop/config.json; git status --porcelain | grep -q config.json && git commit -qam "Restore checks"
 
-echo "== a goal with no change has nothing to judge, and that costs no try"
-git switch -q main
-$goal new emptyj --here --goal "Empty" --done "empty" --level 1 >/dev/null
-$goal check emptyj >/dev/null 2>&1
-out=$($goal judge emptyj 2>&1)
-grep -q "REFUSED: no change to judge" <<<"$out" && [ "$(field emptyj tries)" = 0 ] && ok "judge refuses an empty diff" || bad "empty diff judged: $out"
-git switch -q main
-
-echo "== queue adds a line a watcher can read, and poc stays read-only"
-$goal queue fix-a --goal "Fix a" --done "a is fixed" --level 0 --touches "a.py" | grep -q QUEUED && ok "queued" || bad "queue"
-grep -q '^- slug: fix-a | level: 0 | touches: a.py | goal: Fix a | done: a is fixed$' .loop/queue.md && ok "valid line" || bad "queue line"
+echo "== queue adds a line a watcher can read"
+$goal queue fix-a --goal "Fix a" --done "a is fixed" --touches "a.py" | grep -q QUEUED && ok "queued" || bad "queue"
+grep -q '^- slug: fix-a | touches: a.py | goal: Fix a | done: a is fixed$' .loop/queue.md && ok "valid line" || bad "queue line"
 $goal queue fix-a --goal "Fix a" --done "x" 2>&1 | grep -q "already exists" && ok "duplicate refused" || bad "duplicate"
 $goal queue pipe --goal "a|b" --done "x" 2>&1 | grep -q "no |" && ok "pipe refused" || bad "pipe"
 $M report | grep -q "fix-a" && ok "report reads it" || bad "report queue"
 git checkout -q -- .loop/queue.md
 
-echo "== the old level names are refused, naming the new levels"
-$goal new oldname --here --goal "Old" --done "old" --level standard 2>&1 | grep -q "use 0 (no judge), 1 (one judge) or 2 (adds a design review)" && ok "old name refused" || bad "old name"
-$goal queue oldq --goal "Old" --done "old" --level quick 2>&1 | grep -q "use 0 (no judge), 1 (one judge) or 2 (adds a design review)" && ok "old queue level refused" || bad "old queue level"
-[ -z "$(ls .loop/goals 2>/dev/null | grep oldname)" ] && ok "refused goal not created" || bad "old goal created"
-
-echo "== level 2 design review says which ran, and a named skill runs through an agent with tools"
+echo "== done lines stay frozen, 3 failed tries stop a goal, nothing merges"
 git switch -q main
-$goal new dskill --here --goal "Skilled" --done "skilled" --level 2 >/dev/null
-cp .loop/config.json "$d/cfg.design"
-dz="python3 $here/skills/workflow-delivery/scripts/design.py"; h="$d/home"; run_d() { HOME="$h" LOOP_DESIGN_SKILL=${1-} $dz dskill --wait 5 --limit "${2:-60}"; }
-mkdir -p "$h/.claude/skills/my-design"; echo "Review like this." > "$h/.claude/skills/my-design/SKILL.md"
-cat > "$d/design-agent.sh" <<A
-#!/bin/bash
-# A stand-in for an agent with tools: records its prompt, says how much ran, gives a verdict.
-printf '%s' "\${!#}" > "$d/design-prompt"
-sleep \${FAKE_DESIGN_SLEEP:-0}
-echo "SKILL: full"
-echo "VERDICT: pass"
-A
-cfg "agent_command=[\"bash\", \"$d/design-agent.sh\"]"
-run_d "" | grep -q "DESIGN REVIEW: built-in (no design skill set)" && ok "built-in review named" || bad "built-in review"
-run_d missing-one | grep -q "built-in (skill missing-one not found)" && ok "missing skill falls back" || bad "missing skill"
-run_d "" | grep -q "NEXT: goal.py judge dskill --design" && ok "built-in goes to judge --design" || bad "built-in next"
-HOME="$h" LOOP_DESIGN_SKILL=my-design $goal judge dskill --design 2>&1 | grep -q "REFUSED: a design skill is set" && ok "the built-in review can't stand in for the skill" || bad "skill skipped"
-FAKE_DESIGN_SLEEP=2 run_d my-design > "$d/ds1"
-grep -q "DESIGN REVIEW: running skill my-design with tools" "$d/ds1" && grep -q "^RUNNING" "$d/ds1" && ok "skill runs detached" || bad "skill start"
-run_d my-design > "$d/ds2"
-grep -q "^SKILL: full" "$d/ds2" && grep -q "NEXT: goal.py verdict dskill --design --file" "$d/ds2" && ok "the next call reports how much ran" || bad "skill finish"
-grep -q "ask nothing" "$d/design-prompt" && grep -q "Run the my-design skill" "$d/design-prompt" && ok "the agent is told to ask nothing" || bad "skill prompt"
-$goal verdict dskill --design --file "$(sed -n 's/.*--file //p' "$d/ds2")" | grep -q "VERDICT pass" && [ "$(field dskill design_review)" = pass ] && ok "goal.py records the skill's verdict" || bad "skill verdict"
-FAKE_DESIGN_SLEEP=30 run_d my-design >/dev/null
-HOME="$h" LOOP_DESIGN_SKILL=my-design $dz dskill --wait 0 --limit 0 | grep -q "NEXT: goal.py verdict" && grep -q "time limit" "$C/loop/runs/dskill.design.txt" && ok "a stuck skill is stopped at its limit" || bad "skill limit"
-python3 "$here/skills/workflow-delivery/scripts/goal.py" -h >/dev/null
-git ls-files | grep -q design-skill && bad "setting in repo" || ok "setting is not in the repo"
-[ -z "$(git status --porcelain -- . ':!.loop/config.json')" ] && ok "the review leaves the worktree alone" || bad "worktree changed"
-[ -f "$C/loop/runs/dskill.design.txt.last" ] && ok "the last reply stays readable" || bad "last reply"
-printf 'SKILL: condensed, skipped the last private-name phase\nVERDICT: pass\n' > "$d/vf"
-$goal verdict dskill --design --file "$d/vf" >/dev/null; [ "$(field dskill design_skill)" = condensed ] && ok "how much ran is recorded as one word" || bad "design_skill"
-cp "$d/cfg.design" .loop/config.json
-git switch -q main
-
-echo "== a failed design review stays at the design; the plan isn't reviewed yet"
-git switch -q main
-$goal new drev --here --goal "Review" --done "reviewed" --level 2 >/dev/null
-echo "VERDICT: fail" > "$d/vf"
-$goal verdict drev --file "$d/vf" --design > "$d/dr"
-grep -q "NEXT: rewrite the design" "$d/dr" && [ "$(field drev step)" = design ] && [ "$(field drev tries)" = 1 ] && ok "design failure goes back to the design" || bad "design failure"
-grep -q "design and plan" "$here/skills/workflow-delivery/scripts/goal.py" && bad "review prompt" || ok "review prompt doesn't ask about the plan"
-git switch -q main
-
-echo "== evidence needs new checks, and a verdict failed on proof alone costs a try"
-$goal new proof --here --goal "Add proof" --done "calc has proof" --level 1 >/dev/null
-printf '\n\ndef proof():\n    return 1\n' >> calc.py; git commit -qam "Add proof"
-$goal check proof >/dev/null
-printf '\n## Evidence\n\nsome output\n' >> .loop/goals/proof.md; git commit -qam "Evidence"
-$goal judge proof 2>&1 | grep -q "checks have not passed on this commit" && ok "judge refuses evidence the checks missed" || bad "evidence commit"
-$goal check proof >/dev/null
-printf 'FAIL 1: no proof in the evidence\nVERDICT: fail\n' > "$d/vf"
-$goal verdict proof --file "$d/vf" | grep -q "NEXT: fix it, then run check again" && [ "$(field proof tries)" = 1 ] && [ "$(field proof step)" = build ] && ok "failed on proof: one try, back to build" || bad "proof verdict"
-printf 'PASS 1: ok\nVERDICT: pass\n' > "$d/vf"
-$goal check proof >/dev/null; $goal verdict proof --file "$d/vf" >/dev/null; $goal pr proof >/dev/null
-grep -q "^## Result" "$FAKE_GH_DIR/calls.log" && [ "$(grep -c '^## Evidence' "$FAKE_GH_DIR/calls.log")" = 1 ] && ok "pr body keeps one Evidence section" || bad "pr body sections"
-git switch -q main
-
-echo "== done lines stay frozen, the judge sees only its pack, 3 failed tries stop a goal, nothing merges"
-git switch -q main
-for level in 0 1 2; do $goal new lvl$level --here --goal "Level $level" --done "works" --level $level >/dev/null; [ "$(field lvl$level step)" = design ] || bad "level $level design"; git switch -q main; done
-[ "$(field lvl0 step)$(field lvl1 step)$(field lvl2 step)" = designdesigndesign ] && ok "every level starts at design" || bad "every level"
 $goal new frz --here --goal "Add frz" --done "calc has frz" >/dev/null
 sed -i.bak 's/calc has frz/calc has something else/' .loop/goals/frz.md; rm .loop/goals/frz.md.bak; git commit -qam "Change a done line"
 $goal check frz >/dev/null 2>&1; rc=$?
 [ "$rc" = 3 ] && [ "$(field frz status)" = stopped ] && ok "a changed done line stops the goal" || bad "frozen done line ($rc $(field frz status))"
 git checkout -q -- . ; git switch -q main
-$goal new sealed --here --goal "Add sealed" --done "calc has sealed" --level 1 >/dev/null
-printf '\n\ndef sealed():\n    return 1\n' >> calc.py; git commit -qam "Add sealed"
-$goal check sealed >/dev/null
-cat > "$d/judge.sh" <<J
-pwd > "$d/seen-dir"; ls -A > "$d/seen-files"; cat > "$d/seen-prompt"; printf 'PASS 1: ok\nVERDICT: pass\n'
-J
-cfg "judge_command=[\"bash\", \"$d/judge.sh\"]"
-$goal judge sealed >/dev/null; git checkout -q -- .loop/config.json
-[ "$(cat "$d/seen-dir")" != "$PWD" ] && [ "$(cat "$d/seen-files")" = prompt.txt ] && grep -q "=== DIFF ===" "$d/seen-prompt" && ok "the judge sees only its pack in an empty folder" || bad "judge folder"
-git switch -q main
-$goal new tries --here --goal "Add tries" --done "calc has tries" --level 1 >/dev/null
-printf '\n\ndef tries():\n    return 1\n' >> calc.py; git commit -qam "Add tries"
-printf 'FAIL 1: no\nVERDICT: fail\n' > "$d/vf"
-for n in 1 2 3; do $goal check tries >/dev/null 2>&1; $goal verdict tries --file "$d/vf" >/dev/null 2>&1; rc=$?; done
+$goal new tries --here --goal "Add tries" --done "calc has tries" >/dev/null
+for n in 1 2 3; do FAKE_SKILL_OUT='STEP: failed no' step tries idea >/dev/null 2>&1; rc=$?; done
 [ "$rc" = 3 ] && [ "$(field tries status)" = stopped ] && grep -q "tries: Failed 3 tries" .loop/findings.md && ok "three failed tries stop the goal with a finding" || bad "3 tries ($rc $(field tries status))"
 git checkout -q -- . ; git switch -q main
 grep -rlE '"pr", "merge"|gh pr merge' "$here/skills" --include=*.py >/dev/null && bad "a script merges" || ok "no script calls gh pr merge"
@@ -170,14 +126,13 @@ for word in $(python3 "$here/skills/workflow-delivery/scripts/goal.py" -h | sed 
   grep -q -- "$word" "$here/docs/wiki/Delivery.md" || missing="$missing $word"
 done
 [ -z "$missing" ] && ok "page lists them" || bad "page lacks:$missing"
-grep -q "Done lines a judge can prove" "$here/skills/workflow-delivery/SKILL.md" && ok "skill says how to write done lines" || bad "done line guidance"
 
 echo "== pr_bumps_version moves the last number once"
 echo 1.3.3.3 > VERSION; git add -A; git commit -qm "Version"; git push -q origin main
 cfg 'pr_bumps_version=true'; git commit -qam "Bump config"; git push -q origin main
 $goal new bump --here --goal "Add bump" --done "calc has bump" >/dev/null
 printf '\n\ndef bump():\n    return 1\n' >> calc.py; git commit -qam "Add bump"
-$goal check bump >/dev/null; $goal pr bump >/dev/null
+flowall bump; $goal check bump >/dev/null; $goal pr bump >/dev/null
 [ "$(cat VERSION)" = "1.3.3.4" ] && ok "VERSION bumped" || bad "bump: $(cat VERSION)"
 [ "$(git log -1 --format=%s)" = "Bump version to 1.3.3.4" ] && ok "bump commit" || bad "bump commit"
 [ "$(git show origin/loop/bump:VERSION)" = "1.3.3.4" ] && ok "bump pushed" || bad "bump push"
@@ -192,13 +147,13 @@ printf '#!/bin/bash\n[ -e "%s/pushed-once" ] && exit 0\ntouch "%s/pushed-once"\n
 chmod +x "$hook"
 $goal new retry --here --goal "Add retry" --done "calc has retry" >/dev/null
 printf '\n\ndef retry():\n    return 1\n' >> calc.py; git commit -qam "Add retry"
-$goal check retry >/dev/null
+flowall retry; $goal check retry >/dev/null
 $goal pr retry | grep -q "^PR " && ok "second push worked" || bad "retry"
 git switch -q main
 printf '#!/bin/bash\necho "the remote said no" >&2\nexit 1\n' > "$hook"
 $goal new nopush --here --goal "Add nopush" --done "calc has nopush" >/dev/null
 printf '\n\ndef nopush():\n    return 1\n' >> calc.py; git commit -qam "Add nopush"
-$goal check nopush >/dev/null
+flowall nopush; $goal check nopush >/dev/null
 $goal pr nopush > "$d/np" 2>&1; rc=$?
 [ $rc != 0 ] && grep -q "the remote said no" "$d/np" && ok "final failure prints git's error" || bad "push error"
 rm -f "$hook"; git switch -q main
@@ -240,7 +195,7 @@ ok "every goal finished"
 [ "$(git rev-parse HEAD)" = "$head0" ] && [ -z "$(git status --porcelain -- calc.py)" ] && ok "governing checkout wrote no code" || bad "governor wrote code"
 [ "$(cat "$FAKE_AGENT/pwd-alpha")" != "$(cat "$FAKE_AGENT/pwd-beta")" ] && ok "each goal has its own worktree" || bad "worktree"
 case "$(cat "$FAKE_AGENT/pwd-alpha")" in */loop/worktrees/alpha) ok "worktree under loop/";; *) bad "worktree path";; esac
-grep -q "Start at step 2 (Design)" "$FAKE_AGENT/prompt-alpha-0" && ok "level 0 starts at Design" || bad "prompt step"
+grep -q "Start at step 2, the idea step" "$FAKE_AGENT/prompt-alpha-0" && ok "a goal starts at the idea step" || bad "prompt step"
 
 echo "== mender: one fresh agent, told only the finding and the log"
 printf 'fail\nfail\nfail\n' > "$FAKE_AGENT/behave-mendme"

@@ -13,7 +13,7 @@ Codex has run as a monitored background agent on a toy repo. It needs `-s worksp
 ## Commands
 
 ```text
-go "GOAL" --done LINE [--done LINE] [--level L] [--touches A,B] [--slug S] [--release ask] [--session]
+go "GOAL" --done LINE [--done LINE] [--touches A,B] [--slug S] [--release ask] [--session]
 watch [--max N] [--once] [--interval S]
 report
 dashboard [--out FILE]
@@ -128,7 +128,7 @@ permissions.
 ### Example
 
 ```text
-/workflow-monitoring go "Add median()" --done "Even lists average the two middle values" --level 1 --touches src/calc
+/workflow-monitoring go "Add median()" --done "Even lists average the two middle values" --touches src/calc
 /workflow-monitoring watch
 /workflow-monitoring report
 ```

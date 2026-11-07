@@ -76,7 +76,7 @@ in Runs marked `retired`. Only retire a goal the owner has said is superseded. I
 Each lane is a run and each box a step, coloured by status, with its expected finish. Solid arrows run inside a run.
 Thick dashed arrows cross runs and say why one waits, such as a goal or a shared file. A goal's `waits_on` is recorded
 when `watch` holds it, so the arrow stays through running and today's finished goals. Times come from the median
-finished goal of that level; without one the box says `no estimate`. Hover a box for what it is, what's done, what's
+finished goal; without one the box says `no estimate`. Hover a box for what it is, what's done, what's
 next and what it unblocks, or tap it to open the same text in the list below. The page has no scripts.
 
 ## Rules

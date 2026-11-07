@@ -11,12 +11,11 @@ import os
 import statistics
 import sys
 
-STEPS = {"0": ["design", "plan", "build", "checks", "pr"],
-         "1": ["design", "plan", "build", "checks", "judge", "pr"],
-         "2": ["design", "design-review", "plan", "build", "checks", "judge", "pr"]}
-ORDER = STEPS["2"] + ["release"]
-TEXT = {"design": "Write the design", "design-review": "Review the design", "plan": "Write the plan", "build": "Build the change",
-        "checks": "Run the checks", "judge": "Judge the change against its done lines", "pr": "Open the pull request",
+STEPS = {"goal": ["idea", "plan", "build", "checks", "review", "qa", "ship", "pr"]}
+ORDER = STEPS["goal"] + ["release"]
+TEXT = {"idea": "Shape the idea into a design", "plan": "Review the design into a plan", "build": "Build the change",
+        "checks": "Run the checks", "review": "Review the change", "qa": "Test the change", "ship": "Prepare it to ship",
+        "pr": "Open the pull request",
         "release": "Answer the release question", "session": "A tracked session", "poc": "Answer a question, read-only"}
 OPEN = ("running", "waiting", "failed", "stopped", "queued")
 
@@ -50,7 +49,7 @@ def sections(doc):
     """Worked out from the rows alone; nothing here reads a run record."""
     at, rows, waiting = stamp(doc["generated"]), doc["runs"], doc["waiting"]
     for queued in doc["dependencies"]:
-        queued["boxes"] = STEPS.get(queued["level"], STEPS["1"])
+        queued["boxes"] = STEPS.get(queued["level"], STEPS["goal"])
     history = {}
     for r in rows:
         if r["status"] == "done" and r["took"] > 0 and not r["tracked"]:
@@ -71,7 +70,7 @@ def sections(doc):
     for r in rows:
         if r["tracked"]:
             continue
-        mine = STEPS.get(r["level"], STEPS["1"])
+        mine = STEPS.get(r["level"], STEPS["goal"])
         at_step = ORDER.index(r["step"]) if r["step"] in ORDER else -1
         for step in mine + (["release"] if r["status"] == "done" or r["step"] == "release" else []):
             index = ORDER.index(step)

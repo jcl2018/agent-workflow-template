@@ -19,6 +19,7 @@ ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 "$here/dev/toy/make.sh" "$T" >/dev/null || exit 1
+export LOOP_FLOW="$T/flow.json"
 cd "$T/repo" || exit 1
 python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
@@ -108,7 +109,7 @@ check "resume puts a stopped goal's tries back to 0" 'until_status doomed done &
 
 echo "== a visible session, started from the main project folder"
 main=$(pwd)
-$W go "Add seen" --done "seen works" --touches seen.py --level 0 --slug seen --session > "$T/s1"
+$W go "Add seen" --done "seen works" --touches seen.py --slug seen --session > "$T/s1"
 tree=$(sed -n 's/^WORKTREE //p' "$T/s1")
 check "go --session prints WORKTREE and PROMPT" '[ -d "$tree" ] && grep -q "^PROMPT " "$T/s1"'
 check "the prompt names the worktree, so the session can start elsewhere" 'grep -qF "cd $tree &&" "$T/s1"'

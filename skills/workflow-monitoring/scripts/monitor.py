@@ -19,7 +19,6 @@ import subprocess
 import sys
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
-LEVELS = ("0", "1", "2")
 LIVE = ("running", "waiting")
 
 
@@ -105,7 +104,7 @@ def parse_queue():
     for line in lines:
         if not line.startswith("- slug:"):
             continue
-        item = {"done": [], "touches": [], "level": "0", "release": ""}
+        item = {"done": [], "touches": [], "release": ""}
         for part in line.strip()[2:].split("|"):
             key, _, value = part.partition(":")
             key, value = key.strip(), " ".join(value.split())
@@ -113,14 +112,11 @@ def parse_queue():
                 item["done"].append(value)
             elif key == "touches":
                 item["touches"] = [path.strip() for path in value.split(",") if path.strip()]
-            elif key in ("slug", "goal", "level", "release"):
+            elif key in ("slug", "goal", "release"):
                 item[key] = value
         slug = item.get("slug", "")
         if not SLUG.match(slug) or slug in seen or not item.get("goal") or not item["done"]:
             print("SKIPPED queue line (needs a good slug, a goal and a done line): %s" % line.strip()[:80])
-            continue
-        if item["level"] not in LEVELS:
-            print("SKIPPED queue line: level %r is not 0, 1 or 2: %s" % (item["level"], line.strip()[:60]))
             continue
         seen.add(slug)
         goals.append(item)
@@ -225,9 +221,9 @@ def returned():
 
 def cmd_report(args):
     states, held = facts()
-    rows = [("SLUG", "LEVEL", "STATUS", "STEP", "TRIES", "PR")]
+    rows = [("SLUG", "KIND", "STATUS", "STEP", "TRIES", "PR")]
     for state in states:
-        rows.append((state["slug"], state.get("level", ""), state.get("status", ""), state.get("step") or "-",
+        rows.append((state["slug"], state.get("kind") or "goal", state.get("status", ""), state.get("step") or "-",
                      str(state.get("tries", 0)), state.get("pr") or "-"))
     widths = [max(len(row[col]) for row in rows) for col in range(6)]
     for row in rows:
@@ -287,12 +283,12 @@ def cmd_dashboard(args):
         out.append("</ul>")
     if not waiting:
         out.append("<p>Nothing.</p>")
-    out.append("</section><h2>Runs</h2><div class=scroll><table><tr><th>Slug</th><th>Level</th><th>Status</th>"
+    out.append("</section><h2>Runs</h2><div class=scroll><table><tr><th>Slug</th><th>Kind</th><th>Status</th>"
                "<th>Step</th><th>Tries</th><th>Pull request</th></tr>")
     for state in states:
         status = state.get("status", "")
         out.append("<tr><td>%s</td><td>%s</td><td class='%s'>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
-            e(state["slug"]), e(state.get("level")), e(status), e(status), e(state.get("step") or "-"),
+            e(state["slug"]), e(state.get("kind") or "goal"), e(status), e(status), e(state.get("step") or "-"),
             e(state.get("tries", 0)), e(state.get("pr") or "-")))
     out.append("</table></div>" + ("" if states else "<p>No runs yet.</p>"))
     out.append("<h2>Findings</h2><ul>")

@@ -4,6 +4,7 @@ set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1
+export LOOP_FLOW="$d/flow.json"
 health="python3 $here/skills/workflow-health/scripts/health.py"
 cd "$d/repo" || exit 1
 python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null

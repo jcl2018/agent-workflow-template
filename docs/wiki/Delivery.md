@@ -3,57 +3,47 @@
 
 ## Summary
 
-Skill: `workflow-delivery`. Takes one sentence to a pull request, judged by a fresh agent at levels 1 and 2.
-In an operation session, `poc` and `go` are not run in that session: they are put in a batch (see Monitoring) and run in
-their own session or background agent.
+Skill: `workflow-delivery`. Takes one sentence to a pull request by running your own skill suite's flow unattended:
+your idea, plan, review, test and ship skills, with frozen done lines, the repo's checks, a 3-try stop and a manual
+verify section around them. There is one flow, and no levels.
 
-On Agensi, the file contract `loop-files.md` is under `shared/` in the pack, and `workflow-monitoring` is a sibling skill the agent loads by name.
+Delivery needs a configured skill suite. A private file outside the repo, `~/.workflow-loop/flow.json`, names your skill
+for each step, the command that runs them, the environment that puts them in their own unattended mode and a probe that
+proves it. With no flow file, every command refuses with one line saying how to set it. The repo never names the
+skills.
+
+A step runs only after the probe proves the unattended mode, because a ship skill run by a person's rules could push.
+Each step takes its skill's recommended answers. Anything the skill leaves for the owner waits under Waiting on you;
+nothing is approved for the owner. The ship step never pushes, so delivery's own `pr` pushes and opens the pull request.
+
+In an operation session, `go` is not run in that session: it is put in a batch (see Monitoring) and runs in a background
+agent. On Agensi, the file contract `loop-files.md` is under `shared/` in the pack, and `workflow-monitoring` is a sibling
+skill the agent loads by name.
 
 ## Commands
 
-- `poc "<question>"`: answers a question about the repo and writes nothing. It ends with a `go` line and a queue line.
-- `go "<goal>" --done "<line>" ... [--level 0|1|2] [--touches "<file,file>"]`: freezes the done
-  lines and runs the goal. In an interactive session it hands off to [Monitoring](Monitoring), so the governing session
-  never builds.
+- `go "<goal>" --done "<line>" ... [--touches "<file,file>"]`: freezes the done lines and runs the goal through the
+  flow. In an interactive session it hands off to [Monitoring](Monitoring), so the governing session never builds.
 
-### Levels
+### The flow
 
-| Level | Steps | Fresh judge |
-|---|---|---|
-| `0` (default) | Design, plan, build, checks | No |
-| `1` | Same, plus a judge | One, after the build |
-| `2` | Adds a design review before the build | One, plus the review |
-
-Changes to CI, auth or data are level `1` at least. The script raises `0` to `1` when `--touches` or the diff hits a
-path in `risky_paths`. The old names `minimum`, `quick`, `standard` and `full` are refused with a line naming 0, 1 and 2.
-
-At level 2, a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never
-stored in the repo) does the design review. An agent with tools runs it in the worktree, detached, because it needs the
-repo and can take many minutes. That agent uses `design_command` from `.loop/config.json`, or `agent_command`, so allow
-what the skill needs. It is told to ask nothing and take the recommended answer at every gate. The goal's agent checks on
-it until it ends, then records the result with `verdict --design`. With no skill, or the skill missing, the built-in
-review runs, with no tools, on the goal file alone. `judge --design` refuses while a skill can run. The output says which
-ran, and the pull request says whether the skill ran `full` or `condensed`. A condensed pass still counts as a pass.
+Freeze, then idea, plan, build, checks, review, checks, qa, checks, ship, checks, pull request and release. The chart
+under `go` shows it.
 
 ### Done lines
 
-Done lines are frozen when the goal starts. A wrong one needs a new goal. The judge reads the diff, the goal file and
-the check results, and no other file in the repo, so write each line for those:
-
-- Say what the change does, so the diff shows it or a named check passes on it.
-- To compare with a file outside the diff, name a check that compares them, or one short quote for `## Evidence`.
-- Keep the proof small. A documentation goal proves what the page says from the diff, plus a passing docs check, and
-  doesn't ask for output of every command.
+Done lines are frozen when the goal starts. A wrong one needs a new goal. Write each one so the repo's checks, or what a
+person can see, prove it before the pull request.
 
 ### Goal steps
 
 ```text
-new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]
-queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]
+new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
+queue SLUG --goal TEXT --done LINE [--touches A,B]
+flow SLUG STEP [--note TEXT]
+record SLUG STEP --file REPLY
 step SLUG NAME [--note TEXT]
 check SLUG
-judge SLUG [--design]
-verdict SLUG --file FILE [--design]
 pr SLUG
 wait SLUG --ask TEXT --words W [--words W]
 answer SLUG
@@ -61,52 +51,17 @@ finding SLUG TEXT
 show SLUG
 ```
 
-A background agent runs `step`, the design review at level 2, `check`, `judge` (where the level needs it) and `pr` in order,
-and fills in `## Verify by hand`. Failed checks, a failed or missing verdict and a failed design review each cost a try,
-even when only the proof was missing. After 3 failed tries it files a finding in `.loop/findings.md` and stops with exit
-code 3.
-
-`pr` pushes the branch, retrying twice, and opens the pull request. It refuses until the checks (and the judge, where
-the level needs one) hold on this commit, and at level 2 until the design review has passed. With `pr_bumps_version` on,
-it first moves the last number of the version file once. With the health skill beside it, `pr` then puts the pull request
-in the milestone of the feature its touched files belong to; a failure there never stops the goal.
-
-The fresh judge is given only the diff, the goal file and the check results, in an empty folder. The built-in design
-review is given only the goal file. Proof the checks don't print goes under `## Evidence` in the goal file. Commit it
-and run `check` again, because `judge` refuses a commit the checks haven't passed.
-
-### Example
-
-From the goal's worktree, a background agent runs:
-
-```text
-check add-median
-judge add-median
-pr add-median
-```
+A background agent runs `flow` for the idea and plan steps, builds, fills in `## Verify by hand`, then runs `check`
+after the build and after each of the review, qa and ship steps, and ends with `pr`. `flow` starts a step detached and
+prints `RUNNING` until it ends, then a `NEXT` line naming `record`. `record` refuses a reply that `flow` didn't produce.
+Failed checks, a failed step and a step with no `STEP:` line each cost a try. After 3 it files a finding in
+`.loop/findings.md` and stops with exit code 3. `pr` refuses until the checks hold on this commit and every step is done
+or skipped with a reason; its body lists each step's result. With `pr_bumps_version` on, it first moves the last number
+of the version file once, unless the branch already changed it.
 
 ### Stage charts
 
-Amber marks where the command stops for the owner. [Home](Home) says what each status means. "Toy test" means a throwaway repo with stand-ins for GitHub.
-
-#### `poc`
-
-```mermaid
-flowchart LR
-  a["Read the repo"]
-  b["Answer the question"]
-  c["Print a go line and a queue line"]
-  d{{"Owner decides whether to run it"}}
-  a --> b
-  b --> c
-  c --> d
-  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
-  class d owner
-```
-
-Status: built and proven: none. Built only: Read the repo; Answer the question; Print a go line and a queue line; Owner decides whether to run it. Planned: none.
-Stops for the owner: Owner decides whether to run it.
-Proof: no test covers `poc`, and no real run is on record. It writes nothing, so nothing shows it ran.
+Amber marks where the command stops for the owner. [Home](Home) says what each status means. "Toy test" means a throwaway repo with stand-ins for GitHub and for the skills.
 
 #### `go`
 
@@ -114,50 +69,52 @@ Proof: no test covers `poc`, and no real run is on record. It writes nothing, so
 flowchart TD
   a["Done lines given or shown to the owner"]
   b["Hand to Monitoring go"]
-  c["Design"]
-  r["Design review at level 2"]
-  d["Plan"]
+  c["Idea skill shapes the design"]
+  d["Plan skill reviews it into a plan"]
   e["Build"]
   f["Checks"]
-  j["Fresh judge at levels 1 and 2"]
-  g["Open pull request"]
+  g["Review skill"]
+  h["Test skill"]
+  i["Ship skill, which never pushes"]
+  j["Open pull request"]
+  w{{"A decision only the owner can make waits"}}
   o{{"Owner reviews the pull request"}}
   s{{"Stopped after 3 failed tries, finding filed"}}
   a --> b
   b --> c
-  c -->|level 2| r
   c --> d
-  r --> d
   d --> e
   e --> f
-  f -->|levels 1, 2| j
-  f -->|level 0| g
-  j --> g
-  g --> o
+  f --> g
+  g --> h
+  h --> i
+  i --> j
+  j --> o
+  c -.-> w
+  d -.-> w
+  g -.-> w
+  i -.-> w
   f -->|fails 3 times| s
-  j -->|fails 3 times| s
   classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
-  class o,s owner
+  class w,o,s owner
 ```
 
-Status: built and proven: Done lines given or shown to the owner; Hand to Monitoring go; Design; Design review at level 2; Plan; Build; Checks; Fresh judge at levels 1 and 2; Open pull request; Owner reviews the pull request; Stopped after 3 failed tries, finding filed. Built only: none. Planned: none.
-Stops for the owner: Owner reviews the pull request; Stopped after 3 failed tries, finding filed.
-Proof: toy tests, plus a real agent on a toy repo at level 0. On this repo, eight real goals reached a pull request at the level now called 1, and real goals stopped after 3 tries. A second repo ran ten real goals, some at the old levels with no judge. The design review is tested alone: a full level 2 run has never happened, on a toy repo or a real one. Today's level 0, with its design step, has only had a real agent on a toy repo.
+Status: built and proven: Done lines given or shown to the owner; Hand to Monitoring go; Build; Checks; Open pull request; Owner reviews the pull request; Stopped after 3 failed tries, finding filed. Built only: Idea skill shapes the design; Plan skill reviews it into a plan; Review skill; Test skill; Ship skill, which never pushes; A decision only the owner can make waits. Planned: none.
+Stops for the owner: A decision only the owner can make waits; Owner reviews the pull request; Stopped after 3 failed tries, finding filed.
+Proof: toy tests with stand-in skills prove the order, the waits and the stops. The real skills have not run through this flow yet.
 
 #### `new`
 
 ```mermaid
 flowchart LR
-  a["Refuse without --here, a done line or a known level"]
+  a["Refuse without --here, a done line or a skill flow"]
   b["Write the goal file and branch"]
   c["Freeze the done lines"]
-  d["Raise the level on a risky path"]
   a --> b
   b --> c
-  c --> d
 ```
 
-Status: built and proven: Refuse without --here, a done line or a known level; Write the goal file and branch; Freeze the done lines; Raise the level on a risky path. Built only: none. Planned: none.
+Status: built and proven: Refuse without --here, a done line or a skill flow; Write the goal file and branch; Freeze the done lines. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests. A background agent skips this command, so real goals freeze through Monitoring.
 
@@ -165,16 +122,57 @@ Proof: toy tests. A background agent skips this command, so real goals freeze th
 
 ```mermaid
 flowchart LR
-  a["Refuse a duplicate or a bad line"]
+  a["Refuse a duplicate, a bad line or no skill flow"]
   b["Add one line to the queue"]
-  c(["Left for watch to start"])
   a --> b
-  b --> c
 ```
 
-Status: built and proven: Refuse a duplicate or a bad line; Add one line to the queue. Built only: none. Planned: none.
+Status: built and proven: Refuse a duplicate, a bad line or no skill flow; Add one line to the queue. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests. No real use on record.
+
+#### `flow`
+
+```mermaid
+flowchart LR
+  a["Read the private flow file"]
+  b["Probe proves the unattended mode"]
+  c["Start the step's skill, detached"]
+  d["Print RUNNING until it ends"]
+  e["Print the NEXT line"]
+  x{{"Refuse: no flow, or not unattended"}}
+  a --> b
+  b --> c
+  c --> d
+  d --> e
+  a -.-> x
+  b -.-> x
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class x owner
+```
+
+Status: built and proven: Read the private flow file; Probe proves the unattended mode; Start the step's skill, detached; Print RUNNING until it ends; Print the NEXT line; Refuse: no flow, or not unattended. Built only: none. Planned: none.
+Stops for the owner: Refuse: no flow, or not unattended.
+Proof: toy tests with a stand-in flow. The real skills have not run through it yet.
+
+#### `record`
+
+```mermaid
+flowchart LR
+  a["Refuse a reply the flow didn't produce"]
+  b["Done or skipped: go on"]
+  c{{"Pending: waits on the owner"}}
+  d["Failed or silent: costs a try"]
+  a --> b
+  a --> c
+  a --> d
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class c owner
+```
+
+Status: built and proven: Refuse a reply the flow didn't produce; Done or skipped: go on; Pending: waits on the owner; Failed or silent: costs a try. Built only: none. Planned: none.
+Stops for the owner: Pending: waits on the owner.
+Proof: toy tests with stand-in skills.
 
 #### `step`
 
@@ -204,66 +202,30 @@ flowchart TD
   b -->|one fails| e
 ```
 
-Status: built and proven: Run every check; Print each exit code first; Raise the level if the diff is risky; Fail, costs a try. Built only: none. Planned: none.
+Status: built and proven: Run every check; Print each exit code first; Fail, costs a try. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests and real goals.
-
-#### `judge`
-
-```mermaid
-flowchart TD
-  a["Refuse a commit the checks missed"]
-  b["Build the pack: diff, goal file, check results"]
-  c["Fresh agent gives a verdict"]
-  n["No headless judge: print the pack for a fresh agent"]
-  d["Verdict recorded"]
-  e["Failed verdict costs a try"]
-  a --> b
-  b --> c
-  b --> n
-  c --> d
-  d -->|fails| e
-```
-
-Status: built and proven: Refuse a commit the checks missed; Build the pack: diff, goal file, check results; Fresh agent gives a verdict; Verdict recorded; Failed verdict costs a try. Built only: No headless judge: print the pack for a fresh agent. Planned: none.
-Stops for the owner: none.
-Proof: toy tests and real goals, where the judge passed eight and failed others. With `--design` it has only been tested on a toy repo. The path with no headless judge has no test and no real run.
-
-#### `verdict`
-
-```mermaid
-flowchart LR
-  a["Read the saved reply"]
-  b["Record pass or fail"]
-  c["Failed verdict costs a try"]
-  a --> b
-  b -->|fails| c
-```
-
-Status: built and proven: Read the saved reply; Record pass or fail; Failed verdict costs a try. Built only: none. Planned: none.
-Stops for the owner: none.
-Proof: toy tests. No real use on record: real judges ran headless.
 
 #### `pr`
 
 ```mermaid
-flowchart TD
-  a["Refuse until checks and judge hold on this commit"]
+flowchart LR
+  a["Refuse until checks hold and every step is done or skipped"]
   b["Move the version once if pr_bumps_version is on"]
   c["Push, retrying twice"]
-  d["Open the pull request"]
-  e{{"Owner reviews and merges"}}
+  d["Open the pull request with each step's result"]
+  o{{"Owner reviews and merges"}}
   a --> b
   b --> c
   c --> d
-  d --> e
+  d --> o
   classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
-  class e owner
+  class o owner
 ```
 
-Status: built and proven: Refuse until checks and judge hold on this commit; Move the version once if pr_bumps_version is on; Push, retrying twice; Open the pull request; Owner reviews and merges. Built only: none. Planned: none.
+Status: built and proven: Refuse until checks hold and every step is done or skipped; Move the version once if pr_bumps_version is on; Push, retrying twice; Open the pull request with each step's result; Owner reviews and merges. Built only: none. Planned: none.
 Stops for the owner: Owner reviews and merges.
-Proof: toy tests with a stand-in for GitHub, and real pull requests on this repo. The version bump has only run on a toy repo.
+Proof: toy tests with a stand-in for GitHub, and real pull requests on this repo from before the flow.
 
 #### `wait`
 
@@ -328,15 +290,15 @@ Tests: 9.
 > **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
 
 - DEL-5: **Unreviewed** Every goal starts from done lines that can't change once it starts.
-- DEL-6: **Unreviewed** A goal gets the process its risk needs, and every level starts with a design.
-- DEL-7: **Unreviewed** No agent judges its own work, and a judge always has a change to read.
+- DEL-6: **Unreviewed** Every goal runs the owner's own idea, plan, review, test and ship skills in their unattended mode, and nothing starts without them.
+- DEL-7: **Unreviewed** Nothing the skills leave for the owner is decided by an agent: it waits on the owner, and the pull request waits for it.
 - DEL-8: **Unreviewed** A goal that keeps failing stops and says why.
 - DEL-9: **Unreviewed** The loop stops at a pull request, and only the owner merges.
 
 ## Enforced by
 
 - DEL-5: DEL-1, frozen-done-lines
-- DEL-6: DEL-2, DEL-3, design-every-level
-- DEL-7: DEL-4, no-self-judging
+- DEL-6: DEL-2, starts-at-idea, steps-through-flow
+- DEL-7: DEL-3, DEL-4
 - DEL-8: stop-after-3-tries
 - DEL-9: never-merges

@@ -12,6 +12,7 @@ ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 has() { grep -qiF -- "$2" "$1" && ok "$3" || bad "$3"; }
 "$here/dev/toy/make.sh" "$T" >/dev/null || exit 1
+export LOOP_FLOW="$T/flow.json"
 cd "$T/repo" || exit 1
 # a fake gh: pull/1 merged, pull/2 closed, pull/3 open, anything else cannot be answered
 mkdir -p "$T/bin"
@@ -90,7 +91,7 @@ f = d["finished"]
 assert {x["slug"] for x in f["items"]} == {"old1", "old2"} and all(x["result"] == "delivered" for x in f["items"])
 assert "archived" in f["note"] or "archive" in f["note"]
 steps = [(s["slug"], s["step"], s["status"]) for s in d["steps"]]
-assert ("runa", "design", "done") in steps and ("runa", "build", "running") in steps and ("runa", "pr", "pending") in steps
+assert ("runa", "idea", "done") in steps and ("runa", "build", "running") in steps and ("runa", "pr", "pending") in steps
 assert d["runs"][0].get("repo") and d["steps"][0].get("repo")
 m = {x["title"]: x for x in d["milestones"]}
 assert m["Backlog"]["open"] == 2 and m["Backlog"]["closed"] == 1 and m["Backlog"]["age"].endswith("days") and m["Health"]["age"] == "-", m
@@ -125,12 +126,11 @@ assert "https://x/pull/3 (open)" in h and "https://x/pull/9 (unknown)" in h and 
 PY
 PATH=/usr/bin:/bin $B board --at $AT --out "$T/out8" >/dev/null
 python3 -c "import json,sys;d=json.load(open(sys.argv[1]));assert {x['prstate'] for x in d['runs'] if x['pr']}=={'unknown'}" "$T/out8/board.json" && ok "no gh at all shows unknown" || bad "no gh"
-python3 - "$O/board.json" <<'PY' && ok "a level with no finished goals gets exactly no estimate" || bad "no-history estimate"
+python3 - "$O/board.json" <<'PY' && ok "every goal runs one flow, so every running goal gets an estimate from the finished ones" || bad "estimate"
 import json, sys
 d = json.load(open(sys.argv[1]))
 e = {x["slug"]: x["estimate"] for x in d["expected"]}
-assert e["ext1"] == "no estimate: no finished 0 goals yet", e
-assert e["runa"].startswith("estimate:"), e
+assert e["ext1"].startswith("estimate:") and e["runa"].startswith("estimate:"), e
 assert all(v.startswith("estimate:") or v.startswith("no estimate: no finished ") for v in e.values()), e
 PY
 python3 - "$O/board.json" <<'PY' && ok "quiet external goal shown quiet after 30 minutes; fresh one is not" || bad "quiet"
@@ -170,7 +170,7 @@ python3 -c "import json,sys;r={x['slug']:x for x in json.load(open(sys.argv[1]))
 grep -q '<script>x' "$T/out7/board.html" && bad "note escaped" || ok "note escaped in html"
 $B note nosuch hi >/dev/null 2>&1 && bad "note on unknown run refused" || ok "note on unknown run refused"
 # a visible session goal
-$W go "Visible session goal" --done "It works" --level 0 --slug vis --session > "$T/go.out" 2>&1
+$W go "Visible session goal" --done "It works" --slug vis --session > "$T/go.out" 2>&1
 grep -q '^WORKTREE ' "$T/go.out" && grep -q '^PROMPT ' "$T/go.out" && ok "go --session prints WORKTREE and PROMPT" || { bad "go --session output"; cat "$T/go.out"; }
 tree=$(sed -n 's/^WORKTREE //p' "$T/go.out")
 [ -f "$tree/.loop/goals/vis.md" ] && git -C "$tree" log --oneline | grep -q "Goal: vis" && ok "goal frozen in its worktree" || bad "frozen goal"
@@ -204,20 +204,20 @@ import json, re, sys
 d = json.load(open(sys.argv[1]))["dependency_map"]; h = open(sys.argv[2]).read()
 l = {x["run"]: x for x in d["lanes"]}
 assert set(l) == {"repo/first", "repo/donelong", "repo/shout"}, set(l)
-assert [b["step"] for b in l["repo/first"]["boxes"]] == ["design", "plan", "build", "checks", "pr"]
-assert [b["status"] for b in l["repo/first"]["boxes"]] == ["done", "done", "running", "pending", "pending"]
-assert [b["status"] for b in l["repo/shout"]["boxes"]] == ["queued"] * 5
+assert [b["step"] for b in l["repo/first"]["boxes"]] == ["idea", "plan", "build", "checks", "review", "qa", "ship", "pr"]
+assert [b["status"] for b in l["repo/first"]["boxes"]] == ["done", "done", "running"] + ["pending"] * 5
+assert [b["status"] for b in l["repo/shout"]["boxes"]] == ["queued"] * 8
 cross = [a for a in d["arrows"] if a["on"]]
-assert cross == [{"from": "repo/first:pr", "to": "repo/shout:design", "on": "goal first, shared pkg/shout.py"}], cross
-assert len([a for a in d["arrows"] if not a["on"]]) == 4 + 5 + 4  # donelong also has a release box
+assert cross == [{"from": "repo/first:pr", "to": "repo/shout:idea", "on": "goal first, shared pkg/shout.py"}], cross
+assert len([a for a in d["arrows"] if not a["on"]]) == 7 + 8 + 7  # donelong also has a release box
 names = [x["run"] for x in d["lanes"]]
 assert names.index("repo/first") < names.index("repo/shout")
 assert h.count("<a class='box ") == sum(len(x["boxes"]) for x in d["lanes"])
-assert h.count("<path class=wire ") == 1 and h.count("<path class=step ") == 13
+assert h.count("<path class=wire ") == 1 and h.count("<path class=step ") == 22
 assert "goal first, shared pkg/shout.py</text>" in h and "s-running" in h and "s-done" in h
 assert re.search(r"<title>.*Done: .*\nNext: .*\nUnblocks: ", h, re.S)
 PY
-python3 - "$T/m/board.json" <<'PY' && ok "the finish time is on each box, from finished goals of that level" || bad "box times"
+python3 - "$T/m/board.json" <<'PY' && ok "the finish time is on each box, from finished goals" || bad "box times"
 import json, sys
 l = {x["run"]: x for x in json.load(open(sys.argv[1]))["dependency_map"]["lanes"]}
 assert l["repo/donelong"]["boxes"][0]["eta"] == "done"
@@ -229,8 +229,8 @@ python3 - "$T/m/board.json" "$T/m/board.html" "$T/m/board-artifact.html" <<'PY' 
 import json, re, sys
 b = {x["id"]: x for l in json.load(open(sys.argv[1]))["dependency_map"]["lanes"] for x in l["boxes"]}
 assert b["repo/first:pr"]["unblocks"] == ["repo/shout (goal first, shared pkg/shout.py)"]
-assert b["repo/first:build"]["next"] == "Then checks" and b["repo/first:build"]["done"] == "design, plan"
-assert b["repo/shout:design"]["next"].startswith("Waits on goal first")
+assert b["repo/first:build"]["next"] == "Then checks" and b["repo/first:build"]["done"] == "idea, plan"
+assert b["repo/shout:idea"]["next"].startswith("Waits on goal first")
 for page in sys.argv[2:]:
     h = open(page).read()
     assert "<script" not in h and "Each lane is a run" in h

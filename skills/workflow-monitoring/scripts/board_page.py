@@ -167,11 +167,11 @@ def page(doc, bare=False):
     else:
         out.append("<p class=mute>Nothing.</p>")
     runs = [[r["repo"], r["goal"] or r["slug"], r["level"], r["step"], r["age"], r["tries"], link(r),
-             "checks %s, judge %s" % (r["checks"] or "-", r["judge"] or "-"),
+             "checks %s" % (r["checks"] or "-"),
              r["status"] + (" (quiet)" if r["quiet"] == "yes" else "") + (": " + r["reason"] if r["reason"] else ""),
              r["waits_on"] or "-", r["note"] or "-"] for r in doc["runs"]]
-    out.append(table(2, ["Repo", "Goal", "Level", "Step", "Elapsed", "Tries", "Pull request", "Check state", "Status", "Waits on", "Last message"], runs))
-    out.append(table(3, ["Repo", "Goal", "Level", "Estimate"], picks(doc["expected"], "repo", "slug", "level", "estimate")))
+    out.append(table(2, ["Repo", "Goal", "Kind", "Step", "Elapsed", "Tries", "Pull request", "Check state", "Status", "Waits on", "Last message"], runs))
+    out.append(table(3, ["Repo", "Goal", "Kind", "Estimate"], picks(doc["expected"], "repo", "slug", "level", "estimate")))
     fin = doc["finished"]
     out.append(table(4, ["Repo", "Goal", "Result", "Pull request"], [[x["repo"], x["slug"], x["result"], link(x)] for x in fin["items"]]) + "<p class=mute>%s</p>" % e(fin["note"]))
     out.append(table(5, ["Repo", "Goal", "Step", "Status"], picks(doc["steps"], "repo", "slug", "step", "status")))

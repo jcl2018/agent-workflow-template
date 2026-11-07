@@ -4,6 +4,7 @@ set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1
+export LOOP_FLOW="$d/flow.json"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 unset GH_TOKEN GITHUB_TOKEN

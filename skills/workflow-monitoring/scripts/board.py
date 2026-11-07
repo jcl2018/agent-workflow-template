@@ -172,13 +172,13 @@ def queue_of(path):
     goals = []
     for line in lines:
         if line.startswith("- slug:"):
-            item = {"touches": [], "level": "0"}
+            item = {"touches": [], "level": "goal"}
             for part in line.strip()[2:].split("|"):
                 key, _, value = part.partition(":")
                 key, value = key.strip(), clean(value)
                 if key == "touches":
                     item["touches"] = [p.strip() for p in value.split(",") if p.strip()]
-                elif key in ("slug", "level", "goal"):
+                elif key in ("slug", "goal"):
                     item[key] = value
             if SLUG.match(item.get("slug", "")):
                 goals.append(item)
@@ -220,9 +220,9 @@ def collect(name, path, base, at):
         pr = clean(run.get("pr"))
         get = lambda field, size=300: clean(run.get(field), size)
         rows.append({
-            "repo": run.get("repo") or name, "slug": run["slug"], "goal": get("goal", 80), "level": get("level"), "status": get("status"),
+            "repo": run.get("repo") or name, "slug": run["slug"], "goal": get("goal", 80), "level": kind(run), "status": get("status"),
             "step": get("step") or "-", "tries": run.get("tries", 0), "pr": pr, "prstate": pr_state(pr, path) if pr else "",
-            "checks": get("checks"), "judge": get("judge"), "external": bool(run.get("external")), "quiet": "yes" if quiet else "no",
+            "checks": get("checks"), "external": bool(run.get("external")), "quiet": "yes" if quiet else "no",
             "note": clean(note.get("text")) if isinstance(note, dict) else "",
             "waiting": run.get("waiting") if isinstance(run.get("waiting"), dict) else None, "finding": get("finding", 200),
             "elapsed": (at - begun).total_seconds() if begun else 0, "age": span((at - begun).total_seconds()) if begun else "0m",
@@ -245,6 +245,12 @@ def collect(name, path, base, at):
         deps.append({"repo": name, "slug": goal["slug"], "waits_on": why, "on": blocker, "goal": clean(goal.get("goal"), 80),
                      "level": goal["level"], "touches": goal["touches"]})
     return rows, deps
+
+
+def kind(run):
+    """A POC or a tracked session keeps its own kind; every goal, old levels included, runs the one skill flow."""
+    name = run.get("kind") or run.get("level")
+    return name if name in ("poc", "session") else "goal"
 
 
 def build(at, since):
