@@ -11,9 +11,6 @@ MON-3	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: record marked extern
 REG-1	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"	REG-4	2026-11-07
 REG-2	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: known doesn.t block or open an issue"	REG-5	2026-11-07
 REG-3	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: no token: dry run, no gh call"	REG-6	2026-11-07
-REL-1	land	bash dev/toy/test-rows.sh REL-1	REL-4	2026-11-07
-REL-2	land	bash dev/toy/test-rows.sh REL-2	REL-5	2026-11-07
-REL-3	land	bash dev/toy/test-rows.sh REL-3	REL-6	2026-11-07
 MON-4	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: start: no line runs in the governing session"	MON-18	2026-11-07
 MON-8	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-delivery/SKILL.md says the operation session governs only"	MON-18	2026-11-07
 frozen-done-lines	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: a changed done line stops the goal"	DEL-5	2026-11-07
@@ -30,9 +27,6 @@ sessions-tracked	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a tracked
 tests-seen-failing	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a test that can.t fail stays unproven"	REG-4	2026-11-07
 one-issue	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: failure opened an issue"	REG-7	2026-11-07
 one-link	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a test with no criterion fails"	REG-8	2026-11-07
-refused-unmet	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: cut refuses a missing row"	REL-7	2026-11-07
-breaking-asks	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: breaking change waits"	REL-8	2026-11-07
-docs-only	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: docs only leaves"	REL-9	2026-11-07
 MON-9	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal with an empty pr field|a mender running after its goal lands)" | wc -l | grep -q 2	MON-17	2026-11-07
 MON-10	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a goal a session has taken over gets no mender"	MON-17	2026-11-07
 MON-11	land	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2	MON-14	2026-11-07
@@ -59,3 +53,4 @@ HLT-7	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a repeat opens 
 HLT-7c	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a rule that could not read closes none of its issues"	HLT-7	2026-11-07
 starts-at-idea	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: starts at idea, with no level"	DEL-6	2026-11-07
 steps-through-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: record refuses a reply flow.py didn.t run"	DEL-6	2026-11-07
+verify-steps	land	bash dev/toy/test-rows.sh DEL-8	DEL-10	

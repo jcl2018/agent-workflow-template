@@ -49,13 +49,13 @@ python3 scripts/docs.py check [--base <ref>]
 | `UNMAPPED` | A page has no row in `.loop/docs.tsv` | Run `add` |
 
 Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to
-count only changes since that point. `cut` counts from the goal's base the same way. `publish` has no `--base`: it
+count only changes since that point. `publish` has no `--base`: it
 counts every commit.
 
 ## `criteria`
 
 With `"criteria": true` in `.loop/config.json`, feature pages are a contract and `check` enforces it. Only the pages
-Delivery, Documentation, Health, Milestones, Monitoring, Regression and Release exist, plus Home, which is free-form. Each feature page has
+Delivery, Documentation, Health, Milestones, Monitoring and Regression exist, plus Home, which is free-form. Each feature page has
 exactly these sections, in this order: `Summary`, `Commands`, `Criteria`, `Enforced by`.
 
 ```bash
@@ -106,8 +106,8 @@ python3 scripts/criteria.py sync [--commit] [--dry-run]
 `review` seals a line with a hash of its text. Pass `--user` only when the owner's own words said so. If a sealed line
 changes, `sync` returns it to `Unreviewed`, marked `(changed after review)`, and `report` names it. Put
 `criteria.py sync --commit` first in a repo's checks, so a goal's own checks do this.
-`regression.py sync` reports an id with no row, and `release.py cut` refuses while any of its rows is missing, a draft or
-failing.
+`regression.py sync` reports an id with no row, `regression.py criteria` names any criterion whose row is missing, a
+draft or failing, and `health.py check` fails on it.
 
 ## `publish`
 

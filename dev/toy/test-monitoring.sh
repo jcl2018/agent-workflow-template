@@ -86,7 +86,7 @@ check "watch ended by itself" 'grep -q "NOTHING LEFT" "$T/w2"'
 
 echo "== report and dashboard show what waits on you"
 touch "$FAKE_AGENT/hold-asks"
-$W go "Add <asks>" --done "asks works" --touches asks.py --slug asks --release ask >/dev/null
+$W go "Add <asks>" --done "asks works" --touches asks.py --slug asks >/dev/null
 sets asks 'status="waiting"' 'waiting={"ask":"Cut <i>it</i>?","words":["cut asks","leave asks"]}'
 $M report > "$T/r2"
 check "report gives the question" 'grep -q "^- asks: Cut <i>it</i>?" "$T/r2"'

@@ -83,21 +83,4 @@ wikifile Home.md | grep -q "workflow-docs" && ok "page replaced" || bad "not rep
 $docs restore | grep -q RESTORED && ok "restore" || bad "restore"
 [ "$(wikifile Home.md)" = "# Written by someone else" ] && ok "restored original" || bad "not restored"
 
-echo "== cut refuses stale docs"
-export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
-goal="python3 $here/skills/workflow-delivery/scripts/goal.py"; rel="python3 $here/skills/workflow-release/scripts/release.py"
-git push -q origin main
-$goal new stale --here --goal "Change calc" --done "calc changed" >/dev/null
-printf '\n# again\n' >> calc.py; git commit -qam "Change calc again"
-python3 - <<'PY'
-p = ".loop/goals/stale.md"; t = open(p).read().replace("## Verify by hand\n", "## Verify by hand\n\n1. Open calc.py.\n   Expect: the change.\n", 1); open(p, "w").write(t)
-PY
-git commit -qam "Verify steps"
-bash "$here/dev/toy/flow-done.sh" stale; $goal check stale >/dev/null; $goal pr stale >/dev/null
-$rel ask stale | grep -q "STALE pages" && ok "ask warns about stale" || bad "ask stale"
-$rel cut stale 2>&1 | grep -q "pages are stale" && ok "cut refused stale" || bad "cut stale"
-echo "Covers that change too, with a sentence about it." >> docs/wiki/Using-the-toy.md; git add -A; git commit -qm "Update docs"
-$goal check stale >/dev/null
-$rel cut stale | grep -q "^DRAFT" && ok "cut after the docs update" || bad "cut after update"
-
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

@@ -47,7 +47,8 @@ json.dump(spec, open(d + "/flow-interactive.json", "w"))
 PY
 export LOOP_FLOW="$d/flow.json"
 step() { $F "$1" "$2" --wait 5 >/dev/null; $F "$1" "$2" --wait 10 >/dev/null; $goal record "$1" "$2" --file "$C/loop/runs/$1.$2.txt"; }
-flowall() { for s in idea plan review qa ship; do step "$1" $s >/dev/null; done; }
+verify() { python3 -c "import sys;p='.loop/goals/%s.md'%sys.argv[1];t=open(p).read();open(p,'w').write(t.replace('## Verify by hand\n','## Verify by hand\n\n1. Open calc.py.\n   Expect: the change.\n',1))" "$1"; git commit -qam "Verify by hand: $1"; }
+flowall() { for s in idea plan review qa ship; do step "$1" $s >/dev/null; done; verify "$1"; }
 
 echo "== with no skill flow set, delivery refuses with one line saying how to set it"
 for cmd in "$goal new nof --here --goal No --done no" "$goal queue nof --goal No --done no" "$W go No --done no --slug nof" "$F nof idea"; do
@@ -72,7 +73,7 @@ grep -rq "my-idea" .loop && bad "skill name in the repo" || ok "the skill's name
 echo "STEP: done" > "$d/forged.txt"
 $goal record low plan --file "$d/forged.txt" 2>&1 | grep -q "wasn't run by flow.py" && ok "record refuses a reply flow.py didn't run" || bad "forged reply"
 step low plan | grep -q "NEXT: build, then check" && ok "plan recorded, build next" || bad "plan"
-printf '\n\ndef low():\n    return 1\n' >> calc.py; git commit -qam "Add low"
+printf '\n\ndef low():\n    return 1\n' >> calc.py; git commit -qam "Add low"; verify low
 $goal check low | grep -q "NEXT: flow.py low review" && ok "checks lead to review" || bad "check next"
 $goal pr low 2>&1 | grep -q "the flow hasn't finished: review, qa, ship" && ok "pr refuses until the flow ends" || bad "pr early"
 

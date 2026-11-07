@@ -3,7 +3,7 @@
 
 usage: batch.py <command> [options]
 
-  add NAME --goal GOAL --done LINE [--done LINE] [--slug S] [--touches A,B] [--release ask] [--session]
+  add NAME --goal GOAL --done LINE [--done LINE] [--slug S] [--touches A,B] [--session]
       add a goal line under the heading '## Batch: NAME' in .loop/queue.md; --session marks it for a visible session
   start NAME [--max N] [--skill-dir DIR]
       hand the batch's goal lines to watch.py if it sits beside this file; otherwise print the command that starts them
@@ -134,8 +134,6 @@ def cmd_add(args):
     parts = ["slug: " + slug]
     if args.touches:
         parts.append("touches: " + clean(args.touches))
-    if args.release:
-        parts.append("release: " + args.release)
     parts += ["session: yes"] * bool(args.session)
     parts += ["goal: " + text] + ["done: " + clean(item) for item in args.done]
     line = "- " + " | ".join(parts)
@@ -177,7 +175,6 @@ def main():
     item.add_argument("--done", action="append", default=[])
     item.add_argument("--slug", default="")
     item.add_argument("--touches", default="")
-    item.add_argument("--release", default="", choices=["", "ask"])
     item.add_argument("--session", action="store_true")
     item = sub.add_parser("start")
     item.add_argument("name")
