@@ -1,8 +1,10 @@
 <!-- workflow-docs -->
 # Regression
 
+## Summary
+
 Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.loop/regression.tsv`. Script:
-`regression.py`.
+`regression.py`. The criteria below are drafts until the owner approves them.
 
 ## Commands
 
@@ -30,9 +32,21 @@ workflow
   `.loop/regression-known.tsv`. It keeps one issue per failing row; without a token it only prints `WOULD` lines.
 - `workflow` writes `.github/workflows/regression.yml` (nightly, on `v*` tags, by hand).
 
-## Example
+### Example
 
 ```bash
 python3 scripts/regression.py red check-1 --break "sed -i.bak 's/return a + b/return a - b/' calc.py"
 python3 scripts/regression.py run land
 ```
+
+## Criteria
+
+- REG-1: (draft) A test row that has never been seen failing is reported as unproven and blocks the run.
+- REG-2: (draft) A failure listed as known does not block the run and opens no issue.
+- REG-3: (draft) Without a GitHub token, a run only prints what it would do and never calls GitHub.
+
+## Enforced by
+
+- REG-1: REG-1
+- REG-2: REG-2
+- REG-3: REG-3
