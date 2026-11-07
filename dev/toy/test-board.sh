@@ -314,11 +314,36 @@ assert "retired: Superseded by goal fresh" in h and "1 retired" in d["digest"]
 PY
 $W resume stale 2>&1 | grep -q "REFUSED" && ok "resume refuses a retired goal" || bad "resume retired"
 rm "$R/fresh.json" "$R/stale.json"
+# CHANGED only on a real change
+rec chg1 running 1 build 2026-01-01T11:50:00Z 'pr="https://x/pull/3"'
+rm -rf "$T/c"; $B board --at $AT --out "$T/c" >/dev/null
+python3 - "$T/c/board.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+for item in d["state"].values():
+    if not item.get("waits_on"):
+        item.pop("waits_on", None)
+json.dump(d, open(sys.argv[1], "w"))
+PY
+$B board --at $AT --since "$T/c/board.json" --out "$T/c2" > "$T/c.out"
+grep -q "CHANGED no" "$T/c.out" && ! grep -q -- "- -> -" "$T/c.out" && ok "a field the old board lacks is no change" || bad "missing field counted as a change"
+PATH=/usr/bin:/bin $B board --at $AT --since "$T/c2/board.json" --out "$T/c3" > "$T/c.out"
+grep -q "CHANGED no" "$T/c.out" && ok "gh failing to answer is no change" || bad "unknown pull request state counted as a change"
+$B board --at $AT --since "$T/c3/board.json" --out "$T/c4" > "$T/c.out"
+grep -q "CHANGED no" "$T/c.out" && ok "and gh answering again is no change" || bad "pull request state flapped"
+rec chg1 running 1 checks 2026-01-01T11:50:00Z 'pr="https://x/pull/3"'
+$B board --at $AT --since "$T/c4/board.json" --out "$T/c5" > "$T/c.out"
+grep -q "^CHANGE repo/chg1 step: build -> checks" "$T/c.out" && [ "$(grep -c '^CHANGE ' "$T/c.out")" = 1 ] && ok "a real change is still reported, alone" || bad "real change"
+rm "$R/chg1.json"
+# board_page.py alone needs a finished board.json
+mkdir -p "$T/lone"; cp "$here/skills/workflow-monitoring/scripts/board_page.py" "$T/lone/"; $B board --at $AT --out "$T/c6" >/dev/null
+python3 "$T/lone/board_page.py" --in "$T/c6/board.json" 2>&1 | grep -q "no dependency map" && ok "board_page.py alone refuses an unfinished board" || bad "page alone"
+$P --in "$T/c6/board.json" >/dev/null; python3 "$T/lone/board_page.py" --in "$T/c6/board.json" --out "$T/c7" | grep -q "^HTML " && ok "and draws a finished one" || bad "page alone draws"
 # repo checks
 op="$here/skills/workflow-monitoring/references/operation.md"
 for k in "watch.py watch --once" "latest report" "board.py board" "board_page.py" "main project folder" "Artifact" "one chat line" "6 lines" "NEXT_DELAY" "Never answer a gate" "exact words" "information" "merge only when told" "never archive"; do has "$op" "$k" "operation.md: $k"; done
 has "$here/skills/workflow-monitoring/SKILL.md" "references/operation.md" "SKILL.md links operation.md"
 for f in "$here"/skills/*/scripts/*.py; do [ "$(wc -c < "$f")" -lt 20480 ] && ok "under 20 KB: $(basename "$f")" || bad "over 20 KB: $f"; done
 for f in "$here"/skills/*/SKILL.md; do [ "$(wc -l < "$f")" -lt 150 ] && ok "under 150 lines: $(basename "$(dirname "$f")")" || bad "over 150 lines: $f"; done
-for k in '"board"' '"cadence"' '"handoff"' '"note"' '"session"' '"retire"' 'board.json' 'repos'; do has "$here/listing.json" "$k" "listing.json discloses $k"; done
+for k in '"board"' '"cadence"' '"handoff"' '"note"' '"session"' '"retire"' '"take"' 'board.json' 'repos'; do has "$here/listing.json" "$k" "listing.json discloses $k"; done
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

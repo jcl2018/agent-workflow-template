@@ -5,7 +5,9 @@
 
 Skill: `workflow-monitoring`. One session governs and the others build. Scripts: `watch.py` (`go`, `watch`, `resume`),
 `monitor.py` (`report`, `dashboard`), `batch.py` (`add`, `start`, `status`, `promote`) and `board.py` (`board`, `cadence`,
-`repos`, `note`, `session`, `retire`, `handoff`). Run them from the main checkout, on the base branch. `board_page.py` draws the board's pages.
+`repos`, `note`, `session`, `retire`, `take`, `handoff`). Run them from the main checkout, on the base branch. `board_page.py` draws the board's pages, and has `board_map.py` finish `board.json` first. `watch.py`
+runs `mend.py` when mending is on. Keep these scripts in one folder: each runs alone, but without its helper `watch.py`
+mends nothing and says so, and `board_page.py` refuses an unfinished board.
 
 ## Commands
 
@@ -66,6 +68,8 @@ session add NAME --repo R [--branch B] [--waits-on X]
 session update NAME [flags] | session remove NAME
                                                flags also take --status, --note, --next, --pr and --eta
 retire SLUG --reason TEXT                      mark a superseded goal retired, so it leaves Waiting on you
+take SLUG                                      mark a goal as taken over by a visible session, so nothing mends it;
+                                               refuses while its agent still runs
 handoff [--at TIME] [--out FILE]               write a file a new session can take over from
 ```
 
@@ -87,7 +91,8 @@ The check-in loop, repeated every `cadence` minutes, or every hour when nothing 
 3. Run `board.py board --since <the last board.json>`, then `board_page.py`.
 4. With an Artifact tool, publish `board-artifact.html` unedited to the same URL each time; otherwise give the owner the
    `board.html` path.
-5. Write one chat line only when `CHANGED` is yes. When the board prints `NO_CHANGE`, write that line instead: it gives
+5. Write one chat line only when `CHANGED` is yes. A field the last board didn't have, or `gh` failing to answer, is not a
+   change. When the board prints `NO_CHANGE`, write that line instead: it gives
    the time of the next check-in, so a quiet loop doesn't look stalled.
 6. Report at most 6 lines to the owner, with anything waiting on them first.
 7. Wait `NEXT_DELAY` seconds and repeat; `none` means the owner turned the loop off, so stop.
@@ -99,8 +104,10 @@ loosen permissions, edit done lines or change `agent_command`.
 ### Config
 
 `mend` (one fresh agent for a failed or stopped goal) and `resume_on_limit` (continue after a usage limit) are off by
-default, since each spends your usage, and neither touches a visible session's goal. Background agents run
-`agent_command` with your own permissions.
+default, since each spends your usage, and neither touches a visible session's goal. If a goal's pull request has
+landed, neither restarts it: the goal is marked `done`, and a mender still running on it is stopped. The pull request is
+found by branch, so this works when the run record has none. Background agents run `agent_command` with your own
+permissions.
 
 ### Example
 
@@ -120,6 +127,9 @@ python3 scripts/monitor.py report
 - MON-6: (draft) A finished POC's answer and go line are saved outside the repo, and the board shows the POC as done with that answer.
 - MON-7: (draft) A goal line promoted from a saved POC carries that POC's goal, done lines and level, and a POC that has not finished cannot be promoted.
 - MON-8: (draft) The operation instructions state that the operation session is for governance only and runs neither poc nor go itself.
+- MON-9: (draft) A goal whose pull request has landed is marked done and never mended, and a mender still running on it is stopped.
+- MON-10: (draft) A goal a session has taken over gets no mender.
+- MON-11: (draft) The board reports a change only when a run's state really changed, not when a field is new or gh fails to answer.
 
 ## Enforced by
 
@@ -131,3 +141,6 @@ python3 scripts/monitor.py report
 - MON-6: MON-6
 - MON-7: MON-7
 - MON-8: MON-8
+- MON-9: MON-9
+- MON-10: MON-10
+- MON-11: MON-11

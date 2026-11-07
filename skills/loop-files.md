@@ -106,7 +106,7 @@ loop/wiki.json            the last wiki publish, for restore
 
 `external: true` marks a goal run in a visible session: no `pid`, and a missing process never marks it `failed`.
 `note` is `{"text", "at"}`, a session's latest message, kept as data. `waits_on` lists the goals that held this one.
-`retired` is `{"reason", "at"}`. `board.py repos add` keeps a list of repo paths in
+`retired` is `{"reason", "at"}`. `board.py take` sets `external` on a goal a session has taken over. `board.py repos add` keeps a list of repo paths in
 `~/.workflow-loop/repos`.
 
 Writes go through a temporary file and a rename, so a reader never sees half a file.
