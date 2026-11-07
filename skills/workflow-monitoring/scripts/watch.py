@@ -266,7 +266,7 @@ def seated(state, prompt):
 
 def hand_over(state, prompt, cfg=None):
     state["external"], state["status"] = True, "running"
-    save(state, "visible session: no process started")
+    save(state, "visible session: no process")
     print("WORKTREE %s\nPROMPT %s" % (state["worktree"], prompt))
 
 
@@ -375,7 +375,7 @@ def ensure_tree(state):
     if not os.path.isdir(tree):
         git("worktree", "prune")
         git("worktree", "add", tree, state["branch"])
-        print("RECREATED " + tree)
+        print("RECREATED worktree " + tree)
     state["worktree"] = tree
 
 
