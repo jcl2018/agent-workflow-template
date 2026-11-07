@@ -23,5 +23,5 @@ MON-9	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal 
 MON-10	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a goal a session has taken over gets no mender"		2026-11-07
 MON-11	land	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2		2026-11-07
 MON-12	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: promote keeps the goal in the same session"		2026-11-07
-DEL-4	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: judge refuses an empty diff"		
-MON-13	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal waits before a mender starts"		
+DEL-4	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: judge refuses an empty diff"		2026-11-07
+MON-13	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal waits before a mender starts"		2026-11-07
