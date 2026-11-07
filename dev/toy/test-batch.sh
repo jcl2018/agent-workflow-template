@@ -100,6 +100,32 @@ $BA add solo --poc "Alone?" --slug s2 >/dev/null
 python3 "$T/lone/batch.py" start solo >/dev/null 2>&1
 until_status s2 done && ok "batch.py alone still runs a POC" || bad "alone poc ($(field s2 status))"
 
+echo "== a POC and its goal in one visible session, which starts in the main project folder and stays there"
+: > "$T/ran"
+$BA add solo2 --poc "Stay here?" --slug here --session >/dev/null
+check "a session POC is marked in the queue" 'grep -q "^- poc: here | session: yes | question: Stay here?" .loop/queue.md'
+$BA start solo2 > "$T/v1"
+check "start prints a prompt and starts no process" 'grep -q "^PROMPT " "$T/v1" && [ "$(field here pid)" = None ] && [ "$(field here status)" = running ]'
+python3 "$here/skills/workflow-monitoring/scripts/watch.py" watch --once >/dev/null
+check "watch never marks a session POC failed" '[ "$(field here status)" = running ]'
+printf 'It works.\n' > "$T/noanswer"
+check "save refuses an answer with no go line" '$BA save here --file "$T/noanswer" 2>&1 | grep -q "needs a go line"'
+printf 'It stays.\ngo "Add stays" --done "It stays" --level 0 --touches stays.py\n' > "$T/answer"
+session=$$
+$BA save here --file "$T/answer" >/dev/null
+check "save records the answer as a finished POC" '[ "$(field here status)" = done ] && grep -q "It stays" "$C/loop/pocs/here.md" && grep -q "^go " "$C/loop/pocs/here.go"'
+check "save refuses a POC that has finished" '$BA save here --file "$T/answer" 2>&1 | grep -q "^REFUSED"'
+$BA promote here > "$T/v2"
+check "promote keeps the goal in the same session" 'grep -q "^- slug: here-go .*session: yes" .loop/queue.md && grep -q "^SAME SESSION: .*session that ran POC here" "$T/v2"'
+python3 "$here/skills/workflow-monitoring/scripts/watch.py" watch --once > "$T/v3"
+tree=$(sed -n 's/^WORKTREE //p' "$T/v3")
+check "the goal gets its worktree and a prompt naming it, with no process" '[ -d "$tree" ] && grep -qF "cd $tree &&" "$T/v3" && [ "$(field here-go pid)" = None ] && [ "$(field here-go external)" = True ]'
+branch=$(git rev-parse --abbrev-ref HEAD)
+out=$(cd "$tree" && python3 "$here/skills/workflow-delivery/scripts/goal.py" step here-go plan 2>&1; git rev-parse --abbrev-ref HEAD)
+check "the same session works the goal with cd, and never changes folder" '[ "$session" = "$$" ] && grep -q "loop/here-go" <<<"$out" && [ "$(pwd)" = "$T/repo" ] && [ "$(git rev-parse --abbrev-ref HEAD)" = "$branch" ]'
+sets_done() { python3 -c "import json,sys;p=sys.argv[1];s=json.load(open(p));s[\"status\"]=\"done\";json.dump(s,open(p,\"w\"))" "$C/loop/runs/$1.json"; }
+sets_done here-go
+
 echo "== text and sizes"
 for f in skills/workflow-monitoring/references/operation.md skills/workflow-monitoring/SKILL.md skills/workflow-delivery/SKILL.md; do
   check "$f says the operation session governs only" 'grep -qi "governance only" "$here/$f" && grep -qi "runs neither" "$here/$f"'
