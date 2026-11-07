@@ -5,6 +5,8 @@
 
 Skill: `workflow-monitoring`. One session governs and the others build. Run the commands from the main checkout, on the
 base branch.
+Keep the skill's scripts in one folder. Each runs alone, but apart from its helpers `watch` mends nothing and the board's
+pages refuse an unfinished board.
 
 ## Commands
 
@@ -65,6 +67,8 @@ session add NAME --repo R [--branch B] [--waits-on X]
 session update NAME [flags] | session remove NAME
                                                flags also take --status, --note, --next, --pr and --eta
 retire SLUG --reason TEXT                      mark a superseded goal retired, so it leaves Waiting on you
+take SLUG                                      mark a goal as taken over by a visible session, so nothing mends it;
+                                               refuses while its agent still runs
 handoff [--at TIME] [--out FILE]               write a file a new session can take over from
 ```
 
@@ -86,7 +90,8 @@ The check-in loop, repeated every `cadence` minutes, or every hour when nothing 
 3. Run `board --since <the last board.json>`, then the page step.
 4. With an Artifact tool, publish `board-artifact.html` unedited to the same URL each time; otherwise give the owner the
    `board.html` path.
-5. Write one chat line only when `CHANGED` is yes. When the board prints `NO_CHANGE`, write that line instead: it gives
+5. Write one chat line only when `CHANGED` is yes. A field the last board didn't have, or `gh` failing to answer, is not a
+   change. When the board prints `NO_CHANGE`, write that line instead: it gives
    the time of the next check-in, so a quiet loop doesn't look stalled.
 6. Report at most 6 lines to the owner, with anything waiting on them first.
 7. Wait `NEXT_DELAY` seconds and repeat; `none` means the owner turned the loop off, so stop.
@@ -98,8 +103,10 @@ loosen permissions, edit done lines or change `agent_command`.
 ### Config
 
 `mend` (one fresh agent for a failed or stopped goal) and `resume_on_limit` (continue after a usage limit) are off by
-default, since each spends your usage, and neither touches a visible session's goal. Background agents run
-`agent_command` with your own permissions.
+default, since each spends your usage, and neither touches a visible session's goal. If a goal's pull request has
+landed, neither restarts it: the goal is marked `done`, and a mender still running on it is stopped. The pull request is
+found by branch, so this works when the run record has none. Background agents run `agent_command` with your own
+permissions.
 
 ### Example
 
@@ -299,6 +306,25 @@ Status: built and proven: Owner says a goal is superseded; Refuse a running agen
 Stops for the owner: Owner says a goal is superseded.
 Proof: toy tests, and real retired goals on this repo.
 
+#### `take`
+
+```mermaid
+flowchart LR
+  o{{"Owner or operation session hands a goal to a session"}}
+  a["Refuse while its agent still runs"]
+  b["Mark it taken over"]
+  c["Nothing mends it"]
+  o --> a
+  a --> b
+  b --> c
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class o owner
+```
+
+Status: built and proven: Refuse while its agent still runs; Mark it taken over; Nothing mends it. Built only: Owner or operation session hands a goal to a session. Planned: none.
+Stops for the owner: Owner or operation session hands a goal to a session.
+Proof: toy tests with a stand-in agent. It hasn't run on a real goal yet.
+
 #### `handoff`
 
 ```mermaid
@@ -380,8 +406,8 @@ Proof: toy tests. Nothing enforces that the owner said so: that is an instructio
 
 ## Criteria
 
-Tests: 8.
-> **Unreviewed:** 5 of 8 criteria on this page have not been reviewed by the owner.
+Tests: 11.
+> **Unreviewed:** 8 of 11 criteria on this page have not been reviewed by the owner.
 
 - MON-1: **Proven** Two goals whose touched files overlap never run at the same time; the later one is held.
 - MON-2: **Proven** A goal the owner has retired no longer appears under what waits on the owner.
@@ -391,6 +417,9 @@ Tests: 8.
 - MON-6: **Unreviewed** A finished POC's answer and go line are saved outside the repo, and the board shows the POC as done with that answer.
 - MON-7: **Unreviewed** A goal line promoted from a saved POC carries that POC's goal, done lines and level, and a POC that has not finished cannot be promoted.
 - MON-8: **Unreviewed** The operation instructions state that the operation session is for governance only and runs neither poc nor go itself.
+- MON-9: **Unreviewed** A goal whose pull request has landed is marked done and never mended, and a mender still running on it is stopped.
+- MON-10: **Unreviewed** A goal a session has taken over gets no mender.
+- MON-11: **Unreviewed** The board reports a change only when a run's state really changed, not when a field is new or gh fails to answer.
 
 ## Enforced by
 
@@ -402,3 +431,6 @@ Tests: 8.
 - MON-6: MON-6
 - MON-7: MON-7
 - MON-8: MON-8
+- MON-9: MON-9
+- MON-10: MON-10
+- MON-11: MON-11
