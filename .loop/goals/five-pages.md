@@ -16,8 +16,25 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `ls docs/wiki` and `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: six files (Home, Delivery, Documentation, Monitoring, Regression, Release), and `DOCS OK: 6 pages`.
+2. Open `docs/wiki/Release.md` and read the Criteria section.
+   Expect: three one-line criteria marked `(draft)`, each with a matching line under Enforced by.
+3. Run `python3 skills/workflow-regression/scripts/regression.py sync`.
+   Expect: no GAP, DRAFT or UNPROVEN lines for DEL, DOC, MON, REG or REL rows.
+4. Open README.md and read the Getting started and File reference sections.
+   Expect: install steps and a file table, and Home.md links to the README.
 
 ## Design
 
+Keep five feature pages with the fixed sections Summary, Commands, Criteria and Enforced by; extra detail from the old pages
+becomes `###` subsections under them. Home stays free-form and links to the README. Getting started and Files move into
+README.md and their pages leave `.loop/docs.tsv`. Each page gets three draft criteria, each backed by a row whose command
+looks for one named PASS line of an existing toy test, so the criteria describe behaviour that exists today. Each row was
+proven with `regression.py red`, using a break that changes behaviour. Risk: criteria turn on `"criteria": true` in the config.
+
 ## Plan
+
+1. Rewrite the pages, README and docs.tsv; set `criteria` in the config. Proof: `docs.py check` prints DOCS OK.
+2. Add 15 rows and run `red` on each. Proof: every row has a seen_red date, and `regression.py sync` is clean.
+3. Run `goal.py check`. Proof: all repo checks pass.

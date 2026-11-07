@@ -1,9 +1,9 @@
 # id	level	command	goal	seen_red
-DEL-1	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: go needs a done line"		
+DEL-1	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: go needs a done line"		2026-11-07
 DEL-2	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: default level 0, starts at design"		2026-11-07
 DEL-3	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: raised at the start"		2026-11-07
 DOC-1	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: stale found"		2026-11-07
-DOC-2	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"		
+DOC-2	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"		2026-11-07
 DOC-3	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"		2026-11-07
 MON-1	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the overlapping goal is held"		2026-11-07
 MON-2	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a retired goal leaves Waiting on you"		2026-11-07
@@ -11,6 +11,6 @@ MON-3	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: record marked extern
 REG-1	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"		2026-11-07
 REG-2	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: known doesn.t block or open an issue"		2026-11-07
 REG-3	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: no token: dry run, no gh call"		2026-11-07
-REL-1	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: cut refused without verify steps"		
+REL-1	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: cut refused without verify steps"		2026-11-07
 REL-2	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: draft release create"		2026-11-07
-REL-3	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: batch cut refused without --user"		
+REL-3	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: batch cut refused without --user"		2026-11-07
