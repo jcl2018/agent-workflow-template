@@ -41,6 +41,6 @@ docs-only	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: docs only leav
 MON-9	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal with an empty pr field|a mender running after its goal lands)" | wc -l | grep -q 2	MON-15	2026-11-07
 MON-10	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a goal a session has taken over gets no mender"	MON-15	2026-11-07
 MON-11	land	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2	MON-12	2026-11-07
-returned-on-change	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: sync returns it"	DOC-9	
-returned-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report names a returned criterion"	DOC-9	
-change-not-blocked	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: no check blocks a changed criterion"	DOC-9	
+returned-on-change	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: sync returns it"	DOC-9	2026-11-07
+returned-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report names a returned criterion"	DOC-9	2026-11-07
+change-not-blocked	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: no check blocks a changed criterion"	DOC-9	2026-11-07
