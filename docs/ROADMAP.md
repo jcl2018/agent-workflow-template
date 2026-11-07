@@ -16,11 +16,11 @@ agent-workflow-template is a pack of six focused skills, so an agent loads only 
 | Skill | Commands | What it does |
 |---|---|---|
 | `workflow-setup` | `setup` | Surveys a repo and writes its config, on a branch |
-| `workflow-delivery` | `poc`, `go` | Takes a sentence to a judged pull request |
-| `workflow-monitoring` | `go`, `watch`, `report`, `dashboard`, `resume` | One session governs; the others build |
-| `workflow-regression` | `seed`, `add`, `sync`, `red`, `run`, `workflow` | Keeps tests visible and enforced |
-| `workflow-docs` | `init`, `check`, `publish`, `restore` | Keeps wiki pages in the repo and finds stale ones |
-| `workflow-release` | `cut`, `leave` | Versions the repo and writes a draft GitHub release |
+| `workflow-delivery` | `poc`, `go`, and the goal steps `new` to `show` | Takes a sentence to a pull request, judged at levels 1 and 2 |
+| `workflow-monitoring` | `go`, `watch`, `report`, `dashboard`, `resume`, `board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`, and the batch commands `add`, `start`, `status`, `promote` | One session governs; the others build |
+| `workflow-regression` | `seed`, `add`, `sync`, `criteria`, `red`, `run`, `workflow` | Keeps tests visible and enforced |
+| `workflow-docs` | `init`, `survey`, `add`, `check`, `criteria`, `publish`, `restore` | Keeps wiki pages in the repo and finds stale ones |
+| `workflow-release` | `ask`, `cut`, `leave`, `show` | Versions the repo and writes a draft GitHub release |
 
 ### Delivery
 
@@ -47,16 +47,22 @@ One session starts and watches the others.
 - Run state lives in the shared git folder, so every worktree sees it and nothing extra is committed.
 - `report` shows each goal's step, its pull request, and what's waiting on you with the exact words to type.
 - `dashboard` writes one self-contained HTML page. Claude users can also publish it as an Artifact.
-- `resume` picks up a stopped goal. A failed goal never stops the others.
+- `resume` picks up a failed or stopped goal. A failed goal never stops the others.
 - With `mend` on, `watch` gives a failed goal one fresh agent. With `resume_on_limit` on, it continues after a usage limit.
 - Background agents use your own permission settings. agent-workflow-template never turns them off.
 
 ### Documentation
 
-- Pages live in `docs/wiki/`, and `.loop/docs.tsv` maps each page to the paths it describes. The wiki is five feature pages (Delivery, Documentation, Monitoring, Regression, Release) plus Home; install steps and the file reference are in the README.
-- Each feature page lists draft criteria for the owner to approve, and each criterion has a row in `.loop/regression.tsv`.
-- `check` finds pages that are stale, missing or unwritten.
-- `publish` updates the GitHub wiki. It never deletes a page, and it won't replace a page it didn't write.
+- Pages live in `docs/wiki/`, and `.loop/docs.tsv` maps each page to the paths it describes. The wiki is five feature
+  pages (Delivery, Documentation, Monitoring, Regression, Release) plus Home; install steps and the file reference are
+  in the README.
+- Each feature page lists the criteria the owner approved, and each criterion has a row in `.loop/regression.tsv`.
+- Each command on a feature page has a stage chart, a status line from real tests and runs, and its stops for the owner.
+  Pages name no script files.
+- `check` finds pages that are stale, missing, unwritten or unmapped. With `"criteria": true` it also enforces the page
+  list, sections, criteria, charts and the script name rule.
+- `publish` updates the GitHub wiki. It never deletes a page, and it won't replace a page it didn't write unless the
+  owner names that page.
 - `restore` reverts the last publish.
 
 ### Release
@@ -64,11 +70,13 @@ One session starts and watches the others.
 For any repo using agent-workflow-template:
 
 - Once a goal's checks hold, it shows the docs that changed and the verify steps, then asks `cut` or `leave`.
-- Every goal has a `Verify by hand` section, with at least one step and what to expect. `cut` refuses without it.
-- `cut` refuses if a wiki page is stale. It then moves the version, writes the changelog and creates a draft GitHub
+- Every goal has a `Verify by hand` section of numbered steps, each with what to expect. `cut` refuses without it.
+- `cut` refuses if a wiki page is stale or missing, or a criterion's regression row is missing, a draft or failing. It
+  then moves the version, writes the changelog and creates a draft GitHub
   release carrying the verify steps and docs. You publish it.
 - After a cut, the wiki is published with `workflow-docs`.
-- `leave` keeps the work unreleased. A monitored batch can answer `leave` by itself, but never `cut`.
+- `leave` keeps the work unreleased. A monitored batch can answer `leave` by itself. It never cuts, unless
+  `"release_auto": true` lets it cut a draft from what its diff shows. A breaking change always waits for the owner.
 
 For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZIP and refuses it if any published rule fails:
 
@@ -112,13 +120,26 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 
 ## Operation session: built
 
-- `watch.py go --session`, `board.py` (`board`, `cadence`, `repos`, `note`, `handoff`) and the check-in loop in
+- `watch.py go --session`, `board.py` (`board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`),
+  `board_page.py` (the board's pages and dependency map) and the check-in loop in
   `skills/workflow-monitoring/references/operation.md`.
+- `batch.py` (`add`, `start`, `status`, `promote`): the operation session governs only, and each POC or goal line runs
+  in its own background process or session.
+
+## Criteria and charts: built
+
+- The wiki as five feature pages plus Home, with criteria the owner approved, each backed by a regression row seen
+  failing once. `cut` refuses while a row is missing, a draft or failing.
+- `release_auto`: a monitored batch goal decides from its diff, and only ever cuts a draft.
+- A stage chart and status line for every command, with `docs.py check` failing a missing chart or a script file name.
 
 ## What is left
 
-1. **The wiki and the Agensi listing:** publish the wiki with `workflow-docs`, and list the package on Agensi.
+1. **The Agensi listing:** list the package on Agensi. The wiki is published; republish it with `workflow-docs` when
+   the pages change.
 2. **Other agents:** Kimi, Qwen and OpenCode support.
-3. **Level 2:** it has not run yet, on a toy repo or a real one.
+3. **Level 2:** a full run has not happened, on a toy repo or a real one. The design review is tested alone.
+4. **Real proof still missing:** `release_auto`, `restore`, a batch with a real agent, a regression workflow run in CI, the check-in loop firing on
+   its timer, and today's level 0 on a real repo. The wiki's status lines list each one.
 
 Merging, a project board and milestones stay with you.

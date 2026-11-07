@@ -3,8 +3,7 @@
 
 ## Summary
 
-Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.loop/regression.tsv`. Script:
-`regression.py`.
+Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.loop/regression.tsv`.
 
 ## Commands
 
@@ -12,6 +11,7 @@ Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.l
 seed
 add <id> --level <level> --command "<command>" [--goal <slug>:<n>]
 sync [--write]
+criteria
 red <id> --break "<command>"
 run [land|nightly|<id>] [--timeout S] [--live]
 workflow
@@ -26,6 +26,7 @@ workflow
 
 - `seed` adds a `land` row for each check in the config.
 - `sync` lists done lines, and wiki criteria (a row whose id or `--goal` is the criterion id), with no row (`GAP`), `DRAFT` rows and `UNPROVEN` rows; `--write` adds drafts.
+- `criteria` runs the row of every wiki criterion and prints any that is missing, a draft or failing.
 - `red` copies `HEAD` to a temporary worktree, applies the break and records the date if the test fails. `STILL GREEN`
   means the test proves nothing.
 - `run` prints `PASS`, `FAIL`, `KNOWN`, `FIXED` or `UNPROVEN` (blocks). Known failures sit in
@@ -34,10 +35,127 @@ workflow
 
 ### Example
 
-```bash
-python3 scripts/regression.py red check-1 --break "sed -i.bak 's/return a + b/return a - b/' calc.py"
-python3 scripts/regression.py run land
+```text
+/workflow-regression red check-1 --break "<a command that breaks the code>"
+/workflow-regression run land
 ```
+
+### Stage charts
+
+Amber marks where the command stops for the owner. [Home](Home) says what each status means. "Toy test" means a throwaway repo with stand-ins for GitHub.
+
+#### `seed`
+
+```mermaid
+flowchart LR
+  a["Read the checks in the config"]
+  b["Add one land row each"]
+  a --> b
+```
+
+Status: built and proven: Read the checks in the config; Add one land row each. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests.
+
+#### `add`
+
+```mermaid
+flowchart LR
+  a["Add or replace the row"]
+  b["A changed command must be proved again"]
+  a --> b
+```
+
+Status: built and proven: Add or replace the row. Built only: A changed command must be proved again. Planned: none.
+Stops for the owner: none.
+Proof: toy tests and this repo's rows. Nothing tests that a changed command loses its proof.
+
+#### `sync`
+
+```mermaid
+flowchart LR
+  a["Find done lines and criteria with no row"]
+  b["Find draft and unproven rows"]
+  c["With --write, add drafts"]
+  d{{"Owner or agent gives each draft a real command"}}
+  a --> b
+  b --> c
+  c --> d
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class d owner
+```
+
+Status: built and proven: Find done lines and criteria with no row; Find draft and unproven rows; With --write, add drafts. Built only: Owner or agent gives each draft a real command. Planned: none.
+Stops for the owner: Owner or agent gives each draft a real command.
+Proof: toy tests, and it runs on this repo, where it still lists old goals' done lines with no row.
+
+#### `criteria`
+
+```mermaid
+flowchart LR
+  a["Run the row of every criterion"]
+  b["Print any missing, draft or failing"]
+  a --> b
+```
+
+Status: built and proven: Run the row of every criterion; Print any missing, draft or failing. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: a real run on this repo is on record. No toy test calls it.
+
+#### `red`
+
+```mermaid
+flowchart TD
+  a["Copy HEAD to a temporary worktree"]
+  b["Apply the break"]
+  c["Run the test"]
+  d["Failed: record the date"]
+  e["Still green: the test proves nothing"]
+  a --> b
+  b --> c
+  c --> d
+  c --> e
+```
+
+Status: built and proven: Copy HEAD to a temporary worktree; Apply the break; Run the test; Failed: record the date; Still green: the test proves nothing. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests. This repo's 15 criterion rows each carry a date.
+
+#### `run`
+
+```mermaid
+flowchart TD
+  a["Run the rows at this level"]
+  b["Print PASS, FAIL, KNOWN, FIXED or UNPROVEN"]
+  c["Keep one issue per failing row"]
+  d["No token: print WOULD lines only"]
+  e{{"Owner reads a blocking failure"}}
+  a --> b
+  b --> c
+  b --> d
+  b -->|blocks| e
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class e owner
+```
+
+Status: built and proven: Run the rows at this level; Print PASS, FAIL, KNOWN, FIXED or UNPROVEN; Keep one issue per failing row; No token: print WOULD lines only; Owner reads a blocking failure. Built only: none. Planned: none.
+Stops for the owner: Owner reads a blocking failure.
+Proof: toy tests with a stand-in for GitHub. Two real issues with this label sit on a second repo, but no record ties them to a run.
+
+#### `workflow`
+
+```mermaid
+flowchart LR
+  a["Refuse to replace another workflow"]
+  b["Write the nightly workflow"]
+  c["Workflow runs in CI"]
+  a --> b
+  b --> c
+```
+
+Status: built and proven: Refuse to replace another workflow; Write the nightly workflow. Built only: Workflow runs in CI. Planned: none.
+Stops for the owner: none.
+Proof: toy tests run its inline block. This repo has no such workflow. A second repo has one, and it isn't among that repo's last 200 CI runs, so a real CI run is unproven.
 
 ## Criteria
 

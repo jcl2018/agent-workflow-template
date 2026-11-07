@@ -15,6 +15,8 @@ With "criteria": true in .loop/config.json, check also enforces the criteria con
 Delivery, Documentation, Monitoring, Regression, Release and Home; every page but Home has exactly the
 sections Summary, Commands, Criteria and Enforced by, in that order; each criterion is one line
 "- ID: text" with a unique id such as DEL-1, and each id has a line "- ID: <regression row id>" in Enforced by.
+It also fails any page that names a script file, and any command under Commands (a line in a text block, or a
+"- `command`" bullet) with no "### `command`" heading holding a mermaid chart and a Status line.
 
 Publish only adds and updates pages that carry this tool's marker. It never deletes a page,
 and it refuses to replace a page this tool didn't write unless you name it with --adopt.
@@ -35,6 +37,11 @@ SECTIONS = ["Summary", "Commands", "Criteria", "Enforced by"]
 PREFIXES = {"Delivery": "DEL", "Documentation": "DOC", "Monitoring": "MON", "Regression": "REG", "Release": "REL"}
 CRITERION = re.compile(r"^- ([A-Z]{2,5}-\d+): (\S.*)$")
 PLACEHOLDER = "Write this page from what is really in the repo."
+SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
+COMMAND = re.compile(r"^[a-z][a-z-]*$")
+BULLET = re.compile(r"^- `([a-z][a-z-]*)\b")
+CHART_HEADING = re.compile(r"^#{3,6} `([^`]+)`\s*$")
+STATUSES = ("built and proven", "built only", "planned")
 
 
 def run(args, cwd=None):
@@ -196,10 +203,63 @@ def sections(text):
     for line in text.splitlines():
         if line.startswith("```"):
             fenced = not fenced
-        elif not fenced and line.startswith("## "):
+        if not fenced and line.startswith("## "):
             found.append((line[3:].strip(), []))
         elif found:
             found[-1][1].append(line)
+    return found
+
+
+def commands(lines):
+    """Command names under Commands: the first word of a line in a text block, or of a bullet in backticks."""
+    found, fence = [], None
+    for line in lines:
+        if line.startswith("```"):
+            fence = None if fence is not None else line[3:].strip()
+        elif fence == "text":
+            word = line.split()[0] if line.strip() and not line[0].isspace() else ""
+            if COMMAND.match(word) and word not in found:
+                found.append(word)
+        elif fence is None:
+            match = BULLET.match(line)
+            if match and match.group(1) not in found:
+                found.append(match.group(1))
+    return found
+
+
+def charts(lines):
+    """What each `command` heading holds, as {name: {"chart": bool, "status": bool}}."""
+    found, name, fenced = {}, None, False
+    for line in lines:
+        if line.startswith("```"):
+            if name and not fenced and line.strip() == "```mermaid":
+                found[name]["chart"] = True
+            fenced = not fenced
+        elif not fenced and line.startswith("#"):
+            match = CHART_HEADING.match(line)
+            name = match.group(1) if match else None
+            if name:
+                found[name] = {"chart": False, "status": False}
+        elif not fenced and name and line.startswith("Status: "):
+            found[name]["status"] = all(word in line.lower() for word in STATUSES)
+    return found
+
+
+def chart_trouble(page, lines):
+    """Each command needs a chart of its stages and a status line."""
+    names = commands(lines)
+    if not names:
+        return [("CHART", page, "Commands lists no command. Fix: list them in a text block or as bullets")]
+    held = charts(lines)
+    found = []
+    for name in names:
+        item = held.get(name, {})
+        if not item.get("chart"):
+            found.append(("CHART", page, "%s has no chart. Fix: add a heading with %s in backticks and a mermaid block "
+                          "under Commands" % (name, name)))
+        elif not item.get("status"):
+            found.append(("CHART", page, "%s has no status line. Fix: add 'Status: built and proven: ... Built only: ... "
+                          "Planned: ...'" % name))
     return found
 
 
@@ -214,15 +274,22 @@ def contract(root):
                           "Release or Home"))
             continue
         full = os.path.join(root, wiki_dir(root), page + ".md")
-        if page == "Home" or not os.path.exists(full):
+        if not os.path.exists(full):
             continue
         with open(full) as handle:
-            parts = sections(handle.read())
+            text = handle.read()
+        named = sorted(set(item.group(0) for item in SCRIPT_FILE.finditer(text)))
+        if named:
+            found.append(("SCRIPT", page, "names %s. Fix: describe the command and what it does" % ", ".join(named)))
+        if page == "Home":
+            continue
+        parts = sections(text)
         names = [name for name, _ in parts]
         if names != SECTIONS:
             found.append(("SECTIONS", page, "have %s, want %s" % (", ".join(names) or "none", ", ".join(SECTIONS))))
             continue
         body = dict(parts)
+        found += chart_trouble(page, body["Commands"])
         ids = []
         for line in body["Criteria"]:
             if line.strip():

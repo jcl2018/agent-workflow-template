@@ -19,7 +19,7 @@ bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 
 page() { # NAME CRITERIA-LINES ENFORCED-LINES
   mkdir -p docs/wiki
-  printf '<!-- workflow-docs -->\n# %s\n\n## Summary\n\nThe %s page of the toy calculator, written for this test.\n\n## Commands\n\nRun `python3 calc.py`.\n\n## Criteria\n\n%s\n\n## Enforced by\n\n%s\n' \
+  printf '<!-- workflow-docs -->\n# %s\n\n## Summary\n\nThe %s page of the toy calculator, written for this test.\n\n## Commands\n\n- `add`: adds two numbers.\n\n#### `add`\n\n```mermaid\nflowchart LR\n  A[Add] --> B([Sum])\n```\n\nStatus: built and proven: add. Built only: none. Planned: none.\n\n## Criteria\n\n%s\n\n## Enforced by\n\n%s\n' \
     "$1" "$1" "$2" "$3" > "docs/wiki/$1.md"
 }
 python3 - <<'PY'
@@ -66,6 +66,38 @@ page Delivery "- DEL-1: The calculator prints a median.
 $docs check | grep -q "^UNENFORCED Delivery: DEL-2" && ok "unenforced criterion fails" || bad "unenforced"
 $docs criteria Delivery | grep -q "NEXT DEL-3" && ok "criteria prints the next free id" || bad "criteria"
 $docs criteria Delivery | grep -q "FORMAT" && ok "criteria prints the format" || bad "format"
+
+echo "== docs check: no script file names, and every command has a chart"
+good() { page Delivery "- DEL-1: The calculator prints a median." "- DEL-1: del-1"; }
+kinds() { $docs check | grep -c "^$1 $2" || true; }
+good; [ "$(kinds SCRIPT Delivery)$(kinds CHART Delivery)" = 00 ] && ok "a page with a chart and no script name passes" || bad "conforming chart page"
+for name in calc.py run.sh skills/x/scripts/tool.py app.js; do
+  good; echo "See \`$name\` for more." >> docs/wiki/Delivery.md
+  $docs check | grep -q "^SCRIPT Delivery: names $name" && ok "script name fails: $name" || bad "script name: $name"
+done
+good; printf '\n```text\npython3 scripts/tool.py run\n```\n' >> docs/wiki/Delivery.md
+$docs check | grep -q "^SCRIPT Delivery: names scripts/tool.py" && ok "a script name in a code block fails" || bad "script in block"
+good; echo "Pages live in docs/wiki/Delivery.md, and the file .loop/docs.tsv maps them." >> docs/wiki/Delivery.md
+[ "$(kinds SCRIPT Delivery)" = 0 ] && ok "other file names pass" || bad "other file names"
+$docs add Home --paths README.md >/dev/null
+printf '<!-- workflow-docs -->\n# Home\n\nA home page written for this test, and it names the file run.sh too.\n' > docs/wiki/Home.md
+$docs check | grep -q "^SCRIPT Home: names run.sh" && ok "Home is held to the rule too" || bad "script on Home"
+rm docs/wiki/Home.md; grep -v '^Home' .loop/docs.tsv > .loop/t && mv .loop/t .loop/docs.tsv
+good; sed -i.bak 's/^- `add`: adds two numbers\.$/- `add`: adds two numbers.\n- `sub`: takes one away./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+$docs check | grep -q "^CHART Delivery: sub has no chart" && ok "a bullet command with no chart fails" || bad "bullet no chart"
+good; sed -i.bak 's/^## Criteria$/```text\nmul A B\n  continues the line above, so it is no command\n```\n\n## Criteria/' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+out=$($docs check || true); grep -q "^CHART Delivery: mul has no chart" <<<"$out" && ok "a text block command with no chart fails" || bad "block no chart"
+grep -q "^CHART Delivery: continues" <<<"$out" && bad "indented line counted" || ok "an indented line is not a command"
+good; sed -i.bak '/^Status: /d' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+$docs check | grep -q "^CHART Delivery: add has no status line" && ok "a chart with no status line fails" || bad "no status"
+good; sed -i.bak 's/^Status: .*/Status: fine./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+$docs check | grep -q "^CHART Delivery: add has no status line" && ok "a status line needs all three labels" || bad "status labels"
+good; sed -i.bak 's/^```mermaid$/```text/' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+$docs check | grep -q "^CHART Delivery: add has no chart" && ok "a block that isn't mermaid is no chart" || bad "not mermaid"
+good; sed -i.bak 's/^- `add`: adds two numbers\.$/Adds two numbers./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+$docs check | grep -q "^CHART Delivery: Commands lists no command" && ok "a Commands section with no command fails" || bad "no command"
+git add -A; git commit -qm "Bad page" >/dev/null; $docs publish 2>&1 | grep -q "REFUSED: fix the pages" && ok "publish refuses such a page" || bad "publish refused"
+good; git add -A; git commit -qm "Good page" >/dev/null
 
 echo "== regression sync reports criteria with no row"
 page Delivery "- DEL-1: The calculator prints a median.

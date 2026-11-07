@@ -3,7 +3,7 @@
 
 ## Summary
 
-Skill: `workflow-release`. After a goal has a pull request and its checks hold. Script: `release.py`.
+Skill: `workflow-release`. After a goal has a pull request and its checks hold.
 
 ## Commands
 
@@ -18,7 +18,7 @@ show SLUG
   monitored batch goal without `release: ask` answers `leave` by itself.
 - `leave` keeps the work unreleased and changes nothing versioned.
 - `cut` refuses without numbered steps under `## Verify by hand`, if any step has no `Expect:` line, or with a mapped
-  page that is stale since the goal's base or missing. After fixing a page, commit it and run `goal.py check` again.
+  page that is stale since the goal's base or missing. After fixing a page, commit it and run the goal's `check` again.
   `cut` then moves the version (`patch` by default), writes the changelog, commits, pushes and creates a **draft**
   GitHub release. You publish it. A batch goal refuses `cut` without `--user`, which means your own words said to cut.
 - `cut` also refuses when a criterion on a wiki page (see Documentation) has a regression row that is missing, a draft
@@ -41,10 +41,86 @@ No release is published and nothing merges without you.
 
 ### Example
 
-```bash
-python3 scripts/release.py ask add-median
-python3 scripts/release.py cut add-median --bump minor --user
+```text
+/workflow-release ask add-median
+/workflow-release cut add-median --bump minor --user
 ```
+
+### Stage charts
+
+Amber marks where the command stops for the owner. [Home](Home) says what each status means. "Toy test" means a throwaway repo with stand-ins for GitHub.
+
+#### `ask`
+
+```mermaid
+flowchart TD
+  a["Refuse unless the goal is finished"]
+  b["Batch goal: leave by itself"]
+  n["With release_auto: decide from the diff"]
+  c["Show docs, wiki link and verify steps"]
+  d{{"Owner types cut or leave"}}
+  a --> b
+  a --> n
+  a --> c
+  n -->|breaking| d
+  c --> d
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class d owner
+```
+
+Status: built and proven: Refuse unless the goal is finished; Batch goal: leave by itself; With release_auto: decide from the diff; Show docs, wiki link and verify steps; Owner types cut or leave. Built only: none. Planned: none.
+Stops for the owner: Owner types cut or leave.
+Proof: toy tests. Seventeen real goals took the batch path and left, and on a second repo one stopped for the owner, who answered `cut`. release_auto has only run on a toy repo.
+
+#### `leave`
+
+```mermaid
+flowchart LR
+  a["Record the answer in the run state"]
+  b["Nothing versioned changes"]
+  a --> b
+```
+
+Status: built and proven: Record the answer in the run state; Nothing versioned changes. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests, and seventeen real goals through the batch path. No real owner's `leave` is on record.
+
+#### `cut`
+
+```mermaid
+flowchart TD
+  u{{"Owner's own words say cut"}}
+  a["Refuse: verify steps, stale pages, criteria rows, moved code"]
+  b["Move the version and write the changelog"]
+  c["Commit and push"]
+  d["Create a draft release"]
+  e["Publish the wiki"]
+  f{{"Owner publishes the draft and merges"}}
+  u --> a
+  a --> b
+  b --> c
+  c --> d
+  d --> e
+  e --> f
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class u,f owner
+```
+
+Status: built and proven: Owner's own words say cut; Refuse: verify steps, stale pages, criteria rows, moved code; Move the version and write the changelog; Commit and push; Create a draft release; Publish the wiki; Owner publishes the draft and merges. Built only: none. Planned: none.
+Stops for the owner: Owner's own words say cut; Owner publishes the draft and merges.
+Proof: toy tests with a stand-in for GitHub, and one real `cut` on a second repo, which made a real draft. It has never run on this repo: its one draft release wasn't made by `cut`. With release_auto, a non-breaking batch goal skips the first stop, proven only on a toy repo.
+
+#### `show`
+
+```mermaid
+flowchart LR
+  a["Print the release field, version and draft link"]
+  a
+```
+
+Status: built and proven: Print the release field, version and draft link. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests.
 
 ## Criteria
 
