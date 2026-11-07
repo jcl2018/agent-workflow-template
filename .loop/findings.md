@@ -8,3 +8,4 @@ Open findings, one line each.
 - operation-session: Failed 3 tries. Last: judge failed
 - project-wiki-3: Failed 3 tries. Last: judge failed
 - auto-release: Failed 3 tries. Last: judge failed
+- numbered-levels-2: Failed 3 tries. Last: judge failed
