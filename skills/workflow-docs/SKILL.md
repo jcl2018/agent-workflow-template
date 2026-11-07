@@ -5,7 +5,7 @@ description: Keeps a repo's wiki pages in the repo, finds pages that have gone s
 
 # workflow-docs
 
-Four commands: `init`, `check`, `publish` and `restore`. `init` is the step list below, not a script command. The others
+Five commands: `init`, `check`, `criteria`, `publish` and `restore`. `init` is the step list below, not a script command. The others
 are `scripts/docs.py` commands, with `survey` and `add` for `init`. Run it with `python3`. If the skill's files aren't
 on disk, write the script to a temporary file, run it, and delete it. If `.loop/config.json` is missing, use
 `workflow-setup` first.
@@ -51,6 +51,29 @@ python3 scripts/docs.py check [--base <ref>]
 Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to
 count only changes since that point. `cut` counts from the goal's base the same way. `publish` has no `--base`: it
 counts every commit.
+
+## `criteria`
+
+With `"criteria": true` in `.loop/config.json`, feature pages are a contract and `check` enforces it. Only the pages
+Delivery, Documentation, Monitoring, Regression and Release exist, plus Home, which is free-form. Each feature page has
+exactly these sections, in this order: `Summary`, `Commands`, `Criteria`, `Enforced by`.
+
+```bash
+python3 scripts/docs.py criteria <Page>
+```
+
+It prints the format and the next free id for the page (`DEL`, `DOC`, `MON`, `REG`, `REL`).
+
+Rules for writing criteria:
+
+- A criterion is one line under `## Criteria`: `- DEL-3: what must hold`. One claim a test can prove; no sub-bullets.
+- Ids are stable. Take the next free id, never reuse or renumber one, and never reword a criterion to mean something
+  else.
+- Every id has a line under `## Enforced by`: `- DEL-3: <regression row id>`. `check` fails on a duplicate id or a
+  criterion with no such line. `regression.py sync` reports an id with no regression row (the row's id or `--goal`
+  is the criterion id), and `release.py cut` refuses while a row is missing, a draft or failing.
+- Only the owner approves a changed criterion. Add a criterion only when the goal asks; to change or remove one, stop and
+  ask the owner, and don't edit it in the same change as the code it judges.
 
 ## `publish`
 
