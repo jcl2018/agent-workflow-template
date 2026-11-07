@@ -98,7 +98,8 @@ branch already changed it. It retries a failed push twice, then prints git's ful
 
 ### 6. Release
 
-Hand over to `workflow-release`. It asks `cut` or `leave`; a monitored goal without `--release ask` answers `leave` itself.
+Hand over to `workflow-release`. Where `.loop/docs.tsv` exists, its first act is `wiki.py prepare <slug>`: rewrite the
+stale pages it lists and commit them on the goal's branch; after the merge it publishes the wiki. It asks `cut` or `leave`; a monitored goal without `--release ask` answers `leave` itself.
 
 ## Switches that remove gates
 

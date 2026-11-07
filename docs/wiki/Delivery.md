@@ -3,6 +3,8 @@
 
 ## Summary
 
+The last step, the release step, checks and updates the goal's wiki pages before the merge and publishes the wiki after it.
+
 Skill: `workflow-delivery`. Takes one sentence to a pull request by running your own skill suite's flow unattended:
 your idea, plan, review, test and ship skills, with frozen done lines, the repo's checks, a 3-try stop and a manual
 verify section around them. There is one flow, and no levels.

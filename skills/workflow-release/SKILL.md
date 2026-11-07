@@ -11,10 +11,20 @@ missing, use `workflow-setup` first.
 
 You publish the draft release yourself. `release.py` never publishes, never pushes a tag and never merges.
 
-**For now, the release step only merges.** Where `"auto_merge": true` is set, which this repo does, run
-`scripts/merge.py <slug>` after `goal.py pr`: it merges the goal's open pull request into the base branch and records
-it. It cuts no version and publishes nothing. Without the switch it refuses, and the owner merges. `ask`, `cut` and
-`leave` stay below for the owner's own routines before a release later.
+**For now, the release step merges and keeps the wiki current.** Where `"auto_merge": true` is set, which this repo does,
+and `.loop/docs.tsv` exists, first bring the goal's wiki pages up to date:
+
+```bash
+python3 scripts/wiki.py prepare <slug>
+```
+
+It lists each mapped page that is stale. Rewrite those pages from what the goal changed, then run
+`wiki.py prepare <slug> --commit`: it commits them on the goal's branch and pushes it. Then run `scripts/merge.py <slug>`
+after `goal.py pr`: it refuses while a mapped page is stale, merges the goal's open pull request into the base branch,
+records it, and publishes the wiki from a clean checkout of `origin/<base>` (`wiki.py publish <slug>`). If publish
+refuses, the merge stands: the page and the reason are recorded as `wiki_error` in the goal's report and show under Needs
+you. It cuts no version. Without the switch it refuses, and the owner merges. `ask`, `cut` and `leave` stay below for the
+owner's own routines before a release later.
 
 ## `merge <slug>`
 
@@ -99,10 +109,8 @@ report the failure and the fix it printed.
 Tell the user the draft URL, the wiki link, the steps to verify by hand, and that they publish it. The release commit
 rides on the goal's pull request, so the version lands when the user merges it.
 
-If `cut` prints `ALREADY cut` or `ALREADY leave`, nothing was cut. Report it.
-
-If `gh` fails, the script removes only its own release commit, restores the two files, and reports the error.
-Report it too. Don't retry with other flags.
+If `cut` prints `ALREADY cut` or `ALREADY leave`, nothing was cut. Report it. If `gh` fails, the script restores the
+two files and reports the error. Report it too. Don't retry with other flags.
 
 ### Never
 
@@ -125,13 +133,7 @@ Each refusal says `REFUSED:` and a fix. Common ones:
 | Code changed after the checks | Run `goal.py check` again |
 | Tag already exists | Ask the user which version to use |
 
-## Other
-
-```bash
-python3 scripts/release.py show <slug>
-```
-
-prints the `release` field, and the version and draft URL after a cut.
+`release.py show <slug>` prints the `release` field, and the version and draft URL after a cut.
 
 ## Rules
 

@@ -4,7 +4,8 @@
 ## Summary
 
 Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests; `wiki_dir` in `.loop/config.json`
-changes the folder) and finds stale ones.
+changes the folder) and finds stale ones. The release step now brings the pages a goal maps to up to date before the merge
+and publishes them after it. Its scripts refuse rather than wait when no terminal is attached.
 
 ### Init
 
