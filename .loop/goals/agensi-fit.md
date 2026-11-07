@@ -14,8 +14,23 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. Run `python3 dev/package.py --out dist/agent-workflow-template.zip`, then `unzip -l dist/agent-workflow-template.zip | grep -c SKILL.md`.
+   Expect: it prints PASS with a NOTE about `shell=True`, then 7.
+2. Run `unzip -l dist/agent-workflow-template.zip | grep loop-files`.
+   Expect: one line, `shared/loop-files.md`.
+3. Open the repo's Actions tab, pick regression, and choose Run workflow on `main`.
+   Expect: the run ends green, and every row prints PASS in its log.
+4. Install the ZIP's seven `skills/` folders in an agent, and start one level 0 goal on a test repo.
+   Expect: it ends at a pull request.
 
 ## Design
 
+Keep the repo layout, and map `loop-files.md` to `shared/` only in the ZIP. Keep `shell=True`: check commands are the
+repo's own strings, so changing how they're spelled would only hide them from the scan. The listing says so instead.
+What could go wrong: an agent on Agensi can't reach a sibling script, so those features must say so and skip.
+
 ## Plan
+
+1. Map the file in `dev/package.py`, proved by `dev/test-package.sh`.
+2. Add the scan's rules to `dev/package.py`, proved by its planted faults.
+3. Update `listing.json`, proved by the diff.
