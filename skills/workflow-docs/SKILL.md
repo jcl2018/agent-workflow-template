@@ -96,7 +96,16 @@ Two levels: criteria are for the owner, tests are for the machine.
 | `Proven` | The owner reviewed it, and every test has been seen failing once |
 
 `Reviewed`, `Enforced` and `Proven` follow from the rows, so `check` prints `STAGE` if the word on the page disagrees.
-Criteria need no approval to land. Only the owner moves one out of `Unreviewed`, or edits it after review.
+Criteria need no approval to land, and no check blocks a change. Only the owner reviews one:
+
+```bash
+python3 scripts/criteria.py review <ID> [<ID> ...] --user
+python3 scripts/criteria.py sync [--commit] [--dry-run]
+```
+
+`review` seals a line with a hash of its text. Pass `--user` only when the owner's own words said so. If a sealed line
+changes, `sync` returns it to `Unreviewed`, marked `(changed after review)`, and `report` names it. Put
+`criteria.py sync --commit` first in a repo's checks, so a goal's own checks do this.
 `regression.py sync` reports an id with no row, and `release.py cut` refuses while any of its rows is missing, a draft or
 failing.
 

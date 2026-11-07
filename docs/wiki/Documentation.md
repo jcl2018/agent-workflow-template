@@ -31,6 +31,8 @@ survey                          show the wiki's pages and this repo's page map
 add PAGE --paths A,B            add a page and the paths it describes
 check [--base REF]              list page problems, and contract problems when criteria is on; exit 1 if any
 criteria PAGE                   print the criterion format and the next free id for a page
+review ID [ID ...] --user       mark criteria reviewed, on the owner's own words
+sync [--commit] [--dry-run]     return changed reviewed criteria to Unreviewed; --commit commits the pages
 publish [--dry-run] [--adopt PAGE]   copy the pages to the GitHub wiki, commit and push
 restore                         revert the last publish, if nothing came after it
 ```
@@ -57,6 +59,10 @@ Criteria land with no approval, marked Unreviewed, and the page shows a banner w
 | Proven | The owner reviewed it, and every test has been seen failing once |
 
 `check` prints `CAP`, `STAGE`, `TESTS` or `LINK` when a page breaks these rules.
+
+No check blocks a change to a criterion. A reviewed line carries a hidden hash of its text, set by `review`. If the text
+changes, `sync` returns the line to Unreviewed, marked `(changed after review)`, and puts the banner back. `report` in
+Monitoring names it, even before `sync` runs. The repo's checks run `sync --commit`, so a goal's own checks do this.
 
 The same setting holds every page, Home too, to two more rules. `SCRIPT` fails a page that names a script file: pages
 describe commands and behaviour only. `CHART` fails a command listed under Commands, in a text block or a bullet that
@@ -164,6 +170,42 @@ Status: built and proven: Read the page's ids; Print the format and next free id
 Stops for the owner: none.
 Proof: toy tests.
 
+#### `review`
+
+```mermaid
+flowchart LR
+  o{{"Owner says these criteria are reviewed"}}
+  a["Refuse without --user or with an unknown id"]
+  b["Set the stage its tests earn, and seal the text"]
+  c["Clear the note and fix the banner"]
+  o --> a
+  a --> b
+  b --> c
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class o owner
+```
+
+Status: built and proven: Refuse without --user or with an unknown id; Set the stage its tests earn, and seal the text; Clear the note and fix the banner. Built only: Owner says these criteria are reviewed. Planned: none.
+Stops for the owner: Owner says these criteria are reviewed.
+Proof: toy tests. No real review is on record. Nothing enforces that `--user` is true: that is an instruction to the agent.
+
+#### `sync`
+
+```mermaid
+flowchart LR
+  a["Compare each reviewed line with its seal"]
+  b["Return changed lines to Unreviewed"]
+  c["Fix the banner"]
+  d["Commit the pages, with --commit"]
+  a --> b
+  b --> c
+  c --> d
+```
+
+Status: built and proven: Compare each reviewed line with its seal; Return changed lines to Unreviewed; Fix the banner; Commit the pages, with --commit. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests. It has not returned a real criterion, since none is reviewed yet.
+
 #### `publish`
 
 ```mermaid
@@ -203,14 +245,15 @@ Proof: toy tests only: it has never run on a real wiki, and the refusal has no t
 
 ## Criteria
 
-Tests: 8.
-> **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
+Tests: 11.
+> **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
 
 - DOC-4: **Unreviewed** A page that has fallen behind the code is caught before it reaches the wiki.
 - DOC-5: **Unreviewed** Wiki pages written elsewhere stay as they are unless the owner names them.
 - DOC-6: **Unreviewed** Every feature page has the same four sections and a chart for every command.
 - DOC-7: **Unreviewed** Every criterion names the tests that enforce it.
 - DOC-8: **Unreviewed** Anyone reading a page can see which criteria the owner hasn't reviewed.
+- DOC-9: **Unreviewed** A reviewed criterion that changes goes back to Unreviewed and is named in the report, and no check blocks the change.
 
 ## Enforced by
 
@@ -219,3 +262,4 @@ Tests: 8.
 - DOC-6: four-sections, flow-charts
 - DOC-7: names-enforcer
 - DOC-8: unreviewed-banner
+- DOC-9: returned-on-change, returned-in-report, change-not-blocked

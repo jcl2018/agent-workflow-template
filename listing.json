@@ -75,7 +75,9 @@
     "status",
     "promote",
     "save",
-    "take"
+    "take",
+    "review",
+    "sync"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
@@ -93,7 +95,8 @@
     "loop/pocs/<slug>.md and .go under the git common dir, a POC's saved answer and go line, when you run batch.py",
     "a batch heading and its poc lines in .loop/queue.md, when you run batch.py add",
     "loop/waits/<slug> under the git common dir, when a goal is held by another",
-    "~/.workflow-loop/repos in the home folder, when you run board.py repos add"
+    "~/.workflow-loop/repos in the home folder, when you run board.py repos add",
+    "docs/wiki/*.md and a commit of them, when you run criteria.py review or sync --commit"
   ],
   "network": [
     "github.com (git push, wiki push, gh pull request, issue and draft release calls, only when you run them)",

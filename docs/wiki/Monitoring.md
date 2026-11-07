@@ -25,7 +25,8 @@ resume SLUG
   `QUEUED`, and then `watch` prints them when a slot is free.
 - `watch` starts queued goals (3 at a time by default), each on branch `loop/<slug>` in its own worktree, and ends when
   nothing is left. A running visible session counts, so use `--once` then: one pass.
-- `report` lists each run, what waits on you with the exact words to type, findings, and queued goals.
+- `report` lists each run, what waits on you with the exact words to type, findings, criteria changed after review, and
+  queued goals.
 - `dashboard` writes one self-contained HTML page under the git folder's `loop/`.
 - `resume` relaunches a `failed` or `stopped` goal, and refuses anything else. For a visible session's goal, even a
   running one, it prints `WORKTREE` and `PROMPT` again and starts no process.
