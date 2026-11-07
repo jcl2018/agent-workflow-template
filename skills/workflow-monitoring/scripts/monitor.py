@@ -104,7 +104,7 @@ def parse_queue():
     for line in lines:
         if not line.startswith("- slug:"):
             continue
-        item = {"done": [], "touches": [], "release": ""}
+        item = {"done": [], "touches": []}
         for part in line.strip()[2:].split("|"):
             key, _, value = part.partition(":")
             key, value = key.strip(), " ".join(value.split())
@@ -112,7 +112,7 @@ def parse_queue():
                 item["done"].append(value)
             elif key == "touches":
                 item["touches"] = [path.strip() for path in value.split(",") if path.strip()]
-            elif key in ("slug", "goal", "release"):
+            elif key in ("slug", "goal"):
                 item[key] = value
         slug = item.get("slug", "")
         if not SLUG.match(slug) or slug in seen or not item.get("goal") or not item["done"]:

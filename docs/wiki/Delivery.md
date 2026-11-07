@@ -27,7 +27,7 @@ skill the agent loads by name.
 
 ### The flow
 
-Freeze, then idea, plan, build, checks, review, checks, qa, checks, ship, checks, pull request and release. The chart
+Freeze, then idea, plan, build, checks, review, checks, qa, checks, ship, checks and the pull request. The chart
 under `go` shows it.
 
 ### Done lines
@@ -38,7 +38,7 @@ person can see, prove it before the pull request.
 ### Goal steps
 
 ```text
-new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
+new SLUG --here --goal TEXT --done LINE [--touches A,B]
 queue SLUG --goal TEXT --done LINE [--touches A,B]
 flow SLUG STEP [--note TEXT]
 record SLUG STEP --file REPLY
@@ -210,7 +210,7 @@ Proof: toy tests and real goals.
 
 ```mermaid
 flowchart LR
-  a["Refuse until checks hold and every step is done or skipped"]
+  a["Refuse until checks hold, every step is done or skipped, and verify steps are complete"]
   b["Move the version once if pr_bumps_version is on"]
   c["Push, retrying twice"]
   d["Open the pull request with each step's result"]
@@ -223,7 +223,7 @@ flowchart LR
   class o owner
 ```
 
-Status: built and proven: Refuse until checks hold and every step is done or skipped; Move the version once if pr_bumps_version is on; Push, retrying twice; Open the pull request with each step's result; Owner reviews and merges. Built only: none. Planned: none.
+Status: built and proven: Refuse until checks hold, every step is done or skipped, and verify steps are complete; Move the version once if pr_bumps_version is on; Push, retrying twice; Open the pull request with each step's result; Owner reviews and merges. Built only: none. Planned: none.
 Stops for the owner: Owner reviews and merges.
 Proof: toy tests with a stand-in for GitHub, and real pull requests on this repo from before the flow.
 
@@ -286,14 +286,15 @@ Proof: toy tests.
 
 ## Criteria
 
-Tests: 9.
-> **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
+Tests: 10.
+> **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
 
 - DEL-5: **Unreviewed** Every goal starts from done lines that can't change once it starts.
 - DEL-6: **Unreviewed** Every goal runs the owner's own idea, plan, review, test and ship skills in their unattended mode, and nothing starts without them.
 - DEL-7: **Unreviewed** Nothing the skills leave for the owner is decided by an agent: it waits on the owner, and the pull request waits for it.
 - DEL-8: **Unreviewed** A goal that keeps failing stops and says why.
 - DEL-9: **Unreviewed** The loop stops at a pull request, and only the owner merges.
+- DEL-10: **Unreviewed** A pull request opens only with steps a person can follow to see the change work, each saying what to expect.
 
 ## Enforced by
 
@@ -302,3 +303,4 @@ Tests: 9.
 - DEL-7: DEL-3, DEL-4
 - DEL-8: stop-after-3-tries
 - DEL-9: never-merges
+- DEL-10: verify-steps

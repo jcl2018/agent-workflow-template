@@ -3,7 +3,7 @@
 
 usage: goal.py <command> <slug> [options]
 
-  new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
+  new SLUG --here --goal TEXT --done LINE [--touches A,B]
   queue SLUG --goal TEXT --done LINE [--touches A,B]
   step SLUG NAME [--note TEXT]
   check SLUG
@@ -45,7 +45,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+<!-- Numbered steps for a person, each with an Expect: line. A person follows them to see the change work. -->
 """
 def no(text):
     sys.exit("REFUSED: " + text)
@@ -224,7 +224,7 @@ def cmd_new(args):
     state = {"slug": args.slug, "goal": args.goal, "status": "running", "step": "idea", "tries": 0, "flow": {},
              "branch": branch, "worktree": root(), "touches": touches, "pid": None, "pr": "",
              "batch": bool(os.environ.get("LOOP_BATCH")), "done_sha": done_sha(lines), "checks": "",
-             "release": args.release, "waiting": None, "finding": "", "log": []}
+             "waiting": None, "finding": "", "log": []}
     save(state, "frozen %d done lines" % len(lines))
     print("FROZEN %s branch=%s step=idea" % (args.slug, branch))
     return 0
@@ -350,6 +350,10 @@ def cmd_pr(args):
     left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
     if left:
         no("the flow hasn't finished: %s. Fix: run flow.py %s %s." % (", ".join(left), args.slug, left[0]))
+    part = re.sub(r"<!--.*?-->", "", read(goal_file(args.slug)), flags=re.S).split("## Verify by hand", 1)[-1].split("\n## ", 1)[0]
+    steps = re.findall(r"^\d+\. .*?(?=^\d+\. |\Z)", part, re.M | re.S)
+    if not steps or not all(re.search(r"Expect:\s*\S", step) for step in steps):
+        no("no complete steps under ## Verify by hand. Fix: give every numbered step an Expect: line, and commit it.")
     if git("status", "--porcelain", "--", "."):
         print("NOTE: uncommitted files stay out of the PR")
     head = bump_version(state, head)
@@ -373,14 +377,14 @@ def cmd_pr(args):
                     "--title", state["goal"][:70], "--body", body], check=True)
         url = done.stdout.strip().splitlines()[-1]
     state["pr"] = url
-    state["step"] = "release"
+    state["step"] = "pr"
     state["status"] = "done"
     save(state, "pull request " + url)
     print("PR " + url)
     hook = os.path.normpath(os.path.join(sys.argv[0], "..", "..", "..", "workflow-health", "scripts", "milestone.py"))
     if os.path.exists(hook):
         print(run([sys.executable, hook, "attach", args.slug, "--live"]).stdout.strip())
-    print("NEXT: workflow-release asks cut or leave. The loop never merges.")
+    print("NEXT: the owner reviews the pull request. The loop never merges.")
     return 0
 
 
@@ -423,7 +427,7 @@ def main():
             item.add_argument(flag, **kinds)
     goal = (("--goal", {"required": True}), ("--done", {"action": "append", "default": []}),
             ("--touches", {"default": ""}))
-    add("new", cmd_new, *goal, ("--release", {"default": ""}), ("--here", {"action": "store_true"}))
+    add("new", cmd_new, *goal, ("--here", {"action": "store_true"}))
     add("queue", cmd_queue, *goal)
     add("step", cmd_step, ("name", {}), ("--note", {"default": ""}))
     add("record", cmd_record, ("step", {"choices": FLOW}), ("--file", {"required": True}))

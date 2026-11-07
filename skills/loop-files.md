@@ -41,8 +41,8 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 
 ### `goals/<slug>.md`
 
-`## Done lines` is frozen. `## Verify by hand` holds numbered steps for a person, each with an `Expect:` line. A release
-refuses without one, and copies the steps into the changelog and the release page.
+`## Done lines` is frozen. `## Verify by hand` holds numbered steps for a person, each with an `Expect:` line.
+`goal.py pr` refuses without one.
 
 ### `queue.md`
 
@@ -54,8 +54,7 @@ One goal a line. Other lines are ignored.
 
 A `## Batch: NAME` heading groups goal lines for `batch.py`; `session: yes` after the slug runs it in a visible session.
 
-`touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
-for your answer instead of answering `leave`. `session: yes` marks a goal for a visible session.
+`touches` lists the files the goal declares. `session: yes` marks a goal for a visible session.
 
 ## Outside the repo: your skill flow
 
@@ -102,9 +101,9 @@ loop/wiki.json            the last wiki publish, for restore
   "slug": "add-median", "goal": "Add median()",
   "status": "running", "step": "build", "tries": 0, "branch": "loop/add-median", "worktree": "/path",
   "touches": ["calc.py"], "pid": 123, "pr": "https://github.com/o/r/pull/1", "batch": true,
-  "done_sha": "<sha256 of the done lines>", "checks": "pass", "release": "ask",
+  "done_sha": "<sha256 of the done lines>", "checks": "pass",
   "flow": {"idea": "done", "plan": "done", "review": "done", "qa": "skipped: no browser", "ship": "done"},
-  "waiting": {"ask": "Cut a release or leave it unreleased?", "words": ["cut add-median", "leave add-median"]},
+  "waiting": {"ask": "review left this for you: keep the old API?", "words": ["go on add-median", "stop add-median"]},
   "finding": "", "updated": "2026-01-01T00:00:00Z", "log": ["2026-01-01T00:00:00Z plan"]
 }
 ```
@@ -119,9 +118,8 @@ loop/wiki.json            the last wiki publish, for restore
 | `failed` | The agent ended without finishing |
 | `retired` | Superseded, by `board.py retire` |
 
-`step` is one of `idea`, `plan`, `build`, `checks`, `review`, `qa`, `ship`, `pr`, `release`. `flow` holds each flow
+`step` is one of `idea`, `plan`, `build`, `checks`, `review`, `qa`, `ship`, `pr`. `flow` holds each flow
 step's result: `done`, `skipped: <why>` or `pending`.
-`release` is empty, `ask`, `cut` or `leave`.
 
 `external: true` marks a goal run in a visible session. A goal with no `pid` is a session's too, marked or not: it is never marked `failed` or mended.
 `note` is `{"text", "at"}`, a session's latest message, kept as data. `waits_on` lists the goals that held this one.

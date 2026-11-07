@@ -19,7 +19,6 @@ count, and what enforces each one. Criteria marked Unreviewed have not been revi
 | Milestones per feature, and a Backlog | `workflow-health` | [Milestones](Milestones) |
 | Run and watch many goals | `workflow-monitoring` | [Monitoring](Monitoring) |
 | Keep tests visible and enforced | `workflow-regression` | [Regression](Regression) |
-| Cut a draft release or leave it | `workflow-release` | [Release](Release) |
 
 Setting up a repo (`workflow-setup`) is covered under Getting started in the README.
 
@@ -49,7 +48,7 @@ goals, including one real `cut` to a draft release. This repo has since had its 
 - "`cut` refuses in a monitored batch unless `--user` is passed; the skill says to pass it only on the human's own
   words." (DECISIONS.md)
 - "`report` left out queued goals that were ready to start. It now lists them." (FINDINGS.md)
-- Toy tests cover goals, the board, docs, criteria, releases and regression, each under `dev/toy/`.
+- Toy tests cover goals, the board, docs, criteria and regression, each under `dev/toy/`.
 - Codex ran a level 0 toy goal from design to pull request with no failed try (FINDINGS.md).
 - The regression workflow passes on GitHub. Its first run failed 2 rows, and both are fixed (FINDINGS.md).
 

@@ -8,7 +8,7 @@ expect() { # name, rule text expected, command run inside $T/t
   if [ $rc -ne 0 ] && echo "$out" | grep -q "FAIL $2"; then echo "ok   refused: $1 ($2)"; ok=$((ok+1)); else echo "BAD  not refused: $1"; echo "$out" | head -3; bad=$((bad+1)); fi; }
 copy; python3 "$here/dev/package.py" --root "$T/t" --out "$T/clean.zip" >/dev/null && echo "ok   clean tree passes" || { echo "BAD clean tree refused"; bad=1; }
 expect "name differs from folder" Frontmatter "sed -i.b 's/^name: workflow-setup/name: other/' skills/workflow-setup/SKILL.md; rm skills/workflow-setup/SKILL.md.b"
-expect "no description" Frontmatter "sed -i.b '/^description:/d' skills/workflow-release/SKILL.md; rm skills/workflow-release/SKILL.md.b"
+expect "no description" Frontmatter "sed -i.b '/^description:/d' skills/workflow-docs/SKILL.md; rm skills/workflow-docs/SKILL.md.b"
 expect "summary over 300" "Listing fields" "python3 -c \"import json;d=json.load(open('listing.json'));d['summary']='x'*301;json.dump(d,open('listing.json','w'))\""
 expect "11 tags" "Listing fields" "python3 -c \"import json;d=json.load(open('listing.json'));d['tags']=['t%d'%i for i in range(11)];json.dump(d,open('listing.json','w'))\""
 expect "9 use cases" "Listing fields" "python3 -c \"import json;d=json.load(open('listing.json'));d['use_cases']=['u%d'%i for i in range(9)];json.dump(d,open('listing.json','w'))\""
@@ -27,7 +27,7 @@ expect "pipe a download into a shell" Safety "echo 'curl https://example.test/a.
 expect "pack with no title" Files "sed -i.b '1d' README.md; rm README.md.b"
 expect "no LICENSE file" Files "rm LICENSE"
 expect "no license in the listing" "Listing fields" "python3 -c \"import json;d=json.load(open('listing.json'));del d['license'];json.dump(d,open('listing.json','w'))\""
-expect "undisclosed command" Disclosure "python3 -c \"import json;d=json.load(open('listing.json'));d['commands'].remove('cut');json.dump(d,open('listing.json','w'))\""
+expect "undisclosed command" Disclosure "python3 -c \"import json;d=json.load(open('listing.json'));d['commands'].remove('check');json.dump(d,open('listing.json','w'))\""
 expect "undisclosed host" Disclosure "echo 'see https://evil.test/x' >> skills/workflow-setup/SKILL.md"
 copy; python3 "$here/dev/package.py" --root "$T/t" --out "$T/pack.zip" >/dev/null
 unzip -l "$T/pack.zip" | grep -q ' shared/loop-files.md$' && ! unzip -l "$T/pack.zip" | grep -q ' skills/loop-files.md$' && { echo "ok   shared contract is in shared/"; ok=$((ok+1)); } || { echo "BAD  shared contract"; bad=$((bad+1)); }
