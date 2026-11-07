@@ -5,7 +5,7 @@
 
 Skill: `workflow-release`. After a goal has a pull request. For now it merges and keeps the wiki current: with `auto_merge` on, `merge`
 refuses while a wiki page the goal's changed paths map to is stale, merges the pull request into `main`, then publishes the
-wiki to GitHub by itself. It cuts no version. `ask`, `cut` and `leave` stay for the owner's
+wiki to GitHub by itself. It cuts no version. Its skill file tells the agent the order: prepare, rewrite, commit, merge. `ask`, `cut` and `leave` stay for the owner's
 own routines before a release later.
 
 **This repo runs with no gates.** Its `.loop/config.json` turns off `require_checks`, with an empty `checks` list, and
