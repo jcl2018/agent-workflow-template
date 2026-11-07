@@ -4,6 +4,8 @@
 ## Summary
 
 Skill: `workflow-delivery`. Takes one sentence to a pull request, judged by a fresh agent at levels 1 and 2.
+In an operation session, `poc` and `go` are not run in that session: they are put in a batch (see Monitoring) and run in
+their own session or background agent.
 
 ## Commands
 

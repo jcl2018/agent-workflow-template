@@ -78,6 +78,19 @@ python3 skills/workflow-monitoring/scripts/watch.py go "<goal>" --done "<line>" 
 `board.py board` writes `board.json` and prints what changed. `board_page.py` then draws `board.html` and
 `board-artifact.html` from it.
 
+An operation session only assigns and watches. It puts POCs and goals in a named batch, and each line runs in its own
+background process or session:
+
+```text
+python3 skills/workflow-monitoring/scripts/batch.py add nightly --poc "<question>"
+python3 skills/workflow-monitoring/scripts/batch.py add nightly --goal "<goal>" --done "<line>"
+python3 skills/workflow-monitoring/scripts/batch.py start nightly
+python3 skills/workflow-monitoring/scripts/batch.py status nightly
+python3 skills/workflow-monitoring/scripts/batch.py promote <poc-slug>
+```
+
+A POC runs read-only and saves its answer and `go` line outside the repo. Promote one only when you say so.
+
 Keep tests visible and enforced:
 
 ```text
@@ -158,8 +171,8 @@ In the repo:
 | `docs/wiki/` | Wiki pages, each starting with `<!-- workflow-docs -->` |
 
 Outside the repo, run state lives in `<git common dir>/loop/`: `runs/<slug>.json`, `logs/<slug>.log`,
-`dashboard.html`, `wiki.json`, `board.json`, `board.html`, `board-artifact.html`, `cadence` (minutes between check-ins,
-or `off`) and `handoff.md`. Nothing there is committed. `board.py repos add` keeps a list of repo paths in `~/.workflow-loop/repos`.
+`dashboard.html`, `wiki.json`, `board.json`, `board.html`, `board-artifact.html`, `pocs/`, `cadence` (minutes between
+check-ins, or `off`) and `handoff.md`. Nothing there is committed. `board.py repos add` keeps a list of repo paths in `~/.workflow-loop/repos`.
 
 In this template: `skills/` (the six skills; the full contract is `skills/loop-files.md`), `dev/` (install, package and
 toy tests), `listing.json`, `VERSION`, `DECISIONS.md`, `FINDINGS.md` and `docs/ROADMAP.md`.

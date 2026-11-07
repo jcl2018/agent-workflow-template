@@ -17,7 +17,7 @@ agent-workflow-template is a pack of six focused skills, so an agent loads only 
 |---|---|---|
 | `workflow-setup` | `setup` | Surveys a repo and writes its config, on a branch |
 | `workflow-delivery` | `poc`, `go`, and the goal steps `new` to `show` | Takes a sentence to a pull request, judged at levels 1 and 2 |
-| `workflow-monitoring` | `go`, `watch`, `report`, `dashboard`, `resume`, `board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff` | One session governs; the others build |
+| `workflow-monitoring` | `go`, `watch`, `report`, `dashboard`, `resume`, `board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`, and the batch commands `add`, `start`, `status`, `promote` | One session governs; the others build |
 | `workflow-regression` | `seed`, `add`, `sync`, `criteria`, `red`, `run`, `workflow` | Keeps tests visible and enforced |
 | `workflow-docs` | `init`, `survey`, `add`, `check`, `criteria`, `publish`, `restore` | Keeps wiki pages in the repo and finds stale ones |
 | `workflow-release` | `ask`, `cut`, `leave`, `show` | Versions the repo and writes a draft GitHub release |
@@ -123,6 +123,8 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 - `watch.py go --session`, `board.py` (`board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`),
   `board_page.py` (the board's pages and dependency map) and the check-in loop in
   `skills/workflow-monitoring/references/operation.md`.
+- `batch.py` (`add`, `start`, `status`, `promote`): the operation session governs only, and each POC or goal line runs
+  in its own background process or session.
 
 ## Criteria and charts: built
 
@@ -137,7 +139,7 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
    the pages change.
 2. **Other agents:** Kimi, Qwen and OpenCode support.
 3. **Level 2:** a full run has not happened, on a toy repo or a real one. The design review is tested alone.
-4. **Real proof still missing:** `release_auto`, `restore`, a regression workflow run in CI, the check-in loop firing on
+4. **Real proof still missing:** `release_auto`, `restore`, a batch with a real agent, a regression workflow run in CI, the check-in loop firing on
    its timer, and today's level 0 on a real repo. The wiki's status lines list each one.
 
 Merging, a project board and milestones stay with you.
