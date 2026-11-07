@@ -21,11 +21,11 @@ or `--add-dir` in claude), write that flag as `--flag=value` or move it earlier.
 ## `go "<goal>" --done "<line>" ... [--level L] [--touches A,B] [--slug S] [--release ask] [--session]`
 
 ```bash
-python3 scripts/watch.py go "<goal>" --done "<line>" --level minimum --touches "<file,file>"
+python3 scripts/watch.py go "<goal>" --done "<line>" --level 0 --touches "<file,file>"
 ```
 
-It adds the goal to `.loop/queue.md` and starts it if a slot is free. The level defaults to `minimum`, and risky paths
-raise it to `standard`. Then run `watch`. Don't build the goal here, and don't commit the queue. `--session` is for a
+It adds the goal to `.loop/queue.md` and starts it if a slot is free. The level defaults to `0`, and risky paths
+raise it to `1`. Then run `watch`. Don't build the goal here, and don't commit the queue. `--session` is for a
 visible session (see Operation session). `go`, `watch` and `resume` also take `--skill-dir DIR`, the skills folder to
 name in a prompt.
 

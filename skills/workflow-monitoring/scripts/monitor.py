@@ -18,7 +18,7 @@ import subprocess
 import sys
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
-LEVELS = ("minimum", "quick", "standard", "full")
+LEVELS = ("0", "1", "2")
 LIVE = ("running", "waiting")
 
 
@@ -101,7 +101,7 @@ def parse_queue():
     for line in lines:
         if not line.startswith("- slug:"):
             continue
-        item = {"done": [], "touches": [], "level": "minimum", "release": ""}
+        item = {"done": [], "touches": [], "level": "0", "release": ""}
         for part in line.strip()[2:].split("|"):
             key, _, value = part.partition(":")
             key, value = key.strip(), " ".join(value.split())
@@ -116,7 +116,9 @@ def parse_queue():
             print("SKIPPED queue line (needs a good slug, a goal and a done line): %s" % line.strip()[:80])
             continue
         if item["level"] not in LEVELS:
-            item["level"] = "standard"
+            print("SKIPPED queue line: level %r is not 0, 1 or 2 (the old names minimum, quick, standard and full are gone): %s"
+                  % (item["level"], line.strip()[:60]))
+            continue
         seen.add(slug)
         goals.append(item)
     return goals

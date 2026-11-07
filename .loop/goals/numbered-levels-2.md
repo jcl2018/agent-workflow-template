@@ -17,8 +17,23 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-delivery/scripts/goal.py queue x --goal g --done d --level standard`.
+   Expect: it is refused with a line naming 0, 1 and 2.
+2. Run `LOOP_DESIGN_SKILL=nothing python3 skills/workflow-delivery/scripts/goal.py judge <a level 2 slug> --design`.
+   Expect: it prints `DESIGN REVIEW: built-in (skill nothing not found)`.
 
 ## Design
 
+Levels become "0", "1", "2" in goal.py, watch.py, monitor.py, board.py and release.py. Every level starts at design;
+level 0 has no judge, level 1 judges, level 2 also requires a design review. `--level` uses a type that refuses the old
+names with a line naming 0, 1 and 2; queue lines with an old or unknown level are skipped with the same line. Risky
+paths raise 0 to 1. The design skill name comes from LOOP_DESIGN_SKILL or ~/.workflow-loop/design-skill, outside the
+repo; if its SKILL.md is found it is added to the review prompt, else the built-in prompt runs, and `judge --design`
+prints which. Risk: goal.py's 20 KB test cap (raised to 21 KB), and toy tests keyed on old names (remapped).
+
 ## Plan
+
+1. Change the level code in the five scripts; check with dev/toy/test-goal.sh, test-board.sh, test-release.sh.
+2. Add toy tests for the refusal and the design-skill setting (done lines 1, 3).
+3. Rewrite SKILL files, wiki pages, README, ROADMAP, loop-files (done line 5) and grep for old names.
+4. Run `goal.py check` (done line 6).

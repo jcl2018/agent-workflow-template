@@ -71,7 +71,7 @@ echo "== cut refuses stale docs"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"; rel="python3 $here/skills/workflow-release/scripts/release.py"
 git push -q origin main
-$goal new stale --here --goal "Change calc" --done "calc changed" --level quick >/dev/null
+$goal new stale --here --goal "Change calc" --done "calc changed" --level 0 >/dev/null
 printf '\n# again\n' >> calc.py; git commit -qam "Change calc again"
 python3 - <<'PY'
 p = ".loop/goals/stale.md"; t = open(p).read().replace("## Verify by hand\n", "## Verify by hand\n\n1. Open calc.py.\n   Expect: the change.\n", 1); open(p, "w").write(t)

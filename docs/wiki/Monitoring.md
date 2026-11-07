@@ -85,7 +85,7 @@ default, since each spends your usage, and neither touches a visible session's g
 ## Example
 
 ```text
-python3 scripts/watch.py go "Add median()" --done "Even lists average the two middle values" --level standard --touches calc.py
+python3 scripts/watch.py go "Add median()" --done "Even lists average the two middle values" --level 1 --touches calc.py
 python3 scripts/watch.py watch
 python3 scripts/monitor.py report
 ```

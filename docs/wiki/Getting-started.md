@@ -36,8 +36,8 @@ From the main checkout, on the base branch:
 ```
 
 Done lines are frozen once the goal starts, so make each one provable before the pull request, from the diff, the goal
-file and the check results (see [Delivery](Delivery)). The level is `minimum` unless you add `--level`, and only
-`standard` and `full` get a fresh judge. To try an idea first, use `/workflow-delivery poc "<question>"`, which writes
+file and the check results (see [Delivery](Delivery)). The level is `0` unless you add `--level`, and only
+levels 1 and 2 get a fresh judge. To try an idea first, use `/workflow-delivery poc "<question>"`, which writes
 nothing.
 
 ## 4. Watch it

@@ -11,7 +11,7 @@ Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md), the [road
 ## What it aims to be
 
 - **Light:** Markdown instructions and a few small scripts, with no engine to run.
-- **Adjustable:** each goal runs at a level, from `minimum` to `full`, so small changes skip the heavy steps.
+- **Adjustable:** each goal runs at a level, from `0` to `2`, so small changes skip the heavy steps.
 - **Governed:** the session you talk to never builds. It starts background agents, shows what waits on you, and keeps a
   dashboard.
 - **Checkable by you:** every release says how to verify it by hand, and your wiki stays in step with the code.
@@ -19,7 +19,7 @@ Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md), the [road
 
 ## Commands
 
-All of these have run on a toy repo, except the `full` level. `go`, `docs` and `cut` have also run on a real repo. They may change while the first version settles. The examples use Claude Code. In other agents, you
+All of these have run on a toy repo, except level 2. `go`, `docs` and `cut` have also run on a real repo. They may change while the first version settles. The examples use Claude Code. In other agents, you
 can ask in plain words, such as "start a goal to add result caching".
 
 Set up a repo once:
@@ -43,12 +43,11 @@ The level sets how much process a goal gets:
 
 | Level | Steps | Use it for |
 |---|---|---|
-| `minimum` | Build, checks | The default: fast work, using the agent's own planning |
-| `quick` | Written plan, build, checks | Small changes you want a plan on record for |
-| `standard` | Short design, plan, build, checks, one fresh judge | Most work |
-| `full` | Adds a design review before the build | Risky or large changes |
+| `0` | Design, plan, build, checks | The default: most work |
+| `1` | Adds one fresh judge after the build | Work worth a second look |
+| `2` | Adds a design review before the build | Risky or large changes |
 
-Changes to CI, auth or data run at `standard` at least.
+Changes to CI, auth or data run at level `1` at least. At level 2 the design review uses a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo). With none set, or the skill missing, the built-in review runs; the output says which ran.
 
 See where things stand, or pick up a failed goal:
 

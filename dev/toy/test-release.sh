@@ -16,10 +16,10 @@ fails=0
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 
-finish() {  # finish SLUG [extra goal.py new args]: a done quick goal with a pull request
+finish() {  # finish SLUG [extra goal.py new args]: a done 0 goal with a pull request
   local slug=$1; shift
   git switch -q main
-  $goal new "$slug" --here --goal "Add $slug" --done "calc has $slug" --level quick "$@" >/dev/null
+  $goal new "$slug" --here --goal "Add $slug" --done "calc has $slug" --level 0 "$@" >/dev/null
   mkdir -p "$(dirname "${FILE:-calc.py}")"
   printf '\n\ndef %s():\n    return 1\n' "${slug//-/_}" >> "${FILE:-calc.py}"
   git add "${FILE:-calc.py}"; git commit -qm "${MSG:-Add ${slug} to calc}"
@@ -134,7 +134,7 @@ out=$($rel ask testsonly); grep -q "NEED leave: only docs, tests" <<<"$out" && o
 LOOP_BATCH=1 finish nojudge
 python3 - "$(git rev-parse --git-common-dir)/loop/runs/nojudge.json" <<'PY2'
 import json, sys
-d = json.load(open(sys.argv[1])); d["level"] = "standard"; d["judge"] = ""; json.dump(d, open(sys.argv[1], "w"))
+d = json.load(open(sys.argv[1])); d["level"] = "1"; d["judge"] = ""; json.dump(d, open(sys.argv[1], "w"))
 PY2
 out=$($rel ask nojudge 2>&1 || true); grep -q "judge has not passed" <<<"$out" && ! grep -q "NEED" <<<"$out" && ok "no judge pass, no auto release" || bad "judge gate"
 git switch -q main; mkdir -p docs/wiki; echo page > docs/wiki/Calc.md; printf 'Calc\tcalc.py\n' > .loop/docs.tsv

@@ -19,7 +19,7 @@ QUEUE = """# Goal queue
 
 One goal a line. Other lines are ignored. Example:
 
-    - slug: fix-title | level: quick | touches: README.md | goal: Fix the title | done: The title reads right
+    - slug: fix-title | level: 0 | touches: README.md | goal: Fix the title | done: The title reads right
 """
 FINDINGS = "# Findings\n\nOpen findings, one line each.\n"
 

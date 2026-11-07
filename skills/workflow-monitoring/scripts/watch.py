@@ -25,7 +25,8 @@ import sys
 import time
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
-LEVELS = ("minimum", "quick", "standard", "full")
+LEVELS = ("0", "1", "2")
+OLD_LEVELS = ("minimum", "quick", "standard", "full")
 LIVE = ("running", "waiting")
 LIMIT = re.compile(r"(?i)usage limit|rate limit|limit reached|quota exceeded|too many requests|out of credits")
 TEMPLATE = """# {goal}
@@ -84,6 +85,14 @@ MEND_PROMPT = """You are a fresh agent mending goal {slug} (branch {branch}). Fi
 === END OF ITS LOG ===
 {tail}
 """
+
+
+def level_arg(text):
+    if text in LEVELS:
+        return text
+    if text in OLD_LEVELS:
+        raise argparse.ArgumentTypeError("REFUSED: level %r is gone. Fix: use 0 (no judge), 1 (one fresh judge) or 2 (adds a design review)." % text)
+    raise argparse.ArgumentTypeError("level must be 0, 1 or 2")
 
 
 def git(*args, cwd=None, check=True):
@@ -164,7 +173,7 @@ def parse_queue():
     for line in lines:
         if not line.startswith("- slug:"):
             continue
-        item = {"done": [], "touches": [], "level": "minimum", "release": ""}
+        item = {"done": [], "touches": [], "level": "0", "release": ""}
         for part in line.strip()[2:].split("|"):
             key, _, value = part.partition(":")
             key, value = key.strip(), " ".join(value.split())
@@ -179,7 +188,9 @@ def parse_queue():
             print("SKIPPED queue line: " + line[:60])
             continue
         if item["level"] not in LEVELS:
-            item["level"] = "standard"
+            print("SKIPPED queue line: level %r is not 0, 1 or 2 (the old names minimum, quick, standard and full are gone): %s"
+                  % (item["level"], line.strip()[:60]))
+            continue
         seen.add(slug)
         goals.append(item)
     return goals
@@ -289,8 +300,8 @@ def freeze(goal, cfg):
     branch = "loop/" + slug
     tree = os.path.join(loop_dir("worktrees"), slug)
     level = goal["level"]
-    if level in LEVELS[:2] and risky(goal["touches"], cfg):
-        level = "standard"
+    if level in LEVELS[:1] and risky(goal["touches"], cfg):
+        level = "1"
     lines = ["%d. %s" % (index, line) for index, line in enumerate(goal["done"], 1)]
     state = {"slug": slug, "goal": goal["goal"], "level": level, "status": "queued", "step": "", "tries": 0,
              "branch": branch, "worktree": tree, "touches": goal["touches"], "pid": None, "pr": "", "batch": True,
@@ -309,14 +320,14 @@ def freeze(goal, cfg):
                                      touches=", ".join(goal["touches"]) or "not declared", done="\n".join(lines)))
     git("add", path, cwd=tree)
     git("commit", "-q", "-m", "Goal: %s" % slug, "--", path, cwd=tree)
-    state["step"] = {"minimum": "build", "quick": "plan"}.get(level, "design")
+    state["step"] = "design"
     save(state, "frozen at level %s in %s" % (level, tree))
     return state
 
 
 def go_prompt(state, goal, skill_dir):
     done = " ".join('--done "%s"' % line.replace('"', "'") for line in goal["done"])
-    first = {"minimum": "4 (Build)", "quick": "3 (Plan)"}.get(state["level"], "2 (Design)")
+    first = "2 (Design)"
     return seated(state, GO_PROMPT.format(
         branch=state["branch"], goal=state["goal"].replace('"', "'"), done=done, level=state["level"], slug=state["slug"],
         where=where(skill_dir), first=first, touches=", ".join(state["touches"]) or "not declared",
@@ -520,7 +531,7 @@ def main():
     item = sub.add_parser("go")
     item.add_argument("goal")
     item.add_argument("--done", action="append", default=[])
-    item.add_argument("--level", choices=LEVELS, default="minimum")
+    item.add_argument("--level", type=level_arg, default="0")
     item.add_argument("--touches", default="")
     item.add_argument("--slug", default="")
     item.add_argument("--release", default="", choices=["", "ask"])

@@ -81,7 +81,7 @@ python3 scripts/regression.py workflow
 ```
 
 Writes `.github/workflows/regression.yml`, which runs the rows nightly, on `v*` tags and by hand, and keeps the same
-issues. It refuses to replace a workflow it didn't write. A change to CI is `standard` level at least.
+issues. It refuses to replace a workflow it didn't write. A change to CI is delivery level `1` at least.
 
 ## Rules
 

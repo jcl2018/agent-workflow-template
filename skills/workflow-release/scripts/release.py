@@ -85,7 +85,7 @@ def finished(state):
                  % (state["slug"], state.get("status")))
     if state.get("checks") != "pass":
         sys.exit("REFUSED: the checks of %s have not passed. Fix: run goal.py check." % state["slug"])
-    if state.get("level") not in ("minimum", "quick") and state.get("judge") != "pass":
+    if state.get("level") not in ("0",) and state.get("judge") != "pass":
         sys.exit("REFUSED: the fresh judge has not passed %s. Fix: run goal.py judge." % state["slug"])
 
 
