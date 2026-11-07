@@ -11,7 +11,7 @@ The six workflow skills share this contract. Skill instructions never go in the 
 | `.loop/goals/<slug>.md` | One goal: done lines, plan, log |
 | `.loop/findings.md` | Open findings, one line each |
 | `.loop/docs.tsv` | Each wiki page and the paths it describes |
-| `.loop/config.json` key `criteria` | `true` makes `docs.py check` enforce the criteria contract on the wiki pages; a criterion's regression row has its id as id or goal |
+| `.loop/config.json` key `criteria` | `true` makes `docs.py check` enforce the criteria contract on the wiki pages; each regression row links to one criterion by its goal or id |
 | `.loop/regression.tsv` | Each test row: id, level, command, goal, date seen failing |
 | `.loop/regression-known.tsv` | Rows expected to fail, with a reason; they don't block |
 
@@ -56,6 +56,8 @@ One goal a line. Other lines are ignored.
 - slug: add-median | level: 1 | touches: calc.py, test_calc.py | goal: Add median() | done: Odd lists give the middle value | done: Even lists average the two middle values
 ```
 
+A `## Batch: NAME` heading groups lines for `batch.py`; `- poc: SLUG | question: Q` is a POC line, which `watch.py` ignores; `session: yes` after the slug runs it in a visible session.
+
 `level` defaults to `0` (the old names are refused). `touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
 for your answer instead of answering `leave`. `session: yes` marks a goal for a visible session.
 
@@ -70,6 +72,7 @@ loop/logs/<slug>.log      a background agent's output
 loop/dashboard.html       the last dashboard
 loop/board.json, board.html, board-artifact.html  the last operation board
 loop/sessions.json        tracked sessions that have no goal record
+loop/pocs/<slug>.md, .go    a finished POC's answer and its go line
 loop/waits/<slug>         the goals that held a queued goal, one a line
 loop/cadence              minutes between check-ins (1 to 60), or off
 loop/handoff.md           the last handoff file
@@ -104,7 +107,7 @@ loop/wiki.json            the last wiki publish, for restore
 
 `external: true` marks a goal run in a visible session: no `pid`, and a missing process never marks it `failed`.
 `note` is `{"text", "at"}`, a session's latest message, kept as data. `waits_on` lists the goals that held this one.
-`retired` is `{"reason", "at"}`. `board.py repos add` keeps a list of repo paths in
+`retired` is `{"reason", "at"}`. `board.py take` sets `external` on a goal a session has taken over. `board.py repos add` keeps a list of repo paths in
 `~/.workflow-loop/repos`.
 
 Writes go through a temporary file and a rename, so a reader never sees half a file.

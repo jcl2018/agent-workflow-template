@@ -154,4 +154,46 @@ $B board --at $AT --out "$T/b" >/dev/null
 $B board --at $AT --since "$T/b/board.json" --out "$T/b" | grep -q "^NO_CHANGE" && bad "nothing open prints no NO_CHANGE" || ok "nothing open prints no NO_CHANGE"
 $B board --at $AT --since "$T/nofile" --out "$T/b" | grep -q "^NO_CHANGE" && bad "a change prints no NO_CHANGE" || ok "a change prints no NO_CHANGE"
 
+echo "== the mender leaves landed goals and taken-over goals alone"
+# A gh that answers MERGED for any branch or pull request named in $FAKE_AGENT/merged.
+mkdir -p "$T/bin"; cat > "$T/bin/gh" <<'GH'
+#!/bin/bash
+if [ "$1 $2" = "pr view" ] && grep -qxF -- "$3" "$FAKE_AGENT/merged" 2>/dev/null; then
+  echo '{"state":"MERGED","url":"https://example.test/pull/16"}'; exit 0
+fi
+exit 1
+GH
+chmod +x "$T/bin/gh"; export PATH="$T/bin:$PATH"; : > "$FAKE_AGENT/merged"
+python3 - <<'PY'
+import json
+c = json.load(open(".loop/config.json")); c["mend"] = True; json.dump(c, open(".loop/config.json", "w"), indent=2)
+PY
+git commit -qam "Mend on"
+touch "$FAKE_AGENT/hold-landed"
+$W go "Add landed" --done "landed" --touches landed.py --slug landed >/dev/null
+kill -9 -- "-$(field landed pid)" 2>/dev/null; sleep 0.3
+echo loop/landed >> "$FAKE_AGENT/merged"; rm -f "$FAKE_AGENT/prompt-landed"
+$W watch --once > "$T/m1"
+check "a landed goal with an empty pr field is done, not mended" '[ "$(field landed status)" = done ] && [ "$(field landed pr)" = https://example.test/pull/16 ] && [ "$(field landed mended)" = None ]'
+check "and no agent was launched for it" 'sleep 0.3; [ ! -e "$FAKE_AGENT/prompt-landed" ]'
+touch "$FAKE_AGENT/hold-late"
+$W go "Add late" --done "late" --touches late.py --slug late >/dev/null
+python3 -c "import os;print(os.spawnlp(os.P_NOWAIT,'sh','sh','-c','exec python3 -c \"import os,time;os.setsid();time.sleep(60)\"'))" > "$T/mpid"; sleep 0.3
+kill -9 -- "-$(field late pid)" 2>/dev/null; mender=$(cat "$T/mpid")
+sets late "pid=$mender" 'mended=true' 'status="running"'
+echo loop/late >> "$FAKE_AGENT/merged"
+python3 "$here/skills/workflow-monitoring/scripts/mend.py" > "$T/m2"
+check "a mender running after its goal lands is stopped" 'sleep 0.3; ! kill -0 "$mender" 2>/dev/null && [ "$(field late status)" = done ]'
+touch "$FAKE_AGENT/hold-taken"
+$W go "Add taken" --done "taken" --touches taken.py --slug taken >/dev/null
+for _ in $(seq 100); do [ -f "$FAKE_AGENT/prompt-taken" ] && break; sleep 0.1; done
+$B take taken 2>&1 | grep -q "still runs taken" && ok "take refuses while its agent runs" || bad "take refuse"
+kill -9 -- "-$(field taken pid)" 2>/dev/null; sleep 0.3; rm -f "$FAKE_AGENT/prompt-taken"
+$B take taken | grep -q "TAKEN taken" && ok "take marks the goal" || bad "take"
+$W watch --once >/dev/null
+check "a goal a session has taken over gets no mender" 'sleep 0.3; [ ! -e "$FAKE_AGENT/prompt-taken" ] && [ "$(field taken status)" = running ] && [ "$(field taken external)" = True ] && [ "$(field taken pid)" = None ]'
+sets taken 'status="done"'; sets late 'status="done"'
+mkdir -p "$T/lone"; cp "$here/skills/workflow-monitoring/scripts/watch.py" "$T/lone/"
+check "watch.py alone runs, and says it mended nothing" 'python3 "$T/lone/watch.py" watch --once | grep -q "mend.py isn.t beside"'
+
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

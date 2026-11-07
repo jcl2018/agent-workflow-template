@@ -27,7 +27,6 @@ import time
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 LEVELS = ("0", "1", "2")
 LIVE = ("running", "waiting")
-LIMIT = re.compile(r"(?i)usage limit|rate limit|limit reached|quota exceeded|too many requests|out of credits")
 TEMPLATE = """# {goal}
 
 - Slug: {slug}
@@ -74,16 +73,6 @@ command with `cd {tree} &&`, use full paths for files, and check the branch befo
 LEAVE = "this is a monitored batch, so answer leave yourself, never cut."
 ASK = ('ask the user first: run goal.py wait {slug} --ask "Cut a release or leave it unreleased?" '
        '--words "cut {slug}" --words "leave {slug}" and stop.')
-MEND_PROMPT = """You are a fresh agent mending goal {slug} (branch {branch}). Fix the cause below, then:
-
-""" + RESUME_PROMPT + """
-
-=== WHY IT STOPPED ===
-{finding}
-
-=== END OF ITS LOG ===
-{tail}
-"""
 
 
 def level_arg(text):
@@ -266,7 +255,7 @@ def seated(state, prompt):
 
 def hand_over(state, prompt, cfg=None):
     state["external"], state["status"] = True, "running"
-    save(state, "visible session: no process started")
+    save(state, "visible session: no process")
     print("WORKTREE %s\nPROMPT %s" % (state["worktree"], prompt))
 
 
@@ -396,30 +385,19 @@ def resume_prompt(state, skill_dir):
 
 
 def keep_moving(cfg, skill_dir):
-    pending = False
-    for state in runs():
-        if state.get("status") not in ("failed", "stopped") or state.get("external"):
-            continue
-        slug = state["slug"]
-        tail = log_tail(slug, 2000, state.get("log_mark", 0))
-        if cfg.get("resume_on_limit") and LIMIT.search(tail) and state.get("limit_resumes", 0) < 6:
-            if not state.get("limit_seen"):
-                state["limit_seen"] = time.time()
-                save(state, "hit a usage limit; waiting to resume")
-            if time.time() - state["limit_seen"] < float(cfg.get("limit_wait", 1800)):
-                pending = True
-                continue
-            state["limit_resumes"] = state.get("limit_resumes", 0) + 1
-            state.pop("limit_seen")
-            relaunch(state, resume_prompt(state, skill_dir), cfg, "resumed after the usage limit")
-        elif cfg.get("mend") and not state.get("mended"):
-            prompt = MEND_PROMPT.format(slug=slug, branch=state["branch"], where=where(skill_dir),
-                                        release=release_text(state), finding=state.get("finding") or "none recorded",
-                                        tail=log_tail(slug, 1500, state.get("log_mark", 0)))
-            state["mended"] = True
-            state["tries"] = 0
-            relaunch(state, prompt, cfg, "a fresh agent is mending it")
-    return pending
+    """Mending lives in mend.py beside this file. It reports PENDING while a goal waits out a limit."""
+    if not (cfg.get("mend") or cfg.get("resume_on_limit")):
+        return False
+    helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "mend.py")
+    if not os.path.exists(helper):
+        print("NOTE: mend.py isn't beside watch.py, so nothing was mended.")
+        return False
+    lines = subprocess.run([sys.executable, helper] + (["--skill-dir", skill_dir] if skill_dir else []),
+                           capture_output=True, text=True).stdout.splitlines()
+    for line in lines:
+        if line != "PENDING":
+            print(line, flush=True)
+    return "PENDING" in lines
 
 
 def known():
@@ -513,8 +491,8 @@ def cmd_resume(args):
     if not state:
         sys.exit("REFUSED: no run named %s." % args.slug)
     was = state.get("status")
-    if was not in ("failed", "stopped") and not (was == "running" and state.get("external")):
-        sys.exit("REFUSED: %s is %s; resume takes only a failed or stopped goal." % (args.slug, was))
+    if not state.get("branch") or (was not in ("failed", "stopped") and not (was == "running" and state.get("external"))):
+        sys.exit("REFUSED: %s is %s; resume takes a failed or stopped goal." % (args.slug, was))
     if was == "stopped":
         state["tries"] = 0
     relaunch(state, resume_prompt(state, args.skill_dir), cfg, "resumed (was %s)" % was)

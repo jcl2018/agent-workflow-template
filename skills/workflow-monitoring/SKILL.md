@@ -10,7 +10,7 @@ the code. Each goal runs in its own worktree, with its own background agent or v
 
 Five commands: `go`, `watch`, `report`, `dashboard` and `resume`. `go`, `watch` and `resume` use `scripts/watch.py`.
 `report` and `dashboard` use `scripts/monitor.py`. Run them with `python3` from the repo's main checkout, on the base
-branch. If the skill's files aren't on disk, write the script to a temporary file, run it, and delete it. If
+branch. If the skill's files aren't on disk, write the scripts to one temporary folder, run them, and delete it. If
 `.loop/config.json` is missing, use `workflow-setup` first.
 
 Background agents run `agent_command` from `.loop/config.json` exactly as the user set it, so they have the user's own
@@ -59,11 +59,11 @@ Both are off until the user turns them on in `.loop/config.json`.
 
 | Setting | Does |
 |---|---|
-| `mend: true` | Gives a failed or stopped goal one fresh agent, told only the finding and the end of its log |
+| `mend: true` | `mend.py` gives a failed or stopped goal one fresh agent, told only the finding and the end of its log |
 | `resume_on_limit: true` | When a log shows a usage limit, waits `limit_wait` seconds (default 1800), then continues the goal, up to 6 times |
 
 A limit doesn't use up the mend. Neither one merges, edits done lines, changes permissions or touches a visible
-session's goal.
+session's goal or a landed one (`board.py take SLUG` marks a goal a session has taken over).
 
 ## `report`
 
@@ -115,11 +115,16 @@ For a visible session's goal, even a `running` one, it starts no process and pri
 For a long run across goals or repos, one session can start the others and follow them in a loop. `scripts/board.py`
 builds the progress board (`board`), keeps the check-in `cadence`, follows other repos (`repos add`), records a
 session's latest message (`note SLUG TEXT`), tracks a session with no goal record (`session`), retires a superseded goal
-(`retire SLUG --reason TEXT`) and writes a `handoff` file. `scripts/board_page.py` then adds the dependency map to
+(`retire SLUG --reason TEXT`) and writes a `handoff` file. `scripts/board_page.py` then has `board_map.py` finish
 `board.json` and draws `board.html` and `board-artifact.html`. `watch.py go --session` freezes a goal and
 makes its worktree but starts no process: it prints `WORKTREE` and `PROMPT`. Start the new session from the main
 project folder and give it that prompt, which names the worktree. The loop and its rules are in
 `references/operation.md`.
+
+The operation session is for governance only: it assigns and watches, and runs neither `poc` nor `go` itself. Batches
+go through `scripts/batch.py` (`add`, `start`, `status`, `save`, `promote SLUG`): each POC runs read-only in its own worktree
+and shows on the board as `done` with its answer; a POC that changes its worktree is `failed`. Promote only when the
+user says so.
 
 ## Statuses
 

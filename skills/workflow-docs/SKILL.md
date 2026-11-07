@@ -64,16 +64,40 @@ python3 scripts/docs.py criteria <Page>
 
 It prints the format and the next free id for the page (`DEL`, `DOC`, `MON`, `REG`, `REL`).
 
-Rules for writing criteria:
+The same setting adds two `check` lines, each fixed on the page:
 
-- A criterion is one line under `## Criteria`: `- DEL-3: what must hold`. One claim a test can prove; no sub-bullets.
-- Ids are stable. Take the next free id, never reuse or renumber one, and never reword a criterion to mean something
-  else.
-- Every id has a line under `## Enforced by`: `- DEL-3: <regression row id>`. `check` fails on a duplicate id or a
-  criterion with no such line. `regression.py sync` reports an id with no regression row (the row's id or `--goal`
-  is the criterion id), and `release.py cut` refuses while a row is missing, a draft or failing.
-- Only the owner approves a changed criterion. Add a criterion only when the goal asks; to change or remove one, stop and
-  ask the owner, and don't edit it in the same change as the code it judges.
+| Line | Means | Fix |
+|---|---|---|
+| `SCRIPT` | A page, Home too, names a script file such as a `.py` or `.sh` name | Describe the command and what it does |
+| `CHART` | A command under `Commands` has no chart or status line, or none is listed | Add a heading with the command in backticks, then a Mermaid block and a `Status:` line |
+
+A command is the first word of a line in a `text` block (indented lines continue the one above) or a bullet starting
+with it in backticks. The `Status:` line sorts every stage under `built and proven`, `built only` and `planned`, from
+real tests and runs. Say so when something is unproven. `check` proves the chart exists, not that it is true.
+
+Two levels: criteria are for the owner, tests are for the machine.
+
+- A criterion is one line under `## Criteria`: `- DEL-3: **Unreviewed** what must hold`. It states an outcome the owner
+  cares about, with no sub-bullets. Ids are stable: take the next free id, and never reuse or renumber one.
+- A test is a row in `.loop/regression.tsv`. Each links to exactly one criterion, by its `goal` column (or its id). A
+  criterion can have many tests. `check` prints `LINK` for a test with no criterion, or one that names no real criterion.
+- Under `## Enforced by`, each id lists its rows: `- DEL-3: del-3a, del-3b`. `check` prints `LINK` if the list and the
+  rows differ, and `UNENFORCED` for an id with no line.
+- Above the criteria, `Tests: 12.` counts the page's tests. With any Unreviewed criterion, the next line is the banner:
+  `> **Unreviewed:** 2 of 6 criteria on this page have not been reviewed by the owner.` `check` prints `TESTS` if either
+  is wrong.
+
+| Stage | Means |
+|---|---|
+| `Unreviewed` | Landed, and the owner hasn't reviewed it. Every new or changed criterion starts here, whatever its tests |
+| `Reviewed` | The owner reviewed it, and it has no test yet |
+| `Enforced` | The owner reviewed it, and it has a test not yet seen failing |
+| `Proven` | The owner reviewed it, and every test has been seen failing once |
+
+`Reviewed`, `Enforced` and `Proven` follow from the rows, so `check` prints `STAGE` if the word on the page disagrees.
+Criteria need no approval to land. Only the owner moves one out of `Unreviewed`, or edits it after review.
+`regression.py sync` reports an id with no row, and `release.py cut` refuses while any of its rows is missing, a draft or
+failing.
 
 ## `publish`
 
