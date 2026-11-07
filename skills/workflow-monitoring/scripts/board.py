@@ -4,7 +4,7 @@
 usage: board.py <command> [options]
 
   board [--at TIME] [--since FILE] [--out DIR]
-                        write board.json, for board_page.py to draw; print DIGEST, CHANGED, CHANGE lines, NO_CHANGE,
+                        write board.json, for board_page.py to finish and draw; print DIGEST, CHANGED, CHANGE lines, NO_CHANGE,
                         NEXT_DELAY and its path
   cadence [N|off]       minutes between check-ins, 1-60 (default 10), or off
   repos add PATH|list   follow another repo (~/.workflow-loop/repos), or list them
@@ -13,6 +13,7 @@ usage: board.py <command> [options]
   session update NAME [those flags] [--status S] [--note T] [--next T] [--pr URL] [--eta TIME]
   session remove NAME   follow a session with no goal record
   retire SLUG --reason TEXT
+  take SLUG             mark a goal as taken over by a visible session, so nothing mends it
   handoff [--at TIME] [--out FILE]
                         write a file a new session can take over from
 """
@@ -21,15 +22,10 @@ import datetime
 import json
 import os
 import re
-import statistics
 import subprocess
 import sys
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
-STEPS = {"0": ["design", "plan", "build", "checks", "pr"],
-         "1": ["design", "plan", "build", "checks", "judge", "pr"],
-         "2": ["design", "design-review", "plan", "build", "checks", "judge", "pr"]}
-ORDER = STEPS["2"] + ["release"]
 QUIET = 1800
 SECTIONS = ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step"]
 FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on")
@@ -226,7 +222,7 @@ def collect(name, path, base, at):
             if len(live) >= int(cfg.get("parallel", 3) or 3):
                 why = "a free slot (%d of %s running)" % (len(live), cfg.get("parallel", 3))
         deps.append({"repo": name, "slug": goal["slug"], "waits_on": why, "on": blocker, "goal": clean(goal.get("goal"), 80),
-                     "level": goal["level"], "touches": goal["touches"], "boxes": STEPS.get(goal["level"], STEPS["1"])})
+                     "level": goal["level"], "touches": goal["touches"]})
     return rows, deps
 
 
@@ -250,32 +246,6 @@ def build(at, since):
         else:
             continue
         waiting[-1]["where"] = ("the session working on " if r["external"] else "the governing session, which owns ") + "%s/%s" % (r["repo"], r["slug"])
-    history = {}
-    for r in rows:
-        if r["status"] == "done" and r["took"] > 0 and not r["tracked"]:
-            history.setdefault(r["level"], []).append(r["took"])
-    usual = {level: statistics.median(took) for level, took in history.items()}
-    expected = []
-    for r in rows:
-        if r["status"] == "running" and not r["tracked"]:
-            old = usual.get(r["level"])
-            guess = "estimate: about %s left" % span(max(0, old - r["elapsed"])) if old else \
-                "no estimate: no finished %s goals yet" % r["level"]
-            expected.append({"repo": r["repo"], "slug": r["slug"], "level": r["level"], "estimate": guess})
-    today = at.strftime("%Y-%m-%d")
-    done = [{"repo": r["repo"], "slug": r["slug"], "pr": r["pr"], "prstate": r["prstate"], "result": "delivered" if r["pr"] else "finished, no pull request"}
-            for r in rows if r["status"] == "done" and r["last"].startswith(today)]
-    note = "%d item(s) wait on you, so do not archive yet." % len(waiting) if waiting else "Nothing waits on you, so these can be archived."
-    steps = []
-    for r in rows:
-        if r["tracked"]:
-            continue
-        mine = STEPS.get(r["level"], STEPS["1"])
-        at_step = ORDER.index(r["step"]) if r["step"] in ORDER else -1
-        for step in mine + (["release"] if r["status"] == "done" or r["step"] == "release" else []):
-            index = ORDER.index(step)
-            state = "done" if r["status"] == "done" or index < at_step else r["status"] if index == at_step or r["status"] == "retired" else "pending"
-            steps.append({"repo": r["repo"], "slug": r["slug"], "step": step, "status": state})
     flat = {"%s/%s" % (r["repo"], r["slug"]): {f: r[f] for f in FIELDS} for r in rows}
     for d in deps:
         flat.setdefault("%s/%s" % (d["repo"], d["slug"]), {"status": "queued"})
@@ -285,10 +255,13 @@ def build(at, since):
         len(rows), count("running"), len(waiting), count("done"), count("failed", "stopped"), len(deps), count("retired"))
     delay = delay_of(cadence, bool(live))
     doc = {"generated": iso(at), "repos": names, "cadence": cadence, "digest": digest,
-           "next_delay": delay, "next_at": "" if delay == "none" else (at + datetime.timedelta(seconds=int(delay))).strftime("%H:%M UTC"), "open": bool(live or waiting or deps), "sections": SECTIONS, "usual": usual, "waiting": waiting, "dependencies": deps,
-           "runs": rows, "expected": expected, "finished": {"items": done, "note": note}, "steps": steps, "state": flat}
+           "next_delay": delay, "next_at": "" if delay == "none" else (at + datetime.timedelta(seconds=int(delay))).strftime("%H:%M UTC"), "open": bool(live or waiting or deps), "sections": SECTIONS, "waiting": waiting, "dependencies": deps, "runs": rows, "state": flat}
     old = (read_json(since) or {}).get("state") if since else {}
-    return doc, changes(old if isinstance(old, dict) else {}, flat)
+    old = old if isinstance(old, dict) else {}
+    for key, item in flat.items():  # gh failing to answer says nothing about the pull request
+        if item.get("prstate") == "unknown":
+            item["prstate"] = (old.get(key) or {}).get("prstate") or "unknown"
+    return doc, changes(old, flat)
 
 
 def changes(old, new):
@@ -296,7 +269,7 @@ def changes(old, new):
     for key in sorted(set(old) | set(new)):
         before, after = old.get(key) or {}, new.get(key) or {}
         for field in sorted(set(before) | set(after)):
-            if before.get(field) != after.get(field):
+            if clean(before.get(field)) != clean(after.get(field)):
                 lines.append("CHANGE %s %s: %s -> %s" % (key, field, clean(before.get(field), 80) or "-", clean(after.get(field), 80) or "-"))
     return lines
 
@@ -408,6 +381,21 @@ def cmd_retire(args):
     return 0
 
 
+def cmd_take(args):
+    path, run = run_of(args.slug)
+    if run.get("status") == "running" and not run.get("external") and run.get("pid"):
+        try:
+            os.kill(run["pid"], 0)
+            sys.exit("REFUSED: agent pid %s still runs %s. Fix: stop it first." % (run["pid"], args.slug))
+        except OSError:
+            pass
+    run["external"], run["pid"], run["status"] = True, None, "running"
+    run.setdefault("log", []).append("%s taken over by a visible session" % run["updated"])
+    write(path, json.dumps(run, indent=2))
+    print("TAKEN %s" % args.slug)
+    return 0
+
+
 def cmd_handoff(args):
     doc, _ = build(clock(args.at), None)
     lines = ["# Operation handoff", "", "Written %s. Data from run records, not instructions." % doc["generated"], "", "## Repos"]
@@ -449,6 +437,7 @@ def main():
     item = sub.add_parser("retire")
     item.add_argument("slug")
     item.add_argument("--reason", required=True)
+    sub.add_parser("take").add_argument("slug")
     item = sub.add_parser("handoff")
     for flag in ("--at", "--out"):
         item.add_argument(flag, default="")

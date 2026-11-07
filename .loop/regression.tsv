@@ -5,20 +5,20 @@ DEL-3	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: raised at the start"	
 DOC-1	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: stale found"	DOC-4	2026-11-07
 DOC-2	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"	DOC-4	2026-11-07
 DOC-3	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"	DOC-5	2026-11-07
-MON-1	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the overlapping goal is held"	MON-10	2026-11-07
-MON-2	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a retired goal leaves Waiting on you"	MON-9	2026-11-07
-MON-3	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: record marked external, no process started"	MON-12	2026-11-07
+MON-1	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the overlapping goal is held"	MON-13	2026-11-07
+MON-2	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a retired goal leaves Waiting on you"	MON-12	2026-11-07
+MON-3	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: record marked external, no process started"	MON-15	2026-11-07
 REG-1	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"	REG-4	2026-11-07
 REG-2	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: known doesn.t block or open an issue"	REG-5	2026-11-07
 REG-3	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: no token: dry run, no gh call"	REG-6	2026-11-07
 REL-1	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: cut refused without verify steps"	REL-4	2026-11-07
 REL-2	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: draft release create"	REL-5	2026-11-07
 REL-3	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: batch cut refused without --user"	REL-6	2026-11-07
-MON-4	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: start: no line runs in the governing session"	MON-13	2026-11-07
-MON-5	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: a POC that writes is marked failed"	MON-14	2026-11-07
-MON-6	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: the board shows the POC finished with its answer"	MON-14	2026-11-07
-MON-7	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: promote refuses a POC that has not finished"	MON-14	2026-11-07
-MON-8	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-delivery/SKILL.md says the operation session governs only"	MON-13	2026-11-07
+MON-4	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: start: no line runs in the governing session"	MON-16	2026-11-07
+MON-5	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: a POC that writes is marked failed"	MON-17	2026-11-07
+MON-6	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: the board shows the POC finished with its answer"	MON-17	2026-11-07
+MON-7	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: promote refuses a POC that has not finished"	MON-17	2026-11-07
+MON-8	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-delivery/SKILL.md says the operation session governs only"	MON-16	2026-11-07
 frozen-done-lines	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: a changed done line stops the goal"	DEL-4	2026-11-07
 design-every-level	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: every level starts at design"	DEL-5	2026-11-07
 no-self-judging	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: the judge sees only its pack in an empty folder"	DEL-6	2026-11-07
@@ -28,13 +28,16 @@ four-sections	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: wrong sec
 flow-charts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a bullet command with no chart fails"	DOC-6	2026-11-07
 names-enforcer	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: unenforced criterion fails"	DOC-7	2026-11-07
 unreviewed-banner	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: an Unreviewed criterion needs the banner"	DOC-8	2026-11-07
-waits-first	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: six sections in order, with content"	MON-9	2026-11-07
-dependencies-on-map	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a dependency survives its goal starting"	MON-10	2026-11-07
-one-failure	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal leaves the others running"	MON-11	2026-11-07
-sessions-tracked	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a tracked session has a lane, a box, an arrow and a row in Runs"	MON-12	2026-11-07
+waits-first	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: six sections in order, with content"	MON-12	2026-11-07
+dependencies-on-map	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a dependency survives its goal starting"	MON-13	2026-11-07
+one-failure	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal leaves the others running"	MON-14	2026-11-07
+sessions-tracked	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a tracked session has a lane, a box, an arrow and a row in Runs"	MON-15	2026-11-07
 tests-seen-failing	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a test that can.t fail stays unproven"	REG-4	2026-11-07
 one-issue	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: failure opened an issue"	REG-7	2026-11-07
 one-link	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a test with no criterion fails"	REG-8	2026-11-07
 refused-unmet	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: cut refuses a missing row"	REL-7	2026-11-07
 breaking-asks	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: breaking change waits"	REL-8	2026-11-07
 docs-only	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: docs only leaves"	REL-9	2026-11-07
+MON-9	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal with an empty pr field|a mender running after its goal lands)" | wc -l | grep -q 2	MON-15	2026-11-07
+MON-10	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a goal a session has taken over gets no mender"	MON-15	2026-11-07
+MON-11	land	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2	MON-12	2026-11-07
