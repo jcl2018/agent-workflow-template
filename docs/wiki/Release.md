@@ -145,6 +145,29 @@ Status: built and proven: Refuse with auto_merge off, or no open pull request; M
 Stops for the owner: none.
 Proof: toy tests with a stand-in for GitHub, including a goal that changes a mapped path and ends with its page updated, the wiki published, and a refused publish shown under Needs you. No real merge by it is on record yet.
 
+#### `wiki`
+
+```mermaid
+flowchart LR
+  a["prepare: list stale pages the goal's paths map to"]
+  b["Agent rewrites them; commit on the goal's branch and push"]
+  c["merge refuses while a page is stale"]
+  d["publish after the merge, from origin/main"]
+  e["Refused: wiki_error names page and reason"]
+  f{{"Needs you"}}
+  a --> b
+  b --> c
+  c --> d
+  d -->|refused| e
+  e --> f
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class f owner
+```
+
+Status: built and proven: prepare: list stale pages the goal's paths map to; Agent rewrites them; commit on the goal's branch and push; merge refuses while a page is stale; publish after the merge, from origin/main; Refused: wiki_error names page and reason; Needs you. Built only: none. Planned: none.
+Stops for the owner: Needs you, only when a publish is refused.
+Proof: toy tests with a stand-in for GitHub and a bare wiki. No real merge has published through it yet.
+
 #### `show`
 
 ```mermaid
