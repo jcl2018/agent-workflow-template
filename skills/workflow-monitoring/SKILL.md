@@ -121,10 +121,8 @@ makes its worktree but starts no process: it prints `WORKTREE` and `PROMPT`. Sta
 project folder and give it that prompt, which names the worktree. The loop and its rules are in
 `references/operation.md`.
 
-The operation session is for governance only: it assigns and watches, and runs neither `poc` nor `go` itself. Batches
-go through `scripts/batch.py` (`add`, `start`, `status`, `save`, `promote SLUG`): each POC runs read-only in its own worktree
-and shows on the board as `done` with its answer; a POC that changes its worktree is `failed`. Promote only when the
-user says so.
+The operation session is for governance only: it assigns and watches, and never runs `go` itself. Batches of goals
+go through `scripts/batch.py` (`add`, `start`, `status`); each goal runs the skill flow in its own worktree.
 
 ## Statuses
 

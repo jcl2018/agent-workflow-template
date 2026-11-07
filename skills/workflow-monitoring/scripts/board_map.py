@@ -16,7 +16,7 @@ ORDER = STEPS["goal"] + ["release"]
 TEXT = {"idea": "Shape the idea into a design", "plan": "Review the design into a plan", "build": "Build the change",
         "checks": "Run the checks", "review": "Review the change", "qa": "Test the change", "ship": "Prepare it to ship",
         "pr": "Open the pull request",
-        "release": "Answer the release question", "session": "A tracked session", "poc": "Answer a question, read-only"}
+        "release": "Answer the release question", "session": "A tracked session"}
 OPEN = ("running", "waiting", "failed", "stopped", "queued")
 
 
@@ -94,7 +94,7 @@ class Map:
             self.steps.setdefault(key(step), []).append(step)
         today = self.at.strftime("%Y-%m-%d")
         for run in self.known:
-            kept = run["status"] in OPEN or (run["status"] == "done" and ((run["tracked"] and run["level"] != "poc") or run["last"].startswith(today)))
+            kept = run["status"] in OPEN or (run["status"] == "done" and (run["tracked"] or run["last"].startswith(today)))
             if kept:
                 self.show(run)
         for run in list(self.shown.values()):
@@ -162,7 +162,7 @@ class Map:
         steps = self.steps.get(name, [])
         ghost = run.get("ghost")
         fallback = "unknown" if ghost else "queued" if run["status"] == "queued" else "pending"
-        names = [s["step"] for s in steps] or run.get("boxes") or ["poc" if run.get("level") == "poc" else "session"]
+        names = [s["step"] for s in steps] or run.get("boxes") or ["session"]
         states = [s["status"] for s in steps] or [run["status"] if run["tracked"] else fallback] * len(names)
         left = [n for n, state in zip(names, states) if state != "done"]
         begin = self.at if run["status"] != "queued" else self.begins(run)
