@@ -21,4 +21,25 @@ Frozen. A wrong done line needs a new goal.
 
 ## Design
 
+`scripts/batch.py` (stdlib, one file, well under 20 KB) keeps a batch in `.loop/queue.md` under a `## Batch: NAME`
+heading. Goal lines are the ordinary `- slug:` lines (watch.py already runs those); a POC line is `- poc: SLUG |
+question: Q`, which watch.py ignores. `start NAME` launches each unstarted POC as a detached wrapper (`batch.py _run`,
+own session) and hands goal lines to `watch.py watch --once`, so nothing runs in the governing session.
+
+A POC wrapper makes a detached worktree under loop/worktrees/, runs `agent_command` there with a read-only prompt,
+and takes the agent's stdout as the answer. It saves `loop/pocs/SLUG.md` (answer) and `SLUG.go` (the last `go "..."`
+line) outside the repo, fails the run if the worktree's HEAD or status moved, removes the worktree, and writes
+`loop/runs/SLUG.json` with kind poc, status done and the answer as `note`, so the board shows it finished with the
+answer. `promote SLUG` parses the saved go line and queues a goal line (slug `SLUG-go`) under the batch.
+
+Risks: a goal line in another batch starts too, because `watch --once` starts every queued goal (documented). A POC
+agent could write; the wrapper detects it and marks the run failed. Existing scripts near 20 KB are not touched, only
+docs and skill text. New criteria are `(draft)`; the 30 approved ones stay word for word.
+
 ## Plan
+
+1. Write dev/toy/test-batch.sh first (stand-in agent); run it to see it fail; record the regression rows seen failing.
+2. Write scripts/batch.py until it passes (done lines 1, 2, 5).
+3. State governance-only in references/operation.md and both SKILL files; check by grep in the test (line 3).
+4. Add MON-4..MON-8 as (draft) to Monitoring.md with Enforced by rows, and rows in .loop/regression.tsv (line 4).
+5. Add the test to .loop/config.json checks; update listing.json, loop-files.md, Delivery.md; `goal.py check` (lines 5, 6).
