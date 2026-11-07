@@ -158,7 +158,7 @@ def auto_need(top, state):
     rows = [line.split("\t") for line in git("diff", "--name-status", "--no-renames", "%s...HEAD" % base, cwd=top,
                                              check=False).splitlines()]
     rows = [(r[0][0], r[-1]) for r in rows if len(r) > 1 and not r[-1].startswith(".loop/")]
-    docs = re.compile(r"^(docs|dev|tests?)/|\.md$|(^|/)test[-_.]|[-_.]test\.")
+    docs = re.compile(r"^(docs|tests?|dev/toy)/|\.md$|(^|/)test[-_.]|[-_.]test\.")
     code = [r for r in rows if not docs.search(r[1])]
     msgs = git("log", "--format=%s%n%b", "%s..HEAD" % base, cwd=top, check=False)
     if not code:

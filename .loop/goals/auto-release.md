@@ -18,7 +18,7 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 1. Run `bash dev/toy/test-release.sh`.
-   Expect: it ends with ALL PASS, and the 4b section shows NEED patch/minor/leave/ask lines and exactly two drafts.
+   Expect: it ends with ALL PASS, and the 4b section shows NEED patch/minor/leave/ask lines and only draft releases.
 
 <!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
 

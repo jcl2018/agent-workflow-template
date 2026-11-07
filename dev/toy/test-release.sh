@@ -119,6 +119,16 @@ NO_VERIFY=1 LOOP_BATCH=1 finish nosteps
 out=$($rel ask nosteps); grep -q "REFUSED" <<<"$out" && grep -q "WAITING nosteps" <<<"$out" && ok "missing verify steps refuse, owner decides" || bad "nosteps"
 LOOP_BATCH=1 MSG="feat: calc gets a helper" finish featmsg
 out=$($rel ask featmsg); grep -q "NEED minor" <<<"$out" && ok "feat commit cuts a minor" || bad "feat minor"
+git switch -q main; echo old > old.py; git add old.py; git commit -qm "Add old.py"; git push -q origin main
+LOOP_BATCH=1 finish rmfile
+git rm -q old.py; git commit -qm "Remove old.py"
+out=$($rel ask rmfile); grep -q "NEED ask" <<<"$out" && grep -q "WAITING rmfile" <<<"$out" && ok "removed file waits" || bad "removed file"
+LOOP_BATCH=1 MSG="Rework calc
+
+BREAKING CHANGE: calc output moved" finish brkword
+out=$($rel ask brkword); grep -q "NEED ask" <<<"$out" && ok "BREAKING CHANGE footer waits" || bad "breaking footer"
+LOOP_BATCH=1 FILE=dev/install-local.sh finish devtool
+out=$($rel ask devtool); grep -q "NEED minor" <<<"$out" && ok "shipped dev tooling is not docs" || bad "dev tooling"
 LOOP_BATCH=1 FILE=tests/test_more.py finish testsonly
 out=$($rel ask testsonly); grep -q "NEED leave: only docs, tests" <<<"$out" && ok "tests only leaves" || bad "tests leave"
 LOOP_BATCH=1 finish nojudge
@@ -133,7 +143,7 @@ LOOP_BATCH=1 finish stalepage
 out=$($rel ask stalepage); grep -q "REFUSED: these pages are stale" <<<"$out" && grep -q "WAITING stalepage" <<<"$out" && ok "stale page refuses, owner decides" || bad "stale gate"
 git switch -q main; git rm -q .loop/docs.tsv docs/wiki/Calc.md; git commit -qm "Unmap the Calc page"
 grep -Eq "draft=false|release edit|release upload" "$FAKE_GH_DIR/calls.log" && bad "publish call" || ok "auto mode only made drafts"
-[ "$(grep -c '^release create' "$FAKE_GH_DIR/calls.log")" = "$(( $(grep -c '^release create' <(head -n "$n" "$FAKE_GH_DIR/calls.log")) + 3 ))" ] && ok "exactly three auto drafts" || bad "draft count"
+[ "$(grep -c '^release create' "$FAKE_GH_DIR/calls.log")" = "$(( $(grep -c '^release create' <(head -n "$n" "$FAKE_GH_DIR/calls.log")) + 4 ))" ] && ok "exactly four auto drafts" || bad "draft count"
 [ -z "$(git ls-remote --tags origin)" ] && ok "still no tag" || bad "tag pushed"
 [ "$(wc -c < "$here/skills/workflow-release/scripts/release.py")" -lt 20000 ] && ok "release.py under 20 KB" || bad "release.py size"
 git switch -q main; sed -i.bak 's/, "release_auto": true//' .loop/config.json && rm .loop/config.json.bak; git commit -qam "Turn release_auto off"
