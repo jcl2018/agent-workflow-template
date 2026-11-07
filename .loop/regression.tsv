@@ -65,3 +65,4 @@ stuck-stays-top	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a stuck 
 status-order	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: five sections in the fixed order"	MON-19	2026-11-07
 needs-you-stuck	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: Needs you holds the failed and the waiting worker, with the exact words"	MON-19	2026-11-07
 estimates-shown	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a running goal shows each step with an estimate from past runs"	MON-19	2026-11-07
+DEL-10	land	bash dev/toy/test-rows.sh DEL-10	DEL-10	2026-11-07

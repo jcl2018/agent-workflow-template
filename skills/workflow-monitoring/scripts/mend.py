@@ -17,6 +17,11 @@ import subprocess
 import sys
 import time
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
+
 LIMIT = re.compile(r"(?i)usage limit|rate limit|limit reached|quota exceeded|too many requests|out of credits")
 RESUME_PROMPT = """Use the workflow-delivery skill to continue the goal {slug} in this git worktree, on branch {branch}.
 {where}

@@ -47,6 +47,19 @@ case "$id" in
     $goal record held plan --file "$R/held.plan.txt" | grep -q "^WAITING held" || no "a pending decision didn't wait"
     python3 -c "import json,sys;s=json.load(open(sys.argv[1]));assert s['status']=='waiting' and s['flow']['plan']=='pending'" "$R/held.json" || no "pending was approved"
     $goal check held >/dev/null; $goal pr held 2>&1 | grep -q "the flow hasn't finished: idea, plan" || no "pr went on with a decision pending";;
+  DEL-10)
+    mkdir -p "$d/bin"
+    printf '#!/bin/bash\n[ "$GH_PROMPT_DISABLED" = 1 ] || { read -r _; echo prompted >> "%s/prompted"; }\nexit 1\n' "$d" > "$d/bin/gh"; chmod +x "$d/bin/gh"
+    export GH_PROMPT_DISABLED=0 GIT_EDITOR=vim
+    ( PATH="$d/bin:$PATH"; python3 -c "
+import subprocess, sys; sys.argv = ['x']
+sys.path.insert(0, '$here/skills/workflow-release/scripts'); import merge, os
+assert os.environ['GIT_EDITOR'] == 'true' and os.environ['GH_PROMPT_DISABLED'] == '1'
+subprocess.run(['gh', 'x'], timeout=20)" ) < /dev/null || no "a script left a prompt on"
+    [ ! -e "$d/prompted" ] || no "gh was allowed to prompt"
+    for s in "$here"/skills/*/scripts/*.py; do
+      grep -q "GIT_TERMINAL_PROMPT" "$s" || ! grep -q "^import subprocess\|subprocess\." "$s" || no "$s starts processes without the guard"
+    done;;
   REL-1)
     finish none ""
     $rel cut none >/dev/null 2>&1 && no "cut with no verify steps"
