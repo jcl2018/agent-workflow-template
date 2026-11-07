@@ -82,13 +82,13 @@ Proof: toy tests use it through `new --all`.
 
 ## Criteria
 
-Tests: 6.
+Tests: 5.
 
 > **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
 
 - MIL-1: **Unreviewed** Creating milestones makes one per feature page and one Backlog, and running it again creates nothing.
 - MIL-2: **Unreviewed** A goal's pull request is put in the milestone of the feature its touched files belong to.
-- MIL-3: **Unreviewed** Each health warning or failure is filed once on the Backlog: a repeat updates its issue, a fix closes it, a return reopens it, and without a token or the live flag nothing is written.
+- MIL-3: **Unreviewed** Health findings go on the Backlog by default, and nothing is written to GitHub without a token or the live flag.
 - MIL-4: **Unreviewed** An issue moved to a feature's milestone stays there when health updates it.
 - MIL-5: **Unreviewed** The board shows each milestone's open and closed counts and how old the Backlog's oldest open issue is.
 
@@ -96,6 +96,6 @@ Tests: 6.
 
 - MIL-1: MIL-1
 - MIL-2: MIL-2
-- MIL-3: MIL-3, MIL-3b
+- MIL-3: MIL-3
 - MIL-4: MIL-4
 - MIL-5: MIL-5

@@ -219,7 +219,8 @@ def body_of(item):
 def cmd_run(args):
     root = repo_root()
     live = bool(args.live or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
-    found = [item for item in gather(root, args.family) if item["state"] in ("WARN", "FAIL", "UNREAD")]
+    rows = gather(root, args.family)
+    found = [item for item in rows if item["state"] in ("WARN", "FAIL", "UNREAD")]
     got = run(["gh", "issue", "list", "--label", "health", "--state", "all", "--limit", "500", "--json",
                "number,state,body"], root)
     try:
@@ -265,8 +266,10 @@ def cmd_run(args):
             act("update #%s %s" % (number, key), ["issue", "edit", number, "--body", body])
         elif issue["state"].upper() == "OPEN":
             print("SAME #%s %s" % (number, key))
+    unread = {item["family"] for item in rows if item["state"] == "UNREAD"}
+    ran = {item["family"] for item in rows} - unread  # an issue closes only when its rule ran and read its data
     for key, issue in sorted(held.items()):
-        if key not in current and issue["state"].upper() == "OPEN":
+        if key not in current and key.split(":")[0] in ran and issue["state"].upper() == "OPEN":
             number = str(issue["number"])
             act("close #%s %s, no longer found" % (number, key),
                 ["issue", "close", number, "--comment", "No longer found by health.py run."])

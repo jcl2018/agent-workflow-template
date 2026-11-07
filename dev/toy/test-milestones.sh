@@ -86,6 +86,29 @@ grep -q "^DONE reopen #1" <<<"$out" && grep -q '"state": "OPEN"' "$FAKE_GH_DIR/i
   && ok "a returning finding reopens the same issue" || bad "reopen"
 grep -Eq "^(release |pr merge|api .*-X)|draft=false" "$FAKE_GH_DIR/calls.log" && bad "publish or merge call" || ok "no release or merge call"
 
+echo "== a family run or an unread rule closes nothing it did not check"
+out=$($health run --live); echo "$out" | grep -c "^DONE" 
+open_other=$(python3 -c "import json,os;print(sorted(i['number'] for i in json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json')) if i['state']=='OPEN' and 'size:' not in i['body']))")
+[ "$open_other" != "[]" ] && ok "other families have open issues: $open_other" || bad "no other issues to guard"
+git rm -q skills/x/scripts/near.py; git commit -qm "Remove it again"
+$health run --family size --live >/dev/null
+still=$(python3 -c "import json,os;print(sorted(i['number'] for i in json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json')) if i['state']=='OPEN' and 'size:' not in i['body']))")
+[ "$still" = "$open_other" ] && grep -q '"number": 1, .*"state": "CLOSED"' "$FAKE_GH_DIR/issues.json" && ok "run --family size closed only the size issue" || bad "family close: $still"
+lone=$(mktemp -d); cp "$here/skills/workflow-health/scripts/health.py" "$lone/"
+python3 "$lone/health.py" run --live >/dev/null
+still=$(python3 -c "import json,os;print(sorted(i['number'] for i in json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json')) if i['state']=='OPEN' and 'size:' not in i['body'] and 'UNREAD' not in i['body']))")
+[ "$still" = "$open_other" ] && ok "a rule that could not read closes none of its issues" || bad "unread close: $still"
+
+echo "== the board shows the milestones"
+python3 - "$here" "$d/repo" <<'PYEND2' && ok "the board reads counts and the Backlog's age through gh" || bad "board milestones"
+import datetime, importlib.util, os, sys
+spec = importlib.util.spec_from_file_location("board", sys.argv[1] + "/skills/workflow-monitoring/scripts/board.py")
+board = importlib.util.module_from_spec(spec); spec.loader.exec_module(board)
+rows = {r["title"]: r for r in board.milestones("toy", sys.argv[2], datetime.datetime.now(datetime.timezone.utc))}
+assert {"Backlog", "Calc"} <= set(rows), rows
+assert rows["Calc"]["open"] + rows["Calc"]["closed"] >= 1 and rows["Backlog"]["age"].endswith("days"), rows
+PYEND2
+
 echo "== sizes"
 for f in milestone.py health.py; do
   [ "$(wc -c < "$here/skills/workflow-health/scripts/$f")" -lt 20480 ] && ok "$f under 20 KB" || bad "$f size"

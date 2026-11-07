@@ -59,7 +59,7 @@ def milestones(name, path, at):
     for item in found if isinstance(found, list) else []:
         row = {"repo": name, "title": clean(item.get("title")), "open": item.get("open_issues", 0), "closed": item.get("closed_issues", 0), "age": "-"}
         if row["title"] == "Backlog" and row["open"]:
-            held = ask("issue", "list", "--milestone", "Backlog", "--state", "open", "--json", "createdAt") or []
+            held = ask("issue", "list", "--milestone", "Backlog", "--state", "open", "--limit", "500", "--json", "createdAt") or []
             oldest = min([x for x in (stamp(i.get("createdAt")) for i in held) if x], default=None)
             row["age"] = "%d days" % (at - oldest).days if oldest else "-"
         rows.append(row)

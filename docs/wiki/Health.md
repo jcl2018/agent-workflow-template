@@ -69,22 +69,22 @@ Proof: toy tests with a stand-in for GitHub. It has only been dry-run on this re
 
 ## Criteria
 
-Tests: 6.
+Tests: 9.
 
 > **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
 
 - HLT-1: **Unreviewed** Running the check twice on a repo that hasn't changed prints exactly the same lines.
 - HLT-2: **Unreviewed** A script over 20 KB is a failure, and one at 90 percent of that or more is a warning, each with a line saying how to fix it.
-- HLT-3: **Unreviewed** A stale or missing wiki page shows up as a line naming the page.
-- HLT-4: **Unreviewed** A criterion with no regression test shows up as a failure naming the criterion.
+- HLT-3: **Unreviewed** A stale or missing wiki page, or a criterion with no regression test, shows up as a line naming it.
 - HLT-5: **Unreviewed** When a rule can't read what it needs, it says so and the verdict is never green.
 - HLT-6: **Unreviewed** The check changes nothing: no file, commit, branch or stash.
+- HLT-7: **Unreviewed** Each health finding is filed as one issue: a repeat updates it, a fix closes it, a return reopens it, and a check that did not run or could not read its data closes nothing.
 
 ## Enforced by
 
 - HLT-1: HLT-1
 - HLT-2: HLT-2
-- HLT-3: HLT-3
-- HLT-4: HLT-4
+- HLT-3: HLT-3, HLT-3b
 - HLT-5: HLT-5
 - HLT-6: HLT-6
+- HLT-7: HLT-7, HLT-7b, HLT-7c
