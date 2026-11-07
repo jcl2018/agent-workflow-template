@@ -16,7 +16,7 @@ Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md) for the fe
 **This repo runs with no gates.** Its `.loop/config.json` turns off `require_checks`, with an empty `checks` list, and
 turns on `auto_approve` and `auto_merge`. A pull request opens without any check passing. What the skills leave for the
 owner is approved automatically and logged as auto-approved, in the goal's log and on the board. The release step then
-merges the pull request into `main` by itself. The skills' own built-in refusals still apply, and the private-name leak
+merges the pull request into `main` by itself, after bringing the wiki pages the goal touched up to date, and publishes the wiki once it has merged. The skills' own built-in refusals still apply, and the private-name leak
 scan still guards every commit. The risk is plain: a broken or wrong change can reach `main` with nobody looking, and
 the only check left is the regression workflow on GitHub, which reports and never blocks. A repo set up from this
 template keeps every gate until its owner turns one off.
