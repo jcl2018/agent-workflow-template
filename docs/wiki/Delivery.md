@@ -101,7 +101,7 @@ flowchart TD
 
 Status: built and proven: Done lines given or shown to the owner; Hand to Monitoring go; Build; Checks; Open pull request; Owner reviews the pull request; Stopped after 3 failed tries, finding filed. Built only: Idea skill shapes the design; Plan skill reviews it into a plan; Review skill; Test skill; Ship skill, which never pushes; A decision only the owner can make waits. Planned: none.
 Stops for the owner: A decision only the owner can make waits; Owner reviews the pull request; Stopped after 3 failed tries, finding filed.
-Proof: toy tests with stand-in skills prove the order, the waits and the stops. The real skills have not run through this flow yet.
+Proof: toy tests with stand-in skills prove the order, the waits and the stops. One real goal on a toy repo ran the idea step with the real skill, unattended, in about 75 seconds, then waited for the owner's approval of the design, as it should. The steps after it haven't run for real.
 
 #### `new`
 
