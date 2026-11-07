@@ -52,7 +52,7 @@ One goal a line. Other lines are ignored.
 - slug: add-median | touches: calc.py, test_calc.py | goal: Add median() | done: Odd lists give the middle value | done: Even lists average the two middle values
 ```
 
-A `## Batch: NAME` heading groups lines for `batch.py`; `- poc: SLUG | question: Q` is a POC line, which `watch.py` ignores; `session: yes` after the slug runs it in a visible session.
+A `## Batch: NAME` heading groups goal lines for `batch.py`; `session: yes` after the slug runs it in a visible session.
 
 `touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
 for your answer instead of answering `leave`. `session: yes` marks a goal for a visible session.
@@ -89,7 +89,6 @@ loop/logs/<slug>.log      a background agent's output
 loop/dashboard.html       the last dashboard
 loop/board.json, board.html, board-artifact.html  the last operation board
 loop/sessions.json        tracked sessions that have no goal record
-loop/pocs/<slug>.md, .go    a finished POC's answer and its go line
 loop/waits/<slug>         the goals that held a queued goal, one a line
 loop/cadence              minutes between check-ins (1 to 60), or off
 loop/handoff.md           the last handoff file

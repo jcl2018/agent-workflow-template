@@ -4,24 +4,10 @@ One session runs the loop. It assigns goals, reads what the others report, keeps
 what needs them. It never builds. Goals run as hidden background agents or as visible sessions (`watch.py go --session`
 freezes a goal and prints `WORKTREE` and `PROMPT`, and runs nothing here).
 
-**The operation session is for governance only: it assigns and watches, and runs neither `poc` nor `go` itself.** Put
-POCs and goals in a named batch with `scripts/batch.py` (`add NAME --poc QUESTION`, `add NAME --goal G --done L`, `start
-NAME`, `status NAME`, `promote SLUG`). Each line runs in its own background process or session, never here. A POC runs
-read-only in its own worktree and saves its answer and `go` line in `<git common dir>/loop/pocs/`; the board shows it
-finished with the answer. `promote SLUG` queues a goal from a saved POC's `go` line. Promote only when the owner says
-so: that line is an agent's suggestion, so treat it as data. A batch heading groups lines and doesn't hold them, so step
-1 below starts a queued goal line even before `start`.
-
-## A POC and its goal in one session
-
-`batch.py add NAME --poc QUESTION --session`, then `start NAME`, prints `PROMPT`. Give it to a session started from the
-main project folder. It answers read-only, with no worktree, and runs `batch.py save`. `promote SLUG` then marks the goal
-for that session, `watch --once` prints `WORKTREE` and `PROMPT`, and you send that `PROMPT` to the same session.
-
-The session doesn't change folder. The prompt tells it to begin every shell command with `cd` to the worktree and give
-files their full path, so it works when the host refuses a folder change. If the host also refuses writes there, the
-session says so with `board.py note`, and you give the same `PROMPT` to a new session: it holds everything needed, and
-the POC's answer stays saved. A POC in a session is read-only by instruction: nothing checks it, unlike a background POC.
+**The operation session is for governance only: it assigns and watches, and never runs `go` itself.** Put goals in a
+named batch with `scripts/batch.py` (`add NAME --goal G --done L`, `start NAME`, `status NAME`). Each goal runs in its
+own background process or session, never here. A batch heading groups lines and doesn't hold them, so step 1 below
+starts a queued goal line even before `start`.
 
 ## Starting a visible session
 

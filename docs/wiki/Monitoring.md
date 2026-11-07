@@ -39,31 +39,16 @@ question with `leave` by itself, never `cut`; `--release ask` makes it wait for 
 
 ### Operation session
 
-The operation session is for governance only: it assigns and watches, and runs neither `poc` nor `go` itself. It puts
-POCs and goals in a batch, and each line runs in its own session or background agent:
+The operation session is for governance only: it assigns and watches, and never runs `go` itself. It puts goals in a
+batch, and each goal runs in its own session or background agent:
 
 ```text
-add NAME --poc QUESTION [--session]            add a POC line under '## Batch: NAME' in .loop/queue.md; --session runs
-                                               it in a visible session
-add NAME --goal G --done LINE [--done LINE]    add a goal line under the same heading
-start NAME                                     start each new or failed POC in its own read-only worktree; hand goal
-                                               lines to `watch`
-status NAME                                    one line for each POC and goal
-save SLUG --file FILE                          record the answer of a POC run in a visible session
-promote SLUG [--batch NAME]                    queue a goal from the go line a finished POC saved
+add NAME --goal G --done LINE [--done LINE]    add a goal line under '## Batch: NAME' in .loop/queue.md
+start NAME                                     hand the batch's goal lines to `watch`
+status NAME                                    one line for each goal
 ```
 
-A POC and its goal can stay in one visible session: add it with `--session`, give that session the prompt `start` prints,
-and it answers and runs `save`. `promote` keeps the goal in that session, and `watch` prints the prompt to send it. The
-session never changes folder: the prompt has it begin each shell command with `cd` to the worktree and give files their
-full path, so this works when the host refuses a folder change. If the host refuses writes there too, the same prompt
-works in a new session. In a session a POC is read-only by instruction, with no check.
-
-A POC saves its answer and `go` line in `loop/pocs/` under the git folder, outside the repo, and the board shows it
-`done` with the answer as its note. A POC that changes its worktree is marked `failed`, and its answer isn't saved. This
-only checks its own worktree, so a POC's safety still rests on `agent_command`'s permissions. Promote a POC only when the
-owner says so: its `go` line is an agent's suggestion. A batch heading groups lines; it doesn't hold them, so any `watch`
-pass starts a queued goal line, batch started or not.
+A batch heading groups lines; it doesn't hold them, so any `watch` pass starts a queued goal line, batch started or not.
 
 For a long run across goals or repos, one session starts the others and follows them in a loop
 (`skills/workflow-monitoring/references/operation.md`). It never builds. These commands support it:
@@ -360,36 +345,28 @@ Proof: toy tests, and one real handoff file on this repo.
 ```mermaid
 flowchart LR
   a["Refuse a repeated slug"]
-  b["Add a POC or goal line under the batch heading"]
+  b["Add a goal line under the batch heading"]
   c(["Left for start or watch"])
   a --> b
   b --> c
 ```
 
-Status: built and proven: Refuse a repeated slug; Add a POC or goal line under the batch heading. Built only: none. Planned: none.
+Status: built and proven: Refuse a repeated slug; Add a goal line under the batch heading. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests. No real batch is on record.
 
 #### `start`
 
 ```mermaid
-flowchart TD
-  a["Pick unstarted or failed POCs"]
-  b["Run each POC read-only in its own worktree"]
-  c["Hand goal lines to watch"]
-  d["Save the answer and go line outside the repo"]
-  e{{"A failed POC waits on the owner"}}
+flowchart LR
+  a["Read the batch's goal lines"]
+  b["Hand them to watch"]
   a --> b
-  a --> c
-  b --> d
-  b -->|fails| e
-  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
-  class e owner
 ```
 
-Status: built and proven: Pick unstarted or failed POCs; Run each POC read-only in its own worktree; Hand goal lines to watch; Save the answer and go line outside the repo; A failed POC waits on the owner. Built only: none. Planned: none.
-Stops for the owner: A failed POC waits on the owner.
-Proof: toy tests with a stand-in agent. No real batch is on record, so a real agent's POC is unproven.
+Status: built and proven: Read the batch's goal lines; Hand them to watch. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests with a stand-in agent. No real batch is on record.
 
 #### `status`
 
@@ -404,51 +381,16 @@ Status: built and proven: Read the batch's lines; Print one line each. Built onl
 Stops for the owner: none.
 Proof: toy tests.
 
-#### `save`
-
-```mermaid
-flowchart LR
-  a["Visible session answers the POC read-only"]
-  b["Refuse if it isn't a running session POC, or has no go line"]
-  c["Save the answer and go line outside the repo"]
-  d["Show it done on the board"]
-  a --> b
-  b --> c
-  c --> d
-```
-
-Status: built and proven: Refuse if it isn't a running session POC, or has no go line; Save the answer and go line outside the repo; Show it done on the board. Built only: Visible session answers the POC read-only. Planned: none.
-Stops for the owner: none.
-Proof: toy tests with a stand-in session. It hasn't run in a real session yet.
-
-#### `promote`
-
-```mermaid
-flowchart LR
-  o{{"Owner says to promote this POC"}}
-  a["Refuse an unfinished POC or a go line it can't read"]
-  b["Queue a goal line from the saved go line"]
-  o --> a
-  a --> b
-  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
-  class o owner
-```
-
-Status: built and proven: Refuse an unfinished POC or a go line it can't read; Queue a goal line from the saved go line. Built only: Owner says to promote this POC. Planned: none.
-Stops for the owner: Owner says to promote this POC.
-Proof: toy tests. Nothing enforces that the owner said so: that is an instruction to the agent.
-
 ## Criteria
 
-Tests: 18.
-> **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
+Tests: 14.
+> **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
 
 - MON-14: **Unreviewed** What waits on the owner comes first, retired work leaves it, and the board reports only real changes.
 - MON-15: **Unreviewed** Goals that would collide never run together, and what each waits on stays on the map.
 - MON-16: **Unreviewed** One failure stops only its own goal.
 - MON-17: **Unreviewed** Every session is tracked, and a goal that has landed or been taken over is left alone.
-- MON-18: **Unreviewed** The governing session only governs: every POC and goal runs somewhere else.
-- MON-19: **Unreviewed** A POC answers without changing the repo, and only a finished answer can become a goal.
+- MON-18: **Unreviewed** The governing session only governs: every goal runs somewhere else.
 
 ## Enforced by
 
@@ -457,4 +399,3 @@ Tests: 18.
 - MON-16: one-failure
 - MON-17: MON-3, MON-9, MON-10, MON-13, no-pid-left-alone, sessions-tracked
 - MON-18: MON-4, MON-8
-- MON-19: MON-5, MON-6, MON-7, MON-12

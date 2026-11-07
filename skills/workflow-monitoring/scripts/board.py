@@ -248,9 +248,8 @@ def collect(name, path, base, at):
 
 
 def kind(run):
-    """A POC or a tracked session keeps its own kind; every goal, old levels included, runs the one skill flow."""
-    name = run.get("kind") or run.get("level")
-    return name if name in ("poc", "session") else "goal"
+    """A tracked session keeps its own kind; every goal, old levels included, runs the one skill flow."""
+    return "session" if (run.get("kind") or run.get("level")) == "session" else "goal"
 
 
 def build(at, since):
