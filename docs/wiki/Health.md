@@ -14,8 +14,8 @@ check [--json] [--family size|criteria|docs|hygiene]
 ```
 
 - `check` prints one line per finding, then one `HEALTH:` verdict line. A `FAIL` or an `UNREAD` line makes the verdict
-  not green and the exit code 1; a `WARN` never does. `UNREAD` means a rule couldn't read its data, and is never a pass.
-  Every non-pass line ends with the command that fixes it. `--json` prints the same rows as records.
+  not green and the exit code 1; a `WARN` never does. `UNREAD` means a rule couldn't read its data, and is never a pass:
+  that includes a sync with no result, an unreadable run record and a failing branch list. Every non-pass line ends with the command that fixes it. `--json` prints the same rows as records.
 
 ### Stage charts
 
