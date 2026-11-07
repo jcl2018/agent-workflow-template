@@ -11,7 +11,7 @@ The six workflow skills share this contract. Skill instructions never go in the 
 | `.loop/goals/<slug>.md` | One goal: done lines, plan, log |
 | `.loop/findings.md` | Open findings, one line each |
 | `.loop/docs.tsv` | Each wiki page and the paths it describes |
-| `.loop/config.json` key `criteria` | `true` makes `docs.py check` enforce the criteria contract on the wiki pages; a criterion's regression row has its id as id or goal |
+| `.loop/config.json` key `criteria` | `true` makes `docs.py check` enforce the criteria contract on the wiki pages; each regression row links to one criterion by its goal or id |
 | `.loop/regression.tsv` | Each test row: id, level, command, goal, date seen failing |
 | `.loop/regression-known.tsv` | Rows expected to fail, with a reason; they don't block |
 

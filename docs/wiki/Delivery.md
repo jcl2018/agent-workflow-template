@@ -314,9 +314,11 @@ Proof: toy tests.
 
 ## Criteria
 
-- DEL-1: A goal cannot start without at least one done line.
-- DEL-2: A goal runs at level 0 unless the owner names another level.
-- DEL-3: A goal that touches a risky path such as CI, auth or data is raised from level 0 to level 1 when it starts.
+Tests: 3.
+
+- DEL-1: **Proven** A goal cannot start without at least one done line.
+- DEL-2: **Proven** A goal runs at level 0 unless the owner names another level.
+- DEL-3: **Proven** A goal that touches a risky path such as CI, auth or data is raised from level 0 to level 1 when it starts.
 
 ## Enforced by
 

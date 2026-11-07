@@ -108,6 +108,6 @@ check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -s
 check "the test is listed in checks" 'grep -q "test-batch.sh" "$here/.loop/config.json"'
 page="$here/docs/wiki/Monitoring.md"
 for id in MON-4 MON-5 MON-6 MON-7 MON-8; do
-  check "$id is a draft criterion with an Enforced by row" 'grep -q "^- $id: (draft)" "$page" && grep -q "^- $id: $id\$" "$page"'
+  check "$id is a criterion with an Enforced by row" 'grep -q "^- $id: \*\*Unreviewed\*\* " "$page" && grep -q "^- $id: $id\$" "$page"'
 done
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

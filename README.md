@@ -115,8 +115,8 @@ Keep the wiki in step with the code. Pages live in `docs/wiki/`, so they're revi
 `publish` only adds or updates pages it wrote, unless you name one with `--adopt`, and never deletes one. `restore`
 undoes the last publish.
 
-With `"criteria": true` in the config, `check` also holds the wiki to a contract: five feature pages plus Home, owner-
-approved criteria that each have a regression row, a chart and status line for every command, and no script file names.
+With `"criteria": true` in the config, `check` also holds the wiki to a contract: five feature pages plus Home, criteria
+with a stage that each have regression rows, a chart and status line for every command, and no script file names.
 
 Release the work, or leave it unreleased for now:
 

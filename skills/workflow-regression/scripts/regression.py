@@ -237,11 +237,8 @@ def criteria_ids(root):
     return ids
 
 
-def criterion_row(rows, key):
-    for row in rows.values():
-        if key in (row["id"], row["goal"]):
-            return row
-    return None
+def criterion_rows(rows, key):
+    return [row for row in rows.values() if key in (row["id"], row["goal"])]
 
 
 def untrusted(rows):
@@ -253,7 +250,7 @@ def cmd_sync(args):
     rows = read_rows(root)
     missing = gaps(root)
     for key in criteria_ids(root):
-        if not criterion_row(rows, key):
+        if not criterion_rows(rows, key):
             missing.append((key, "", "criterion has no regression row"))
             if args.write:
                 rows[key] = {"id": key, "level": "draft", "command": "echo write a test", "goal": key, "seen_red": ""}
@@ -285,11 +282,12 @@ def cmd_criteria(_args):
     rows = read_rows(root)
     unmet = []
     for key in criteria_ids(root):
-        row = criterion_row(rows, key)
-        if not row:
+        found = criterion_rows(rows, key)
+        if not found:
             unmet.append("%s (no regression row)" % key)
-        elif row["level"] == "draft" or (row["level"] != "covered" and run(["sh", "-c", row["command"]], cwd=root).returncode):
-            unmet.append("%s (row %s is a draft or failing)" % (key, row["id"]))
+        for row in found:
+            if row["level"] == "draft" or (row["level"] != "covered" and run(["sh", "-c", row["command"]], cwd=root).returncode):
+                unmet.append("%s (row %s is a draft or failing)" % (key, row["id"]))
     print("\n".join(unmet))
     return 1 if unmet else 0
 

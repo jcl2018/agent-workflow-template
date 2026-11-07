@@ -17,8 +17,15 @@ fails=0
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 
-page() { # NAME CRITERIA-LINES ENFORCED-LINES
+page() { # NAME CRITERIA-LINES ENFORCED-LINES; a line "- DEL-1: text" lands Unreviewed unless it already has a stage
   mkdir -p docs/wiki
+  local crit n head
+  crit=$(sed -E '/\*\*/!s/^(- [A-Z]+-[0-9]+: )/\1**Unreviewed** /' <<<"$2"); n=$(grep -c '^- ' <<<"$crit"); [ -z "${TESTS:-}" ] && head="Tests: 0." || head=$TESTS
+  [ "$(grep -c 'Unreviewed' <<<"$crit")" = 0 ] || head="$head
+> **Unreviewed:** $(grep -c 'Unreviewed' <<<"$crit") of $n criteria on this page have not been reviewed by the owner."
+  set -- "$1" "$head
+
+$crit" "$3"
   printf '<!-- workflow-docs -->\n# %s\n\n## Summary\n\nThe %s page of the toy calculator, written for this test.\n\n## Commands\n\n- `add`: adds two numbers.\n\n#### `add`\n\n```mermaid\nflowchart LR\n  A[Add] --> B([Sum])\n```\n\nStatus: built and proven: add. Built only: none. Planned: none.\n\n## Criteria\n\n%s\n\n## Enforced by\n\n%s\n' \
     "$1" "$1" "$2" "$3" > "docs/wiki/$1.md"
 }
@@ -99,6 +106,29 @@ $docs check | grep -q "^CHART Delivery: Commands lists no command" && ok "a Comm
 git add -A; git commit -qm "Bad page" >/dev/null; $docs publish 2>&1 | grep -q "REFUSED: fix the pages" && ok "publish refuses such a page" || bad "publish refused"
 good; git add -A; git commit -qm "Good page" >/dev/null
 
+echo "== docs check: stages, the Unreviewed banner, the test count, one link for each test"
+good; sed -i.bak 's/^\(- DEL-1: \)\*\*Unreviewed\*\* /\1/' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+$docs check | grep -q "^STAGE Delivery: DEL-1 has no stage" && ok "a criterion with no stage fails" || bad "no stage"
+good; sed -i.bak '/^> \*\*Unreviewed/d' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+$docs check | grep -q "^TESTS Delivery" && ok "an Unreviewed criterion needs the banner" || bad "banner"
+good; sed -i.bak 's/^Tests: 0\./Tests: 9./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+$docs check | grep -q "^TESTS Delivery" && ok "a wrong test count fails" || bad "test count"
+page Delivery "- DEL-1: **Reviewed** The calculator prints a median." "- DEL-1: del-1a, del-1b"
+printf '# id\tlevel\tcommand\tgoal\tseen_red\ndel-1a\tland\ttrue\tDEL-1\t2026-01-01\ndel-1b\tland\ttrue\tDEL-1\t\n' > .loop/regression.tsv
+$docs check | grep -q "^STAGE Delivery: DEL-1 says Reviewed, and its tests make it Enforced" && ok "the stage must match the tests" || bad "stage from tests"
+$docs check | grep -q "^TESTS Delivery" && ok "the count follows the rows" || bad "count from rows"
+TESTS="Tests: 2." page Delivery "- DEL-1: **Enforced** The calculator prints a median." "- DEL-1: del-1a, del-1b"
+out=$($docs check || true); grep -q "^STAGE\|^TESTS\|^LINK" <<<"$out" && bad "enforced page: $out" || ok "two rows, one failure not yet seen: Enforced"
+printf '# id\tlevel\tcommand\tgoal\tseen_red\ndel-1a\tland\ttrue\tDEL-1\t2026-01-01\ndel-1b\tland\ttrue\tDEL-1\t2026-01-01\n' > .loop/regression.tsv
+$docs check | grep -q "^STAGE Delivery: DEL-1 says Enforced, and its tests make it Proven" && ok "every row seen failing: Proven" || bad "proven"
+TESTS="Tests: 1." page Delivery "- DEL-1: **Unreviewed** The calculator prints a median." "- DEL-1: del-1a"
+out=$($docs check || true); grep -q "^LINK Delivery: DEL-1 lists del-1a, but its rows are del-1a, del-1b" <<<"$out" && ok "Enforced by must list every row" || bad "enforced list"
+grep -q "^STAGE" <<<"$out" && bad "Unreviewed fought its tests" || ok "Unreviewed stays Unreviewed whatever its tests"
+printf 'orphan\tland\ttrue\t\t\nDEL-9x\tland\ttrue\tDEL-9\t\n' >> .loop/regression.tsv
+out=$($docs check || true); grep -q "^LINK regression: row orphan links to no criterion" <<<"$out" && ok "a test with no criterion fails" || bad "orphan"
+grep -q "^LINK regression: rows link to DEL-9" <<<"$out" && ok "a test of an unknown criterion fails" || bad "dangling"
+rm .loop/regression.tsv; good
+
 echo "== regression sync reports criteria with no row"
 page Delivery "- DEL-1: The calculator prints a median.
 - DEL-2: It exits 0." "- DEL-1: del-1
@@ -126,6 +156,11 @@ $reg add del-2 --level land --command "false" --goal DEL-2 >/dev/null
 git add -A; git commit -qm "Failing row" >/dev/null; $goal check crit >/dev/null
 $rel cut crit 2>&1 | grep -q "DEL-2 (row del-2 is a draft or failing)" && ok "cut refuses a failing row" || bad "cut failing row"
 $reg add del-2 --level land --command "true" --goal DEL-2 >/dev/null
+$reg add del-2b --level land --command "false" --goal DEL-2 >/dev/null
+git add -A; git commit -qm "Second row" >/dev/null; $goal check crit >/dev/null
+$rel cut crit 2>&1 | grep -q "DEL-2 (row del-2b is a draft or failing)" && ok "cut checks every row of a criterion" || bad "cut second row"
+$reg sync >/dev/null || true; python3 "$here/skills/workflow-regression/scripts/regression.py" criteria | grep -q "del-2b" && ok "regression criteria runs every row" || bad "criteria every row"
+$reg add del-2b --level land --command "true" --goal DEL-2 >/dev/null
 git add -A; git commit -qm "Passing row" >/dev/null; $goal check crit >/dev/null
 mv .loop/docs.tsv "$d/docs.tsv.away"
 (cd "$here/skills/workflow-release/scripts" && python3 -c "import release; print(release.criteria_trouble('$PWD_REPO', {}))") | grep -q '^\[\]$' && ok "no docs.tsv: criteria are ignored" || bad "no docs.tsv"
