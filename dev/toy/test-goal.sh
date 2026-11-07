@@ -103,6 +103,33 @@ $goal check proof >/dev/null; $goal verdict proof --file "$d/vf" >/dev/null; $go
 grep -q "^## Result" "$FAKE_GH_DIR/calls.log" && [ "$(grep -c '^## Evidence' "$FAKE_GH_DIR/calls.log")" = 1 ] && ok "pr body keeps one Evidence section" || bad "pr body sections"
 git switch -q main
 
+echo "== done lines stay frozen, the judge sees only its pack, 3 failed tries stop a goal, nothing merges"
+git switch -q main
+for level in 0 1 2; do $goal new lvl$level --here --goal "Level $level" --done "works" --level $level >/dev/null; [ "$(field lvl$level step)" = design ] || bad "level $level design"; git switch -q main; done
+[ "$(field lvl0 step)$(field lvl1 step)$(field lvl2 step)" = designdesigndesign ] && ok "every level starts at design" || bad "every level"
+$goal new frz --here --goal "Add frz" --done "calc has frz" >/dev/null
+sed -i.bak 's/calc has frz/calc has something else/' .loop/goals/frz.md; rm .loop/goals/frz.md.bak; git commit -qam "Change a done line"
+$goal check frz >/dev/null 2>&1; rc=$?
+[ "$rc" = 3 ] && [ "$(field frz status)" = stopped ] && ok "a changed done line stops the goal" || bad "frozen done line ($rc $(field frz status))"
+git checkout -q -- . ; git switch -q main
+$goal new sealed --here --goal "Add sealed" --done "calc has sealed" --level 1 >/dev/null
+printf '\n\ndef sealed():\n    return 1\n' >> calc.py; git commit -qam "Add sealed"
+$goal check sealed >/dev/null
+cat > "$d/judge.sh" <<J
+pwd > "$d/seen-dir"; ls -A > "$d/seen-files"; cat > "$d/seen-prompt"; printf 'PASS 1: ok\nVERDICT: pass\n'
+J
+cfg "judge_command=[\"bash\", \"$d/judge.sh\"]"
+$goal judge sealed >/dev/null; git checkout -q -- .loop/config.json
+[ "$(cat "$d/seen-dir")" != "$PWD" ] && [ "$(cat "$d/seen-files")" = prompt.txt ] && grep -q "=== DIFF ===" "$d/seen-prompt" && ok "the judge sees only its pack in an empty folder" || bad "judge folder"
+git switch -q main
+$goal new tries --here --goal "Add tries" --done "calc has tries" --level 1 >/dev/null
+printf '\n\ndef tries():\n    return 1\n' >> calc.py; git commit -qam "Add tries"
+printf 'FAIL 1: no\nVERDICT: fail\n' > "$d/vf"
+for n in 1 2 3; do $goal check tries >/dev/null 2>&1; $goal verdict tries --file "$d/vf" >/dev/null 2>&1; rc=$?; done
+[ "$rc" = 3 ] && [ "$(field tries status)" = stopped ] && grep -q "tries: Failed 3 tries" .loop/findings.md && ok "three failed tries stop the goal with a finding" || bad "3 tries ($rc $(field tries status))"
+git checkout -q -- . ; git switch -q main
+grep -rlE '"pr", "merge"|gh pr merge' "$here/skills" --include=*.py >/dev/null && bad "a script merges" || ok "no script calls gh pr merge"
+
 echo "== the Delivery page names every goal.py command and flag"
 missing=""
 for word in $(python3 "$here/skills/workflow-delivery/scripts/goal.py" -h | sed -n '/^  new /,/^  show /p' | awk '{print $1}') $(grep -oE 'add_argument\("--[a-z]+"' "$here/skills/workflow-delivery/scripts/goal.py" | cut -d'"' -f2 | sort -u); do
