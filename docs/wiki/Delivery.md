@@ -4,7 +4,6 @@
 ## Summary
 
 Skill: `workflow-delivery`. Takes one sentence to a pull request, judged by a fresh agent at levels 1 and 2.
-Scripts: `skills/workflow-delivery/scripts/goal.py` and `design.py`.
 In an operation session, `poc` and `go` are not run in that session: they are put in a batch (see Monitoring) and run in
 their own session or background agent.
 
@@ -26,13 +25,12 @@ their own session or background agent.
 Changes to CI, auth or data are level `1` at least. The script raises `0` to `1` when `--touches` or the diff hits a
 path in `risky_paths`. The old names `minimum`, `quick`, `standard` and `full` are refused with a line naming 0, 1 and 2.
 
-At level 2, `design.py SLUG` starts the design review. With a skill named in the private file
-`~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo), an agent with tools runs
-that skill in the worktree, detached, because it needs the repo and can take many minutes. It runs `design_command` from
-`.loop/config.json`, or `agent_command`, so allow what the skill needs. It is told to ask nothing and take the
-recommended answer at every gate. Run `design.py` again until it prints `NEXT`, the `goal.py` line that records the
-verdict. The `SKILL:` line says how much ran. With no skill, or the skill missing, `NEXT` is the built-in review, which
-has no tools and reads only the goal file. `goal.py judge --design` refuses while a skill can run. The output says which
+At level 2, a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never
+stored in the repo) does the design review. An agent with tools runs it in the worktree, detached, because it needs the
+repo and can take many minutes. That agent uses `design_command` from `.loop/config.json`, or `agent_command`, so allow
+what the skill needs. It is told to ask nothing and take the recommended answer at every gate. The goal's agent checks on
+it until it ends, then records the result with `verdict --design`. With no skill, or the skill missing, the built-in
+review runs, with no tools, on the goal file alone. `judge --design` refuses while a skill can run. The output says which
 ran, and the pull request says whether the skill ran `full` or `condensed`. A condensed pass still counts as a pass.
 
 ### Done lines
@@ -61,7 +59,7 @@ finding SLUG TEXT
 show SLUG
 ```
 
-A background agent runs `step`, `design.py` at level 2, `check`, `judge` (where the level needs it) and `pr` in order,
+A background agent runs `step`, the design review at level 2, `check`, `judge` (where the level needs it) and `pr` in order,
 and fills in `## Verify by hand`. Failed checks, a failed or missing verdict and a failed design review each cost a try,
 even when only the proof was missing. After 3 failed tries it files a finding in `.loop/findings.md` and stops with exit
 code 3.
