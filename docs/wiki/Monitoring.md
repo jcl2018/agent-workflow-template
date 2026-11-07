@@ -5,8 +5,8 @@
 
 Skill: `workflow-monitoring`. One session governs and the others build. Run the commands from the main checkout, on the
 base branch.
-Keep the skill's scripts in one folder: each runs alone, but `watch.py` mends nothing without `mend.py`, and
-`board_page.py` refuses an unfinished board without `board_map.py`.
+Keep the skill's scripts in one folder. Each runs alone, but apart from its helpers `watch` mends nothing and the board's
+pages refuse an unfinished board.
 
 ## Commands
 
@@ -305,6 +305,25 @@ flowchart LR
 Status: built and proven: Owner says a goal is superseded; Refuse a running agent or no reason; Mark it retired; Leaves Waiting on you. Built only: none. Planned: none.
 Stops for the owner: Owner says a goal is superseded.
 Proof: toy tests, and real retired goals on this repo.
+
+#### `take`
+
+```mermaid
+flowchart LR
+  o{{"Owner or operation session hands a goal to a session"}}
+  a["Refuse while its agent still runs"]
+  b["Mark it taken over"]
+  c["Nothing mends it"]
+  o --> a
+  a --> b
+  b --> c
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class o owner
+```
+
+Status: built and proven: Refuse while its agent still runs; Mark it taken over; Nothing mends it. Built only: Owner or operation session hands a goal to a session.
+Stops for the owner: Owner or operation session hands a goal to a session.
+Proof: toy tests with a stand-in agent. It hasn't run on a real goal yet.
 
 #### `handoff`
 
