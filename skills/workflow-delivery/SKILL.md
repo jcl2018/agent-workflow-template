@@ -75,8 +75,9 @@ done line needs a new goal: run `goal.py finding`, and tell the user.
 ### 2. Design (every level)
 
 Write a few lines under `## Design`: the approach, and what could go wrong. Commit them.
-At level 2, run `goal.py judge <slug> --design`. It reads only the goal file. At level 2, the design review uses a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo). With none set, or the skill missing, the built-in review runs; the output says which ran. A failed review costs a try: rewrite the
-design, commit it and run it again.
+At level 2, run `python3 scripts/design.py <slug>` until it stops printing `RUNNING`, then run its `NEXT` line. A private
+design skill can take many minutes; its `SKILL:` line says how much ran. Never write its name in the repo. A failed review
+costs a try: rewrite the design, commit it and run it again.
 
 ### 3. Plan
 
@@ -129,8 +130,7 @@ Hand over to `workflow-release`. It asks `cut` or `leave`; a monitored goal with
 ## When a goal stops
 
 Failed checks, a failed or missing verdict and a failed design review each cost a try. After 3, the script files a
-finding in `.loop/findings.md` and stops, and exit code 3 says so. Stop there and report the finding. Don't start a
-fourth try or change the done lines.
+finding in `.loop/findings.md` and stops with exit code 3. Stop, report it, and leave the done lines as they are.
 
 If you need an answer only the user can give:
 

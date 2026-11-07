@@ -74,6 +74,7 @@
     "start",
     "status",
     "promote",
+    "save",
     "take",
     "review",
     "sync"
@@ -81,6 +82,7 @@
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
     "run state under the git common dir, in loop/ (never committed)",
+    "loop/runs/<slug>.design.txt and .design.json under the git common dir, when you run design.py",
     "git worktrees under that loop/ folder",
     "git branches loop/<slug> and workflow-setup, commits on them",
     "VERSION and CHANGELOG.md on a goal's branch when you cut",

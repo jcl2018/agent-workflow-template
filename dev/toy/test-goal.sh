@@ -54,8 +54,16 @@ git commit -qam "Noisy checks"
 $goal new loud --here --goal "Loud" --done "loud" >/dev/null
 $goal check loud >/dev/null 2>&1
 head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 0: python3" && head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 3: exit 3" && ok "summary shows every check at the top" || bad "check summary"
-[ "$(wc -c < "$here/skills/workflow-delivery/scripts/goal.py")" -lt 20480 ] && ok "goal.py under 20 KB" || bad "goal.py size"
+[ "$(wc -c < "$here/skills/workflow-delivery/scripts/goal.py")" -lt 19500 ] && ok "goal.py keeps room under 20 KB" || bad "goal.py size"
 git switch -q main; git checkout -q -- .loop/config.json 2>/dev/null; cp "$d/cfg.bak" .loop/config.json; git status --porcelain | grep -q config.json && git commit -qam "Restore checks"
+
+echo "== a goal with no change has nothing to judge, and that costs no try"
+git switch -q main
+$goal new emptyj --here --goal "Empty" --done "empty" --level 1 >/dev/null
+$goal check emptyj >/dev/null 2>&1
+out=$($goal judge emptyj 2>&1)
+grep -q "REFUSED: no change to judge" <<<"$out" && [ "$(field emptyj tries)" = 0 ] && ok "judge refuses an empty diff" || bad "empty diff judged: $out"
+git switch -q main
 
 echo "== queue adds a line a watcher can read, and poc stays read-only"
 $goal queue fix-a --goal "Fix a" --done "a is fixed" --level 0 --touches "a.py" | grep -q QUEUED && ok "queued" || bad "queue"
@@ -70,14 +78,40 @@ $goal new oldname --here --goal "Old" --done "old" --level standard 2>&1 | grep 
 $goal queue oldq --goal "Old" --done "old" --level quick 2>&1 | grep -q "use 0 (no judge), 1 (one judge) or 2 (adds a design review)" && ok "old queue level refused" || bad "old queue level"
 [ -z "$(ls .loop/goals 2>/dev/null | grep oldname)" ] && ok "refused goal not created" || bad "old goal created"
 
-echo "== level 2 design review says which ran, and the private setting picks the skill"
+echo "== level 2 design review says which ran, and a named skill runs through an agent with tools"
 git switch -q main
 $goal new dskill --here --goal "Skilled" --done "skilled" --level 2 >/dev/null
-HOME="$d/home" $goal judge dskill --design 2>&1 | grep -q "DESIGN REVIEW: built-in (no design skill set)" && ok "built-in review named" || bad "built-in review"
-mkdir -p "$d/home/.claude/skills/my-design"; echo "Review like this." > "$d/home/.claude/skills/my-design/SKILL.md"
-HOME="$d/home" LOOP_DESIGN_SKILL=my-design $goal judge dskill --design 2>&1 | grep -q "DESIGN REVIEW: using skill my-design" && ok "private skill used" || bad "private skill"
-HOME="$d/home" LOOP_DESIGN_SKILL=missing-one $goal judge dskill --design 2>&1 | grep -q "built-in (skill missing-one not found)" && ok "missing skill falls back" || bad "missing skill"
+cp .loop/config.json "$d/cfg.design"
+dz="python3 $here/skills/workflow-delivery/scripts/design.py"; h="$d/home"; run_d() { HOME="$h" LOOP_DESIGN_SKILL=${1-} $dz dskill --wait 5 --limit "${2:-60}"; }
+mkdir -p "$h/.claude/skills/my-design"; echo "Review like this." > "$h/.claude/skills/my-design/SKILL.md"
+cat > "$d/design-agent.sh" <<A
+#!/bin/bash
+# A stand-in for an agent with tools: records its prompt, says how much ran, gives a verdict.
+printf '%s' "\${!#}" > "$d/design-prompt"
+sleep \${FAKE_DESIGN_SLEEP:-0}
+echo "SKILL: full"
+echo "VERDICT: pass"
+A
+cfg "agent_command=[\"bash\", \"$d/design-agent.sh\"]"
+run_d "" | grep -q "DESIGN REVIEW: built-in (no design skill set)" && ok "built-in review named" || bad "built-in review"
+run_d missing-one | grep -q "built-in (skill missing-one not found)" && ok "missing skill falls back" || bad "missing skill"
+run_d "" | grep -q "NEXT: goal.py judge dskill --design" && ok "built-in goes to judge --design" || bad "built-in next"
+HOME="$h" LOOP_DESIGN_SKILL=my-design $goal judge dskill --design 2>&1 | grep -q "REFUSED: a design skill is set" && ok "the built-in review can't stand in for the skill" || bad "skill skipped"
+FAKE_DESIGN_SLEEP=2 run_d my-design > "$d/ds1"
+grep -q "DESIGN REVIEW: running skill my-design with tools" "$d/ds1" && grep -q "^RUNNING" "$d/ds1" && ok "skill runs detached" || bad "skill start"
+run_d my-design > "$d/ds2"
+grep -q "^SKILL: full" "$d/ds2" && grep -q "NEXT: goal.py verdict dskill --design --file" "$d/ds2" && ok "the next call reports how much ran" || bad "skill finish"
+grep -q "ask nothing" "$d/design-prompt" && grep -q "Run the my-design skill" "$d/design-prompt" && ok "the agent is told to ask nothing" || bad "skill prompt"
+$goal verdict dskill --design --file "$(sed -n 's/.*--file //p' "$d/ds2")" | grep -q "VERDICT pass" && [ "$(field dskill design_review)" = pass ] && ok "goal.py records the skill's verdict" || bad "skill verdict"
+FAKE_DESIGN_SLEEP=30 run_d my-design >/dev/null
+HOME="$h" LOOP_DESIGN_SKILL=my-design $dz dskill --wait 0 --limit 0 | grep -q "NEXT: goal.py verdict" && grep -q "time limit" "$C/loop/runs/dskill.design.txt" && ok "a stuck skill is stopped at its limit" || bad "skill limit"
+python3 "$here/skills/workflow-delivery/scripts/goal.py" -h >/dev/null
 git ls-files | grep -q design-skill && bad "setting in repo" || ok "setting is not in the repo"
+[ -z "$(git status --porcelain -- . ':!.loop/config.json')" ] && ok "the review leaves the worktree alone" || bad "worktree changed"
+[ -f "$C/loop/runs/dskill.design.txt.last" ] && ok "the last reply stays readable" || bad "last reply"
+printf 'SKILL: condensed, skipped the last private-name phase\nVERDICT: pass\n' > "$d/vf"
+$goal verdict dskill --design --file "$d/vf" >/dev/null; [ "$(field dskill design_skill)" = condensed ] && ok "how much ran is recorded as one word" || bad "design_skill"
+cp "$d/cfg.design" .loop/config.json
 git switch -q main
 
 echo "== a failed design review stays at the design; the plan isn't reviewed yet"
@@ -210,7 +244,7 @@ grep -q "Start at step 2 (Design)" "$FAKE_AGENT/prompt-alpha-0" && ok "level 0 s
 
 echo "== mender: one fresh agent, told only the finding and the log"
 printf 'fail\nfail\nfail\n' > "$FAKE_AGENT/behave-mendme"
-cfg 'mend=true'
+cfg 'mend=true' 'mend_wait=0'
 $W go "Mend me" --done "mended" --slug mendme >/dev/null
 $W watch --interval 0.2 --skill-dir "$here/skills" | tee "$d/w2"
 [ "$(ls "$FAKE_AGENT"/prompt-mendme-* | wc -l | tr -d ' ')" = 2 ] && ok "one mend, then it stops" || bad "mend count"

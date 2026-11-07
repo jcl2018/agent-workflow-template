@@ -25,6 +25,8 @@ workflow
 | `covered` | Nothing; proved elsewhere |
 
 - `seed` adds a `land` row for each check in the config.
+- `add` adds or replaces a row. `--goal` ties it to a criterion or a goal's done line, and a changed command must be
+  proved again.
 - `sync` lists done lines, and wiki criteria (a row whose id or `--goal` is the criterion id), with no row (`GAP`), `DRAFT` rows and `UNPROVEN` rows; `--write` adds drafts.
 - `criteria` runs the row of every wiki criterion and prints any that is missing, a draft or failing.
 - `red` copies `HEAD` to a temporary worktree, applies the break and records the date if the test fails. `STILL GREEN`

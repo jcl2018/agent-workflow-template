@@ -25,7 +25,13 @@ their own session or background agent.
 Changes to CI, auth or data are level `1` at least. The script raises `0` to `1` when `--touches` or the diff hits a
 path in `risky_paths`. The old names `minimum`, `quick`, `standard` and `full` are refused with a line naming 0, 1 and 2.
 
-At level 2, the design review uses a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo). With none set, or the skill missing, the built-in review runs; the output says which ran.
+At level 2, a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never
+stored in the repo) does the design review. An agent with tools runs it in the worktree, detached, because it needs the
+repo and can take many minutes. That agent uses `design_command` from `.loop/config.json`, or `agent_command`, so allow
+what the skill needs. It is told to ask nothing and take the recommended answer at every gate. The goal's agent checks on
+it until it ends, then records the result with `verdict --design`. With no skill, or the skill missing, the built-in
+review runs, with no tools, on the goal file alone. `judge --design` refuses while a skill can run. The output says which
+ran, and the pull request says whether the skill ran `full` or `condensed`. A condensed pass still counts as a pass.
 
 ### Done lines
 
@@ -53,16 +59,17 @@ finding SLUG TEXT
 show SLUG
 ```
 
-A background agent runs `step`, `check`, `judge` (where the level needs it) and `pr` in order, and fills in
-`## Verify by hand`. Failed checks, a failed or missing verdict and a failed design review each cost a try, even when
-only the proof was missing. After 3 failed tries it files a finding in `.loop/findings.md` and stops with exit code 3.
+A background agent runs `step`, the design review at level 2, `check`, `judge` (where the level needs it) and `pr` in order,
+and fills in `## Verify by hand`. Failed checks, a failed or missing verdict and a failed design review each cost a try,
+even when only the proof was missing. After 3 failed tries it files a finding in `.loop/findings.md` and stops with exit
+code 3.
 
 `pr` pushes the branch, retrying twice, and opens the pull request. It refuses until the checks (and the judge, where
 the level needs one) hold on this commit, and at level 2 until the design review has passed. With `pr_bumps_version` on,
 it first moves the last number of the version file once.
 
-The fresh judge is given only the diff, the goal file and the check results, in an empty folder. The design review at
-level 2 is given only the goal file. Proof the checks don't print goes under `## Evidence` in the goal file. Commit it
+The fresh judge is given only the diff, the goal file and the check results, in an empty folder. The built-in design
+review is given only the goal file. Proof the checks don't print goes under `## Evidence` in the goal file. Commit it
 and run `check` again, because `judge` refuses a commit the checks haven't passed.
 
 ### Example
@@ -314,19 +321,19 @@ Proof: toy tests.
 
 ## Criteria
 
-Tests: 8.
+Tests: 9.
 > **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
 
-- DEL-4: **Unreviewed** Every goal starts from done lines that can't change once it starts.
-- DEL-5: **Unreviewed** A goal gets the process its risk needs, and every level starts with a design.
-- DEL-6: **Unreviewed** No agent judges its own work.
-- DEL-7: **Unreviewed** A goal that keeps failing stops and says why.
-- DEL-8: **Unreviewed** The loop stops at a pull request, and only the owner merges.
+- DEL-5: **Unreviewed** Every goal starts from done lines that can't change once it starts.
+- DEL-6: **Unreviewed** A goal gets the process its risk needs, and every level starts with a design.
+- DEL-7: **Unreviewed** No agent judges its own work, and a judge always has a change to read.
+- DEL-8: **Unreviewed** A goal that keeps failing stops and says why.
+- DEL-9: **Unreviewed** The loop stops at a pull request, and only the owner merges.
 
 ## Enforced by
 
-- DEL-4: DEL-1, frozen-done-lines
-- DEL-5: DEL-2, DEL-3, design-every-level
-- DEL-6: no-self-judging
-- DEL-7: stop-after-3-tries
-- DEL-8: never-merges
+- DEL-5: DEL-1, frozen-done-lines
+- DEL-6: DEL-2, DEL-3, design-every-level
+- DEL-7: DEL-4, no-self-judging
+- DEL-8: stop-after-3-tries
+- DEL-9: never-merges

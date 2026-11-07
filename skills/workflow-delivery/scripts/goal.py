@@ -5,15 +5,15 @@ usage: goal.py <command> <slug> [options]
 
   new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]  freeze a goal
   queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]  add to .loop/queue.md
-  step SLUG NAME [--note TEXT]     record the step
-  check SLUG                       run the repo's checks
-  judge SLUG [--design]            run the fresh judge
-  verdict SLUG --file FILE [--design]  record a fresh agent's verdict
-  pr SLUG                          push the branch and open the pull request
+  step SLUG NAME [--note TEXT]  record the step
+  check SLUG  run the repo's checks
+  judge SLUG [--design]  run the fresh judge
+  verdict SLUG --file FILE [--design]  record a verdict
+  pr SLUG  push and open the pull request
   wait SLUG --ask TEXT --words W [--words W]  stop for an answer
-  answer SLUG                      clear a wait
-  finding SLUG TEXT                file a finding and stop the goal
-  show SLUG                        print the goal's state
+  answer SLUG  clear a wait
+  finding SLUG TEXT  file a finding and stop
+  show SLUG  print the goal's state
 """
 import argparse
 import datetime
@@ -37,14 +37,6 @@ def level_arg(text):
     return text
 
 
-def design_skill():
-    name = os.environ.get("LOOP_DESIGN_SKILL", "").strip()
-    try:
-        name = name or open(os.path.expanduser("~/.workflow-loop/design-skill")).read().strip()
-    except OSError:
-        return "", None
-    path = os.path.expanduser("~/.claude/skills/%s/SKILL.md" % name)
-    return name, read(path) if re.match(r"^[\w.:-]+$", name) and os.path.isfile(path) else None
 MAX_TRIES = 3
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 TEMPLATE = """# {goal}
@@ -87,10 +79,14 @@ exactly one last line: `VERDICT: pass` if it can be built as written, otherwise 
 """
 
 
+def no(text):
+    sys.exit("REFUSED: " + text)
+
+
 def run(args, cwd=None, check=False):
     done = subprocess.run(args, cwd=cwd, capture_output=True, text=True)
     if check and done.returncode:
-        sys.exit("REFUSED: %s: %s" % (" ".join(args), done.stderr.strip()))
+        no("%s: %s" % (" ".join(args), done.stderr.strip()))
     return done
 
 
@@ -101,6 +97,11 @@ def git(*args, check=True):
 def read(path):
     with open(path) as handle:
         return handle.read()
+
+
+def write(path, text, mode="w"):
+    with open(path, mode) as handle:
+        handle.write(text)
 
 
 def now():
@@ -122,7 +123,7 @@ def load(slug):
     try:
         return json.loads(read(state_path(slug)))
     except OSError:
-        sys.exit("REFUSED: no goal named %s. Fix: start it with new." % slug)
+        no("no goal named %s. Fix: start it with new." % slug)
 
 
 def save(state, note=None):
@@ -131,8 +132,7 @@ def save(state, note=None):
         state.setdefault("log", []).append("%s %s" % (state["updated"], note))
     path = state_path(state["slug"])
     temp = path + ".%d.tmp" % os.getpid()
-    with open(temp, "w") as handle:
-        json.dump(state, handle, indent=2)
+    write(temp, json.dumps(state, indent=2))
     os.replace(temp, path)
 
 
@@ -145,7 +145,7 @@ def config():
     try:
         return json.loads(read(path))
     except (OSError, ValueError):
-        sys.exit("REFUSED: no readable .loop/config.json. Fix: run workflow-setup and merge its branch.")
+        no("no readable .loop/config.json. Fix: run workflow-setup and merge its branch.")
 
 
 def goal_file(slug):
@@ -156,7 +156,7 @@ def done_lines(slug):
     try:
         text = read(goal_file(slug))
     except OSError:
-        sys.exit("REFUSED: no goal file for %s here. Fix: run this from the goal's worktree." % slug)
+        no("no goal file for %s here. Fix: run this from the goal's worktree." % slug)
     part = text.split("## Done lines", 1)[-1].split("\n## ", 1)[0]
     return [line.strip() for line in part.splitlines() if re.match(r"\s*\d+\. ", line)]
 
@@ -170,6 +170,12 @@ def frozen(state):
         fail_stop(state, "The done lines changed after they were frozen. A wrong done line needs a new goal.")
 
 
+def held(slug):
+    state = load(slug)
+    frozen(state)
+    return state
+
+
 def base_ref(state):
     base = config()["base"]
     if run(["git", "rev-parse", "--verify", "--quiet", "origin/" + base]).returncode == 0:
@@ -180,8 +186,7 @@ def base_ref(state):
 def write_finding(state, text):
     line = "- %s: %s\n" % (state["slug"], " ".join(text.split()))
     path = os.path.join(root(), ".loop", "findings.md")
-    with open(path, "a") as handle:
-        handle.write(line)
+    write(path, line, "a")
     git("add", ".loop/findings.md")
     git("commit", "-m", "Finding: %s" % state["slug"], "--", ".loop/findings.md", check=False)
     push = run(["git", "push", "-u", "origin", "HEAD"])
@@ -216,17 +221,17 @@ def risky(paths, cfg):
 
 def valid(args):
     if not SLUG.match(args.slug):
-        sys.exit("REFUSED: bad slug. Fix: lowercase letters, digits and dashes.")
+        no("bad slug. Fix: lowercase letters, digits and dashes.")
     if not args.done:
-        sys.exit("REFUSED: no done lines. Fix: give at least one --done.")
+        no("no done lines. Fix: give at least one --done.")
 
 
 def cmd_new(args):
     if not args.here:
-        sys.exit("REFUSED: one session governs. Fix: use workflow-monitoring go, or --here if no agent can run it.")
+        no("one session governs. Fix: use workflow-monitoring go, or --here if no agent can run it.")
     valid(args)
     if os.path.exists(state_path(args.slug)):
-        sys.exit("REFUSED: %s already exists. Fix: pick a new slug." % args.slug)
+        no("%s already exists. Fix: pick a new slug." % args.slug)
     cfg = config()
     touches = [item.strip() for item in args.touches.split(",") if item.strip()]
     level = args.level
@@ -239,40 +244,37 @@ def cmd_new(args):
     if current == cfg["base"]:
         git("switch", "-c", branch)
     elif current != branch:
-        sys.exit("REFUSED: on branch %s. Fix: go to %s or %s first." % (current, cfg["base"], branch))
+        no("on branch %s. Fix: go to %s or %s first." % (current, cfg["base"], branch))
     lines = ["%d. %s" % (index, " ".join(line.split())) for index, line in enumerate(args.done, 1)]
     path = goal_file(args.slug)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as handle:
-        handle.write(TEMPLATE.format(goal=" ".join(args.goal.split()), slug=args.slug, level=level,
-                                     touches=", ".join(touches) or "not declared", done="\n".join(lines)))
+    write(path, TEMPLATE.format(goal=" ".join(args.goal.split()), slug=args.slug, level=level,
+                                touches=", ".join(touches) or "not declared", done="\n".join(lines)))
     git("add", path)
     git("commit", "-m", "Goal: %s" % args.slug, "--", path)
-    first = "design"
-    state = {"slug": args.slug, "goal": args.goal, "level": level, "status": "running", "step": first, "tries": 0,
+    state = {"slug": args.slug, "goal": args.goal, "level": level, "status": "running", "step": "design", "tries": 0,
              "branch": branch, "worktree": root(), "touches": touches, "pid": None, "pr": "",
              "batch": bool(os.environ.get("LOOP_BATCH")), "done_sha": done_sha(lines), "checks": "", "judge": "",
              "design_review": "", "release": args.release, "waiting": None, "finding": "", "log": []}
     save(state, "frozen %d done lines at level %s" % (len(lines), level))
-    print("FROZEN %s level=%s branch=%s step=%s" % (args.slug, level, branch, first))
+    print("FROZEN %s level=%s branch=%s step=design" % (args.slug, level, branch))
     return 0
 
 
 def cmd_queue(args):
     valid(args)
     if any("|" in text for text in [args.goal, args.touches] + args.done):
-        sys.exit("REFUSED: no | in a queue line.")
+        no("no | in a queue line.")
     path = os.path.join(root(), ".loop", "queue.md")
     held = read(path) if os.path.exists(path) else ""
     if os.path.exists(state_path(args.slug)) or "- slug: %s |" % args.slug in held:
-        sys.exit("REFUSED: %s already exists. Fix: pick a new slug." % args.slug)
+        no("%s already exists. Fix: pick a new slug." % args.slug)
     parts = ["slug: " + args.slug, "level: " + args.level]
     if args.touches:
         parts.append("touches: " + args.touches)
     parts.append("goal: " + " ".join(args.goal.split()))
     parts += ["done: " + " ".join(line.split()) for line in args.done]
-    with open(path, "a") as handle:
-        handle.write(("" if held.endswith("\n") or not held else "\n") + "- " + " | ".join(parts) + "\n")
+    write(path, ("" if held.endswith("\n") or not held else "\n") + "- " + " | ".join(parts) + "\n", "a")
     print("QUEUED %s at level %s in .loop/queue.md" % (args.slug, args.level))
     return 0
 
@@ -291,8 +293,7 @@ def cmd_step(args):
 
 
 def cmd_check(args):
-    state = load(args.slug)
-    frozen(state)
+    state = held(args.slug)
     state["step"] = "checks"
     save(state, "checks")
     commands = config().get("checks", [])
@@ -305,8 +306,7 @@ def cmd_check(args):
         sums.append("CHECK exit %d: %s" % (done.returncode, command))
         failed = failed or done.returncode != 0
     report = "\n".join(sums) + "\n\n" + "\n".join(parts)
-    with open(os.path.join(state_dir(), args.slug + ".checks.txt"), "w") as handle:
-        handle.write(report)
+    write(os.path.join(state_dir(), args.slug + ".checks.txt"), report)
     state["checks"] = "fail" if failed else "pass"
     state["checks_sha"] = git("rev-parse", "HEAD")
     if failed:
@@ -325,27 +325,23 @@ def cmd_check(args):
 def make_pack(state, design):
     slug = state["slug"]
     pack = tempfile.mkdtemp(prefix="loop-judge-")
-    extra = ""
-    if design:  # the private skill, if set, steers the review; say which ran
-        name, body = design_skill()
-        print("DESIGN REVIEW: " + ("using skill " + name if body else "built-in (%s)" % ("skill " + name + " not found" if name else "no design skill set")))
-        extra = "Review by this method:\n%s\n\n" % body if body else ""
-    text = (DESIGN_PROMPT if design else JUDGE_PROMPT) + extra + "=== GOAL FILE ===\n" + read(goal_file(slug))
+    text = (DESIGN_PROMPT if design else JUDGE_PROMPT) + "=== GOAL FILE ===\n" + read(goal_file(slug))
     if not design:
         diff = git("diff", "%s...HEAD" % base_ref(state), "--", ".", ":(exclude).loop/goals")
         text += "\n=== DIFF ===\n" + diff + "\n=== CHECK RESULTS ===\n"
         text += read(os.path.join(state_dir(), slug + ".checks.txt"))
     path = os.path.join(pack, "prompt.txt")
-    with open(path, "w") as handle:
-        handle.write(text)
+    write(path, text)
     return pack, path
 
 
 def record(state, text, design):
     found = re.findall(r"^\W*VERDICT:\s*(pass|fail)\b", text, re.M | re.I)
     verdict = found[-1].lower() if found else ""
-    with open(os.path.join(state_dir(), state["slug"] + ".verdict.txt"), "w") as handle:
-        handle.write(text)
+    write(os.path.join(state_dir(), state["slug"] + ".verdict.txt"), text)
+    if design:
+        how = re.findall(r"^\W*SKILL: (\w+)", text, re.M)
+        state["design_skill"] = how[-1] if how else ""
     if verdict == "pass":
         state["design_review" if design else "judge"] = "pass"
         if not design:
@@ -364,19 +360,31 @@ def ready_for_judge(state, design):
     if design:
         return
     if state.get("checks") != "pass" or state.get("checks_sha") != git("rev-parse", "HEAD"):
-        sys.exit("REFUSED: checks have not passed on this commit. Fix: commit, then run check.")
+        no("checks have not passed on this commit. Fix: commit, then run check.")
+    if not git("diff", "--name-only", "%s...HEAD" % base_ref(state), "--", ".", ":(exclude).loop/goals", check=False):
+        no("no change to judge. Fix: see whether %s has landed." % state["slug"])
+
+
+def skill_set(cfg):
+    try:
+        name = os.environ.get("LOOP_DESIGN_SKILL") or read(os.path.expanduser("~/.workflow-loop/design-skill"))
+    except OSError:
+        return False
+    agent = cfg.get("design_command") or cfg.get("agent_command") or [""]
+    return os.path.isfile(os.path.expanduser("~/.claude/skills/%s/SKILL.md" % name.strip())) and shutil.which(agent[0])
 
 
 def cmd_judge(args):
-    state = load(args.slug)
-    frozen(state)
+    state = held(args.slug)
     ready_for_judge(state, args.design)
+    if args.design and skill_set(config()):
+        no("a design skill is set. Fix: run design.py %s, beside goal.py, until it prints NEXT." % args.slug)
     command = config().get("judge_command") or []
     state["step"] = "design-review" if args.design else "judge"
     save(state, state["step"])
     pack, prompt = make_pack(state, args.design)
     if not command or not shutil.which(command[0]):
-        print("NO HEADLESS JUDGE. Start a fresh agent with no other context. Hand it only:")
+        print("NO HEADLESS JUDGE. Hand a fresh agent only:")
         print("PACK=" + prompt)
         print("Save its reply to a file, then run: verdict %s --file <file>" % args.slug)
         return 0
@@ -387,8 +395,7 @@ def cmd_judge(args):
 
 
 def cmd_verdict(args):
-    state = load(args.slug)
-    frozen(state)
+    state = held(args.slug)
     ready_for_judge(state, args.design)
     return record(state, read(args.file), args.design)
 
@@ -403,11 +410,10 @@ def bump_version(state, head):
     if version != git("show", "%s:%s" % (base_ref(state), name), check=False).strip():
         return head
     if not re.match(r"^\d+(\.\d+)+$", version):
-        sys.exit("REFUSED: the version %r isn't numbers and dots. Fix: set it by hand." % version)
+        no("the version %r isn't numbers and dots. Fix: set it by hand." % version)
     parts = version.split(".")
     parts[-1] = str(int(parts[-1]) + 1)
-    with open(path, "w") as handle:
-        handle.write(".".join(parts) + "\n")
+    write(path, ".".join(parts) + "\n")
     git("add", "--", name)
     git("commit", "-m", "Bump version to " + ".".join(parts), "--", name)
     new = git("rev-parse", "HEAD")
@@ -419,15 +425,14 @@ def bump_version(state, head):
 
 
 def cmd_pr(args):
-    state = load(args.slug)
-    frozen(state)
+    state = held(args.slug)
     head = git("rev-parse", "HEAD")
     if state.get("checks") != "pass" or state.get("checks_sha") != head:
-        sys.exit("REFUSED: checks have not passed on this commit. Fix: run check.")
+        no("checks have not passed on this commit. Fix: run check.")
     if state["level"] not in UNJUDGED and (state.get("judge") != "pass" or state.get("judge_sha") != head):
-        sys.exit("REFUSED: the fresh judge has not passed this commit. Fix: run judge.")
+        no("the fresh judge has not passed this commit. Fix: run judge.")
     if state["level"] == "2" and state.get("design_review") != "pass":
-        sys.exit("REFUSED: level 2 needs a design review. Fix: run judge --design.")
+        no("level 2 needs a design review. Fix: run judge --design.")
     if git("status", "--porcelain", "--", "."):
         print("NOTE: uncommitted files stay out of the PR")
     head = bump_version(state, head)
@@ -439,14 +444,15 @@ def cmd_pr(args):
             break
         time.sleep(wait)
     if pushed.returncode:
-        sys.exit("REFUSED: push failed:\n" + pushed.stderr)
+        no("push failed:\n" + pushed.stderr)
     known = run(["gh", "pr", "view", state["branch"], "--json", "url,state"])
-    url = ""
-    if known.returncode == 0 and json.loads(known.stdout).get("state") == "OPEN":
-        url = json.loads(known.stdout)["url"]
+    info = json.loads(known.stdout) if known.returncode == 0 else {}
+    url = info["url"] if info.get("state") == "OPEN" else ""
     if not url:
         body = read(goal_file(args.slug))
         verdict = "Not judged (%s)." % state["level"] if state["level"] in UNJUDGED else "Fresh judge: pass."
+        if state.get("design_skill"):
+            verdict += " Design skill ran: %s." % state["design_skill"]
         body += "\n## Result\n\nChecks: pass on %s. %s\n" % (head[:10], verdict)
         done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
                     "--title", state["goal"][:70], "--body", body], check=True)
@@ -491,42 +497,24 @@ def cmd_show(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
-    for name, func in (("new", cmd_new), ("queue", cmd_queue)):
+    def add(name, func, *options):
         item = sub.add_parser(name)
         item.add_argument("slug")
-        item.add_argument("--goal", required=True)
-        item.add_argument("--done", action="append", default=[])
-        item.add_argument("--level", type=level_arg, default="0")
-        item.add_argument("--touches", default="")
         item.set_defaults(func=func)
-        if name == "new":
-            item.add_argument("--release", default="")
-            item.add_argument("--here", action="store_true")
-    item = sub.add_parser("step")
-    item.add_argument("slug")
-    item.add_argument("name")
-    item.add_argument("--note", default="")
-    item.set_defaults(func=cmd_step)
+        for flag, kinds in options:
+            item.add_argument(flag, **kinds)
+    goal = (("--goal", {"required": True}), ("--done", {"action": "append", "default": []}),
+            ("--level", {"type": level_arg, "default": "0"}), ("--touches", {"default": ""}))
+    design = ("--design", {"action": "store_true"})
+    add("new", cmd_new, *goal, ("--release", {"default": ""}), ("--here", {"action": "store_true"}))
+    add("queue", cmd_queue, *goal)
+    add("step", cmd_step, ("name", {}), ("--note", {"default": ""}))
+    add("judge", cmd_judge, design)
+    add("verdict", cmd_verdict, ("--file", {"required": True}), design)
+    add("wait", cmd_wait, ("--ask", {"required": True}), ("--words", {"action": "append", "required": True}))
+    add("finding", cmd_finding, ("text", {}))
     for name, func in (("check", cmd_check), ("pr", cmd_pr), ("answer", cmd_answer), ("show", cmd_show)):
-        item = sub.add_parser(name)
-        item.add_argument("slug")
-        item.set_defaults(func=func)
-    for name, func in (("judge", cmd_judge), ("verdict", cmd_verdict)):
-        item = sub.add_parser(name)
-        item.add_argument("slug")
-        item.add_argument("--design", action="store_true")
-        item.set_defaults(func=func)
-        if name == "verdict":
-            item.add_argument("--file", required=True)
-    item = sub.add_parser("wait")
-    item.add_argument("slug")
-    item.add_argument("--ask", required=True)
-    item.add_argument("--words", action="append", required=True)
-    item.set_defaults(func=cmd_wait)
-    item = sub.add_parser("finding")
-    item.add_argument("slug")
-    item.add_argument("text")
-    item.set_defaults(func=cmd_finding)
+        add(name, func)
     args = parser.parse_args()
     return args.func(args)
 

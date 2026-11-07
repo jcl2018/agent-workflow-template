@@ -13,6 +13,7 @@ P="python3 $here/skills/workflow-monitoring/scripts/board_page.py"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh" HOME="$T/home" FAKE_AGENT="$T/fake"
 mkdir -p "$HOME" "$FAKE_AGENT"
+trap 'rm -f "$FAKE_AGENT"/hold-*' EXIT  # a held stand-in agent ends when its file goes
 fails=0
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
@@ -195,7 +196,20 @@ $B take taken | grep -q "TAKEN taken" && ok "take marks the goal" || bad "take"
 $W watch --once >/dev/null
 check "a goal a session has taken over gets no mender" 'sleep 0.3; [ ! -e "$FAKE_AGENT/prompt-taken" ] && [ "$(field taken status)" = running ] && [ "$(field taken external)" = True ] && [ "$(field taken pid)" = None ]'
 sets taken 'status="done"'; sets late 'status="done"'
+touch "$FAKE_AGENT/hold-slow"
+$W go "Add slow" --done "slow" --touches slow.py --slug slow >/dev/null
+for _ in $(seq 100); do [ -f "$FAKE_AGENT/prompt-slow" ] && break; sleep 0.1; done
+kill -9 -- "-$(field slow pid)" 2>/dev/null; sleep 0.3; rm -f "$FAKE_AGENT/prompt-slow"
+$W watch --once >/dev/null
+check "a failed goal waits before a mender starts" 'sleep 0.3; [ ! -e "$FAKE_AGENT/prompt-slow" ] && [ "$(field slow status)" = failed ] && [ "$(field slow mended)" = None ]'
+$B take slow >/dev/null; $W watch --once >/dev/null
+check "so a session can take it over in time" 'sleep 0.3; [ ! -e "$FAKE_AGENT/prompt-slow" ] && [ "$(field slow external)" = True ]'
+sets slow 'status="done"' 
 mkdir -p "$T/lone"; cp "$here/skills/workflow-monitoring/scripts/watch.py" "$T/lone/"
 check "watch.py alone runs, and says it mended nothing" 'python3 "$T/lone/watch.py" watch --once | grep -q "mend.py isn.t beside"'
+check "watch.py alone refuses resume, and says why" 'python3 "$T/lone/watch.py" resume late 2>&1 | grep -q "needs mend.py"'
+cp "$here/skills/workflow-monitoring/scripts/board.py" "$T/lone/"
+check "board.py alone refuses a run command, and says why" 'python3 "$T/lone/board.py" note late hi 2>&1 | grep -q "needs board_runs.py"'
+check "board.py alone still writes a board" 'python3 "$T/lone/board.py" board --out "$T/lone/b" | grep -q "^JSON "'
 
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
