@@ -73,8 +73,10 @@ done line needs a new goal: run `goal.py finding`, and tell the user.
 ### 2. Design (every level)
 
 Write a few lines under `## Design`: the approach, and what could go wrong. Commit them.
-At level 2, run `goal.py judge <slug> --design`. It reads only the goal file. At level 2, the design review uses a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo). With none set, or the skill missing, the built-in review runs; the output says which ran. A failed review costs a try: rewrite the
-design, commit it and run it again.
+At level 2, run `python3 scripts/design.py <slug>` again until it stops printing `RUNNING`, then run its `NEXT` line.
+With a private design skill set, an agent with tools runs that skill, which can take many minutes, and the `SKILL:` line
+says how much ran. Otherwise `NEXT` is the built-in review, which reads only the goal file. Never write the skill's name
+in the repo. A failed review costs a try: rewrite the design, commit it and run it again.
 
 ### 3. Plan
 

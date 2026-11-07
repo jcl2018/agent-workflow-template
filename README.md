@@ -47,7 +47,15 @@ The level sets how much process a goal gets:
 | `1` | Adds one fresh judge after the build | Work worth a second look |
 | `2` | Adds a design review before the build | Risky or large changes |
 
-Changes to CI, auth or data run at level `1` at least. At level 2 the design review uses a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo). With none set, or the skill missing, the built-in review runs; the output says which ran.
+Changes to CI, auth or data run at level `1` at least.
+
+At level 2, `design.py SLUG` starts the design review. With a skill named in the private file
+`~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo), an agent with tools runs
+that skill in the worktree, detached, because it needs the repo and can take many minutes. It runs `design_command` from
+`.loop/config.json`, or `agent_command`, so allow what the skill needs. It is told to ask nothing and take the
+recommended answer at every gate. Run `design.py` again until it prints `NEXT`, the `goal.py` line that records the
+verdict. The `SKILL:` line says how much ran. With no skill, or the skill missing, `NEXT` is the built-in review, which
+has no tools and reads only the goal file. The output says which ran.
 
 See where things stand, or pick up a failed goal:
 

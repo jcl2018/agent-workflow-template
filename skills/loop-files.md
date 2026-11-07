@@ -36,6 +36,7 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 ```
 
 - `agent_command` runs a goal in the background; the prompt is its last argument.
+- `design_command`, optional, runs a level 2 design skill; it defaults to `agent_command`. The prompt is its last argument.
 - `judge_command` reads its prompt on standard input and runs in an empty temporary folder.
 - An empty `judge_command` means no headless judge: print the pack for a fresh agent instead.
 - `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
