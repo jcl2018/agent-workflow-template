@@ -63,6 +63,7 @@ grep -q "^UNREAD docs docs check: " <<<"$out" && [ $rc = 1 ] && tail -1 <<<"$out
 
 echo "== read-only"
 git add -A; git commit -qm "Fixtures"
+git clone -q "$d/repo" "$d/fresh"; cd "$d/fresh" || exit 1
 before="$(git status --porcelain --ignored)|$(git rev-parse HEAD)|$(git branch | wc -l)|$(git stash list | wc -l)"
 $health check >/dev/null; $health check --json >/dev/null
 after="$(git status --porcelain --ignored)|$(git rev-parse HEAD)|$(git branch | wc -l)|$(git stash list | wc -l)"
