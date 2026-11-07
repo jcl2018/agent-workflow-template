@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+"""Check a repo's health with fixed rules. Same repo, same answer. Read-only: it writes no file and calls no model.
+
+usage: health.py check [--json] [--family NAME]
+
+One line per finding:  STATE family subject rule: detail -> fix: what to run
+STATE is PASS, WARN, FAIL, UNREAD (a rule could not read its data) or INFO. The last line is
+  HEALTH: green (...)  or  HEALTH: not green (...)
+Only FAIL and UNREAD turn it red, and the exit code is then 1. --json prints the same rows as records.
+
+Rules (at most MAX_RULES, asserted when the script loads; retire one before adding another):
+  size      scripts under skills/*/scripts against 20 KB: WARN from 90%, FAIL over
+  criteria  composes regression.py sync: a criterion with no row FAILs, a draft or never-failed row FAILs,
+            done lines with no row WARN as one row
+  docs      composes docs.py check: a stale page WARNs, any other gap FAILs
+  hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches nobody has checked out
+It runs git and the two sibling scripts, and nothing else.
+"""
+import argparse
+import datetime
+import glob
+import json
+import os
+import re
+import subprocess
+import sys
+
+LIMIT = 20 * 1024
+WARN_AT = LIMIT * 9 // 10
+FINDINGS_WARN = 5
+WAITING_HOURS = 24
+RULES = ("size", "criteria-rows", "criteria-done", "criteria-proof", "docs-check", "findings", "waiting", "branches")
+MAX_RULES = 8
+assert len(RULES) <= MAX_RULES, "too many rules: retire one first"
+FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene"}
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def run(args, cwd):
+    try:
+        return subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as error:
+        return subprocess.CompletedProcess(args, 127, "", str(error))
+
+
+def row(state, family, subject, rule, detail, fix=""):
+    return {"state": state, "family": family, "subject": subject, "rule": rule, "detail": detail, "fix": fix}
+
+
+def sibling(skill, script):
+    path = os.path.join(HERE, "..", "..", skill, "scripts", script)
+    return path if os.path.exists(path) else ""
+
+
+def size_rows(root):
+    rows, good = [], 0
+    for path in sorted(glob.glob(os.path.join(root, "skills", "*", "scripts", "*.*"))):
+        if not path.endswith((".py", ".sh")):
+            continue
+        size, name = os.path.getsize(path), os.path.relpath(path, root)
+        if size > LIMIT:
+            rows.append(row("FAIL", "size", name, "limit", "%d bytes, over %d" % (size, LIMIT), "split it into modules"))
+        elif size >= WARN_AT:
+            rows.append(row("WARN", "size", name, "limit", "%d bytes, %d%% of %d" % (size, size * 100 // LIMIT, LIMIT),
+                            "trim or split before it passes the limit"))
+        else:
+            good += 1
+    if not rows:
+        rows.append(row("PASS", "size", "scripts", "limit", "%d scripts under %d bytes" % (good, WARN_AT)))
+    return rows
+
+
+def criteria_rows(root):
+    script = sibling("workflow-regression", "regression.py")
+    if not script:
+        return [row("UNREAD", "criteria", "regression", "sync", "regression.py is not installed beside this skill")]
+    done = run([sys.executable, script, "sync"], root)
+    lines = done.stdout.splitlines()
+    if not lines and done.returncode:
+        return [row("UNREAD", "criteria", "regression", "sync", (done.stderr.strip() or "no output")[:120])]
+    rows, loose = [], 0
+    for line in lines:
+        gap = re.match(r"^GAP (\S+) (.*)$", line)
+        if gap and re.match(r"^[A-Za-z0-9-]+:\d+$", gap.group(1)):
+            loose += 1
+        elif gap and "criterion has no regression row" in gap.group(2):
+            rows.append(row("FAIL", "criteria", gap.group(1), "rows", "criterion has no regression row",
+                            "add a row with regression.py add"))
+        elif line.startswith(("DRAFT ", "UNPROVEN ")):
+            word, key = line.split()[:2]
+            rows.append(row("FAIL", "criteria", key.rstrip(":"), "proof", "a draft row, or one never seen failing"
+                            if word == "DRAFT" else "never seen failing", "run regression.py red"))
+    if loose:
+        rows.append(row("WARN", "criteria", "done-lines", "rows", "%d done lines have no regression row" % loose,
+                        "regression.py sync --write drafts rows"))
+    return rows or [row("PASS", "criteria", "rows", "sync", "every criterion and done line has a proven row")]
+
+
+def docs_rows(root):
+    script = sibling("workflow-docs", "docs.py")
+    if not script:
+        return [row("UNREAD", "docs", "docs", "check", "docs.py is not installed beside this skill")]
+    done = run([sys.executable, script, "check"], root)
+    lines = [line for line in done.stdout.splitlines() if line.strip()]
+    if lines and lines[0].startswith("NO PAGES"):
+        return [row("UNREAD", "docs", "wiki", "check", "no pages mapped", "run docs.py add")]
+    if lines and lines[0].startswith("DOCS OK"):
+        return [row("PASS", "docs", "wiki", "check", lines[0].lower())]
+    if not lines:
+        return [row("UNREAD", "docs", "docs", "check", (done.stderr.strip() or "no output")[:120])]
+    rows = []
+    for line in lines:
+        kind, _, rest = line.partition(" ")
+        page, _, detail = rest.partition(": ")
+        rows.append(row("WARN" if kind == "STALE" else "FAIL", "docs", page, kind.lower(), detail[:120],
+                        "update the page with workflow-docs"))
+    return rows
+
+
+def hours_old(stamp):
+    try:
+        when = datetime.datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    except (TypeError, ValueError):
+        return 0
+    return (datetime.datetime.now(datetime.timezone.utc) - when).total_seconds() / 3600
+
+
+def hygiene_rows(root):
+    rows = []
+    try:
+        with open(os.path.join(root, ".loop", "findings.md")) as handle:
+            open_findings = [line for line in handle if line.startswith("- ")]
+    except OSError:
+        open_findings = []
+    if len(open_findings) > FINDINGS_WARN:
+        rows.append(row("WARN", "hygiene", "findings", "open", "%d open findings, over %d" % (len(open_findings), FINDINGS_WARN),
+                        "resolve or remove them in .loop/findings.md"))
+    common = run(["git", "rev-parse", "--git-common-dir"], root).stdout.strip()
+    common = os.path.abspath(os.path.join(root, common))
+    for path in sorted(glob.glob(os.path.join(common, "loop", "runs", "*.json"))):
+        try:
+            with open(path) as handle:
+                state = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        if isinstance(state, dict) and state.get("status") == "waiting" and hours_old(state.get("updated")) > WAITING_HOURS:
+            rows.append(row("WARN", "hygiene", state.get("slug") or os.path.basename(path)[:-5], "waiting",
+                            "waiting over %d hours" % WAITING_HOURS, "answer it or retire it on the board"))
+    base = "origin/main" if run(["git", "rev-parse", "--verify", "--quiet", "origin/main"], root).returncode == 0 else "main"
+    merged = run(["git", "branch", "--merged", base], root)
+    if merged.returncode == 0:
+        for line in sorted(merged.stdout.splitlines()):
+            name = line[2:].strip()
+            if line.startswith("  ") and name.startswith("loop/"):
+                rows.append(row("WARN", "hygiene", name, "branch", "already merged into %s" % base,
+                                "git branch -d %s" % name))
+    return rows or [row("PASS", "hygiene", "repo", "clean", "no stale findings, runs or merged branches")]
+
+
+def line_of(item):
+    text = "%s %s %s %s: %s" % (item["state"], item["family"], item["subject"], item["rule"], item["detail"])
+    return text + (" -> fix: " + item["fix"] if item["fix"] else "")
+
+
+def cmd_check(args):
+    top = run(["git", "rev-parse", "--show-toplevel"], os.getcwd())
+    if top.returncode:
+        sys.exit("REFUSED: not inside a git repo.")
+    root = top.stdout.strip()
+    rules = {"size": size_rows, "criteria": criteria_rows, "docs": docs_rows, "hygiene": hygiene_rows}
+    rows = []
+    for name in (args.family and [args.family] or sorted(rules)):
+        rows += rules[name](root)
+    counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
+    green = not counts["FAIL"] and not counts["UNREAD"]
+    verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % (
+        "green" if green else "not green", counts["PASS"], counts["WARN"], counts["FAIL"], counts["UNREAD"])
+    if args.json:
+        print(json.dumps({"green": green, "counts": counts, "rows": rows, "verdict": verdict}, indent=2))
+    else:
+        for item in rows:
+            print(line_of(item))
+        print(verdict)
+    return 0 if green else 1
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest="command", required=True)
+    item = sub.add_parser("check", help="run the fixed rules")
+    item.add_argument("--json", action="store_true")
+    item.add_argument("--family", choices=sorted(FAMILY))
+    item.set_defaults(func=cmd_check)
+    args = parser.parse_args()
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
