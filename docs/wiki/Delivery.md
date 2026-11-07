@@ -314,14 +314,19 @@ Proof: toy tests.
 
 ## Criteria
 
-Tests: 3.
+Tests: 8.
+> **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
 
-- DEL-1: **Proven** A goal cannot start without at least one done line.
-- DEL-2: **Proven** A goal runs at level 0 unless the owner names another level.
-- DEL-3: **Proven** A goal that touches a risky path such as CI, auth or data is raised from level 0 to level 1 when it starts.
+- DEL-4: **Unreviewed** Every goal starts from done lines that can't change once it starts.
+- DEL-5: **Unreviewed** A goal gets the process its risk needs, and every level starts with a design.
+- DEL-6: **Unreviewed** No agent judges its own work.
+- DEL-7: **Unreviewed** A goal that keeps failing stops and says why.
+- DEL-8: **Unreviewed** The loop stops at a pull request, and only the owner merges.
 
 ## Enforced by
 
-- DEL-1: DEL-1
-- DEL-2: DEL-2
-- DEL-3: DEL-3
+- DEL-4: DEL-1, frozen-done-lines
+- DEL-5: DEL-2, DEL-3, design-every-level
+- DEL-6: no-self-judging
+- DEL-7: stop-after-3-tries
+- DEL-8: never-merges

@@ -45,7 +45,7 @@ Criteria and Enforced by, in that order; a criterion is one line `- DEL-1: **Sta
 `- DEL-1: <regression row ids>` line in Enforced by.
 
 Criteria are for the owner, and tests are for the machine. A test is a regression row, linked to one criterion by its
-goal or id, and a criterion can have many. Each feature page counts its tests in a `Tests:` line above the criteria.
+goal or id, and a criterion can have many. A page has 5 or 6 criteria, capped at 6. Each feature page counts its tests in a `Tests:` line above the criteria.
 Criteria land with no approval, marked Unreviewed, and the page shows a banner while any is.
 
 | Stage | Means |
@@ -55,7 +55,7 @@ Criteria land with no approval, marked Unreviewed, and the page shows a banner w
 | Enforced | The owner reviewed it, and it has a test not yet seen failing |
 | Proven | The owner reviewed it, and every test has been seen failing once |
 
-`check` prints `STAGE`, `TESTS` or `LINK` when a page disagrees with the rows.
+`check` prints `CAP`, `STAGE`, `TESTS` or `LINK` when a page breaks these rules.
 
 The same setting holds every page, Home too, to two more rules. `SCRIPT` fails a page that names a script file: pages
 describe commands and behaviour only. `CHART` fails a command listed under Commands, in a text block or a bullet that
@@ -202,14 +202,19 @@ Proof: toy tests only: it has never run on a real wiki, and the refusal has no t
 
 ## Criteria
 
-Tests: 3.
+Tests: 7.
+> **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
 
-- DOC-1: **Proven** The check reports a page as stale when the code it describes changed in a commit after the page's last commit.
-- DOC-2: **Proven** Publishing to the GitHub wiki is refused while the check finds a stale page.
-- DOC-3: **Proven** Publishing never replaces a wiki page this tool did not write, unless the owner names that page.
+- DOC-4: **Unreviewed** A page that has fallen behind the code is caught before it reaches the wiki.
+- DOC-5: **Unreviewed** Wiki pages written elsewhere stay as they are unless the owner names them.
+- DOC-6: **Unreviewed** Every feature page has the same four sections and a chart for every command.
+- DOC-7: **Unreviewed** Every criterion names the tests that enforce it.
+- DOC-8: **Unreviewed** Anyone reading a page can see which criteria the owner hasn't reviewed.
 
 ## Enforced by
 
-- DOC-1: DOC-1
-- DOC-2: DOC-2
-- DOC-3: DOC-3
+- DOC-4: DOC-1, DOC-2
+- DOC-5: DOC-3
+- DOC-6: four-sections, flow-charts
+- DOC-7: names-enforcer
+- DOC-8: unreviewed-banner

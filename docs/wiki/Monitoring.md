@@ -380,25 +380,21 @@ Proof: toy tests. Nothing enforces that the owner said so: that is an instructio
 
 ## Criteria
 
-Tests: 8.
-> **Unreviewed:** 5 of 8 criteria on this page have not been reviewed by the owner.
+Tests: 12.
+> **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
 
-- MON-1: **Proven** Two goals whose touched files overlap never run at the same time; the later one is held.
-- MON-2: **Proven** A goal the owner has retired no longer appears under what waits on the owner.
-- MON-3: **Proven** A goal started with `--session` is recorded as running in a visible session, and no background process is started for it.
-- MON-4: **Unreviewed** Each poc and goal line of a batch runs in its own process or background agent, never in the governing session.
-- MON-5: **Unreviewed** A POC runs read-only in its own worktree, and is marked failed if it changes the worktree.
-- MON-6: **Unreviewed** A finished POC's answer and go line are saved outside the repo, and the board shows the POC as done with that answer.
-- MON-7: **Unreviewed** A goal line promoted from a saved POC carries that POC's goal, done lines and level, and a POC that has not finished cannot be promoted.
-- MON-8: **Unreviewed** The operation instructions state that the operation session is for governance only and runs neither poc nor go itself.
+- MON-9: **Unreviewed** What waits on the owner comes first, and retired work leaves it.
+- MON-10: **Unreviewed** Goals that would collide never run together, and what each waits on stays on the map.
+- MON-11: **Unreviewed** One failure stops only its own goal.
+- MON-12: **Unreviewed** Every session is tracked, whether it runs in the background or in view.
+- MON-13: **Unreviewed** The governing session only governs: every POC and goal runs somewhere else.
+- MON-14: **Unreviewed** A POC answers without changing the repo, and only a finished answer can become a goal.
 
 ## Enforced by
 
-- MON-1: MON-1
-- MON-2: MON-2
-- MON-3: MON-3
-- MON-4: MON-4
-- MON-5: MON-5
-- MON-6: MON-6
-- MON-7: MON-7
-- MON-8: MON-8
+- MON-9: MON-2, waits-first
+- MON-10: MON-1, dependencies-on-map
+- MON-11: one-failure
+- MON-12: MON-3, sessions-tracked
+- MON-13: MON-4, MON-8
+- MON-14: MON-5, MON-6, MON-7
