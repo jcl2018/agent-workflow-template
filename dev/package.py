@@ -16,7 +16,7 @@ import sys
 import tempfile
 import zipfile
 
-SHIPPED = ["skills", "listing.json", "README.md"]
+SHIPPED = ["skills", "listing.json", "README.md", "LICENSE"]
 BAD_DIRS = {".git", "__pycache__", "node_modules", ".venv", ".pytest_cache", ".mypy_cache", "vendor"}
 MAX_FILES, MAX_BYTES, MAX_SCRIPT = 99, 5 * 1024 * 1024, 20 * 1024
 SECRETS = [r"AKIA[0-9A-Z]{16}", r"gh[pousr]_[A-Za-z0-9]{30,}", r"sk-[A-Za-z0-9]{20,}", r"xox[baprs]-[A-Za-z0-9-]{10,}",
@@ -95,6 +95,8 @@ def load_listing(root):
 
 
 def check_listing(listing):
+    if not listing.get("license"):
+        fail("Listing fields", "no license")
     summary = listing.get("summary", "")
     if not summary:
         fail("Listing fields", "no summary")
@@ -184,6 +186,8 @@ def check_pack(root):
     with open(os.path.join(root, "README.md")) as handle:
         if not re.match(r"# \S", handle.readline()):
             fail("Files", "README.md must open with a # title: it names the pack")
+    if not os.path.isfile(os.path.join(root, "LICENSE")):
+        fail("Files", "no LICENSE file")
 
 
 def check_disclosure(root, files, listing):

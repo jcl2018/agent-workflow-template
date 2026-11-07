@@ -4,7 +4,7 @@
 A small agentic workflow for any repo: you state a goal and the checks that prove it, an agent builds it, a fresh agent
 judges it at levels 1 and 2, and you review the pull request. One session governs and the others build. To install it
 and run a first goal, or to see where every file lives, read the
-[README](https://github.com/jcl2018/agent-workflow-template#readme).
+[README](https://github.com/jcl2018/agent-workflow-template#readme). It's released under the MIT license.
 
 ## Features
 

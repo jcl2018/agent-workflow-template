@@ -1,4 +1,5 @@
 {
+  "license": "MIT",
   "summary": "Seven small skills: one session governs while background agents take each goal to a pull request, keep a wiki current, run regression tests, report repo health, and cut draft releases with manual verify steps. Runs on Claude Code and Codex.",
   "tags": [
     "workflow",
