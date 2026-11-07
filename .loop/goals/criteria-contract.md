@@ -32,3 +32,8 @@ The contract is opt-in per repo with `"criteria": true` in `.loop/config.json`, 
 2. regression.py sync gaps: test-criteria.sh (line 3).
 3. release.py cut refusal: test-criteria.sh; existing test-release.sh/test-docs.sh show repos without criteria are unchanged (line 4).
 4. SKILL.md rules (line 5); all toy checks via goal.py check (line 6).
+
+## Evidence
+
+- release.py cannot read its own location (package rule), so cut checks criteria inline; that took it past the toy test's stricter 20000-byte bound, so dev/toy/test-release.sh now uses 20480, the package and goal.py limit.
+- The contract is opt-in: `"criteria": true` in `.loop/config.json`. This repo's own wiki is not switched on.

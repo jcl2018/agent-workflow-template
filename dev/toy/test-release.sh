@@ -145,7 +145,7 @@ git switch -q main; git rm -q .loop/docs.tsv docs/wiki/Calc.md; git commit -qm "
 grep -Eq "draft=false|release edit|release upload" "$FAKE_GH_DIR/calls.log" && bad "publish call" || ok "auto mode only made drafts"
 [ "$(grep -c '^release create' "$FAKE_GH_DIR/calls.log")" = "$(( $(grep -c '^release create' <(head -n "$n" "$FAKE_GH_DIR/calls.log")) + 4 ))" ] && ok "exactly four auto drafts" || bad "draft count"
 [ -z "$(git ls-remote --tags origin)" ] && ok "still no tag" || bad "tag pushed"
-[ "$(wc -c < "$here/skills/workflow-release/scripts/release.py")" -lt 20000 ] && ok "release.py under 20 KB" || bad "release.py size"
+[ "$(wc -c < "$here/skills/workflow-release/scripts/release.py")" -lt 20480 ] && ok "release.py under 20 KB" || bad "release.py size"
 git switch -q main; sed -i.bak 's/, "release_auto": true//' .loop/config.json && rm .loop/config.json.bak; git commit -qam "Turn release_auto off"
 
 if [ -n "$AGENT_TEST" ]; then

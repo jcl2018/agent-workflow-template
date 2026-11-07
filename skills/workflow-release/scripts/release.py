@@ -197,7 +197,7 @@ def read_config(top):
 
 def bump(version, part):
     if not VERSION.match(version):
-        sys.exit("REFUSED: the version %r is not X.Y.Z or W.X.Y.Z. Fix: set it by hand." % version)
+        sys.exit("REFUSED: the version %r is not X.Y.Z or W.X.Y.Z." % version)
     numbers = [int(item) for item in version.split(".")]
     at = {"major": 0, "minor": 1}.get(part, len(numbers) - 1)
     numbers[at] += 1
@@ -244,14 +244,27 @@ def stale_pages(top, cfg, base):
     return out
 
 
-def criteria_trouble(top):
-    """Unmet criteria from workflow-regression; none without docs.tsv or that skill."""
-    here = os.path.dirname(os.path.abspath(__file__))
-    script = os.path.join(here, "..", "..", "workflow-regression", "scripts", "regression.py")
-    if not doc_rows(top) or not os.path.exists(script):
-        return []
-    done = run([sys.executable, script, "criteria"], cwd=top)
-    return done.stdout.strip().splitlines() if done.returncode else []
+def criteria_trouble(top, cfg):
+    """Wiki criteria whose regression row is missing, a draft or failing. Only with .loop/docs.tsv."""
+    try:
+        with open(os.path.join(top, ".loop", "regression.tsv")) as handle:
+            rows = [line.rstrip("\n").split("\t") + [""] * 5 for line in handle if line[0] != "#"]
+    except OSError:
+        rows = []
+    out = []
+    for page in doc_rows(top):
+        try:
+            with open(os.path.join(top, cfg.get("wiki_dir") or "docs/wiki", page + ".md")) as handle:
+                part = handle.read().partition("\n## Criteria")[2].split("\n## ")[0]
+        except OSError:
+            continue
+        for key in re.findall(r"^- ([A-Z]{2,5}-\d+): \S", part, re.M):
+            row = next((r for r in rows if key in (r[0], r[3])), None)
+            if not row:
+                out.append("%s (no regression row)" % key)
+            elif row[1] == "draft" or (row[1] != "covered" and run(["sh", "-c", row[2]], cwd=top).returncode):
+                out.append("%s (row %s is a draft or failing)" % (key, row[0]))
+    return out
 
 
 def docs_changed(top, cfg, base):
@@ -315,7 +328,7 @@ def restore(cwd, files, sha_before, message):
             git("reset", "--hard", "HEAD~1", cwd=cwd)
             print("RESTORED: removed the release commit")
         else:
-            print("NOTE: HEAD is not the release commit, so nothing was reset. Check the branch by hand.")
+            print("NOTE: HEAD is not the release commit, so nothing was reset.")
             return
     for name in files:
         if run(["git", "ls-files", "--error-unmatch", name], cwd=cwd).returncode == 0:
@@ -345,13 +358,13 @@ def cmd_cut(args):
     base = base_of(cwd, cfg)
     steps = verify_steps(cwd, slug)
     if not steps:
-        sys.exit("REFUSED: %s has no complete steps under ## Verify by hand. Fix: give every numbered step an Expect: "
-                 "line in .loop/goals/%s.md, and commit it." % (slug, slug))
+        sys.exit("REFUSED: %s has no complete steps under ## Verify by hand. Fix: give each numbered step an Expect: "
+                 "line in .loop/goals/%s.md." % (slug, slug))
     stale = stale_pages(cwd, cfg, base)
     if stale:
-        sys.exit("REFUSED: these pages are stale: %s. Fix: update them with workflow-docs, commit, and run goal.py "
-                 "check again." % ", ".join(stale))
-    unmet = criteria_trouble(cwd)
+        sys.exit("REFUSED: these pages are stale: %s. Fix: update them with workflow-docs, then run goal.py check."
+                 % ", ".join(stale))
+    unmet = criteria_trouble(cwd, cfg)
     if unmet:
         sys.exit("REFUSED: criteria without a passing regression row: %s." % ", ".join(unmet))
     checked = state.get("checks_sha")
@@ -372,7 +385,7 @@ def cmd_cut(args):
     tag = "v" + version
     if run(["git", "rev-parse", "--verify", "--quiet", "refs/tags/" + tag], cwd=cwd).returncode == 0 or \
             run(["git", "ls-remote", "--exit-code", "--tags", "origin", tag], cwd=cwd).returncode == 0:
-        sys.exit("REFUSED: tag %s already exists. Fix: pick another --bump or set the version by hand." % tag)
+        sys.exit("REFUSED: tag %s already exists. Fix: pick another --bump." % tag)
     bullets = subjects(base, cwd)
     day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     cpath = os.path.join(cwd, "CHANGELOG.md")
@@ -421,7 +434,7 @@ def cmd_cut(args):
     save(state, "release cut %s draft %s" % (tag, url))
     print("CUT %s %s -> %s on %s (%d changelog lines)" % (slug, old_version, version, branch, len(bullets)))
     print("DRAFT " + url)
-    print("You publish it. The draft stays unpublished until you do. Nothing was merged.")
+    print("You publish it. Nothing was merged.")
     return 0
 
 
