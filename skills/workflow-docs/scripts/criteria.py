@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Keep the review state of wiki criteria honest. Nothing here blocks a change.
+"""Keep the criteria and test tables of wiki pages honest.
 
 usage: criteria.py <command> [options]
 
-  review ID [ID ...] --user    mark criteria reviewed; --user means the owner's own words said so
-  sync [--commit] [--dry-run]  return every reviewed criterion whose text changed to Unreviewed, marked
-                               (changed after review), and fix each page's banner; --commit commits the pages
+  review ID [ID ...] --user    mark criteria Reviewed with today's date; --user means the owner's own words said so
+  unreview ID [ID ...] --user  mark them Unreviewed again, so their wording may change
+  render [--check]             rewrite each feature page's Tests table from the regression rows and their last runs;
+                               --check only says which pages are stale
 
-A reviewed line ends with <!-- reviewed HASH -->, a hash of its text. A line with a reviewed stage and no matching
-hash has changed, so sync returns it. It runs git and nothing else.
+A page is Summary, Criteria and Tests. A criterion is '- ID: **Unreviewed** text' or '- ID: **Reviewed DATE** text',
+and a Reviewed line ends with <!-- reviewed HASH -->, a hash of its text. docs.py check fails when the text no longer
+matches its hash. The Tests table lists each criterion's regression rows with their last status and date from
+.loop/regression-runs.tsv, and marks a criterion with no passing row as not enforced. It runs git and nothing else.
 """
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -23,10 +27,12 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
-LINE = re.compile(r"^- ([A-Z]{2,5}-\d+): \*\*(Unreviewed|Reviewed|Enforced|Proven)\*\* (.+?)(?: <!-- reviewed (\w+) -->)?$")
+
+LINE = re.compile(r"^- ([A-Z]{2,5}-\d+): \*\*(Unreviewed|Reviewed (\d{4}-\d\d-\d\d))\*\* (\S.*?)(?: <!-- reviewed (\w+) -->)?$")
 ID = re.compile(r"^[A-Z]{2,5}-\d+$")
-BANNER = "> **Unreviewed:** %d of %d criteria on this page have not been reviewed by the owner."
-RETURNED = "(changed after review) "
+SECTIONS = ["Summary", "Criteria", "Tests"]
+SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
+MAX_CRITERIA = 6
 
 
 def git(*args, check=True):
@@ -40,12 +46,16 @@ def seal(text):
     return hashlib.sha256(text.encode()).hexdigest()[:8]
 
 
-def pages(root):
+def folder_of(root):
     try:
         with open(os.path.join(root, ".loop", "config.json")) as handle:
-            folder = json.load(handle).get("wiki_dir") or "docs/wiki"
+            return json.load(handle).get("wiki_dir") or "docs/wiki"
     except (OSError, ValueError):
         sys.exit("REFUSED: no readable .loop/config.json. Fix: run workflow-setup and merge its branch.")
+
+
+def pages(root):
+    folder = folder_of(root)
     try:
         names = sorted(name for name in os.listdir(os.path.join(root, folder)) if name.endswith(".md"))
     except OSError:
@@ -53,29 +63,97 @@ def pages(root):
     return [os.path.join(folder, name) for name in names]
 
 
-def stage_from_rows(root, key):
-    """The stage a reviewed criterion's tests earn: the same rule as docs check."""
+def sections(text):
+    """The page's level-2 sections, as (name, lines), outside code fences."""
+    found, fenced = [], False
+    for line in text.splitlines():
+        if line.startswith("```"):
+            fenced = not fenced
+        if not fenced and line.startswith("## "):
+            found.append((line[3:].strip(), []))
+        elif found:
+            found[-1][1].append(line)
+    return found
+
+
+def tsv(root, name):
     try:
-        with open(os.path.join(root, ".loop", "regression.tsv")) as handle:
-            rows = [line.rstrip("\n").split("\t") + [""] * 5 for line in handle if line.strip() and line[0] != "#"]
+        with open(os.path.join(root, ".loop", name)) as handle:
+            return [line.rstrip("\n").split("\t") + [""] * 5 for line in handle if line.strip() and line[0] != "#"]
     except OSError:
-        rows = []
-    tests = [row for row in rows if row[1] != "draft" and (row[3] if ID.match(row[3]) else row[0]) == key]
-    if not tests:
-        return "Reviewed"
-    return "Proven" if all(row[4] or row[1] == "covered" for row in tests) else "Enforced"
+        return []
 
 
-def banner(lines):
-    """Put the banner right for the criteria in these lines."""
-    lines = [line for line in lines if not line.startswith("> **Unreviewed:**")]
-    found = [LINE.match(line) for line in lines]
-    found = [match for match in found if match]
-    waiting = sum(1 for match in found if match.group(2) == "Unreviewed")
-    at = next((n for n, line in enumerate(lines) if line.startswith("Tests: ")), None)
-    if waiting and at is not None:
-        lines.insert(at + 1, BANNER % (waiting, len(found)))
-    return lines
+def test_rows(root):
+    """Real tests as {criterion: [row id]}, plus ids linked to none."""
+    linked, loose = {}, []
+    for row in tsv(root, "regression.tsv"):
+        key = next((item for item in (row[3], row[0]) if ID.match(item)), "")
+        if row[1] == "draft":
+            continue
+        if key:
+            linked.setdefault(key, []).append(row[0])
+        else:
+            loose.append(row[0])
+    return linked, loose
+
+
+def table(root, ids, linked):
+    """The Tests table: each criterion's rows with their last run, and 'not enforced' when none passes."""
+    ran = {row[0]: (row[1], row[2]) for row in tsv(root, "regression-runs.tsv")}
+    link = "../" * (folder_of(root).count("/") + 1) + ".loop/regression.tsv"
+    out = ["| Criterion | Test | Last run |", "|---|---|---|"]
+    for key in ids:
+        passing = False
+        for name in linked.get(key, []):
+            status, date = ran.get(name, ("not run", ""))
+            passing = passing or status == "PASS"
+            out.append("| %s | [%s](%s) | %s |" % (key, name, link, (status + " " + date).strip()))
+        if not passing:
+            out.append("| %s | **not enforced** | |" % key)
+    return out
+
+
+def criteria_of(lines):
+    return [(line, LINE.match(line)) for line in lines if line.strip()]
+
+
+def contract(root, names, seen):
+    """Page contract trouble for these feature pages, as (kind, page, detail). `seen` maps ids to their page."""
+    found = []
+    linked, loose = test_rows(root)
+    for page in names:
+        with open(os.path.join(root, folder_of(root), page + ".md")) as handle:
+            parts = sections(handle.read())
+        if [name for name, _ in parts] != SECTIONS:
+            found.append(("SECTIONS", page, "have %s, want %s" % (", ".join(n for n, _ in parts) or "none", ", ".join(SECTIONS))))
+            continue
+        body, ids = dict(parts), []
+        for line, match in criteria_of(body["Criteria"]):
+            if not match:
+                found.append(("CRITERION", page, "not one line '- ID: **Unreviewed** text': " + line.strip()[:60]))
+                continue
+            key, mark, text, mine = match.group(1), match.group(2), match.group(4), match.group(5)
+            if key in seen:
+                found.append(("DUPLICATE", page, "%s is also in %s" % (key, seen[key])))
+                continue
+            seen[key] = page
+            ids.append(key)
+            named = SCRIPT_FILE.findall(text)
+            if named:
+                found.append(("SCRIPT", page, "%s names %s. Fix: say what it does, not the file" % (key, ", ".join(named))))
+            if mark != "Unreviewed" and mine != seal(text):
+                found.append(("LOCKED", page, "%s was reviewed and its wording changed. Fix: restore it, or the owner "
+                              "marks it Unreviewed first" % key))
+        if len(ids) > MAX_CRITERIA:
+            found.append(("CAP", page, "has %d criteria, over the cap of %d" % (len(ids), MAX_CRITERIA)))
+        if [line for line in body["Tests"] if line.strip()] != table(root, ids, linked):
+            found.append(("TESTS", page, "the Tests table is stale. Fix: run criteria.py render"))
+    for name in loose:
+        found.append(("LINK", "regression", "row %s links to no criterion" % name))
+    for key in sorted(set(linked) - set(seen)):
+        found.append(("LINK", "regression", "rows link to %s, which no page has" % key))
+    return found
 
 
 def rewrite(root, change):
@@ -91,9 +169,8 @@ def rewrite(root, change):
             if fresh:
                 lines[number] = fresh
                 names.append(match.group(1))
-        result = "\n".join(banner(lines))
-        if result != text:
-            touched.append((rel, result))
+        if "\n".join(lines) != text:
+            touched.append((rel, "\n".join(lines)))
     return touched, names
 
 
@@ -103,67 +180,70 @@ def write(root, touched):
             handle.write(text)
 
 
-def cmd_sync(args):
-    root = git("rev-parse", "--show-toplevel")
-
-    def change(match):
-        key, stage, text, mark = match.groups()
-        if stage != "Unreviewed" and mark != seal(text):
-            return "- %s: **Unreviewed** %s%s" % (key, RETURNED, text)
-        return None
-
-    touched, names = rewrite(root, change)
-    for key in names:
-        print("RETURNED %s: its text changed after review, so it is Unreviewed" % key)
-    if not names:
-        print("CRITERIA OK")
-    elif args.dry_run:
-        print("DRY RUN: nothing written")
-    else:
-        write(root, touched)
-        if args.commit:
-            paths = [rel for rel, _ in touched]
-            git("add", "--", *paths)
-            git("commit", "-m", "Return changed criteria to Unreviewed: " + ", ".join(names), "--", *paths)
-    return 0
-
-
-def cmd_review(args):
+def mark_all(args, make):
     if not args.user:
-        sys.exit("REFUSED: only the owner reviews a criterion. Fix: pass --user when their own words said to.")
+        sys.exit("REFUSED: only the owner changes a criterion's review. Fix: pass --user when their own words said to.")
     bad = [key for key in args.ids if not ID.match(key)]
     if bad:
         sys.exit("REFUSED: not a criterion id: %s." % ", ".join(bad))
     root = git("rev-parse", "--show-toplevel")
-
-    def change(match):
-        key, _, text, _ = match.groups()
-        if key not in args.ids:
-            return None
-        text = text[len(RETURNED):] if text.startswith(RETURNED) else text
-        return "- %s: **%s** %s <!-- reviewed %s -->" % (key, stage_from_rows(root, key), text, seal(text))
-
-    touched, names = rewrite(root, change)
-    missing = sorted(set(args.ids) - set(names))
+    touched, names = rewrite(root, lambda match: make(match) if match.group(1) in args.ids else None)
+    missing = sorted(set(args.ids) - {match for match in names})
     if missing:
         sys.exit("REFUSED: no criterion %s. Nothing was changed." % ", ".join(missing))
     write(root, touched)
-    for key in names:
+    return names
+
+
+def cmd_review(args):
+    day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    for key in mark_all(args, lambda m: "- %s: **Reviewed %s** %s <!-- reviewed %s -->" % (m.group(1), day, m.group(4), seal(m.group(4)))):
         print("REVIEWED " + key)
     return 0
+
+
+def cmd_unreview(args):
+    for key in mark_all(args, lambda m: "- %s: **Unreviewed** %s" % (m.group(1), m.group(4))):
+        print("UNREVIEWED " + key)
+    return 0
+
+
+def cmd_render(args):
+    root = git("rev-parse", "--show-toplevel")
+    linked, _ = test_rows(root)
+    stale = []
+    for rel in pages(root):
+        with open(os.path.join(root, rel)) as handle:
+            text = handle.read()
+        parts = sections(text)
+        if [name for name, _ in parts] != SECTIONS:
+            continue
+        ids = [m.group(1) for _, m in criteria_of(dict(parts)["Criteria"]) if m]
+        head, _, _ = text.partition("\n## Tests")
+        fresh = head + "\n## Tests\n\n" + "\n".join(table(root, ids, linked)) + "\n"
+        if fresh != text:
+            stale.append(rel)
+            if not args.check:
+                with open(os.path.join(root, rel), "w") as handle:
+                    handle.write(fresh)
+    for rel in stale:
+        print("%s %s" % ("STALE" if args.check else "RENDERED", rel))
+    if not stale:
+        print("TABLES OK")
+    return 1 if stale and args.check else 0
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
-    item = sub.add_parser("review")
-    item.add_argument("ids", nargs="+")
-    item.add_argument("--user", action="store_true", help="the owner's own words said so")
-    item.set_defaults(func=cmd_review)
-    item = sub.add_parser("sync")
-    item.add_argument("--commit", action="store_true")
-    item.add_argument("--dry-run", action="store_true")
-    item.set_defaults(func=cmd_sync)
+    for name, func in (("review", cmd_review), ("unreview", cmd_unreview)):
+        item = sub.add_parser(name)
+        item.add_argument("ids", nargs="+")
+        item.add_argument("--user", action="store_true", help="the owner's own words said so")
+        item.set_defaults(func=func)
+    item = sub.add_parser("render")
+    item.add_argument("--check", action="store_true")
+    item.set_defaults(func=cmd_render)
     args = parser.parse_args()
     return args.func(args)
 

@@ -5,7 +5,7 @@ description: Keeps a repo's wiki pages in the repo, finds pages that have gone s
 
 # workflow-docs
 
-Five commands: `init`, `check`, `criteria`, `publish` and `restore`. `init` is the step list below, not a script command. The others
+Five commands: `init`, `check`, `criteria`, `publish` and `restore`, with `criteria.py` for review and the Tests table. `init` is the step list below, not a script command. The others
 are `scripts/docs.py` commands, with `survey` and `add` for `init`. Run it with `python3`. If the skill's files aren't
 on disk, write the script to a temporary file, run it, and delete it. If `.loop/config.json` is missing, use
 `workflow-setup` first.
@@ -55,57 +55,41 @@ counts every commit.
 ## `criteria`
 
 With `"criteria": true` in `.loop/config.json`, feature pages are a contract and `check` enforces it. Only the pages
-Delivery, Documentation, Health, Milestones, Monitoring, Regression and Release exist, plus Home, which is free-form. Each feature page has
-exactly these sections, in this order: `Summary`, `Commands`, `Criteria`, `Enforced by`.
+Delivery, Documentation, Health, Milestones, Monitoring, Regression and Release exist, plus Home, which is free-form.
+Each feature page has exactly these sections, in this order: `Summary`, `Criteria`, `Tests`. Command detail and charts
+live in the owning skill's `SKILL.md` and `references/`, not on the page.
 
 ```bash
 python3 scripts/docs.py criteria <Page>
 ```
 
-It prints the format and the next free id for the page (`DEL`, `DOC`, `MON`, `REG`, `REL`).
-
-The same setting adds two `check` lines, each fixed on the page:
-
-| Line | Means | Fix |
-|---|---|---|
-| `SCRIPT` | A page, Home too, names a script file such as a `.py` or `.sh` name | Describe the command and what it does |
-| `CHART` | A command under `Commands` has no chart or status line, or none is listed | Add a heading with the command in backticks, then a Mermaid block and a `Status:` line |
-
-A command is the first word of a line in a `text` block (indented lines continue the one above) or a bullet starting
-with it in backticks. The `Status:` line sorts every stage under `built and proven`, `built only` and `planned`, from
-real tests and runs. Say so when something is unproven. `check` proves the chart exists, not that it is true.
+It prints the format and the next free id for the page (`DEL`, `DOC`, `HLT`, `MIL`, `MON`, `REG`, `REL`).
 
 Two levels: criteria are for the owner, tests are for the machine.
 
-- A criterion is one line under `## Criteria`: `- DEL-3: **Unreviewed** what must hold`. It states an outcome the owner
-  cares about, with no sub-bullets. Ids are stable: take the next free id, and never reuse or renumber one. A page has
-  5 or 6 criteria, and `check` prints `CAP` above 6. Detail belongs in tests.
-- A test is a row in `.loop/regression.tsv`. Each links to exactly one criterion, by its `goal` column (or its id). A
-  criterion can have many tests. `check` prints `LINK` for a test with no criterion, or one that names no real criterion.
-- Under `## Enforced by`, each id lists its rows: `- DEL-3: del-3a, del-3b`. `check` prints `LINK` if the list and the
-  rows differ, and `UNENFORCED` for an id with no line.
-- Above the criteria, `Tests: 12.` counts the page's tests. With any Unreviewed criterion, the next line is the banner:
-  `> **Unreviewed:** 2 of 6 criteria on this page have not been reviewed by the owner.` `check` prints `TESTS` if either
-  is wrong.
+- A criterion is one line under `## Criteria`: `- DEL-3: **Unreviewed** what must hold`. It is a short, high-level,
+  PRD-style statement in plain words, with no script names (`SCRIPT` if one appears) and no sub-bullets. A page has at
+  most 6 (`CAP`). Ids are stable: take the next free id, and never reuse or renumber one.
+- A test is a row in `.loop/regression.tsv`, linked to one criterion by its `goal` column (or its id). A criterion has
+  at least one, and `LINK` flags a test with no criterion. Rows that enforce a criterion are `land` or `nightly`, so the
+  regression workflow on GitHub runs them and shows each run's result.
+- `## Tests` is a table made by `criteria.py render`, never written by hand: each criterion's rows, linked to
+  `.loop/regression.tsv`, with the last status and date from `.loop/regression-runs.tsv`. A criterion with no passing
+  row shows as **not enforced**. `check` prints `TESTS` while the table is stale: run `render` and commit it.
 
-| Stage | Means |
-|---|---|
-| `Unreviewed` | Landed, and the owner hasn't reviewed it. Every new or changed criterion starts here, whatever its tests |
-| `Reviewed` | The owner reviewed it, and it has no test yet |
-| `Enforced` | The owner reviewed it, and it has a test not yet seen failing |
-| `Proven` | The owner reviewed it, and every test has been seen failing once |
-
-`Reviewed`, `Enforced` and `Proven` follow from the rows, so `check` prints `STAGE` if the word on the page disagrees.
-Criteria need no approval to land, and no check blocks a change. Only the owner reviews one:
+A criterion is `Unreviewed` or `Reviewed <date>`. New criteria land Unreviewed, with no approval. **Only the owner
+reviews one**, and a Reviewed criterion is locked:
 
 ```bash
 python3 scripts/criteria.py review <ID> [<ID> ...] --user
-python3 scripts/criteria.py sync [--commit] [--dry-run]
+python3 scripts/criteria.py unreview <ID> [<ID> ...] --user
+python3 scripts/criteria.py render [--check]
 ```
 
-`review` seals a line with a hash of its text. Pass `--user` only when the owner's own words said so. If a sealed line
-changes, `sync` returns it to `Unreviewed`, marked `(changed after review)`, and `report` names it. Put
-`criteria.py sync --commit` first in a repo's checks, so a goal's own checks do this.
+`review` writes today's date and a hash of the wording. If the wording of a Reviewed criterion changes, `check` prints
+`LOCKED` and fails. A goal must not change one: the owner marks it Unreviewed first (`unreview`), after which the
+wording may change and the owner reviews it again. Pass `--user` only when the owner's own words said so; never review
+or unreview on a goal's own initiative. `report` names any Reviewed criterion whose wording changed.
 `regression.py sync` reports an id with no row, and `release.py cut` refuses while any of its rows is missing, a draft or
 failing.
 

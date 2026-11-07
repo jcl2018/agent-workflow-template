@@ -31,6 +31,9 @@ Adds or replaces a row. `--goal` ties it to a criterion, such as `DEL-5`, or a g
 test needs a criterion. A changed command must be proved
 again.
 
+`run` also records each row's last status and date in `.loop/regression-runs.tsv`, which the wiki Tests tables show. The regression
+workflow on GitHub runs every `land` and `nightly` row, so a criterion's rows should be one of those; its run summary lists each row's result, and Actions keeps the run history.
+
 ## `sync [--write]`
 
 ```bash

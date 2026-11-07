@@ -32,7 +32,7 @@ template keeps every gate until its owner turns one off.
 
 ## Commands
 
-Each wiki page has a chart for every command, with a status line saying what's proven. Most of these have run on a toy
+Each skill's `references/` folder has a chart for every command, with a status line saying what's proven. Most of these have run on a toy
 repo, and `go` and `publish` have also run on a real repo. The skill flow has run for real only up to its first step. They may change while the first version settles. The examples use Claude Code. In other agents, you can ask
 in plain words, such as "start a goal to add result caching".
 
@@ -118,8 +118,9 @@ Keep the wiki in step with the code. Pages live in `docs/wiki/`, so they're revi
 `publish` only adds or updates pages it wrote, unless you name one with `--adopt`, and never deletes one. `restore`
 undoes the last publish.
 
-With `"criteria": true` in the config, `check` also holds the wiki to a contract: the feature pages plus Home, criteria
-with a stage that each have regression rows, a chart and status line for every command, and no script file names.
+With `"criteria": true` in the config, `check` also holds the wiki to a contract: the feature pages plus Home: each feature page is a Summary, up to 6 plain
+criteria marked Unreviewed or Reviewed with a date, and a Tests table of the regression rows that enforce them with their
+last result. A Reviewed criterion's wording is locked until the owner marks it Unreviewed.
 
 Release the work, or leave it unreleased for now:
 

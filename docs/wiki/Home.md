@@ -17,8 +17,9 @@ template keeps every gate until its owner turns one off.
 
 ## Features
 
-Each feature page has a Summary, its Commands with a stage chart for each, its Criteria with their stages and test
-count, and what enforces each one. Criteria marked Unreviewed have not been reviewed by the owner.
+Each feature page is a Summary, its Criteria, and a Tests table of the regression rows that enforce them with their last
+result and date. A criterion is Unreviewed or Reviewed with a date, and a Reviewed one's wording is locked. Command
+detail and charts are in each skill's `references/` folder.
 
 | Feature | Skill | Page |
 |---|---|---|
@@ -34,7 +35,7 @@ Setting up a repo (`workflow-setup`) is covered under Getting started in the REA
 
 ## Reading the charts
 
-Each chart shows a command's stages, with amber at each stop for the owner. Under it, `Status:` puts every stage in one
+The charts in each skill's `references/` folder are read this way. Each chart shows a command's stages, with amber at each stop for the owner. Under it, `Status:` puts every stage in one
 of three groups, `Stops for the owner:` names the stops, and `Proof:` says what the status rests on.
 
 | Status | Means |

@@ -14,7 +14,8 @@ usage: regression.py <command> [options]
                                 run the rows, then open, update or close one issue per failing row
   workflow                      write .github/workflows/regression.yml
 
-Rows live in .loop/regression.tsv: id, level, command, goal, seen_red. Known failures live in
+Rows live in .loop/regression.tsv: id, level, command, goal, seen_red. Each run records its rows' last status and
+date in .loop/regression-runs.tsv, which the wiki Tests tables show. Known failures live in
 .loop/regression-known.tsv: id, reason. A known failure never blocks. A row never seen failing does.
 Issues dry-run unless GH_TOKEN or GITHUB_TOKEN is set, or you pass --live. It runs git, gh and your test
 commands, and nothing else.
@@ -78,7 +79,7 @@ jobs:
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body")
           issues = json.loads(out.stdout or "[]")
-          red = []
+          red, lines = [], ["| Row | Result |", "|---|---|"]
           for row in rows(".loop/regression.tsv"):
               if len(row) < 3 or row[1] not in ("land", "nightly"):
                   continue
@@ -87,6 +88,7 @@ jobs:
               hits = [item for item in issues if mark in item["body"]]
               hit = next((item for item in hits if item["state"] == "OPEN"), hits[0] if hits else None)
               print("%s %s" % ("PASS" if done.returncode == 0 else "FAIL", row[0]))
+              lines.append("| %s | %s |" % (row[0], "PASS" if done.returncode == 0 else "FAIL"))
               if done.returncode == 0:
                   for item in hits:
                       if item["state"] == "OPEN":
@@ -100,6 +102,8 @@ jobs:
                       if hit["state"] != "OPEN":
                           gh("issue", "reopen", str(hit["number"]))
                       gh("issue", "comment", str(hit["number"]), "--body", "Still failing.")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as out:
+              out.write("## Regression rows\n\n" + "\n".join(lines) + "\n")
           sys.exit(1 if red else 0)
           PY
 """
@@ -255,7 +259,10 @@ def cmd_sync(args):
     rows = read_rows(root)
     missing = gaps(root)
     for key in criteria_ids(root):
-        if not criterion_rows(rows, key):
+        found = criterion_rows(rows, key)
+        if found and not any(row["level"] in ("land", "nightly") for row in found):
+            missing.append((key, "", "criterion has no row the workflow runs (land or nightly)"))
+        if not found:
             missing.append((key, "", "criterion has no regression row"))
             if args.write:
                 rows[key] = {"id": key, "level": "draft", "command": "echo write a test", "goal": key, "seen_red": ""}
@@ -404,6 +411,17 @@ def cmd_run(args):
         reason = " (%s)" % expected[row["id"]] if state == "KNOWN" else ""
         print("%s %s%s" % (state, row["id"], reason), flush=True)
         results.append({"id": row["id"], "state": state, "tail": text[-1500:]})
+    ran = {}
+    try:
+        with open(path_of(root, "regression-runs.tsv")) as handle:
+            ran = {line.split("\t")[0]: line.rstrip("\n") for line in handle if line.strip() and line[0] != "#"}
+    except OSError:
+        pass
+    for item in results:
+        ran[item["id"]] = "%s\t%s\t%s" % (item["id"], "PASS" if item["state"] == "PASS" else "FAIL", today())
+    if results:
+        with open(path_of(root, "regression-runs.tsv"), "w") as handle:
+            handle.write("# id\tstatus\tdate\n" + "".join(ran[key] + "\n" for key in sorted(ran)))
     never = [item["id"] for item in results if not rows[item["id"]]["seen_red"]]
     for key in never:
         print("UNPROVEN %s: never seen failing. Run red." % key)

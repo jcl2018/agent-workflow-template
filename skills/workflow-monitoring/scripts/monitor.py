@@ -27,7 +27,7 @@ SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 LIVE = ("running", "waiting")
 
 
-CRITERION = re.compile(r"^- ([A-Z]{2,5}-\d+): \*\*(Unreviewed|Reviewed|Enforced|Proven)\*\* (.+?)(?: <!-- reviewed (\w+) -->)?$")
+CRITERION = re.compile(r"^- ([A-Z]{2,5}-\d+): \*\*(Unreviewed|Reviewed \d{4}-\d\d-\d\d)\*\* (.+?)(?: <!-- reviewed (\w+) -->)?$")
 
 
 def git(*args, cwd=None, check=True):
@@ -211,16 +211,15 @@ def facts():
 
 
 def returned():
-    """Criteria changed after review, as (id, page, text): already returned, or changed and not yet synced."""
+    """Reviewed criteria whose wording changed, as (id, page, text). docs.py check fails on each."""
     folder = os.path.join(root(), config().get("wiki_dir") or "docs/wiki")
     found = []
     for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
         with open(os.path.join(folder, name)) as handle:
             for match in filter(None, map(CRITERION.match, handle.read().splitlines())):
                 key, stage, text, mark = match.groups()
-                seal = hashlib.sha256(text.encode()).hexdigest()[:8]
-                if text.startswith("(changed after review) ") or (stage != "Unreviewed" and mark != seal):
-                    found.append((key, name[:-3], text.replace("(changed after review) ", "")))
+                if stage != "Unreviewed" and mark != hashlib.sha256(text.encode()).hexdigest()[:8]:
+                    found.append((key, name[:-3], text))
     return found
 
 
@@ -259,7 +258,7 @@ def cmd_report(args):
         print("- %s (%s): %s" % (state["slug"], state["status"], " ".join(str(state.get("finding", "")).split())))
     if not found:
         print("(none)")
-    print("\nCRITERIA BACK TO UNREVIEWED")
+    print("\nREVIEWED CRITERIA CHANGED")
     back = returned()
     print("\n".join("- %s (%s): %s" % item for item in back) if back else "(none)")
     print("\nQUEUED, NOT STARTED")
