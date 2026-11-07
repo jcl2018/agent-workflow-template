@@ -55,7 +55,7 @@ counts every commit.
 ## `criteria`
 
 With `"criteria": true` in `.loop/config.json`, feature pages are a contract and `check` enforces it. Only the pages
-Delivery, Documentation, Health, Monitoring, Regression and Release exist, plus Home, which is free-form. Each feature page has
+Delivery, Documentation, Health, Milestones, Monitoring, Regression and Release exist, plus Home, which is free-form. Each feature page has
 exactly these sections, in this order: `Summary`, `Commands`, `Criteria`, `Enforced by`.
 
 ```bash

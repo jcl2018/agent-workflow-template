@@ -68,7 +68,8 @@ before="$(git status --porcelain --ignored)|$(git rev-parse HEAD)|$(git branch |
 $health check >/dev/null; $health check --json >/dev/null
 after="$(git status --porcelain --ignored)|$(git rev-parse HEAD)|$(git branch | wc -l)|$(git stash list | wc -l)"
 [ "$before" = "$after" ] && ok "check writes no file and makes no commit" || bad "check changed the repo"
-grep -Eq "gh |claude" "$here/skills/workflow-health/scripts/health.py" && bad "calls gh or a model" || ok "no gh or model call in the script"
+mkdir -p "$d/bin"; printf '#!/bin/bash\necho "$*" >> "%s/gh-calls"\nexit 1\n' "$d" > "$d/bin/gh"; chmod +x "$d/bin/gh"
+PATH="$d/bin:$PATH" $health check >/dev/null; [ ! -e "$d/gh-calls" ] && ok "check makes no gh call" || bad "check called gh"
 [ "$(wc -c < "$here/skills/workflow-health/scripts/health.py")" -lt 20480 ] && ok "health.py under 20 KB" || bad "size of health.py"
 
 echo "repo: $d/repo"

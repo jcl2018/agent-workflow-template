@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-"""Hold one goal's record: done lines, checks, verdict, pull request.
+"""Hold one goal's record: done lines, checks, verdict, PR.
 
 usage: goal.py <command> <slug> [options]
 
-  new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]  freeze a goal
-  queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]  add to .loop/queue.md
-  step SLUG NAME [--note TEXT]  record the step
-  check SLUG  run the repo's checks
-  judge SLUG [--design]  run the fresh judge
-  verdict SLUG --file FILE [--design]  record a verdict
-  pr SLUG  push and open the pull request
-  wait SLUG --ask TEXT --words W [--words W]  stop for an answer
-  answer SLUG  clear a wait
-  finding SLUG TEXT  file a finding and stop
-  show SLUG  print the goal's state
+  new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]
+  queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]
+  step SLUG NAME [--note TEXT]
+  check SLUG
+  judge SLUG [--design]
+  verdict SLUG --file FILE [--design]
+  pr SLUG  push, open the PR, join its milestone
+  wait SLUG --ask TEXT --words W [--words W]
+  answer SLUG
+  finding SLUG TEXT
+  show SLUG
 """
 import argparse
 import datetime
@@ -462,6 +462,9 @@ def cmd_pr(args):
     state["status"] = "done"
     save(state, "pull request " + url)
     print("PR " + url)
+    hook = os.path.normpath(os.path.join(sys.argv[0], "..", "..", "..", "workflow-health", "scripts", "milestone.py"))
+    if os.path.exists(hook):
+        print(run([sys.executable, hook, "attach", args.slug, "--live"]).stdout.strip())
     print("NEXT: workflow-release asks cut or leave. The loop never merges.")
     return 0
 

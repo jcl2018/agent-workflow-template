@@ -28,7 +28,7 @@ import sys
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 QUIET = 1800
 RUN_COMMANDS = ("note", "session", "retire", "take")
-SECTIONS = ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step"]
+SECTIONS = ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step", "Milestones"]
 FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on")
 
 
@@ -44,6 +44,26 @@ def pr_state(url, cwd):
         return "unknown"
     state = done.stdout.strip().lower()
     return state if done.returncode == 0 and state in ("open", "merged", "closed") else "unknown"
+
+
+def milestones(name, path, at):
+    """One row per milestone of a repo: open and closed counts, and the Backlog's oldest open issue in days. [] when gh gives no answer."""
+    def ask(*args):
+        try:
+            done = subprocess.run(["gh", *args], cwd=path, capture_output=True, text=True, timeout=20)
+            return json.loads(done.stdout) if done.returncode == 0 else None
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return None
+    found = ask("api", "repos/{owner}/{repo}/milestones?state=all&per_page=100")
+    rows = []
+    for item in found if isinstance(found, list) else []:
+        row = {"repo": name, "title": clean(item.get("title")), "open": item.get("open_issues", 0), "closed": item.get("closed_issues", 0), "age": "-"}
+        if row["title"] == "Backlog" and row["open"]:
+            held = ask("issue", "list", "--milestone", "Backlog", "--state", "open", "--limit", "500", "--json", "createdAt") or []
+            oldest = min([x for x in (stamp(i.get("createdAt")) for i in held) if x], default=None)
+            row["age"] = "%d days" % (at - oldest).days if oldest else "-"
+        rows.append(row)
+    return rows
 
 
 def clean(value, size=300):
@@ -228,9 +248,10 @@ def collect(name, path, base, at):
 
 
 def build(at, since):
-    rows, deps, names = [], [], []
+    rows, deps, names, miles = [], [], [], []
     for name, path, base in followed():
         names.append(name)
+        miles += milestones(name, path, at)
         more, wait = collect(name, path, base, at)
         rows, deps = rows + more, deps + wait
     live = [r for r in rows if r["status"] in ("running", "waiting")]
@@ -256,7 +277,7 @@ def build(at, since):
         len(rows), count("running"), len(waiting), count("done"), count("failed", "stopped"), len(deps), count("retired"))
     delay = delay_of(cadence, bool(live))
     doc = {"generated": iso(at), "repos": names, "cadence": cadence, "digest": digest,
-           "next_delay": delay, "next_at": "" if delay == "none" else (at + datetime.timedelta(seconds=int(delay))).strftime("%H:%M UTC"), "open": bool(live or waiting or deps), "sections": SECTIONS, "waiting": waiting, "dependencies": deps, "runs": rows, "state": flat}
+           "next_delay": delay, "next_at": "" if delay == "none" else (at + datetime.timedelta(seconds=int(delay))).strftime("%H:%M UTC"), "open": bool(live or waiting or deps), "sections": SECTIONS, "waiting": waiting, "dependencies": deps, "runs": rows, "milestones": miles, "state": flat}
     old = (read_json(since) or {}).get("state") if since else {}
     old = old if isinstance(old, dict) else {}
     for key, item in flat.items():  # gh failing to answer says nothing about the pull request

@@ -18,6 +18,8 @@ mkdir -p "$T/bin"
 cat > "$T/bin/gh" <<'GH'
 #!/bin/bash
 case "$*" in
+  api*milestones*) [ -n "${NO_MILESTONES:-}" ] && exit 1; echo '[{"title":"Backlog","open_issues":2,"closed_issues":1},{"title":"Health","open_issues":0,"closed_issues":3}]';;
+  "issue list"*) echo '[{"createdAt":"2025-12-25T00:00:00Z"},{"createdAt":"2025-12-30T00:00:00Z"}]';;
   *pull/1*) echo MERGED;; *pull/2*) echo CLOSED;; *pull/3*) echo OPEN;; *) echo "gh: no answer" >&2; exit 1;;
 esac
 GH
@@ -64,11 +66,11 @@ grep -q "^CHANGE .*runa step: build -> checks" "$T/b4" && ok "CHANGE line names 
 [ "$(grep -c '^CHANGE ' "$T/b4")" = 1 ] && ok "only the changed field is listed" || bad "changed field count: $(grep -c '^CHANGE ' "$T/b4")"
 rec runa running 1 build 2026-01-01T11:50:00Z 'checks="pass"' 'note={"text":"<b>hi</b> building","at":"x"}'
 H="$O/board.html"
-python3 - "$O/board.json" "$H" <<'PY' && ok "six sections in order, with content" || bad "sections"
+python3 - "$O/board.json" "$H" <<'PY' && ok "seven sections in order, with content" || bad "sections"
 import json, sys
 d = json.load(open(sys.argv[1])); h = open(sys.argv[2]).read()
 names = d["sections"]
-assert names == ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step"], names
+assert names == ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step", "Milestones"], names
 pos = [h.index("<h2>" + n) for n in names]
 assert pos == sorted(pos), pos
 w = {x["slug"]: x for x in d["waiting"]}
@@ -87,7 +89,11 @@ assert "archived" in f["note"] or "archive" in f["note"]
 steps = [(s["slug"], s["step"], s["status"]) for s in d["steps"]]
 assert ("runa", "design", "done") in steps and ("runa", "build", "running") in steps and ("runa", "pr", "pending") in steps
 assert d["runs"][0].get("repo") and d["steps"][0].get("repo")
+m = {x["title"]: x for x in d["milestones"]}
+assert m["Backlog"]["open"] == 2 and m["Backlog"]["closed"] == 1 and m["Backlog"]["age"].endswith("days") and m["Health"]["age"] == "-", m
+assert "<td>Backlog</td>" in h and "Oldest open" in h
 PY
+NO_MILESTONES=1 $B board --at $AT --out "$T/nomile" >/dev/null && python3 -c "import json,sys;assert json.load(open(sys.argv[1]))['milestones']==[]" "$T/nomile/board.json" && ok "no milestone rows when gh gives no answer" || bad "no milestones"
 python3 - "$H" <<'PY' && ok "html is self-contained, escaped, themed, phone-wide" || bad "html"
 import sys
 h = open(sys.argv[1]).read()
