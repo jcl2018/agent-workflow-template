@@ -93,6 +93,8 @@ def criteria_rows(root):
     if loose:
         rows.append(row("WARN", "criteria", "done-lines", "rows", "%d done lines have no regression row" % loose,
                         "regression.py sync --write drafts rows"))
+    if not rows and not any(line.startswith("SYNC OK") for line in lines):
+        return [row("UNREAD", "criteria", "regression", "sync", (done.stderr.strip() or "no SYNC OK line")[:120])]
     return rows or [row("PASS", "criteria", "rows", "sync", "every criterion and done line has a proven row")]
 
 
@@ -142,13 +144,16 @@ def hygiene_rows(root):
             with open(path) as handle:
                 state = json.load(handle)
         except (OSError, ValueError):
+            rows.append(row("UNREAD", "hygiene", os.path.basename(path)[:-5], "run", "run record cannot be read"))
             continue
         if isinstance(state, dict) and state.get("status") == "waiting" and hours_old(state.get("updated")) > WAITING_HOURS:
             rows.append(row("WARN", "hygiene", state.get("slug") or os.path.basename(path)[:-5], "waiting",
                             "waiting over %d hours" % WAITING_HOURS, "answer it or retire it on the board"))
     base = "origin/main" if run(["git", "rev-parse", "--verify", "--quiet", "origin/main"], root).returncode == 0 else "main"
     merged = run(["git", "branch", "--merged", base], root)
-    if merged.returncode == 0:
+    if merged.returncode:
+        rows.append(row("UNREAD", "hygiene", "branches", "merged", (merged.stderr.strip() or "git branch failed")[:120]))
+    else:
         for line in sorted(merged.stdout.splitlines()):
             name = line[2:].strip()
             if line.startswith("  ") and name.startswith("loop/"):
