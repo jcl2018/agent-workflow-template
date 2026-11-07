@@ -50,7 +50,7 @@ python3 scripts/release.py cut add-median --bump minor --user
 
 - REL-1: (draft) A release is refused unless the goal lists numbered steps to verify by hand, each with what to expect.
 - REL-2: (draft) A release is only ever created as a draft on GitHub, and nothing is merged.
-- REL-3: (draft) A goal run in a monitored batch cannot be released unless the owner's own words said to cut.
+- REL-3: (draft) With automatic releases off, a goal run in a monitored batch cannot be cut unless the owner's own words said to cut.
 
 ## Enforced by
 
