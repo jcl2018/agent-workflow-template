@@ -8,6 +8,7 @@ usage: regression.py <command> [options]
                                 add or replace a row. L is land, nightly, draft or covered
   sync [--write]                list done lines and wiki criteria with no row and rows never seen failing;
                                 --write drafts rows (a criterion's row has its id as id or goal)
+  criteria                      run each wiki criterion's row; print one UNMET line for each missing, draft or failing
   red ID --break CMD            copy HEAD, run CMD to break it, and record that the test fails there
   run [land|nightly|ID] [--timeout S] [--live]
                                 run the rows, then open, update or close one issue per failing row
@@ -279,6 +280,20 @@ def cmd_sync(args):
     return 0
 
 
+def cmd_criteria(_args):
+    root = top()
+    rows = read_rows(root)
+    unmet = []
+    for key in criteria_ids(root):
+        row = criterion_row(rows, key)
+        if not row:
+            unmet.append("%s (no regression row)" % key)
+        elif row["level"] == "draft" or (row["level"] != "covered" and run(["sh", "-c", row["command"]], cwd=root).returncode):
+            unmet.append("%s (row %s is a draft or failing)" % (key, row["id"]))
+    print("\n".join(unmet))
+    return 1 if unmet else 0
+
+
 def cmd_red(args):
     root = top()
     rows = read_rows(root)
@@ -424,6 +439,7 @@ def main():
     item = sub.add_parser("sync")
     item.add_argument("--write", action="store_true")
     item.set_defaults(func=cmd_sync)
+    sub.add_parser("criteria").set_defaults(func=cmd_criteria)
     item = sub.add_parser("red")
     item.add_argument("id")
     item.add_argument("--break", dest="break_it", required=True)
