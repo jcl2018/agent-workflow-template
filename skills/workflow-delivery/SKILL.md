@@ -1,6 +1,6 @@
 ---
 name: workflow-delivery
-description: Takes one sentence to a pull request. `poc` answers a question and writes nothing; `go` hands the goal to a background agent, which builds it at a level of minimum, quick, standard or full. Use when asked to try an idea, or to build a change and open a pull request.
+description: Takes one sentence to a pull request. `poc` answers a question and writes nothing; `go` hands the goal to a background agent, which builds it at a level of 0, 1 or 2. Use when asked to try an idea, or to build a change and open a pull request.
 ---
 
 # workflow-delivery
@@ -24,7 +24,7 @@ go "<the goal>" --done "<line 1>" --done "<line 2>"
 python3 scripts/goal.py queue <slug> --goal "<the goal>" --done "<line 1>" --done "<line 2>"
 ```
 
-## `go "<goal>" --done "<line>" ... [--level minimum|quick|standard|full] [--touches "<file,file>"]`
+## `go "<goal>" --done "<line>" ... [--level 0|1|2] [--touches "<file,file>"]`
 
 **One session governs, and the others build.** In an interactive session, don't build the goal yourself. Hand it to
 `workflow-monitoring`, then watch:
@@ -38,17 +38,16 @@ The steps below are for a background agent already inside its goal's worktree. I
 is a tool that can't run a background agent: tell the user, then freeze with `goal.py new <slug> --here`.
 
 If the user gave no done lines, write them and show them before you start. Each must be provable before the pull
-request, because the judge runs then. The level is `minimum` unless the user named another.
+request, because the judge runs then. The level is `0` unless the user named another.
 
 | Level | Steps | Fresh judge | Use it for |
 |---|---|---|---|
-| `minimum` | Build, checks | No | The default: fast work, using your own planning |
-| `quick` | Written plan, build, checks | No | Small changes you want a plan on record for |
-| `standard` | Short design, plan, build, checks | One, at the end | Most work |
-| `full` | Adds a design review before the build | One, plus the review | Risky or large changes |
+| `0` | Design, plan, build, checks | No | The default: most work |
+| `1` | Same, plus a judge | One, after the build | Work worth a second look |
+| `2` | Adds a design review before the build | One, plus the review | Risky or large changes |
 
-`minimum` has no design round and no `## Plan` to fill in. Any change to CI, auth or data is `standard` at least. The
-script raises the level when `--touches` or the diff hits a risky path.
+The names `minimum`, `quick`, `standard` and `full` are refused with a line naming 0, 1 and 2. Any change to CI, auth
+or data is level `1` at least. The script raises the level when `--touches` or the diff hits a risky path.
 
 ### Done lines a judge can prove
 
@@ -71,13 +70,13 @@ python3 scripts/goal.py new <slug> --here --goal "<goal>" --done "<line>" --leve
 This writes `.loop/goals/<slug>.md`, makes branch `loop/<slug>` and freezes the done lines. Never edit them. A wrong
 done line needs a new goal: run `goal.py finding`, and tell the user.
 
-### 2. Design (`standard`, `full`)
+### 2. Design (every level)
 
 Write a few lines under `## Design`: the approach, and what could go wrong. Commit them.
-At `full`, run `goal.py judge <slug> --design`. It reads only the goal file. A failed review costs a try: rewrite the
+At level 2, run `goal.py judge <slug> --design`. It reads only the goal file. At level 2, the design review uses a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo). With none set, or the skill missing, the built-in review runs; the output says which ran. A failed review costs a try: rewrite the
 design, commit it and run it again.
 
-### 3. Plan (not at `minimum`)
+### 3. Plan
 
 Write the steps under `## Plan`, naming the check that proves each done line. Commit them, and run
 `goal.py step <slug> plan`.
@@ -100,7 +99,7 @@ Write what they can see, not what the tests already prove.
 
 Run `goal.py check <slug>`. On a failure, fix the cause, commit, and run it again.
 
-### 6. Judge (`standard`, `full`)
+### 6. Judge (levels 1 and 2)
 
 Run `goal.py judge <slug>`. It gives a fresh agent only the diff, the goal file and the check results, in an empty
 folder. You never judge your own work. If a done line needs proof the checks don't print, add real command output to a
@@ -117,7 +116,7 @@ A commit after the verdict needs new checks and a new verdict. Only the version 
 ### 7. Pull request
 
 Run `goal.py pr <slug>`. It refuses until the checks, and the judge where the level needs one, hold on this commit, and
-at `full` until the design review has passed. With `pr_bumps_version` on in the config, it moves the last number of the
+at level 2 until the design review has passed. With `pr_bumps_version` on in the config, it moves the last number of the
 version file once on this branch first. It retries a failed push twice, then prints git's full error.
 The pull request is the user's review. Never merge it.
 

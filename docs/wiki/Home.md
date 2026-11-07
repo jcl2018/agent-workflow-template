@@ -41,4 +41,4 @@ judges it, and you review the pull request. One session governs and the others b
 
 - The timed check-in loop (`board.py cadence`, then `watch.py watch --once` and `board.py board` on each wait) has not
   fired on its timer. No finding or decision records a run of it, and `dev/toy/test-board.sh` uses fixtures.
-- The `full` level has not run, on a toy repo or a real one (docs/ROADMAP.md).
+- Level 2 has not run, on a toy repo or a real one (docs/ROADMAP.md).

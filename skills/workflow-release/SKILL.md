@@ -19,8 +19,7 @@ When `workflow-delivery` ends with `NEXT: workflow-release asks cut or leave`, r
 python3 scripts/release.py ask <slug>
 ```
 
-It refuses unless the goal is `done` with checks `pass` (and the judge `pass`, unless the level is `minimum` or
-`quick`).
+It refuses unless the goal is `done` with checks `pass` (and the judge `pass`, unless the level is `0`).
 
 - `WAITING <slug>: ...`: the goal now waits on the user. Show everything it printed: the docs that changed, the wiki
   link, the steps to verify by hand, the question, and the two exact lines `cut <slug>` and `leave <slug>`. Then stop.

@@ -1,13 +1,13 @@
 <!-- workflow-docs -->
 # Delivery
 
-Skill: `workflow-delivery`. Takes one sentence to a pull request, judged by a fresh agent at `standard` and `full`.
+Skill: `workflow-delivery`. Takes one sentence to a pull request, judged by a fresh agent at levels 1 and 2.
 Script: `skills/workflow-delivery/scripts/goal.py`.
 
 ## Commands
 
 - `poc "<question>"`: answers a question about the repo and writes nothing. It ends with a `go` line and a queue line.
-- `go "<goal>" --done "<line>" ... [--level minimum|quick|standard|full] [--touches "<file,file>"]`: freezes the done
+- `go "<goal>" --done "<line>" ... [--level 0|1|2] [--touches "<file,file>"]`: freezes the done
   lines and runs the goal. In an interactive session it hands off to [Monitoring](Monitoring), so the governing session
   never builds.
 
@@ -15,13 +15,14 @@ Script: `skills/workflow-delivery/scripts/goal.py`.
 
 | Level | Steps | Fresh judge |
 |---|---|---|
-| `minimum` (default) | Build, checks | No |
-| `quick` | Written plan, build, checks | No |
-| `standard` | Short design, plan, build, checks | One, at the end |
-| `full` | Adds a design review before the build | One, plus the review |
+| `0` (default) | Design, plan, build, checks | No |
+| `1` | Same, plus a judge | One, after the build |
+| `2` | Adds a design review before the build | One, plus the review |
 
-Changes to CI, auth or data are `standard` at least. The script raises `minimum` or `quick` to `standard` when
-`--touches` or the diff hits a path in `risky_paths`.
+Changes to CI, auth or data are level `1` at least. The script raises `0` to `1` when `--touches` or the diff hits a
+path in `risky_paths`. The old names `minimum`, `quick`, `standard` and `full` are refused with a line naming 0, 1 and 2.
+
+At level 2, the design review uses a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo). With none set, or the skill missing, the built-in review runs; the output says which ran.
 
 ## Done lines
 
@@ -49,11 +50,11 @@ A background agent runs `step`, `check`, `judge` (where the level needs it) and 
 only the proof was missing. After 3 failed tries it files a finding in `.loop/findings.md` and stops with exit code 3.
 
 `pr` pushes the branch, retrying twice, and opens the pull request. It refuses until the checks (and the judge, where
-the level needs one) hold on this commit, and at `full` until the design review has passed. With `pr_bumps_version` on,
+the level needs one) hold on this commit, and at level 2 until the design review has passed. With `pr_bumps_version` on,
 it first moves the last number of the version file once.
 
 The fresh judge is given only the diff, the goal file and the check results, in an empty folder. The design review at
-`full` is given only the goal file. Proof the checks don't print goes under `## Evidence` in the goal file. Commit it
+level 2 is given only the goal file. Proof the checks don't print goes under `## Evidence` in the goal file. Commit it
 and run `check` again, because `judge` refuses a commit the checks haven't passed.
 
 ## Example

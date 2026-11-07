@@ -1,5 +1,5 @@
 #!/bin/bash
-# Real proof of one governing process: two minimum goals, started by one process, each built by a real headless agent in
+# Real proof of one governing process: two level 0 goals, started by one process, each built by a real headless agent in
 # its own worktree. WARNING: this calls the real claude CLI (haiku by default). gh is faked. usage: test-govern.sh [DIR]
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
@@ -32,7 +32,7 @@ $M report
 
 for s in stats-a stats-b; do
   [ "$(field $s status)" = done ] && ok "$s done" || bad "$s is $(field $s status)"
-  [ "$(field $s level)" = minimum ] && ok "$s stayed minimum" || bad "$s level"
+  [ "$(field $s level)" = 0 ] && ok "$s stayed at level 0" || bad "$s level"
   [ -n "$(field $s pr)" ] && [ "$(field $s pr)" != None ] && ok "$s has a pull request" || bad "$s pr"
   [ "$(field $s judge)" = "" ] && ok "$s ran no judge" || bad "$s judged"
   [ -f "$C/loop/worktrees/$s/${s/-/_}.py" ] && ok "$s built in its own worktree" || bad "$s worktree"
