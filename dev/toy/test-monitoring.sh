@@ -220,6 +220,8 @@ $M report >/dev/null; $M dashboard >/dev/null
 check "report never marks a goal with no pid failed" '[ "$(field own status)" = running ]'
 $W watch --once >/dev/null
 check "watch never marks a goal with no pid failed" '[ "$(field own status)" = running ]'
+timeout_watch() { python3 -c "import subprocess,sys;sys.exit(subprocess.run(sys.argv[1:],timeout=20,stdout=subprocess.DEVNULL).returncode)" "$@"; }
+check "a plain watch still ends beside a goal with no pid" 'timeout_watch python3 "$here/skills/workflow-monitoring/scripts/watch.py" watch --interval 0.2'
 sets own 'status="stopped"'
 $W watch --once >/dev/null
 check "a goal with no pid is never mended" 'sleep 0.3; [ "$(field own status)" = stopped ] && [ "$(field own mended)" = None ]'

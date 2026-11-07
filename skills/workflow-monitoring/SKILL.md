@@ -63,7 +63,7 @@ Both are off until the user turns them on in `.loop/config.json`.
 | `resume_on_limit: true` | When a log shows a usage limit, waits `limit_wait` seconds (default 1800), then continues the goal, up to 6 times |
 
 A limit doesn't use up the mend. Neither one merges, edits done lines, changes permissions or touches a visible
-session's goal or a landed one (`board.py take SLUG` marks a goal a session has taken over).
+session's goal, a goal with no pid or a landed one (`board.py take SLUG` marks a goal a session has taken over).
 
 ## `report`
 
@@ -135,7 +135,7 @@ user says so.
 | `waiting` | Stopped until the user answers; `waiting.words` are the exact words |
 | `done` | Has a pull request and its checks hold |
 | `stopped` | Stopped itself after 3 failed tries, finding filed |
-| `failed` | The agent ended without finishing (never set for a goal marked `external`) |
+| `failed` | The agent ended without finishing (never set for a goal marked `external`, or with no pid) |
 | `retired` | Superseded; set by `board.py retire`, and `watch` and `resume` leave it alone |
 
 ## Rules
