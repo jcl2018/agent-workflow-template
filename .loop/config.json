@@ -8,7 +8,8 @@
     "bash dev/toy/test-regression.sh",
     "python3 dev/package.py --out dist/check.zip",
     "bash dev/test-package.sh",
-    "bash dev/toy/test-board.sh"
+    "bash dev/toy/test-board.sh",
+    "bash dev/toy/test-batch.sh"
   ],
   "agent_command": [
     "claude",

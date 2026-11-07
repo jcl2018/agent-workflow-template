@@ -69,7 +69,11 @@
     "note",
     "session",
     "retire",
-    "handoff"
+    "handoff",
+    "add",
+    "start",
+    "status",
+    "promote"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
@@ -83,6 +87,8 @@
     "a version bump commit on a goal's branch, only with pr_bumps_version on",
     "loop/board.json, sessions.json, cadence and handoff.md under the git common dir, and a run record's note or retired mark, when you run board.py",
     "loop/board.html, board-artifact.html and the dependency map in board.json, when you run board_page.py",
+    "loop/pocs/<slug>.md and .go under the git common dir, a POC's saved answer and go line, when you run batch.py",
+    "a batch heading and its poc lines in .loop/queue.md, when you run batch.py add",
     "loop/waits/<slug> under the git common dir, when a goal is held by another",
     "~/.workflow-loop/repos in the home folder, when you run board.py repos add"
   ],
