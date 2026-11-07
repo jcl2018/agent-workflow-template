@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Govern many goals from one session. That session never builds.
+"""Govern many goals from one session. That session only assigns, watches and reports; workers build.
 
 usage: watch.py <command> [options]
 
-  go "GOAL" --done LINE [--done LINE] [--touches A,B] [--slug S] [--release ask] [--session]
-      queue a goal and start a background agent in its own worktree; --session starts no process, and prints
-      WORKTREE and PROMPT
+  go "GOAL" --done LINE [--done LINE] [--touches A,B] [--slug S] [--release ask]
+      queue a goal and start a worker in its own worktree; the worker runs its own loop and reports back
   watch [--max N] [--once] [--interval S]
       start queued goals, mend and resume if allowed, print what changed and what waits
   resume SLUG
-      relaunch a failed or stopped goal; for a visible session, print WORKTREE and PROMPT again
+      relaunch a failed or stopped goal as a worker
 
 All take --skill-dir DIR, the skills folder.
 Run state lives in <git common dir>/loop/. It never merges.
@@ -55,12 +54,11 @@ Step 1 (Freeze) is already done for you: .loop/goals/{slug}.md is committed with
 record exists. Do not run goal.py new and never edit the done lines. Start at step 2, the idea step, and use goal.py
 and flow.py with the slug {slug} for every step. Work only in this worktree.
 
+When a done line is proven, run `python3 {worker} met {slug} N` for its number N.
 Stop at the pull request (goal.py pr). Never merge it yourself. Then follow workflow-release if you have it: {release}
 """ + DATA
-SEAT = """Work in the git worktree {tree} (branch {branch}), even if this session opened elsewhere: begin every shell
-command with `cd {tree} &&`, use full paths for files, and check the branch before you write.
-
-"""
+STEPS = ("build", "plan", "idea", "review", "qa", "ship", "step", "check", "pr", "record", "run")
+REFUSE = "REFUSED: %s is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME"
 LEAVE = "this is a monitored batch, so answer leave yourself, never cut."
 ASK = ('ask the user first: run goal.py wait {slug} --ask "Cut a release or leave it unreleased?" '
        '--words "cut {slug}" --words "leave {slug}" and stop.')
@@ -161,7 +159,7 @@ def parse_queue():
                 item["done"].append(value)
             elif key == "touches":
                 item["touches"] = [path.strip() for path in value.split(",") if path.strip()]
-            elif key in ("slug", "goal", "release", "session"):
+            elif key in ("slug", "goal", "release"):
                 item[key] = value
         slug = item.get("slug", "")
         if not SLUG.match(slug) or slug in seen or not item.get("goal") or not item["done"]:
@@ -182,8 +180,8 @@ def waits_file(slug):
 
 
 def holds_slot(state):
-    """A running goal with no pid isn't a marked session: it still blocks overlapping files, but uses no agent slot."""
-    return state.get("status") != "running" or state.get("pid") or state.get("external")
+    """A running goal with no pid still blocks overlapping files, but uses no worker slot."""
+    return state.get("status") != "running" or state.get("pid")
 
 
 def blocker(goal, live):
@@ -223,12 +221,14 @@ def log_tail(slug, size=200, mark=0):
 
 def refresh():
     for state in runs():
-        if state.get("status") == "running" and state.get("pid") and not state.get("external") and not alive(state.get("pid")):
+        if state.get("status") == "running" and state.get("pid") and not alive(state.get("pid")):
             fresh = load(state["slug"])
             if fresh and fresh.get("status") == "running" and fresh.get("pid") == state.get("pid"):
                 fresh["status"] = "failed"
                 fresh["finding"] = log_tail(state["slug"])
-                save(fresh, "failed: agent pid %s ended without finishing" % state.get("pid"))
+                fresh["report"] = {"status": "failed", "pr": fresh.get("pr", ""), "at": now(),
+                                   "text": "worker %s ended without reporting" % fresh["slug"]}
+                save(fresh, "failed: worker pid %s ended without finishing" % state.get("pid"))
 
 
 def risky(paths, cfg):
@@ -250,21 +250,17 @@ def release_text(state):
     return ASK.format(slug=state["slug"]) if state.get("release") == "ask" else LEAVE
 
 
-def seated(state, prompt):
-    return SEAT.format(tree=state["worktree"], branch=state["branch"]) + prompt if state.get("external") else prompt
-
-
-def hand_over(state, prompt, cfg=None):
-    state["external"], state["status"] = True, "running"
-    save(state, "visible session: no process")
-    print("WORKTREE %s\nPROMPT %s" % (state["worktree"], prompt))
+def worker_cmd():
+    return os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "worker.py")
 
 
 def launch(state, prompt, cfg):
     command = list(cfg.get("agent_command") or [])
     if not command:
         sys.exit("REFUSED: no agent_command in .loop/config.json.")
-    env = dict(os.environ, LOOP_BATCH="1")
+    env = dict(os.environ, LOOP_BATCH="1", LOOP_ROLE="worker")
+    if os.path.exists(worker_cmd()):
+        command = [sys.executable, worker_cmd(), "loop", state["slug"], "--"] + command
     log = open(os.path.join(loop_dir("logs"), state["slug"] + ".log"), "a")
     try:
         child = subprocess.Popen(command + [prompt], cwd=state["worktree"], stdout=log, stderr=subprocess.STDOUT,
@@ -310,10 +306,9 @@ def freeze(goal, cfg):
 
 def go_prompt(state, goal, skill_dir):
     done = " ".join('--done "%s"' % line.replace('"', "'") for line in goal["done"])
-    return seated(state, GO_PROMPT.format(
-        branch=state["branch"], goal=state["goal"].replace('"', "'"), done=done, slug=state["slug"],
-        where=where(skill_dir), touches=", ".join(state["touches"]) or "not declared",
-        release=release_text(state)))
+    return GO_PROMPT.format(
+        branch=state["branch"], goal=state["goal"].replace('"', "'"), done=done, slug=state["slug"], worker=worker_cmd(),
+        where=where(skill_dir), touches=", ".join(state["touches"]) or "not declared", release=release_text(state))
 
 
 def plan(limit):
@@ -351,8 +346,7 @@ def start_round(args, cfg):
             state["finding"] = str(error)
             save(state, "failed to start: %s" % error)
             continue
-        state["external"] = bool(goal.get("session"))
-        (hand_over if state["external"] else launch)(state, go_prompt(state, goal, args.skill_dir), cfg)
+        launch(state, go_prompt(state, goal, args.skill_dir), cfg)
     return begun, held
 
 
@@ -407,8 +401,6 @@ def cmd_go(args):
         parts.append("touches: " + args.touches)
     if args.release:
         parts.append("release: " + args.release)
-    if args.session:
-        parts.append("session: yes")
     parts.append("goal: " + " ".join(args.goal.split()))
     parts += ["done: " + " ".join(line.split()) for line in args.done]
     path = os.path.join(root(), ".loop", "queue.md")
@@ -418,7 +410,7 @@ def cmd_go(args):
     refresh()
     _, waiting = start_round(args, cfg)
     state = load(slug)
-    if state and not args.session:
+    if state:
         print("STARTED %s in %s. Run watch." % (slug, state.get("worktree")))
     for goal, why in waiting:
         if goal["slug"] == slug:
@@ -448,7 +440,7 @@ def cmd_watch(args):
         pending = keep_moving(cfg, args.skill_dir)
         begun, _ = start_round(args, cfg)
         tell(seen, told)
-        if args.once or not (begun or pending or any(state.get("status") == "running" and (state.get("pid") or state.get("external")) for state in runs())):
+        if args.once or not (begun or pending or any(state.get("status") == "running" and state.get("pid") for state in runs())):
             break
         time.sleep(interval)
     _, held = plan(limit_of(args, cfg))
@@ -479,7 +471,6 @@ def main():
     item.add_argument("--touches", default="")
     item.add_argument("--slug", default="")
     item.add_argument("--release", default="", choices=["", "ask"])
-    item.add_argument("--session", action="store_true")
     item = sub.add_parser("watch")
     item.add_argument("--once", action="store_true")
     item.add_argument("--interval", type=float, default=0)
@@ -488,6 +479,8 @@ def main():
     for item in sub.choices.values():
         item.add_argument("--max", type=int, default=0)
         item.add_argument("--skill-dir", default="")
+    if sys.argv[1:2] and sys.argv[1] in STEPS and os.environ.get("LOOP_ROLE") != "worker":
+        sys.exit(REFUSE % sys.argv[1])
     args = parser.parse_args()
     return globals()["cmd_" + args.command](args)
 

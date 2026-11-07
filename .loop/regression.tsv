@@ -7,7 +7,6 @@ DOC-2	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale
 DOC-3	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"	DOC-5	2026-11-07
 MON-1	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the overlapping goal is held"	MON-15	2026-11-07
 MON-2	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a retired goal leaves Waiting on you"	MON-14	2026-11-07
-MON-3	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: record marked external, no process started"	MON-17	2026-11-07
 REG-1	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"	REG-4	2026-11-07
 REG-2	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: known doesn.t block or open an issue"	REG-5	2026-11-07
 REG-3	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: no token: dry run, no gh call"	REG-6	2026-11-07
@@ -26,7 +25,6 @@ unreviewed-banner	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: an Un
 waits-first	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: seven sections in order, with content"	MON-14	2026-11-07
 dependencies-on-map	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a dependency survives its goal starting"	MON-15	2026-11-07
 one-failure	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal leaves the others running"	MON-16	2026-11-07
-sessions-tracked	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a tracked session has a lane, a box, an arrow and a row in Runs"	MON-17	2026-11-07
 tests-seen-failing	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a test that can.t fail stays unproven"	REG-4	2026-11-07
 one-issue	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: failure opened an issue"	REG-7	2026-11-07
 one-link	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a test with no criterion fails"	REG-8	2026-11-07
@@ -34,7 +32,6 @@ refused-unmet	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: cut refus
 breaking-asks	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: breaking change waits"	REL-8	2026-11-07
 docs-only	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: docs only leaves"	REL-9	2026-11-07
 MON-9	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal with an empty pr field|a mender running after its goal lands)" | wc -l | grep -q 2	MON-17	2026-11-07
-MON-10	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a goal a session has taken over gets no mender"	MON-17	2026-11-07
 MON-11	land	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2	MON-14	2026-11-07
 DEL-4	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: pr refuses until the flow ends"	DEL-7	2026-11-07
 MON-13	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal waits before a mender starts"	MON-17	2026-11-07
@@ -60,3 +57,11 @@ HLT-7c	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a rule that co
 starts-at-idea	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: starts at idea, with no level"	DEL-6	2026-11-07
 steps-through-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: record refuses a reply flow.py didn.t run"	DEL-6	2026-11-07
 auto-approved	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: logged and on the board as auto-approved, nothing waits"	DEL-7	2026-11-07
+worker-refuses	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: watch.py build refuses with one line naming the worker command"	MON-18	
+worker-per-goal	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: each goal ran in its own process and worktree, as a worker"	MON-18	
+worker-reports	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: merged carries its pull request"	MON-18	
+one-way-to-run	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a grep finds nothing for the old upgrade paths"	MON-18	
+stuck-stays-top	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a stuck worker stays at the top until it is answered"	MON-14	
+status-order	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: five sections in the fixed order"	MON-19	
+needs-you-stuck	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: Needs you holds the failed and the waiting worker, with the exact words"	MON-19	
+estimates-shown	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a running goal shows each step with an estimate from past runs"	MON-19	

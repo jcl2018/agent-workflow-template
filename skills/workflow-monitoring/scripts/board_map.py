@@ -16,7 +16,7 @@ ORDER = STEPS["goal"] + ["release"]
 TEXT = {"idea": "Shape the idea into a design", "plan": "Review the design into a plan", "build": "Build the change",
         "checks": "Run the checks", "review": "Review the change", "qa": "Test the change", "ship": "Prepare it to ship",
         "pr": "Open the pull request",
-        "release": "Answer the release question", "session": "A tracked session"}
+        "release": "Answer the release question"}
 OPEN = ("running", "waiting", "failed", "stopped", "queued")
 
 
@@ -52,12 +52,12 @@ def sections(doc):
         queued["boxes"] = STEPS.get(queued["level"], STEPS["goal"])
     history = {}
     for r in rows:
-        if r["status"] == "done" and r["took"] > 0 and not r["tracked"]:
+        if r["status"] == "done" and r["took"] > 0:
             history.setdefault(r["level"], []).append(r["took"])
     usual = {level: statistics.median(took) for level, took in history.items()}
     expected = []
     for r in rows:
-        if r["status"] == "running" and not r["tracked"]:
+        if r["status"] == "running":
             old = usual.get(r["level"])
             guess = "estimate: about %s left" % span(max(0, old - r["elapsed"])) if old else \
                 "no estimate: no finished %s goals yet" % r["level"]
@@ -68,8 +68,6 @@ def sections(doc):
     note = "%d item(s) wait on you, so do not archive yet." % len(waiting) if waiting else "Nothing waits on you, so these can be archived."
     steps = []
     for r in rows:
-        if r["tracked"]:
-            continue
         mine = STEPS.get(r["level"], STEPS["goal"])
         at_step = ORDER.index(r["step"]) if r["step"] in ORDER else -1
         for step in mine + (["release"] if r["status"] == "done" or r["step"] == "release" else []):
@@ -85,7 +83,7 @@ class Map:
     def __init__(self, doc):
         self.at = stamp(doc["generated"])
         self.doc, self.history = doc, doc["usual"]
-        queued = [dict(d, status="queued", waits_on=d["on"], tracked=False, elapsed=0, note="", finding="", eta="", next="",
+        queued = [dict(d, status="queued", waits_on=d["on"], elapsed=0, note="", finding="", eta="", next="",
                        waiting=None, last="", branch="") for d in doc["dependencies"]]
         self.known = doc["runs"] + queued
         self.shown, self.ended, self.waiters, self.seen = {}, {}, {}, set()
@@ -94,7 +92,7 @@ class Map:
             self.steps.setdefault(key(step), []).append(step)
         today = self.at.strftime("%Y-%m-%d")
         for run in self.known:
-            kept = run["status"] in OPEN or (run["status"] == "done" and (run["tracked"] or run["last"].startswith(today)))
+            kept = run["status"] in OPEN or (run["status"] == "done" and run["last"].startswith(today))
             if kept:
                 self.show(run)
         for run in list(self.shown.values()):
@@ -112,7 +110,7 @@ class Map:
         self.seen.add(key(run))
         for slug in blockers(run):
             found = self.find(run, slug) or dict(run, slug=slug, goal="Not tracked on this board", status="unknown", ghost=True,
-                                                 waits_on="", touches=[], tracked=False, note="", next="", finding="", eta="")
+                                                 waits_on="", touches=[], note="", next="", finding="", eta="")
             if found["status"] != "retired":
                 self.show(found)
         self.shown[key(run)] = run
@@ -123,7 +121,7 @@ class Map:
             return
         target = key(found) if found else "%s/%s" % (run["repo"], slug)
         hit = [t for t in run.get("touches") or [] for u in (found or {}).get("touches") or [] if overlap(t, u)]
-        why = "%s %s" % ("session" if found and found["tracked"] else "goal", slug) + (", shared %s" % hit[0] if hit else "")
+        why = "goal " + slug + (", shared %s" % hit[0] if hit else "")
         self.waiters.setdefault(target, []).append((key(run), why))
 
     def begins(self, run):
@@ -135,9 +133,7 @@ class Map:
         if name not in self.ended:
             self.ended[name] = self.at if run["status"] == "done" else None  # None also stops a cycle
             usual = self.history.get(run.get("level"))
-            if run["tracked"]:
-                self.ended[name] = stamp(run["eta"]) if run["eta"] else None
-            elif run["status"] in ("running", "waiting") and usual is not None:
+            if run["status"] in ("running", "waiting") and usual is not None:
                 self.ended[name] = self.at + datetime.timedelta(seconds=max(0, usual - run["elapsed"]))
             elif run["status"] == "queued" and usual is not None and self.begins(run):
                 self.ended[name] = self.begins(run) + datetime.timedelta(seconds=usual)
@@ -162,8 +158,8 @@ class Map:
         steps = self.steps.get(name, [])
         ghost = run.get("ghost")
         fallback = "unknown" if ghost else "queued" if run["status"] == "queued" else "pending"
-        names = [s["step"] for s in steps] or run.get("boxes") or ["session"]
-        states = [s["status"] for s in steps] or [run["status"] if run["tracked"] else fallback] * len(names)
+        names = [s["step"] for s in steps] or run.get("boxes") or []
+        states = [s["status"] for s in steps] or [fallback] * len(names)
         left = [n for n, state in zip(names, states) if state != "done"]
         begin = self.at if run["status"] != "queued" else self.begins(run)
         end = None if ghost else self.finish(run)

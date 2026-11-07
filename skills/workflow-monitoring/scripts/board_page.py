@@ -151,6 +151,9 @@ def page(doc, bare=False):
     out.append("<p class=mute>%s. Written %s. Repos: %s. Check in every %s.%s</p>" % (
         e(doc["digest"]), e(doc["generated"]), e(", ".join(doc["repos"])), e(every),
         e(" Next check-in " + doc["next_at"] + "." if doc["next_at"] else "")))
+    helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "board_status.py")
+    if os.path.exists(helper):
+        out.append(subprocess.run([sys.executable, helper, "--html"], capture_output=True, text=True).stdout)
     out.append("<section class=wait><h2>%s (%d)</h2>" % (sections[0], len(doc["waiting"])))
     for w in doc["waiting"]:
         out.append("<p><b>%s/%s</b>: %s<br>Type in %s:</p><ul>%s</ul>" % (

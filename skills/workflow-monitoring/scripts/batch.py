@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Run goals in batches. The governing session only adds, starts and watches; it never runs them.
+"""Assign goals in batches. The operation session only adds, starts workers and watches; it never runs a goal.
 
 usage: batch.py <command> [options]
 
-  add NAME --goal GOAL --done LINE [--done LINE] [--slug S] [--touches A,B] [--release ask] [--session]
-      add a goal line under the heading '## Batch: NAME' in .loop/queue.md; --session marks it for a visible session
+  add NAME --goal GOAL --done LINE [--done LINE] [--slug S] [--touches A,B] [--release ask]
+      add a goal line under the heading '## Batch: NAME' in .loop/queue.md
   start NAME [--max N] [--skill-dir DIR]
-      hand the batch's goal lines to watch.py if it sits beside this file; otherwise print the command that starts them
+      start one worker for each goal line (watch.py beside this file does it); each worker runs its own loop to the end
+      and reports back by prompt message; otherwise print the command that starts them
   status NAME
       one line for each goal of the batch
 
-Each goal runs the one skill flow in its own worktree. Nothing is merged.
+Each goal runs the one skill flow in its own worktree, in its own worker. Nothing is merged.
 """
 import argparse
 import datetime
@@ -23,6 +24,9 @@ import sys
 SELF = os.path.abspath(sys.argv[0])
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 HEAD = re.compile(r"^## Batch: (\S+)\s*$")
+STEPS = ("build", "plan", "idea", "review", "qa", "ship", "step", "check", "pr", "record", "run")
+REFUSE = "REFUSED: %s is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME"
+
 def git(*args, cwd=None, check=True):
     done = subprocess.run(["git"] + list(args), cwd=cwd, capture_output=True, text=True)
     if check and done.returncode:
@@ -136,7 +140,6 @@ def cmd_add(args):
         parts.append("touches: " + clean(args.touches))
     if args.release:
         parts.append("release: " + args.release)
-    parts += ["session: yes"] * bool(args.session)
     parts += ["goal: " + text] + ["done: " + clean(item) for item in args.done]
     line = "- " + " | ".join(parts)
     put(args.name, line)
@@ -178,12 +181,13 @@ def main():
     item.add_argument("--slug", default="")
     item.add_argument("--touches", default="")
     item.add_argument("--release", default="", choices=["", "ask"])
-    item.add_argument("--session", action="store_true")
     item = sub.add_parser("start")
     item.add_argument("name")
     item.add_argument("--max", type=int, default=0)
     item.add_argument("--skill-dir", default="")
     sub.add_parser("status").add_argument("name")
+    if sys.argv[1:2] and sys.argv[1] in STEPS and os.environ.get("LOOP_ROLE") != "worker":
+        sys.exit(REFUSE % sys.argv[1])
     args = parser.parse_args()
     return globals()["cmd_" + args.command.lstrip("_")](args)
 

@@ -77,14 +77,16 @@ python3 skills/workflow-monitoring/scripts/board.py board
 python3 skills/workflow-monitoring/scripts/board_page.py
 python3 skills/workflow-monitoring/scripts/board.py cadence 10
 python3 skills/workflow-monitoring/scripts/board.py repos add ../other-repo
-python3 skills/workflow-monitoring/scripts/watch.py go "<goal>" --done "<line>" --session
+python3 skills/workflow-monitoring/scripts/watch.py go "<goal>" --done "<line>"
 ```
 
 `board.py board` writes `board.json` and prints what changed. `board_page.py` then draws `board.html` and
 `board-artifact.html` from it.
 
-An operation session only assigns and watches. It puts goals in a named batch, and each goal runs in its own
-background process or session:
+An operation session only assigns, watches and reports. It puts goals in a named batch, `start` begins one worker for
+each goal, each worker runs its own loop to the end, and each sends its result (merged, failed or waiting, with the pull
+request) back as a prompt message that the board shows. A check-in prints one status block: Needs you, Now, Next,
+Roadmap, Goals:
 
 ```text
 python3 skills/workflow-monitoring/scripts/batch.py add nightly --goal "<goal>" --done "<line>"

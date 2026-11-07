@@ -18,4 +18,13 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. In the main checkout, run `python3 skills/workflow-monitoring/scripts/watch.py build any-slug`.
+   Expect: one line starting `REFUSED: build is worker work` and ending `Use: batch.py start NAME`.
+2. Run `python3 skills/workflow-monitoring/scripts/monitor.py report` in a repo with a failed or waiting goal.
+   Expect: the output starts with `== Needs you ==`, lists that worker with `answer:` and the exact words, and is followed
+   by `== Now ==`, `== Next ==`, `== Roadmap ==` and `== Goals ==` in that order.
+3. Run `python3 skills/workflow-monitoring/scripts/monitor.py dashboard` and open the printed file.
+   Expect: the same five sections, Needs you first, and each running goal's steps showing estimated and actual time and
+   tokens, or `no estimate yet`.
+4. Run `grep -rniE -- "--session|board.py take|session (add|update|remove)|visible session" skills docs/wiki README.md listing.json`.
+   Expect: no output.
