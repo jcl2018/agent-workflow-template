@@ -7,7 +7,7 @@ Skill: `workflow-health`. One GitHub milestone for each feature, named for its w
 nobody has placed yet. Goals and their pull requests go in their feature's milestone, health findings go on the
 Backlog, and you move one to a feature when you decide. The board shows the counts.
 
-`goal.py pr` puts the pull request in its milestone before any merge, so a pull request the release step merges with
+Delivery's `pr` puts the pull request in its milestone before any merge, so a pull request the release step merges with
 `auto_merge` on keeps its milestone.
 
 ## Commands
