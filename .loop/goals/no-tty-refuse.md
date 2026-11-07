@@ -13,4 +13,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-health/scripts/health.py check < /dev/null; echo $?`.
+   Expect: it prints its findings and the HEALTH line without waiting for input, and returns at once.
+2. Run `grep -n "scripts refuse" docs/wiki/Delivery.md`.
+   Expect: the DEL-10 line saying scripts refuse rather than wait when no terminal is attached.
