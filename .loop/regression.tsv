@@ -50,4 +50,4 @@ HLT-3	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a stale page shows 
 HLT-4	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a criterion with no row is a FAIL"		2026-11-07
 HLT-5	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: no sibling script: UNREAD and not green"		2026-11-07
 HLT-6	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: check writes no file and makes no commit"		2026-11-07
-stale-merge-order	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: clean after the merge, with the parents the other way round"	DOC-4	
+stale-merge-order	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: clean after the merge, with the parents the other way round"	DOC-4	2026-11-07
