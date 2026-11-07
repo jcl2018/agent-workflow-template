@@ -90,4 +90,4 @@ issues. It refuses to replace a workflow it didn't write. A change to CI is deli
 - Never mark a failure known just to get a green run. Give the reason, and tell the user.
 - Never turn permissions off.
 
-`../loop-files.md` describes every file.
+`loop-files.md` (`../` here, `shared/` in a pack) describes every file.

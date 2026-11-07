@@ -155,9 +155,9 @@ flowchart LR
   b --> c
 ```
 
-Status: built and proven: Refuse to replace another workflow; Write the nightly workflow. Built only: Workflow runs in CI. Planned: none.
+Status: built and proven: Refuse to replace another workflow; Write the nightly workflow; Workflow runs in CI. Built only: none. Planned: none.
 Stops for the owner: none.
-Proof: toy tests run its inline block. This repo and a second repo both have the workflow, but no run of it is on record here, and it isn't among the second repo's last 200 CI runs, so a real CI run is unproven.
+Proof: toy tests run its inline block. On this repo a manual run on GitHub passed all 64 rows; the first run failed 2 and opened 2 issues, and the passing run closed them. The nightly and tag triggers haven't fired yet.
 
 ## Criteria
 

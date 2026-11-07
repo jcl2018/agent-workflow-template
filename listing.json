@@ -1,5 +1,5 @@
 {
-  "summary": "Six small skills: one session governs while background agents take each goal to a pull request, keep a wiki current, run regression tests, and cut draft releases with manual verify steps. No engine: Markdown instructions and seven stdlib Python scripts.",
+  "summary": "Seven small skills: one session governs while background agents take each goal to a pull request, keep a wiki current, run regression tests, report repo health, and cut draft releases with manual verify steps. Runs on Claude Code and Codex.",
   "tags": [
     "workflow",
     "agents",
@@ -21,13 +21,13 @@
     "queue"
   ],
   "use_cases": [
-    "Take one sentence to a reviewed pull request",
+    "Take one sentence to a pull request you review",
     "Run several goals in parallel and see what waits on you",
     "Have a fresh agent judge a change it did not write",
     "Cut a draft GitHub release with a changelog",
-    "Set up a repo's workflow config safely on a branch",
+    "Set up a repo's workflow config on a branch",
     "Keep a GitHub wiki in the repo and find stale pages",
-    "Govern parallel goals from one session",
+    "Check a repo's health with fixed rules",
     "Keep regression tests visible, with an issue per failure"
   ],
   "commands": [
@@ -70,14 +70,12 @@
     "session",
     "retire",
     "handoff",
-    "add",
     "start",
     "status",
     "promote",
     "save",
     "take",
     "review",
-    "sync",
     "attach",
     "features",
     "move"
@@ -99,10 +97,23 @@
     "a batch heading and its poc lines in .loop/queue.md, when you run batch.py add",
     "loop/waits/<slug> under the git common dir, when a goal is held by another",
     "~/.workflow-loop/repos in the home folder, when you run board.py repos add",
-    "docs/wiki/*.md and a commit of them, when you run criteria.py review or sync --commit"
+    "docs/wiki/*.md and a commit of them, when you run criteria.py review or sync --commit",
+    "issues labelled regression or health, and milestones on them, on GitHub, only with --live or a token",
+    "reads ~/.workflow-loop/design-skill or LOOP_DESIGN_SKILL, and looks for that skill under ~/.claude/skills"
   ],
   "network": [
-    "github.com (git push, wiki push, gh pull request, issue and draft release calls, only when you run them)",
+    "github.com (git push, wiki push, gh pull request, issue, milestone and draft release calls, only when you run them)",
     "the model host your own claude or codex command already uses"
+  ],
+  "requires": [
+    "python3",
+    "git",
+    "gh, signed in, for pull requests, issues and releases",
+    "a background agent command such as claude or codex, for go and watch"
+  ],
+  "limitations": [
+    "The checks command runs the repo's own check strings through a shell, so Agensi's scan flags shell=True in goal.py and regression.py.",
+    "The regression workflow command writes a small runner into the repo, so the Actions run needs no skill files.",
+    "Each background agent needs its own access to these skills, and scripts that call a sibling script need them on disk: mending, and health's criteria and docs rules, say so and skip otherwise."
   ]
 }

@@ -140,4 +140,4 @@ This reverts the last publish. It refuses if the wiki has changed since.
 - Never write a secret, a private note or a customer's data into a page. A private repo's wiki may still be shared.
 - Never turn permissions off.
 
-`../loop-files.md` describes every file.
+`loop-files.md` (`../` here, `shared/` in a pack) describes every file.

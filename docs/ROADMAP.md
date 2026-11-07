@@ -84,11 +84,12 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 | Rule | Check |
 |---|---|
 | Frontmatter | Every `SKILL.md` has `name` and `description`; `name` matches its folder |
+| Pack | Two or more `SKILL.md` files make one listing; the README's title names it, and `shared/` reaches every skill |
 | Listing fields | `summary` is 300 characters at most; 10 tags, 10 keywords, 8 use cases at most |
 | Files | Text only; no executables, bundled dependencies, `.git` or caches |
-| Size | Under 100 files and 5 MB, so upload from an agent also works |
+| Size | Under 100 files and 5 MB, so upload from an agent also works; the website takes 50 MB and 1,000 files |
 | Scripts | Each under 20 KB, and each runs alone with its data embedded |
-| Safety | No secrets, obfuscation, encoded text, or instructions aimed at the agent |
+| Safety | No secrets, obfuscation, encoded text, dangerous commands, or phrases the prompt injection scan fails |
 | Disclosure | The listing states every command, file write and network host |
 
 ### Agensi rules that shape the design
@@ -97,6 +98,8 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
   another package file.
 - **Skill content stays out of repos.** Agents are told not to save it to project folders. `.loop/` therefore holds only
   the repo's own data: config, goals, queue, findings. The instructions stay in the skill.
+- **The scan flags `shell=True`.** Check commands are the repo's own strings, so `goal.py` and `regression.py` keep it,
+  and the listing says why. A failed check doesn't block approval when a reviewer finds it's a false positive.
 - **The skill must stay available.** On Agensi, each background agent needs the connector too. Installing from this
   GitHub repo needs no connector.
 

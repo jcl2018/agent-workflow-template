@@ -125,4 +125,4 @@ prints the `release` field, and the version and draft URL after a cut.
 - The user publishes. The user merges. Never turn permissions off.
 - Keep skill instructions out of the repo. `.loop/` holds only the repo's own data.
 
-`../loop-files.md` describes every file.
+`loop-files.md` (`../` here, `shared/` in a pack) describes every file.

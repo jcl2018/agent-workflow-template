@@ -39,6 +39,8 @@ draft.
 
 No release is published and nothing merges without you.
 
+The package for Agensi is a skill pack: one ZIP with all seven skills, and the shared file contract under `shared/`.
+
 ### Example
 
 ```text

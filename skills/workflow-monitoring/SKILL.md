@@ -146,4 +146,4 @@ user says so.
 - Never change `agent_command` to loosen permissions.
 - Keep skill instructions out of the repo. `.loop/` holds only the repo's own data.
 
-`../loop-files.md` describes every file.
+`loop-files.md` (`../` here, `shared/` in a pack) describes every file.
