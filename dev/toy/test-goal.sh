@@ -118,7 +118,24 @@ $goal new tries --here --goal "Add tries" --done "calc has tries" >/dev/null
 for n in 1 2 3; do FAKE_SKILL_OUT='STEP: failed no' step tries idea >/dev/null 2>&1; rc=$?; done
 [ "$rc" = 3 ] && [ "$(field tries status)" = stopped ] && grep -q "tries: Failed 3 tries" .loop/findings.md && ok "three failed tries stop the goal with a finding" || bad "3 tries ($rc $(field tries status))"
 git checkout -q -- . ; git switch -q main
-grep -rlE '"pr", "merge"|gh pr merge' "$here/skills" --include=*.py >/dev/null && bad "a script merges" || ok "no script calls gh pr merge"
+[ "$(grep -rlE '"pr", "merge"|gh pr merge' "$here/skills" --include=*.py | xargs -n1 basename | tr '\n' ' ')" = "merge.py " ] && ok "no script calls gh pr merge but the release step's merge.py" || bad "a script merges"
+MG="python3 $here/skills/workflow-release/scripts/merge.py"
+$MG low 2>&1 | grep -q "REFUSED: auto_merge is off in this repo, so the owner merges" && ! grep -q "^pr merge" "$FAKE_GH_DIR/calls.log" && ok "with auto_merge off, merge.py refuses and nothing merges" || bad "merge gate"
+
+echo "== no gates: require_checks off, auto_approve and auto_merge on, in this repo only"
+git switch -q main
+cp .loop/config.json "$d/cfg.gated"
+cfg 'checks=[]' 'require_checks=false' 'auto_approve=true' 'auto_merge=true'; git commit -qam "No gates"; git push -q origin main
+$goal new open --here --goal "Add open" --done "calc has open" >/dev/null
+FAKE_SKILL_OUT='PENDING: approve the design\nSTEP: pending' step open idea | grep -q "AUTO-APPROVED open idea: approve the design" && ok "a pending decision is auto-approved" || bad "auto-approve"
+[ "$(field open status)" = running ] && grep -q "auto-approved" "$C/loop/runs/open.json" && python3 -c "import json,sys;s=json.load(open(sys.argv[1]));assert s['note']['text'].startswith('auto-approved at idea')" "$C/loop/runs/open.json" && ok "logged and on the board as auto-approved, nothing waits" || bad "auto-approve log"
+for s2 in plan review qa ship; do step open $s2 >/dev/null; done
+printf '\n\ndef open_():\n    return 1\n' >> calc.py; git commit -qam "Add open"; verify open
+$goal check open | grep -q "NO CHECKS open: require_checks is off" && ok "no checks: nothing is tested, and it says so" || bad "no checks"
+out=$($goal pr open); grep -q "^PR " <<<"$out" && grep -q "NEXT: workflow-release merges it: merge.py open" <<<"$out" && ok "pr opens with no checks and names the merge step" || bad "pr no gates: $out"
+FAKE_GH_PR_STATE=OPEN python3 "$here/skills/workflow-release/scripts/merge.py" open | grep -q "^MERGED" && grep -q "^pr merge .* --merge" "$FAKE_GH_DIR/calls.log" && [ "$(field open release)" = merged ] && ok "auto_merge: the release step merges the pull request" || bad "auto merge"
+FAKE_GH_PR_STATE=CLOSED python3 "$here/skills/workflow-release/scripts/merge.py" open 2>&1 | grep -q "is CLOSED, not open" && ok "a closed pull request is not merged" || bad "closed pr"
+git switch -q main; cp "$d/cfg.gated" .loop/config.json; git commit -qam "Gates back on" >/dev/null; git push -q origin main
 
 echo "== the Delivery page names every goal.py command and flag"
 missing=""

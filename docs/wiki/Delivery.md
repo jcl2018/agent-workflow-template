@@ -20,6 +20,14 @@ In an operation session, `go` is not run in that session: it is put in a batch (
 agent. On Agensi, the file contract `loop-files.md` is under `shared/` in the pack, and `workflow-monitoring` is a sibling
 skill the agent loads by name.
 
+**This repo runs with no gates.** Its `.loop/config.json` turns off `require_checks`, with an empty `checks` list, and
+turns on `auto_approve` and `auto_merge`. A pull request opens without any check passing. What the skills leave for the
+owner is approved automatically and logged as auto-approved, in the goal's log and on the board. The release step then
+merges the pull request into `main` by itself. The skills' own built-in refusals still apply, and the private-name leak
+scan still guards every commit. The risk is plain: a broken or wrong change can reach `main` with nobody looking, and
+the only check left is the regression workflow on GitHub, which reports and never blocks. A repo set up from this
+template keeps every gate until its owner turns one off.
+
 ## Commands
 
 - `go "<goal>" --done "<line>" ... [--touches "<file,file>"]`: freezes the done lines and runs the goal through the
@@ -214,7 +222,7 @@ flowchart LR
   b["Move the version once if pr_bumps_version is on"]
   c["Push, retrying twice"]
   d["Open the pull request with each step's result"]
-  o{{"Owner reviews and merges"}}
+  o{{"Owner reviews and merges, or the release step merges with auto_merge on"}}
   a --> b
   b --> c
   c --> d
@@ -223,8 +231,8 @@ flowchart LR
   class o owner
 ```
 
-Status: built and proven: Refuse until checks hold and every step is done or skipped; Move the version once if pr_bumps_version is on; Push, retrying twice; Open the pull request with each step's result; Owner reviews and merges. Built only: none. Planned: none.
-Stops for the owner: Owner reviews and merges.
+Status: built and proven: Refuse until checks hold and every step is done or skipped; Move the version once if pr_bumps_version is on; Push, retrying twice; Open the pull request with each step's result; Owner reviews and merges, or the release step merges with auto_merge on. Built only: none. Planned: none.
+Stops for the owner: Owner reviews and merges, or the release step merges with auto_merge on.
 Proof: toy tests with a stand-in for GitHub, and real pull requests on this repo from before the flow.
 
 #### `wait`
@@ -286,19 +294,19 @@ Proof: toy tests.
 
 ## Criteria
 
-Tests: 9.
+Tests: 10.
 > **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
 
 - DEL-5: **Unreviewed** Every goal starts from done lines that can't change once it starts.
 - DEL-6: **Unreviewed** Every goal runs the owner's own idea, plan, review, test and ship skills in their unattended mode, and nothing starts without them.
-- DEL-7: **Unreviewed** Nothing the skills leave for the owner is decided by an agent: it waits on the owner, and the pull request waits for it.
+- DEL-7: **Unreviewed** What the skills leave for the owner waits on the owner, unless the repo turns on auto_approve, as this one does: then it is approved and logged as auto-approved.
 - DEL-8: **Unreviewed** A goal that keeps failing stops and says why.
-- DEL-9: **Unreviewed** The loop stops at a pull request, and only the owner merges.
+- DEL-9: **Unreviewed** No script merges but the release step, and it merges only where the repo turns on auto_merge, as this one does.
 
 ## Enforced by
 
 - DEL-5: DEL-1, frozen-done-lines
 - DEL-6: DEL-2, starts-at-idea, steps-through-flow
-- DEL-7: DEL-3, DEL-4
+- DEL-7: DEL-3, DEL-4, auto-approved
 - DEL-8: stop-after-3-tries
 - DEL-9: never-merges
