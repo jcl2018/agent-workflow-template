@@ -19,3 +19,6 @@ MON-5	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: a POC that writes is
 MON-6	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: the board shows the POC finished with its answer"		2026-11-07
 MON-7	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: promote refuses a POC that has not finished"		2026-11-07
 MON-8	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-delivery/SKILL.md says the operation session governs only"		2026-11-07
+MON-9	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal with an empty pr field|a mender running after its goal lands)" | wc -l | grep -q 2		
+MON-10	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a goal a session has taken over gets no mender"		
+MON-11	land	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2		
