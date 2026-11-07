@@ -2,6 +2,7 @@
 """Check a repo's health with fixed rules. Same repo, same answer. Read-only: it writes no file and calls no model.
 
 usage: health.py check [--json] [--family NAME]
+       health.py run [--live] [--family NAME]
 
 One line per finding:  STATE family subject rule: detail -> fix: what to run
 STATE is PASS, WARN, FAIL, UNREAD (a rule could not read its data) or INFO. The last line is
@@ -14,7 +15,11 @@ Rules (at most MAX_RULES, asserted when the script loads; retire one before addi
             done lines with no row WARN as one row
   docs      composes docs.py check: a stale page WARNs, any other gap FAILs
   hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches nobody has checked out
-It runs git and the two sibling scripts, and nothing else.
+
+run  files each WARN, FAIL or UNREAD row as one issue on the Backlog milestone, labelled health, found again by a
+hidden marker in its body: a repeat updates it, a fixed finding closes it, a returning one reopens it, and a moved
+issue stays where it was moved. With no --live, GH_TOKEN or GITHUB_TOKEN it prints WOULD lines and writes nothing.
+It runs git, gh and the two sibling scripts, and nothing else.
 """
 import argparse
 import datetime
@@ -167,15 +172,24 @@ def line_of(item):
     return text + (" -> fix: " + item["fix"] if item["fix"] else "")
 
 
-def cmd_check(args):
+def gather(root, family):
+    rules = {"size": size_rows, "criteria": criteria_rows, "docs": docs_rows, "hygiene": hygiene_rows}
+    rows = []
+    for name in (family and [family] or sorted(rules)):
+        rows += rules[name](root)
+    return rows
+
+
+def repo_root():
     top = run(["git", "rev-parse", "--show-toplevel"], os.getcwd())
     if top.returncode:
         sys.exit("REFUSED: not inside a git repo.")
-    root = top.stdout.strip()
-    rules = {"size": size_rows, "criteria": criteria_rows, "docs": docs_rows, "hygiene": hygiene_rows}
-    rows = []
-    for name in (args.family and [args.family] or sorted(rules)):
-        rows += rules[name](root)
+    return top.stdout.strip()
+
+
+def cmd_check(args):
+    root = repo_root()
+    rows = gather(root, args.family)
     counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
     green = not counts["FAIL"] and not counts["UNREAD"]
     verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % (
@@ -189,6 +203,76 @@ def cmd_check(args):
     return 0 if green else 1
 
 
+MARK = "<!-- loop-health %s -->"
+BACKLOG = "Backlog"
+
+
+def key_of(item):
+    return "%s:%s:%s" % (item["family"], item["subject"], item["rule"])
+
+
+def body_of(item):
+    return "%s\n\n%s\n\n%s\n" % (MARK % key_of(item), line_of(item),
+                                    "Filed by health.py run. Move it to a feature with milestone.py move.")
+
+
+def cmd_run(args):
+    root = repo_root()
+    live = bool(args.live or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
+    found = [item for item in gather(root, args.family) if item["state"] in ("WARN", "FAIL", "UNREAD")]
+    got = run(["gh", "issue", "list", "--label", "health", "--state", "all", "--limit", "500", "--json",
+               "number,state,body"], root)
+    try:
+        issues = json.loads(got.stdout)
+    except ValueError:
+        issues = None
+    if issues is None:
+        if live:
+            sys.exit("REFUSED: could not read the health issues: %s" % (got.stderr.strip() or "no answer")[:200])
+        print("NOTE: could not read the health issues, so every finding looks new")
+        issues = []
+    held = {}
+    for issue in sorted(issues, key=lambda one: one["number"]):
+        match = re.search(r"<!-- loop-health (\S+) -->", issue.get("body") or "")
+        if match:
+            held.setdefault(match.group(1), issue)
+
+    def act(words, args_, number=0):
+        if live:
+            done = run(["gh"] + args_, root)
+            if done.returncode:
+                print("FAILED %s: %s" % (words, done.stderr.strip()[:160]))
+                return
+            print("DONE %s" % words)
+        else:
+            print("WOULD %s" % words)
+
+    if live and found:
+        run(["gh", "label", "create", "health", "--description", "Filed by health.py run", "--force"], root)
+    current = set()
+    for item in found:
+        key = key_of(item)
+        current.add(key)
+        title, body, issue = "health: %s %s %s" % (item["family"], item["subject"], item["rule"]), body_of(item), held.get(key)
+        if not issue:
+            act("create issue %r on %s" % (title, BACKLOG), ["issue", "create", "--title", title, "--body", body,
+                                                           "--label", "health", "--milestone", BACKLOG])
+            continue
+        number = str(issue["number"])
+        if issue["state"].upper() != "OPEN":
+            act("reopen #%s %s" % (number, key), ["issue", "reopen", number])
+        if (issue.get("body") or "") != body:
+            act("update #%s %s" % (number, key), ["issue", "edit", number, "--body", body])
+        elif issue["state"].upper() == "OPEN":
+            print("SAME #%s %s" % (number, key))
+    for key, issue in sorted(held.items()):
+        if key not in current and issue["state"].upper() == "OPEN":
+            number = str(issue["number"])
+            act("close #%s %s, no longer found" % (number, key),
+                ["issue", "close", number, "--comment", "No longer found by health.py run."])
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -196,6 +280,10 @@ def main():
     item.add_argument("--json", action="store_true")
     item.add_argument("--family", choices=sorted(FAMILY))
     item.set_defaults(func=cmd_check)
+    item = sub.add_parser("run", help="file findings as issues on the Backlog milestone")
+    item.add_argument("--live", action="store_true")
+    item.add_argument("--family", choices=sorted(FAMILY))
+    item.set_defaults(func=cmd_run)
     args = parser.parse_args()
     return args.func(args)
 

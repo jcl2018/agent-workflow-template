@@ -30,7 +30,7 @@ import tempfile
 MARKER = "<!-- workflow-docs -->"
 PAGE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,80}$")
 SECTIONS = ["Summary", "Commands", "Criteria", "Enforced by"]
-PREFIXES = {"Delivery": "DEL", "Documentation": "DOC", "Health": "HLT", "Monitoring": "MON", "Regression": "REG", "Release": "REL"}
+PREFIXES = {"Delivery": "DEL", "Documentation": "DOC", "Health": "HLT", "Milestones": "MIL", "Monitoring": "MON", "Regression": "REG", "Release": "REL"}
 CRITERION = re.compile(r"^- ([A-Z]{2,5}-\d+): (\S.*)$")
 CRITERION_ID = re.compile(r"^[A-Z]{2,5}-\d+$")
 STAGE = re.compile(r"^\*\*(Unreviewed|Reviewed|Enforced|Proven)\*\* \S")
@@ -293,7 +293,7 @@ def contract(root):
     linked, loose = test_rows(root)
     for page in sorted(read_map(root)):
         if page != "Home" and page not in PREFIXES:
-            found.append(("PAGE", page, "not allowed. Fix: use one of %s or Home" % ", ".join(sorted(PREFIXES))))
+            found.append(("PAGE", page, "not allowed. Fix: use %s or Home" % ", ".join(sorted(PREFIXES))))
             continue
         full = os.path.join(root, wiki_dir(root), page + ".md")
         if not os.path.exists(full):
@@ -358,7 +358,7 @@ def cmd_criteria(args):
     root = top()
     prefix = PREFIXES.get(args.page)
     if not prefix:
-        sys.exit("REFUSED: %s has no criteria. Fix: use one of %s." % (args.page, ", ".join(sorted(PREFIXES))))
+        sys.exit("REFUSED: %s has no criteria. Fix: use %s." % (args.page, ", ".join(sorted(PREFIXES))))
     used = [0]
     folder = os.path.join(root, wiki_dir(root))
     for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:

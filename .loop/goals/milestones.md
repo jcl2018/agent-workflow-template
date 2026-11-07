@@ -17,8 +17,30 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
+1. Run `python3 skills/workflow-health/scripts/milestone.py new --all` in this repo.
+   Expect: WOULD lines for Backlog and each feature page, and nothing created on GitHub.
+2. Run `python3 skills/workflow-health/scripts/health.py run`.
+   Expect: WOULD create issue lines for each warning, each naming the Backlog, and nothing created on GitHub.
+3. Run `python3 skills/workflow-monitoring/scripts/board.py board` and open the board page it names.
+   Expect: a Milestones section at the bottom, with no rows until real milestones exist.
+
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
 
 ## Design
 
+A feature is a page in `.loop/docs.tsv` (not Home), so there is no new config. `milestone.py` (self-contained, gh only)
+creates milestones by listing first and creating only the missing ones, attaches a goal's PR through the feature its
+`Touches` line names, and moves issues. `goal.py pr` runs `attach` after the PR exists, never failing the goal.
+`health.py run` reuses the check rows and files one issue per non-pass row, found again by a hidden marker in the body;
+create sets the Backlog once and later runs never touch the milestone, so a moved issue stays moved. Everything dry-runs
+without a token or `--live`. The board reads milestones with `gh api` and shows nothing when gh gives no answer. Risks:
+a pull request whose touches match no page gets no milestone (printed, not an error); wide `Touches` pick the first
+page in the map.
+
 ## Plan
+
+1. milestone.py and health.py run, with goal.py calling attach (lines 1, 2, 3).
+2. Fake gh state for milestones and issues, and dev/toy/test-milestones.sh (lines 1, 2, 3).
+3. Board Milestones section and test-board.sh asserts (line 4).
+4. Milestones wiki page and rows, Health page, docs.py allows the page (line 5).
+5. goal.py check and judge (line 6).

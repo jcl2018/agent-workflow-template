@@ -174,7 +174,8 @@ def page(doc, bare=False):
     out.append(table(3, ["Repo", "Goal", "Level", "Estimate"], picks(doc["expected"], "repo", "slug", "level", "estimate")))
     fin = doc["finished"]
     out.append(table(4, ["Repo", "Goal", "Result", "Pull request"], [[x["repo"], x["slug"], x["result"], link(x)] for x in fin["items"]]) + "<p class=mute>%s</p>" % e(fin["note"]))
-    out.append(table(5, ["Repo", "Goal", "Step", "Status"], picks(doc["steps"], "repo", "slug", "step", "status")) + ("" if bare else "</body></html>") + "\n")
+    out.append(table(5, ["Repo", "Goal", "Step", "Status"], picks(doc["steps"], "repo", "slug", "step", "status")))
+    out.append(table(6, ["Repo", "Milestone", "Open", "Closed", "Oldest open (Backlog)"], picks(doc.get("milestones", []), "repo", "title", "open", "closed", "age")) + ("" if bare else "</body></html>") + "\n")
     return "\n".join(out)
 
 

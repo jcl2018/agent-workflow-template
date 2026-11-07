@@ -3,6 +3,7 @@ Delivery	skills/workflow-delivery
 Documentation	skills/workflow-docs
 Health	skills/workflow-health
 Home	README.md,FINDINGS.md,DECISIONS.md,skills/workflow-setup,dev/install-local.sh
+Milestones	skills/workflow-health/scripts/milestone.py,dev/toy/fakegh
 Monitoring	skills/workflow-monitoring
 Regression	skills/workflow-regression
 Release	skills/workflow-release

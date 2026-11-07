@@ -5,7 +5,7 @@ description: Checks a repo's health with fixed rules that give the same answer e
 
 # workflow-health
 
-One command: `check`. Run `scripts/health.py` with `python3` from the repo. If the skill's files aren't on disk, write
+Two commands, `check` and `run`, and `milestone.py` for milestones. Run `scripts/health.py` with `python3` from the repo. If the skill's files aren't on disk, write
 the script to a temporary file, run it, and delete it. It composes `workflow-docs` and `workflow-regression`, so
 install them beside it. If one is missing, its rule prints `UNREAD`.
 
@@ -37,6 +37,31 @@ exit code is then 1. `--json` prints the same rows as records, with the verdict.
 | `hygiene` | `.loop/findings.md`, the run records and local branches | Over 5 open findings, a run waiting over 24 hours, a `loop/` branch already merged | None |
 
 There are at most eight rules, and the script refuses to load with more. Retire one before adding another.
+
+## `run [--live] [--family NAME]`
+
+```bash
+python3 scripts/health.py run
+```
+
+Files each `WARN`, `FAIL` or `UNREAD` row as one issue on the `Backlog` milestone, labelled `health`, with a hidden
+marker in its body. A repeat updates that issue, a finding that is fixed closes it, a returning one reopens it, and an
+issue moved to a feature stays there. With no `--live`, `GH_TOKEN` or `GITHUB_TOKEN` it prints `WOULD` lines and writes
+nothing. Run `milestone.py new --all --live` once first, or the issues have no `Backlog` to land in.
+
+## Milestones: `scripts/milestone.py`
+
+```bash
+python3 scripts/milestone.py features
+python3 scripts/milestone.py new --all
+python3 scripts/milestone.py attach <slug>
+python3 scripts/milestone.py move <issue> <feature|backlog>
+```
+
+A feature is a page in `.loop/docs.tsv` other than Home, and its milestone has the page's name. `new` creates what is
+missing and nothing twice. `attach` puts the goal's pull request in the milestone of the feature its `Touches` line
+names, and `goal.py pr` runs it. `move` puts an issue in a feature's milestone. Each prints `WOULD` lines unless you pass
+`--live` or set a token. None closes, deletes or merges anything.
 
 ## Rules
 

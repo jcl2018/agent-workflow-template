@@ -43,7 +43,7 @@ no later commit to the page has it in its history. Merge commits don't count, so
 after a merge. Only a commit that changes the page clears `STALE`.
 
 With `"criteria": true` in the config, `check` also enforces the criteria contract: only the pages Delivery,
-Documentation, Health, Monitoring, Regression, Release and Home; each feature page has exactly the sections Summary, Commands,
+Documentation, Health, Milestones, Monitoring, Regression, Release and Home; each feature page has exactly the sections Summary, Commands,
 Criteria and Enforced by, in that order; a criterion is one line `- DEL-1: **Stage** text` with a unique id, and each id needs an
 `- DEL-1: <regression row ids>` line in Enforced by.
 

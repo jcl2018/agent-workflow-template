@@ -462,6 +462,9 @@ def cmd_pr(args):
     state["status"] = "done"
     save(state, "pull request " + url)
     print("PR " + url)
+    attach = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "..", "..", "workflow-health", "scripts", "milestone.py")
+    if os.path.exists(attach):  # the pull request joins its feature's milestone; a failure never stops the goal
+        print((run([sys.executable, attach, "attach", args.slug, "--live"]).stdout.strip() or "no milestone")[:200])
     print("NEXT: workflow-release asks cut or leave. The loop never merges.")
     return 0
 
