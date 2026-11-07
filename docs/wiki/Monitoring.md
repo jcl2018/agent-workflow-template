@@ -87,7 +87,7 @@ automated turns. Give it the printed `PROMPT`, which names the worktree and says
 to it. The board marks a visible session `(quiet)` after 30 minutes with no update to its record.
 
 The board's last section, Milestones, lists each GitHub milestone's open and closed counts and the age of the Backlog's
-oldest open issue. It shows nothing when `gh` gives no answer.
+oldest open issue, read from up to 500 issues. It shows nothing when `gh` gives no answer.
 
 A page step (`--in FILE`, `--out DIR`) reads `board.json`, adds `dependency_map` (`{lanes: [{run, boxes}], arrows:
 [{from, to, on}]}`) and writes `board.html` and `board-artifact.html`. In the map each lane is a run and each box a step,
