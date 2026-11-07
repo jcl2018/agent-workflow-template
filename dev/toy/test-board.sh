@@ -26,6 +26,9 @@ GH
 chmod +x "$T/bin/gh"; export PATH="$T/bin:$PATH"
 python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
 git switch -q main; git merge -q --ff-only workflow-setup
+# A stand-in agent, so the test needs no agent on this machine and never starts a real one.
+python3 -c "import json;c=json.load(open('.loop/config.json'));c['agent_command']=['true'];json.dump(c,open('.loop/config.json','w'),indent=2)"
+git commit -qam "Stand-in agent"
 C=$(cd "$(git rev-parse --git-common-dir)" && pwd); R="$C/loop/runs"; mkdir -p "$R"
 rec() { python3 - "$R/$1.json" "$@" <<'PY'
 import json, sys

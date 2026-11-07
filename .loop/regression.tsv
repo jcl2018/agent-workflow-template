@@ -28,7 +28,7 @@ four-sections	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: wrong sec
 flow-charts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a bullet command with no chart fails"	DOC-6	2026-11-07
 names-enforcer	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: unenforced criterion fails"	DOC-7	2026-11-07
 unreviewed-banner	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: an Unreviewed criterion needs the banner"	DOC-8	2026-11-07
-waits-first	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: six sections in order, with content"	MON-14	2026-11-07
+waits-first	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: seven sections in order, with content"	MON-14	2026-11-07
 dependencies-on-map	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a dependency survives its goal starting"	MON-15	2026-11-07
 one-failure	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal leaves the others running"	MON-16	2026-11-07
 sessions-tracked	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a tracked session has a lane, a box, an arrow and a row in Runs"	MON-17	2026-11-07
