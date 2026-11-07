@@ -168,7 +168,7 @@ def bump(version, part):
 
 
 def verify_steps(top, slug):
-    """The goal's Verify by hand section, or "" unless it holds a numbered step with an Expect: line."""
+    """The goal's Verify by hand section, or "" unless it has numbered steps and each has an Expect: line."""
     try:
         with open(os.path.join(top, ".loop", "goals", slug + ".md")) as handle:
             text = handle.read()
@@ -178,9 +178,8 @@ def verify_steps(top, slug):
         return ""
     part = text.split("## Verify by hand", 1)[1].split("\n## ", 1)[0]
     part = re.sub(r"<!--.*?-->", "", part, flags=re.S).strip()
-    steps = re.search(r"^\s*\d+\.\s+\S", part, re.M)
-    expect = re.search(r"Expect:\s*\S", part)
-    return part if steps and expect else ""
+    steps = re.split(r"^\s*\d+\.\s+(?=\S)", part, flags=re.M)[1:]
+    return part if steps and all(re.search(r"Expect:\s*\S", step) for step in steps) else ""
 
 
 def doc_rows(top):
@@ -203,7 +202,7 @@ def stale_pages(top, cfg, base):
     for page, paths in sorted(doc_rows(top).items()):
         rel = "%s/%s.md" % (folder, page)
         last = git("rev-list", "-1", "HEAD", "--", rel, cwd=top, check=False)
-        if not last:
+        if not last or not os.path.exists(os.path.join(top, rel)):
             out.append(page + " (missing)")
             continue
         start = base if run(["git", "merge-base", "--is-ancestor", last, base], cwd=top).returncode == 0 else last
@@ -304,11 +303,12 @@ def cmd_cut(args):
     base = base_of(cwd, cfg)
     steps = verify_steps(cwd, slug)
     if not steps:
-        sys.exit("REFUSED: %s has no steps under ## Verify by hand. Fix: add a numbered step with an Expect: line to "
-                 ".loop/goals/%s.md, and commit it." % (slug, slug))
+        sys.exit("REFUSED: %s has no complete steps under ## Verify by hand. Fix: give every numbered step an Expect: "
+                 "line in .loop/goals/%s.md, and commit it." % (slug, slug))
     stale = stale_pages(cwd, cfg, base)
     if stale:
-        sys.exit("REFUSED: these pages are stale: %s. Fix: update them with workflow-docs, and commit." % ", ".join(stale))
+        sys.exit("REFUSED: these pages are stale: %s. Fix: update them with workflow-docs, commit, and run goal.py "
+                 "check again." % ", ".join(stale))
     checked = state.get("checks_sha")
     if checked and checked != git("rev-parse", "HEAD", cwd=cwd):
         later = git("log", "--format=%H", "%s..HEAD" % checked, cwd=cwd, check=False).splitlines()

@@ -4,18 +4,20 @@
 usage: board.py <command> [options]
 
   board [--at TIME] [--since FILE] [--out DIR]
-                        write board.json, board.html and board-artifact.html (no html/head/body tags);
-                        print DIGEST, CHANGED, CHANGE lines, NEXT_DELAY and the paths
+                        write board.json, for board_page.py to draw; print DIGEST, CHANGED, CHANGE lines, NO_CHANGE,
+                        NEXT_DELAY and its path
   cadence [N|off]       minutes between check-ins, 1-60 (default 10), or off
   repos add PATH|list   follow another repo (~/.workflow-loop/repos), or list them
   note SLUG TEXT        record a session's latest message on its run
-  handoff [--out FILE]  write a file a new session can take over from
-
-Run records live in <git common dir>/loop/.
+  session add NAME --repo R [--branch B] [--waits-on X]
+  session update NAME [those flags] [--status S] [--note T] [--next T] [--pr URL] [--eta TIME]
+  session remove NAME   follow a session with no goal record
+  retire SLUG --reason TEXT
+  handoff [--at TIME] [--out FILE]
+                        write a file a new session can take over from
 """
 import argparse
 import datetime
-import html
 import json
 import os
 import re
@@ -27,10 +29,11 @@ SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 STEPS = {"minimum": ["build", "checks", "pr"], "quick": ["plan", "build", "checks", "pr"],
          "standard": ["design", "plan", "build", "checks", "judge", "pr"],
          "full": ["design", "design-review", "plan", "build", "checks", "judge", "pr"]}
-ORDER = ["design", "design-review", "plan", "build", "checks", "judge", "pr", "release"]
+ORDER = STEPS["full"] + ["release"]
 QUIET = 1800
 SECTIONS = ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step"]
-FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note")
+FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on")
+STATES = ("running", "waiting", "done", "failed", "stopped")
 
 
 def git(*args, cwd=None):
@@ -56,6 +59,10 @@ def stamp(text):
         return datetime.datetime.fromisoformat(str(text).replace("Z", "+00:00")).astimezone(datetime.timezone.utc)
     except ValueError:
         return None
+
+
+def iso(at):
+    return at.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def clock(at):
@@ -131,6 +138,15 @@ def delay_of(cadence, busy):
     return str(min(3600, max(60, int(cadence) * 60)))
 
 
+def session_file(base):
+    return os.path.join(base, "loop", "sessions.json")
+
+
+def sessions_of(base):
+    found = read_json(session_file(base))
+    return found if isinstance(found, dict) else {}
+
+
 def queue_of(path):
     try:
         with open(os.path.join(path, ".loop", "queue.md")) as handle:
@@ -181,34 +197,36 @@ def collect(name, path, base, at):
     cfg = read_json(os.path.join(path, ".loop", "config.json")) or {}
     live = [r for r in records if r.get("status") in ("running", "waiting")]
     rows, deps = [], []
-    for run in records:
+    for run in records + list(sessions_of(base).values()):
         begun, last = started(run), stamp(run.get("updated"))
         note = run.get("note") or {}
         quiet = bool(run.get("external") and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET)
-        rows.append({"repo": name, "slug": run["slug"], "goal": clean(run.get("goal"), 80), "level": clean(run.get("level")),
-                     "status": clean(run.get("status")), "step": clean(run.get("step")) or "-", "tries": run.get("tries", 0),
-                     "pr": clean(run.get("pr")), "prstate": pr_state(clean(run.get("pr")), path) if run.get("pr") else "", "checks": clean(run.get("checks")), "judge": clean(run.get("judge")),
-                     "external": bool(run.get("external")), "quiet": "yes" if quiet else "no",
-                     "note": clean(note.get("text")) if isinstance(note, dict) else "", "worktree": clean(run.get("worktree")),
-                     "waiting": run.get("waiting") if isinstance(run.get("waiting"), dict) else None,
-                     "finding": clean(run.get("finding"), 200),
-                     "elapsed": (at - begun).total_seconds() if begun else 0,
-                     "took": (last - begun).total_seconds() if begun and last else 0,
-                     "last": run.get("updated") or ""})
-    known = {r["slug"] for r in records}
+        pr = clean(run.get("pr"))
+        get = lambda field, size=300: clean(run.get(field), size)
+        rows.append({
+            "repo": run.get("repo") or name, "slug": run["slug"], "goal": get("goal", 80), "level": get("level"), "status": get("status"),
+            "step": get("step") or "-", "tries": run.get("tries", 0), "pr": pr, "prstate": pr_state(pr, path) if pr else "",
+            "checks": get("checks"), "judge": get("judge"), "external": bool(run.get("external")), "quiet": "yes" if quiet else "no",
+            "note": clean(note.get("text")) if isinstance(note, dict) else "",
+            "waiting": run.get("waiting") if isinstance(run.get("waiting"), dict) else None, "finding": get("finding", 200),
+            "elapsed": (at - begun).total_seconds() if begun else 0, "age": span((at - begun).total_seconds()) if begun else "0m",
+            "took": (last - begun).total_seconds() if begun and last else 0, "last": run.get("updated") or "",
+            "tracked": bool(run.get("tracked")), "waits_on": ", ".join(run.get("waits_on") or []), "touches": run.get("touches") or [],
+            "eta": get("eta"), "next": get("next"), "branch": get("branch"), "reason": clean((run.get("retired") or {}).get("reason"))})
     for goal in queue_of(path):
-        if goal["slug"] in known:
+        if any(r["slug"] == goal["slug"] for r in records):
             continue
-        why = "ready to start"
+        why, blocker = "ready to start", ""
         for run in live:
             hit = [t for t in goal["touches"] for u in run.get("touches") or [] if overlap(t, u)]
             if hit:
-                why = "goal %s (shared %s)" % (run["slug"], hit[0])
+                why, blocker = "goal %s (shared %s)" % (run["slug"], hit[0]), run["slug"]
                 break
         else:
             if len(live) >= int(cfg.get("parallel", 3) or 3):
                 why = "a free slot (%d of %s running)" % (len(live), cfg.get("parallel", 3))
-        deps.append({"repo": name, "slug": goal["slug"], "waits_on": why})
+        deps.append({"repo": name, "slug": goal["slug"], "waits_on": why, "on": blocker, "goal": clean(goal.get("goal"), 80),
+                     "level": goal["level"], "touches": goal["touches"], "boxes": STEPS.get(goal["level"], STEPS["standard"])})
     return rows, deps
 
 
@@ -217,12 +235,13 @@ def build(at, since):
     for name, path, base in followed():
         names.append(name)
         more, wait = collect(name, path, base, at)
-        rows += more
-        deps += wait
+        rows, deps = rows + more, deps + wait
     live = [r for r in rows if r["status"] in ("running", "waiting")]
     waiting = []
     for r in rows:
-        if r["status"] == "waiting" and r["waiting"]:
+        if r["tracked"] and r["status"] in ("waiting", "failed", "stopped"):
+            waiting.append({"repo": r["repo"], "slug": r["slug"], "ask": r["next"] or r["note"] or "This session is %s." % r["status"], "words": []})
+        elif r["status"] == "waiting" and r["waiting"]:
             words = [clean(w) for w in r["waiting"].get("words") or []]
             waiting.append({"repo": r["repo"], "slug": r["slug"], "ask": clean(r["waiting"].get("ask")), "words": words})
         elif r["status"] in ("failed", "stopped"):
@@ -233,13 +252,14 @@ def build(at, since):
         waiting[-1]["where"] = ("the session working on " if r["external"] else "the governing session, which owns ") + "%s/%s" % (r["repo"], r["slug"])
     history = {}
     for r in rows:
-        if r["status"] == "done" and r["took"] > 0:
+        if r["status"] == "done" and r["took"] > 0 and not r["tracked"]:
             history.setdefault(r["level"], []).append(r["took"])
+    usual = {level: statistics.median(took) for level, took in history.items()}
     expected = []
     for r in rows:
-        if r["status"] == "running":
-            old = history.get(r["level"])
-            guess = "estimate: about %s left" % span(max(0, statistics.median(old) - r["elapsed"])) if old else \
+        if r["status"] == "running" and not r["tracked"]:
+            old = usual.get(r["level"])
+            guess = "estimate: about %s left" % span(max(0, old - r["elapsed"])) if old else \
                 "no estimate: no finished %s goals yet" % r["level"]
             expected.append({"repo": r["repo"], "slug": r["slug"], "level": r["level"], "estimate": guess})
     today = at.strftime("%Y-%m-%d")
@@ -248,22 +268,24 @@ def build(at, since):
     note = "%d item(s) wait on you, so do not archive yet." % len(waiting) if waiting else "Nothing waits on you, so these can be archived."
     steps = []
     for r in rows:
+        if r["tracked"]:
+            continue
         mine = STEPS.get(r["level"], STEPS["standard"])
         at_step = ORDER.index(r["step"]) if r["step"] in ORDER else -1
         for step in mine + (["release"] if r["status"] == "done" or r["step"] == "release" else []):
             index = ORDER.index(step)
-            state = "done" if r["status"] == "done" or index < at_step else r["status"] if index == at_step else "pending"
+            state = "done" if r["status"] == "done" or index < at_step else r["status"] if index == at_step or r["status"] == "retired" else "pending"
             steps.append({"repo": r["repo"], "slug": r["slug"], "step": step, "status": state})
-    flat = {"%s/%s" % (r["repo"], r["slug"]): {f: r[f] for f in FIELDS if f != "waiting"} for r in rows}
+    flat = {"%s/%s" % (r["repo"], r["slug"]): {f: r[f] for f in FIELDS} for r in rows}
     for d in deps:
         flat.setdefault("%s/%s" % (d["repo"], d["slug"]), {"status": "queued"})
-    counts = {k: sum(1 for r in rows if r["status"] == k) for k in ("running", "waiting", "done", "failed", "stopped")}
-    counts["queued"] = len(deps)
+    count = lambda *kinds: sum(r["status"] in kinds for r in rows)
     cadence = cadence_of(common()) if common() else "10"
-    digest = "%d runs: %d running, %d waiting on you, %d done, %d failed or stopped, %d queued" % (
-        len(rows), counts["running"], len(waiting), counts["done"], counts["failed"] + counts["stopped"], counts["queued"])
-    doc = {"generated": at.strftime("%Y-%m-%dT%H:%M:%SZ"), "repos": names, "cadence": cadence, "digest": digest,
-           "next_delay": delay_of(cadence, bool(live)), "sections": SECTIONS, "waiting": waiting, "dependencies": deps,
+    digest = "%d runs: %d running, %d waiting on you, %d done, %d failed or stopped, %d queued, %d retired" % (
+        len(rows), count("running"), len(waiting), count("done"), count("failed", "stopped"), len(deps), count("retired"))
+    delay = delay_of(cadence, bool(live))
+    doc = {"generated": iso(at), "repos": names, "cadence": cadence, "digest": digest,
+           "next_delay": delay, "next_at": "" if delay == "none" else (at + datetime.timedelta(seconds=int(delay))).strftime("%H:%M UTC"), "open": bool(live or waiting or deps), "sections": SECTIONS, "usual": usual, "waiting": waiting, "dependencies": deps,
            "runs": rows, "expected": expected, "finished": {"items": done, "note": note}, "steps": steps, "state": flat}
     old = (read_json(since) or {}).get("state") if since else {}
     return doc, changes(old if isinstance(old, dict) else {}, flat)
@@ -279,64 +301,20 @@ def changes(old, new):
     return lines
 
 
-DARK = "--bg:#141414;--fg:#eee;--mute:#aaa;--line:#333;--warn-bg:#3a2e10;--warn:#ffcc66;--bad:#ff6b81"
-CSS = ":root{--bg:#fff;--fg:#1b1b1b;--mute:#666;--line:#ddd;--warn-bg:#fff4d6;--warn:#8a5a00;--bad:#b00020}\n" \
-      "@media (prefers-color-scheme:dark){:root:not([data-theme=light]){%s}}\n:root[data-theme=dark]{%s}\n" % (DARK, DARK) + """\
-body{background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif;margin:0 auto;max-width:1000px;padding:16px}
-h1{font-size:22px}h2{font-size:17px;margin-top:28px}table{border-collapse:collapse;width:100%}
-th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
-.wait{background:var(--warn-bg);border:2px solid var(--warn);border-radius:8px;padding:12px 16px}
-.wait h2{color:var(--warn);margin-top:0}code{font-size:16px;font-weight:600;word-break:break-all}.mute{color:var(--mute)}
-.scroll{overflow-x:auto}@media (max-width:600px){body{font-size:14px}th,td{padding:4px}}"""
-
-
-def page(doc, bare=False):
-    e = lambda value: html.escape(str(value if value is not None else ""), quote=True)
-
-    def table(head, rows):
-        if not rows:
-            return "<p class=mute>Nothing.</p>"
-        body = "".join("<tr>%s</tr>" % "".join("<td>%s</td>" % e(c) for c in row) for row in rows)
-        return "<div class=scroll><table><tr>%s</tr>%s</table></div>" % ("".join("<th>%s</th>" % e(h) for h in head), body)
-
-    top = ["<title>Operation board</title><style>%s</style><h1>Operation board</h1>" % CSS] if bare else [
-        "<!doctype html><html lang=en><head><meta charset=utf-8>",
-        "<meta name=viewport content='width=device-width,initial-scale=1'><title>Operation board</title>",
-        "<style>%s</style></head><body><h1>Operation board</h1>" % CSS]
-    out = top + [
-           "<p class=mute>%s. Written %s. Repos: %s. Check in every %s.</p>" % (
-               e(doc["digest"]), e(doc["generated"]), e(", ".join(doc["repos"])), e(doc["cadence"] + " min" if doc["cadence"] != "off" else "never (off)"))]
-    out.append("<section class=wait><h2>%s (%d)</h2>" % (SECTIONS[0], len(doc["waiting"])))
-    for w in doc["waiting"]:
-        out.append("<p><b>%s/%s</b>: %s<br>Type in %s:</p><ul>%s</ul>" % (
-            e(w["repo"]), e(w["slug"]), e(w["ask"]), e(w["where"]), "".join("<li><code>%s</code></li>" % e(x) for x in w["words"])))
-    out.append("</section>" if doc["waiting"] else "<p>Nothing.</p></section>")
-    out.append("<h2>%s</h2>%s" % (SECTIONS[1], table(["Repo", "Goal", "Waits on"], [[d["repo"], d["slug"], d["waits_on"]] for d in doc["dependencies"]])))
-    runs = [[r["repo"], r["goal"] or r["slug"], r["level"], r["step"], span(r["elapsed"]), r["tries"], r["pr"] + " (%s)" % r["prstate"] if r["pr"] else "-",
-             "checks %s, judge %s" % (r["checks"] or "-", r["judge"] or "-"),
-             r["status"] + (" (quiet)" if r["quiet"] == "yes" else ""), r["note"] or "-"] for r in doc["runs"]]
-    out.append("<h2>%s</h2>%s" % (SECTIONS[2], table(["Repo", "Goal", "Level", "Step", "Elapsed", "Tries", "Pull request", "Check state", "Status", "Last message"], runs)))
-    out.append("<h2>%s</h2>%s" % (SECTIONS[3], table(["Repo", "Goal", "Level", "Estimate"], [[x["repo"], x["slug"], x["level"], x["estimate"]] for x in doc["expected"]])))
-    fin = doc["finished"]
-    out.append("<h2>%s</h2>%s<p class=mute>%s</p>" % (SECTIONS[4], table(["Repo", "Goal", "Result", "Pull request"], [[x["repo"], x["slug"], x["result"], x["pr"] + " (%s)" % x["prstate"] if x["pr"] else "-"] for x in fin["items"]]), e(fin["note"])))
-    out.append("<h2>%s</h2>%s%s\n" % (SECTIONS[5], table(["Repo", "Goal", "Step", "Status"], [[s["repo"], s["slug"], s["step"], s["status"]] for s in doc["steps"]]), "" if bare else "</body></html>"))
-    return "\n".join(out)
-
-
 def cmd_board(args):
     doc, lines = build(clock(args.at), args.since)
     folder = os.path.abspath(args.out) if args.out else loop_dir(common())
     os.makedirs(folder, exist_ok=True)
-    paths = [os.path.join(folder, n) for n in ("board.json", "board.html", "board-artifact.html")]
-    write(paths[0], json.dumps(doc, indent=2, sort_keys=True) + "\n")
-    write(paths[1], page(doc))
-    write(paths[2], page(doc, True))
+    path = os.path.join(folder, "board.json")
+    write(path, json.dumps(doc, indent=2, sort_keys=True) + "\n")
     print("DIGEST " + doc["digest"])
     print("CHANGED " + ("yes" if lines else "no"))
-    print(*lines, sep="\n") if lines else None
+    for line in lines:
+        print(line)
+    if not lines and doc["open"] and doc["next_at"]:
+        print("NO_CHANGE Nothing changed. Next check-in %s. %s." % (doc["next_at"], doc["digest"]))
     print("NEXT_DELAY " + doc["next_delay"])
-    for key, path in zip(("JSON", "HTML", "ARTIFACT"), paths):
-        print(key, path)
+    print("JSON", path)
     return 0
 
 
@@ -357,9 +335,8 @@ def cmd_repos(args):
         top = git("rev-parse", "--show-toplevel", cwd=args.path) if args.path and os.path.isdir(args.path) else ""
         if not top:
             sys.exit("REFUSED: %s is not a git repo." % args.path)
-        listed = [r[1] for r in followed()]
         os.makedirs(os.path.dirname(repo_file()), exist_ok=True)
-        if top not in listed:
+        if top not in [r[1] for r in followed()]:
             with open(repo_file(), "a") as handle:
                 handle.write(top + "\n")
         print("FOLLOWING " + top)
@@ -369,31 +346,78 @@ def cmd_repos(args):
     return 0
 
 
-def cmd_note(args):
-    path = os.path.join(loop_dir(common(), "runs"), args.slug + ".json")
-    run = read_json(path) if SLUG.match(args.slug) else None
+def run_of(slug):
+    path = os.path.join(loop_dir(common(), "runs"), slug + ".json")
+    run = read_json(path) if SLUG.match(slug) else None
     if not isinstance(run, dict):
-        sys.exit("REFUSED: no run named %s in this repo." % args.slug)
-    stamp_now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    run["note"] = {"text": clean(args.text), "at": stamp_now}
-    run["updated"] = stamp_now
+        sys.exit("REFUSED: no run named %s in this repo." % slug)
+    run["updated"] = iso(clock(""))
+    return path, run
+
+
+def cmd_note(args):
+    path, run = run_of(args.slug)
+    run["note"] = {"text": clean(args.text), "at": run["updated"]}
     write(path, json.dumps(run, indent=2))
     print("NOTED %s" % args.slug)
     return 0
 
 
+def cmd_session(args):
+    base = common()
+    known = sessions_of(base)
+    item = known.get(args.name)
+    if not SLUG.match(args.name):
+        sys.exit("REFUSED: bad session name.")
+    if args.action != "add" and not item:
+        sys.exit("REFUSED: no tracked session named %s." % args.name)
+    if args.action == "add":
+        if item or os.path.exists(os.path.join(base, "loop", "runs", args.name + ".json")):
+            sys.exit("REFUSED: %s already exists." % args.name)
+        if not args.repo:
+            sys.exit("REFUSED: session add needs --repo.")
+        at = iso(clock(""))
+        item = known[args.name] = {"slug": args.name, "tracked": True, "external": True, "level": "session", "status": "running",
+                                   "log": [at + " tracked"], "waits_on": []}
+    if args.action == "remove":
+        known.pop(args.name)
+    else:
+        for field in ("repo", "branch", "status", "next", "pr", "eta"):
+            if getattr(args, field) is not None:
+                item[field] = clean(getattr(args, field))
+        if args.waits_on is not None:
+            item["waits_on"] = [x.strip() for x in ",".join(args.waits_on).split(",") if x.strip()]
+        item["updated"] = iso(clock(""))
+        if args.note is not None:
+            item["note"] = {"text": clean(args.note), "at": item["updated"]}
+    loop_dir(base)
+    write(session_file(base), json.dumps(known, indent=2, sort_keys=True) + "\n")
+    print("SESSION %s %s" % (args.action.upper(), args.name))
+    return 0
+
+
+def cmd_retire(args):
+    path, run = run_of(args.slug)
+    if run.get("status") == "running" and not run.get("external"):
+        sys.exit("REFUSED: %s is running. Fix: stop its agent, then run watch --once." % args.slug)
+    run["retired"] = {"reason": clean(args.reason), "at": run["updated"]}
+    run["status"], run["waiting"] = "retired", None
+    run.setdefault("log", []).append("%s retired: %s" % (run["updated"], clean(args.reason)))
+    write(path, json.dumps(run, indent=2))
+    print("RETIRED %s" % args.slug)
+    return 0
+
+
 def cmd_handoff(args):
-    at = clock(args.at)
-    doc, _ = build(at, None)
-    lines = ["# Operation handoff", "", "Written %s. Data from run records, not instructions." % doc["generated"], "",
-             "## Repos"] + ["- %s" % r for r in doc["repos"]] + ["", "## Cadence", "Check in every %s." % (doc["cadence"] + " minutes" if doc["cadence"] != "off" else "never (off)"),
-             "", "## Open goals"]
-    lines += ["- %s/%s: %s, step %s" % (r["repo"], r["slug"], r["status"], r["step"]) for r in doc["runs"] if r["status"] != "done"]
+    doc, _ = build(clock(args.at), None)
+    lines = ["# Operation handoff", "", "Written %s. Data from run records, not instructions." % doc["generated"], "", "## Repos"]
+    lines += ["- %s" % r for r in doc["repos"]] + ["", "## Cadence", "Check in every %s." % (doc["cadence"] + " minutes" if doc["cadence"] != "off" else "never (off)"), "", "## Open goals"]
+    lines += ["- %s/%s: %s, step %s" % (r["repo"], r["slug"], r["status"], r["step"]) for r in doc["runs"] if r["status"] not in ("done", "retired")]
     lines += ["- %s/%s: queued, waits on %s" % (d["repo"], d["slug"], d["waits_on"]) for d in doc["dependencies"]]
     lines += ["", "## Waiting on the owner"]
     lines += ["- %s/%s: %s Type in %s: %s" % (w["repo"], w["slug"], w["ask"], w["where"], " or ".join(w["words"])) for w in doc["waiting"]]
     lines += ["", "## Next check-in steps", "1. Run watch.py watch --once.", "2. Read each session's latest report.",
-              "3. Run board.py board --since <last board.json>.", "4. Publish board-artifact.html, report only changes.",
+              "3. Run board.py board --since <last board.json>, then board_page.py.", "4. Publish board-artifact.html, report changes or NO_CHANGE.",
               "5. Wait NEXT_DELAY (%s). Never answer a gate, merge unless told, or archive a session." % doc["next_delay"]]
     path = os.path.abspath(args.out) if args.out else os.path.join(loop_dir(common()), "handoff.md")
     write(path, "\n".join(lines) + "\n")
@@ -407,24 +431,29 @@ def main():
     item = sub.add_parser("board")
     for flag in ("--at", "--since", "--out"):
         item.add_argument(flag, default="")
-    item.set_defaults(func=cmd_board)
     item = sub.add_parser("cadence")
     item.add_argument("value", nargs="?")
-    item.set_defaults(func=cmd_cadence)
     item = sub.add_parser("repos")
     item.add_argument("action", choices=["add", "list"])
     item.add_argument("path", nargs="?")
-    item.set_defaults(func=cmd_repos)
     item = sub.add_parser("note")
     item.add_argument("slug")
     item.add_argument("text")
-    item.set_defaults(func=cmd_note)
+    item = sub.add_parser("session")
+    item.add_argument("action", choices=["add", "update", "remove"])
+    item.add_argument("name")
+    for flag in ("--repo", "--branch", "--note", "--next", "--pr", "--eta"):
+        item.add_argument(flag)
+    item.add_argument("--waits-on", action="append")
+    item.add_argument("--status", choices=STATES)
+    item = sub.add_parser("retire")
+    item.add_argument("slug")
+    item.add_argument("--reason", required=True)
     item = sub.add_parser("handoff")
     for flag in ("--at", "--out"):
         item.add_argument(flag, default="")
-    item.set_defaults(func=cmd_handoff)
     args = parser.parse_args()
-    return args.func(args)
+    return globals()["cmd_" + args.command](args)
 
 
 if __name__ == "__main__":

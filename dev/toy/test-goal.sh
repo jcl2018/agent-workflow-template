@@ -65,6 +65,37 @@ $goal queue pipe --goal "a|b" --done "x" 2>&1 | grep -q "no |" && ok "pipe refus
 $M report | grep -q "fix-a" && ok "report reads it" || bad "report queue"
 git checkout -q -- .loop/queue.md
 
+echo "== a failed design review stays at the design; the plan isn't reviewed yet"
+git switch -q main
+$goal new drev --here --goal "Review" --done "reviewed" --level full >/dev/null
+echo "VERDICT: fail" > "$d/vf"
+$goal verdict drev --file "$d/vf" --design > "$d/dr"
+grep -q "NEXT: rewrite the design" "$d/dr" && [ "$(field drev step)" = design ] && [ "$(field drev tries)" = 1 ] && ok "design failure goes back to the design" || bad "design failure"
+grep -q "design and plan" "$here/skills/workflow-delivery/scripts/goal.py" && bad "review prompt" || ok "review prompt doesn't ask about the plan"
+git switch -q main
+
+echo "== evidence needs new checks, and a verdict failed on proof alone costs a try"
+$goal new proof --here --goal "Add proof" --done "calc has proof" --level standard >/dev/null
+printf '\n\ndef proof():\n    return 1\n' >> calc.py; git commit -qam "Add proof"
+$goal check proof >/dev/null
+printf '\n## Evidence\n\nsome output\n' >> .loop/goals/proof.md; git commit -qam "Evidence"
+$goal judge proof 2>&1 | grep -q "checks have not passed on this commit" && ok "judge refuses evidence the checks missed" || bad "evidence commit"
+$goal check proof >/dev/null
+printf 'FAIL 1: no proof in the evidence\nVERDICT: fail\n' > "$d/vf"
+$goal verdict proof --file "$d/vf" | grep -q "NEXT: fix it, then run check again" && [ "$(field proof tries)" = 1 ] && [ "$(field proof step)" = build ] && ok "failed on proof: one try, back to build" || bad "proof verdict"
+printf 'PASS 1: ok\nVERDICT: pass\n' > "$d/vf"
+$goal check proof >/dev/null; $goal verdict proof --file "$d/vf" >/dev/null; $goal pr proof >/dev/null
+grep -q "^## Result" "$FAKE_GH_DIR/calls.log" && [ "$(grep -c '^## Evidence' "$FAKE_GH_DIR/calls.log")" = 1 ] && ok "pr body keeps one Evidence section" || bad "pr body sections"
+git switch -q main
+
+echo "== the Delivery page names every goal.py command and flag"
+missing=""
+for word in $(python3 "$here/skills/workflow-delivery/scripts/goal.py" -h | sed -n '/^  new /,/^  show /p' | awk '{print $1}') $(grep -oE 'add_argument\("--[a-z]+"' "$here/skills/workflow-delivery/scripts/goal.py" | cut -d'"' -f2 | sort -u); do
+  grep -q -- "$word" "$here/docs/wiki/Delivery.md" || missing="$missing $word"
+done
+[ -z "$missing" ] && ok "page lists them" || bad "page lacks:$missing"
+grep -q "Done lines a judge can prove" "$here/skills/workflow-delivery/SKILL.md" && ok "skill says how to write done lines" || bad "done line guidance"
+
 echo "== pr_bumps_version moves the last number once"
 echo 1.3.3.3 > VERSION; git add -A; git commit -qm "Version"; git push -q origin main
 cfg 'pr_bumps_version=true'; git commit -qam "Bump config"; git push -q origin main

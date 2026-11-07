@@ -5,7 +5,9 @@
 One session governs, and the others build. Start every goal with `/workflow-monitoring go`, then run
 `/workflow-monitoring watch`. Each goal gets its own worktree and background agent, at every level.
 
-## First batch: delivery, monitoring, documentation, release
+## First batch: built
+
+Delivery, monitoring, documentation and release are built.
 
 Together these give the whole path: start work, watch it run in parallel, document it, and ship the result.
 
@@ -93,7 +95,7 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 
 1. On a toy repo, `quick` and `standard` goals each end in a pull request.
 2. The judge fails a planted bug, and the run fixes it or files a finding.
-3. `start` runs 3 goals in parallel; one fails and the other two finish.
+3. `watch` runs 3 goals in parallel; one fails and the other two finish.
 4. `report` and `dashboard` match the true state, including a goal waiting on you.
 5. `cut` produces a draft release, and `leave` changes nothing versioned.
 6. `setup` runs twice on a repo with no change the second time.
@@ -101,15 +103,22 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 8. One real `quick` goal works on a real repo, and Codex can run the toy `quick` goal.
 9. `publish` updates a real wiki without touching other pages, and a real release carries verify steps and docs.
 
-## Second batch: done
+## Second batch: built
 
 - `minimum` level, the new default, with no design round.
 - One governing session: `/workflow-monitoring go` and `watch`.
 - `workflow-regression`: rows, known failures, a workflow, and an issue per failing row.
 - A POC's queue line, the mender, resuming after a usage limit, and optional version bumps on pull requests.
 
-## Later, in order
+## Operation session: built
 
-1. **Other agents:** Kimi, Qwen and OpenCode support.
+- `watch.py go --session`, `board.py` (`board`, `cadence`, `repos`, `note`, `handoff`) and the check-in loop in
+  `skills/workflow-monitoring/references/operation.md`.
+
+## What is left
+
+1. **The wiki and the Agensi listing:** publish the wiki with `workflow-docs`, and list the package on Agensi.
+2. **Other agents:** Kimi, Qwen and OpenCode support.
+3. **The `full` level:** it has not run yet, on a toy repo or a real one.
 
 Merging, a project board and milestones stay with you.

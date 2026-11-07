@@ -19,7 +19,8 @@ When `workflow-delivery` ends with `NEXT: workflow-release asks cut or leave`, r
 python3 scripts/release.py ask <slug>
 ```
 
-It refuses unless the goal is `done` with checks `pass` (and the judge `pass`, unless the level is `quick`).
+It refuses unless the goal is `done` with checks `pass` (and the judge `pass`, unless the level is `minimum` or
+`quick`).
 
 - `WAITING <slug>: ...`: the goal now waits on the user. Show everything it printed: the docs that changed, the wiki
   link, the steps to verify by hand, the question, and the two exact lines `cut <slug>` and `leave <slug>`. Then stop.
@@ -54,8 +55,9 @@ python3 scripts/release.py cut <slug> [--bump patch|minor|major] [--user]
 
 On the goal's branch `loop/<slug>` it:
 
-1. Refuses if `## Verify by hand` in the goal file has no numbered step with an `Expect:` line, or if a page mapped in
-   `.loop/docs.tsv` is stale.
+1. Refuses if `## Verify by hand` in the goal file has no numbered steps, if any step has no `Expect:` line, or if a
+   page mapped in `.loop/docs.tsv` is stale or missing. Stale here means `docs.py check --base <base>`: only changes
+   since the goal's base count.
 2. Reads the version from `version_file` in `.loop/config.json` (default `VERSION`, `X.Y.Z` or `W.X.Y.Z`). `patch` moves
    the last number. With no file, the first release is `0.1.0` and the file is created.
 3. Adds an entry to `CHANGELOG.md` above the last release: the new version, today's date (UTC), one line per commit since
@@ -64,11 +66,14 @@ On the goal's branch `loop/<slug>` it:
 5. Runs `gh release create vX.Y.Z --draft --target loop/<slug>`, with the verify steps and docs in the notes, and prints
    `DRAFT <url>`.
 
-Then, if `.loop/docs.tsv` exists, publish the docs with `workflow-docs`. If that fails, the draft stands: report the
-failure and the fix it printed.
+Then, if `.loop/docs.tsv` exists, publish the docs with `workflow-docs`, from the goal's branch. `publish` is stricter
+than `cut`: it counts every commit, and it refuses `UNWRITTEN` and `UNMAPPED` pages. If it fails, the draft stands:
+report the failure and the fix it printed.
 
-Tell the user the draft URL, the wiki link, the steps to verify by hand, and that they publish it. The release commit rides on the goal's pull request, so the
-version lands when the user merges it.
+Tell the user the draft URL, the wiki link, the steps to verify by hand, and that they publish it. The release commit
+rides on the goal's pull request, so the version lands when the user merges it.
+
+If `cut` prints `ALREADY cut` or `ALREADY leave`, nothing was cut. Report it.
 
 If `gh` fails, the script removes only its own release commit, restores the two files, and reports the error.
 Report it too. Don't retry with other flags.
@@ -86,8 +91,8 @@ Each refusal says `REFUSED:` and a fix. Common ones:
 | Refusal | Fix |
 |---|---|
 | Checks or judge have not passed | Finish the goal with `workflow-delivery` |
-| No steps under `## Verify by hand` | Add a numbered step with an `Expect:` line, and commit it |
-| Pages are stale | Update them with `workflow-docs`, and commit |
+| No complete steps under `## Verify by hand` | Give every numbered step an `Expect:` line, and commit it |
+| Pages are stale | Update them with `workflow-docs`, commit, and run `goal.py check` again |
 | A batch goal, no `--user` | Wait for the human's own `cut <slug>` |
 | On the wrong branch | Switch to `loop/<slug>` in the goal's worktree |
 | Uncommitted changes | Commit or set them aside |

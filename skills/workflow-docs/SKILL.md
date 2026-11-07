@@ -1,12 +1,13 @@
 ---
 name: workflow-docs
-description: Keeps a repo's wiki pages in the repo, finds pages that have gone stale, and publishes them to its GitHub wiki without touching pages it didn't write. Use when asked to write, check or publish documentation or a wiki, and before a release.
+description: Keeps a repo's wiki pages in the repo, finds pages that have gone stale, and publishes them to its GitHub wiki without touching pages it didn't write. Use when asked to write, check or publish documentation or a wiki, when a release finds stale pages, and after a cut.
 ---
 
 # workflow-docs
 
-Four commands: `init`, `check`, `publish` and `restore`. Run `scripts/docs.py` with `python3`. If the skill's files
-aren't on disk, write the script to a temporary file, run it, and delete it. If `.loop/config.json` is missing, use
+Four commands: `init`, `check`, `publish` and `restore`. `init` is the step list below, not a script command. The others
+are `scripts/docs.py` commands, with `survey` and `add` for `init`. Run it with `python3`. If the skill's files aren't
+on disk, write the script to a temporary file, run it, and delete it. If `.loop/config.json` is missing, use
 `workflow-setup` first.
 
 Pages live in the repo at `docs/wiki/` (`wiki_dir` in `.loop/config.json` changes that), so they're reviewed in pull
@@ -42,12 +43,14 @@ python3 scripts/docs.py check [--base <ref>]
 
 | Line | Means | Fix |
 |---|---|---|
-| `STALE` | A mapped path changed after the page's last commit | Update the page, or commit it unchanged if it's still true |
+| `STALE` | A mapped path changed after the page's last commit | Update the page. If it's still true, edit a line: only a commit that changes the page clears this |
 | `MISSING` | A mapped page has no file | Write it, or remove its row |
 | `UNWRITTEN` | The page still has its placeholder, or almost no text | Write it |
 | `UNMAPPED` | A page has no row in `.loop/docs.tsv` | Run `add` |
 
-Exit 0 prints `DOCS OK`. Pass `--base <ref>` to count only changes since that point, which helps a page's first release.
+Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to
+count only changes since that point. `cut` counts from the goal's base the same way. `publish` has no `--base`: it
+counts every commit.
 
 ## `publish`
 
@@ -60,6 +63,7 @@ python3 scripts/docs.py publish
 
 - It refuses while `check` finds problems.
 - It writes only pages listed in `.loop/docs.tsv`, and it never deletes a page.
+- It refuses a page in the repo that lost its first line. `check` doesn't look for that.
 - It refuses to replace a wiki page it didn't write. `--adopt <page>` replaces one. Use that only when the user named
   that page.
 
