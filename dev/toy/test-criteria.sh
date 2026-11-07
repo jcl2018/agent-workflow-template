@@ -144,6 +144,32 @@ page Delivery "$six
 $docs check | grep -q "^CAP Delivery: has 7 criteria" && ok "a seventh criterion fails" || bad "cap"
 good
 
+echo "== a changed reviewed criterion goes back to Unreviewed, is named in the report, and nothing blocks it"
+cri="python3 $here/skills/workflow-docs/scripts/criteria.py"; mon="python3 $here/skills/workflow-monitoring/scripts/monitor.py"
+good; git add -A; git commit -qm "Good page" >/dev/null || true
+$cri review DEL-1 2>&1 | grep -q "only the owner reviews" && ok "review needs the owner's words" || bad "review --user"
+$cri review DEL-9 --user 2>&1 | grep -q "no criterion DEL-9" && ok "review refuses an unknown id" || bad "review unknown"
+$cri review DEL-1 --user | grep -q "REVIEWED DEL-1" && grep -q '^- DEL-1: \*\*Reviewed\*\* .*<!-- reviewed [0-9a-f]* -->$' docs/wiki/Delivery.md && ok "review marks the line" || bad "review marks"
+grep -q '^> \*\*Unreviewed' docs/wiki/Delivery.md && bad "banner stayed" || ok "the banner goes when nothing waits"
+out=$($docs check || true); grep -q "^STAGE\|^TESTS\|^LINK" <<<"$out" && bad "reviewed page: $out" || ok "a reviewed page passes the check"
+$cri sync | grep -q "CRITERIA OK" && ok "an unchanged reviewed criterion stays" || bad "sync clean"
+sed -i.bak 's/The calculator prints a median\./The calculator prints a mean./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+out=$($docs check || true); grep -q "^STAGE\|^TESTS\|^LINK\|^CRITERION" <<<"$out" && bad "the check blocked a change: $out" || ok "no check blocks a changed criterion"
+$mon report | grep -q "^- DEL-1 (Delivery): The calculator prints a mean" && ok "report names a change sync hasn't seen" || bad "report before sync"
+$cri sync --dry-run | grep -q "DRY RUN" && grep -q '\*\*Reviewed\*\*' docs/wiki/Delivery.md && ok "dry run writes nothing" || bad "dry run"
+$cri sync | grep -q "^RETURNED DEL-1" && ok "sync returns it" || bad "sync returned"
+grep -q '^- DEL-1: \*\*Unreviewed\*\* (changed after review) The calculator prints a mean\.$' docs/wiki/Delivery.md && ok "the page says it changed after review" || bad "page returned"
+grep -q '^> \*\*Unreviewed:\*\* 1 of 1 criteria' docs/wiki/Delivery.md && ok "the banner comes back" || bad "banner back"
+$mon report | grep -q "^- DEL-1 (Delivery): The calculator prints a mean" && ok "report names a returned criterion" || bad "report returned"
+out=$($docs check || true); grep -q "^STAGE\|^TESTS\|^LINK" <<<"$out" && bad "returned page: $out" || ok "a returned page passes the check"
+$cri review DEL-1 --user >/dev/null; grep -q '^- DEL-1: \*\*Reviewed\*\* The calculator prints a mean\. <!--' docs/wiki/Delivery.md && ok "review clears the note" || bad "review clears"
+$mon report | grep -A1 "^CRITERIA BACK" | grep -q "(none)" && ok "report clears after review" || bad "report clears"
+git add -A; git commit -qm "Reviewed" >/dev/null
+sed -i.bak 's/prints a mean/prints a mode/' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+echo dirty >> calc.py; h0=$(git rev-parse HEAD)
+$cri sync --commit >/dev/null; [ "$(git rev-parse HEAD)" != "$h0" ] && [ -z "$(git status --porcelain docs/wiki)" ] && [ -n "$(git status --porcelain calc.py)" ] && ok "sync --commit commits only the pages" || bad "sync commit"
+git checkout -q -- calc.py; good; git add -A; git commit -qm "Good page again" >/dev/null || true
+
 echo "== regression sync reports criteria with no row"
 page Delivery "- DEL-1: The calculator prints a median.
 - DEL-2: It exits 0." "- DEL-1: del-1
