@@ -184,6 +184,11 @@ def waits_file(slug):
     return os.path.join(loop_dir("waits"), slug)
 
 
+def holds_slot(state):
+    """A running goal with no pid isn't a marked session: it still blocks overlapping files, but uses no agent slot."""
+    return state.get("status") != "running" or state.get("pid") or state.get("external")
+
+
 def blocker(goal, live):
     for state in live:
         if any(overlap(mine, theirs) for mine in goal["touches"] for theirs in state.get("touches") or []):
@@ -221,7 +226,7 @@ def log_tail(slug, size=200, mark=0):
 
 def refresh():
     for state in runs():
-        if state.get("status") == "running" and not state.get("external") and not alive(state.get("pid")):
+        if state.get("status") == "running" and state.get("pid") and not state.get("external") and not alive(state.get("pid")):
             fresh = load(state["slug"])
             if fresh and fresh.get("status") == "running" and fresh.get("pid") == state.get("pid"):
                 fresh["status"] = "failed"
@@ -325,11 +330,11 @@ def plan(limit):
             with open(waits_file(goal["slug"]), "a") as handle:
                 handle.write(hit + "\n")
             held.append((goal, "conflict with %s" % hit))
-        elif len(live) >= limit:
-            held.append((goal, "slots full (%d of %d)" % (len(live), limit)))
+        elif sum(1 for state in live if holds_slot(state)) >= limit:
+            held.append((goal, "slots full (%d of %d)" % (sum(1 for state in live if holds_slot(state)), limit)))
         else:
             start.append(goal)
-            live.append({"slug": goal["slug"], "touches": goal["touches"], "status": "running"})
+            live.append({"slug": goal["slug"], "touches": goal["touches"], "status": "starting"})
     return start, held
 
 
@@ -443,7 +448,7 @@ def cmd_watch(args):
         pending = keep_moving(cfg, args.skill_dir)
         begun, _ = start_round(args, cfg)
         tell(seen, told)
-        if args.once or not (begun or pending or any(state.get("status") == "running" for state in runs())):
+        if args.once or not (begun or pending or any(state.get("status") == "running" and (state.get("pid") or state.get("external")) for state in runs())):
             break
         time.sleep(interval)
     _, held = plan(limit_of(args, cfg))

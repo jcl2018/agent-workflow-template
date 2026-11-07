@@ -196,7 +196,7 @@ def collect(name, path, base, at):
     for run in records + list(sessions_of(base).values()):
         begun, last = started(run), stamp(run.get("updated"))
         note = run.get("note") or {}
-        quiet = bool(run.get("external") and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET)
+        quiet = bool((run.get("external") or not run.get("pid")) and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET)
         pr = clean(run.get("pr"))
         get = lambda field, size=300: clean(run.get(field), size)
         rows.append({
@@ -219,8 +219,9 @@ def collect(name, path, base, at):
                 why, blocker = "goal %s (shared %s)" % (run["slug"], hit[0]), run["slug"]
                 break
         else:
-            if len(live) >= int(cfg.get("parallel", 3) or 3):
-                why = "a free slot (%d of %s running)" % (len(live), cfg.get("parallel", 3))
+            used = sum(1 for r in live if r.get("status") != "running" or r.get("pid") or r.get("external"))
+            if used >= int(cfg.get("parallel", 3) or 3):
+                why = "a free slot (%d of %s running)" % (used, cfg.get("parallel", 3))
         deps.append({"repo": name, "slug": goal["slug"], "waits_on": why, "on": blocker, "goal": clean(goal.get("goal"), 80),
                      "level": goal["level"], "touches": goal["touches"]})
     return rows, deps
