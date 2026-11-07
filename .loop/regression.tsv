@@ -47,3 +47,9 @@ MON-13	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal 
 returned-on-change	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: sync returns it"	DOC-9	2026-11-07
 returned-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report names a returned criterion"	DOC-9	2026-11-07
 change-not-blocked	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: no check blocks a changed criterion"	DOC-9	2026-11-07
+HLT-1	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: two runs print the same lines"		2026-11-07
+HLT-2	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: over 20 KB is a FAIL with a fix"		2026-11-07
+HLT-3	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a stale page shows as a docs row naming it"		2026-11-07
+HLT-4	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a criterion with no row is a FAIL"		2026-11-07
+HLT-5	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: no sibling script: UNREAD and not green"		2026-11-07
+HLT-6	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: check writes no file and makes no commit"		2026-11-07

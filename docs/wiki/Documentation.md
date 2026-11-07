@@ -42,7 +42,7 @@ restore                         revert the last publish, if nothing came after i
 `STALE`.
 
 With `"criteria": true` in the config, `check` also enforces the criteria contract: only the pages Delivery,
-Documentation, Monitoring, Regression, Release and Home; each feature page has exactly the sections Summary, Commands,
+Documentation, Health, Monitoring, Regression, Release and Home; each feature page has exactly the sections Summary, Commands,
 Criteria and Enforced by, in that order; a criterion is one line `- DEL-1: **Stage** text` with a unique id, and each id needs an
 `- DEL-1: <regression row ids>` line in Enforced by.
 

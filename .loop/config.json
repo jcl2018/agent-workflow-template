@@ -3,6 +3,7 @@
   "checks": [
     "python3 skills/workflow-docs/scripts/criteria.py sync --commit",
     "bash dev/toy/test-docs.sh",
+    "bash dev/toy/test-health.sh",
     "bash dev/toy/test-criteria.sh",
     "bash dev/toy/test-release.sh",
     "bash dev/toy/test-goal.sh",
