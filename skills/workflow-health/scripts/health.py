@@ -33,7 +33,7 @@ RULES = ("size", "criteria-rows", "criteria-done", "criteria-proof", "docs-check
 MAX_RULES = 8
 assert len(RULES) <= MAX_RULES, "too many rules: retire one first"
 FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene"}
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 
 def run(args, cwd):
