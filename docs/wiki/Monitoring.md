@@ -10,6 +10,9 @@ Keep the skill's scripts in one folder. Each runs alone, but apart from its help
 
 Codex has run as a monitored background agent on a toy repo. It needs `-s workspace-write`, with the git folder and the remote as writable roots.
 
+In this repo, `auto_merge` is on, so a goal's agent ends by running the release step's merge, which merges its pull
+request. With it off, the goal stops at the pull request for you.
+
 ## Commands
 
 ```text
