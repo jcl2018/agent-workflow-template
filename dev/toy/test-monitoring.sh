@@ -13,6 +13,7 @@ P="python3 $here/skills/workflow-monitoring/scripts/board_page.py"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh" HOME="$T/home" FAKE_AGENT="$T/fake"
 mkdir -p "$HOME" "$FAKE_AGENT"
+trap 'rm -f "$FAKE_AGENT"/hold-*' EXIT  # a held stand-in agent ends when its file goes
 fails=0
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
