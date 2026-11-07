@@ -11,15 +11,11 @@ usage: docs.py <command> [options]
                                copy the pages to the wiki, commit and push
   restore                      revert the last publish, if nothing came after it
 
-With "criteria": true in .loop/config.json, check also enforces the criteria contract: only the pages
-Delivery, Documentation, Monitoring, Regression, Release and Home; every page but Home has exactly the
-sections Summary, Commands, Criteria and Enforced by, in that order; each criterion is one line
-"- ID: text" with a unique id such as DEL-1, and each id has a line "- ID: <regression row id>" in Enforced by.
-It also fails any page that names a script file, and any command under Commands (a line in a text block, or a
-"- `command`" bullet) with no "### `command`" heading holding a mermaid chart and a Status line.
+With "criteria": true in .loop/config.json, check also enforces the contract in SKILL.md: the page list and sections;
+"- ID: **Stage** text" lines with unique ids; each regression row linked to one criterion; the Tests line and banner;
+no script file names; a mermaid chart and Status line for every command under Commands.
 
-Publish only adds and updates pages that carry this tool's marker. It never deletes a page,
-and it refuses to replace a page this tool didn't write unless you name it with --adopt.
+Publish never deletes a page, and refuses to replace a page without this tool's marker unless you name it with --adopt.
 It runs git and nothing else.
 """
 import argparse
@@ -36,6 +32,9 @@ PAGE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,80}$")
 SECTIONS = ["Summary", "Commands", "Criteria", "Enforced by"]
 PREFIXES = {"Delivery": "DEL", "Documentation": "DOC", "Monitoring": "MON", "Regression": "REG", "Release": "REL"}
 CRITERION = re.compile(r"^- ([A-Z]{2,5}-\d+): (\S.*)$")
+CRITERION_ID = re.compile(r"^[A-Z]{2,5}-\d+$")
+STAGE = re.compile(r"^\*\*(Unreviewed|Reviewed|Enforced|Proven)\*\* \S")
+BANNER = "> **Unreviewed:** %d of %d criteria on this page have not been reviewed by the owner."
 PLACEHOLDER = "Write this page from what is really in the repo."
 SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
 COMMAND = re.compile(r"^[a-z][a-z-]*$")
@@ -249,18 +248,42 @@ def chart_trouble(page, lines):
     """Each command needs a chart of its stages and a status line."""
     names = commands(lines)
     if not names:
-        return [("CHART", page, "Commands lists no command. Fix: list them in a text block or as bullets")]
+        return [("CHART", page, "Commands lists no command")]
     held = charts(lines)
     found = []
     for name in names:
         item = held.get(name, {})
         if not item.get("chart"):
-            found.append(("CHART", page, "%s has no chart. Fix: add a heading with %s in backticks and a mermaid block "
-                          "under Commands" % (name, name)))
+            found.append(("CHART", page, "%s has no chart. Fix: add a heading naming it in backticks, and a mermaid block" % name))
         elif not item.get("status"):
-            found.append(("CHART", page, "%s has no status line. Fix: add 'Status: built and proven: ... Built only: ... "
-                          "Planned: ...'" % name))
+            found.append(("CHART", page, "%s has no status line with all three labels" % name))
     return found
+
+
+def test_rows(root):
+    """Real tests as {criterion: [(id, proved)]}, plus ids linked to none. None with no file."""
+    try:
+        with open(os.path.join(root, ".loop", "regression.tsv")) as handle:
+            rows = [line.rstrip("\n").split("\t") + [""] * 5 for line in handle if line.strip() and line[0] != "#"]
+    except OSError:
+        return None, []
+    linked, loose = {}, []
+    for row in rows:
+        key = next((item for item in (row[3], row[0]) if CRITERION_ID.match(item)), "")
+        if row[1] == "draft":
+            continue
+        if key:
+            linked.setdefault(key, []).append((row[0], bool(row[4]) or row[1] == "covered"))
+        else:
+            loose.append(row[0])
+    return linked, loose
+
+
+def stage_of(tests):
+    """The stage a reviewed criterion has earned from its tests."""
+    if not tests:
+        return "Reviewed"
+    return "Proven" if all(proved for _, proved in tests) else "Enforced"
 
 
 def contract(root):
@@ -268,10 +291,10 @@ def contract(root):
     if not config(root).get("criteria"):
         return []
     found, seen = [], {}
+    linked, loose = test_rows(root)
     for page in sorted(read_map(root)):
         if page != "Home" and page not in PREFIXES:
-            found.append(("PAGE", page, "not allowed. Fix: use Delivery, Documentation, Monitoring, Regression, "
-                          "Release or Home"))
+            found.append(("PAGE", page, "not allowed. Fix: use one of %s or Home" % ", ".join(sorted(PREFIXES))))
             continue
         full = os.path.join(root, wiki_dir(root), page + ".md")
         if not os.path.exists(full):
@@ -290,9 +313,11 @@ def contract(root):
             continue
         body = dict(parts)
         found += chart_trouble(page, body["Commands"])
-        ids = []
-        for line in body["Criteria"]:
-            if line.strip():
+        ids, stages = [], {}
+        lines = [line for line in body["Criteria"] if line.strip()]
+        heads = [line for line in lines if line.startswith(("> ", "Tests: "))]
+        for line in lines:
+            if line not in heads:
                 match = CRITERION.match(line)
                 if not match:
                     found.append(("CRITERION", page, "not one line '- ID: text': " + line.strip()[:60]))
@@ -301,10 +326,30 @@ def contract(root):
                 else:
                     seen[match.group(1)] = page
                     ids.append(match.group(1))
-        enforced = {m.group(1) for m in map(CRITERION.match, body["Enforced by"]) if m}
+                    stage = STAGE.match(match.group(2))
+                    stages[match.group(1)] = stage.group(1) if stage else ""
+                    if not stage:
+                        found.append(("STAGE", page, "%s has no stage after its id" % match.group(1)))
+        rows = linked or {}
+        waiting = sum(1 for stage in stages.values() if stage == "Unreviewed")
+        want = ["Tests: %d." % sum(len(rows.get(key, [])) for key in ids)]
+        want += [BANNER % (waiting, len(ids))] if waiting else []
+        if heads != want[::-1] and heads != want:
+            found.append(("TESTS", page, "want the lines above the criteria to be: " + " | ".join(want)))
+        enforced = {m.group(1): m.group(2) for m in map(CRITERION.match, body["Enforced by"]) if m}
         for key in ids:
             if key not in enforced:
                 found.append(("UNENFORCED", page, "%s has no row in Enforced by" % key))
+            elif linked is not None and set(enforced[key].split(", ")) != {name for name, _ in rows.get(key, [])}:
+                found.append(("LINK", page, "%s lists %s, but its rows are %s" % (
+                    key, enforced[key], ", ".join(name for name, _ in rows.get(key, [])) or "none")))
+            earned = stage_of(rows.get(key, []))
+            if stages[key] not in ("", "Unreviewed", earned):
+                found.append(("STAGE", page, "%s says %s, and its tests make it %s" % (key, stages[key], earned)))
+    for name in loose:
+        found.append(("LINK", "regression", "row %s links to no criterion" % name))
+    for key in sorted(set(linked or {}) - set(seen)):
+        found.append(("LINK", "regression", "rows link to %s, which no page has" % key))
     return found
 
 
@@ -319,8 +364,8 @@ def cmd_criteria(args):
         if name.endswith(".md"):
             with open(os.path.join(folder, name)) as handle:
                 used += [int(n) for n in re.findall(r"^- %s-(\d+): " % prefix, handle.read(), re.M)]
-    print("FORMAT one line under ## Criteria: '- %s-N: what must hold', and under ## Enforced by: "
-          "'- %s-N: <regression row id>'" % (prefix, prefix))
+    print("FORMAT one line under ## Criteria: '- %s-N: **Unreviewed** what must hold', and under ## Enforced by: "
+          "'- %s-N: <regression row ids>'" % (prefix, prefix))
     print("NEXT %s-%d" % (prefix, max(used) + 1))
     return 0
 

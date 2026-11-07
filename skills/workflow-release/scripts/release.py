@@ -255,11 +255,11 @@ def criteria_trouble(top, cfg):
         except OSError:
             continue
         for key in re.findall(r"^- ([A-Z]{2,5}-\d+): \S", part, re.M):
-            row = next((r for r in rows if key in (r[0], r[3])), None)
-            if not row:
-                out.append("%s (no regression row)" % key)
-            elif row[1] == "draft" or (row[1] != "covered" and run(["sh", "-c", row[2]], cwd=top).returncode):
-                out.append("%s (row %s is a draft or failing)" % (key, row[0]))
+            found = [r for r in rows if key in (r[0], r[3])]
+            out += ["%s (no regression row)" % key] * (not found)
+            for row in found:
+                if row[1] == "draft" or (row[1] != "covered" and run(["sh", "-c", row[2]], cwd=top).returncode):
+                    out.append("%s (row %s is a draft or failing)" % (key, row[0]))
     return out
 
 

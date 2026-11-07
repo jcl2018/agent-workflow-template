@@ -159,9 +159,11 @@ Proof: toy tests run its inline block. This repo has no such workflow. A second 
 
 ## Criteria
 
-- REG-1: A test row that has never been seen failing is reported as unproven and blocks the run.
-- REG-2: A failure listed as known does not block the run and opens no issue.
-- REG-3: Without a GitHub token, a run only prints what it would do and never calls GitHub.
+Tests: 3.
+
+- REG-1: **Proven** A test row that has never been seen failing is reported as unproven and blocks the run.
+- REG-2: **Proven** A failure listed as known does not block the run and opens no issue.
+- REG-3: **Proven** Without a GitHub token, a run only prints what it would do and never calls GitHub.
 
 ## Enforced by
 

@@ -8,8 +8,8 @@ and run a first goal, or to see where every file lives, read the
 
 ## Features
 
-Each feature page has a Summary, its Commands with a stage chart for each, the Criteria the owner approved, and what
-enforces each one.
+Each feature page has a Summary, its Commands with a stage chart for each, its Criteria with their stages and test
+count, and what enforces each one. Criteria marked Unreviewed have not been reviewed by the owner.
 
 | Feature | Skill | Page |
 |---|---|---|

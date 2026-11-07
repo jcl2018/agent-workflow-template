@@ -56,7 +56,8 @@ One session starts and watches the others.
 - Pages live in `docs/wiki/`, and `.loop/docs.tsv` maps each page to the paths it describes. The wiki is five feature
   pages (Delivery, Documentation, Monitoring, Regression, Release) plus Home; install steps and the file reference are
   in the README.
-- Each feature page lists the criteria the owner approved, and each criterion has a row in `.loop/regression.tsv`.
+- Each feature page lists its criteria and stages: Unreviewed, Reviewed, Enforced or Proven. Tests are rows in
+  `.loop/regression.tsv`, each linked to one criterion, and the page counts them.
 - Each command on a feature page has a stage chart, a status line from real tests and runs, and its stops for the owner.
   Pages name no script files.
 - `check` finds pages that are stale, missing, unwritten or unmapped. With `"criteria": true` it also enforces the page
@@ -128,8 +129,8 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 
 ## Criteria and charts: built
 
-- The wiki as five feature pages plus Home, with criteria the owner approved, each backed by a regression row seen
-  failing once. `cut` refuses while a row is missing, a draft or failing.
+- The wiki as five feature pages plus Home. Criteria are for the owner and tests for the machine. `cut` refuses while
+  any test of a criterion is missing, a draft or failing.
 - `release_auto`: a monitored batch goal decides from its diff, and only ever cuts a draft.
 - A stage chart and status line for every command, with `docs.py check` failing a missing chart or a script file name.
 
