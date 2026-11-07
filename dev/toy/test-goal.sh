@@ -68,7 +68,7 @@ git checkout -q -- .loop/queue.md
 echo "== the old level names are refused, naming the new levels"
 $goal new oldname --here --goal "Old" --done "old" --level standard 2>&1 | grep -q "use 0 (no judge), 1 (one judge) or 2 (adds a design review)" && ok "old name refused" || bad "old name"
 $goal queue oldq --goal "Old" --done "old" --level quick 2>&1 | grep -q "use 0 (no judge), 1 (one judge) or 2 (adds a design review)" && ok "old queue level refused" || bad "old queue level"
-[ -z "$(ls .loop/goals | grep oldname)" ] && ok "refused goal not created" || bad "old goal created"
+[ -z "$(ls .loop/goals 2>/dev/null | grep oldname)" ] && ok "refused goal not created" || bad "old goal created"
 
 echo "== level 2 design review says which ran, and the private setting picks the skill"
 git switch -q main
@@ -76,7 +76,7 @@ $goal new dskill --here --goal "Skilled" --done "skilled" --level 2 >/dev/null
 $goal judge dskill --design 2>&1 | grep -q "DESIGN REVIEW: built-in (no design skill set)" && ok "built-in review named" || bad "built-in review"
 mkdir -p "$d/home/.claude/skills/my-design"; echo "Review like this." > "$d/home/.claude/skills/my-design/SKILL.md"
 HOME="$d/home" LOOP_DESIGN_SKILL=my-design $goal judge dskill --design 2>&1 | grep -q "DESIGN REVIEW: using skill my-design" && ok "private skill used" || bad "private skill"
-HOME="$d/home" LOOP_DESIGN_SKILL=missing-one $goal judge dskill --design 2>&1 | grep -q "built-in (missing-one not found)" && ok "missing skill falls back" || bad "missing skill"
+HOME="$d/home" LOOP_DESIGN_SKILL=missing-one $goal judge dskill --design 2>&1 | grep -q "built-in (skill missing-one not found)" && ok "missing skill falls back" || bad "missing skill"
 git ls-files | grep -q design-skill && bad "setting in repo" || ok "setting is not in the repo"
 git switch -q main
 

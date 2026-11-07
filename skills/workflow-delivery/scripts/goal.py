@@ -328,7 +328,7 @@ def make_pack(state, design):
     extra = ""
     if design:  # the private skill, if set, steers the review; say which ran
         name, body = design_skill()
-        print("DESIGN REVIEW: " + ("using skill " + name if body else "built-in (%s)" % (name + " not found" if name else "no design skill set")))
+        print("DESIGN REVIEW: " + ("using skill " + name if body else "built-in (%s)" % ("skill " + name + " not found" if name else "no design skill set")))
         extra = "Review by this method:\n%s\n\n" % body if body else ""
     text = (DESIGN_PROMPT if design else JUDGE_PROMPT) + extra + "=== GOAL FILE ===\n" + read(goal_file(slug))
     if not design:

@@ -37,3 +37,9 @@ prints which. Risk: goal.py's 20 KB test cap (raised to 21 KB), and toy tests ke
 2. Add toy tests for the refusal and the design-skill setting (done lines 1, 3).
 3. Rewrite SKILL files, wiki pages, README, ROADMAP, loop-files (done line 5) and grep for old names.
 4. Run `goal.py check` (done line 6).
+
+## Evidence
+
+`grep -nE "minimum|quick|standard|full" listing.json docs/wiki/Release.md docs/wiki/Monitoring.md README.md docs/ROADMAP.md` finds
+nothing: those files use no old level names (listing.json and Release.md are untouched because they never held them).
+The only old-name hits in touched docs are the refusal lines in docs/wiki/Delivery.md and skills/workflow-delivery/SKILL.md.
