@@ -84,8 +84,8 @@ def outcome(state, text):
     """What a finished worker sends back, from its run record."""
     status, pr = state.get("status"), state.get("pr", "")
     if status == "done":
-        return message(state["slug"], "merged" if pr and merged(pr) else "waiting", pr,
-                       "" if pr and merged(pr) else "its pull request waits for review and merge")
+        landed = bool(pr) and merged(pr)
+        return message(state["slug"], "merged" if landed else "waiting", pr, "" if landed else "its pull request waits for review and merge")
     if status == "waiting":
         ask = state.get("waiting") or {}
         return message(state["slug"], "waiting", pr, "%s Type: %s" % (ask.get("ask", ""), " or ".join(ask.get("words") or [])))
