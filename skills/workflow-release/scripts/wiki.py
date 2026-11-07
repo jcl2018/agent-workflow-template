@@ -21,6 +21,7 @@ import tempfile
 import release
 from release import base_of, git, load, read_config, run, save, stale_pages
 
+os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")  # release.py sets the rest on import
 DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-docs", "scripts", "docs.py")
 
 

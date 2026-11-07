@@ -31,28 +31,22 @@ Commands, flows and how-tos: `skills/workflow-monitoring/references/commands.md`
 
 | Criterion | Test | Last run |
 |---|---|---|
-| MON-14 | [MON-2](../../.loop/regression.tsv) | not run |
-| MON-14 | [waits-first](../../.loop/regression.tsv) | not run |
-| MON-14 | [MON-11](../../.loop/regression.tsv) | not run |
-| MON-14 | [stuck-stays-top](../../.loop/regression.tsv) | not run |
-| MON-14 | **not enforced** | |
-| MON-15 | [MON-1](../../.loop/regression.tsv) | not run |
-| MON-15 | [dependencies-on-map](../../.loop/regression.tsv) | not run |
-| MON-15 | **not enforced** | |
-| MON-16 | [one-failure](../../.loop/regression.tsv) | not run |
-| MON-16 | **not enforced** | |
-| MON-17 | [MON-9](../../.loop/regression.tsv) | not run |
-| MON-17 | [MON-13](../../.loop/regression.tsv) | not run |
-| MON-17 | [no-pid-left-alone](../../.loop/regression.tsv) | not run |
-| MON-17 | **not enforced** | |
-| MON-18 | [MON-4](../../.loop/regression.tsv) | not run |
-| MON-18 | [MON-8](../../.loop/regression.tsv) | not run |
-| MON-18 | [worker-refuses](../../.loop/regression.tsv) | not run |
-| MON-18 | [worker-per-goal](../../.loop/regression.tsv) | not run |
-| MON-18 | [worker-reports](../../.loop/regression.tsv) | not run |
-| MON-18 | [one-way-to-run](../../.loop/regression.tsv) | not run |
-| MON-18 | **not enforced** | |
-| MON-19 | [status-order](../../.loop/regression.tsv) | not run |
-| MON-19 | [needs-you-stuck](../../.loop/regression.tsv) | not run |
-| MON-19 | [estimates-shown](../../.loop/regression.tsv) | not run |
-| MON-19 | **not enforced** | |
+| MON-14 | [MON-2](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-14 | [waits-first](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-14 | [MON-11](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-14 | [stuck-stays-top](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-15 | [MON-1](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-15 | [dependencies-on-map](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-16 | [one-failure](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-17 | [MON-9](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-17 | [MON-13](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-17 | [no-pid-left-alone](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-18 | [MON-4](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-18 | [MON-8](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-18 | [worker-refuses](../../.loop/regression.tsv) | FAIL 2026-11-07 |
+| MON-18 | [worker-per-goal](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-18 | [worker-reports](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-18 | [one-way-to-run](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-19 | [status-order](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-19 | [needs-you-stuck](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-19 | [estimates-shown](../../.loop/regression.tsv) | PASS 2026-11-07 |

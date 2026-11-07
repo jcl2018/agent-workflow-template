@@ -24,13 +24,8 @@ Commands, flows and how-tos: `skills/workflow-health/references/milestones.md`.
 
 | Criterion | Test | Last run |
 |---|---|---|
-| MIL-1 | [MIL-1](../../.loop/regression.tsv) | not run |
-| MIL-1 | **not enforced** | |
-| MIL-2 | [MIL-2](../../.loop/regression.tsv) | not run |
-| MIL-2 | **not enforced** | |
-| MIL-3 | [MIL-3](../../.loop/regression.tsv) | not run |
-| MIL-3 | **not enforced** | |
-| MIL-4 | [MIL-4](../../.loop/regression.tsv) | not run |
-| MIL-4 | **not enforced** | |
-| MIL-5 | [MIL-5](../../.loop/regression.tsv) | not run |
-| MIL-5 | **not enforced** | |
+| MIL-1 | [MIL-1](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MIL-2 | [MIL-2](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MIL-3 | [MIL-3](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MIL-4 | [MIL-4](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MIL-5 | [MIL-5](../../.loop/regression.tsv) | PASS 2026-11-07 |

@@ -22,20 +22,17 @@ Commands, flows and how-tos: `skills/workflow-docs/references/commands.md`.
 
 | Criterion | Test | Last run |
 |---|---|---|
-| DOC-4 | [DOC-1](../../.loop/regression.tsv) | not run |
-| DOC-4 | [DOC-2](../../.loop/regression.tsv) | not run |
-| DOC-4 | [stale-merge-order](../../.loop/regression.tsv) | not run |
-| DOC-4 | **not enforced** | |
-| DOC-5 | [DOC-3](../../.loop/regression.tsv) | not run |
-| DOC-5 | **not enforced** | |
-| DOC-6 | [four-sections](../../.loop/regression.tsv) | not run |
-| DOC-6 | [flow-charts](../../.loop/regression.tsv) | not run |
-| DOC-6 | **not enforced** | |
-| DOC-7 | [names-enforcer](../../.loop/regression.tsv) | not run |
-| DOC-7 | **not enforced** | |
-| DOC-8 | [unreviewed-banner](../../.loop/regression.tsv) | not run |
-| DOC-8 | **not enforced** | |
-| DOC-9 | [returned-on-change](../../.loop/regression.tsv) | not run |
-| DOC-9 | [returned-in-report](../../.loop/regression.tsv) | not run |
-| DOC-9 | [change-not-blocked](../../.loop/regression.tsv) | not run |
-| DOC-9 | **not enforced** | |
+| DOC-4 | [DOC-1](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-4 | [DOC-2](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-4 | [stale-merge-order](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-5 | [DOC-3](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-6 | [page-shape](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-6 | [criteria-no-scripts](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-7 | [tests-not-enforced](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-7 | [tests-last-run](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-7 | [tests-table-stale](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-8 | [review-dated](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-8 | [review-owner-only](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-9 | [reviewed-lock](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-9 | [unreview-lifts](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-9 | [lock-in-report](../../.loop/regression.tsv) | PASS 2026-11-07 |

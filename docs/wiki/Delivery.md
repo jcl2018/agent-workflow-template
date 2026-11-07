@@ -45,20 +45,14 @@ Commands, flows and how-tos: `skills/workflow-delivery/references/commands.md`.
 
 | Criterion | Test | Last run |
 |---|---|---|
-| DEL-5 | [DEL-1](../../.loop/regression.tsv) | not run |
-| DEL-5 | [frozen-done-lines](../../.loop/regression.tsv) | not run |
-| DEL-5 | **not enforced** | |
-| DEL-6 | [DEL-2](../../.loop/regression.tsv) | not run |
-| DEL-6 | [starts-at-idea](../../.loop/regression.tsv) | not run |
-| DEL-6 | [steps-through-flow](../../.loop/regression.tsv) | not run |
-| DEL-6 | **not enforced** | |
-| DEL-7 | [DEL-3](../../.loop/regression.tsv) | not run |
-| DEL-7 | [DEL-4](../../.loop/regression.tsv) | not run |
-| DEL-7 | [auto-approved](../../.loop/regression.tsv) | not run |
-| DEL-7 | **not enforced** | |
-| DEL-8 | [stop-after-3-tries](../../.loop/regression.tsv) | not run |
-| DEL-8 | **not enforced** | |
-| DEL-9 | [never-merges](../../.loop/regression.tsv) | not run |
-| DEL-9 | **not enforced** | |
-| DEL-10 | [DEL-10](../../.loop/regression.tsv) | not run |
-| DEL-10 | **not enforced** | |
+| DEL-5 | [DEL-1](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-5 | [frozen-done-lines](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-6 | [DEL-2](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-6 | [starts-at-idea](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-6 | [steps-through-flow](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-7 | [DEL-3](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-7 | [DEL-4](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-7 | [auto-approved](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-8 | [stop-after-3-tries](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-9 | [never-merges](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-10 | [DEL-10](../../.loop/regression.tsv) | PASS 2026-11-07 |

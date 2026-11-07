@@ -19,6 +19,13 @@ Frozen. A wrong done line needs a new goal.
 
 <!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
 
+1. Open `docs/wiki/Documentation.md`.
+   Expect: only Summary, Criteria (6 plain lines, each Unreviewed) and a Tests table with a result and date per test.
+2. Run `python3 skills/workflow-docs/scripts/criteria.py review DOC-4 --user`, then change a word of DOC-4 and run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: it prints `LOCKED Documentation: DOC-4 was reviewed...` and exits 1. Run `git checkout docs/wiki` afterwards.
+3. In `.github/workflows/regression.yml`, find the `GITHUB_STEP_SUMMARY` step.
+   Expect: each run prints a Row/Result table in its job summary.
+
 ## Design
 
 Reviewed by /autoplan (unattended, recommended answers taken). Builds on the criteria-contract work already in the repo: `criteria.py` (review, sync, seals), `docs.py` (section rules, `SCRIPT`/`CHART` checks), `regression.py criteria`, `release.py` criteria refusal. This goal changes the page shape and the lock, not the opt-in switch (`"criteria": true`).

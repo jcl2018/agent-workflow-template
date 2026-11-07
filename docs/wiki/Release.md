@@ -31,16 +31,10 @@ Commands, flows and how-tos: `skills/workflow-release/references/commands.md`.
 
 | Criterion | Test | Last run |
 |---|---|---|
-| REL-4 | [REL-1](../../.loop/regression.tsv) | not run |
-| REL-4 | **not enforced** | |
-| REL-5 | [REL-2](../../.loop/regression.tsv) | not run |
-| REL-5 | **not enforced** | |
-| REL-6 | [REL-3](../../.loop/regression.tsv) | not run |
-| REL-6 | **not enforced** | |
-| REL-7 | [refused-unmet](../../.loop/regression.tsv) | not run |
-| REL-7 | **not enforced** | |
-| REL-8 | [breaking-asks](../../.loop/regression.tsv) | not run |
-| REL-8 | [docs-only](../../.loop/regression.tsv) | not run |
-| REL-8 | **not enforced** | |
-| REL-9 | [wiki-release](../../.loop/regression.tsv) | not run |
-| REL-9 | **not enforced** | |
+| REL-4 | [REL-1](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REL-5 | [REL-2](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REL-6 | [REL-3](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REL-7 | [refused-unmet](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REL-8 | [breaking-asks](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REL-8 | [docs-only](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REL-9 | [wiki-release](../../.loop/regression.tsv) | PASS 2026-11-07 |

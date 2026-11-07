@@ -20,14 +20,11 @@ Commands, flows and how-tos: `skills/workflow-regression/references/commands.md`
 
 | Criterion | Test | Last run |
 |---|---|---|
-| REG-4 | [REG-1](../../.loop/regression.tsv) | not run |
-| REG-4 | [tests-seen-failing](../../.loop/regression.tsv) | not run |
-| REG-4 | **not enforced** | |
-| REG-5 | [REG-2](../../.loop/regression.tsv) | not run |
-| REG-5 | **not enforced** | |
-| REG-6 | [REG-3](../../.loop/regression.tsv) | not run |
-| REG-6 | **not enforced** | |
-| REG-7 | [one-issue](../../.loop/regression.tsv) | not run |
-| REG-7 | **not enforced** | |
-| REG-8 | [one-link](../../.loop/regression.tsv) | not run |
-| REG-8 | **not enforced** | |
+| REG-4 | [REG-1](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-4 | [tests-seen-failing](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-5 | [REG-2](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-6 | [REG-3](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-7 | [one-issue](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-8 | [one-link](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-9 | [run-ledger](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-9 | [ci-summary](../../.loop/regression.tsv) | PASS 2026-11-07 |

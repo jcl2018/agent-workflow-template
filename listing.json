@@ -92,7 +92,8 @@
     "loop/board.html, board-artifact.html and the finished sections of board.json, when you run board_page.py",
     "loop/waits/<slug> under the git common dir, when a goal is held by another",
     "~/.workflow-loop/repos in the home folder, when you run board.py repos add",
-    "docs/wiki/*.md and a commit of them, when you run criteria.py review or sync --commit",
+    "docs/wiki/*.md and a commit of them, when you run criteria.py review, unreview or render",
+    ".loop/regression-runs.tsv, when you run regression.py run",
     "issues labelled regression or health, and milestones on them, on GitHub, only with --live or a token",
     "reads ~/.workflow-loop/flow.json, and runs its probe and its command for each flow step",
     "a merge of a goal's pull request into the base branch, only with auto_merge on, when you run merge.py"

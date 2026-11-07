@@ -26,18 +26,12 @@ Commands, flows and how-tos: `skills/workflow-health/references/commands.md`.
 
 | Criterion | Test | Last run |
 |---|---|---|
-| HLT-1 | [HLT-1](../../.loop/regression.tsv) | not run |
-| HLT-1 | **not enforced** | |
-| HLT-2 | [HLT-2](../../.loop/regression.tsv) | not run |
-| HLT-2 | **not enforced** | |
-| HLT-3 | [HLT-3](../../.loop/regression.tsv) | not run |
-| HLT-3 | [HLT-3b](../../.loop/regression.tsv) | not run |
-| HLT-3 | **not enforced** | |
-| HLT-5 | [HLT-5](../../.loop/regression.tsv) | not run |
-| HLT-5 | **not enforced** | |
-| HLT-6 | [HLT-6](../../.loop/regression.tsv) | not run |
-| HLT-6 | **not enforced** | |
-| HLT-7 | [HLT-7b](../../.loop/regression.tsv) | not run |
-| HLT-7 | [HLT-7](../../.loop/regression.tsv) | not run |
-| HLT-7 | [HLT-7c](../../.loop/regression.tsv) | not run |
-| HLT-7 | **not enforced** | |
+| HLT-1 | [HLT-1](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| HLT-2 | [HLT-2](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| HLT-3 | [HLT-3](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| HLT-3 | [HLT-3b](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| HLT-5 | [HLT-5](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| HLT-6 | [HLT-6](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| HLT-7 | [HLT-7b](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| HLT-7 | [HLT-7](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| HLT-7 | [HLT-7c](../../.loop/regression.tsv) | PASS 2026-11-07 |
