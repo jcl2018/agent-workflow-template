@@ -3,9 +3,8 @@
 
 ## Summary
 
-Skill: `workflow-monitoring`. One session governs and the others build. Scripts: `watch.py` (`go`, `watch`, `resume`),
-`monitor.py` (`report`, `dashboard`) and `board.py` (`board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`). Run them from the
-main checkout, on the base branch. `board_page.py` draws the board's pages.
+Skill: `workflow-monitoring`. One session governs and the others build. Run the commands from the main checkout, on the
+base branch.
 
 ## Commands
 
@@ -35,7 +34,7 @@ question with `leave` by itself, never `cut`; `--release ask` makes it wait for 
 ### Operation session
 
 For a long run across goals or repos, one session starts the others and follows them in a loop
-(`skills/workflow-monitoring/references/operation.md`). It never builds. `board.py` supports it:
+(`skills/workflow-monitoring/references/operation.md`). It never builds. These commands support it:
 
 ```text
 board [--at TIME] [--since FILE] [--out DIR]   write board.json; print DIGEST, CHANGED, one CHANGE line per change,
@@ -55,7 +54,7 @@ Start a visible session from the main project folder, not from `WORKTREE`, becau
 automated turns. Give it the printed `PROMPT`, which names the worktree and says to begin every shell command with `cd`
 to it. The board marks a visible session `(quiet)` after 30 minutes with no update to its record.
 
-`board_page.py [--in FILE] [--out DIR]` reads `board.json`, adds `dependency_map` (`{lanes: [{run, boxes}], arrows:
+A page step (`--in FILE`, `--out DIR`) reads `board.json`, adds `dependency_map` (`{lanes: [{run, boxes}], arrows:
 [{from, to, on}]}`) and writes `board.html` and `board-artifact.html`. In the map each lane is a run and each box a step,
 coloured by status, with its expected finish. Solid arrows run inside a run, and thick dashed arrows cross runs and say
 why one waits, such as a goal or a shared file. `watch` records `waits_on` on a goal while holding it, so the arrow stays
@@ -64,9 +63,9 @@ tap it to open the same text in the list below. The pages have no scripts and lo
 
 The check-in loop, repeated every `cadence` minutes, or every hour when nothing runs or waits:
 
-1. Run `watch.py watch --once`.
+1. Run `watch --once`.
 2. Read each session's run record, log tail and note.
-3. Run `board.py board --since <the last board.json>`, then `board_page.py`.
+3. Run `board --since <the last board.json>`, then the page step.
 4. With an Artifact tool, publish `board-artifact.html` unedited to the same URL each time; otherwise give the owner the
    `board.html` path.
 5. Write one chat line only when `CHANGED` is yes. When the board prints `NO_CHANGE`, write that line instead: it gives
@@ -87,10 +86,213 @@ default, since each spends your usage, and neither touches a visible session's g
 ### Example
 
 ```text
-python3 scripts/watch.py go "Add median()" --done "Even lists average the two middle values" --level 1 --touches calc.py
-python3 scripts/watch.py watch
-python3 scripts/monitor.py report
+/workflow-monitoring go "Add median()" --done "Even lists average the two middle values" --level 1 --touches src/calc
+/workflow-monitoring watch
+/workflow-monitoring report
 ```
+
+### Stage charts
+
+Amber marks where the command stops for the owner. [Home](Home) says what each status means. "Toy test" means a throwaway repo with stand-ins for GitHub.
+
+#### `go`
+
+```mermaid
+flowchart TD
+  a["Add the goal to the queue"]
+  b["Hold it if its files overlap another goal"]
+  c["Start a background agent"]
+  d["With --session: freeze and make the worktree"]
+  e{{"Owner or operation session starts the printed prompt"}}
+  a --> b
+  b --> c
+  b --> d
+  d --> e
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class e owner
+```
+
+Status: built and proven: Add the goal to the queue; Hold it if its files overlap another goal; Start a background agent; With --session: freeze and make the worktree; Owner or operation session starts the printed prompt. Built only: none. Planned: none.
+Stops for the owner: Owner or operation session starts the printed prompt.
+Proof: toy tests, plus real background and visible-session goals on this repo.
+
+#### `watch`
+
+```mermaid
+flowchart TD
+  a["Mark a gone agent failed"]
+  b["Mend or resume, if allowed"]
+  c["Start queued goals"]
+  d["Print what changed"]
+  e{{"Goal waits on the owner"}}
+  f["Ends when nothing is left"]
+  a --> b
+  b --> c
+  c --> d
+  d --> e
+  d --> f
+  d -->|more to do| a
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class e owner
+```
+
+Status: built and proven: Mark a gone agent failed; Mend or resume, if allowed; Start queued goals; Print what changed; Goal waits on the owner; Ends when nothing is left. Built only: none. Planned: none.
+Stops for the owner: Goal waits on the owner.
+Proof: toy tests and real goals, where nine were mended. Resuming after a usage limit has only run on a toy repo.
+
+#### `report`
+
+```mermaid
+flowchart LR
+  a["Mark a gone agent failed"]
+  b["Print runs, findings and queued goals"]
+  c{{"Owner answers with the exact words"}}
+  a --> b
+  b --> c
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class c owner
+```
+
+Status: built and proven: Mark a gone agent failed; Print runs, findings and queued goals; Owner answers with the exact words. Built only: none. Planned: none.
+Stops for the owner: Owner answers with the exact words.
+Proof: toy tests.
+
+#### `dashboard`
+
+```mermaid
+flowchart LR
+  a["Read the same facts as report"]
+  b["Write one HTML page"]
+  a --> b
+```
+
+Status: built and proven: Read the same facts as report; Write one HTML page. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests, and one real dashboard on a second repo.
+
+#### `resume`
+
+```mermaid
+flowchart TD
+  o{{"Owner asks to resume a stopped goal"}}
+  a["Refuse anything not failed or stopped"]
+  b["Make the worktree again if it's gone"]
+  c["Start a new agent"]
+  d["Visible session: print the prompt again"]
+  o --> a
+  a --> b
+  b --> c
+  b --> d
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class o owner
+```
+
+Status: built and proven: Refuse anything not failed or stopped; Make the worktree again if it's gone; Start a new agent; Visible session: print the prompt again. Built only: Owner asks to resume a stopped goal. Planned: none.
+Stops for the owner: Owner asks to resume a stopped goal.
+Proof: toy tests. Nothing enforces that the owner asked: that is an instruction to the agent.
+
+#### `board`
+
+```mermaid
+flowchart LR
+  a["Read every followed repo's runs"]
+  b["Write the board and compare with the last"]
+  c["Print digest, changes and next delay"]
+  d["Draw the two HTML pages"]
+  a --> b
+  b --> c
+  c --> d
+```
+
+Status: built and proven: Read every followed repo's runs; Write the board and compare with the last; Print digest, changes and next delay; Draw the two HTML pages. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests, and real boards on this repo.
+
+#### `cadence`
+
+```mermaid
+flowchart LR
+  a["Set or show the minutes"]
+  b["Next delay follows it"]
+  c["Check-in fires on its timer"]
+  a --> b
+  b --> c
+```
+
+Status: built and proven: Set or show the minutes; Next delay follows it. Built only: Check-in fires on its timer. Planned: none.
+Stops for the owner: none.
+Proof: toy tests use fixtures. No record shows the timed loop firing on its own.
+
+#### `repos`
+
+```mermaid
+flowchart LR
+  a["Add a repo path"]
+  b["Keep the list in the home folder"]
+  a --> b
+```
+
+Status: built and proven: Add a repo path; Keep the list in the home folder. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests.
+
+#### `note`
+
+```mermaid
+flowchart LR
+  a["Refuse an unknown run"]
+  b["Record the message as data"]
+  a --> b
+```
+
+Status: built and proven: Refuse an unknown run; Record the message as data. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests.
+
+#### `session`
+
+```mermaid
+flowchart LR
+  a["Add, update or remove a tracked session"]
+  b["Give it a lane and a row on the board"]
+  a --> b
+```
+
+Status: built and proven: Add, update or remove a tracked session; Give it a lane and a row on the board. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests.
+
+#### `retire`
+
+```mermaid
+flowchart LR
+  o{{"Owner says a goal is superseded"}}
+  a["Refuse a running agent or no reason"]
+  b["Mark it retired"]
+  c["Leaves Waiting on you"]
+  o --> a
+  a --> b
+  b --> c
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class o owner
+```
+
+Status: built and proven: Owner says a goal is superseded; Refuse a running agent or no reason; Mark it retired; Leaves Waiting on you. Built only: none. Planned: none.
+Stops for the owner: Owner says a goal is superseded.
+Proof: toy tests, and real retired goals on this repo.
+
+#### `handoff`
+
+```mermaid
+flowchart LR
+  a["Gather open goals, questions and cadence"]
+  b["Write the file"]
+  a --> b
+```
+
+Status: built and proven: Gather open goals, questions and cadence; Write the file. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests, and one real handoff file on this repo.
 
 ## Criteria
 

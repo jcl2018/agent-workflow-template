@@ -4,7 +4,6 @@
 ## Summary
 
 Skill: `workflow-delivery`. Takes one sentence to a pull request, judged by a fresh agent at levels 1 and 2.
-Script: `skills/workflow-delivery/scripts/goal.py`.
 
 ## Commands
 
@@ -36,15 +35,20 @@ the check results, and no other file in the repo, so write each line for those:
 - Keep the proof small. A documentation goal proves what the page says from the diff, plus a passing docs check, and
   doesn't ask for output of every command.
 
-### goal.py
+### Goal steps
 
 ```text
 new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]
 queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]
-step SLUG NAME [--note TEXT]      check SLUG      judge SLUG [--design]
-verdict SLUG --file FILE [--design]      pr SLUG
-wait SLUG --ask TEXT --words W [--words W]      answer SLUG
-finding SLUG TEXT      show SLUG
+step SLUG NAME [--note TEXT]
+check SLUG
+judge SLUG [--design]
+verdict SLUG --file FILE [--design]
+pr SLUG
+wait SLUG --ask TEXT --words W [--words W]
+answer SLUG
+finding SLUG TEXT
+show SLUG
 ```
 
 A background agent runs `step`, `check`, `judge` (where the level needs it) and `pr` in order, and fills in
@@ -61,13 +65,250 @@ and run `check` again, because `judge` refuses a commit the checks haven't passe
 
 ### Example
 
-From the goal's worktree, with `scripts/` in the skill's folder:
+From the goal's worktree, a background agent runs:
 
-```bash
-python3 scripts/goal.py check add-median
-python3 scripts/goal.py judge add-median
-python3 scripts/goal.py pr add-median
+```text
+check add-median
+judge add-median
+pr add-median
 ```
+
+### Stage charts
+
+Amber marks where the command stops for the owner. [Home](Home) says what each status means. "Toy test" means a throwaway repo with stand-ins for GitHub.
+
+#### `poc`
+
+```mermaid
+flowchart LR
+  a["Read the repo"]
+  b["Answer the question"]
+  c["Print a go line and a queue line"]
+  d{{"Owner decides whether to run it"}}
+  a --> b
+  b --> c
+  c --> d
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class d owner
+```
+
+Status: built and proven: none. Built only: Read the repo; Answer the question; Print a go line and a queue line; Owner decides whether to run it. Planned: none.
+Stops for the owner: Owner decides whether to run it.
+Proof: no test covers `poc`, and no real run is on record. It writes nothing, so nothing shows it ran.
+
+#### `go`
+
+```mermaid
+flowchart TD
+  a["Done lines given or shown to the owner"]
+  b["Hand to Monitoring go"]
+  c["Design"]
+  r["Design review at level 2"]
+  d["Plan"]
+  e["Build"]
+  f["Checks"]
+  j["Fresh judge at levels 1 and 2"]
+  g["Open pull request"]
+  o{{"Owner reviews the pull request"}}
+  s{{"Stopped after 3 failed tries, finding filed"}}
+  a --> b
+  b --> c
+  c -->|level 2| r
+  c --> d
+  r --> d
+  d --> e
+  e --> f
+  f -->|levels 1, 2| j
+  f -->|level 0| g
+  j --> g
+  g --> o
+  f -->|fails 3 times| s
+  j -->|fails 3 times| s
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class o,s owner
+```
+
+Status: built and proven: Done lines given or shown to the owner; Hand to Monitoring go; Design; Design review at level 2; Plan; Build; Checks; Fresh judge at levels 1 and 2; Open pull request; Owner reviews the pull request; Stopped after 3 failed tries, finding filed. Built only: none. Planned: none.
+Stops for the owner: Owner reviews the pull request; Stopped after 3 failed tries, finding filed.
+Proof: toy tests, plus a real agent on a toy repo at level 0. On this repo, eight real goals reached a pull request at the level now called 1, and real goals stopped after 3 tries. A second repo ran ten real goals, some at the old levels with no judge. The design review is tested alone: a full level 2 run has never happened, on a toy repo or a real one. Today's level 0, with its design step, has only had a real agent on a toy repo.
+
+#### `new`
+
+```mermaid
+flowchart LR
+  a["Refuse without --here, a done line or a known level"]
+  b["Write the goal file and branch"]
+  c["Freeze the done lines"]
+  d["Raise the level on a risky path"]
+  a --> b
+  b --> c
+  c --> d
+```
+
+Status: built and proven: Refuse without --here, a done line or a known level; Write the goal file and branch; Freeze the done lines; Raise the level on a risky path. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests. A background agent skips this command, so real goals freeze through Monitoring.
+
+#### `queue`
+
+```mermaid
+flowchart LR
+  a["Refuse a duplicate or a bad line"]
+  b["Add one line to the queue"]
+  c(["Left for watch to start"])
+  a --> b
+  b --> c
+```
+
+Status: built and proven: Refuse a duplicate or a bad line; Add one line to the queue. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests. No real use on record.
+
+#### `step`
+
+```mermaid
+flowchart LR
+  a["Load the goal"]
+  b["Record the step in the run record"]
+  a --> b
+```
+
+Status: built and proven: Load the goal; Record the step in the run record. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: the run records of real goals show their steps. No toy test calls it directly.
+
+#### `check`
+
+```mermaid
+flowchart TD
+  a["Run every check"]
+  b["Print each exit code first"]
+  c["Raise the level if the diff is risky"]
+  d(["Pass, next is judge or pr"])
+  e["Fail, costs a try"]
+  a --> b
+  b --> c
+  c -->|all pass| d
+  b -->|one fails| e
+```
+
+Status: built and proven: Run every check; Print each exit code first; Raise the level if the diff is risky; Fail, costs a try. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests and real goals.
+
+#### `judge`
+
+```mermaid
+flowchart TD
+  a["Refuse a commit the checks missed"]
+  b["Build the pack: diff, goal file, check results"]
+  c["Fresh agent gives a verdict"]
+  n["No headless judge: print the pack for a fresh agent"]
+  d["Verdict recorded"]
+  e["Failed verdict costs a try"]
+  a --> b
+  b --> c
+  b --> n
+  c --> d
+  d -->|fails| e
+```
+
+Status: built and proven: Refuse a commit the checks missed; Build the pack: diff, goal file, check results; Fresh agent gives a verdict; Verdict recorded; Failed verdict costs a try. Built only: No headless judge: print the pack for a fresh agent. Planned: none.
+Stops for the owner: none.
+Proof: toy tests and real goals, where the judge passed eight and failed others. With `--design` it has only been tested on a toy repo. The path with no headless judge has no test and no real run.
+
+#### `verdict`
+
+```mermaid
+flowchart LR
+  a["Read the saved reply"]
+  b["Record pass or fail"]
+  c["Failed verdict costs a try"]
+  a --> b
+  b -->|fails| c
+```
+
+Status: built and proven: Read the saved reply; Record pass or fail; Failed verdict costs a try. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests. No real use on record: real judges ran headless.
+
+#### `pr`
+
+```mermaid
+flowchart TD
+  a["Refuse until checks and judge hold on this commit"]
+  b["Move the version once if pr_bumps_version is on"]
+  c["Push, retrying twice"]
+  d["Open the pull request"]
+  e{{"Owner reviews and merges"}}
+  a --> b
+  b --> c
+  c --> d
+  d --> e
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class e owner
+```
+
+Status: built and proven: Refuse until checks and judge hold on this commit; Move the version once if pr_bumps_version is on; Push, retrying twice; Open the pull request; Owner reviews and merges. Built only: none. Planned: none.
+Stops for the owner: Owner reviews and merges.
+Proof: toy tests with a stand-in for GitHub, and real pull requests on this repo. The version bump has only run on a toy repo.
+
+#### `wait`
+
+```mermaid
+flowchart LR
+  a["Record the question and exact words"]
+  b{{"Owner answers with those words"}}
+  a --> b
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class b owner
+```
+
+Status: built and proven: none. Built only: Record the question and exact words; Owner answers with those words. Planned: none.
+Stops for the owner: Owner answers with those words.
+Proof: no test calls it, and no real use is on record. Tests set a waiting goal by hand to prove that report shows it.
+
+#### `answer`
+
+```mermaid
+flowchart LR
+  a["Clear the question"]
+  b["Goal runs again"]
+  a --> b
+```
+
+Status: built and proven: none. Built only: Clear the question; Goal runs again. Planned: none.
+Stops for the owner: none.
+Proof: no test calls it, and no real use is on record.
+
+#### `finding`
+
+```mermaid
+flowchart LR
+  a["File the finding"]
+  b["Stop the goal"]
+  c{{"Owner reads the finding"}}
+  a --> b
+  b --> c
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class c owner
+```
+
+Status: built and proven: none. Built only: File the finding; Stop the goal; Owner reads the finding. Planned: none.
+Stops for the owner: Owner reads the finding.
+Proof: no test calls this command, and no real use is on record. The same stop after 3 failed tries is proven under `go`.
+
+#### `show`
+
+```mermaid
+flowchart LR
+  a["Print the run record"]
+  a
+```
+
+Status: built and proven: Print the run record. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests.
 
 ## Criteria
 

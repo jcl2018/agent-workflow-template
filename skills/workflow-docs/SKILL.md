@@ -64,6 +64,17 @@ python3 scripts/docs.py criteria <Page>
 
 It prints the format and the next free id for the page (`DEL`, `DOC`, `MON`, `REG`, `REL`).
 
+The same setting adds two `check` lines, each fixed on the page:
+
+| Line | Means | Fix |
+|---|---|---|
+| `SCRIPT` | A page, Home too, names a script file such as a `.py` or `.sh` name | Describe the command and what it does |
+| `CHART` | A command under `Commands` has no chart or status line, or none is listed | Add a heading with the command in backticks, then a Mermaid block and a `Status:` line |
+
+A command is the first word of a line in a `text` block (indented lines continue the one above) or a bullet starting
+with it in backticks. The `Status:` line sorts every stage under `built and proven`, `built only` and `planned`, from
+real tests and runs. Say so when something is unproven. `check` proves the chart exists, not that it is true.
+
 Rules for writing criteria:
 
 - A criterion is one line under `## Criteria`: `- DEL-3: what must hold`. One claim a test can prove; no sub-bullets.
