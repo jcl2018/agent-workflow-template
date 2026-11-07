@@ -55,7 +55,7 @@ One goal a line. Other lines are ignored.
 - slug: add-median | level: 1 | touches: calc.py, test_calc.py | goal: Add median() | done: Odd lists give the middle value | done: Even lists average the two middle values
 ```
 
-A `## Batch: NAME` heading groups lines for `batch.py`; `- poc: SLUG | question: Q` is a POC line, which `watch.py` ignores.
+A `## Batch: NAME` heading groups lines for `batch.py`; `- poc: SLUG | question: Q` is a POC line, which `watch.py` ignores; `session: yes` after the slug runs it in a visible session.
 
 `level` defaults to `0` (the old names are refused). `touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
 for your answer instead of answering `leave`. `session: yes` marks a goal for a visible session.
