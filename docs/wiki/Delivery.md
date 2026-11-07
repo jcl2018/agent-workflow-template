@@ -294,8 +294,8 @@ Proof: toy tests.
 
 ## Criteria
 
-Tests: 10.
-> **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
+Tests: 11.
+> **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
 
 - DEL-5: **Unreviewed** Every goal starts from done lines that can't change once it starts.
 - DEL-6: **Unreviewed** Every goal runs the owner's own idea, plan, review, test and ship skills in their unattended mode, and nothing starts without them.
