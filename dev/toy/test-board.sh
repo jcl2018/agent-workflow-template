@@ -50,7 +50,7 @@ rec waita waiting 0 plan 2026-01-01T11:00:00Z 'waiting={"ask":"Cut <i>it</i>?","
 rec propen running 1 pr 2026-01-01T11:55:00Z 'pr="https://x/pull/3"'
 rec prlost running 1 pr 2026-01-01T11:55:00Z 'pr="https://x/pull/9"'
 rec failb failed 0 build 2026-01-01T11:00:00Z 'finding="boom <script>alert(1)</script>"'
-rec ext1 running 0 build 2026-01-01T11:00:00Z 'external=true' 'pid=999999'
+rec ext1 running 0 build 2026-01-01T11:00:00Z
 cat >> .loop/queue.md <<'Q'
 - slug: nextq | level: 0 | touches: f_runa.py | goal: Next | done: Something
 Q
@@ -78,7 +78,7 @@ assert names == ["Waiting on you", "Dependency map", "Runs", "Expected finish", 
 pos = [h.index("<h2>" + n) for n in names]
 assert pos == sorted(pos), pos
 w = {x["slug"]: x for x in d["waiting"]}
-assert w["waita"]["words"] == ["cut waita", "leave waita"] and w["waita"]["where"] == "the governing session, which owns repo/waita" and "/wt/" not in w["waita"]["where"]
+assert w["waita"]["words"] == ["cut waita", "leave waita"] and w["waita"]["where"] == "the operation session, which owns repo/waita" and "/wt/" not in w["waita"]["where"]
 assert "failb" in w and w["failb"]["words"] == ["resume failb"]
 assert any(x["slug"] == "nextq" and "runa" in x["waits_on"] and "f_runa.py" in x["waits_on"] for x in d["dependencies"])
 r = {x["slug"]: x for x in d["runs"]}
@@ -133,13 +133,13 @@ e = {x["slug"]: x["estimate"] for x in d["expected"]}
 assert e["ext1"].startswith("estimate:") and e["runa"].startswith("estimate:"), e
 assert all(v.startswith("estimate:") or v.startswith("no estimate: no finished ") for v in e.values()), e
 PY
-python3 - "$O/board.json" <<'PY' && ok "quiet external goal shown quiet after 30 minutes; fresh one is not" || bad "quiet"
+python3 - "$O/board.json" <<'PY' && ok "quiet goal with no pid shown quiet after 30 minutes; fresh one is not" || bad "quiet"
 import json, sys
 r = {x["slug"]: x for x in json.load(open(sys.argv[1]))["runs"]}
 assert r["ext1"]["quiet"] == "yes" and r["runa"]["quiet"] == "no" and r["ext1"]["status"] == "running"
 PY
 $B board --at 2026-01-01T11:20:00Z --out "$T/out4" >/dev/null
-python3 -c "import json,sys;r={x['slug']:x for x in json.load(open(sys.argv[1]))['runs']};assert r['ext1']['quiet']=='no'" "$T/out4/board.json" && ok "external not quiet inside 30 minutes" || bad "not quiet early"
+python3 -c "import json,sys;r={x['slug']:x for x in json.load(open(sys.argv[1]))['runs']};assert r['ext1']['quiet']=='no'" "$T/out4/board.json" && ok "a goal with no pid is not quiet inside 30 minutes" || bad "not quiet early"
 nd() { $B board --at $AT --out "$T/out5" | grep '^NEXT_DELAY' | cut -d' ' -f2; }
 [ "$($B cadence)" = "CADENCE 10" ] && ok "default cadence 10" || bad "default cadence"
 [ "$(nd)" = 600 ] && ok "NEXT_DELAY is the cadence while goals run" || bad "delay 600: $(nd)"
@@ -169,14 +169,6 @@ $B board --at $AT --out "$T/out7" >/dev/null; $P --in "$T/out7/board.json" >/dev
 python3 -c "import json,sys;r={x['slug']:x for x in json.load(open(sys.argv[1]))['runs']};assert r['old1']['note']=='line one <script>x</script> line two'" "$T/out7/board.json" && ok "note shows as last message, kept as data" || bad "note"
 grep -q '<script>x' "$T/out7/board.html" && bad "note escaped" || ok "note escaped in html"
 $B note nosuch hi >/dev/null 2>&1 && bad "note on unknown run refused" || ok "note on unknown run refused"
-# a visible session goal
-$W go "Visible session goal" --done "It works" --slug vis --session > "$T/go.out" 2>&1
-grep -q '^WORKTREE ' "$T/go.out" && grep -q '^PROMPT ' "$T/go.out" && ok "go --session prints WORKTREE and PROMPT" || { bad "go --session output"; cat "$T/go.out"; }
-tree=$(sed -n 's/^WORKTREE //p' "$T/go.out")
-[ -f "$tree/.loop/goals/vis.md" ] && git -C "$tree" log --oneline | grep -q "Goal: vis" && ok "goal frozen in its worktree" || bad "frozen goal"
-python3 -c "import json,sys;d=json.load(open(sys.argv[1]));assert d['external'] is True and d['status']=='running' and not d.get('pid')" "$R/vis.json" && ok "record marked external, no process started" || bad "external record"
-$W watch --once > /dev/null 2>&1
-[ "$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['status'])" "$R/vis.json")" = running ] && ok "a missing process never marks an external goal failed" || bad "external survived watch"
 # handoff
 rec waita waiting 0 plan 2026-01-01T11:00:00Z 'waiting={"ask":"Cut <i>it</i>?","words":["cut waita","leave waita"]}'
 $B handoff --at $AT > "$T/h.out"; hf=$(sed -n 's/^HANDOFF //p' "$T/h.out")
@@ -187,9 +179,9 @@ sec = t.split("## Waiting on the owner", 1)[1].split("\n## ", 1)[0]
 line = [l for l in sec.splitlines() if "/waita:" in l]
 assert line, sec
 l = line[0]
-assert "Cut <i>it</i>?" in l and "cut waita or leave waita" in l and "Type in the governing session, which owns repo/waita: " in l and "/wt/" not in l, l
+assert "Cut <i>it</i>?" in l and "cut waita or leave waita" in l and "Type in the operation session, which owns repo/waita: " in l and "/wt/" not in l, l
 PY
-for k in "## Repos" "## Cadence" "## Open goals" "## Waiting on the owner" "## Next check-in steps" "other" "vis"; do has "$hf" "$k" "handoff has $k"; done
+for k in "## Repos" "## Cadence" "## Open goals" "## Waiting on the owner" "## Next check-in steps" "other"; do has "$hf" "$k" "handoff has $k"; done
 # the dependency map, drawn from fixtures
 rm -f "$R"/*.json; : > "$HOME/.workflow-loop/repos"; git checkout -q -- .loop/queue.md
 map() { rm -rf "$T/m"; $B board --at $AT --out "$T/m" >/dev/null; $P --in "$T/m/board.json" >/dev/null; }
@@ -273,36 +265,6 @@ rec holder done 0 pr 2026-01-01T11:50:00Z 'touches=["lib/"]'
 $W watch --once >/dev/null
 python3 -c "import json,sys;assert json.load(open(sys.argv[1]))['waits_on']==['holder']" "$R/held.json" && ok "watch records waits_on on the run when the goal starts" || bad "waits_on not recorded"
 git revert --no-edit HEAD >/dev/null; git checkout -q -- .loop/queue.md 2>/dev/null; rm -f "$R/holder.json" "$R/held.json"
-# tracked sessions
-$B session add docs-work --repo repo --branch claude/docs > "$T/s1" && grep -q "SESSION ADD docs-work" "$T/s1" && ok "session add" || bad "session add"
-$B session add loop-work --repo repo --branch claude/loop --waits-on docs-work >/dev/null
-$B session add other --repo elsewhere --waits-on no-such-thing >/dev/null
-$B session add a-late --repo repo --waits-on loop-work >/dev/null
-$B session add docs-work --repo repo 2>&1 | grep -q REFUSED && ok "a second add is refused" || bad "second add"
-$B session add noreap 2>&1 | grep -q "needs --repo" && ok "add needs --repo" || bad "add repo"
-$B session update nosuch --note x 2>&1 | grep -q REFUSED && ok "update of an unknown session refused" || bad "update unknown"
-$B session update docs-work --note "wiki pages done" --next "Open the pull request" --eta 2026-01-01T13:00:00Z --pr https://x/pull/3 >/dev/null
-map
-python3 - "$T/m/board.json" "$T/m/board.html" <<'PY' && ok "a tracked session has a lane, a box, an arrow and a row in Runs" || bad "tracked session"
-import json, sys
-j = json.load(open(sys.argv[1])); d = j["dependency_map"]; h = open(sys.argv[2]).read()
-l = {x["run"]: x for x in d["lanes"]}
-assert "repo/docs-work" in l and "repo/loop-work" in l and "elsewhere/other" in l, set(l)
-names = list(l)
-assert names.index("repo/docs-work") < names.index("repo/loop-work") < names.index("repo/a-late"), names
-box = l["repo/docs-work"]["boxes"][0]
-assert box["status"] == "running" and box["eta"] == "~13:00 UTC" and box["done"] == "wiki pages done" and box["next"] == "Open the pull request", box
-assert l["repo/docs-work"]["branch"] == "claude/docs"
-assert {"from": "repo/docs-work:session", "to": "repo/loop-work:session", "on": "session docs-work"} in d["arrows"]
-assert l["elsewhere/no-such-thing"]["boxes"][0]["status"] == "unknown" and "not tracked" in h
-r = {x["slug"]: x for x in j["runs"]}
-assert r["docs-work"]["tracked"] and r["docs-work"]["pr"] == "https://x/pull/3" and r["docs-work"]["prstate"] == "open"
-assert "<td>docs-work</td>" in h or "wiki pages done" in h
-PY
-$B session update loop-work --status waiting --next "Choose a branch" >/dev/null; map
-python3 -c "import json,sys;w={x['slug']:x for x in json.load(open(sys.argv[1]))['waiting']};assert w['loop-work']['ask']=='Choose a branch' and w['loop-work']['words']==[]" "$T/m/board.json" && ok "a tracked session can wait on you" || bad "tracked waiting"
-$B session remove other | grep -q "SESSION REMOVE other" && $B session remove loop-work >/dev/null; $B session remove docs-work >/dev/null; $B session remove a-late >/dev/null; map
-python3 -c "import json,sys;assert [x for x in json.load(open(sys.argv[1]))['dependency_map']['lanes'] if x['run'].endswith('docs-work')]==[]" "$T/m/board.json" && ok "session remove takes the lane away" || bad "session remove"
 # retire
 rec stale failed 1 build 2026-01-01T11:00:00Z 'finding="old attempt"' 'touches=["z.py"]'
 rec fresh running 1 build 2026-01-01T11:00:00Z 'pid=1'
@@ -360,5 +322,5 @@ has "$here/skills/workflow-monitoring/SKILL.md" "references/operation.md" "SKILL
 for f in "$here"/skills/*/scripts/*.py; do [ "$(wc -c < "$f")" -lt 20480 ] && ok "under 20 KB: $(basename "$f")" || bad "over 20 KB: $f"; done
 for f in watch board board_page; do [ "$(wc -c < "$here/skills/workflow-monitoring/scripts/$f.py")" -lt 19000 ] && ok "$f.py keeps room under 19 KB" || bad "$f.py has no room"; done
 for f in "$here"/skills/*/SKILL.md; do [ "$(wc -l < "$f")" -lt 150 ] && ok "under 150 lines: $(basename "$(dirname "$f")")" || bad "over 150 lines: $f"; done
-for k in '"board"' '"cadence"' '"handoff"' '"note"' '"session"' '"retire"' '"take"' 'board.json' 'repos'; do has "$here/listing.json" "$k" "listing.json discloses $k"; done
+for k in '"board"' '"cadence"' '"handoff"' '"note"' '"retire"' 'board.json' 'repos'; do has "$here/listing.json" "$k" "listing.json discloses $k"; done
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

@@ -55,10 +55,10 @@ One goal a line. Other lines are ignored.
 - slug: add-median | touches: calc.py, test_calc.py | goal: Add median() | done: Odd lists give the middle value | done: Even lists average the two middle values
 ```
 
-A `## Batch: NAME` heading groups goal lines for `batch.py`; `session: yes` after the slug runs it in a visible session.
+A `## Batch: NAME` heading groups goal lines for `batch.py`.
 
 `touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
-for your answer instead of answering `leave`. `session: yes` marks a goal for a visible session.
+for your answer instead of answering `leave`.
 
 ## Outside the repo: your skill flow
 
@@ -91,7 +91,6 @@ loop/runs/<slug>.json     one goal's state
 loop/logs/<slug>.log      a background agent's output
 loop/dashboard.html       the last dashboard
 loop/board.json, board.html, board-artifact.html  the last operation board
-loop/sessions.json        tracked sessions that have no goal record
 loop/waits/<slug>         the goals that held a queued goal, one a line
 loop/cadence              minutes between check-ins (1 to 60), or off
 loop/handoff.md           the last handoff file
@@ -126,9 +125,11 @@ loop/wiki.json            the last wiki publish, for restore
 step's result: `done`, `skipped: <why>` or `pending`.
 `release` is empty, `ask`, `cut` or `leave`.
 
-`external: true` marks a goal run in a visible session. A goal with no `pid` is a session's too, marked or not: it is never marked `failed` or mended.
-`note` is `{"text", "at"}`, a session's latest message, kept as data. `waits_on` lists the goals that held this one.
-`retired` is `{"reason", "at"}`. `board.py take` sets `external` on a goal a session has taken over. `board.py repos add` keeps a list of repo paths in
+A goal with no `pid` has no worker of ours: it is never marked `failed` or mended.
+`report` is `{"status", "pr", "text", "at"}`, the prompt message a worker sends back when its agent ends (`status` is
+`merged`, `failed` or `waiting`). `met` lists the done lines a worker has marked met, and `tokens` is `{"total": N}` or
+`{"<step>": N}` where an agent logs them. `note` is `{"text", "at"}`, a worker's latest message, kept as data. `waits_on` lists the goals that held this one.
+`retired` is `{"reason", "at"}`. `board.py repos add` keeps a list of repo paths in
 `~/.workflow-loop/repos`.
 
 Writes go through a temporary file and a rename, so a reader never sees half a file.

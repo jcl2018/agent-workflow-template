@@ -134,8 +134,8 @@ def overlap(a, b):
 
 
 def holds_slot(state):
-    """A running goal with no pid isn't a marked session: it still blocks overlapping files, but uses no agent slot."""
-    return state.get("status") != "running" or state.get("pid") or state.get("external")
+    """A running goal with no pid still blocks overlapping files, but uses no worker slot."""
+    return state.get("status") != "running" or state.get("pid")
 
 
 def blocker(goal, live):
@@ -173,9 +173,9 @@ def log_tail(slug):
 
 
 def refresh():
-    """A running record whose agent is gone has failed. With no pid, a session holds it, so there's no process to check."""
+    """A running record whose worker is gone has failed. With no pid, there's no process to check."""
     for state in runs():
-        if state.get("status") == "running" and state.get("pid") and not state.get("external") and not alive(state.get("pid")):
+        if state.get("status") == "running" and state.get("pid") and not alive(state.get("pid")):
             fresh = load(state["slug"])
             if fresh and fresh.get("status") == "running" and fresh.get("pid") == state.get("pid"):
                 fresh["status"] = "failed"
@@ -224,8 +224,17 @@ def returned():
     return found
 
 
+def status_block(fragment=False):
+    """The one status block, from board_status.py beside this file: the same content in report, board and dashboard."""
+    helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "board_status.py")
+    if not os.path.exists(helper):
+        return ""
+    return subprocess.run([sys.executable, helper] + ["--html"] * fragment, capture_output=True, text=True, cwd=root()).stdout
+
+
 def cmd_report(args):
     states, held = facts()
+    print(status_block())
     rows = [("SLUG", "KIND", "STATUS", "STEP", "TRIES", "PR")]
     for state in states:
         rows.append((state["slug"], state.get("kind") or "goal", state.get("status", ""), state.get("step") or "-",
@@ -278,7 +287,7 @@ def cmd_dashboard(args):
     out = ["<!doctype html><html lang=en><head><meta charset=utf-8>",
            "<meta name=viewport content='width=device-width,initial-scale=1'><title>Loop dashboard</title>",
            "<style>%s</style></head><body><h1>Loop dashboard</h1>" % CSS,
-           "<p class=mute>Written %s from %s</p>" % (e(now()), e(root()))]
+           "<p class=mute>Written %s from %s</p>" % (e(now()), e(root())), status_block(True)]
     waiting = [state for state in states if state.get("status") == "waiting"]
     out.append("<section class=wait><h2>Waiting on you (%d)</h2>" % len(waiting))
     for state in waiting:

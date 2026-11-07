@@ -2,7 +2,7 @@
 # Proves workflow-monitoring on a throwaway toy repo with a fake agent. No model is called and gh is faked.
 # usage: test-monitoring.sh [DIR]
 # test-goal.sh covers go, watch, mend and usage limits. This covers what it doesn't: a killed agent, overlapping goals,
-# what report and dashboard show, resume, and a visible session started from the main project folder.
+# what report and dashboard show, and resume.
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
@@ -107,38 +107,6 @@ sets doomed 'status="stopped"' 'tries=3'
 $W resume doomed >/dev/null
 check "resume puts a stopped goal's tries back to 0" 'until_status doomed done && [ "$(field doomed tries)" = 0 ]'
 
-echo "== a visible session, started from the main project folder"
-main=$(pwd)
-$W go "Add seen" --done "seen works" --touches seen.py --slug seen --session > "$T/s1"
-tree=$(sed -n 's/^WORKTREE //p' "$T/s1")
-check "go --session prints WORKTREE and PROMPT" '[ -d "$tree" ] && grep -q "^PROMPT " "$T/s1"'
-check "the prompt names the worktree, so the session can start elsewhere" 'grep -qF "cd $tree &&" "$T/s1"'
-check "no process started" '[ "$(field seen pid)" = None ] && [ "$(field seen external)" = True ]'
-$M report >/dev/null; $M dashboard >/dev/null
-check "report never marks it failed" '[ "$(field seen status)" = running ]'
-$W watch --once >/dev/null
-check "watch never marks it failed" '[ "$(field seen status)" = running ]'
-out=$(cd "$tree" && $goal show seen 2>&1)
-grep -q seen <<<"$out" && ok "goal.py works with cd to the worktree" || bad "goal.py in worktree: $out"
-$B note seen "working from $main" | grep -q "NOTED seen" && ok "a note works from the main folder" || bad "note"
-[ "$(git rev-parse --abbrev-ref HEAD)" = main ] && ok "the main folder stays on its branch" || bad "main branch"
-git -C "$tree" rev-parse --abbrev-ref HEAD | grep -q '^loop/seen$' && ok "the worktree holds the goal's branch" || bad "worktree branch"
-$W resume seen > "$T/s2"
-check "resume reprints a lost session's prompt" 'grep -q "^WORKTREE $tree" "$T/s2" && grep -qF "cd $tree &&" "$T/s2"'
-check "and starts no process" '[ "$(field seen pid)" = None ] && [ "$(field seen status)" = running ]'
-sets seen 'status="stopped"'
-$W resume seen > "$T/s3"
-check "a stopped visible goal goes back to its session" 'grep -q "^PROMPT " "$T/s3" && [ "$(field seen pid)" = None ]'
-sets seen 'status="done"'
-touch "$FAKE_AGENT/hold-a"
-$W go "Add a" --done "a" --touches same.py --slug a >/dev/null
-$W go "Add b" --done "b" --touches same.py --slug b --session > "$T/s4"
-check "a held --session goal says QUEUED, with no prompt yet" 'grep -q "^QUEUED b" "$T/s4" && ! grep -q "^PROMPT" "$T/s4"'
-rm "$FAKE_AGENT/hold-a"; until_status a done || bad "a finished"
-$W watch --once > "$T/s5"
-check "watch prints its prompt when it can start" 'grep -q "^PROMPT " "$T/s5"'
-sets b 'status="done"'
-
 echo "== a quiet check-in still says when the next one is"
 touch "$FAKE_AGENT/hold-quiet"
 $W go "Add quiet" --done "quiet" --slug quiet >/dev/null
@@ -158,7 +126,7 @@ $B board --at $AT --out "$T/b" >/dev/null
 $B board --at $AT --since "$T/b/board.json" --out "$T/b" | grep -q "^NO_CHANGE" && bad "nothing open prints no NO_CHANGE" || ok "nothing open prints no NO_CHANGE"
 $B board --at $AT --since "$T/nofile" --out "$T/b" | grep -q "^NO_CHANGE" && bad "a change prints no NO_CHANGE" || ok "a change prints no NO_CHANGE"
 
-echo "== the mender leaves landed goals and taken-over goals alone"
+echo "== the mender leaves landed goals alone"
 # A gh that answers MERGED for any branch or pull request named in $FAKE_AGENT/merged.
 mkdir -p "$T/bin"; cat > "$T/bin/gh" <<'GH'
 #!/bin/bash
@@ -188,23 +156,13 @@ sets late "pid=$mender" 'mended=true' 'status="running"'
 echo loop/late >> "$FAKE_AGENT/merged"
 python3 "$here/skills/workflow-monitoring/scripts/mend.py" > "$T/m2"
 check "a mender running after its goal lands is stopped" 'sleep 0.3; ! kill -0 "$mender" 2>/dev/null && [ "$(field late status)" = done ]'
-touch "$FAKE_AGENT/hold-taken"
-$W go "Add taken" --done "taken" --touches taken.py --slug taken >/dev/null
-for _ in $(seq 100); do [ -f "$FAKE_AGENT/prompt-taken" ] && break; sleep 0.1; done
-$B take taken 2>&1 | grep -q "still runs taken" && ok "take refuses while its agent runs" || bad "take refuse"
-kill -9 -- "-$(field taken pid)" 2>/dev/null; sleep 0.3; rm -f "$FAKE_AGENT/prompt-taken"
-$B take taken | grep -q "TAKEN taken" && ok "take marks the goal" || bad "take"
-$W watch --once >/dev/null
-check "a goal a session has taken over gets no mender" 'sleep 0.3; [ ! -e "$FAKE_AGENT/prompt-taken" ] && [ "$(field taken status)" = running ] && [ "$(field taken external)" = True ] && [ "$(field taken pid)" = None ]'
-sets taken 'status="done"'; sets late 'status="done"'
+sets late 'status="done"'
 touch "$FAKE_AGENT/hold-slow"
 $W go "Add slow" --done "slow" --touches slow.py --slug slow >/dev/null
 for _ in $(seq 100); do [ -f "$FAKE_AGENT/prompt-slow" ] && break; sleep 0.1; done
 kill -9 -- "-$(field slow pid)" 2>/dev/null; sleep 0.3; rm -f "$FAKE_AGENT/prompt-slow"
 $W watch --once >/dev/null
 check "a failed goal waits before a mender starts" 'sleep 0.3; [ ! -e "$FAKE_AGENT/prompt-slow" ] && [ "$(field slow status)" = failed ] && [ "$(field slow mended)" = None ]'
-$B take slow >/dev/null; $W watch --once >/dev/null
-check "so a session can take it over in time" 'sleep 0.3; [ ! -e "$FAKE_AGENT/prompt-slow" ] && [ "$(field slow external)" = True ]'
 sets slow 'status="done"' 
 mkdir -p "$T/lone"; cp "$here/skills/workflow-monitoring/scripts/watch.py" "$T/lone/"
 check "watch.py alone runs, and says it mended nothing" 'python3 "$T/lone/watch.py" watch --once | grep -q "mend.py isn.t beside"'
@@ -213,7 +171,7 @@ cp "$here/skills/workflow-monitoring/scripts/board.py" "$T/lone/"
 check "board.py alone refuses a run command, and says why" 'python3 "$T/lone/board.py" note late hi 2>&1 | grep -q "needs board_runs.py"'
 check "board.py alone still writes a board" 'python3 "$T/lone/board.py" board --out "$T/lone/b" | grep -q "^JSON "'
 
-echo "== a goal with no pid is a session's, whether or not it is marked external"
+echo "== a goal with no pid is left alone"
 python3 - "$C/loop/runs/own.json" <<'PY'
 import json, sys
 json.dump({"slug": "own", "goal": "Own", "level": "0", "status": "running", "step": "build", "branch": "loop/own", "worktree": "/nowhere",

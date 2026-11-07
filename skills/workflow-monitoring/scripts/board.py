@@ -8,14 +8,10 @@ usage: board.py <command> [options]
                         NEXT_DELAY and its path
   cadence [N|off]       minutes between check-ins, 1-60 (default 10), or off
   repos add PATH|list   follow another repo (~/.workflow-loop/repos), or list them
-  note SLUG TEXT        record a session's latest message on its run (this and the next three run in board_runs.py)
-  session add NAME --repo R [--branch B] [--waits-on X]
-  session update NAME [those flags] [--status S] [--note T] [--next T] [--pr URL] [--eta TIME]
-  session remove NAME   follow a session with no goal record
+  note SLUG TEXT        record a worker's latest message on its run (this and retire run in board_runs.py)
   retire SLUG --reason TEXT
-  take SLUG             mark a goal as taken over by a visible session, so nothing mends it
   handoff [--at TIME] [--out FILE]
-                        write a file a new session can take over from
+                        write a file a new operation session can take over from
 """
 import argparse
 import datetime
@@ -32,9 +28,9 @@ if not sys.stdin or not sys.stdin.isatty():
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 QUIET = 1800
-RUN_COMMANDS = ("note", "session", "retire", "take")
+RUN_COMMANDS = ("note", "retire")
 SECTIONS = ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step", "Milestones"]
-FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on")
+FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on", "report")
 
 
 def git(*args, cwd=None):
@@ -159,15 +155,6 @@ def delay_of(cadence, busy):
     return str(min(3600, max(60, int(cadence) * 60)))
 
 
-def session_file(base):
-    return os.path.join(base, "loop", "sessions.json")
-
-
-def sessions_of(base):
-    found = read_json(session_file(base))
-    return found if isinstance(found, dict) else {}
-
-
 def queue_of(path):
     try:
         with open(os.path.join(path, ".loop", "queue.md")) as handle:
@@ -218,21 +205,21 @@ def collect(name, path, base, at):
     cfg = read_json(os.path.join(path, ".loop", "config.json")) or {}
     live = [r for r in records if r.get("status") in ("running", "waiting")]
     rows, deps = [], []
-    for run in records + list(sessions_of(base).values()):
+    for run in records:
         begun, last = started(run), stamp(run.get("updated"))
         note = run.get("note") or {}
-        quiet = bool((run.get("external") or not run.get("pid")) and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET)
+        quiet = bool(not run.get("pid") and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET)
         pr = clean(run.get("pr"))
         get = lambda field, size=300: clean(run.get(field), size)
         rows.append({
             "repo": run.get("repo") or name, "slug": run["slug"], "goal": get("goal", 80), "level": kind(run), "status": get("status"),
             "step": get("step") or "-", "tries": run.get("tries", 0), "pr": pr, "prstate": pr_state(pr, path) if pr else "",
-            "checks": get("checks"), "external": bool(run.get("external")), "quiet": "yes" if quiet else "no",
+            "checks": get("checks"), "quiet": "yes" if quiet else "no", "report": clean((run.get("report") or {}).get("text")),
             "note": clean(note.get("text")) if isinstance(note, dict) else "",
             "waiting": run.get("waiting") if isinstance(run.get("waiting"), dict) else None, "finding": get("finding", 200),
             "elapsed": (at - begun).total_seconds() if begun else 0, "age": span((at - begun).total_seconds()) if begun else "0m",
             "took": (last - begun).total_seconds() if begun and last else 0, "last": run.get("updated") or "",
-            "tracked": bool(run.get("tracked")), "waits_on": ", ".join(run.get("waits_on") or []), "touches": run.get("touches") or [],
+            "waits_on": ", ".join(run.get("waits_on") or []), "touches": run.get("touches") or [],
             "eta": get("eta"), "next": get("next"), "branch": get("branch"), "reason": clean((run.get("retired") or {}).get("reason"))})
     for goal in queue_of(path):
         if any(r["slug"] == goal["slug"] for r in records):
@@ -244,7 +231,7 @@ def collect(name, path, base, at):
                 why, blocker = "goal %s (shared %s)" % (run["slug"], hit[0]), run["slug"]
                 break
         else:
-            used = sum(1 for r in live if r.get("status") != "running" or r.get("pid") or r.get("external"))
+            used = sum(1 for r in live if r.get("status") != "running" or r.get("pid"))
             if used >= int(cfg.get("parallel", 3) or 3):
                 why = "a free slot (%d of %s running)" % (used, cfg.get("parallel", 3))
         deps.append({"repo": name, "slug": goal["slug"], "waits_on": why, "on": blocker, "goal": clean(goal.get("goal"), 80),
@@ -253,8 +240,8 @@ def collect(name, path, base, at):
 
 
 def kind(run):
-    """A tracked session keeps its own kind; every goal, old levels included, runs the one skill flow."""
-    return "session" if (run.get("kind") or run.get("level")) == "session" else "goal"
+    """Every goal runs the one skill flow in its own worker."""
+    return "goal"
 
 
 def build(at, since):
@@ -267,17 +254,15 @@ def build(at, since):
     live = [r for r in rows if r["status"] in ("running", "waiting")]
     waiting = []
     for r in rows:
-        if r["tracked"] and r["status"] in ("waiting", "failed", "stopped"):
-            waiting.append({"repo": r["repo"], "slug": r["slug"], "ask": r["next"] or r["note"] or "This session is %s." % r["status"], "words": []})
-        elif r["status"] == "waiting" and r["waiting"]:
+        if r["status"] == "waiting" and r["waiting"]:
             words = [clean(w) for w in r["waiting"].get("words") or []]
             waiting.append({"repo": r["repo"], "slug": r["slug"], "ask": clean(r["waiting"].get("ask")), "words": words})
         elif r["status"] in ("failed", "stopped"):
-            waiting.append({"repo": r["repo"], "slug": r["slug"], "ask": "%s: %s" % (r["status"], r["finding"] or "see its log"),
+            waiting.append({"repo": r["repo"], "slug": r["slug"], "ask": "%s: %s" % (r["status"], r["report"] or r["finding"] or "see its log"),
                             "words": ["resume %s" % r["slug"]]})
         else:
             continue
-        waiting[-1]["where"] = ("the session working on " if r["external"] else "the governing session, which owns ") + "%s/%s" % (r["repo"], r["slug"])
+        waiting[-1]["where"] = "the operation session, which owns %s/%s" % (r["repo"], r["slug"])
     flat = {"%s/%s" % (r["repo"], r["slug"]): {f: r[f] for f in FIELDS} for r in rows}
     for d in deps:
         flat.setdefault("%s/%s" % (d["repo"], d["slug"]), {"status": "queued"})
@@ -312,6 +297,9 @@ def cmd_board(args):
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, "board.json")
     write(path, json.dumps(doc, indent=2, sort_keys=True) + "\n")
+    helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "board_status.py")
+    if os.path.exists(helper):
+        print(subprocess.run([sys.executable, helper], capture_output=True, text=True, cwd=git("rev-parse", "--show-toplevel")).stdout)
     print("DIGEST " + doc["digest"])
     print("CHANGED " + ("yes" if lines else "no"))
     for line in lines:
@@ -359,9 +347,9 @@ def cmd_handoff(args):
     lines += ["- %s/%s: queued, waits on %s" % (d["repo"], d["slug"], d["waits_on"]) for d in doc["dependencies"]]
     lines += ["", "## Waiting on the owner"]
     lines += ["- %s/%s: %s Type in %s: %s" % (w["repo"], w["slug"], w["ask"], w["where"], " or ".join(w["words"])) for w in doc["waiting"]]
-    lines += ["", "## Next check-in steps", "1. Run watch.py watch --once.", "2. Read each session's latest report.",
+    lines += ["", "## Next check-in steps", "1. Run watch.py watch --once.", "2. Read each worker's latest report.",
               "3. Run board.py board --since <last board.json>, then board_page.py.", "4. Publish board-artifact.html, report changes or NO_CHANGE.",
-              "5. Wait NEXT_DELAY (%s). Never answer a gate, merge unless told, or archive a session." % doc["next_delay"]]
+              "5. Wait NEXT_DELAY (%s). Never answer a gate, merge unless told,." % doc["next_delay"]]
     path = os.path.abspath(args.out) if args.out else os.path.join(loop_dir(common()), "handoff.md")
     write(path, "\n".join(lines) + "\n")
     print("HANDOFF " + path)

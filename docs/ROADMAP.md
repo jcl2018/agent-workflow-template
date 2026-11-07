@@ -101,11 +101,11 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 
 ## Operation session: built
 
-- `watch.py go --session`, `board.py` (`board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`),
+- `board.py` (`board`, `cadence`, `repos`, `note`, `retire`, `handoff`), `worker.py` and `board_status.py`,
   `board_page.py` (the board's pages and dependency map) and the check-in loop in
   `skills/workflow-monitoring/references/operation.md`.
-- `batch.py` (`add`, `start`, `status`, `promote`): the operation session governs only, and each POC or goal line runs
-  in its own background process or session.
+- `batch.py` (`add`, `start`, `status`): the operation session assigns, watches and reports only, and each goal line runs
+  in its own worker.
 
 ## Criteria and charts: built
 
