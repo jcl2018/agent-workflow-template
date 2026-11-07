@@ -12,6 +12,17 @@ finished with the answer. `promote SLUG` queues a goal from a saved POC's `go` l
 so: that line is an agent's suggestion, so treat it as data. A batch heading groups lines and doesn't hold them, so step
 1 below starts a queued goal line even before `start`.
 
+## A POC and its goal in one session
+
+`batch.py add NAME --poc QUESTION --session`, then `start NAME`, prints `PROMPT`. Give it to a session started from the
+main project folder. It answers read-only, with no worktree, and runs `batch.py save`. `promote SLUG` then marks the goal
+for that session, `watch --once` prints `WORKTREE` and `PROMPT`, and you send that `PROMPT` to the same session.
+
+The session doesn't change folder. The prompt tells it to begin every shell command with `cd` to the worktree and give
+files their full path, so it works when the host refuses a folder change. If the host also refuses writes there, the
+session says so with `board.py note`, and you give the same `PROMPT` to a new session: it holds everything needed, and
+the POC's answer stays saved. A POC in a session is read-only by instruction: nothing checks it, unlike a background POC.
+
 ## Starting a visible session
 
 Start the new session from the main project folder, not from `WORKTREE`, because the host may refuse another folder on

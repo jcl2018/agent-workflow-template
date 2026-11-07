@@ -5,15 +5,15 @@ usage: goal.py <command> <slug> [options]
 
   new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]  freeze a goal
   queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]  add to .loop/queue.md
-  step SLUG NAME [--note TEXT]     record the step
-  check SLUG                       run the repo's checks
-  judge SLUG [--design]            run the fresh judge
-  verdict SLUG --file FILE [--design]  record a fresh agent's verdict
-  pr SLUG                          push the branch and open the pull request
+  step SLUG NAME [--note TEXT]  record the step
+  check SLUG  run the repo's checks
+  judge SLUG [--design]  run the fresh judge
+  verdict SLUG --file FILE [--design]  record a verdict
+  pr SLUG  push and open the pull request
   wait SLUG --ask TEXT --words W [--words W]  stop for an answer
-  answer SLUG                      clear a wait
-  finding SLUG TEXT                file a finding and stop the goal
-  show SLUG                        print the goal's state
+  answer SLUG  clear a wait
+  finding SLUG TEXT  file a finding and stop
+  show SLUG  print the goal's state
 """
 import argparse
 import datetime
@@ -365,6 +365,8 @@ def ready_for_judge(state, design):
         return
     if state.get("checks") != "pass" or state.get("checks_sha") != git("rev-parse", "HEAD"):
         sys.exit("REFUSED: checks have not passed on this commit. Fix: commit, then run check.")
+    if not git("diff", "--name-only", "%s...HEAD" % base_ref(state), "--", ".", ":(exclude).loop/goals", check=False):
+        sys.exit("REFUSED: no change to judge. Fix: see whether %s has landed." % state["slug"])
 
 
 def cmd_judge(args):
@@ -376,7 +378,7 @@ def cmd_judge(args):
     save(state, state["step"])
     pack, prompt = make_pack(state, args.design)
     if not command or not shutil.which(command[0]):
-        print("NO HEADLESS JUDGE. Start a fresh agent with no other context. Hand it only:")
+        print("NO HEADLESS JUDGE. Hand a fresh agent only:")
         print("PACK=" + prompt)
         print("Save its reply to a file, then run: verdict %s --file <file>" % args.slug)
         return 0

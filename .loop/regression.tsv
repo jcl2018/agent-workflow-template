@@ -28,3 +28,6 @@ HLT-3	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a stale page shows 
 HLT-4	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a criterion with no row is a FAIL"		2026-11-07
 HLT-5	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: no sibling script: UNREAD and not green"		2026-11-07
 HLT-6	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: check writes no file and makes no commit"		2026-11-07
+MON-12	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: promote keeps the goal in the same session"		2026-11-07
+DEL-4	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: judge refuses an empty diff"		2026-11-07
+MON-13	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal waits before a mender starts"		2026-11-07

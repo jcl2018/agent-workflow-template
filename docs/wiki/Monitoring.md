@@ -39,13 +39,21 @@ The operation session is for governance only: it assigns and watches, and runs n
 POCs and goals in a batch, and each line runs in its own session or background agent:
 
 ```text
-add NAME --poc QUESTION                        add a POC line under '## Batch: NAME' in .loop/queue.md
+add NAME --poc QUESTION [--session]            add a POC line under '## Batch: NAME' in .loop/queue.md; --session runs
+                                               it in a visible session
 add NAME --goal G --done LINE [--done LINE]    add a goal line under the same heading
 start NAME                                     start each new or failed POC in its own read-only worktree; hand goal
                                                lines to `watch`
 status NAME                                    one line for each POC and goal
+save SLUG --file FILE                          record the answer of a POC run in a visible session
 promote SLUG [--batch NAME]                    queue a goal from the go line a finished POC saved
 ```
+
+A POC and its goal can stay in one visible session: add it with `--session`, give that session the prompt `start` prints,
+and it answers and runs `save`. `promote` keeps the goal in that session, and `watch` prints the prompt to send it. The
+session never changes folder: the prompt has it begin each shell command with `cd` to the worktree and give files their
+full path, so this works when the host refuses a folder change. If the host refuses writes there too, the same prompt
+works in a new session. In a session a POC is read-only by instruction, with no check.
 
 A POC saves its answer and `go` line in `loop/pocs/` under the git folder, outside the repo, and the board shows it
 `done` with the answer as its note. A POC that changes its worktree is marked `failed`, and its answer isn't saved. This
@@ -105,7 +113,8 @@ loosen permissions, edit done lines or change `agent_command`.
 `mend` (one fresh agent for a failed or stopped goal) and `resume_on_limit` (continue after a usage limit) are off by
 default, since each spends your usage, and neither touches a visible session's goal. If a goal's pull request has
 landed, neither restarts it: the goal is marked `done`, and a mender still running on it is stopped. The pull request is
-found by branch, so this works when the run record has none. Background agents run `agent_command` with your own
+found by branch, so this works when the run record has none. A failed goal waits `mend_wait` seconds (default 120) before
+a mender starts, so a session can take it over first. Background agents run `agent_command` with your own
 permissions.
 
 ### Example
@@ -387,6 +396,23 @@ Status: built and proven: Read the batch's lines; Print one line each. Built onl
 Stops for the owner: none.
 Proof: toy tests.
 
+#### `save`
+
+```mermaid
+flowchart LR
+  a["Visible session answers the POC read-only"]
+  b["Refuse if it isn't a running session POC, or has no go line"]
+  c["Save the answer and go line outside the repo"]
+  d["Show it done on the board"]
+  a --> b
+  b --> c
+  c --> d
+```
+
+Status: built and proven: Refuse if it isn't a running session POC, or has no go line; Save the answer and go line outside the repo; Show it done on the board. Built only: Visible session answers the POC read-only. Planned: none.
+Stops for the owner: none.
+Proof: toy tests with a stand-in session. It hasn't run in a real session yet.
+
 #### `promote`
 
 ```mermaid
@@ -406,8 +432,8 @@ Proof: toy tests. Nothing enforces that the owner said so: that is an instructio
 
 ## Criteria
 
-Tests: 11.
-> **Unreviewed:** 8 of 11 criteria on this page have not been reviewed by the owner.
+Tests: 13.
+> **Unreviewed:** 10 of 13 criteria on this page have not been reviewed by the owner.
 
 - MON-1: **Proven** Two goals whose touched files overlap never run at the same time; the later one is held.
 - MON-2: **Proven** A goal the owner has retired no longer appears under what waits on the owner.
@@ -420,6 +446,8 @@ Tests: 11.
 - MON-9: **Unreviewed** A goal whose pull request has landed is marked done and never mended, and a mender still running on it is stopped.
 - MON-10: **Unreviewed** A goal a session has taken over gets no mender.
 - MON-11: **Unreviewed** The board reports a change only when a run's state really changed, not when a field is new or gh fails to answer.
+- MON-12: **Unreviewed** A POC marked for a visible session keeps its goal in that session, whose prompt names the worktree, so the session never changes folder.
+- MON-13: **Unreviewed** A failed goal waits before a mender starts, so a session can take it over first.
 
 ## Enforced by
 
@@ -434,3 +462,5 @@ Tests: 11.
 - MON-9: MON-9
 - MON-10: MON-10
 - MON-11: MON-11
+- MON-12: MON-12
+- MON-13: MON-13
