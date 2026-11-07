@@ -83,7 +83,7 @@ $goal check crit >/dev/null; $goal pr crit >/dev/null
 $rel cut crit 2>&1 | grep -q "DEL-2 (no regression row)" && ok "cut refuses a missing row" || bad "cut missing row"
 $reg add del-2 --level land --command "false" --goal DEL-2 >/dev/null
 git add -A; git commit -qm "Failing row" >/dev/null; $goal check crit >/dev/null
-$rel cut crit 2>&1 | grep -q "DEL-2 (row del-2 is failing)" && ok "cut refuses a failing row" || bad "cut failing row"
+$rel cut crit 2>&1 | grep -q "DEL-2 (row del-2 is a draft or failing)" && ok "cut refuses a failing row" || bad "cut failing row"
 $reg add del-2 --level land --command "true" --goal DEL-2 >/dev/null
 git add -A; git commit -qm "Passing row" >/dev/null; $goal check crit >/dev/null
 $rel cut crit | grep -q "^DRAFT" && ok "cut with every row passing" || bad "cut passing"

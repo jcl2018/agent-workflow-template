@@ -7,14 +7,13 @@ usage: release.py <command> <slug> [options]
                                    a batch answers leave by itself
   leave SLUG                       keep the work unreleased; changes nothing versioned
   cut SLUG [--bump patch|minor|major] [--user]
-                                   refuse without verify steps or with stale docs; bump the version,
-                                   write the changelog, commit, push, create a DRAFT release. You publish it.
+                                   refuse without verify steps, with stale docs or a criterion without a passing
+                                   regression row; else bump, write the changelog, push, create a DRAFT release
   show SLUG                        print the goal's release field
 
 A batch goal never cuts unless --user is given, and --user means the human's own message said to cut.
-With "release_auto": true in .loop/config.json, a batch ask reads the diff: leave, patch or minor cut or leave by
-itself (a DRAFT, no --user); a breaking change waits.
-It runs git and gh, and nothing else. It never publishes a release, never pushes a tag and never merges.
+With "release_auto": true in .loop/config.json, a batch ask reads the diff: it leaves, or cuts a patch or minor
+DRAFT by itself; a breaking change waits. It runs git and gh only, and never publishes, tags or merges.
 """
 import argparse
 import datetime
@@ -46,7 +45,7 @@ def now():
 
 def state_path(slug):
     if not re.match(r"^[a-z0-9][a-z0-9-]{0,50}$", slug):
-        sys.exit("REFUSED: bad slug. Fix: lowercase letters, digits and dashes.")
+        sys.exit("REFUSED: bad slug. Fix: lowercase letters, digits, dashes.")
     common = os.path.abspath(git("rev-parse", "--git-common-dir"))
     path = os.path.join(common, "loop", "runs")
     os.makedirs(path, exist_ok=True)
@@ -60,11 +59,10 @@ def load(slug):
     except OSError:
         sys.exit("REFUSED: no goal named %s. Fix: run it with workflow-delivery first." % slug)
     except ValueError:
-        sys.exit("REFUSED: the run record for %s is not readable JSON." % slug)
+        sys.exit("REFUSED: the run record for %s is not JSON." % slug)
 
 
 def save(state, note=None):
-    """Write through a temporary file and a rename, so a reader never sees half a file."""
     state["updated"] = now()
     if note:
         state.setdefault("log", []).append("%s %s" % (state["updated"], note))
@@ -76,13 +74,11 @@ def save(state, note=None):
 
 
 def finished(state):
-    """Refuse a goal whose checks don't hold."""
     if state.get("release") in ("cut", "leave"):
         print("ALREADY %s %s" % (state["release"], state["slug"]))
         sys.exit(0)
     if state.get("status") not in ("done", "waiting") or not state.get("pr"):
-        sys.exit("REFUSED: %s is %s with no finished pull request. Fix: finish it with workflow-delivery."
-                 % (state["slug"], state.get("status")))
+        sys.exit("REFUSED: %s is %s with no finished pull request." % (state["slug"], state.get("status")))
     if state.get("checks") != "pass":
         sys.exit("REFUSED: the checks of %s have not passed. Fix: run goal.py check." % state["slug"])
     if state.get("level") not in ("0",) and state.get("judge") != "pass":
@@ -226,16 +222,7 @@ def verify_steps(top, slug):
 
 
 def doc_rows(top):
-    rows = {}
-    try:
-        with open(os.path.join(top, ".loop", "docs.tsv")) as handle:
-            for line in handle:
-                if line.strip() and not line.startswith("#"):
-                    page, _, paths = line.rstrip("\n").partition("\t")
-                    rows[page] = [item.strip() for item in paths.split(",") if item.strip()]
-    except OSError:
-        pass
-    return rows
+    return {r[0]: [i.strip() for i in r[1].split(",") if i.strip()] for r in read_tsv(top, "docs.tsv")}
 
 
 def stale_pages(top, cfg, base):
@@ -254,41 +241,28 @@ def stale_pages(top, cfg, base):
     return out
 
 
-def criteria_trouble(top, cfg):
-    """Criteria in the wiki pages whose regression row is missing, unfinished or failing. Only with .loop/docs.tsv."""
-    if not doc_rows(top):
+def read_tsv(top, name):
+    try:
+        with open(os.path.join(top, ".loop", name)) as handle:
+            return [l.rstrip("\n").split("\t") + [""] * 5 for l in handle if l.strip() and l[0] != "#"]
+    except OSError:
         return []
-    folder = cfg.get("wiki_dir") or "docs/wiki"
-    ids = []
-    for page in sorted(doc_rows(top)):
+
+
+def criteria_trouble(top, cfg):
+    rows, out = read_tsv(top, "regression.tsv"), []
+    for page in doc_rows(top):
         try:
-            with open(os.path.join(top, folder, page + ".md")) as handle:
-                text = handle.read()
+            with open(os.path.join(top, cfg.get("wiki_dir") or "docs/wiki", page + ".md")) as handle:
+                part = handle.read().partition("\n## Criteria")[2].split("\n## ")[0]
         except OSError:
             continue
-        if "\n## Criteria" in text:
-            part = text.split("\n## Criteria", 1)[1].split("\n## ", 1)[0]
-            ids += re.findall(r"^- ([A-Z]{2,5}-\d+): \S", part, re.M)
-    if not ids:
-        return []
-    rows = {}
-    try:
-        with open(os.path.join(top, ".loop", "regression.tsv")) as handle:
-            for line in handle:
-                if line.strip() and not line.startswith("#"):
-                    cells = line.rstrip("\n").split("\t") + [""] * 5
-                    rows[cells[0]] = cells
-    except OSError:
-        pass
-    out = []
-    for key in ids:
-        row = next((cells for cells in rows.values() if key in (cells[0], cells[3])), None)
-        if not row:
-            out.append("%s (no regression row)" % key)
-        elif row[1] == "draft":
-            out.append("%s (row %s is a draft)" % (key, row[0]))
-        elif row[1] != "covered" and subprocess.run(row[2], shell=True, cwd=top, capture_output=True).returncode:
-            out.append("%s (row %s is failing)" % (key, row[0]))
+        for key in re.findall(r"^- ([A-Z]{2,5}-\d+): \S", part, re.M):
+            row = next((r for r in rows if key in (r[0], r[3])), None)
+            if not row:
+                out.append("%s (no regression row)" % key)
+            elif row[1] == "draft" or (row[1] != "covered" and run(["sh", "-c", row[2]], cwd=top).returncode):
+                out.append("%s (row %s is a draft or failing)" % (key, row[0]))
     return out
 
 
@@ -348,13 +322,12 @@ def changelog_text(old, version, day, bullets, steps):
 
 
 def restore(cwd, files, sha_before, message):
-    """Undo only what this run did: unstaged edits, or the one commit it just made."""
     if git("rev-parse", "HEAD", cwd=cwd) != sha_before:
         if git("log", "-1", "--format=%s", cwd=cwd) == message:
             git("reset", "--hard", "HEAD~1", cwd=cwd)
             print("RESTORED: removed the release commit")
         else:
-            print("NOTE: HEAD is not the release commit, so nothing was reset. Check the branch by hand.")
+            print("NOTE: HEAD is not the release commit, so nothing was reset.")
             return
     for name in files:
         if run(["git", "ls-files", "--error-unmatch", name], cwd=cwd).returncode == 0:
@@ -368,8 +341,8 @@ def cmd_cut(args):
     state = load(args.slug)
     slug = args.slug
     if state.get("batch") and not args.user and not getattr(args, "auto", False):
-        sys.exit("REFUSED: %s is a batch goal. A batch may answer leave, never cut. Fix: cut only when the human's "
-                 "own message says \"cut %s\", then pass --user." % (slug, slug))
+        sys.exit("REFUSED: %s is a batch goal and may only leave. Fix: pass --user only if the human said \"cut %s\"."
+                 % (slug, slug))
     finished(state)
     branch = state.get("branch") or "loop/" + slug
     tree = state.get("worktree") or ""
@@ -379,7 +352,7 @@ def cmd_cut(args):
     if current != branch:
         sys.exit("REFUSED: %s is on branch %r, not %s. Fix: switch to %s first." % (cwd, current, branch, branch))
     if git("status", "--porcelain", "--untracked-files=no", cwd=cwd):
-        sys.exit("REFUSED: uncommitted changes in %s. Fix: commit or set them aside first." % cwd)
+        sys.exit("REFUSED: uncommitted changes in %s. Fix: commit them first." % cwd)
     cfg = read_config(cwd)
     base = base_of(cwd, cfg)
     steps = verify_steps(cwd, slug)
@@ -392,8 +365,8 @@ def cmd_cut(args):
                  "check again." % ", ".join(stale))
     unmet = criteria_trouble(cwd, cfg)
     if unmet:
-        sys.exit("REFUSED: these criteria have no passing regression row: %s. Fix: add or repair the row with "
-                 "workflow-regression, commit, and run goal.py check again." % ", ".join(unmet))
+        sys.exit("REFUSED: criteria without a passing regression row: %s. Fix: repair the rows, commit, check again."
+                 % ", ".join(unmet))
     checked = state.get("checks_sha")
     if checked and checked != git("rev-parse", "HEAD", cwd=cwd):
         later = git("log", "--format=%H", "%s..HEAD" % checked, cwd=cwd, check=False).splitlines()
