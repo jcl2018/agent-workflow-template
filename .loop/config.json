@@ -33,5 +33,6 @@
   "wiki_dir": "docs/wiki",
   "pr_bumps_version": false,
   "mend": true,
-  "resume_on_limit": false
+  "resume_on_limit": false,
+  "criteria": true
 }

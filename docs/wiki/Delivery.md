@@ -1,8 +1,10 @@
 <!-- workflow-docs -->
 # Delivery
 
+## Summary
+
 Skill: `workflow-delivery`. Takes one sentence to a pull request, judged by a fresh agent at levels 1 and 2.
-Script: `skills/workflow-delivery/scripts/goal.py`.
+Script: `skills/workflow-delivery/scripts/goal.py`. The criteria below are drafts until the owner approves them.
 
 ## Commands
 
@@ -11,7 +13,7 @@ Script: `skills/workflow-delivery/scripts/goal.py`.
   lines and runs the goal. In an interactive session it hands off to [Monitoring](Monitoring), so the governing session
   never builds.
 
-## Levels
+### Levels
 
 | Level | Steps | Fresh judge |
 |---|---|---|
@@ -24,7 +26,7 @@ path in `risky_paths`. The old names `minimum`, `quick`, `standard` and `full` a
 
 At level 2, the design review uses a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo). With none set, or the skill missing, the built-in review runs; the output says which ran.
 
-## Done lines
+### Done lines
 
 Done lines are frozen when the goal starts. A wrong one needs a new goal. The judge reads the diff, the goal file and
 the check results, and no other file in the repo, so write each line for those:
@@ -34,7 +36,7 @@ the check results, and no other file in the repo, so write each line for those:
 - Keep the proof small. A documentation goal proves what the page says from the diff, plus a passing docs check, and
   doesn't ask for output of every command.
 
-## goal.py
+### goal.py
 
 ```text
 new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]
@@ -57,7 +59,7 @@ The fresh judge is given only the diff, the goal file and the check results, in 
 level 2 is given only the goal file. Proof the checks don't print goes under `## Evidence` in the goal file. Commit it
 and run `check` again, because `judge` refuses a commit the checks haven't passed.
 
-## Example
+### Example
 
 From the goal's worktree, with `scripts/` in the skill's folder:
 
@@ -66,3 +68,15 @@ python3 scripts/goal.py check add-median
 python3 scripts/goal.py judge add-median
 python3 scripts/goal.py pr add-median
 ```
+
+## Criteria
+
+- DEL-1: (draft) A goal cannot start without at least one done line.
+- DEL-2: (draft) A goal runs at level 0 unless the owner names another level.
+- DEL-3: (draft) A goal that touches a risky path such as CI, auth or data is raised from level 0 to level 1 when it starts.
+
+## Enforced by
+
+- DEL-1: DEL-1
+- DEL-2: DEL-2
+- DEL-3: DEL-3

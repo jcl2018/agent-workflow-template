@@ -1,10 +1,12 @@
 <!-- workflow-docs -->
 # Documentation
 
-Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests; `wiki_dir` in `.loop/config.json`
-changes the folder) and finds stale ones. Script: `docs.py`.
+## Summary
 
-## Init
+Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests; `wiki_dir` in `.loop/config.json`
+changes the folder) and finds stale ones. Script: `docs.py`. The criteria below are drafts until the owner approves them.
+
+### Init
 
 `init` is a step list in `skills/workflow-docs/SKILL.md`. It has no script command of its own: `docs.py` has `survey`,
 `add`, `check`, `publish` and `restore`.
@@ -21,6 +23,8 @@ First-page rule: if the wiki has no pages yet, the user must create its first pa
 makes the wiki's repo then. Tell them, then stop.
 
 ## Commands
+
+Pages are added and checked with these (`init` is a step list in the skill, not a command):
 
 ```text
 survey                          show the wiki's pages and this repo's page map
@@ -45,10 +49,22 @@ Criteria and Enforced by, in that order; a criterion is one line `- DEL-1: text`
 `<!-- workflow-docs -->`, and won't replace a wiki page without that marker unless you name it with `--adopt`. `restore`
 refuses if the wiki changed since.
 
-## Example
+### Example
 
 ```bash
 python3 scripts/docs.py add Delivery --paths "skills/workflow-delivery"
 python3 scripts/docs.py check
 python3 scripts/docs.py publish --dry-run
 ```
+
+## Criteria
+
+- DOC-1: (draft) The check reports a page as stale when the code it describes changed in a commit after the page's last commit.
+- DOC-2: (draft) Publishing to the GitHub wiki is refused while the check finds a stale page.
+- DOC-3: (draft) Publishing never replaces a wiki page this tool did not write, unless the owner names that page.
+
+## Enforced by
+
+- DOC-1: DOC-1
+- DOC-2: DOC-2
+- DOC-3: DOC-3

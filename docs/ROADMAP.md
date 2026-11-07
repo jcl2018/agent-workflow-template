@@ -53,7 +53,8 @@ One session starts and watches the others.
 
 ### Documentation
 
-- Pages live in `docs/wiki/`, and `.loop/docs.tsv` maps each page to the paths it describes.
+- Pages live in `docs/wiki/`, and `.loop/docs.tsv` maps each page to the paths it describes. The wiki is five feature pages (Delivery, Documentation, Monitoring, Regression, Release) plus Home; install steps and the file reference are in the README.
+- Each feature page lists draft criteria for the owner to approve, and each criterion has a row in `.loop/regression.tsv`.
 - `check` finds pages that are stale, missing or unwritten.
 - `publish` updates the GitHub wiki. It never deletes a page, and it won't replace a page it didn't write.
 - `restore` reverts the last publish.
