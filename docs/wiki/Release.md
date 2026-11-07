@@ -3,7 +3,7 @@
 
 ## Summary
 
-Skill: `workflow-release`. After a goal has a pull request and its checks hold.
+Skill: `workflow-release`. After a goal has a pull request and its checks hold. It no longer waits on a judge: delivery has none.
 
 ## Commands
 
