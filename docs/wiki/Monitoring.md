@@ -321,7 +321,7 @@ flowchart LR
   class o owner
 ```
 
-Status: built and proven: Refuse while its agent still runs; Mark it taken over; Nothing mends it. Built only: Owner or operation session hands a goal to a session.
+Status: built and proven: Refuse while its agent still runs; Mark it taken over; Nothing mends it. Built only: Owner or operation session hands a goal to a session. Planned: none.
 Stops for the owner: Owner or operation session hands a goal to a session.
 Proof: toy tests with a stand-in agent. It hasn't run on a real goal yet.
 
