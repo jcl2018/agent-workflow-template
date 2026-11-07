@@ -23,3 +23,4 @@
 - A monitored Codex goal needs `-s workspace-write` with the git folder and remote as writable roots, and `setup`'s default `codex exec` has neither.
 - In a pack, a file outside every skill folder reaches no skill unless it's under `shared/`, so the ZIP moves `loop-files.md` there.
 - The first regression workflow run on GitHub failed 2 rows: one needed an agent on the machine, and one looked for a renamed test line.
+- `cut` lists commits not yet on the base branch, so a pull request merged just before it gives an empty changelog that says "No code changes".
