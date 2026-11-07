@@ -41,8 +41,21 @@ restore                         revert the last publish, if nothing came after i
 
 With `"criteria": true` in the config, `check` also enforces the criteria contract: only the pages Delivery,
 Documentation, Monitoring, Regression, Release and Home; each feature page has exactly the sections Summary, Commands,
-Criteria and Enforced by, in that order; a criterion is one line `- DEL-1: text` with a unique id, and each id needs an
-`- DEL-1: <regression row id>` line in Enforced by. Only the owner approves a changed criterion.
+Criteria and Enforced by, in that order; a criterion is one line `- DEL-1: **Stage** text` with a unique id, and each id needs an
+`- DEL-1: <regression row ids>` line in Enforced by.
+
+Criteria are for the owner, and tests are for the machine. A test is a regression row, linked to one criterion by its
+goal or id, and a criterion can have many. Each feature page counts its tests in a `Tests:` line above the criteria.
+Criteria land with no approval, marked Unreviewed, and the page shows a banner while any is.
+
+| Stage | Means |
+|---|---|
+| Unreviewed | Landed, and the owner hasn't reviewed it. New or changed criteria start here, whatever their tests |
+| Reviewed | The owner reviewed it, and it has no test yet |
+| Enforced | The owner reviewed it, and it has a test not yet seen failing |
+| Proven | The owner reviewed it, and every test has been seen failing once |
+
+`check` prints `STAGE`, `TESTS` or `LINK` when a page disagrees with the rows.
 
 The same setting holds every page, Home too, to two more rules. `SCRIPT` fails a page that names a script file: pages
 describe commands and behaviour only. `CHART` fails a command listed under Commands, in a text block or a bullet that
@@ -189,9 +202,11 @@ Proof: toy tests only: it has never run on a real wiki, and the refusal has no t
 
 ## Criteria
 
-- DOC-1: The check reports a page as stale when the code it describes changed in a commit after the page's last commit.
-- DOC-2: Publishing to the GitHub wiki is refused while the check finds a stale page.
-- DOC-3: Publishing never replaces a wiki page this tool did not write, unless the owner names that page.
+Tests: 3.
+
+- DOC-1: **Proven** The check reports a page as stale when the code it describes changed in a commit after the page's last commit.
+- DOC-2: **Proven** Publishing to the GitHub wiki is refused while the check finds a stale page.
+- DOC-3: **Proven** Publishing never replaces a wiki page this tool did not write, unless the owner names that page.
 
 ## Enforced by
 

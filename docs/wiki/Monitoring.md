@@ -380,14 +380,17 @@ Proof: toy tests. Nothing enforces that the owner said so: that is an instructio
 
 ## Criteria
 
-- MON-1: Two goals whose touched files overlap never run at the same time; the later one is held.
-- MON-2: A goal the owner has retired no longer appears under what waits on the owner.
-- MON-3: A goal started with `--session` is recorded as running in a visible session, and no background process is started for it.
-- MON-4: (draft) Each poc and goal line of a batch runs in its own process or background agent, never in the governing session.
-- MON-5: (draft) A POC runs read-only in its own worktree, and is marked failed if it changes the worktree.
-- MON-6: (draft) A finished POC's answer and go line are saved outside the repo, and the board shows the POC as done with that answer.
-- MON-7: (draft) A goal line promoted from a saved POC carries that POC's goal, done lines and level, and a POC that has not finished cannot be promoted.
-- MON-8: (draft) The operation instructions state that the operation session is for governance only and runs neither poc nor go itself.
+Tests: 8.
+> **Unreviewed:** 5 of 8 criteria on this page have not been reviewed by the owner.
+
+- MON-1: **Proven** Two goals whose touched files overlap never run at the same time; the later one is held.
+- MON-2: **Proven** A goal the owner has retired no longer appears under what waits on the owner.
+- MON-3: **Proven** A goal started with `--session` is recorded as running in a visible session, and no background process is started for it.
+- MON-4: **Unreviewed** Each poc and goal line of a batch runs in its own process or background agent, never in the governing session.
+- MON-5: **Unreviewed** A POC runs read-only in its own worktree, and is marked failed if it changes the worktree.
+- MON-6: **Unreviewed** A finished POC's answer and go line are saved outside the repo, and the board shows the POC as done with that answer.
+- MON-7: **Unreviewed** A goal line promoted from a saved POC carries that POC's goal, done lines and level, and a POC that has not finished cannot be promoted.
+- MON-8: **Unreviewed** The operation instructions state that the operation session is for governance only and runs neither poc nor go itself.
 
 ## Enforced by
 

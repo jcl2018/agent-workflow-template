@@ -124,9 +124,11 @@ Proof: toy tests.
 
 ## Criteria
 
-- REL-1: A release is refused unless the goal lists numbered steps to verify by hand, each with what to expect.
-- REL-2: A release is only ever created as a draft on GitHub, and nothing is merged.
-- REL-3: With automatic releases off, a goal run in a monitored batch cannot be cut unless the owner's own words said to cut.
+Tests: 3.
+
+- REL-1: **Proven** A release is refused unless the goal lists numbered steps to verify by hand, each with what to expect.
+- REL-2: **Proven** A release is only ever created as a draft on GitHub, and nothing is merged.
+- REL-3: **Proven** With automatic releases off, a goal run in a monitored batch cannot be cut unless the owner's own words said to cut.
 
 ## Enforced by
 
