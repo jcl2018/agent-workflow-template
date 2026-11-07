@@ -15,4 +15,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `bash dev/toy/test-wiki.sh`.
+   Expect: every line starts with PASS, including "merge refuses while the page is stale" and "merge publishes the wiki".
+2. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: it prints `DOCS OK: 8 pages`.
