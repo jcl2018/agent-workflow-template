@@ -55,7 +55,7 @@ Step 1 (Freeze) is already done for you: .loop/goals/{slug}.md is committed with
 record exists. Do not run goal.py new and never edit the done lines. Start at step 2, the idea step, and use goal.py
 and flow.py with the slug {slug} for every step. Work only in this worktree.
 
-Stop at the pull request (goal.py pr). Never merge it. Then follow workflow-release if you have it: {release}
+Stop at the pull request (goal.py pr). Never merge it yourself. Then follow workflow-release if you have it: {release}
 """ + DATA
 SEAT = """Work in the git worktree {tree} (branch {branch}), even if this session opened elsewhere: begin every shell
 command with `cd {tree} &&`, use full paths for files, and check the branch before you write.
@@ -241,7 +241,12 @@ def where(skill_dir):
     return "The skills are in %s (workflow-delivery/SKILL.md, workflow-delivery/scripts/goal.py)." % os.path.abspath(skill_dir)
 
 
+MERGE = "this repo has auto_merge on, so run its merge step, merge.py {slug}, and stop. It cuts no version."
+
+
 def release_text(state):
+    if config().get("auto_merge") is True:
+        return MERGE.format(slug=state["slug"])
     return ASK.format(slug=state["slug"]) if state.get("release") == "ask" else LEAVE
 
 

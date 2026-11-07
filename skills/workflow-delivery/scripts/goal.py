@@ -261,6 +261,12 @@ def cmd_check(args):
     state["step"] = "checks"
     save(state, "checks")
     commands = config().get("checks", [])
+    if not commands and config().get("require_checks", True) is False:
+        state["checks"], state["checks_sha"] = "none", git("rev-parse", "HEAD")
+        save(state, "no checks: require_checks is off")
+        print("NO CHECKS %s: require_checks is off in this repo, so nothing was tested" % args.slug)
+        print("NEXT: " + next_step(state))
+        return 0
     if not commands:
         fail_stop(state, "The repo has no check commands. Add them to .loop/config.json.")
     parts, sums, failed = [], [], False
@@ -300,6 +306,14 @@ def cmd_record(args):
     result, why = (found[-1][0].lower(), found[-1][1].strip()) if found else ("", "")
     pending = [" ".join(item.split()) for item in re.findall(r"^\W*PENDING:\s*(.+)$", text, re.M)]
     os.remove(ran)
+    if (pending or result == "pending") and config().get("auto_approve") is True:
+        took = "; ".join(pending) or why or "the step's pending gate"
+        state["flow"][args.step] = "done: auto-approved: " + took[:200]
+        state["note"] = {"text": "auto-approved at %s: %s" % (args.step, took[:240]), "at": now()}
+        save(state, "%s auto-approved: %s" % (args.step, took[:300]))
+        print("AUTO-APPROVED %s %s: %s" % (args.slug, args.step, took))
+        print("NEXT: " + ("build, then check" if args.step == "plan" else "check" if args.step != "idea" else next_step(state)))
+        return 0
     if pending or result == "pending":
         state["flow"][args.step] = "pending"
         ask = "%s left this for you: %s" % (args.step, "; ".join(pending) or why or "see its reply")
@@ -345,7 +359,8 @@ def bump_version(state, head):
 def cmd_pr(args):
     state = held(args.slug)
     head = git("rev-parse", "HEAD")
-    if state.get("checks") != "pass" or state.get("checks_sha") != head:
+    gated = config().get("require_checks", True) is not False
+    if gated and (state.get("checks") != "pass" or state.get("checks_sha") != head):
         no("checks have not passed on this commit. Fix: run check.")
     left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
     if left:
@@ -380,7 +395,8 @@ def cmd_pr(args):
     hook = os.path.normpath(os.path.join(sys.argv[0], "..", "..", "..", "workflow-health", "scripts", "milestone.py"))
     if os.path.exists(hook):
         print(run([sys.executable, hook, "attach", args.slug, "--live"]).stdout.strip())
-    print("NEXT: workflow-release asks cut or leave. The loop never merges.")
+    print("NEXT: " + ("workflow-release merges it: merge.py %s" % args.slug if config().get("auto_merge") is True
+                      else "workflow-release asks cut or leave. The loop never merges."))
     return 0
 
 

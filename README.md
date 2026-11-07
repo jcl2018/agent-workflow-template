@@ -13,6 +13,14 @@ refuses with one line saying how to set it. See [the file contract](skills/loop-
 Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md) for the features and the
 [roadmap](docs/ROADMAP.md).
 
+**This repo runs with no gates.** Its `.loop/config.json` turns off `require_checks`, with an empty `checks` list, and
+turns on `auto_approve` and `auto_merge`. A pull request opens without any check passing. What the skills leave for the
+owner is approved automatically and logged as auto-approved, in the goal's log and on the board. The release step then
+merges the pull request into `main` by itself. The skills' own built-in refusals still apply, and the private-name leak
+scan still guards every commit. The risk is plain: a broken or wrong change can reach `main` with nobody looking, and
+the only check left is the regression workflow on GitHub, which reports and never blocks. A repo set up from this
+template keeps every gate until its owner turns one off.
+
 ## What it aims to be
 
 - **Light:** Markdown instructions and a few small scripts, with no engine to run.
@@ -121,7 +129,8 @@ Release the work, or leave it unreleased for now:
 Every goal has a `Verify by hand` section: steps you can follow to see the change work, each with what to expect. `cut`
 refuses without one, and refuses if a wiki page is stale or a criterion's regression row is missing or failing. It then
 creates a draft GitHub release that carries those steps and the docs that changed, for you to publish. After a cut, the
-agent publishes the wiki. No release is published and nothing merges without you.
+agent publishes the wiki. No release is published without you. Nothing merges without you, unless the repo turns on
+`auto_merge`, as this one does.
 
 ## Getting started
 
@@ -146,7 +155,7 @@ From install to one finished goal.
 6. **Review.** The goal ends at a pull request. A monitored goal answers `leave` by itself, unless you started it with
    `--release ask`; then it waits for `cut <slug>` or `leave <slug>` (see [Release](docs/wiki/Release.md)). With
    `"release_auto": true`, it decides from its diff and may cut a draft instead. Answer before you merge, because `cut`
-   commits on the goal's branch. Review and merge the pull request yourself; nothing here merges.
+   commits on the goal's branch. Review and merge the pull request yourself; nothing here merges unless `auto_merge` is on.
 
 ## File reference
 

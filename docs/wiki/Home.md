@@ -6,6 +6,15 @@ through your own skill suite's flow, unattended, to a pull request you review. O
 and run a first goal, or to see where every file lives, read the
 [README](https://github.com/jcl2018/agent-workflow-template#readme). It's released under the MIT license.
 
+
+**This repo runs with no gates.** Its `.loop/config.json` turns off `require_checks`, with an empty `checks` list, and
+turns on `auto_approve` and `auto_merge`. A pull request opens without any check passing. What the skills leave for the
+owner is approved automatically and logged as auto-approved, in the goal's log and on the board. The release step then
+merges the pull request into `main` by itself. The skills' own built-in refusals still apply, and the private-name leak
+scan still guards every commit. The risk is plain: a broken or wrong change can reach `main` with nobody looking, and
+the only check left is the regression workflow on GitHub, which reports and never blocks. A repo set up from this
+template keeps every gate until its owner turns one off.
+
 ## Features
 
 Each feature page has a Summary, its Commands with a stage chart for each, its Criteria with their stages and test

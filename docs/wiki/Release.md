@@ -3,11 +3,22 @@
 
 ## Summary
 
-Skill: `workflow-release`. After a goal has a pull request and its checks hold. It no longer waits on a judge: delivery has none.
+Skill: `workflow-release`. After a goal has a pull request. For now it only merges: with `auto_merge` on, `merge` merges
+the pull request into `main`, cutting no version and publishing nothing. `ask`, `cut` and `leave` stay for the owner's
+own routines before a release later.
+
+**This repo runs with no gates.** Its `.loop/config.json` turns off `require_checks`, with an empty `checks` list, and
+turns on `auto_approve` and `auto_merge`. A pull request opens without any check passing. What the skills leave for the
+owner is approved automatically and logged as auto-approved, in the goal's log and on the board. The release step then
+merges the pull request into `main` by itself. The skills' own built-in refusals still apply, and the private-name leak
+scan still guards every commit. The risk is plain: a broken or wrong change can reach `main` with nobody looking, and
+the only check left is the regression workflow on GitHub, which reports and never blocks. A repo set up from this
+template keeps every gate until its owner turns one off.
 
 ## Commands
 
 ```text
+merge SLUG
 ask SLUG
 leave SLUG
 cut SLUG [--bump patch|minor|major] [--user]
@@ -112,6 +123,21 @@ Status: built and proven: Owner's own words say cut; Refuse: verify steps, stale
 Stops for the owner: Owner's own words say cut; Owner publishes the draft and merges.
 Proof: toy tests with a stand-in for GitHub, and two real cuts, each to a real draft: one on a second repo, and v0.1.1 on this repo. The owner's stop was real in both. With release_auto, a non-breaking batch goal skips the first stop, proven only on a toy repo.
 
+#### `merge`
+
+```mermaid
+flowchart LR
+  a["Refuse with auto_merge off, or no open pull request"]
+  b["Merge the pull request into main"]
+  c["Record it on the goal"]
+  a --> b
+  b --> c
+```
+
+Status: built and proven: Refuse with auto_merge off, or no open pull request; Merge the pull request into main; Record it on the goal. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests with a stand-in for GitHub. No real merge by it is on record yet.
+
 #### `show`
 
 ```mermaid
@@ -130,7 +156,7 @@ Tests: 6.
 > **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
 
 - REL-4: **Unreviewed** Every release says how to verify it by hand.
-- REL-5: **Unreviewed** A release is only ever a draft, and it merges nothing.
+- REL-5: **Unreviewed** A release is only ever a draft, and it merges only where the repo turns on auto_merge.
 - REL-6: **Unreviewed** An unattended goal cuts a release only if the owner turned that on or said so.
 - REL-7: **Unreviewed** A release is refused while a criterion is unmet.
 - REL-8: **Unreviewed** A breaking change always asks the owner.

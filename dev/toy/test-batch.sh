@@ -69,7 +69,7 @@ for f in skills/workflow-monitoring/references/operation.md skills/workflow-moni
   check "$f says the operation session governs only" 'grep -qi "governance only" "$here/$f" && grep -qiE "runs neither|never runs" "$here/$f"'
 done
 check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -size +20480c)" ]'
-check "the test is listed in checks" 'grep -q "test-batch.sh" "$here/.loop/config.json"'
+check "the test runs as a regression row" 'grep -q "test-batch.sh" "$here/.loop/regression.tsv"'
 page="$here/docs/wiki/Monitoring.md"
 for id in MON-4 MON-8; do
   check "$id is a test named under Enforced by" 'sed -n "/^## Enforced by/,\$p" "$page" | grep -Eq "[ ,]$id(,|\$)"'

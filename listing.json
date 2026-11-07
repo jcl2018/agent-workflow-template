@@ -74,7 +74,8 @@
     "attach",
     "features",
     "move",
-    "record"
+    "record",
+    "merge"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
@@ -92,7 +93,8 @@
     "~/.workflow-loop/repos in the home folder, when you run board.py repos add",
     "docs/wiki/*.md and a commit of them, when you run criteria.py review or sync --commit",
     "issues labelled regression or health, and milestones on them, on GitHub, only with --live or a token",
-    "reads ~/.workflow-loop/flow.json, and runs its probe and its command for each flow step"
+    "reads ~/.workflow-loop/flow.json, and runs its probe and its command for each flow step",
+    "a merge of a goal's pull request into the base branch, only with auto_merge on, when you run merge.py"
   ],
   "network": [
     "github.com (git push, wiki push, gh pull request, issue, milestone and draft release calls, only when you run them)",
@@ -108,6 +110,7 @@
   "limitations": [
     "The checks command runs the repo's own check strings through a shell, so Agensi's scan flags shell=True in goal.py and regression.py.",
     "The regression workflow command writes a small runner into the repo, so the Actions run needs no skill files.",
-    "Each background agent needs its own access to these skills, and scripts that call a sibling script need them on disk: mending, and health's criteria and docs rules, say so and skip otherwise."
+    "Each background agent needs its own access to these skills, and scripts that call a sibling script need them on disk: mending, and health's criteria and docs rules, say so and skip otherwise.",
+    "This repo itself runs with no gates: no required checks, auto-approval and auto-merge. A new repo keeps every gate until its owner turns one off."
   ]
 }

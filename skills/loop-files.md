@@ -35,6 +35,9 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 ```
 
 - `agent_command` runs a goal in the background; the prompt is its last argument.
+- `require_checks` (default `true`): `false` with an empty `checks` list lets a pull request open with no checks.
+- `auto_approve` (default `false`): `true` approves what a flow step leaves for the owner, logged as auto-approved.
+- `auto_merge` (default `false`): `true` lets the release step's `merge.py` merge a goal's pull request.
 - `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
 - `mend` and `resume_on_limit` let `watch` restart a goal. `limit_wait`, `mend_wait` and `watch_interval` are optional, in seconds.
 - Permissions are yours. These commands run as you set them, and nothing here turns them off.

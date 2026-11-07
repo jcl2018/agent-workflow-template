@@ -18,7 +18,7 @@ MON-4	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: start: no line runs 
 MON-8	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-delivery/SKILL.md says the operation session governs only"	MON-18	2026-11-07
 frozen-done-lines	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: a changed done line stops the goal"	DEL-5	2026-11-07
 stop-after-3-tries	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: three failed tries stop the goal with a finding"	DEL-8	2026-11-07
-never-merges	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: no script calls gh pr merge"	DEL-9	2026-11-07
+never-merges	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: with auto_merge off, merge.py refuses and nothing merges"	DEL-9	2026-11-07
 four-sections	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: wrong sections fail"	DOC-6	2026-11-07
 flow-charts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a bullet command with no chart fails"	DOC-6	2026-11-07
 names-enforcer	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: unenforced criterion fails"	DOC-7	2026-11-07
@@ -59,3 +59,4 @@ HLT-7	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a repeat opens 
 HLT-7c	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a rule that could not read closes none of its issues"	HLT-7	2026-11-07
 starts-at-idea	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: starts at idea, with no level"	DEL-6	2026-11-07
 steps-through-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: record refuses a reply flow.py didn.t run"	DEL-6	2026-11-07
+auto-approved	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: logged and on the board as auto-approved, nothing waits"	DEL-7	2026-11-07

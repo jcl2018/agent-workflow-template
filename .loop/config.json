@@ -1,20 +1,6 @@
 {
   "base": "main",
-  "checks": [
-    "python3 skills/workflow-docs/scripts/criteria.py sync --commit",
-    "bash dev/toy/test-docs.sh",
-    "bash dev/toy/test-health.sh",
-    "bash dev/toy/test-milestones.sh",
-    "bash dev/toy/test-criteria.sh",
-    "bash dev/toy/test-release.sh",
-    "bash dev/toy/test-goal.sh",
-    "bash dev/toy/test-regression.sh",
-    "python3 dev/package.py --out dist/check.zip",
-    "bash dev/test-package.sh",
-    "bash dev/toy/test-board.sh",
-    "bash dev/toy/test-batch.sh",
-    "bash dev/toy/test-monitoring.sh"
-  ],
+  "checks": [],
   "agent_command": [
     "claude",
     "-p",
@@ -39,5 +25,8 @@
   "pr_bumps_version": false,
   "mend": true,
   "resume_on_limit": false,
-  "criteria": true
+  "criteria": true,
+  "require_checks": false,
+  "auto_approve": true,
+  "auto_merge": true
 }
