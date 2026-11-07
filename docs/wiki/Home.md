@@ -62,6 +62,7 @@ goals, including one real `cut` to a draft release. This repo has since had its 
 - Some scripts are within a few hundred bytes of the 20 KB limit, so the next feature needs a new script
   (FINDINGS.md).
 - "Codex's `workspace-write` sandbox blocks writes to `.git` and outside the workspace." (FINDINGS.md)
+- A pull request merged just before `cut` gives an empty changelog entry (FINDINGS.md).
 
 ## Gaps for the owner
 
