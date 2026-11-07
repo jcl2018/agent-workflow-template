@@ -75,7 +75,6 @@ def save(state, note=None):
 
 
 def finished(state):
-    """Refuse a goal whose checks don't hold."""
     if state.get("release") in ("cut", "leave"):
         print("ALREADY %s %s" % (state["release"], state["slug"]))
         sys.exit(0)
@@ -149,7 +148,6 @@ def auto_on(top):
 
 
 def auto_need(top, state):
-    """(need, reason) from the diff: leave, patch, minor or ask; recorded in the run state."""
     base = base_of(top, read_config(top))
     rows = [line.split("\t") for line in git("diff", "--name-status", "--no-renames", "%s...HEAD" % base, cwd=top,
                                              check=False).splitlines()]
@@ -197,7 +195,7 @@ def read_config(top):
 
 def bump(version, part):
     if not VERSION.match(version):
-        sys.exit("REFUSED: the version %r is not X.Y.Z or W.X.Y.Z." % version)
+        sys.exit("REFUSED: the version %r is not X.Y.Z or W.X.Y.Z. Fix: set it by hand." % version)
     numbers = [int(item) for item in version.split(".")]
     at = {"major": 0, "minor": 1}.get(part, len(numbers) - 1)
     numbers[at] += 1
@@ -229,7 +227,6 @@ def doc_rows(top):
 
 
 def stale_pages(top, cfg, base):
-    """Mapped pages that are missing, or older than a path they describe within this branch."""
     folder = cfg.get("wiki_dir") or "docs/wiki"
     out = []
     for page, paths in sorted(doc_rows(top).items()):
@@ -245,7 +242,6 @@ def stale_pages(top, cfg, base):
 
 
 def criteria_trouble(top, cfg):
-    """Wiki criteria whose regression row is missing, a draft or failing. Only with .loop/docs.tsv."""
     try:
         with open(os.path.join(top, ".loop", "regression.tsv")) as handle:
             rows = [line.rstrip("\n").split("\t") + [""] * 5 for line in handle if line[0] != "#"]
@@ -328,7 +324,7 @@ def restore(cwd, files, sha_before, message):
             git("reset", "--hard", "HEAD~1", cwd=cwd)
             print("RESTORED: removed the release commit")
         else:
-            print("NOTE: HEAD is not the release commit, so nothing was reset.")
+            print("NOTE: HEAD is not the release commit, so nothing was reset. Check the branch by hand.")
             return
     for name in files:
         if run(["git", "ls-files", "--error-unmatch", name], cwd=cwd).returncode == 0:
@@ -358,12 +354,12 @@ def cmd_cut(args):
     base = base_of(cwd, cfg)
     steps = verify_steps(cwd, slug)
     if not steps:
-        sys.exit("REFUSED: %s has no complete steps under ## Verify by hand. Fix: give each numbered step an Expect: "
-                 "line in .loop/goals/%s.md." % (slug, slug))
+        sys.exit("REFUSED: %s has no complete steps under ## Verify by hand. Fix: give every numbered step an Expect: "
+                 "line in .loop/goals/%s.md, and commit it." % (slug, slug))
     stale = stale_pages(cwd, cfg, base)
     if stale:
-        sys.exit("REFUSED: these pages are stale: %s. Fix: update them with workflow-docs, then run goal.py check."
-                 % ", ".join(stale))
+        sys.exit("REFUSED: these pages are stale: %s. Fix: update them with workflow-docs, commit, and run goal.py "
+                 "check again." % ", ".join(stale))
     unmet = criteria_trouble(cwd, cfg)
     if unmet:
         sys.exit("REFUSED: criteria without a passing regression row: %s." % ", ".join(unmet))
@@ -385,7 +381,7 @@ def cmd_cut(args):
     tag = "v" + version
     if run(["git", "rev-parse", "--verify", "--quiet", "refs/tags/" + tag], cwd=cwd).returncode == 0 or \
             run(["git", "ls-remote", "--exit-code", "--tags", "origin", tag], cwd=cwd).returncode == 0:
-        sys.exit("REFUSED: tag %s already exists. Fix: pick another --bump." % tag)
+        sys.exit("REFUSED: tag %s already exists. Fix: pick another --bump or set the version by hand." % tag)
     bullets = subjects(base, cwd)
     day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     cpath = os.path.join(cwd, "CHANGELOG.md")
@@ -434,7 +430,7 @@ def cmd_cut(args):
     save(state, "release cut %s draft %s" % (tag, url))
     print("CUT %s %s -> %s on %s (%d changelog lines)" % (slug, old_version, version, branch, len(bullets)))
     print("DRAFT " + url)
-    print("You publish it. Nothing was merged.")
+    print("You publish it. The draft stays unpublished until you do. Nothing was merged.")
     return 0
 
 
