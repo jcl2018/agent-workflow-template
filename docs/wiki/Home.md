@@ -48,6 +48,7 @@ goals, including one real `cut` to a draft release. Neither repo shows a level 2
   words." (DECISIONS.md)
 - "`report` left out queued goals that were ready to start. It now lists them." (FINDINGS.md)
 - Toy tests cover goals, the board, docs, criteria, releases and regression, each under `dev/toy/`.
+- Codex ran a level 0 toy goal from design to pull request with no failed try (FINDINGS.md).
 
 ## What is not proven
 
