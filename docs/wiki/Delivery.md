@@ -30,7 +30,8 @@ that skill in the worktree, detached, because it needs the repo and can take man
 `.loop/config.json`, or `agent_command`, so allow what the skill needs. It is told to ask nothing and take the
 recommended answer at every gate. Run `design.py` again until it prints `NEXT`, the `goal.py` line that records the
 verdict. The `SKILL:` line says how much ran. With no skill, or the skill missing, `NEXT` is the built-in review, which
-has no tools and reads only the goal file. The output says which ran.
+has no tools and reads only the goal file. `goal.py judge --design` refuses while a skill can run. The output says which
+ran, and the pull request says whether the skill ran `full` or `condensed`. A condensed pass still counts as a pass.
 
 ### Done lines
 
@@ -54,8 +55,9 @@ finding SLUG TEXT      show SLUG
 ```
 
 A background agent runs `step`, `design.py` at level 2, `check`, `judge` (where the level needs it) and `pr` in order,
-and fills in `## Verify by hand`. Failed checks, a failed or missing verdict and a failed design review each cost a try, even when
-only the proof was missing. After 3 failed tries it files a finding in `.loop/findings.md` and stops with exit code 3.
+and fills in `## Verify by hand`. Failed checks, a failed or missing verdict and a failed design review each cost a try,
+even when only the proof was missing. After 3 failed tries it files a finding in `.loop/findings.md` and stops with exit
+code 3.
 
 `pr` pushes the branch, retrying twice, and opens the pull request. It refuses until the checks (and the judge, where
 the level needs one) hold on this commit, and at level 2 until the design review has passed. With `pr_bumps_version` on,

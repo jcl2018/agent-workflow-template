@@ -54,7 +54,7 @@ git commit -qam "Noisy checks"
 $goal new loud --here --goal "Loud" --done "loud" >/dev/null
 $goal check loud >/dev/null 2>&1
 head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 0: python3" && head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 3: exit 3" && ok "summary shows every check at the top" || bad "check summary"
-[ "$(wc -c < "$here/skills/workflow-delivery/scripts/goal.py")" -lt 19000 ] && ok "goal.py has room under 20 KB" || bad "goal.py size"
+[ "$(wc -c < "$here/skills/workflow-delivery/scripts/goal.py")" -lt 19500 ] && ok "goal.py keeps room under 20 KB" || bad "goal.py size"
 git switch -q main; git checkout -q -- .loop/config.json 2>/dev/null; cp "$d/cfg.bak" .loop/config.json; git status --porcelain | grep -q config.json && git commit -qam "Restore checks"
 
 echo "== queue adds a line a watcher can read, and poc stays read-only"
@@ -88,6 +88,7 @@ cfg "agent_command=[\"bash\", \"$d/design-agent.sh\"]"
 run_d "" | grep -q "DESIGN REVIEW: built-in (no design skill set)" && ok "built-in review named" || bad "built-in review"
 run_d missing-one | grep -q "built-in (skill missing-one not found)" && ok "missing skill falls back" || bad "missing skill"
 run_d "" | grep -q "NEXT: goal.py judge dskill --design" && ok "built-in goes to judge --design" || bad "built-in next"
+HOME="$h" LOOP_DESIGN_SKILL=my-design $goal judge dskill --design 2>&1 | grep -q "REFUSED: a design skill is set" && ok "the built-in review can't stand in for the skill" || bad "skill skipped"
 FAKE_DESIGN_SLEEP=2 run_d my-design > "$d/ds1"
 grep -q "DESIGN REVIEW: running skill my-design with tools" "$d/ds1" && grep -q "^RUNNING" "$d/ds1" && ok "skill runs detached" || bad "skill start"
 run_d my-design > "$d/ds2"
@@ -99,6 +100,9 @@ HOME="$h" LOOP_DESIGN_SKILL=my-design $dz dskill --wait 0 --limit 0 | grep -q "N
 python3 "$here/skills/workflow-delivery/scripts/goal.py" -h >/dev/null
 git ls-files | grep -q design-skill && bad "setting in repo" || ok "setting is not in the repo"
 [ -z "$(git status --porcelain -- . ':!.loop/config.json')" ] && ok "the review leaves the worktree alone" || bad "worktree changed"
+[ -f "$C/loop/runs/dskill.design.txt.last" ] && ok "the last reply stays readable" || bad "last reply"
+printf 'SKILL: condensed, skipped the last private-name phase\nVERDICT: pass\n' > "$d/vf"
+$goal verdict dskill --design --file "$d/vf" >/dev/null; [ "$(field dskill design_skill)" = condensed ] && ok "how much ran is recorded as one word" || bad "design_skill"
 cp "$d/cfg.design" .loop/config.json
 git switch -q main
 

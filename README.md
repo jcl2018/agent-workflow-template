@@ -19,7 +19,7 @@ Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md) for the fi
 
 ## Commands
 
-All of these have run on a toy repo, except level 2. `go`, `docs` and `cut` have also run on a real repo. They may change while the first version settles. The examples use Claude Code. In other agents, you
+All of these have run on a toy repo. `go`, `docs` and `cut` have also run on a real repo. They may change while the first version settles. The examples use Claude Code. In other agents, you
 can ask in plain words, such as "start a goal to add result caching".
 
 Set up a repo once:
@@ -55,7 +55,8 @@ that skill in the worktree, detached, because it needs the repo and can take man
 `.loop/config.json`, or `agent_command`, so allow what the skill needs. It is told to ask nothing and take the
 recommended answer at every gate. Run `design.py` again until it prints `NEXT`, the `goal.py` line that records the
 verdict. The `SKILL:` line says how much ran. With no skill, or the skill missing, `NEXT` is the built-in review, which
-has no tools and reads only the goal file. The output says which ran.
+has no tools and reads only the goal file. `goal.py judge --design` refuses while a skill can run. The output says which
+ran, and the pull request says whether the skill ran `full` or `condensed`. A condensed pass still counts as a pass.
 
 See where things stand, or pick up a failed goal:
 

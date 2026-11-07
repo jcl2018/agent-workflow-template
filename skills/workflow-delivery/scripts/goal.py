@@ -5,15 +5,15 @@ usage: goal.py <command> <slug> [options]
 
   new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]  freeze a goal
   queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]  add to .loop/queue.md
-  step SLUG NAME [--note TEXT]     record the step
-  check SLUG                       run the repo's checks
-  judge SLUG [--design]            run the fresh judge
+  step SLUG NAME [--note TEXT]  record the step
+  check SLUG  run the repo's checks
+  judge SLUG [--design]  run the fresh judge
   verdict SLUG --file FILE [--design]  record a fresh agent's verdict
-  pr SLUG                          push the branch and open the pull request
+  pr SLUG  push the branch and open the pull request
   wait SLUG --ask TEXT --words W [--words W]  stop for an answer
-  answer SLUG                      clear a wait
-  finding SLUG TEXT                file a finding and stop the goal
-  show SLUG                        print the goal's state
+  answer SLUG  clear a wait
+  finding SLUG TEXT  file a finding and stop the goal
+  show SLUG  print the goal's state
 """
 import argparse
 import datetime
@@ -252,13 +252,12 @@ def cmd_new(args):
                                 touches=", ".join(touches) or "not declared", done="\n".join(lines)))
     git("add", path)
     git("commit", "-m", "Goal: %s" % args.slug, "--", path)
-    first = "design"
-    state = {"slug": args.slug, "goal": args.goal, "level": level, "status": "running", "step": first, "tries": 0,
+    state = {"slug": args.slug, "goal": args.goal, "level": level, "status": "running", "step": "design", "tries": 0,
              "branch": branch, "worktree": root(), "touches": touches, "pid": None, "pr": "",
              "batch": bool(os.environ.get("LOOP_BATCH")), "done_sha": done_sha(lines), "checks": "", "judge": "",
              "design_review": "", "release": args.release, "waiting": None, "finding": "", "log": []}
     save(state, "frozen %d done lines at level %s" % (len(lines), level))
-    print("FROZEN %s level=%s branch=%s step=%s" % (args.slug, level, branch, first))
+    print("FROZEN %s level=%s branch=%s step=design" % (args.slug, level, branch))
     return 0
 
 
@@ -340,6 +339,9 @@ def record(state, text, design):
     found = re.findall(r"^\W*VERDICT:\s*(pass|fail)\b", text, re.M | re.I)
     verdict = found[-1].lower() if found else ""
     write(os.path.join(state_dir(), state["slug"] + ".verdict.txt"), text)
+    if design:
+        how = re.findall(r"^\W*SKILL: (\w+)", text, re.M)
+        state["design_skill"] = how[-1] if how else ""
     if verdict == "pass":
         state["design_review" if design else "judge"] = "pass"
         if not design:
@@ -361,9 +363,20 @@ def ready_for_judge(state, design):
         no("checks have not passed on this commit. Fix: commit, then run check.")
 
 
+def skill_set(cfg):
+    try:
+        name = os.environ.get("LOOP_DESIGN_SKILL") or read(os.path.expanduser("~/.workflow-loop/design-skill"))
+    except OSError:
+        return False
+    agent = cfg.get("design_command") or cfg.get("agent_command") or [""]
+    return os.path.isfile(os.path.expanduser("~/.claude/skills/%s/SKILL.md" % name.strip())) and shutil.which(agent[0])
+
+
 def cmd_judge(args):
     state = held(args.slug)
     ready_for_judge(state, args.design)
+    if args.design and skill_set(config()):
+        no("a design skill is set. Fix: run design.py %s, beside goal.py, until it prints NEXT." % args.slug)
     command = config().get("judge_command") or []
     state["step"] = "design-review" if args.design else "judge"
     save(state, state["step"])
@@ -431,12 +444,13 @@ def cmd_pr(args):
     if pushed.returncode:
         no("push failed:\n" + pushed.stderr)
     known = run(["gh", "pr", "view", state["branch"], "--json", "url,state"])
-    url = ""
-    if known.returncode == 0 and json.loads(known.stdout).get("state") == "OPEN":
-        url = json.loads(known.stdout)["url"]
+    info = json.loads(known.stdout) if known.returncode == 0 else {}
+    url = info["url"] if info.get("state") == "OPEN" else ""
     if not url:
         body = read(goal_file(args.slug))
         verdict = "Not judged (%s)." % state["level"] if state["level"] in UNJUDGED else "Fresh judge: pass."
+        if state.get("design_skill"):
+            verdict += " Design skill ran: %s." % state["design_skill"]
         body += "\n## Result\n\nChecks: pass on %s. %s\n" % (head[:10], verdict)
         done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
                     "--title", state["goal"][:70], "--body", body], check=True)

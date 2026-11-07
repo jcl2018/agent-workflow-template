@@ -36,12 +36,12 @@ Setting up a repo (`workflow-setup`) is covered under Getting started in the REA
   outside `tests/`, a wiki with pages from another tool, and a pre-push hook that takes minutes." (FINDINGS.md)
 - "Several goals pushing at once can fail with a bare git error, and a plain re-push works. `goal.py pr` retries
   twice." (FINDINGS.md)
-- "Scripts are close to the 20 KB limit: `goal.py` 20,474 bytes, `watch.py` 19,928. The next feature needs a new
-  script." (FINDINGS.md)
+- "Scripts run alone, so a feature that won't fit needs a new script the agent runs: `goal.py` 19,326 bytes, `watch.py`
+  20,466." (FINDINGS.md)
 - "Codex's `workspace-write` sandbox blocks writes to `.git` and outside the workspace." (FINDINGS.md)
 
 ## Gaps for the owner
 
 - The timed check-in loop (`board.py cadence`, then `watch.py watch --once` and `board.py board` on each wait) has not
   fired on its timer. No finding or decision records a run of it, and `dev/toy/test-board.sh` uses fixtures.
-- Level 2 has not run, on a toy repo or a real one (docs/ROADMAP.md).
+- Level 2 has run only on a toy repo, and its design skill didn't finish every phase there (docs/ROADMAP.md).

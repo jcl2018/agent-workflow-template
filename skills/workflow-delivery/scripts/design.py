@@ -69,6 +69,8 @@ def start(slug, top, reply, job):
         print("DESIGN REVIEW: built-in (%s)" % why)
         print("NEXT: goal.py judge %s --design" % slug)
         return
+    if os.path.exists(reply):
+        os.replace(reply, reply + ".last")  # a review that gave no verdict stays readable
     with open(reply, "w") as out:
         child = subprocess.Popen(agent + [PROMPT.format(name=name, slug=slug)], cwd=top, stdin=subprocess.DEVNULL, stdout=out,
                                  stderr=subprocess.STDOUT, start_new_session=True)

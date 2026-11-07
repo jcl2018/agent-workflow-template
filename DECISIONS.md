@@ -15,3 +15,4 @@ One line each, where the roadmap didn't say.
 - A regression row never seen failing blocks `run`, and `red` proves it on a temporary copy of `HEAD`.
 - The Actions workflow carries its own small runner, because skill scripts stay out of the repo.
 - `mend` and `resume_on_limit` are off by default, since each spends the user's usage without asking.
+- A level 2 design skill runs through `design.py`, detached, in an agent with tools. `goal.py` holds no skill code, and `judge --design` refuses while a skill can run, so the built-in review can't stand in for it.

@@ -119,6 +119,6 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 
 1. **The wiki and the Agensi listing:** publish the wiki with `workflow-docs`, and list the package on Agensi.
 2. **Other agents:** Kimi, Qwen and OpenCode support.
-3. **Level 2:** it has not run yet, on a toy repo or a real one.
+3. **Level 2:** it has run on a toy repo, unattended. The design skill ran every phase when run alone, but not in the goal run. It has not run on a real repo.
 
 Merging, a project board and milestones stay with you.
