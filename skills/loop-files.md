@@ -24,7 +24,6 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
   "base": "main",
   "checks": ["python3 -m unittest"],
   "agent_command": ["claude", "-p"],
-  "judge_command": ["claude", "-p", "--tools", ""],
   "parallel": 3,
   "risky_paths": ["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"],
   "version_file": "VERSION",
@@ -36,9 +35,6 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 ```
 
 - `agent_command` runs a goal in the background; the prompt is its last argument.
-- `design_command`, optional, runs a level 2 design skill; it defaults to `agent_command`. The prompt is its last argument.
-- `judge_command` reads its prompt on standard input and runs in an empty temporary folder.
-- An empty `judge_command` means no headless judge: print the pack for a fresh agent instead.
 - `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
 - `mend` and `resume_on_limit` let `watch` restart a goal. `limit_wait`, `mend_wait` and `watch_interval` are optional, in seconds.
 - Permissions are yours. These commands run as you set them, and nothing here turns them off.
@@ -53,13 +49,34 @@ refuses without one, and copies the steps into the changelog and the release pag
 One goal a line. Other lines are ignored.
 
 ```
-- slug: add-median | level: 1 | touches: calc.py, test_calc.py | goal: Add median() | done: Odd lists give the middle value | done: Even lists average the two middle values
+- slug: add-median | touches: calc.py, test_calc.py | goal: Add median() | done: Odd lists give the middle value | done: Even lists average the two middle values
 ```
 
 A `## Batch: NAME` heading groups lines for `batch.py`; `- poc: SLUG | question: Q` is a POC line, which `watch.py` ignores; `session: yes` after the slug runs it in a visible session.
 
-`level` defaults to `0` (the old names are refused). `touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
+`touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
 for your answer instead of answering `leave`. `session: yes` marks a goal for a visible session.
+
+## Outside the repo: your skill flow
+
+`~/.workflow-loop/flow.json` (or the file `$LOOP_FLOW` names) is yours and is never committed. Delivery refuses without it.
+
+```json
+{
+  "command": ["claude", "-p", "--allowedTools=Bash,Read,Write,Edit,Skill"],
+  "env": {"YOUR_SUITE_MODE": "unattended"},
+  "probe": ["/path/to/a/command/that/prints/the/mode"],
+  "probe_expect": "unattended",
+  "steps": {"idea": "<your idea skill>", "plan": "<your plan skill>", "review": "<your review skill>",
+            "qa": "<your test skill>", "ship": "<your ship skill>"},
+  "limit": 2700
+}
+```
+
+- `command` runs one step; the prompt is its last argument. `env` is added to its environment.
+- `probe` runs under the same environment, and its output must hold `probe_expect`, or no step starts. Use it to prove
+  your skills will take their recommended answers, leave approvals pending, and never push.
+- `steps` names the skill for each step. `limit` stops a step after that many seconds.
 
 ## Outside the repo: run state
 
@@ -83,10 +100,11 @@ loop/wiki.json            the last wiki publish, for restore
 
 ```json
 {
-  "slug": "add-median", "goal": "Add median()", "level": "1",
+  "slug": "add-median", "goal": "Add median()",
   "status": "running", "step": "build", "tries": 0, "branch": "loop/add-median", "worktree": "/path",
   "touches": ["calc.py"], "pid": 123, "pr": "https://github.com/o/r/pull/1", "batch": true,
-  "done_sha": "<sha256 of the done lines>", "checks": "pass", "judge": "pass", "release": "ask",
+  "done_sha": "<sha256 of the done lines>", "checks": "pass", "release": "ask",
+  "flow": {"idea": "done", "plan": "done", "review": "done", "qa": "skipped: no browser", "ship": "done"},
   "waiting": {"ask": "Cut a release or leave it unreleased?", "words": ["cut add-median", "leave add-median"]},
   "finding": "", "updated": "2026-01-01T00:00:00Z", "log": ["2026-01-01T00:00:00Z plan"]
 }
@@ -102,7 +120,8 @@ loop/wiki.json            the last wiki publish, for restore
 | `failed` | The agent ended without finishing |
 | `retired` | Superseded, by `board.py retire` |
 
-`step` is one of `design`, `design-review`, `plan`, `build`, `checks`, `judge`, `pr`, `release`.
+`step` is one of `idea`, `plan`, `build`, `checks`, `review`, `qa`, `ship`, `pr`, `release`. `flow` holds each flow
+step's result: `done`, `skipped: <why>` or `pending`.
 `release` is empty, `ask`, `cut` or `leave`.
 
 `external: true` marks a goal run in a visible session. A goal with no `pid` is a session's too, marked or not: it is never marked `failed` or mended.

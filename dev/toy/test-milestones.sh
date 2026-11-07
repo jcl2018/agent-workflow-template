@@ -4,6 +4,7 @@ set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1
+export LOOP_FLOW="$d/flow.json"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 unset GH_TOKEN GITHUB_TOKEN
 ms="python3 $here/skills/workflow-health/scripts/milestone.py"
@@ -32,7 +33,7 @@ out=$($ms new --all --live); echo "$out"
 $ms new nothing --live 2>&1 | grep -q "REFUSED: 'nothing' is not a feature" && ok "an unknown feature is refused" || bad "unknown feature"
 
 echo "== attach: a goal's pull request joins its feature's milestone"
-$goal new calc-goal --here --goal "Change calc" --done "calc changes" --level 0 --touches "calc.py" >/dev/null
+$goal new calc-goal --here --goal "Change calc" --done "calc changes" --touches "calc.py" >/dev/null
 echo "# change" >> calc.py; git commit -qam "Change calc"
 python3 - <<'PYEND'
 p = ".loop/goals/calc-goal.md"
@@ -40,9 +41,9 @@ t = open(p).read().replace("## Verify by hand\n", "## Verify by hand\n\n1. Open 
 open(p, "w").write(t)
 PYEND
 git commit -qam "Verify steps"
-$goal check calc-goal >/dev/null; out=$($goal pr calc-goal); echo "$out"
+bash "$here/dev/toy/flow-done.sh" calc-goal; $goal check calc-goal >/dev/null; out=$($goal pr calc-goal); echo "$out"
 grep -q "ATTACHED pull request 1 to milestone Calc" <<<"$out" && [ "$(cat "$FAKE_GH_DIR/pr-milestone-1")" = Calc ] && ok "goal.py pr puts the pull request in the Calc milestone" || bad "attach"
-$goal new other-goal --here --goal "Other" --done "x" --level 0 --touches "elsewhere.txt" >/dev/null 2>&1 || true
+$goal new other-goal --here --goal "Other" --done "x" --touches "elsewhere.txt" >/dev/null 2>&1 || true
 out=$($ms attach other-goal 2>&1); grep -q "REFUSED: other-goal has no pull request" <<<"$out" && ok "no pull request, no attach" || bad "attach no pr"
 
 echo "== health run: one issue per finding on the Backlog"

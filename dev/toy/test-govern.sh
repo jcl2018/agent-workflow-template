@@ -8,6 +8,7 @@ W="python3 $here/skills/workflow-monitoring/scripts/watch.py"
 M="python3 $here/skills/workflow-monitoring/scripts/monitor.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh"
 "$here/dev/toy/make.sh" "$T" || exit 1
+export LOOP_FLOW="$T/flow.json"
 cd "$T/repo" || exit 1
 python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
 git switch -q main; git merge -q --ff-only workflow-setup
@@ -32,7 +33,7 @@ $M report
 
 for s in stats-a stats-b; do
   [ "$(field $s status)" = done ] && ok "$s done" || bad "$s is $(field $s status)"
-  [ "$(field $s level)" = 0 ] && ok "$s stayed at level 0" || bad "$s level"
+  [ "$(field $s level)" = None ] && ok "$s has no level" || bad "$s level"
   [ -n "$(field $s pr)" ] && [ "$(field $s pr)" != None ] && ok "$s has a pull request" || bad "$s pr"
   [ "$(field $s judge)" = "" ] && ok "$s ran no judge" || bad "$s judged"
   [ -f "$C/loop/worktrees/$s/${s/-/_}.py" ] && ok "$s built in its own worktree" || bad "$s worktree"

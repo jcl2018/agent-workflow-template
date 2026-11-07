@@ -6,6 +6,7 @@ unset LOOP_BATCH
 here=$(cd "$(dirname "$0")/../.." && pwd); id=${1:?usage: test-rows.sh ID}
 d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
 "$here/dev/toy/make.sh" "$d/toy" >/dev/null || exit 1
+export LOOP_FLOW="$d/toy/flow.json"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 watch="python3 $here/skills/workflow-monitoring/scripts/watch.py"
 rel="python3 $here/skills/workflow-release/scripts/release.py"
@@ -15,7 +16,7 @@ python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 no() { echo "FAIL $id: $1"; exit 1; }
 
-finish() { # finish SLUG STEPS: a finished level 0 goal with these verify steps
+finish() { # finish SLUG STEPS: a finished goal with these verify steps
   $goal new "$1" --here --goal "Add $1" --done "calc has $1" >/dev/null || no "new"
   python3 - "$1" "$2" <<'PY'
 import sys
@@ -24,7 +25,7 @@ text = open(path).read().replace("## Verify by hand\n", "## Verify by hand\n\n%s
 open(path, "w").write(text)
 PY
   printf '\n# %s\n' "$1" >> calc.py; git commit -qam "Add $1 to calc"
-  $goal check "$1" >/dev/null && $goal pr "$1" >/dev/null || no "goal did not finish"
+  bash "$here/dev/toy/flow-done.sh" "$1" && $goal check "$1" >/dev/null && $goal pr "$1" >/dev/null || no "goal did not finish"
 }
 STEPS=$'1. Open calc.py.\n   Expect: the new line.'
 
@@ -34,9 +35,18 @@ case "$id" in
     $watch go "No line" --slug nodone2 2>&1 | grep -q "REFUSED" || no "go started with no done line"
     [ -z "$(ls "$(git rev-parse --git-common-dir)/loop/runs" 2>/dev/null)" ] || no "a run record was written";;
   DEL-2)
-    $goal new plain --here --goal "Plain" --done "plain" | grep -q "level=0" || no "default level is not 0";;
+    LOOP_FLOW="$d/none.json" $goal new noflow --here --goal "No flow" --done "x" 2>&1 | grep -q "no skill flow is set. Fix:" || no "started with no flow"
+    sed 's/"FAKE_MODE": "unattended"/"FAKE_MODE": "interactive"/' "$LOOP_FLOW" > "$d/interactive.json"
+    $goal new plain --here --goal "Plain" --done "plain" >/dev/null || no "new"
+    LOOP_FLOW="$d/interactive.json" python3 "$here/skills/workflow-delivery/scripts/flow.py" plain idea 2>&1 | grep -q "wouldn't run unattended" || no "a step ran outside the unattended mode"
+    [ ! -e "$(git rev-parse --git-common-dir)/loop/runs/plain.idea.txt" ] || no "a step started anyway";;
   DEL-3)
-    $goal new risky --here --goal "CI" --done "ci" --touches ".github/x.yml" | grep -q "level=1" || no "not raised";;
+    $goal new held --here --goal "Held" --done "held" >/dev/null || no "new"
+    F="python3 $here/skills/workflow-delivery/scripts/flow.py"; R="$(git rev-parse --git-common-dir)/loop/runs"
+    FAKE_SKILL_OUT='PENDING: approve the plan\nSTEP: done' $F held plan --wait 5 >/dev/null; FAKE_SKILL_OUT='x' $F held plan --wait 10 >/dev/null
+    $goal record held plan --file "$R/held.plan.txt" | grep -q "^WAITING held" || no "a pending decision didn't wait"
+    python3 -c "import json,sys;s=json.load(open(sys.argv[1]));assert s['status']=='waiting' and s['flow']['plan']=='pending'" "$R/held.json" || no "pending was approved"
+    $goal check held >/dev/null; $goal pr held 2>&1 | grep -q "the flow hasn't finished: idea, plan" || no "pr went on with a decision pending";;
   REL-1)
     finish none ""
     $rel cut none >/dev/null 2>&1 && no "cut with no verify steps"

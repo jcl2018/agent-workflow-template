@@ -5,6 +5,7 @@ set -e
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d"
+export LOOP_FLOW="$d/flow.json"
 docs="python3 $here/skills/workflow-docs/scripts/docs.py"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"; rel="python3 $here/skills/workflow-release/scripts/release.py"
@@ -184,14 +185,14 @@ git add -A; git commit -qm "Criteria" >/dev/null
 
 echo "== cut needs a passing row for every criterion"
 git push -q origin main
-$goal new crit --here --goal "Change calc" --done "calc changed" --level 0 >/dev/null
+$goal new crit --here --goal "Change calc" --done "calc changed" >/dev/null
 printf '\n# crit\n' >> calc.py
 python3 - <<'PY'
 p = ".loop/goals/crit.md"; t = open(p).read().replace("## Verify by hand\n", "## Verify by hand\n\n1. Open calc.py.\n   Expect: the change.\n", 1); open(p, "w").write(t)
 PY
 echo "Covers the change too, with more words for the check." >> docs/wiki/Delivery.md
 git add -A; git commit -qm "Change calc"
-$goal check crit >/dev/null; $goal pr crit >/dev/null
+bash "$here/dev/toy/flow-done.sh" crit; $goal check crit >/dev/null; $goal pr crit >/dev/null
 $rel cut crit 2>&1 | grep -q "DEL-2 (no regression row)" && ok "cut refuses a missing row" || bad "cut missing row"
 $reg add del-2 --level land --command "false" --goal DEL-2 >/dev/null
 git add -A; git commit -qm "Failing row" >/dev/null; $goal check crit >/dev/null

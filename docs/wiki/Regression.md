@@ -3,7 +3,7 @@
 
 ## Summary
 
-Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.loop/regression.tsv`.
+Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.loop/regression.tsv`. A row tests code, not a delivery level: delivery has one flow.
 
 ## Commands
 

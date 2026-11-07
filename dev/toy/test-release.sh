@@ -6,6 +6,7 @@ set -e
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d"
+export LOOP_FLOW="$d/flow.json"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 rel="python3 $here/skills/workflow-release/scripts/release.py"
@@ -19,7 +20,7 @@ bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 finish() {  # finish SLUG [extra goal.py new args]: a done 0 goal with a pull request
   local slug=$1; shift
   git switch -q main
-  $goal new "$slug" --here --goal "Add $slug" --done "calc has $slug" --level 0 "$@" >/dev/null
+  $goal new "$slug" --here --goal "Add $slug" --done "calc has $slug" "$@" >/dev/null
   mkdir -p "$(dirname "${FILE:-calc.py}")"
   printf '\n\ndef %s():\n    return 1\n' "${slug//-/_}" >> "${FILE:-calc.py}"
   git add "${FILE:-calc.py}"; git commit -qm "${MSG:-Add ${slug} to calc}"
@@ -30,7 +31,7 @@ text = open(path).read().replace("## Verify by hand\n", "## Verify by hand\n\n1.
 open(path, "w").write(text)
 PY
   git commit -qam "Verify steps for $slug" || true
-  $goal check "$slug" >/dev/null && $goal pr "$slug" >/dev/null
+  bash "$here/dev/toy/flow-done.sh" "$slug" && $goal check "$slug" >/dev/null && $goal pr "$slug" >/dev/null
 }
 
 echo "== 1. ask asks and prints the exact words"
@@ -131,12 +132,12 @@ LOOP_BATCH=1 FILE=dev/install-local.sh finish devtool
 out=$($rel ask devtool); grep -q "NEED minor" <<<"$out" && ok "shipped dev tooling is not docs" || bad "dev tooling"
 LOOP_BATCH=1 FILE=tests/test_more.py finish testsonly
 out=$($rel ask testsonly); grep -q "NEED leave: only docs, tests" <<<"$out" && ok "tests only leaves" || bad "tests leave"
-LOOP_BATCH=1 finish nojudge
-python3 - "$(git rev-parse --git-common-dir)/loop/runs/nojudge.json" <<'PY2'
+LOOP_BATCH=1 finish nocheck
+python3 - "$(git rev-parse --git-common-dir)/loop/runs/nocheck.json" <<'PY2'
 import json, sys
-d = json.load(open(sys.argv[1])); d["level"] = "1"; d["judge"] = ""; json.dump(d, open(sys.argv[1], "w"))
+d = json.load(open(sys.argv[1])); d["checks"] = "fail"; json.dump(d, open(sys.argv[1], "w"))
 PY2
-out=$($rel ask nojudge 2>&1 || true); grep -q "judge has not passed" <<<"$out" && ! grep -q "NEED" <<<"$out" && ok "no judge pass, no auto release" || bad "judge gate"
+out=$($rel ask nocheck 2>&1 || true); grep -q "have not passed" <<<"$out" && ! grep -q "NEED" <<<"$out" && ok "no checks pass, no auto release" || bad "checks gate"
 git switch -q main; mkdir -p docs/wiki; echo page > docs/wiki/Calc.md; printf 'Calc\tcalc.py\n' > .loop/docs.tsv
 git add -A; git commit -qm "Map the Calc page"
 LOOP_BATCH=1 finish stalepage

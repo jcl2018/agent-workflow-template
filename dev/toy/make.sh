@@ -11,3 +11,12 @@ git init -q --bare -b main "$d/origin.wiki.git"
 git init -q -b main "$d/seed"; cd "$d/seed"; git config user.email t@example.test; git config user.name Toy
 echo "# Written by someone else" > Home.md; git add -A; git commit -qm "First page"
 git remote add origin "$d/origin.wiki.git"; git push -q origin main
+# A stand-in skill flow for the tests: each "skill" prints STEP: done, and the probe proves the unattended env.
+cd ..
+printf '#!/bin/bash\nprintf "%%b\\n" "${FAKE_SKILL_OUT:-STEP: done}"\n' > skill.sh
+python3 -c "
+import json, sys
+d = sys.argv[1]
+json.dump({'command': ['bash', d + '/skill.sh'], 'env': {'FAKE_MODE': 'unattended'}, 'probe': ['bash', '-c', 'echo \$FAKE_MODE'],
+           'probe_expect': 'unattended', 'steps': {s: 'stand-in-' + s for s in ('idea', 'plan', 'review', 'qa', 'ship')}},
+          open(d + '/flow.json', 'w'))" "$(pwd)"

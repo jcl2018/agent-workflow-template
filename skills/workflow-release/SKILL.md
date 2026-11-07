@@ -19,7 +19,7 @@ When `workflow-delivery` ends with `NEXT: workflow-release asks cut or leave`, r
 python3 scripts/release.py ask <slug>
 ```
 
-It refuses unless the goal is `done` with checks `pass` (and the judge `pass`, unless the level is `0`).
+It refuses unless the goal is `done` with checks `pass`.
 
 - `WAITING <slug>: ...`: the goal now waits on the user. Show everything it printed: the docs that changed, the wiki
   link, the steps to verify by hand, the question, and the two exact lines `cut <slug>` and `leave <slug>`. Then stop.
@@ -102,13 +102,13 @@ Each refusal says `REFUSED:` and a fix. Common ones:
 
 | Refusal | Fix |
 |---|---|
-| Checks or judge have not passed | Finish the goal with `workflow-delivery` |
+| Checks have not passed | Finish the goal with `workflow-delivery` |
 | No complete steps under `## Verify by hand` | Give every numbered step an `Expect:` line, and commit it |
 | Pages are stale | Update them with `workflow-docs`, commit, and run `goal.py check` again |
 | A batch goal, no `--user` | Wait for the human's own `cut <slug>` |
 | On the wrong branch | Switch to `loop/<slug>` in the goal's worktree |
 | Uncommitted changes | Commit or set them aside |
-| Code changed after the checks | Run `goal.py check` (and `judge`) again |
+| Code changed after the checks | Run `goal.py check` again |
 | Tag already exists | Ask the user which version to use |
 
 ## Other

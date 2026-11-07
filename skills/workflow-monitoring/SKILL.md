@@ -6,7 +6,7 @@ description: One session governs and the others build. `go` starts a goal as a b
 # workflow-monitoring
 
 **One session governs, and the others build.** The session you talk to starts goals and watches them. It never writes
-the code. Each goal runs in its own worktree, with its own background agent or visible session, at every level.
+the code. Each goal runs in its own worktree, with its own background agent or visible session, through the one skill flow.
 
 Five commands: `go`, `watch`, `report`, `dashboard` and `resume`. `go`, `watch` and `resume` use `scripts/watch.py`.
 `report` and `dashboard` use `scripts/monitor.py`. Run them with `python3` from the repo's main checkout, on the base
@@ -18,14 +18,14 @@ permission settings. Never add a flag that loosens them. An agent that can't get
 `failed`. The prompt is the last argument. If the last flag before it takes several values (for example `--allowedTools`
 or `--add-dir` in claude), write that flag as `--flag=value` or move it earlier.
 
-## `go "<goal>" --done "<line>" ... [--level L] [--touches A,B] [--slug S] [--release ask] [--session]`
+## `go "<goal>" --done "<line>" ... [--touches A,B] [--slug S] [--release ask] [--session]`
 
 ```bash
-python3 scripts/watch.py go "<goal>" --done "<line>" --level 0 --touches "<file,file>"
+python3 scripts/watch.py go "<goal>" --done "<line>" --touches "<file,file>"
 ```
 
-It adds the goal to `.loop/queue.md` and starts it if a slot is free. The level defaults to `0`, and risky paths
-raise it to `1`. Then run `watch`. Don't build the goal here, and don't commit the queue. `--session` is for a
+It adds the goal to `.loop/queue.md` and starts it if a slot is free. It refuses with no skill flow set (see
+`workflow-delivery`). Then run `watch`. Don't build the goal here, and don't commit the queue. `--session` is for a
 visible session (see Operation session). `go`, `watch` and `resume` also take `--skill-dir DIR`, the skills folder to
 name in a prompt.
 

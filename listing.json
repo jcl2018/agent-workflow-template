@@ -79,7 +79,8 @@
     "review",
     "attach",
     "features",
-    "move"
+    "move",
+    "record"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",

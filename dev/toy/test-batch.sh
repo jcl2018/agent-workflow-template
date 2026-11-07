@@ -12,6 +12,7 @@ ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 "$here/dev/toy/make.sh" "$T" >/dev/null || exit 1
+export LOOP_FLOW="$T/flow.json"
 cd "$T/repo" || exit 1
 python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
@@ -128,7 +129,7 @@ sets_done here-go
 
 echo "== text and sizes"
 for f in skills/workflow-monitoring/references/operation.md skills/workflow-monitoring/SKILL.md skills/workflow-delivery/SKILL.md; do
-  check "$f says the operation session governs only" 'grep -qi "governance only" "$here/$f" && grep -qi "runs neither" "$here/$f"'
+  check "$f says the operation session governs only" 'grep -qi "governance only" "$here/$f" && grep -qiE "runs neither|never runs" "$here/$f"'
 done
 check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -size +20480c)" ]'
 check "the test is listed in checks" 'grep -q "test-batch.sh" "$here/.loop/config.json"'
