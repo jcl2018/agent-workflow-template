@@ -57,11 +57,11 @@ HLT-7c	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a rule that co
 starts-at-idea	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: starts at idea, with no level"	DEL-6	2026-11-07
 steps-through-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: record refuses a reply flow.py didn.t run"	DEL-6	2026-11-07
 auto-approved	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: logged and on the board as auto-approved, nothing waits"	DEL-7	2026-11-07
-worker-refuses	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: watch.py build refuses with one line naming the worker command"	MON-18	
-worker-per-goal	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: each goal ran in its own process and worktree, as a worker"	MON-18	
-worker-reports	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: merged carries its pull request"	MON-18	
-one-way-to-run	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a grep finds nothing for the old upgrade paths"	MON-18	
-stuck-stays-top	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a stuck worker stays at the top until it is answered"	MON-14	
-status-order	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: five sections in the fixed order"	MON-19	
-needs-you-stuck	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: Needs you holds the failed and the waiting worker, with the exact words"	MON-19	
-estimates-shown	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a running goal shows each step with an estimate from past runs"	MON-19	
+worker-refuses	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: watch.py build refuses with one line naming the worker command"	MON-18	2026-11-07
+worker-per-goal	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: each goal ran in its own process and worktree, as a worker"	MON-18	2026-11-07
+worker-reports	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: merged carries its pull request"	MON-18	2026-11-07
+one-way-to-run	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a grep finds nothing for the old upgrade paths"	MON-18	2026-11-07
+stuck-stays-top	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a stuck worker stays at the top until it is answered"	MON-14	2026-11-07
+status-order	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: five sections in the fixed order"	MON-19	2026-11-07
+needs-you-stuck	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: Needs you holds the failed and the waiting worker, with the exact words"	MON-19	2026-11-07
+estimates-shown	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a running goal shows each step with an estimate from past runs"	MON-19	2026-11-07
