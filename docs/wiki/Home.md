@@ -15,6 +15,7 @@ count, and what enforces each one. Criteria marked Unreviewed have not been revi
 |---|---|---|
 | Goal to pull request | `workflow-delivery` | [Delivery](Delivery) |
 | Keep the wiki in step with code | `workflow-docs` | [Documentation](Documentation) |
+| Check the repo's health | `workflow-health` | [Health](Health) |
 | Run and watch many goals | `workflow-monitoring` | [Monitoring](Monitoring) |
 | Keep tests visible and enforced | `workflow-regression` | [Regression](Regression) |
 | Cut a draft release or leave it | `workflow-release` | [Release](Release) |

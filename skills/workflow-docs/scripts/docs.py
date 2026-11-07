@@ -30,7 +30,7 @@ import tempfile
 MARKER = "<!-- workflow-docs -->"
 PAGE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,80}$")
 SECTIONS = ["Summary", "Commands", "Criteria", "Enforced by"]
-PREFIXES = {"Delivery": "DEL", "Documentation": "DOC", "Monitoring": "MON", "Regression": "REG", "Release": "REL"}
+PREFIXES = {"Delivery": "DEL", "Documentation": "DOC", "Health": "HLT", "Monitoring": "MON", "Regression": "REG", "Release": "REL"}
 CRITERION = re.compile(r"^- ([A-Z]{2,5}-\d+): (\S.*)$")
 CRITERION_ID = re.compile(r"^[A-Z]{2,5}-\d+$")
 STAGE = re.compile(r"^\*\*(Unreviewed|Reviewed|Enforced|Proven)\*\* \S")
