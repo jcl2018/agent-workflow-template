@@ -115,7 +115,8 @@ loosen permissions, edit done lines or change `agent_command`.
 default, since each spends your usage, and neither touches a visible session's goal. If a goal's pull request has
 landed, neither restarts it: the goal is marked `done`, and a mender still running on it is stopped. The pull request is
 found by branch, so this works when the run record has none. A failed goal waits `mend_wait` seconds (default 120) before
-a mender starts, so a session can take it over first. Background agents run `agent_command` with your own
+a mender starts, so a session can take it over first. A goal with no recorded process is a session's, so neither touches it and it's never marked
+`failed`; if it goes silent for 30 minutes, the board marks it `(quiet)`. Background agents run `agent_command` with your own
 permissions.
 
 ### Example
@@ -433,7 +434,7 @@ Proof: toy tests. Nothing enforces that the owner said so: that is an instructio
 
 ## Criteria
 
-Tests: 17.
+Tests: 18.
 > **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
 
 - MON-14: **Unreviewed** What waits on the owner comes first, retired work leaves it, and the board reports only real changes.
@@ -448,6 +449,6 @@ Tests: 17.
 - MON-14: MON-2, MON-11, waits-first
 - MON-15: MON-1, dependencies-on-map
 - MON-16: one-failure
-- MON-17: MON-3, MON-9, MON-10, MON-13, sessions-tracked
+- MON-17: MON-3, MON-9, MON-10, MON-13, no-pid-left-alone, sessions-tracked
 - MON-18: MON-4, MON-8
 - MON-19: MON-5, MON-6, MON-7, MON-12
