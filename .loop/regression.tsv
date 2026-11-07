@@ -18,10 +18,6 @@ MON-8	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-deli
 frozen-done-lines	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: a changed done line stops the goal"	DEL-5	2026-11-07
 stop-after-3-tries	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: three failed tries stop the goal with a finding"	DEL-8	2026-11-07
 never-merges	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: with auto_merge off, merge.py refuses and nothing merges"	DEL-9	2026-11-07
-four-sections	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: wrong sections fail"	DOC-6	2026-11-07
-flow-charts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a bullet command with no chart fails"	DOC-6	2026-11-07
-names-enforcer	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: unenforced criterion fails"	DOC-7	2026-11-07
-unreviewed-banner	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: an Unreviewed criterion needs the banner"	DOC-8	2026-11-07
 waits-first	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: seven sections in order, with content"	MON-14	2026-11-07
 dependencies-on-map	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a dependency survives its goal starting"	MON-15	2026-11-07
 one-failure	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal leaves the others running"	MON-16	2026-11-07
@@ -35,9 +31,6 @@ MON-9	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal 
 MON-11	land	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2	MON-14	2026-11-07
 DEL-4	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: pr refuses until the flow ends"	DEL-7	2026-11-07
 MON-13	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal waits before a mender starts"	MON-17	2026-11-07
-returned-on-change	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: sync returns it"	DOC-9	2026-11-07
-returned-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report names a returned criterion"	DOC-9	2026-11-07
-change-not-blocked	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: no check blocks a changed criterion"	DOC-9	2026-11-07
 HLT-1	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: two runs print the same lines"		2026-11-07
 HLT-2	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: over 20 KB is a FAIL with a fix"		2026-11-07
 HLT-3	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a stale page shows as a docs row naming it"		2026-11-07
@@ -67,3 +60,15 @@ needs-you-stuck	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: Needs yo
 estimates-shown	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a running goal shows each step with an estimate from past runs"	MON-19	2026-11-07
 DEL-10	land	bash dev/toy/test-rows.sh DEL-10	DEL-10	2026-11-07
 wiki-release	land	bash dev/toy/test-wiki.sh 2>&1 | grep -q "PASS: merge publishes the wiki"	REL-9	2026-11-07
+page-shape	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a Commands section fails"	DOC-6	
+criteria-no-scripts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: script name fails: calc.py"	DOC-6	
+tests-not-enforced	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a criterion with no passing test shows as not enforced"	DOC-7	
+tests-last-run	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: render shows status and date"	DOC-7	
+tests-table-stale	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a table behind the last run is stale"	DOC-7	
+review-dated	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: review marks the line Reviewed with the date"	DOC-8	
+review-owner-only	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: review needs the owner.s words"	DOC-8	
+reviewed-lock	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: changing a reviewed criterion fails the check"	DOC-9	
+unreview-lifts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: unreview lifts the lock"	DOC-9	
+lock-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report names a changed reviewed criterion"	DOC-9	
+run-ledger	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a run records each row.s status and date"	REG-9	
+ci-summary	land	grep -q GITHUB_STEP_SUMMARY .github/workflows/regression.yml && grep -q GITHUB_STEP_SUMMARY skills/workflow-regression/scripts/regression.py	REG-9	

@@ -37,7 +37,7 @@ jobs:
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body")
           issues = json.loads(out.stdout or "[]")
-          red = []
+          red, lines = [], ["| Row | Result |", "|---|---|"]
           for row in rows(".loop/regression.tsv"):
               if len(row) < 3 or row[1] not in ("land", "nightly"):
                   continue
@@ -46,6 +46,7 @@ jobs:
               hits = [item for item in issues if mark in item["body"]]
               hit = next((item for item in hits if item["state"] == "OPEN"), hits[0] if hits else None)
               print("%s %s" % ("PASS" if done.returncode == 0 else "FAIL", row[0]))
+              lines.append("| %s | %s |" % (row[0], "PASS" if done.returncode == 0 else "FAIL"))
               if done.returncode == 0:
                   for item in hits:
                       if item["state"] == "OPEN":
@@ -59,5 +60,7 @@ jobs:
                       if hit["state"] != "OPEN":
                           gh("issue", "reopen", str(hit["number"]))
                       gh("issue", "comment", str(hit["number"]), "--body", "Still failing.")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as out:
+              out.write("## Regression rows\n\n" + "\n".join(lines) + "\n")
           sys.exit(1 if red else 0)
           PY
