@@ -162,9 +162,9 @@ def log_tail(slug):
 
 
 def refresh():
-    """A running record whose agent is gone has failed. Other statuses stay as they are."""
+    """A running record whose agent is gone has failed. A visible session has no process to check."""
     for state in runs():
-        if state.get("status") == "running" and not alive(state.get("pid")):
+        if state.get("status") == "running" and not state.get("external") and not alive(state.get("pid")):
             fresh = load(state["slug"])
             if fresh and fresh.get("status") == "running" and fresh.get("pid") == state.get("pid"):
                 fresh["status"] = "failed"

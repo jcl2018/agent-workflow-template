@@ -55,7 +55,7 @@ One goal a line. Other lines are ignored.
 ```
 
 `level` defaults to `minimum`. `touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
-for your answer instead of answering `leave`.
+for your answer instead of answering `leave`. `session: yes` marks a goal for a visible session.
 
 ## Outside the repo: run state
 
@@ -66,7 +66,9 @@ nothing there can be committed.
 loop/runs/<slug>.json     one goal's state
 loop/logs/<slug>.log      a background agent's output
 loop/dashboard.html       the last dashboard
-loop/board.json, board.html  the last operation board
+loop/board.json, board.html, board-artifact.html  the last operation board
+loop/sessions.json        tracked sessions that have no goal record
+loop/waits/<slug>         the goals that held a queued goal, one a line
 loop/cadence              minutes between check-ins (1 to 60), or off
 loop/handoff.md           the last handoff file
 loop/wiki.json            the last wiki publish, for restore
@@ -93,12 +95,14 @@ loop/wiki.json            the last wiki publish, for restore
 | `done` | Has a pull request and its checks hold; nothing is asked |
 | `stopped` | Stopped itself after 3 failed tries, finding filed |
 | `failed` | The agent ended without finishing |
+| `retired` | Superseded, by `board.py retire` |
 
 `step` is one of `design`, `design-review`, `plan`, `build`, `checks`, `judge`, `pr`, `release`.
 `release` is empty, `ask`, `cut` or `leave`.
 
 `external: true` marks a goal run in a visible session: no `pid`, and a missing process never marks it `failed`.
-`note` is `{"text", "at"}`, a session's latest message, kept as data. `board.py repos add` keeps a list of repo paths in
+`note` is `{"text", "at"}`, a session's latest message, kept as data. `waits_on` lists the goals that held this one.
+`retired` is `{"reason", "at"}`. `board.py repos add` keeps a list of repo paths in
 `~/.workflow-loop/repos`.
 
 Writes go through a temporary file and a rename, so a reader never sees half a file.

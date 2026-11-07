@@ -66,6 +66,8 @@
     "cadence",
     "repos",
     "note",
+    "session",
+    "retire",
     "handoff"
   ],
   "writes": [
@@ -78,7 +80,9 @@
     "pages it wrote, or that you name, in the repo's GitHub wiki, when you publish",
     ".loop/regression.tsv, .loop/regression-known.tsv and .github/workflows/regression.yml",
     "a version bump commit on a goal's branch, only with pr_bumps_version on",
-    "loop/board.json, board.html, cadence and handoff.md under the git common dir, and a run record's note, when you run board.py",
+    "loop/board.json, sessions.json, cadence and handoff.md under the git common dir, and a run record's note or retired mark, when you run board.py",
+    "loop/board.html, board-artifact.html and the dependency map in board.json, when you run board_page.py",
+    "loop/waits/<slug> under the git common dir, when a goal is held by another",
     "~/.workflow-loop/repos in the home folder, when you run board.py repos add"
   ],
   "network": [
