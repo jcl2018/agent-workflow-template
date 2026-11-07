@@ -5,7 +5,7 @@
 
 Skill: `workflow-health`. One GitHub milestone for each feature, named for its wiki page, and a `Backlog` for findings
 nobody has placed yet. Goals and their pull requests go in their feature's milestone, health findings go on the
-Backlog, and you move one to a feature when you decide. The board shows the counts.
+Backlog, and you move one to a feature when you decide. The board shows the counts. The scripts refuse rather than wait when no terminal is attached.
 
 Delivery's `pr` puts the pull request in its milestone before any merge, so a pull request the release step merges with
 `auto_merge` on keeps its milestone.

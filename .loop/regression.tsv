@@ -30,7 +30,7 @@ one-issue	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: failure ope
 one-link	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a test with no criterion fails"	REG-8	2026-11-07
 refused-unmet	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: cut refuses a missing row"	REL-7	2026-11-07
 breaking-asks	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: breaking change waits"	REL-8	2026-11-07
-docs-only	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: docs only leaves"	REL-9	2026-11-07
+docs-only	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: docs only leaves"	REL-8	2026-11-07
 MON-9	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal with an empty pr field|a mender running after its goal lands)" | wc -l | grep -q 2	MON-17	2026-11-07
 MON-11	land	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2	MON-14	2026-11-07
 DEL-4	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: pr refuses until the flow ends"	DEL-7	2026-11-07
@@ -66,3 +66,4 @@ status-order	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: five sectio
 needs-you-stuck	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: Needs you holds the failed and the waiting worker, with the exact words"	MON-19	2026-11-07
 estimates-shown	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a running goal shows each step with an estimate from past runs"	MON-19	2026-11-07
 DEL-10	land	bash dev/toy/test-rows.sh DEL-10	DEL-10	2026-11-07
+wiki-release	land	bash dev/toy/test-wiki.sh 2>&1 | grep -q "PASS: merge publishes the wiki"	REL-9	

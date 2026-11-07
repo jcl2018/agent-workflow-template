@@ -10,6 +10,9 @@ Keep the skill's scripts in one folder. Each runs alone, but apart from its help
 
 Codex has run as a monitored background agent on a toy repo. It needs `-s workspace-write`, with the git folder and the remote as writable roots.
 
+Needs you also lists a merged goal whose wiki publish was refused, with the page and the reason. Every script refuses
+rather than waits when no terminal is attached.
+
 In this repo, `auto_merge` is on, so a goal's agent ends by running the release step's merge, which merges its pull
 request. With it off, the goal stops at the pull request for you.
 

@@ -4,7 +4,8 @@
 usage: merge.py SLUG
 
 It refuses unless `"auto_merge": true` is in .loop/config.json, the goal is done and its pull request is open. A repo
-without that switch keeps the owner's merge: nothing here merges there. It cuts no version and publishes nothing.
+without that switch keeps the owner's merge: nothing here merges there. It cuts no version. Where .loop/docs.tsv maps pages, it first refuses while a page the goal's paths map to is stale,
+and after the merge it publishes the wiki through wiki.py; a refused publish is recorded as `wiki_error`, not undone.
 """
 import argparse
 import datetime
@@ -12,6 +13,8 @@ import json
 import os
 import subprocess
 import sys
+
+import wiki
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -49,6 +52,12 @@ def main():
     view = run(["gh", "pr", "view", state["pr"], "--json", "state"])
     known = json.loads(view.stdout).get("state") if view.returncode == 0 else ""
     if known != "MERGED":
+        if wiki.top_of():
+            stale = wiki.pending(top, cfg)
+            if stale:
+                sys.exit("REFUSED: stale wiki pages: %s. Fix: update them, then run wiki.py prepare %s --commit." % (", ".join(stale), args.slug))
+            if run(["git", "branch", "-r", "--contains", "HEAD", "--list", "origin/*"], cwd=top).stdout.strip() == "":
+                sys.exit("REFUSED: this branch's latest commit is not on origin. Fix: run wiki.py prepare %s --commit." % args.slug)
         if known != "OPEN":
             sys.exit("REFUSED: the pull request %s is %s, not open." % (state["pr"], known or "unknown"))
         done = run(["gh", "pr", "merge", state["pr"], "--merge"])
@@ -61,6 +70,8 @@ def main():
         json.dump(state, handle, indent=2)
     os.replace(path + ".tmp", path)
     print("MERGED %s into %s" % (state["pr"], cfg.get("base", "main")))
+    if wiki.top_of():
+        wiki.cmd_publish(argparse.Namespace(slug=args.slug))
     return 0
 
 

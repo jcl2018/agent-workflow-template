@@ -3,8 +3,9 @@
 
 ## Summary
 
-Skill: `workflow-release`. After a goal has a pull request. For now it only merges: with `auto_merge` on, `merge` merges
-the pull request into `main`, cutting no version and publishing nothing. `ask`, `cut` and `leave` stay for the owner's
+Skill: `workflow-release`. After a goal has a pull request. For now it merges and keeps the wiki current: with `auto_merge` on, `merge`
+refuses while a wiki page the goal's changed paths map to is stale, merges the pull request into `main`, then publishes the
+wiki to GitHub by itself. It cuts no version. `ask`, `cut` and `leave` stay for the owner's
 own routines before a release later.
 
 **This repo runs with no gates.** Its `.loop/config.json` turns off `require_checks`, with an empty `checks` list, and
@@ -19,12 +20,18 @@ template keeps every gate until its owner turns one off.
 
 ```text
 merge SLUG
+wiki prepare SLUG [--commit]
+wiki publish SLUG
 ask SLUG
 leave SLUG
 cut SLUG [--bump patch|minor|major] [--user]
 show SLUG
 ```
 
+- `wiki prepare` lists the mapped pages that are stale (see `.loop/docs.tsv`). The agent rewrites them, then `--commit`
+  commits them on the goal's branch and pushes it. `merge` runs the same check and refuses while a page is stale.
+- `wiki publish` runs after the merge, from a clean checkout of `origin/main`. If publish refuses, the merge stands, the
+  goal records `wiki_error` (which page and why) in its report, and it shows under Needs you.
 - `ask` shows the changed docs, the wiki link and the verify steps, then prints `cut <slug>` and `leave <slug>`. A
   monitored batch goal without `release: ask` answers `leave` by itself.
 - `leave` keeps the work unreleased and changes nothing versioned.
@@ -136,7 +143,7 @@ flowchart LR
 
 Status: built and proven: Refuse with auto_merge off, or no open pull request; Merge the pull request into main; Record it on the goal. Built only: none. Planned: none.
 Stops for the owner: none.
-Proof: toy tests with a stand-in for GitHub. No real merge by it is on record yet.
+Proof: toy tests with a stand-in for GitHub, including a goal that changes a mapped path and ends with its page updated, the wiki published, and a refused publish shown under Needs you. No real merge by it is on record yet.
 
 #### `show`
 
@@ -152,15 +159,15 @@ Proof: toy tests.
 
 ## Criteria
 
-Tests: 6.
+Tests: 7.
 > **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
 
 - REL-4: **Unreviewed** Every release says how to verify it by hand.
 - REL-5: **Unreviewed** A release is only ever a draft, and it merges only where the repo turns on auto_merge.
 - REL-6: **Unreviewed** An unattended goal cuts a release only if the owner turned that on or said so.
 - REL-7: **Unreviewed** A release is refused while a criterion is unmet.
-- REL-8: **Unreviewed** A breaking change always asks the owner.
-- REL-9: **Unreviewed** Docs-only work never releases.
+- REL-8: **Unreviewed** A breaking change always asks the owner, and docs-only work never releases.
+- REL-9: **Unreviewed** The release step updates the wiki pages a goal's changed paths map to before the merge, and publishes the wiki after it; a refused publish names the page and shows under Needs you.
 
 ## Enforced by
 
@@ -168,5 +175,5 @@ Tests: 6.
 - REL-5: REL-2
 - REL-6: REL-3
 - REL-7: refused-unmet
-- REL-8: breaking-asks
-- REL-9: docs-only
+- REL-8: breaking-asks, docs-only
+- REL-9: wiki-release
