@@ -7,6 +7,8 @@ Skill: `workflow-health`. A check of the repo's health with fixed rules, so the 
 read-only; `run` files what it finds as issues. It runs `workflow-docs` and `workflow-regression` and reports on what they say, and adds the checks they
 don't make: script size, old findings, stuck runs and merged branches.
 
+On Agensi, a script can't reach its siblings, so the criteria and docs rules print `UNREAD`, and the verdict says so.
+
 ## Commands
 
 ```text

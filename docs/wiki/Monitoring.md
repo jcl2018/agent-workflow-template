@@ -8,6 +8,8 @@ base branch.
 Keep the skill's scripts in one folder. Each runs alone, but apart from its helpers `watch` neither mends nor resumes,
 `board` refuses `note`, `session`, `retire` and `take`, and the board's pages refuse an unfinished board.
 
+Codex has run as a monitored background agent on a toy repo. It needs `-s workspace-write`, with the git folder and the remote as writable roots.
+
 ## Commands
 
 ```text
