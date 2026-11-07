@@ -25,6 +25,11 @@ import re
 import subprocess
 import sys
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
+
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 QUIET = 1800
 RUN_COMMANDS = ("note", "session", "retire", "take")

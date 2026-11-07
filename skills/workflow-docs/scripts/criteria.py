@@ -18,6 +18,11 @@ import re
 import subprocess
 import sys
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
+
 LINE = re.compile(r"^- ([A-Z]{2,5}-\d+): \*\*(Unreviewed|Reviewed|Enforced|Proven)\*\* (.+?)(?: <!-- reviewed (\w+) -->)?$")
 ID = re.compile(r"^[A-Z]{2,5}-\d+$")
 BANNER = "> **Unreviewed:** %d of %d criteria on this page have not been reviewed by the owner."

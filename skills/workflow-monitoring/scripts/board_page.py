@@ -14,6 +14,11 @@ import os
 import subprocess
 import sys
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
+
 WORDS = {"waiting": "needs you", "unknown": "not tracked"}
 BOX_W, BOX_H, GAP, HEAD, ROW, TRACK = 118, 60, 22, 22, 18, 12
 HOW = ("Each lane is a run and each box a step, coloured by status, with its expected finish. Solid arrows run inside a run; "

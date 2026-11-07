@@ -294,14 +294,15 @@ Proof: toy tests.
 
 ## Criteria
 
-Tests: 10.
-> **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
+Tests: 11.
+> **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
 
 - DEL-5: **Unreviewed** Every goal starts from done lines that can't change once it starts.
 - DEL-6: **Unreviewed** Every goal runs the owner's own idea, plan, review, test and ship skills in their unattended mode, and nothing starts without them.
 - DEL-7: **Unreviewed** What the skills leave for the owner waits on the owner, unless the repo turns on auto_approve, as this one does: then it is approved and logged as auto-approved.
 - DEL-8: **Unreviewed** A goal that keeps failing stops and says why.
 - DEL-9: **Unreviewed** No script merges but the release step, and it merges only where the repo turns on auto_merge, as this one does.
+- DEL-10: **Unreviewed** Scripts refuse rather than wait when no terminal is attached: none reads input, and each forces git and gh into their no-prompt mode and closes standard input, so a prompt fails the call instead of hanging the run.
 
 ## Enforced by
 
@@ -310,3 +311,4 @@ Tests: 10.
 - DEL-7: DEL-3, DEL-4, auto-approved
 - DEL-8: stop-after-3-tries
 - DEL-9: never-merges
+- DEL-10: DEL-10

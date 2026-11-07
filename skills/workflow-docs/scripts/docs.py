@@ -11,9 +11,7 @@ usage: docs.py <command> [options]
                                copy the pages to the wiki, commit and push
   restore                      revert the last publish, if nothing came after it
 
-With "criteria": true in .loop/config.json, check also enforces the contract in SKILL.md: the page list and sections;
-"- ID: **Stage** text" lines with unique ids; each regression row linked to one criterion; the Tests line and banner;
-no script file names; a mermaid chart and Status line for every command under Commands.
+With "criteria": true in .loop/config.json, check also enforces the page contract in SKILL.md.
 
 Publish never deletes a page, and refuses to replace a page without this tool's marker unless you name it with --adopt.
 It runs git and nothing else.
@@ -26,6 +24,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+
+# No terminal, no waiting.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GIT_EDITOR="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 MARKER = "<!-- workflow-docs -->"
 PAGE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,80}$")
