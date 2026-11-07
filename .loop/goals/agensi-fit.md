@@ -34,3 +34,8 @@ What could go wrong: an agent on Agensi can't reach a sibling script, so those f
 1. Map the file in `dev/package.py`, proved by `dev/test-package.sh`.
 2. Add the scan's rules to `dev/package.py`, proved by its planted faults.
 3. Update `listing.json`, proved by the diff.
+
+## Evidence
+
+`python3 -c` on listing.json: 48 commands, 48 distinct. The full list, each once:
+setup poc go report dashboard resume cut leave ask show new step check judge verdict pr wait answer finding survey add criteria publish restore init watch queue run sync seed red workflow board cadence repos note session retire handoff start status promote save take review attach features move
