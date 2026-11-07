@@ -4,6 +4,12 @@ One session runs the loop. It starts goals, reads what the others report, keeps 
 what needs them. It never builds. Goals can run as hidden background agents (`watch.py go`) or as visible sessions
 (`watch.py go --session`, which prints `WORKTREE` and `PROMPT` and starts no process).
 
+**The operation session is for governance only: it assigns and watches, and runs neither `poc` nor `go` itself.** Put
+POCs and goals in a named batch with `scripts/batch.py` (`add NAME --poc QUESTION`, `add NAME --goal G --done L`, `start
+NAME`, `status NAME`, `promote SLUG`). Each line runs in its own background process or session, never here. A POC runs
+read-only in its own worktree and saves its answer and `go` line in `<git common dir>/loop/pocs/`; the board shows it
+finished with the answer. `promote SLUG` queues a goal from a saved POC's `go` line.
+
 ## Starting a visible session
 
 Start the new session from the main project folder, not from `WORKTREE`, because the host may refuse another folder on

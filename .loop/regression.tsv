@@ -14,3 +14,8 @@ REG-3	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: no token: dry r
 REL-1	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: cut refused without verify steps"		2026-11-07
 REL-2	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: draft release create"		2026-11-07
 REL-3	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: batch cut refused without --user"		2026-11-07
+MON-4	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: start: no line runs in the governing session"		
+MON-5	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: a POC that writes is marked failed"		
+MON-6	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: the board shows the POC finished with its answer"		
+MON-7	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: promote refuses a POC that has not finished"		
+MON-8	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-delivery/SKILL.md says the operation session governs only"		

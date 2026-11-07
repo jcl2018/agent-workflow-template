@@ -4,7 +4,7 @@
 ## Summary
 
 Skill: `workflow-monitoring`. One session governs and the others build. Scripts: `watch.py` (`go`, `watch`, `resume`),
-`monitor.py` (`report`, `dashboard`) and `board.py` (`board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`). Run them from the
+`monitor.py` (`report`, `dashboard`) and `batch.py` (`add`, `start`, `status`, `promote`), `board.py` (`board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`). Run them from the
 main checkout, on the base branch. `board_page.py` draws the board's pages.
 
 ## Commands
@@ -33,6 +33,20 @@ Goals whose `touches` overlap never run together. A failed goal never stops the 
 question with `leave` by itself, never `cut`; `--release ask` makes it wait for you.
 
 ### Operation session
+
+The operation session is for governance only: it assigns and watches, and runs neither `poc` nor `go` itself. It puts
+POCs and goals in a batch with `batch.py`, and each line runs in its own session or background agent:
+
+```text
+add NAME --poc QUESTION                        add a POC line under '## Batch: NAME' in .loop/queue.md
+add NAME --goal G --done LINE [--done LINE]    add a goal line under the same heading
+start NAME                                     start each POC in its own read-only worktree; hand goal lines to watch.py
+status NAME                                    one line for each POC and goal
+promote SLUG [--batch NAME]                    queue a goal from the go line a finished POC saved
+```
+
+A POC saves its answer and `go` line in `loop/pocs/` under the git folder, outside the repo, and the board shows it
+`done` with the answer as its note.
 
 For a long run across goals or repos, one session starts the others and follows them in a loop
 (`skills/workflow-monitoring/references/operation.md`). It never builds. `board.py` supports it:
@@ -97,9 +111,19 @@ python3 scripts/monitor.py report
 - MON-1: Two goals whose touched files overlap never run at the same time; the later one is held.
 - MON-2: A goal the owner has retired no longer appears under what waits on the owner.
 - MON-3: A goal started with `--session` is recorded as running in a visible session, and no background process is started for it.
+- MON-4: (draft) Each poc and goal line of a batch runs in its own process or background agent, never in the governing session.
+- MON-5: (draft) A POC runs read-only in its own worktree, and is marked failed if it changes the worktree.
+- MON-6: (draft) A finished POC's answer and go line are saved outside the repo, and the board shows the POC as done with that answer.
+- MON-7: (draft) A goal line promoted from a saved POC carries that POC's goal, done lines and level, and a POC that has not finished cannot be promoted.
+- MON-8: (draft) The operation instructions state that the operation session is for governance only and runs neither poc nor go itself.
 
 ## Enforced by
 
 - MON-1: MON-1
 - MON-2: MON-2
 - MON-3: MON-3
+- MON-4: MON-4
+- MON-5: MON-5
+- MON-6: MON-6
+- MON-7: MON-7
+- MON-8: MON-8
