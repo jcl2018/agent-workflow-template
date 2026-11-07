@@ -1,5 +1,5 @@
 {
-  "base": "next",
+  "base": "main",
   "checks": [
     "bash dev/toy/test-docs.sh",
     "bash dev/toy/test-criteria.sh",
@@ -22,7 +22,7 @@
     "--tools",
     ""
   ],
-  "parallel": 1,
+  "parallel": 3,
   "risky_paths": [
     "^\\.github/",
     "(^|/)auth",
