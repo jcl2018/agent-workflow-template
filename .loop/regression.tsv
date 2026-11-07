@@ -61,5 +61,5 @@ MIL-3	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: no token and no
 MIL-4	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a later run updates the issue where it is, and opens no other"		2026-11-07
 MIL-5	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: seven sections in order, with content"		2026-11-07
 HLT-7b	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a fixed finding closes its issue"	HLT-7	2026-11-07
-HLT-7	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a repeat opens no second issue"		
-HLT-7c	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a rule that could not read closes none of its issues"	HLT-7	
+HLT-7	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a repeat opens no second issue"		2026-11-07
+HLT-7c	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a rule that could not read closes none of its issues"	HLT-7	2026-11-07
