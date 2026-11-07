@@ -52,3 +52,12 @@ Regression.md
 Release.md
 DOCS OK: 6 pages
 ```
+
+Output of `python3 skills/workflow-regression/scripts/regression.py criteria`, which runs the row of every wiki criterion (DEL-1 to REL-3) and prints one UNMET line for each that is missing, a draft or failing. It printed nothing and exited 0, so all 15 rows pass on this commit. The three DEL rows grep these lines of `bash dev/toy/test-goal.sh`:
+
+```text
+PASS: go needs a done line
+PASS: default level 0, starts at design
+PASS: raised at the start
+criteria exit=0
+```
