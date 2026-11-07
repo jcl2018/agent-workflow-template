@@ -3,14 +3,14 @@
 
 usage: goal.py <command> <slug> [options]
 
-  new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]  freeze a goal (no background agent)
-  queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]       add to .loop/queue.md
-  step SLUG NAME [--note TEXT]     record the step a goal is on
+  new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]  freeze a goal
+  queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]  add to .loop/queue.md
+  step SLUG NAME [--note TEXT]     record the step
   check SLUG                       run the repo's checks
   judge SLUG [--design]            run the fresh judge
   verdict SLUG --file FILE [--design]  record a fresh agent's verdict
   pr SLUG                          push the branch and open the pull request
-  wait SLUG --ask TEXT --words W [--words W]  stop until you answer
+  wait SLUG --ask TEXT --words W [--words W]  stop for an answer
   answer SLUG                      clear a wait
   finding SLUG TEXT                file a finding and stop the goal
   show SLUG                        print the goal's state
@@ -29,29 +29,22 @@ import time
 
 LEVELS = ("0", "1", "2")
 UNJUDGED = ("0",)
-OLD = ("minimum", "quick", "standard", "full")
-NEW_LEVELS = "use 0 (no judge), 1 (one fresh judge) or 2 (adds a design review)"
 
 
 def level_arg(text):
-    if text in LEVELS:
-        return text
-    raise argparse.ArgumentTypeError(("REFUSED: level %r is gone. Fix: " % text if text in OLD else "bad level. ") + NEW_LEVELS)
+    if text not in LEVELS:
+        raise argparse.ArgumentTypeError("REFUSED: level %r. Fix: use 0 (no judge), 1 (one judge) or 2 (adds a design review)" % text)
+    return text
 
 
 def design_skill():
-    """Name and text of the private design-review skill (LOOP_DESIGN_SKILL or ~/.workflow-loop/design-skill), if any."""
     name = os.environ.get("LOOP_DESIGN_SKILL", "").strip()
-    if not name:
-        try:
-            name = open(os.path.expanduser("~/.workflow-loop/design-skill")).read().strip()
-        except OSError:
-            return "", None
-    for root in ("~/.claude/skills", "~/.agents/skills", "~/.codex/skills"):
-        path = os.path.join(os.path.expanduser(root), name, "SKILL.md")
-        if re.match(r"^[\w.:-]+$", name) and os.path.isfile(path):
-            return name, read(path)
-    return name, None
+    try:
+        name = name or open(os.path.expanduser("~/.workflow-loop/design-skill")).read().strip()
+    except OSError:
+        return "", None
+    path = os.path.expanduser("~/.claude/skills/%s/SKILL.md" % name)
+    return name, read(path) if re.match(r"^[\w.:-]+$", name) and os.path.isfile(path) else None
 MAX_TRIES = 3
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 TEMPLATE = """# {goal}
@@ -160,7 +153,6 @@ def goal_file(slug):
 
 
 def done_lines(slug):
-    """The numbered lines under ## Done lines."""
     try:
         text = read(goal_file(slug))
     except OSError:
@@ -174,7 +166,6 @@ def done_sha(lines):
 
 
 def frozen(state):
-    """Refuse a goal whose done lines moved."""
     if done_sha(done_lines(state["slug"])) != state["done_sha"]:
         fail_stop(state, "The done lines changed after they were frozen. A wrong done line needs a new goal.")
 
@@ -199,7 +190,6 @@ def write_finding(state, text):
 
 
 def fail_stop(state, text):
-    """File a finding and stop for good."""
     state["status"] = "stopped"
     state["finding"] = text
     state["waiting"] = None
@@ -333,17 +323,13 @@ def cmd_check(args):
 
 
 def make_pack(state, design):
-    """A folder outside the repo, holding only what the judge may see."""
     slug = state["slug"]
     pack = tempfile.mkdtemp(prefix="loop-judge-")
     extra = ""
-    if design:
+    if design:  # the private skill, if set, steers the review; say which ran
         name, body = design_skill()
-        if body:
-            print("DESIGN REVIEW: using skill %s" % name)
-            extra = "Review by this method:\n" + body + "\n\n"
-        else:
-            print("DESIGN REVIEW: built-in" + (" (skill %s not found)" % name if name else " (no design skill set)"))
+        print("DESIGN REVIEW: " + ("using skill " + name if body else "built-in (%s)" % (name + " not found" if name else "no design skill set")))
+        extra = "Review by this method:\n%s\n\n" % body if body else ""
     text = (DESIGN_PROMPT if design else JUDGE_PROMPT) + extra + "=== GOAL FILE ===\n" + read(goal_file(slug))
     if not design:
         diff = git("diff", "%s...HEAD" % base_ref(state), "--", ".", ":(exclude).loop/goals")

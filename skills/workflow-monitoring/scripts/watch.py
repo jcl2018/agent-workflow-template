@@ -11,7 +11,7 @@ usage: watch.py <command> [options]
   resume SLUG
       relaunch a failed or stopped goal; for a visible session, print WORKTREE and PROMPT again
 
-All take --skill-dir DIR, the skills folder to name in a prompt.
+All take --skill-dir DIR, the skills folder.
 Run state lives in <git common dir>/loop/. It never merges.
 """
 import argparse
@@ -26,7 +26,6 @@ import time
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 LEVELS = ("0", "1", "2")
-OLD_LEVELS = ("minimum", "quick", "standard", "full")
 LIVE = ("running", "waiting")
 LIMIT = re.compile(r"(?i)usage limit|rate limit|limit reached|quota exceeded|too many requests|out of credits")
 TEMPLATE = """# {goal}
@@ -88,11 +87,9 @@ MEND_PROMPT = """You are a fresh agent mending goal {slug} (branch {branch}). Fi
 
 
 def level_arg(text):
-    if text in LEVELS:
-        return text
-    if text in OLD_LEVELS:
-        raise argparse.ArgumentTypeError("REFUSED: level %r is gone. Fix: use 0 (no judge), 1 (one fresh judge) or 2 (adds a design review)." % text)
-    raise argparse.ArgumentTypeError("level must be 0, 1 or 2")
+    if text not in LEVELS:
+        raise argparse.ArgumentTypeError("REFUSED: level %r. Fix: use 0, 1 or 2" % text)
+    return text
 
 
 def git(*args, cwd=None, check=True):
@@ -188,8 +185,7 @@ def parse_queue():
             print("SKIPPED queue line: " + line[:60])
             continue
         if item["level"] not in LEVELS:
-            print("SKIPPED queue line: level %r is not 0, 1 or 2 (the old names minimum, quick, standard and full are gone): %s"
-                  % (item["level"], line.strip()[:60]))
+            print("SKIPPED queue line: level must be 0, 1 or 2: " + line[:60])
             continue
         seen.add(slug)
         goals.append(item)

@@ -195,16 +195,16 @@ import json, re, sys
 d = json.load(open(sys.argv[1]))["dependency_map"]; h = open(sys.argv[2]).read()
 l = {x["run"]: x for x in d["lanes"]}
 assert set(l) == {"repo/first", "repo/donelong", "repo/shout"}, set(l)
-assert [b["step"] for b in l["repo/first"]["boxes"]] == ["plan", "build", "checks", "pr"]
-assert [b["status"] for b in l["repo/first"]["boxes"]] == ["done", "running", "pending", "pending"]
-assert [b["status"] for b in l["repo/shout"]["boxes"]] == ["queued"] * 4
+assert [b["step"] for b in l["repo/first"]["boxes"]] == ["design", "plan", "build", "checks", "pr"]
+assert [b["status"] for b in l["repo/first"]["boxes"]] == ["done", "done", "running", "pending", "pending"]
+assert [b["status"] for b in l["repo/shout"]["boxes"]] == ["queued"] * 5
 cross = [a for a in d["arrows"] if a["on"]]
-assert cross == [{"from": "repo/first:pr", "to": "repo/shout:plan", "on": "goal first, shared pkg/shout.py"}], cross
-assert len([a for a in d["arrows"] if not a["on"]]) == 3 + 3 + 3 + 1  # donelong also has a release box
+assert cross == [{"from": "repo/first:pr", "to": "repo/shout:design", "on": "goal first, shared pkg/shout.py"}], cross
+assert len([a for a in d["arrows"] if not a["on"]]) == 4 + 5 + 4  # donelong also has a release box
 names = [x["run"] for x in d["lanes"]]
 assert names.index("repo/first") < names.index("repo/shout")
 assert h.count("<a class='box ") == sum(len(x["boxes"]) for x in d["lanes"])
-assert h.count("<path class=wire ") == 1 and h.count("<path class=step ") == 10
+assert h.count("<path class=wire ") == 1 and h.count("<path class=step ") == 13
 assert "goal first, shared pkg/shout.py</text>" in h and "s-running" in h and "s-done" in h
 assert re.search(r"<title>.*Done: .*\nNext: .*\nUnblocks: ", h, re.S)
 PY
@@ -220,8 +220,8 @@ python3 - "$T/m/board.json" "$T/m/board.html" "$T/m/board-artifact.html" <<'PY' 
 import json, re, sys
 b = {x["id"]: x for l in json.load(open(sys.argv[1]))["dependency_map"]["lanes"] for x in l["boxes"]}
 assert b["repo/first:pr"]["unblocks"] == ["repo/shout (goal first, shared pkg/shout.py)"]
-assert b["repo/first:build"]["next"] == "Then checks" and b["repo/first:build"]["done"] == "plan"
-assert b["repo/shout:plan"]["next"].startswith("Waits on goal first")
+assert b["repo/first:build"]["next"] == "Then checks" and b["repo/first:build"]["done"] == "design, plan"
+assert b["repo/shout:design"]["next"].startswith("Waits on goal first")
 for page in sys.argv[2:]:
     h = open(page).read()
     assert "<script" not in h and "Each lane is a run" in h

@@ -116,8 +116,7 @@ def parse_queue():
             print("SKIPPED queue line (needs a good slug, a goal and a done line): %s" % line.strip()[:80])
             continue
         if item["level"] not in LEVELS:
-            print("SKIPPED queue line: level %r is not 0, 1 or 2 (the old names minimum, quick, standard and full are gone): %s"
-                  % (item["level"], line.strip()[:60]))
+            print("SKIPPED queue line: level %r is not 0, 1 or 2: %s" % (item["level"], line.strip()[:60]))
             continue
         seen.add(slug)
         goals.append(item)

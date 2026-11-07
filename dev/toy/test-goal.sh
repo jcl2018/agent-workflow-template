@@ -54,7 +54,7 @@ git commit -qam "Noisy checks"
 $goal new loud --here --goal "Loud" --done "loud" >/dev/null
 $goal check loud >/dev/null 2>&1
 head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 0: python3" && head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 3: exit 3" && ok "summary shows every check at the top" || bad "check summary"
-[ "$(wc -c < "$here/skills/workflow-delivery/scripts/goal.py")" -lt 21504 ] && ok "goal.py under 21 KB" || bad "goal.py size"
+[ "$(wc -c < "$here/skills/workflow-delivery/scripts/goal.py")" -lt 20480 ] && ok "goal.py under 20 KB" || bad "goal.py size"
 git switch -q main; git checkout -q -- .loop/config.json 2>/dev/null; cp "$d/cfg.bak" .loop/config.json; git status --porcelain | grep -q config.json && git commit -qam "Restore checks"
 
 echo "== queue adds a line a watcher can read, and poc stays read-only"
@@ -66,8 +66,8 @@ $M report | grep -q "fix-a" && ok "report reads it" || bad "report queue"
 git checkout -q -- .loop/queue.md
 
 echo "== the old level names are refused, naming the new levels"
-$goal new oldname --here --goal "Old" --done "old" --level standard 2>&1 | grep -q "use 0 (no judge), 1 (one fresh judge) or 2 (adds a design review)" && ok "old name refused" || bad "old name"
-$goal queue oldq --goal "Old" --done "old" --level quick 2>&1 | grep -q "use 0 (no judge), 1 (one fresh judge) or 2 (adds a design review)" && ok "old queue level refused" || bad "old queue level"
+$goal new oldname --here --goal "Old" --done "old" --level standard 2>&1 | grep -q "use 0 (no judge), 1 (one judge) or 2 (adds a design review)" && ok "old name refused" || bad "old name"
+$goal queue oldq --goal "Old" --done "old" --level quick 2>&1 | grep -q "use 0 (no judge), 1 (one judge) or 2 (adds a design review)" && ok "old queue level refused" || bad "old queue level"
 [ -z "$(ls .loop/goals | grep oldname)" ] && ok "refused goal not created" || bad "old goal created"
 
 echo "== level 2 design review says which ran, and the private setting picks the skill"
@@ -76,7 +76,7 @@ $goal new dskill --here --goal "Skilled" --done "skilled" --level 2 >/dev/null
 $goal judge dskill --design 2>&1 | grep -q "DESIGN REVIEW: built-in (no design skill set)" && ok "built-in review named" || bad "built-in review"
 mkdir -p "$d/home/.claude/skills/my-design"; echo "Review like this." > "$d/home/.claude/skills/my-design/SKILL.md"
 HOME="$d/home" LOOP_DESIGN_SKILL=my-design $goal judge dskill --design 2>&1 | grep -q "DESIGN REVIEW: using skill my-design" && ok "private skill used" || bad "private skill"
-HOME="$d/home" LOOP_DESIGN_SKILL=missing-one $goal judge dskill --design 2>&1 | grep -q "built-in (skill missing-one not found)" && ok "missing skill falls back" || bad "missing skill"
+HOME="$d/home" LOOP_DESIGN_SKILL=missing-one $goal judge dskill --design 2>&1 | grep -q "built-in (missing-one not found)" && ok "missing skill falls back" || bad "missing skill"
 git ls-files | grep -q design-skill && bad "setting in repo" || ok "setting is not in the repo"
 git switch -q main
 
