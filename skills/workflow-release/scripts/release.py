@@ -235,8 +235,9 @@ def stale_pages(top, cfg, base):
         if not last or not os.path.exists(os.path.join(top, rel)):
             out.append(page + " (missing)")
             continue
-        start = base if run(["git", "merge-base", "--is-ancestor", last, base], cwd=top).returncode == 0 else last
-        if git("log", "--format=%h", "%s..HEAD" % start, "--", *paths, cwd=top, check=False):
+        seen = git("rev-list", "--no-merges", "HEAD", "--", rel, cwd=top, check=False).split()
+        if git("log", "--no-merges", "--full-history", "--format=%h", "HEAD", *["^" + c for c in seen + [base]], "--",
+               *paths, cwd=top, check=False):
             out.append(page)
     return out
 

@@ -38,8 +38,9 @@ restore                         revert the last publish, if nothing came after i
 ```
 
 `.loop/docs.tsv` maps each page to the paths it describes. `check` prints `STALE`, `MISSING`, `UNWRITTEN` or
-`UNMAPPED`, `NO PAGES` if the map is empty, and `DOCS OK` when clean. Only a commit that changes the page clears
-`STALE`.
+`UNMAPPED`, `NO PAGES` if the map is empty, and `DOCS OK` when clean. `STALE` means a commit touched a mapped path and
+no later commit to the page has it in its history. Merge commits don't count, so a page gives the same answer before and
+after a merge. Only a commit that changes the page clears `STALE`.
 
 With `"criteria": true` in the config, `check` also enforces the criteria contract: only the pages Delivery,
 Documentation, Health, Monitoring, Regression, Release and Home; each feature page has exactly the sections Summary, Commands,
@@ -244,7 +245,7 @@ Proof: toy tests only: it has never run on a real wiki, and the refusal has no t
 
 ## Criteria
 
-Tests: 10.
+Tests: 11.
 > **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
 
 - DOC-4: **Unreviewed** A page that has fallen behind the code is caught before it reaches the wiki.
@@ -256,7 +257,7 @@ Tests: 10.
 
 ## Enforced by
 
-- DOC-4: DOC-1, DOC-2
+- DOC-4: DOC-1, DOC-2, stale-merge-order
 - DOC-5: DOC-3
 - DOC-6: four-sections, flow-charts
 - DOC-7: names-enforcer

@@ -70,7 +70,7 @@ flowchart TD
 
 Status: built and proven: Refuse unless the goal is finished; Batch goal: leave by itself; With release_auto: decide from the diff; Show docs, wiki link and verify steps; Owner types cut or leave. Built only: none. Planned: none.
 Stops for the owner: Owner types cut or leave.
-Proof: toy tests. Seventeen real goals took the batch path and left, and on a second repo one stopped for the owner, who answered `cut`. release_auto has only run on a toy repo.
+Proof: toy tests. Seventeen real goals took the batch path and left, and on each of two repos one stopped for the owner, who answered `cut`. release_auto has only run on a toy repo.
 
 #### `leave`
 
@@ -108,7 +108,7 @@ flowchart TD
 
 Status: built and proven: Owner's own words say cut; Refuse: verify steps, stale pages, criteria rows, moved code; Move the version and write the changelog; Commit and push; Create a draft release; Publish the wiki; Owner publishes the draft and merges. Built only: none. Planned: none.
 Stops for the owner: Owner's own words say cut; Owner publishes the draft and merges.
-Proof: toy tests with a stand-in for GitHub, and one real `cut` on a second repo, which made a real draft. It has never run on this repo: its one draft release wasn't made by `cut`. With release_auto, a non-breaking batch goal skips the first stop, proven only on a toy repo.
+Proof: toy tests with a stand-in for GitHub, and two real cuts, each to a real draft: one on a second repo, and v0.1.1 on this repo. The owner's stop was real in both. With release_auto, a non-breaking batch goal skips the first stop, proven only on a toy repo.
 
 #### `show`
 

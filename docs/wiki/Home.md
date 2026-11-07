@@ -37,7 +37,7 @@ A toy test uses a throwaway repo and a stand-in for GitHub, so built and proven 
 `Proof:` says when it hasn't. Real runs were read on 2026-11-06 from the run records of this repo and one other it
 follows, plus their pull requests, releases and wikis. That second repo isn't named here. On this repo, eight real goals
 reached a pull request, all at the level now called 1, and three publishes reached the wiki. The second repo ran ten
-goals, including one real `cut` to a draft release. Neither repo shows a level 2 run, a regression workflow run in CI, a
+goals, including one real `cut` to a draft release. This repo has since had its own real `cut`, v0.1.1. Neither repo shows a level 2 run, a regression workflow run in CI, a
 `release_auto` run, or a batch with a real agent. Records older than these goals may be gone, so "not on record" doesn't mean it never happened.
 
 ## What is proven
