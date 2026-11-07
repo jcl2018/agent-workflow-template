@@ -21,4 +21,18 @@ Frozen. A wrong done line needs a new goal.
 
 ## Design
 
+`skills/workflow-health/scripts/health.py check` runs four families of fixed rules (size, criteria, docs, hygiene),
+prints one line per finding and one HEALTH verdict, and writes nothing. Criteria and docs compose `regression.py sync`
+and `docs.py check` by running them, never re-implementing them. A missing sibling or unreadable output gives UNREAD,
+which is never green. Rules are capped at eight, asserted at load. Risks: parsing the siblings' text output breaks if
+they change it, so the test runs the real siblings; the 75 old done lines with no row would drown the report, so they
+are one WARN row.
+
 ## Plan
+
+1. Write health.py with the four families, `--json` and the verdict (lines 1, 2, 3, 4).
+2. Write dev/toy/test-health.sh: fixtures for each line, run twice and compare, a copy with no siblings for UNREAD,
+   git status before and after for read-only (lines 1 to 4).
+3. Add the Health wiki page with six Unreviewed criteria, allow it in docs.py, map it in .loop/docs.tsv, add the test
+   to checks and one regression row per criterion (line 5).
+4. Run goal.py check and judge (line 6).
