@@ -1,7 +1,7 @@
 # id	level	command	goal	seen_red
 DEL-1	land	bash dev/toy/test-rows.sh DEL-1	DEL-5	2026-11-07
-DEL-2	land	bash dev/toy/test-rows.sh DEL-2	DEL-6	
-DEL-3	land	bash dev/toy/test-rows.sh DEL-3	DEL-7	
+DEL-2	land	bash dev/toy/test-rows.sh DEL-2	DEL-6	2026-11-07
+DEL-3	land	bash dev/toy/test-rows.sh DEL-3	DEL-7	2026-11-07
 DOC-1	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: stale found"	DOC-4	2026-11-07
 DOC-2	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"	DOC-4	2026-11-07
 DOC-3	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"	DOC-5	2026-11-07
@@ -40,7 +40,7 @@ MON-9	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal 
 MON-10	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a goal a session has taken over gets no mender"	MON-17	2026-11-07
 MON-11	land	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2	MON-14	2026-11-07
 MON-12	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: promote keeps the goal in the same session"	MON-19	2026-11-07
-DEL-4	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: pr refuses until the flow ends"	DEL-7	
+DEL-4	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: pr refuses until the flow ends"	DEL-7	2026-11-07
 MON-13	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal waits before a mender starts"	MON-17	2026-11-07
 returned-on-change	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: sync returns it"	DOC-9	2026-11-07
 returned-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report names a returned criterion"	DOC-9	2026-11-07
@@ -61,5 +61,5 @@ MIL-5	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: seven sections in or
 HLT-7b	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a fixed finding closes its issue"	HLT-7	2026-11-07
 HLT-7	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a repeat opens no second issue"		2026-11-07
 HLT-7c	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a rule that could not read closes none of its issues"	HLT-7	2026-11-07
-starts-at-idea	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: starts at idea, with no level"	DEL-6	
-steps-through-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: record refuses a reply flow.py didn.t run"	DEL-6	
+starts-at-idea	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: starts at idea, with no level"	DEL-6	2026-11-07
+steps-through-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: record refuses a reply flow.py didn.t run"	DEL-6	2026-11-07
