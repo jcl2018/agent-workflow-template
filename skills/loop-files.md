@@ -39,7 +39,7 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 - `judge_command` reads its prompt on standard input and runs in an empty temporary folder.
 - An empty `judge_command` means no headless judge: print the pack for a fresh agent instead.
 - `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
-- `mend` and `resume_on_limit` let `watch` restart a goal. `limit_wait` and `watch_interval` are optional, in seconds.
+- `mend` and `resume_on_limit` let `watch` restart a goal. `limit_wait`, `mend_wait` and `watch_interval` are optional, in seconds.
 - Permissions are yours. These commands run as you set them, and nothing here turns them off.
 
 ### `goals/<slug>.md`

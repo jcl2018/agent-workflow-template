@@ -314,14 +314,17 @@ Proof: toy tests.
 
 ## Criteria
 
-Tests: 3.
+Tests: 4.
+> **Unreviewed:** 1 of 4 criteria on this page have not been reviewed by the owner.
 
 - DEL-1: **Proven** A goal cannot start without at least one done line.
 - DEL-2: **Proven** A goal runs at level 0 unless the owner names another level.
 - DEL-3: **Proven** A goal that touches a risky path such as CI, auth or data is raised from level 0 to level 1 when it starts.
+- DEL-4: **Unreviewed** A goal with no change to judge is refused, and that costs no try.
 
 ## Enforced by
 
 - DEL-1: DEL-1
 - DEL-2: DEL-2
 - DEL-3: DEL-3
+- DEL-4: DEL-4
