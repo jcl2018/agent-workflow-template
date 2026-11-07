@@ -66,7 +66,8 @@ code 3.
 
 `pr` pushes the branch, retrying twice, and opens the pull request. It refuses until the checks (and the judge, where
 the level needs one) hold on this commit, and at level 2 until the design review has passed. With `pr_bumps_version` on,
-it first moves the last number of the version file once.
+it first moves the last number of the version file once. With the health skill beside it, `pr` then puts the pull request
+in the milestone of the feature its touched files belong to; a failure there never stops the goal.
 
 The fresh judge is given only the diff, the goal file and the check results, in an empty folder. The built-in design
 review is given only the goal file. Proof the checks don't print goes under `## Evidence` in the goal file. Commit it
