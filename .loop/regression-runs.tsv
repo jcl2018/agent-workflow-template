@@ -70,5 +70,5 @@ unreview-lifts	PASS	2026-11-07
 waits-first	PASS	2026-11-07
 wiki-release	PASS	2026-11-07
 worker-per-goal	PASS	2026-11-07
-worker-refuses	FAIL	2026-11-07
+worker-refuses	PASS	2026-11-07
 worker-reports	PASS	2026-11-07

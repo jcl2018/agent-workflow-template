@@ -43,7 +43,7 @@ Commands, flows and how-tos: `skills/workflow-monitoring/references/commands.md`
 | MON-17 | [no-pid-left-alone](../../.loop/regression.tsv) | PASS 2026-11-07 |
 | MON-18 | [MON-4](../../.loop/regression.tsv) | PASS 2026-11-07 |
 | MON-18 | [MON-8](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-18 | [worker-refuses](../../.loop/regression.tsv) | FAIL 2026-11-07 |
+| MON-18 | [worker-refuses](../../.loop/regression.tsv) | PASS 2026-11-07 |
 | MON-18 | [worker-per-goal](../../.loop/regression.tsv) | PASS 2026-11-07 |
 | MON-18 | [worker-reports](../../.loop/regression.tsv) | PASS 2026-11-07 |
 | MON-18 | [one-way-to-run](../../.loop/regression.tsv) | PASS 2026-11-07 |
