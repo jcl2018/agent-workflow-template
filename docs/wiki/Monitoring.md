@@ -5,8 +5,8 @@
 
 Skill: `workflow-monitoring`. One session governs and the others build. Run the commands from the main checkout, on the
 base branch.
-Keep the skill's scripts in one folder. Each runs alone, but apart from its helpers `watch` mends nothing and the board's
-pages refuse an unfinished board.
+Keep the skill's scripts in one folder. Each runs alone, but apart from its helpers `watch` neither mends nor resumes,
+`board` refuses `note`, `session`, `retire` and `take`, and the board's pages refuse an unfinished board.
 
 ## Commands
 

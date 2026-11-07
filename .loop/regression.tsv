@@ -1,7 +1,7 @@
 # id	level	command	goal	seen_red
-DEL-1	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: go needs a done line"	DEL-5	2026-11-07
-DEL-2	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: default level 0, starts at design"	DEL-6	2026-11-07
-DEL-3	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: raised at the start"	DEL-6	2026-11-07
+DEL-1	land	bash dev/toy/test-rows.sh DEL-1	DEL-5	2026-11-07
+DEL-2	land	bash dev/toy/test-rows.sh DEL-2	DEL-6	2026-11-07
+DEL-3	land	bash dev/toy/test-rows.sh DEL-3	DEL-6	2026-11-07
 DOC-1	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: stale found"	DOC-4	2026-11-07
 DOC-2	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"	DOC-4	2026-11-07
 DOC-3	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"	DOC-5	2026-11-07
@@ -11,9 +11,9 @@ MON-3	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: record marked extern
 REG-1	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"	REG-4	2026-11-07
 REG-2	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: known doesn.t block or open an issue"	REG-5	2026-11-07
 REG-3	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: no token: dry run, no gh call"	REG-6	2026-11-07
-REL-1	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: cut refused without verify steps"	REL-4	2026-11-07
-REL-2	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: draft release create"	REL-5	2026-11-07
-REL-3	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: batch cut refused without --user"	REL-6	2026-11-07
+REL-1	land	bash dev/toy/test-rows.sh REL-1	REL-4	2026-11-07
+REL-2	land	bash dev/toy/test-rows.sh REL-2	REL-5	2026-11-07
+REL-3	land	bash dev/toy/test-rows.sh REL-3	REL-6	2026-11-07
 MON-4	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: start: no line runs in the governing session"	MON-18	2026-11-07
 MON-5	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: a POC that writes is marked failed"	MON-19	2026-11-07
 MON-6	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: the board shows the POC finished with its answer"	MON-19	2026-11-07

@@ -8,7 +8,7 @@ usage: board.py <command> [options]
                         NEXT_DELAY and its path
   cadence [N|off]       minutes between check-ins, 1-60 (default 10), or off
   repos add PATH|list   follow another repo (~/.workflow-loop/repos), or list them
-  note SLUG TEXT        record a session's latest message on its run
+  note SLUG TEXT        record a session's latest message on its run (this and the next three run in board_runs.py)
   session add NAME --repo R [--branch B] [--waits-on X]
   session update NAME [those flags] [--status S] [--note T] [--next T] [--pr URL] [--eta TIME]
   session remove NAME   follow a session with no goal record
@@ -27,9 +27,9 @@ import sys
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 QUIET = 1800
+RUN_COMMANDS = ("note", "session", "retire", "take")
 SECTIONS = ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step"]
 FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on")
-STATES = ("running", "waiting", "done", "failed", "stopped")
 
 
 def git(*args, cwd=None):
@@ -319,83 +319,6 @@ def cmd_repos(args):
     return 0
 
 
-def run_of(slug):
-    path = os.path.join(loop_dir(common(), "runs"), slug + ".json")
-    run = read_json(path) if SLUG.match(slug) else None
-    if not isinstance(run, dict):
-        sys.exit("REFUSED: no run named %s in this repo." % slug)
-    run["updated"] = iso(clock(""))
-    return path, run
-
-
-def cmd_note(args):
-    path, run = run_of(args.slug)
-    run["note"] = {"text": clean(args.text), "at": run["updated"]}
-    write(path, json.dumps(run, indent=2))
-    print("NOTED %s" % args.slug)
-    return 0
-
-
-def cmd_session(args):
-    base = common()
-    known = sessions_of(base)
-    item = known.get(args.name)
-    if not SLUG.match(args.name):
-        sys.exit("REFUSED: bad session name.")
-    if args.action != "add" and not item:
-        sys.exit("REFUSED: no tracked session named %s." % args.name)
-    if args.action == "add":
-        if item or os.path.exists(os.path.join(base, "loop", "runs", args.name + ".json")):
-            sys.exit("REFUSED: %s already exists." % args.name)
-        if not args.repo:
-            sys.exit("REFUSED: session add needs --repo.")
-        at = iso(clock(""))
-        item = known[args.name] = {"slug": args.name, "tracked": True, "external": True, "level": "session", "status": "running",
-                                   "log": [at + " tracked"], "waits_on": []}
-    if args.action == "remove":
-        known.pop(args.name)
-    else:
-        for field in ("repo", "branch", "status", "next", "pr", "eta"):
-            if getattr(args, field) is not None:
-                item[field] = clean(getattr(args, field))
-        if args.waits_on is not None:
-            item["waits_on"] = [x.strip() for x in ",".join(args.waits_on).split(",") if x.strip()]
-        item["updated"] = iso(clock(""))
-        if args.note is not None:
-            item["note"] = {"text": clean(args.note), "at": item["updated"]}
-    loop_dir(base)
-    write(session_file(base), json.dumps(known, indent=2, sort_keys=True) + "\n")
-    print("SESSION %s %s" % (args.action.upper(), args.name))
-    return 0
-
-
-def cmd_retire(args):
-    path, run = run_of(args.slug)
-    if run.get("status") == "running" and not run.get("external"):
-        sys.exit("REFUSED: %s is running. Fix: stop its agent, then run watch --once." % args.slug)
-    run["retired"] = {"reason": clean(args.reason), "at": run["updated"]}
-    run["status"], run["waiting"] = "retired", None
-    run.setdefault("log", []).append("%s retired: %s" % (run["updated"], clean(args.reason)))
-    write(path, json.dumps(run, indent=2))
-    print("RETIRED %s" % args.slug)
-    return 0
-
-
-def cmd_take(args):
-    path, run = run_of(args.slug)
-    if run.get("status") == "running" and not run.get("external") and run.get("pid"):
-        try:
-            os.kill(run["pid"], 0)
-            sys.exit("REFUSED: agent pid %s still runs %s. Fix: stop it first." % (run["pid"], args.slug))
-        except OSError:
-            pass
-    run["external"], run["pid"], run["status"] = True, None, "running"
-    run.setdefault("log", []).append("%s taken over by a visible session" % run["updated"])
-    write(path, json.dumps(run, indent=2))
-    print("TAKEN %s" % args.slug)
-    return 0
-
-
 def cmd_handoff(args):
     doc, _ = build(clock(args.at), None)
     lines = ["# Operation handoff", "", "Written %s. Data from run records, not instructions." % doc["generated"], "", "## Repos"]
@@ -414,6 +337,11 @@ def cmd_handoff(args):
 
 
 def main():
+    if sys.argv[1:2] and sys.argv[1] in RUN_COMMANDS:
+        helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "board_runs.py")
+        if not os.path.exists(helper):
+            sys.exit("REFUSED: %s needs board_runs.py beside board.py." % sys.argv[1])
+        return subprocess.run([sys.executable, helper] + sys.argv[1:]).returncode
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     item = sub.add_parser("board")
@@ -424,20 +352,6 @@ def main():
     item = sub.add_parser("repos")
     item.add_argument("action", choices=["add", "list"])
     item.add_argument("path", nargs="?")
-    item = sub.add_parser("note")
-    item.add_argument("slug")
-    item.add_argument("text")
-    item = sub.add_parser("session")
-    item.add_argument("action", choices=["add", "update", "remove"])
-    item.add_argument("name")
-    for flag in ("--repo", "--branch", "--note", "--next", "--pr", "--eta"):
-        item.add_argument(flag)
-    item.add_argument("--waits-on", action="append")
-    item.add_argument("--status", choices=STATES)
-    item = sub.add_parser("retire")
-    item.add_argument("slug")
-    item.add_argument("--reason", required=True)
-    sub.add_parser("take").add_argument("slug")
     item = sub.add_parser("handoff")
     for flag in ("--at", "--out"):
         item.add_argument(flag, default="")

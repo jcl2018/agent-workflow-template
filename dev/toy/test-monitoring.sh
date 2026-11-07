@@ -207,5 +207,9 @@ check "so a session can take it over in time" 'sleep 0.3; [ ! -e "$FAKE_AGENT/pr
 sets slow 'status="done"' 
 mkdir -p "$T/lone"; cp "$here/skills/workflow-monitoring/scripts/watch.py" "$T/lone/"
 check "watch.py alone runs, and says it mended nothing" 'python3 "$T/lone/watch.py" watch --once | grep -q "mend.py isn.t beside"'
+check "watch.py alone refuses resume, and says why" 'python3 "$T/lone/watch.py" resume late 2>&1 | grep -q "needs mend.py"'
+cp "$here/skills/workflow-monitoring/scripts/board.py" "$T/lone/"
+check "board.py alone refuses a run command, and says why" 'python3 "$T/lone/board.py" note late hi 2>&1 | grep -q "needs board_runs.py"'
+check "board.py alone still writes a board" 'python3 "$T/lone/board.py" board --out "$T/lone/b" | grep -q "^JSON "'
 
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
