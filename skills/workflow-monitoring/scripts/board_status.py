@@ -22,6 +22,9 @@ STEPS = ("idea", "plan", "build", "checks", "review", "qa", "ship", "pr")
 ASKING = ("waiting", "failed", "stopped")
 TITLES = ("Needs you", "Now", "Next", "Roadmap", "Goals")
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
 
 def git(*args, cwd=None):
     done = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
