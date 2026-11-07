@@ -57,6 +57,14 @@ head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 0: python3" &&
 [ "$(wc -c < "$here/skills/workflow-delivery/scripts/goal.py")" -lt 20480 ] && ok "goal.py under 20 KB" || bad "goal.py size"
 git switch -q main; git checkout -q -- .loop/config.json 2>/dev/null; cp "$d/cfg.bak" .loop/config.json; git status --porcelain | grep -q config.json && git commit -qam "Restore checks"
 
+echo "== a goal with no change has nothing to judge, and that costs no try"
+git switch -q main
+$goal new emptyj --here --goal "Empty" --done "empty" --level 1 >/dev/null
+$goal check emptyj >/dev/null 2>&1
+out=$($goal judge emptyj 2>&1)
+grep -q "REFUSED: no change to judge" <<<"$out" && [ "$(field emptyj tries)" = 0 ] && ok "judge refuses an empty diff" || bad "empty diff judged: $out"
+git switch -q main
+
 echo "== queue adds a line a watcher can read, and poc stays read-only"
 $goal queue fix-a --goal "Fix a" --done "a is fixed" --level 0 --touches "a.py" | grep -q QUEUED && ok "queued" || bad "queue"
 grep -q '^- slug: fix-a | level: 0 | touches: a.py | goal: Fix a | done: a is fixed$' .loop/queue.md && ok "valid line" || bad "queue line"
@@ -183,7 +191,7 @@ grep -q "Start at step 2 (Design)" "$FAKE_AGENT/prompt-alpha-0" && ok "level 0 s
 
 echo "== mender: one fresh agent, told only the finding and the log"
 printf 'fail\nfail\nfail\n' > "$FAKE_AGENT/behave-mendme"
-cfg 'mend=true'
+cfg 'mend=true' 'mend_wait=0'
 $W go "Mend me" --done "mended" --slug mendme >/dev/null
 $W watch --interval 0.2 --skill-dir "$here/skills" | tee "$d/w2"
 [ "$(ls "$FAKE_AGENT"/prompt-mendme-* | wc -l | tr -d ' ')" = 2 ] && ok "one mend, then it stops" || bad "mend count"

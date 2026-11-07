@@ -5,7 +5,8 @@ usage: mend.py [--skill-dir DIR]
 
 Gives a failed or stopped goal one fresh agent, and continues a goal after a usage limit. It leaves alone a goal a
 session has taken over, and a goal whose pull request has landed: that goal is marked done, and a mender still running
-on it is stopped. Prints PENDING while a goal waits out a limit. It never merges.
+on it is stopped. A failed goal waits mend_wait seconds (default 120) first, so a session can take it over. Prints
+PENDING while a goal waits. It never merges.
 """
 import argparse
 import datetime
@@ -193,6 +194,14 @@ def free_to_restart(state):
     return not url
 
 
+def too_soon(state, cfg):
+    try:
+        ended = datetime.datetime.fromisoformat(state["updated"].replace("Z", "+00:00"))
+    except (KeyError, ValueError):
+        return False
+    return (datetime.datetime.now(datetime.timezone.utc) - ended).total_seconds() < float(cfg.get("mend_wait", 120))
+
+
 def one_pass(cfg, skill_dir):
     pending = False
     for state in runs():
@@ -217,6 +226,9 @@ def one_pass(cfg, skill_dir):
                 prompt = RESUME_PROMPT.format(slug=slug, branch=state["branch"], where=where(skill_dir), release=release_text(state))
                 relaunch(state, prompt, cfg, "resumed after the limit")
         elif cfg.get("mend") and not state.get("mended") and free_to_restart(state):
+            if too_soon(state, cfg):
+                pending = True
+                continue
             prompt = MEND_PROMPT.format(slug=slug, branch=state["branch"], where=where(skill_dir), release=release_text(state),
                                         finding=state.get("finding") or "none recorded",
                                         tail=log_tail(slug, 1500, state.get("log_mark", 0)))
