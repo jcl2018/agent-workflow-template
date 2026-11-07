@@ -18,3 +18,5 @@
 - A skill pasted into the toolless judge doesn't run: the first level 2 review took 18 seconds and did none of its phases.
 - A real design skill needs tools, the repo and minutes: one full unattended pass on a toy goal took 9 minutes and $2.74.
 - In a goal run the same skill gave no verdict on the first try and stopped at its own phase guard on the second, so a pull request says `full` or `condensed`.
+- Codex ran a level 0 toy goal from design to pull request with no failed try, using `gpt-5.6-luna` and a test double of `gh`.
+- Every regression row passes with an empty home folder, no git identity and a token set, on a Mac. A real run on GitHub is still unproven.

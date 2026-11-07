@@ -15,6 +15,7 @@ count, and what enforces each one. Criteria marked Unreviewed have not been revi
 |---|---|---|
 | Goal to pull request | `workflow-delivery` | [Delivery](Delivery) |
 | Keep the wiki in step with code | `workflow-docs` | [Documentation](Documentation) |
+| Check the repo's health | `workflow-health` | [Health](Health) |
 | Run and watch many goals | `workflow-monitoring` | [Monitoring](Monitoring) |
 | Keep tests visible and enforced | `workflow-regression` | [Regression](Regression) |
 | Cut a draft release or leave it | `workflow-release` | [Release](Release) |
@@ -48,6 +49,7 @@ goals, including one real `cut` to a draft release. Neither repo shows a level 2
   words." (DECISIONS.md)
 - "`report` left out queued goals that were ready to start. It now lists them." (FINDINGS.md)
 - Toy tests cover goals, the board, docs, criteria, releases and regression, each under `dev/toy/`.
+- Codex ran a level 0 toy goal from design to pull request with no failed try (FINDINGS.md).
 
 ## What is not proven
 
