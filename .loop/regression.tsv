@@ -19,22 +19,22 @@ MON-5	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: a POC that writes is
 MON-6	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: the board shows the POC finished with its answer"	MON-14	2026-11-07
 MON-7	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: promote refuses a POC that has not finished"	MON-14	2026-11-07
 MON-8	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-delivery/SKILL.md says the operation session governs only"	MON-13	2026-11-07
-frozen-done-lines	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: a changed done line stops the goal"	DEL-4	
-design-every-level	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: every level starts at design"	DEL-5	
-no-self-judging	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: the judge sees only its pack in an empty folder"	DEL-6	
-stop-after-3-tries	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: three failed tries stop the goal with a finding"	DEL-7	
-never-merges	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: no script calls gh pr merge"	DEL-8	
-four-sections	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: wrong sections fail"	DOC-6	
-flow-charts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a bullet command with no chart fails"	DOC-6	
-names-enforcer	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: unenforced criterion fails"	DOC-7	
-unreviewed-banner	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: an Unreviewed criterion needs the banner"	DOC-8	
-waits-first	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: six sections in order, with content"	MON-9	
-dependencies-on-map	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a dependency survives its goal starting"	MON-10	
-one-failure	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: another goal still finished"	MON-11	
-sessions-tracked	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a tracked session has a lane, a box, an arrow and a row in Runs"	MON-12	
-tests-seen-failing	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a test that can.t fail stays unproven"	REG-4	
-one-issue	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: failure opened an issue"	REG-7	
-one-link	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a test with no criterion fails"	REG-8	
-refused-unmet	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: cut refuses a missing row"	REL-7	
+frozen-done-lines	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: a changed done line stops the goal"	DEL-4	2026-11-07
+design-every-level	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: every level starts at design"	DEL-5	2026-11-07
+no-self-judging	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: the judge sees only its pack in an empty folder"	DEL-6	2026-11-07
+stop-after-3-tries	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: three failed tries stop the goal with a finding"	DEL-7	2026-11-07
+never-merges	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: no script calls gh pr merge"	DEL-8	2026-11-07
+four-sections	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: wrong sections fail"	DOC-6	2026-11-07
+flow-charts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a bullet command with no chart fails"	DOC-6	2026-11-07
+names-enforcer	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: unenforced criterion fails"	DOC-7	2026-11-07
+unreviewed-banner	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: an Unreviewed criterion needs the banner"	DOC-8	2026-11-07
+waits-first	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: six sections in order, with content"	MON-9	2026-11-07
+dependencies-on-map	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a dependency survives its goal starting"	MON-10	2026-11-07
+one-failure	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal leaves the others running"	MON-11	
+sessions-tracked	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a tracked session has a lane, a box, an arrow and a row in Runs"	MON-12	2026-11-07
+tests-seen-failing	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a test that can.t fail stays unproven"	REG-4	2026-11-07
+one-issue	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: failure opened an issue"	REG-7	2026-11-07
+one-link	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a test with no criterion fails"	REG-8	2026-11-07
+refused-unmet	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: cut refuses a missing row"	REL-7	2026-11-07
 breaking-asks	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: breaking change waits"	REL-8	
-docs-only	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: docs only leaves"	REL-9	
+docs-only	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: docs only leaves"	REL-9	2026-11-07
