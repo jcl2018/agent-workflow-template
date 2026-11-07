@@ -4,7 +4,7 @@
 ## Summary
 
 Skill: `workflow-delivery`. Takes one sentence to a pull request, judged by a fresh agent at levels 1 and 2.
-Script: `skills/workflow-delivery/scripts/goal.py`. The criteria below are drafts until the owner approves them.
+Script: `skills/workflow-delivery/scripts/goal.py`.
 
 ## Commands
 
@@ -71,9 +71,9 @@ python3 scripts/goal.py pr add-median
 
 ## Criteria
 
-- DEL-1: (draft) A goal cannot start without at least one done line.
-- DEL-2: (draft) A goal runs at level 0 unless the owner names another level.
-- DEL-3: (draft) A goal that touches a risky path such as CI, auth or data is raised from level 0 to level 1 when it starts.
+- DEL-1: A goal cannot start without at least one done line.
+- DEL-2: A goal runs at level 0 unless the owner names another level.
+- DEL-3: A goal that touches a risky path such as CI, auth or data is raised from level 0 to level 1 when it starts.
 
 ## Enforced by
 

@@ -7,7 +7,7 @@ goal, or to see where every file lives, read the [README](https://github.com/jcl
 
 ## Features
 
-Each feature page has a Summary, its Commands, draft Criteria for the owner to approve, and what enforces each one.
+Each feature page has a Summary, its Commands, the Criteria the owner approved, and what enforces each one.
 
 | Feature | Skill | Page |
 |---|---|---|
