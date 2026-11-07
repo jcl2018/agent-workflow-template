@@ -109,10 +109,8 @@ report the failure and the fix it printed.
 Tell the user the draft URL, the wiki link, the steps to verify by hand, and that they publish it. The release commit
 rides on the goal's pull request, so the version lands when the user merges it.
 
-If `cut` prints `ALREADY cut` or `ALREADY leave`, nothing was cut. Report it.
-
-If `gh` fails, the script removes only its own release commit, restores the two files, and reports the error.
-Report it too. Don't retry with other flags.
+If `cut` prints `ALREADY cut` or `ALREADY leave`, nothing was cut. Report it. If `gh` fails, the script restores the
+two files and reports the error. Report it too. Don't retry with other flags.
 
 ### Never
 
@@ -135,13 +133,7 @@ Each refusal says `REFUSED:` and a fix. Common ones:
 | Code changed after the checks | Run `goal.py check` again |
 | Tag already exists | Ask the user which version to use |
 
-## Other
-
-```bash
-python3 scripts/release.py show <slug>
-```
-
-prints the `release` field, and the version and draft URL after a cut.
+`release.py show <slug>` prints the `release` field, and the version and draft URL after a cut.
 
 ## Rules
 

@@ -4,7 +4,7 @@
 A small agentic workflow for any repo: you state a goal and the checks that prove it, and a background agent takes it
 through your own skill suite's flow, unattended, to a pull request you review. One session governs and the others build. To install it
 and run a first goal, or to see where every file lives, read the
-[README](https://github.com/jcl2018/agent-workflow-template#readme). It's released under the MIT license. The last step of every goal, the release step, also brings the wiki up to date and publishes it.
+[README](https://github.com/jcl2018/agent-workflow-template#readme). It's released under the MIT license. The last step of every goal, the release step (see [Release](Release)), also brings the wiki up to date and publishes it.
 
 
 **This repo runs with no gates.** Its `.loop/config.json` turns off `require_checks`, with an empty `checks` list, and
