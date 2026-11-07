@@ -13,13 +13,18 @@ show SLUG
 ```
 
 - `ask` shows the changed docs, the wiki link and the verify steps, then prints `cut <slug>` and `leave <slug>`. A
-  monitored batch goal answers `leave` by itself.
+  monitored batch goal without `release: ask` answers `leave` by itself.
 - `leave` keeps the work unreleased and changes nothing versioned.
-- `cut` refuses without a numbered step with an `Expect:` line under `## Verify by hand`, or with a stale mapped page. It
-  then moves the version (`patch` by default), writes the changelog, commits, pushes and creates a **draft** GitHub
-  release. You publish it. A batch goal refuses `cut` without `--user`, which means your own words said to cut.
+- `cut` refuses without numbered steps under `## Verify by hand`, if any step has no `Expect:` line, or with a mapped
+  page that is stale since the goal's base or missing. After fixing a page, commit it and run `goal.py check` again.
+  `cut` then moves the version (`patch` by default), writes the changelog, commits, pushes and creates a **draft**
+  GitHub release. You publish it. A batch goal refuses `cut` without `--user`, which means your own words said to cut.
+- `show` prints the `release` field, and the version and draft URL after a cut.
 
-Nothing merges or publishes without you.
+After a cut, the agent publishes the wiki with `workflow-docs` if `.loop/docs.tsv` exists. If that fails, the draft
+stands.
+
+No release is published and nothing merges without you.
 
 ## Example
 
