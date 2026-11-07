@@ -122,11 +122,9 @@ project folder and give it that prompt, which names the worktree. The loop and i
 `references/operation.md`.
 
 The operation session is for governance only: it assigns and watches, and runs neither `poc` nor `go` itself. Batches
-go through `scripts/batch.py`: `add NAME --poc QUESTION` or `add NAME --goal G --done L` adds a line under
-`## Batch: NAME` in `.loop/queue.md`, `start NAME` runs each POC in its own read-only worktree and hands goal lines to
-`watch.py`, `status NAME` lists the lines, and `promote SLUG` queues a goal from the `go` line a finished POC saved in
-`loop/pocs/`. A POC shows on the board as `done`, with its answer as the note. One that changes its worktree is marked
-`failed`; `start` runs it again. Promote only when the user says so.
+go through `scripts/batch.py` (`add`, `start`, `status`, `promote SLUG`): each POC runs read-only in its own worktree
+and shows on the board as `done` with its answer; a POC that changes its worktree is `failed`. Promote only when the
+user says so.
 
 ## Statuses
 

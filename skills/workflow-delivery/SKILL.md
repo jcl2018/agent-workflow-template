@@ -8,8 +8,7 @@ description: Takes one sentence to a pull request. `poc` answers a question and 
 Two commands: `poc` and `go`. Run `scripts/goal.py` with `python3`. If the skill's files aren't on disk, write the
 script to a temporary file, run it, and delete it. If `.loop/config.json` is missing, use `workflow-setup` first.
 
-The operation session is for governance only: it assigns and watches, and runs neither `poc` nor `go` itself. There it
-puts them in a batch with `workflow-monitoring`'s `batch.py`, which runs each in its own session or background agent.
+The operation session is for governance only: it assigns and watches, and runs neither `poc` nor `go` itself.
 
 ## `poc "<question>"`
 
