@@ -25,9 +25,10 @@ python3 scripts/regression.py seed
 
 Adds one `land` row for each check in `.loop/config.json`. Run it once.
 
-## `add <id> --level <level> --command "<command>" [--goal <slug>:<n>]`
+## `add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>]`
 
-Adds or replaces a row. `--goal` ties it to a goal's done line, such as `add-median:2`. A changed command must be proved
+Adds or replaces a row. `--goal` ties it to a criterion, such as `DEL-5`, or a goal's done line, such as `add-median:2`. With criteria on, every
+test needs a criterion. A changed command must be proved
 again.
 
 ## `sync [--write]`

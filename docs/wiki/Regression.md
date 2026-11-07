@@ -9,7 +9,7 @@ Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.l
 
 ```text
 seed
-add <id> --level <level> --command "<command>" [--goal <slug>:<n>]
+add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>]
 sync [--write]
 criteria
 red <id> --break "<command>"
@@ -25,6 +25,8 @@ workflow
 | `covered` | Nothing; proved elsewhere |
 
 - `seed` adds a `land` row for each check in the config.
+- `add` adds or replaces a row. `--goal` ties it to a criterion or a goal's done line, and a changed command must be
+  proved again.
 - `sync` lists done lines, and wiki criteria (a row whose id or `--goal` is the criterion id), with no row (`GAP`), `DRAFT` rows and `UNPROVEN` rows; `--write` adds drafts.
 - `criteria` runs the row of every wiki criterion and prints any that is missing, a draft or failing.
 - `red` copies `HEAD` to a temporary worktree, applies the break and records the date if the test fails. `STILL GREEN`
@@ -159,14 +161,19 @@ Proof: toy tests run its inline block. This repo has no such workflow. A second 
 
 ## Criteria
 
-Tests: 3.
+Tests: 6.
+> **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
 
-- REG-1: **Proven** A test row that has never been seen failing is reported as unproven and blocks the run.
-- REG-2: **Proven** A failure listed as known does not block the run and opens no issue.
-- REG-3: **Proven** Without a GitHub token, a run only prints what it would do and never calls GitHub.
+- REG-4: **Unreviewed** A test counts only after it has been seen failing.
+- REG-5: **Unreviewed** A failure already known doesn't block work or open an issue.
+- REG-6: **Unreviewed** Without a GitHub token, nothing reaches GitHub.
+- REG-7: **Unreviewed** A failing test keeps one issue until it passes.
+- REG-8: **Unreviewed** Every test belongs to exactly one criterion.
 
 ## Enforced by
 
-- REG-1: REG-1
-- REG-2: REG-2
-- REG-3: REG-3
+- REG-4: REG-1, tests-seen-failing
+- REG-5: REG-2
+- REG-6: REG-3
+- REG-7: one-issue
+- REG-8: one-link

@@ -129,6 +129,21 @@ out=$($docs check || true); grep -q "^LINK regression: row orphan links to no cr
 grep -q "^LINK regression: rows link to DEL-9" <<<"$out" && ok "a test of an unknown criterion fails" || bad "dangling"
 rm .loop/regression.tsv; good
 
+echo "== docs check: a hard cap of 6 criteria"
+six="- DEL-1: a.
+- DEL-2: b.
+- DEL-3: c.
+- DEL-4: d.
+- DEL-5: e.
+- DEL-6: f."
+page Delivery "$six" "$(grep -o 'DEL-[0-9]' <<<"$six" | sed 's/\(.*\)/- \1: r/')"
+$docs check | grep -q "^CAP" && bad "six criteria over the cap" || ok "six criteria pass"
+page Delivery "$six
+- DEL-7: g." "$(grep -o 'DEL-[0-9]' <<<"$six" | sed 's/\(.*\)/- \1: r/')
+- DEL-7: r"
+$docs check | grep -q "^CAP Delivery: has 7 criteria" && ok "a seventh criterion fails" || bad "cap"
+good
+
 echo "== regression sync reports criteria with no row"
 page Delivery "- DEL-1: The calculator prints a median.
 - DEL-2: It exits 0." "- DEL-1: del-1
