@@ -137,10 +137,10 @@ FAKE_GH_PR_STATE=OPEN python3 "$here/skills/workflow-release/scripts/merge.py" o
 FAKE_GH_PR_STATE=CLOSED python3 "$here/skills/workflow-release/scripts/merge.py" open 2>&1 | grep -q "is CLOSED, not open" && ok "a closed pull request is not merged" || bad "closed pr"
 git switch -q main; cp "$d/cfg.gated" .loop/config.json; git commit -qam "Gates back on" >/dev/null; git push -q origin main
 
-echo "== the Delivery page names every goal.py command and flag"
+echo "== the Delivery commands reference names every goal.py command and flag"
 missing=""
 for word in $(python3 "$here/skills/workflow-delivery/scripts/goal.py" -h | sed -n '/^  new /,/^  show /p' | awk '{print $1}') $(grep -oE 'add_argument\("--[a-z]+"' "$here/skills/workflow-delivery/scripts/goal.py" | cut -d'"' -f2 | sort -u); do
-  grep -q -- "$word" "$here/docs/wiki/Delivery.md" || missing="$missing $word"
+  grep -q -- "$word" "$here/skills/workflow-delivery/references/commands.md" || missing="$missing $word"
 done
 [ -z "$missing" ] && ok "page lists them" || bad "page lacks:$missing"
 
