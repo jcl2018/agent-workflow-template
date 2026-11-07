@@ -14,4 +14,7 @@
   outside `tests/`, a wiki with pages from another tool, and a pre-push hook that takes minutes.
 - Several goals pushing at once can fail with a bare git error, and a plain re-push works. `goal.py pr` retries twice.
 - `report` left out queued goals that were ready to start. It now lists them.
-- Scripts are close to the 20 KB limit: `goal.py` 20,474 bytes, `watch.py` 19,928. The next feature needs a new script.
+- Scripts run alone, so a feature that won't fit needs a new script the agent runs: `goal.py` 19,461 bytes, `watch.py` 20,466.
+- A skill pasted into the toolless judge doesn't run: the first level 2 review took 18 seconds and did none of its phases.
+- A real design skill needs tools, the repo and minutes: one full unattended pass on a toy goal took 9 minutes and $2.74.
+- In a goal run the same skill gave no verdict on the first try and stopped at its own phase guard on the second, so a pull request says `full` or `condensed`.
