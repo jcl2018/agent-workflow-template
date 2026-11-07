@@ -60,12 +60,6 @@ slug {slug} for every step. Work only in this worktree.
 
 Stop at the pull request (goal.py pr). Never merge it. Then follow workflow-release if you have it: {release}
 """ + DATA
-RESUME_PROMPT = """Use the workflow-delivery skill to continue the goal {slug} in this git worktree, on branch {branch}.
-{where}
-The goal is already frozen. Read .loop/goals/{slug}.md and run `goal.py show {slug}` to see the run record, then go on
-from its step. Do not run goal.py new and never edit the done lines. Stop at the pull request (goal.py pr) and never
-merge it. Then follow workflow-release if you have it: {release}
-""" + DATA
 SEAT = """Work in the git worktree {tree} (branch {branch}), even if this session opened elsewhere: begin every shell
 command with `cd {tree} &&`, use full paths for files, and check the branch before you write.
 
@@ -359,36 +353,15 @@ def start_round(args, cfg):
     return begun, held
 
 
-def ensure_tree(state):
-    tree = state.get("worktree") or os.path.join(loop_dir("worktrees"), state["slug"])
-    if not os.path.isdir(tree):
-        git("worktree", "prune")
-        git("worktree", "add", tree, state["branch"])
-        print("RECREATED worktree " + tree)
-    state["worktree"] = tree
-
-
-def relaunch(state, prompt, cfg, note):
-    ensure_tree(state)
-    path = os.path.join(loop_dir("logs"), state["slug"] + ".log")
-    state["log_mark"] = os.path.getsize(path) if os.path.exists(path) else 0
-    state["finding"] = ""
-    state["waiting"] = None
-    state["status"] = "running"
-    save(state, note)
-    (hand_over if state.get("external") else launch)(state, prompt, cfg)
-
-
-def resume_prompt(state, skill_dir):
-    return seated(state, RESUME_PROMPT.format(
-        slug=state["slug"], branch=state["branch"], where=where(skill_dir), release=release_text(state)))
+def mend_helper():
+    return os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "mend.py")
 
 
 def keep_moving(cfg, skill_dir):
-    """Mending lives in mend.py beside this file. It reports PENDING while a goal waits out a limit."""
+    """Mending lives in mend.py beside this file. It reports PENDING while a goal waits."""
     if not (cfg.get("mend") or cfg.get("resume_on_limit")):
         return False
-    helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "mend.py")
+    helper = mend_helper()
     if not os.path.exists(helper):
         print("NOTE: mend.py isn't beside watch.py, so nothing was mended.")
         return False
@@ -485,18 +458,11 @@ def cmd_watch(args):
 
 
 def cmd_resume(args):
-    cfg = config()
     refresh()
-    state = load(args.slug)
-    if not state:
-        sys.exit("REFUSED: no run named %s." % args.slug)
-    was = state.get("status")
-    if not state.get("branch") or (was not in ("failed", "stopped") and not (was == "running" and state.get("external"))):
-        sys.exit("REFUSED: %s is %s; resume takes a failed or stopped goal." % (args.slug, was))
-    if was == "stopped":
-        state["tries"] = 0
-    relaunch(state, resume_prompt(state, args.skill_dir), cfg, "resumed (was %s)" % was)
-    return 0
+    if not os.path.exists(mend_helper()):
+        sys.exit("REFUSED: resume needs mend.py beside watch.py.")
+    flags = ["--skill-dir", args.skill_dir] if args.skill_dir else []
+    return subprocess.run([sys.executable, mend_helper(), "--resume", args.slug] + flags).returncode
 
 
 def main():
