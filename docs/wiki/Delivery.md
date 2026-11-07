@@ -314,7 +314,7 @@ Proof: toy tests.
 
 ## Criteria
 
-Tests: 8.
+Tests: 9.
 > **Unreviewed:** 5 of 5 criteria on this page have not been reviewed by the owner.
 
 - DEL-5: **Unreviewed** Every goal starts from done lines that can't change once it starts.
