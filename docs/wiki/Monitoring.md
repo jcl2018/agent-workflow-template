@@ -31,7 +31,8 @@ resume SLUG
 - `resume` relaunches a `failed` or `stopped` goal, and refuses anything else. For a visible session's goal, even a
   running one, it prints `WORKTREE` and `PROMPT` again and starts no process.
 
-Goals whose `touches` overlap never run together. A failed goal never stops the others. A batch goal answers the release
+Goals whose `touches` overlap never run together. A running goal with no `pid` is never marked failed or mended, and it
+takes no agent slot, but it still holds back a goal touching the same files. A failed goal never stops the others. A batch goal answers the release
 question with `leave` by itself, never `cut`; `--release ask` makes it wait for you.
 
 ### Operation session
