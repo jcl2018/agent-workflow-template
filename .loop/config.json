@@ -2,6 +2,7 @@
   "base": "next",
   "checks": [
     "bash dev/toy/test-docs.sh",
+    "bash dev/toy/test-criteria.sh",
     "bash dev/toy/test-release.sh",
     "bash dev/toy/test-goal.sh",
     "bash dev/toy/test-regression.sh",

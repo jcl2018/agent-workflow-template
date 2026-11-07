@@ -17,8 +17,18 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `bash dev/toy/test-criteria.sh`.
+   Expect: it ends with ALL PASS.
+2. Run `python3 skills/workflow-docs/scripts/docs.py criteria Delivery`.
+   Expect: it prints a FORMAT line and `NEXT DEL-1`.
 
 ## Design
 
+The contract is opt-in per repo with `"criteria": true` in `.loop/config.json`, so existing wiki repos and toy tests keep working; this repo's own wiki is not switched on. `docs.py` holds the section/id rules. A criterion is `- ID: text` under `## Criteria`; `## Enforced by` repeats the id with a regression row id. A regression row belongs to a criterion when its id or `--goal` equals the criterion id. `regression.py sync` and `release.py cut` each read the pages themselves (scripts stay standalone); cut runs the row's command and refuses when missing, draft or failing, and only when `.loop/docs.tsv` exists and pages carry criteria. Risk: duplicated page parsing in three scripts.
+
 ## Plan
+
+1. docs.py contract and criteria command: proved by dev/toy/test-criteria.sh (lines 1, 2, 5).
+2. regression.py sync gaps: test-criteria.sh (line 3).
+3. release.py cut refusal: test-criteria.sh; existing test-release.sh/test-docs.sh show repos without criteria are unchanged (line 4).
+4. SKILL.md rules (line 5); all toy checks via goal.py check (line 6).

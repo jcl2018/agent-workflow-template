@@ -254,6 +254,44 @@ def stale_pages(top, cfg, base):
     return out
 
 
+def criteria_trouble(top, cfg):
+    """Criteria in the wiki pages whose regression row is missing, unfinished or failing. Only with .loop/docs.tsv."""
+    if not doc_rows(top):
+        return []
+    folder = cfg.get("wiki_dir") or "docs/wiki"
+    ids = []
+    for page in sorted(doc_rows(top)):
+        try:
+            with open(os.path.join(top, folder, page + ".md")) as handle:
+                text = handle.read()
+        except OSError:
+            continue
+        if "\n## Criteria" in text:
+            part = text.split("\n## Criteria", 1)[1].split("\n## ", 1)[0]
+            ids += re.findall(r"^- ([A-Z]{2,5}-\d+): \S", part, re.M)
+    if not ids:
+        return []
+    rows = {}
+    try:
+        with open(os.path.join(top, ".loop", "regression.tsv")) as handle:
+            for line in handle:
+                if line.strip() and not line.startswith("#"):
+                    cells = line.rstrip("\n").split("\t") + [""] * 5
+                    rows[cells[0]] = cells
+    except OSError:
+        pass
+    out = []
+    for key in ids:
+        row = next((cells for cells in rows.values() if key in (cells[0], cells[3])), None)
+        if not row:
+            out.append("%s (no regression row)" % key)
+        elif row[1] == "draft":
+            out.append("%s (row %s is a draft)" % (key, row[0]))
+        elif row[1] != "covered" and subprocess.run(row[2], shell=True, cwd=top, capture_output=True).returncode:
+            out.append("%s (row %s is failing)" % (key, row[0]))
+    return out
+
+
 def docs_changed(top, cfg, base):
     folder = cfg.get("wiki_dir") or "docs/wiki"
     out = git("diff", "--name-only", "%s...HEAD" % base, "--", folder, cwd=top, check=False)
@@ -352,6 +390,10 @@ def cmd_cut(args):
     if stale:
         sys.exit("REFUSED: these pages are stale: %s. Fix: update them with workflow-docs, commit, and run goal.py "
                  "check again." % ", ".join(stale))
+    unmet = criteria_trouble(cwd, cfg)
+    if unmet:
+        sys.exit("REFUSED: these criteria have no passing regression row: %s. Fix: add or repair the row with "
+                 "workflow-regression, commit, and run goal.py check again." % ", ".join(unmet))
     checked = state.get("checks_sha")
     if checked and checked != git("rev-parse", "HEAD", cwd=cwd):
         later = git("log", "--format=%H", "%s..HEAD" % checked, cwd=cwd, check=False).splitlines()

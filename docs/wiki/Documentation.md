@@ -26,6 +26,7 @@ makes the wiki's repo then. Tell them, then stop.
 survey                          show the wiki's pages and this repo's page map
 add PAGE --paths A,B            add a page and the paths it describes
 check [--base REF]              list missing, stale, unmapped and unwritten pages; exit 1 if any
+criteria PAGE                   print the criterion format and the next free id for a page
 publish [--dry-run] [--adopt PAGE]   copy the pages to the GitHub wiki, commit and push
 restore                         revert the last publish, if nothing came after it
 ```
@@ -33,6 +34,11 @@ restore                         revert the last publish, if nothing came after i
 `.loop/docs.tsv` maps each page to the paths it describes. `check` prints `STALE`, `MISSING`, `UNWRITTEN` or
 `UNMAPPED`, `NO PAGES` if the map is empty, and `DOCS OK` when clean. Only a commit that changes the page clears
 `STALE`.
+
+With `"criteria": true` in the config, `check` also enforces the criteria contract: only the pages Delivery,
+Documentation, Monitoring, Regression, Release and Home; each feature page has exactly the sections Summary, Commands,
+Criteria and Enforced by, in that order; a criterion is one line `- DEL-1: text` with a unique id, and each id needs an
+`- DEL-1: <regression row id>` line in Enforced by. Only the owner approves a changed criterion.
 
 `--base REF` counts only changes since `REF`. `publish` has no `--base`, so it counts every commit, and it refuses while
 `check` finds problems. It never deletes a page. It refuses a page in the repo that lost the marker

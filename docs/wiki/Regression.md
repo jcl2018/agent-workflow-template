@@ -23,7 +23,7 @@ workflow
 | `covered` | Nothing; proved elsewhere |
 
 - `seed` adds a `land` row for each check in the config.
-- `sync` lists done lines with no row (`GAP`), `DRAFT` rows and `UNPROVEN` rows; `--write` adds drafts.
+- `sync` lists done lines, and wiki criteria (a row whose id or `--goal` is the criterion id), with no row (`GAP`), `DRAFT` rows and `UNPROVEN` rows; `--write` adds drafts.
 - `red` copies `HEAD` to a temporary worktree, applies the break and records the date if the test fails. `STILL GREEN`
   means the test proves nothing.
 - `run` prints `PASS`, `FAIL`, `KNOWN`, `FIXED` or `UNPROVEN` (blocks). Known failures sit in

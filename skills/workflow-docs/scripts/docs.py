@@ -6,9 +6,15 @@ usage: docs.py <command> [options]
   survey                       show the wiki's pages and this repo's page map
   add PAGE --paths A,B         add a page and the paths it describes
   check [--base REF]           list missing, stale, unmapped and unwritten pages; exit 1 if any
+  criteria PAGE                print the criterion format and the next free id for a page
   publish [--dry-run] [--adopt PAGE]
                                copy the pages to the wiki, commit and push
   restore                      revert the last publish, if nothing came after it
+
+With "criteria": true in .loop/config.json, check also enforces the criteria contract: only the pages
+Delivery, Documentation, Monitoring, Regression, Release and Home; every page but Home has exactly the
+sections Summary, Commands, Criteria and Enforced by, in that order; each criterion is one line
+"- ID: text" with a unique id such as DEL-1, and each id has a line "- ID: <regression row id>" in Enforced by.
 
 Publish only adds and updates pages that carry this tool's marker. It never deletes a page,
 and it refuses to replace a page this tool didn't write unless you name it with --adopt.
@@ -25,6 +31,9 @@ import tempfile
 
 MARKER = "<!-- workflow-docs -->"
 PAGE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,80}$")
+SECTIONS = ["Summary", "Commands", "Criteria", "Enforced by"]
+PREFIXES = {"Delivery": "DEL", "Documentation": "DOC", "Monitoring": "MON", "Regression": "REG", "Release": "REL"}
+CRITERION = re.compile(r"^- ([A-Z]{2,5}-\d+): (\S.*)$")
 PLACEHOLDER = "Write this page from what is really in the repo."
 
 
@@ -181,12 +190,80 @@ def problems(root, base):
     return found
 
 
+def sections(text):
+    """The page's level-2 sections, as (name, lines), outside code fences."""
+    found, fenced = [], False
+    for line in text.splitlines():
+        if line.startswith("```"):
+            fenced = not fenced
+        elif not fenced and line.startswith("## "):
+            found.append((line[3:].strip(), []))
+        elif found:
+            found[-1][1].append(line)
+    return found
+
+
+def contract(root):
+    """Trouble with the criteria contract, as (kind, page, detail). Off unless config sets "criteria": true."""
+    if not config(root).get("criteria"):
+        return []
+    found, seen = [], {}
+    for page in sorted(read_map(root)):
+        if page != "Home" and page not in PREFIXES:
+            found.append(("PAGE", page, "not allowed. Fix: use Delivery, Documentation, Monitoring, Regression, "
+                          "Release or Home"))
+            continue
+        full = os.path.join(root, wiki_dir(root), page + ".md")
+        if page == "Home" or not os.path.exists(full):
+            continue
+        with open(full) as handle:
+            parts = sections(handle.read())
+        names = [name for name, _ in parts]
+        if names != SECTIONS:
+            found.append(("SECTIONS", page, "have %s, want %s" % (", ".join(names) or "none", ", ".join(SECTIONS))))
+            continue
+        body = dict(parts)
+        ids = []
+        for line in body["Criteria"]:
+            if line.strip():
+                match = CRITERION.match(line)
+                if not match:
+                    found.append(("CRITERION", page, "not one line '- ID: text': " + line.strip()[:60]))
+                elif match.group(1) in seen:
+                    found.append(("DUPLICATE", page, "%s is also in %s" % (match.group(1), seen[match.group(1)])))
+                else:
+                    seen[match.group(1)] = page
+                    ids.append(match.group(1))
+        enforced = {m.group(1) for m in map(CRITERION.match, body["Enforced by"]) if m}
+        for key in ids:
+            if key not in enforced:
+                found.append(("UNENFORCED", page, "%s has no row in Enforced by" % key))
+    return found
+
+
+def cmd_criteria(args):
+    root = top()
+    prefix = PREFIXES.get(args.page)
+    if not prefix:
+        sys.exit("REFUSED: %s has no criteria. Fix: use one of %s." % (args.page, ", ".join(sorted(PREFIXES))))
+    used = [0]
+    folder = os.path.join(root, wiki_dir(root))
+    for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
+        if name.endswith(".md"):
+            with open(os.path.join(folder, name)) as handle:
+                used += [int(n) for n in re.findall(r"^- %s-(\d+): " % prefix, handle.read(), re.M)]
+    print("FORMAT one line under ## Criteria: '- %s-N: what must hold', and under ## Enforced by: "
+          "'- %s-N: <regression row id>'" % (prefix, prefix))
+    print("NEXT %s-%d" % (prefix, max(used) + 1))
+    return 0
+
+
 def cmd_check(args):
     root = top()
     if not read_map(root):
         print("NO PAGES: run add first")
         return 1
-    found = problems(root, args.base)
+    found = problems(root, args.base) + contract(root)
     for kind, page, detail in found:
         print("%s %s: %s" % (kind, page, detail))
     if found:
@@ -200,7 +277,7 @@ def cmd_publish(args):
     rows = read_map(root)
     if not rows:
         sys.exit("REFUSED: no pages. Fix: run add first.")
-    found = problems(root, None)
+    found = problems(root, None) + contract(root)
     if found:
         for kind, page, detail in found:
             print("%s %s: %s" % (kind, page, detail))
@@ -284,6 +361,9 @@ def main():
     item = sub.add_parser("check")
     item.add_argument("--base", default="")
     item.set_defaults(func=cmd_check)
+    item = sub.add_parser("criteria")
+    item.add_argument("page")
+    item.set_defaults(func=cmd_criteria)
     item = sub.add_parser("publish")
     item.add_argument("--dry-run", action="store_true")
     item.add_argument("--adopt", action="append", default=[])

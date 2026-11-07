@@ -6,7 +6,8 @@ usage: regression.py <command> [options]
   seed                          add one land row for each check in .loop/config.json
   add ID --level L --command C [--goal SLUG:N]
                                 add or replace a row. L is land, nightly, draft or covered
-  sync [--write]                list done lines with no row and rows never seen failing; --write drafts rows
+  sync [--write]                list done lines and wiki criteria with no row and rows never seen failing;
+                                --write drafts rows (a criterion's row has its id as id or goal)
   red ID --break CMD            copy HEAD, run CMD to break it, and record that the test fails there
   run [land|nightly|ID] [--timeout S] [--live]
                                 run the rows, then open, update or close one issue per failing row
@@ -218,6 +219,30 @@ def gaps(root):
     return out
 
 
+def criteria_ids(root):
+    """Criterion ids written under ## Criteria in the wiki pages."""
+    try:
+        with open(path_of(root, "config.json")) as handle:
+            folder = json.load(handle).get("wiki_dir") or "docs/wiki"
+    except (OSError, ValueError):
+        folder = "docs/wiki"
+    ids = []
+    for name in sorted(glob.glob(os.path.join(root, folder, "*.md"))):
+        with open(name) as handle:
+            text = handle.read()
+        if "\n## Criteria" in text:
+            part = text.split("\n## Criteria", 1)[1].split("\n## ", 1)[0]
+            ids += re.findall(r"^- ([A-Z]{2,5}-\d+): \S", part, re.M)
+    return ids
+
+
+def criterion_row(rows, key):
+    for row in rows.values():
+        if key in (row["id"], row["goal"]):
+            return row
+    return None
+
+
 def untrusted(rows):
     return [row["id"] for row in rows.values() if row["level"] in ("land", "nightly") and not row["seen_red"]]
 
@@ -226,7 +251,15 @@ def cmd_sync(args):
     root = top()
     rows = read_rows(root)
     missing = gaps(root)
+    for key in criteria_ids(root):
+        if not criterion_row(rows, key):
+            missing.append((key, "", "criterion has no regression row"))
+            if args.write:
+                rows[key] = {"id": key, "level": "draft", "command": "echo write a test", "goal": key, "seen_red": ""}
     for slug, number, line in missing:
+        if not number:
+            print("GAP %s %s" % (slug, line))
+            continue
         print("GAP %s:%s %s" % (slug, number, line[:100]))
         if args.write:
             key = "%s-%s" % (slug, number)
