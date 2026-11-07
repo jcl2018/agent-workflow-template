@@ -38,3 +38,17 @@ proven with `regression.py red`, using a break that changes behaviour. Risk: cri
 1. Rewrite the pages, README and docs.tsv; set `criteria` in the config. Proof: `docs.py check` prints DOCS OK.
 2. Add 15 rows and run `red` on each. Proof: every row has a seen_red date, and `regression.py sync` is clean.
 3. Run `goal.py check`. Proof: all repo checks pass.
+
+## Evidence
+
+Output of `ls docs/wiki` and `python3 skills/workflow-docs/scripts/docs.py check`, run on this branch:
+
+```text
+Delivery.md
+Documentation.md
+Home.md
+Monitoring.md
+Regression.md
+Release.md
+DOCS OK: 6 pages
+```
