@@ -4,7 +4,7 @@
 usage: mend.py [--resume SLUG] [--skill-dir DIR]
 
 With no --resume, gives a failed or stopped goal one fresh agent, and continues a goal after a usage limit. It leaves alone a goal a
-session has taken over, and a goal whose pull request has landed: that goal is marked done, and a mender still running
+session has taken over or has no pid, and a goal whose pull request has landed: that goal is marked done, and a mender still running
 on it is stopped. A failed goal waits mend_wait seconds (default 120) first, so a session can take it over. Prints
 PENDING while a goal waits. --resume relaunches a failed or stopped goal; for a visible session it prints WORKTREE and
 PROMPT again and starts no process. It never merges.
@@ -215,7 +215,7 @@ def one_pass(cfg, skill_dir):
     pending = False
     for state in runs():
         slug = state["slug"]
-        if state.get("external"):
+        if state.get("external") or not state.get("pid"):  # no pid: a session runs it, so no agent of ours ended
             continue
         if state.get("status") == "running" and state.get("mended") and state.get("branch"):
             stop_late_mender(state)

@@ -196,7 +196,7 @@ def collect(name, path, base, at):
     for run in records + list(sessions_of(base).values()):
         begun, last = started(run), stamp(run.get("updated"))
         note = run.get("note") or {}
-        quiet = bool(run.get("external") and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET)
+        quiet = bool((run.get("external") or not run.get("pid")) and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET)
         pr = clean(run.get("pr"))
         get = lambda field, size=300: clean(run.get(field), size)
         rows.append({

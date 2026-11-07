@@ -31,3 +31,4 @@ HLT-6	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: check writes no fil
 MON-12	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: promote keeps the goal in the same session"		2026-11-07
 DEL-4	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: judge refuses an empty diff"		2026-11-07
 MON-13	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal waits before a mender starts"		2026-11-07
+MON-14	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (report never marks a goal with no pid failed|watch never marks a goal with no pid failed|a goal with no pid is never mended)" | wc -l | grep -q 3		

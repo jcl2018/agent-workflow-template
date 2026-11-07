@@ -210,4 +210,19 @@ cp "$here/skills/workflow-monitoring/scripts/board.py" "$T/lone/"
 check "board.py alone refuses a run command, and says why" 'python3 "$T/lone/board.py" note late hi 2>&1 | grep -q "needs board_runs.py"'
 check "board.py alone still writes a board" 'python3 "$T/lone/board.py" board --out "$T/lone/b" | grep -q "^JSON "'
 
+echo "== a goal with no pid is a session's, whether or not it is marked external"
+python3 - "$C/loop/runs/own.json" <<'PY'
+import json, sys
+json.dump({"slug": "own", "goal": "Own", "level": "0", "status": "running", "step": "build", "branch": "loop/own", "worktree": "/nowhere",
+           "pid": None, "tries": 0, "touches": [], "updated": "2026-01-01T00:00:00Z", "log": []}, open(sys.argv[1], "w"))
+PY
+$M report >/dev/null; $M dashboard >/dev/null
+check "report never marks a goal with no pid failed" '[ "$(field own status)" = running ]'
+$W watch --once >/dev/null
+check "watch never marks a goal with no pid failed" '[ "$(field own status)" = running ]'
+sets own 'status="stopped"'
+$W watch --once >/dev/null
+check "a goal with no pid is never mended" 'sleep 0.3; [ "$(field own status)" = stopped ] && [ "$(field own mended)" = None ]'
+sets own 'status="done"'
+
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

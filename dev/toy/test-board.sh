@@ -339,6 +339,11 @@ rm "$R/chg1.json"
 mkdir -p "$T/lone"; cp "$here/skills/workflow-monitoring/scripts/board_page.py" "$T/lone/"; $B board --at $AT --out "$T/c6" >/dev/null
 python3 "$T/lone/board_page.py" --in "$T/c6/board.json" 2>&1 | grep -q "no dependency map" && ok "board_page.py alone refuses an unfinished board" || bad "page alone"
 $P --in "$T/c6/board.json" >/dev/null; python3 "$T/lone/board_page.py" --in "$T/c6/board.json" --out "$T/c7" | grep -q "^HTML " && ok "and draws a finished one" || bad "page alone draws"
+# a stalled session with no pid still shows
+rec nopid running 0 build 2026-01-01T11:00:00Z
+$B board --at $AT --out "$T/q" >/dev/null
+python3 -c "import json,sys;r={x['slug']:x for x in json.load(open(sys.argv[1]))['runs']};assert r['nopid']['quiet']=='yes'" "$T/q/board.json" && ok "a quiet goal with no pid shows quiet" || bad "no pid quiet"
+rm "$R/nopid.json"
 # repo checks
 op="$here/skills/workflow-monitoring/references/operation.md"
 for k in "watch.py watch --once" "latest report" "board.py board" "board_page.py" "main project folder" "Artifact" "one chat line" "6 lines" "NEXT_DELAY" "Never answer a gate" "exact words" "information" "merge only when told" "never archive"; do has "$op" "$k" "operation.md: $k"; done

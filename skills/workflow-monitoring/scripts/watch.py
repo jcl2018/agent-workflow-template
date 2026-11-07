@@ -221,7 +221,7 @@ def log_tail(slug, size=200, mark=0):
 
 def refresh():
     for state in runs():
-        if state.get("status") == "running" and not state.get("external") and not alive(state.get("pid")):
+        if state.get("status") == "running" and state.get("pid") and not state.get("external") and not alive(state.get("pid")):
             fresh = load(state["slug"])
             if fresh and fresh.get("status") == "running" and fresh.get("pid") == state.get("pid"):
                 fresh["status"] = "failed"
