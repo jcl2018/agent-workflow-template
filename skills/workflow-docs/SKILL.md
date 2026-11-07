@@ -78,7 +78,8 @@ real tests and runs. Say so when something is unproven. `check` proves the chart
 Two levels: criteria are for the owner, tests are for the machine.
 
 - A criterion is one line under `## Criteria`: `- DEL-3: **Unreviewed** what must hold`. It states an outcome the owner
-  cares about, with no sub-bullets. Ids are stable: take the next free id, and never reuse or renumber one.
+  cares about, with no sub-bullets. Ids are stable: take the next free id, and never reuse or renumber one. A page has
+  5 or 6 criteria, and `check` prints `CAP` above 6. Detail belongs in tests.
 - A test is a row in `.loop/regression.tsv`. Each links to exactly one criterion, by its `goal` column (or its id). A
   criterion can have many tests. `check` prints `LINK` for a test with no criterion, or one that names no real criterion.
 - Under `## Enforced by`, each id lists its rows: `- DEL-3: del-3a, del-3b`. `check` prints `LINK` if the list and the

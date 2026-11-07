@@ -57,7 +57,7 @@ git commit -qam "Agent"; git push -q origin main
 until_status() { for _ in $(seq 100); do [ "$(field "$1" status)" = "$2" ] && return 0; sleep 0.1; done; return 1; }
 
 echo "== a killed agent fails; the other goals carry on"
-touch "$FAKE_AGENT/hold-doomed" "$FAKE_AGENT/hold-first"
+touch "$FAKE_AGENT/hold-doomed" "$FAKE_AGENT/hold-first" "$FAKE_AGENT/hold-other"
 $W go "Add doomed" --done "doomed works" --touches doomed.py --slug doomed >/dev/null
 $W go "Add other" --done "other works" --touches other.py --slug other >/dev/null
 $W go "Add first" --done "first works" --touches pkg/ --slug first >/dev/null
@@ -67,6 +67,8 @@ sleep 0.3
 $M report > "$T/r1"
 check "report marks a dead agent failed" '[ "$(field doomed status)" = failed ]'
 check "report lists the finding" 'grep -q "^- doomed (failed)" "$T/r1"'
+check "a failed goal leaves the others running" '[ "$(field other status)" = running ]'
+rm "$FAKE_AGENT/hold-other"
 until_status other done && ok "another goal still finished" || bad "other goal"
 
 echo "== overlapping goals wait for each other"

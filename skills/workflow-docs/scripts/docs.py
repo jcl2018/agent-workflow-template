@@ -34,6 +34,7 @@ PREFIXES = {"Delivery": "DEL", "Documentation": "DOC", "Health": "HLT", "Monitor
 CRITERION = re.compile(r"^- ([A-Z]{2,5}-\d+): (\S.*)$")
 CRITERION_ID = re.compile(r"^[A-Z]{2,5}-\d+$")
 STAGE = re.compile(r"^\*\*(Unreviewed|Reviewed|Enforced|Proven)\*\* \S")
+MAX_CRITERIA = 6
 BANNER = "> **Unreviewed:** %d of %d criteria on this page have not been reviewed by the owner."
 PLACEHOLDER = "Write this page from what is really in the repo."
 SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
@@ -245,7 +246,6 @@ def charts(lines):
 
 
 def chart_trouble(page, lines):
-    """Each command needs a chart of its stages and a status line."""
     names = commands(lines)
     if not names:
         return [("CHART", page, "Commands lists no command")]
@@ -280,14 +280,14 @@ def test_rows(root):
 
 
 def stage_of(tests):
-    """The stage a reviewed criterion has earned from its tests."""
+    """The stage a reviewed criterion's tests earn."""
     if not tests:
         return "Reviewed"
     return "Proven" if all(proved for _, proved in tests) else "Enforced"
 
 
 def contract(root):
-    """Trouble with the criteria contract, as (kind, page, detail). Off unless config sets "criteria": true."""
+    """Criteria contract trouble, as (kind, page, detail). Off unless config sets "criteria": true."""
     if not config(root).get("criteria"):
         return []
     found, seen = [], {}
@@ -330,12 +330,14 @@ def contract(root):
                     stages[match.group(1)] = stage.group(1) if stage else ""
                     if not stage:
                         found.append(("STAGE", page, "%s has no stage after its id" % match.group(1)))
+        if len(ids) > MAX_CRITERIA:
+            found.append(("CAP", page, "has %d criteria, over the cap of %d" % (len(ids), MAX_CRITERIA)))
         rows = linked or {}
         waiting = sum(1 for stage in stages.values() if stage == "Unreviewed")
         want = ["Tests: %d." % sum(len(rows.get(key, [])) for key in ids)]
         want += [BANNER % (waiting, len(ids))] if waiting else []
         if heads != want[::-1] and heads != want:
-            found.append(("TESTS", page, "want the lines above the criteria to be: " + " | ".join(want)))
+            found.append(("TESTS", page, "want above the criteria: " + " | ".join(want)))
         enforced = {m.group(1): m.group(2) for m in map(CRITERION.match, body["Enforced by"]) if m}
         for key in ids:
             if key not in enforced:

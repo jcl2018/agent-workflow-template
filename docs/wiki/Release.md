@@ -124,14 +124,21 @@ Proof: toy tests.
 
 ## Criteria
 
-Tests: 3.
+Tests: 6.
+> **Unreviewed:** 6 of 6 criteria on this page have not been reviewed by the owner.
 
-- REL-1: **Proven** A release is refused unless the goal lists numbered steps to verify by hand, each with what to expect.
-- REL-2: **Proven** A release is only ever created as a draft on GitHub, and nothing is merged.
-- REL-3: **Proven** With automatic releases off, a goal run in a monitored batch cannot be cut unless the owner's own words said to cut.
+- REL-4: **Unreviewed** Every release says how to verify it by hand.
+- REL-5: **Unreviewed** A release is only ever a draft, and it merges nothing.
+- REL-6: **Unreviewed** An unattended goal cuts a release only if the owner turned that on or said so.
+- REL-7: **Unreviewed** A release is refused while a criterion is unmet.
+- REL-8: **Unreviewed** A breaking change always asks the owner.
+- REL-9: **Unreviewed** Docs-only work never releases.
 
 ## Enforced by
 
-- REL-1: REL-1
-- REL-2: REL-2
-- REL-3: REL-3
+- REL-4: REL-1
+- REL-5: REL-2
+- REL-6: REL-3
+- REL-7: refused-unmet
+- REL-8: breaking-asks
+- REL-9: docs-only
