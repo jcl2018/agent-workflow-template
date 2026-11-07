@@ -1,12 +1,12 @@
 # agent-workflow-template
 
 A small agentic workflow you can add to any repo. You state a goal and the checks that prove it's done. An agent plans
-and builds it, a fresh agent that didn't do the work judges it, and you review the pull request. One session governs
-and the others build.
+and builds it, a fresh agent that didn't do the work judges it at levels 1 and 2, and you review the pull request. One
+session governs and the others build.
 
 **Status: early. Copy the `skills/` folders into your agent's skills folder, or run `dev/install-local.sh` for Claude
-Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md) for the five features, the [roadmap](docs/ROADMAP.md) and the
-[release page](../../releases).
+Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md) for the five features, the
+[roadmap](docs/ROADMAP.md) and the [release page](../../releases).
 
 ## What it aims to be
 
@@ -19,8 +19,10 @@ Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md) for the fi
 
 ## Commands
 
-All of these have run on a toy repo, except level 2. `go`, `docs` and `cut` have also run on a real repo. They may change while the first version settles. The examples use Claude Code. In other agents, you
-can ask in plain words, such as "start a goal to add result caching".
+Each wiki page has a chart for every command, with a status line saying what's proven. Most of these have run on a toy
+repo, and `go`, `publish` and `cut` have also run on a real repo. `poc` has no test, and a full level 2 run has never
+happened. They may change while the first version settles. The examples use Claude Code. In other agents, you can ask
+in plain words, such as "start a goal to add result caching".
 
 Set up a repo once:
 
@@ -47,14 +49,16 @@ The level sets how much process a goal gets:
 | `1` | Adds one fresh judge after the build | Work worth a second look |
 | `2` | Adds a design review before the build | Risky or large changes |
 
-Changes to CI, auth or data run at level `1` at least. At level 2 the design review uses a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo). With none set, or the skill missing, the built-in review runs; the output says which ran.
+Changes to CI, auth or data run at level `1` at least. At level 2 the design review uses a skill named in the private
+file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo). With none set, or
+the skill missing, the built-in review runs; the output says which ran.
 
 See where things stand, or pick up a failed goal:
 
 ```text
 /workflow-monitoring report
 /workflow-monitoring dashboard
-/workflow-monitoring resume
+/workflow-monitoring resume <slug>
 ```
 
 `mend` and `resume_on_limit` in `.loop/config.json` let `watch` give a failed goal one fresh agent, and continue after a
@@ -65,16 +69,34 @@ Run an operation session that follows everything and keeps a progress board (see
 
 ```text
 python3 skills/workflow-monitoring/scripts/board.py board
+python3 skills/workflow-monitoring/scripts/board_page.py
 python3 skills/workflow-monitoring/scripts/board.py cadence 10
 python3 skills/workflow-monitoring/scripts/board.py repos add ../other-repo
 python3 skills/workflow-monitoring/scripts/watch.py go "<goal>" --done "<line>" --session
 ```
+
+`board.py board` writes `board.json` and prints what changed. `board_page.py` then draws `board.html` and
+`board-artifact.html` from it.
+
+An operation session only assigns and watches. It puts POCs and goals in a named batch, and each line runs in its own
+background process or session:
+
+```text
+python3 skills/workflow-monitoring/scripts/batch.py add nightly --poc "<question>"
+python3 skills/workflow-monitoring/scripts/batch.py add nightly --goal "<goal>" --done "<line>"
+python3 skills/workflow-monitoring/scripts/batch.py start nightly
+python3 skills/workflow-monitoring/scripts/batch.py status nightly
+python3 skills/workflow-monitoring/scripts/batch.py promote <poc-slug>
+```
+
+A POC runs read-only and saves its answer and `go` line outside the repo. Promote one only when you say so.
 
 Keep tests visible and enforced:
 
 ```text
 /workflow-regression seed
 /workflow-regression sync
+/workflow-regression red <id> --break "<a command that breaks the code>"
 /workflow-regression run land
 /workflow-regression workflow
 ```
@@ -90,18 +112,23 @@ Keep the wiki in step with the code. Pages live in `docs/wiki/`, so they're revi
 /workflow-docs restore
 ```
 
-`publish` only adds or updates pages it wrote, and never deletes one. `restore` undoes the last publish.
+`publish` only adds or updates pages it wrote, unless you name one with `--adopt`, and never deletes one. `restore`
+undoes the last publish.
+
+With `"criteria": true` in the config, `check` also holds the wiki to a contract: five feature pages plus Home, owner-
+approved criteria that each have a regression row, a chart and status line for every command, and no script file names.
 
 Release the work, or leave it unreleased for now:
 
 ```text
-/workflow-release cut
-/workflow-release leave
+/workflow-release cut <slug>
+/workflow-release leave <slug>
 ```
 
 Every goal has a `Verify by hand` section: steps you can follow to see the change work, each with what to expect. `cut`
-refuses without one, and refuses if a wiki page is stale. It then creates a draft GitHub release that carries those
-steps and the docs that changed, for you to publish. Nothing merges or publishes without you.
+refuses without one, and refuses if a wiki page is stale or a criterion's regression row is missing or failing. It then
+creates a draft GitHub release that carries those steps and the docs that changed, for you to publish. After a cut, the
+agent publishes the wiki. No release is published and nothing merges without you.
 
 ## Getting started
 
@@ -114,17 +141,19 @@ From install to one finished goal.
    on a branch called `workflow-setup`. Preview with `python3 scripts/setup.py --dry-run`, using the path to the skill's
    folder. Then run each command in `checks` once and fix or add commands until they prove the repo works, allow the
    tools a background agent needs in `agent_command` (for example
-   `["claude", "-p", "--allowedTools=Bash,Read,Write,Edit"]`), and review and merge the branch yourself. The other
-   skills read the config from the base branch.
+   `["claude", "-p", "--allowedTools=Bash,Read,Write,Edit"]`; you choose the list), and review and merge the branch
+   yourself. The other skills read the config from the base branch.
 3. **Start a goal.** From the main checkout, on the base branch:
    `/workflow-monitoring go "add result caching" --done "repeat searches are served from the cache"`. Done lines are
-   frozen once the goal starts, so make each one provable from the diff, the goal file and the check results. The level
-   is `0` unless you add `--level`, and only levels 1 and 2 get a fresh judge.
+   frozen once the goal starts, so make each one provable before the pull request, from the diff, the goal file and the
+   check results (see [Delivery](docs/wiki/Delivery.md)). The level is `0` unless you add `--level`, and only levels 1
+   and 2 get a fresh judge. To try an idea first, use `/workflow-delivery poc "<question>"`, which writes nothing.
 4. **Watch it.** `/workflow-monitoring watch` starts queued goals in their own worktrees, prints what changed, and ends
    with what waits on you. Use `report` for a snapshot.
 5. **Review.** The goal ends at a pull request. A monitored goal answers `leave` by itself, unless you started it with
-   `--release ask`; then it waits for `cut <slug>` or `leave <slug>`. Answer before you merge, because `cut` commits on
-   the goal's branch. Review and merge the pull request yourself; nothing here merges.
+   `--release ask`; then it waits for `cut <slug>` or `leave <slug>` (see [Release](docs/wiki/Release.md)). With
+   `"release_auto": true`, it decides from its diff and may cut a draft instead. Answer before you merge, because `cut`
+   commits on the goal's branch. Review and merge the pull request yourself; nothing here merges.
 
 ## File reference
 
@@ -142,8 +171,8 @@ In the repo:
 | `docs/wiki/` | Wiki pages, each starting with `<!-- workflow-docs -->` |
 
 Outside the repo, run state lives in `<git common dir>/loop/`: `runs/<slug>.json`, `logs/<slug>.log`,
-`dashboard.html`, `wiki.json`, `board.json`, `board.html`, `cadence` (minutes between check-ins, or `off`) and
-`handoff.md`. Nothing there is committed. `board.py repos add` keeps a list of repo paths in `~/.workflow-loop/repos`.
+`dashboard.html`, `wiki.json`, `board.json`, `board.html`, `board-artifact.html`, `pocs/`, `cadence` (minutes between
+check-ins, or `off`) and `handoff.md`. Nothing there is committed. `board.py repos add` keeps a list of repo paths in `~/.workflow-loop/repos`.
 
 In this template: `skills/` (the six skills; the full contract is `skills/loop-files.md`), `dev/` (install, package and
 toy tests), `listing.json`, `VERSION`, `DECISIONS.md`, `FINDINGS.md` and `docs/ROADMAP.md`.
