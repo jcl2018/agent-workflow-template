@@ -67,7 +67,7 @@ check "a POC that writes is marked failed" 'field p2 finding | grep -qi "changed
 check "a POC saves its answer outside the repo" 'grep -q "add one line" "$C/loop/pocs/p1.md" && [ ! -e .loop/pocs ]'
 check "a POC saves its go line outside the repo" 'grep -q "^go \"Do the thing\"" "$C/loop/pocs/p1.go"'
 check "a finished POC's worktree is removed" '[ ! -d "$pdir" ]'
-check "the board shows the POC finished with its answer" '[ "$(field p1 status)" = done ] && $BO board --out "$T/board" >/dev/null && grep -q "add one line" "$T/board/board.json"'
+check "the board shows the POC finished with its answer" '[ "$(field p1 status)" = done ] && $BO board --out "$T/board" >/dev/null && grep -q "POC answer: It works if you add" "$T/board/board.json"'
 
 $BO board --out "$T/board" >/dev/null; python3 "$here/skills/workflow-monitoring/scripts/board_page.py" --in "$T/board/board.json" >/dev/null
 check "a POC draws one poc box, not a goal's steps" 'python3 -c "import json,sys;l={x[\"run\"]:x for x in json.load(open(sys.argv[1]))[\"dependency_map\"][\"lanes\"]};assert [b[\"step\"] for b in l[\"repo/p1\"][\"boxes\"]]==[\"poc\"]" "$T/board/board.json"'
