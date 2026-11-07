@@ -17,7 +17,10 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-monitoring/scripts/batch.py` with no arguments.
+   Expect: it prints usage listing add, start and promote.
+2. Run `bash dev/toy/test-batch.sh`.
+   Expect: the last line is ALL PASS.
 
 ## Design
 
