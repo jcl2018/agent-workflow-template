@@ -27,4 +27,4 @@ HLT-2	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: over 20 KB is a FAI
 HLT-3	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a stale page shows as a docs row naming it"		2026-11-07
 HLT-4	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a criterion with no row is a FAIL"		2026-11-07
 HLT-5	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: no sibling script: UNREAD and not green"		2026-11-07
-HLT-6	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: check writes no file and makes no commit"		
+HLT-6	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: check writes no file and makes no commit"		2026-11-07
