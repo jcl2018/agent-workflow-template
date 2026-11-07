@@ -48,6 +48,21 @@ $docs check --base HEAD | grep -q "DOCS OK" && ok "base ignores older changes" |
 echo "Now covers the change too, with a little more text." >> docs/wiki/Using-the-toy.md; git commit -qam "Update the page"
 $docs check | grep -q "DOCS OK" && ok "updated page clean" || bad "updated"
 
+echo "== a merge never makes a page stale, whichever way it was merged, and unseen work still does"
+git switch -q -c side-a; printf '\n# side a\n' >> calc.py; git commit -qam "Side a"
+git switch -q -c side-b; echo "Now covers side a too, with a little more text." >> docs/wiki/Using-the-toy.md; git commit -qam "Page sees side a"
+git switch -q main; echo x > other.txt; git add other.txt; git commit -qm "Main moves"
+git merge -q --no-ff --no-edit side-a
+git switch -q side-b; git merge -q --no-edit main
+$docs check | grep -q "DOCS OK" && ok "clean on the branch before it merges" || bad "branch before merge"
+git switch -q main; git merge -q --no-ff --no-edit side-b
+$docs check | grep -q "DOCS OK" && ok "clean after the merge, with the parents the other way round" || bad "stale after a merge"
+git switch -q -c side-c HEAD~1; printf '\n# side c\n' >> calc.py; git commit -qam "Side c"
+git switch -q main; git merge -q --no-ff --no-edit side-c -X ours 2>/dev/null || git commit -qam "Merge side c"
+$docs check | grep -q "^STALE Using-the-toy" && ok "work the page never saw is stale after a merge" || bad "unseen work"
+echo "Now covers side c too, with a little more text." >> docs/wiki/Using-the-toy.md; git commit -qam "Page sees side c"
+$docs check | grep -q "DOCS OK" && ok "and clean once the page sees it" || bad "after page"
+
 echo "== publish refuses to replace a page it didn't write"
 $docs add Home --paths README.md >/dev/null
 cat > docs/wiki/Home.md <<'P'

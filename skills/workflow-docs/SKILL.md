@@ -43,7 +43,7 @@ python3 scripts/docs.py check [--base <ref>]
 
 | Line | Means | Fix |
 |---|---|---|
-| `STALE` | A mapped path changed after the page's last commit | Update the page. If it's still true, edit a line: only a commit that changes the page clears this |
+| `STALE` | A commit touched a mapped path, and no commit to the page has it in its history. Merge commits don't count | Update the page. If it's still true, edit a line: only a commit that changes the page clears this |
 | `MISSING` | A mapped page has no file | Write it, or remove its row |
 | `UNWRITTEN` | The page still has its placeholder, or almost no text | Write it |
 | `UNMAPPED` | A page has no row in `.loop/docs.tsv` | Run `add` |

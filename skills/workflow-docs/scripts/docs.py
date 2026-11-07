@@ -180,13 +180,12 @@ def problems(root, base):
             text = handle.read()
         if PLACEHOLDER in text or len(text.replace(MARKER, "").split()) < 10:
             found.append(("UNWRITTEN", page, rel))
-        last = git("rev-list", "-1", "HEAD", "--", rel, cwd=root, check=False)
-        if not last:
+        seen = git("rev-list", "--no-merges", "HEAD", "--", rel, cwd=root, check=False).split()
+        if not seen:
             continue
-        start = last
-        if base and run(["git", "merge-base", "--is-ancestor", last, base], cwd=root).returncode == 0:
-            start = base
-        changed = git("log", "--format=%h %s", "%s..HEAD" % start, "--", *paths, cwd=root, check=False).splitlines()
+        skip = ["^" + sha for sha in seen + [base] if sha]  # merges add nothing
+        changed = git("log", "--no-merges", "--full-history", "--format=%h %s", "HEAD", *skip, "--", *paths,
+                      cwd=root).splitlines()
         if changed:
             found.append(("STALE", page, "%d commits since the page: %s" % (len(changed), changed[0][:70])))
     held = os.path.join(root, folder)
