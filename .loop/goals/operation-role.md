@@ -17,10 +17,12 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-1. Run `python3 skills/workflow-monitoring/scripts/batch.py` with no arguments.
-   Expect: it prints usage listing add, start and promote.
-2. Run `bash dev/toy/test-batch.sh`.
-   Expect: the last line is ALL PASS.
+1. In a repo set up with `workflow-setup`, run `python3 scripts/batch.py add demo --poc "How is the title set?" --slug title-poc`, then `python3 scripts/batch.py start demo`.
+   Expect: it starts a background process, and your session stays free. `git status` shows only `.loop/queue.md`.
+2. Run `python3 scripts/batch.py status demo` until the POC says `done`, then `python3 scripts/board.py board` and `python3 scripts/board_page.py`, and open `board.html`.
+   Expect: a lane with one `poc` box, and the answer as its last message. The answer and `go` line are in `.git/loop/pocs/`.
+3. Run `python3 scripts/batch.py promote title-poc`.
+   Expect: `.loop/queue.md` gains `title-poc-go` under `## Batch: demo`, with the POC's goal and done lines.
 
 ## Design
 
@@ -36,8 +38,17 @@ line) outside the repo, fails the run if the worktree's HEAD or status moved, re
 answer. `promote SLUG` parses the saved go line and queues a goal line (slug `SLUG-go`) under the batch.
 
 Risks: a goal line in another batch starts too, because `watch --once` starts every queued goal (documented). A POC
-agent could write; the wrapper detects it and marks the run failed. Existing scripts near 20 KB are not touched, only
-docs and skill text. New criteria are `(draft)`; the 30 approved ones stay word for word.
+agent could write; the wrapper detects it in its own worktree only and marks the run failed. New criteria are `(draft)`;
+the 30 approved ones stay word for word.
+
+Changed from the first draft: `dev/package.py` refuses `__file__`, so batch.py re-runs itself through `sys.argv[0]` and uses
+watch.py only if it sits beside it, printing the command otherwise. A POC record is `tracked`, so the board draws one
+`poc` box and no `resume` hint, and `watch.py resume` refuses a run with no branch.
+
+Not built, waiting on the owner: a POC and its `go` line continuing in one session. It fits as a later change: a POC run
+in a visible session would save its answer with a new `batch.py` command, `promote SLUG --session` would add `session: yes`
+to the queue line, and `watch` would print `PROMPT` as today, with the worktree named, for the operation session to send
+to that same session. Nothing here blocks that.
 
 ## Plan
 

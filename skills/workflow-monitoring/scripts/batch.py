@@ -6,7 +6,8 @@ usage: batch.py <command> [options]
   add NAME (--poc QUESTION | --goal GOAL --done LINE [--done LINE]) [--slug S] [--level L] [--touches A,B] [--release ask]
       add a line under the heading '## Batch: NAME' in .loop/queue.md
   start NAME [--max N] [--skill-dir DIR]
-      launch each unstarted POC in its own background process and worktree, then hand the goal lines to watch.py
+      launch each unstarted or failed POC in its own background process and worktree, then hand the goal lines to
+      watch.py if it sits beside this file; otherwise print the command that starts them
   status NAME
       one line for each POC and goal of the batch
   promote SLUG [--batch NAME] [--slug S]
@@ -25,6 +26,7 @@ import shutil
 import subprocess
 import sys
 
+SELF = os.path.abspath(sys.argv[0])
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 HEAD = re.compile(r"^## Batch: (\S+)\s*$")
 POC_PROMPT = """You are answering a POC in a read-only git worktree: {tree}. POC {slug}.
@@ -184,11 +186,11 @@ def start_poc(slug, question, cfg):
         sys.exit("REFUSED: no agent_command in .loop/config.json.")
     tree = os.path.join(loop_dir("worktrees"), "poc-" + slug)
     state = {"slug": slug, "goal": "POC: " + question, "kind": "poc", "level": "poc", "status": "running", "step": "poc",
-             "tries": 0, "branch": "", "worktree": tree, "touches": [], "pid": None, "pr": "", "mended": True,
+             "tries": 0, "branch": "", "worktree": tree, "touches": [], "pid": None, "pr": "", "mended": True, "tracked": True,
              "limit_resumes": 6, "waiting": None, "finding": "", "log": []}
     save(state, "queued as a POC")
     log = open(os.path.join(loop_dir("logs"), slug + ".log"), "a")
-    child = subprocess.Popen([sys.executable, os.path.abspath(__file__), "_run", slug, question], cwd=root(),
+    child = subprocess.Popen([sys.executable, SELF, "_run", slug, question], cwd=root(),
                              stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, start_new_session=True)
     log.close()
     state["pid"] = child.pid
@@ -201,12 +203,15 @@ def cmd_start(args):
     if not items:
         sys.exit("REFUSED: no lines under '## Batch: %s'." % args.name)
     for kind, item in items:
-        if kind == "poc" and not load(item.get("poc", "")) and SLUG.match(item.get("poc", "")):
+        if kind == "poc" and SLUG.match(item.get("poc", "")) and (load(item["poc"]) or {"status": "failed"})["status"] == "failed":
             start_poc(item["poc"], item.get("question", ""), cfg)
     if any(kind == "goal" for kind, _ in items):
-        command = [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "watch.py"), "watch", "--once"]
-        command += (["--max", str(args.max)] if args.max else []) + (["--skill-dir", args.skill_dir] if args.skill_dir else [])
-        subprocess.run(command, cwd=root())
+        flags = (["--max", str(args.max)] if args.max else []) + (["--skill-dir", args.skill_dir] if args.skill_dir else [])
+        watch = os.path.join(os.path.dirname(SELF), "watch.py")
+        if os.path.exists(watch):
+            subprocess.run([sys.executable, watch, "watch", "--once"] + flags, cwd=root())
+        else:
+            print("NEXT: run watch.py watch --once to start the goal lines.")
     return 0
 
 
@@ -237,14 +242,14 @@ def cmd_run(args):
         git("worktree", "prune", cwd=main)
     state = load(args.slug) or state
     if why:
-        state["status"], state["finding"] = "failed", why
+        state["status"], state["finding"], state["next"] = "failed", why, "%s. Run batch.py start again to retry." % why
         return save(state, "failed: " + why) or 1
     folder = loop_dir("pocs")
     with open(os.path.join(folder, args.slug + ".md"), "w") as handle:
         handle.write(answer + "\n")
     with open(os.path.join(folder, args.slug + ".go"), "w") as handle:
         handle.write(last_go(answer) + "\n")
-    state["status"], state["step"] = "done", "poc"
+    state["status"], state["step"], state["next"] = "done", "poc", ""
     state["note"] = {"text": "POC answer: " + " ".join(answer.split())[:280], "at": now()}
     save(state, "finished; answer saved in %s" % folder)
     return 0
@@ -265,9 +270,12 @@ def cmd_promote(args):
     path = os.path.join(loop_dir("pocs"), args.slug + ".go")
     if not state or state.get("kind") != "poc" or state.get("status") != "done" or not os.path.exists(path):
         sys.exit("REFUSED: %s is not a finished POC with a saved go line." % args.slug)
-    words = shlex.split(open(path).read())
+    try:
+        words = shlex.split(open(path).read())
+    except ValueError:
+        words = []
     if len(words) < 2 or words[0] != "go":
-        sys.exit("REFUSED: %s saved no go line to promote." % args.slug)
+        sys.exit("REFUSED: %s saved no readable go line to promote." % args.slug)
     parser = argparse.ArgumentParser(prog="go")
     parser.add_argument("goal")
     parser.add_argument("--done", action="append", default=[])
@@ -277,6 +285,8 @@ def cmd_promote(args):
         goal = parser.parse_args(words[1:])
     except SystemExit:
         sys.exit("REFUSED: the saved go line for %s cannot be read." % args.slug)
+    if goal.level not in ("0", "1", "2") or not goal.done:
+        sys.exit("REFUSED: the saved go line for %s needs a level of 0, 1 or 2 and a --done." % args.slug)
     heading = args.batch
     if not heading:
         for line in read_queue():

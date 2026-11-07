@@ -4,8 +4,8 @@
 ## Summary
 
 Skill: `workflow-monitoring`. One session governs and the others build. Scripts: `watch.py` (`go`, `watch`, `resume`),
-`monitor.py` (`report`, `dashboard`) and `batch.py` (`add`, `start`, `status`, `promote`), `board.py` (`board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`). Run them from the
-main checkout, on the base branch. `board_page.py` draws the board's pages.
+`monitor.py` (`report`, `dashboard`), `batch.py` (`add`, `start`, `status`, `promote`) and `board.py` (`board`, `cadence`,
+`repos`, `note`, `session`, `retire`, `handoff`). Run them from the main checkout, on the base branch. `board_page.py` draws the board's pages.
 
 ## Commands
 
@@ -40,13 +40,17 @@ POCs and goals in a batch with `batch.py`, and each line runs in its own session
 ```text
 add NAME --poc QUESTION                        add a POC line under '## Batch: NAME' in .loop/queue.md
 add NAME --goal G --done LINE [--done LINE]    add a goal line under the same heading
-start NAME                                     start each POC in its own read-only worktree; hand goal lines to watch.py
+start NAME                                     start each new or failed POC in its own read-only worktree; hand goal
+                                               lines to watch.py
 status NAME                                    one line for each POC and goal
 promote SLUG [--batch NAME]                    queue a goal from the go line a finished POC saved
 ```
 
 A POC saves its answer and `go` line in `loop/pocs/` under the git folder, outside the repo, and the board shows it
-`done` with the answer as its note.
+`done` with the answer as its note. A POC that changes its worktree is marked `failed`, and its answer isn't saved. This
+only checks its own worktree, so a POC's safety still rests on `agent_command`'s permissions. Promote a POC only when the
+owner says so: its `go` line is an agent's suggestion. A batch heading groups lines; it doesn't hold them, so any `watch`
+pass starts a queued goal line, batch started or not.
 
 For a long run across goals or repos, one session starts the others and follows them in a loop
 (`skills/workflow-monitoring/references/operation.md`). It never builds. `board.py` supports it:

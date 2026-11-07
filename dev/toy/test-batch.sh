@@ -69,13 +69,36 @@ check "a POC saves its go line outside the repo" 'grep -q "^go \"Do the thing\""
 check "a finished POC's worktree is removed" '[ ! -d "$pdir" ]'
 check "the board shows the POC finished with its answer" '[ "$(field p1 status)" = done ] && $BO board --out "$T/board" >/dev/null && grep -q "add one line" "$T/board/board.json"'
 
+$BO board --out "$T/board" >/dev/null; python3 "$here/skills/workflow-monitoring/scripts/board_page.py" --in "$T/board/board.json" >/dev/null
+check "a POC draws one poc box, not a goal's steps" 'python3 -c "import json,sys;l={x[\"run\"]:x for x in json.load(open(sys.argv[1]))[\"dependency_map\"][\"lanes\"]};assert [b[\"step\"] for b in l[\"repo/p1\"][\"boxes\"]]==[\"poc\"]" "$T/board/board.json"'
+check "a failed POC waits on you with how to retry, not resume" 'python3 -c "import json,sys;w={x[\"slug\"]:x for x in json.load(open(sys.argv[1]))[\"waiting\"]};assert \"batch.py start\" in w[\"p2\"][\"ask\"] and w[\"p2\"][\"words\"]==[]" "$T/board/board.json"'
+check "resume refuses a POC" 'python3 "$here/skills/workflow-monitoring/scripts/watch.py" resume p2 2>&1 | grep -q "^REFUSED"'
+
 echo "== promote"
 $BA promote p1 --batch nightly > "$T/pr1"
 check "promote queues a goal line from the saved go line" 'grep -q "^- slug: p1-go | level: 1 | touches: a.py,b.py | goal: Do the thing | done: The thing works | done: A test shows it" .loop/queue.md'
 check "promote under the same heading" 'awk "/^## Batch: nightly/{f=1;next} /^## /{f=0} f&&/p1-go/{found=1} END{exit !found}" .loop/queue.md'
 check "promote refuses a POC that has not finished" '$BA promote p2 2>&1 | grep -q "^REFUSED"'
+printf 'go "unbalanced --done x\n' > "$C/loop/pocs/p3.go"; cp "$C/loop/runs/p1.json" "$C/loop/runs/p3.json"
+sed -i.bak 's/"slug": "p1"/"slug": "p3"/' "$C/loop/runs/p3.json"
+check "promote refuses a go line it cannot read" '$BA promote p3 2>&1 | grep -q "^REFUSED" && ! grep -q "p3-go" .loop/queue.md'
+printf 'go "Bad" --done "x" --level standard\n' > "$C/loop/pocs/p3.go"
+check "promote refuses a level that does not exist" '$BA promote p3 2>&1 | grep -q "^REFUSED"'
+rm "$C/loop/runs/p3.json" "$C/loop/runs/p3.json.bak"
 $BA start nightly >/dev/null
 until_status p1-go done && ok "a promoted goal runs in its own agent" || bad "a promoted goal runs"
+sed -i.bak 's/WRITE//' .loop/queue.md
+$BA start nightly >/dev/null
+until_status p2 done && ok "start runs a failed POC again" || bad "retry ($(field p2 status))"
+
+echo "== alone"
+mkdir -p "$T/lone"; cp "$here/skills/workflow-monitoring/scripts/batch.py" "$T/lone/"
+$BA add solo --goal "Add s" --done "s works" --slug s1 >/dev/null
+python3 "$T/lone/batch.py" start solo > "$T/lone/out" 2>&1
+check "batch.py alone says how to start goal lines" 'grep -q "NEXT: run watch.py watch --once" "$T/lone/out"'
+$BA add solo --poc "Alone?" --slug s2 >/dev/null
+python3 "$T/lone/batch.py" start solo >/dev/null 2>&1
+until_status s2 done && ok "batch.py alone still runs a POC" || bad "alone poc ($(field s2 status))"
 
 echo "== text and sizes"
 for f in skills/workflow-monitoring/references/operation.md skills/workflow-monitoring/SKILL.md skills/workflow-delivery/SKILL.md; do

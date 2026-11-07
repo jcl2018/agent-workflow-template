@@ -375,7 +375,7 @@ def ensure_tree(state):
     if not os.path.isdir(tree):
         git("worktree", "prune")
         git("worktree", "add", tree, state["branch"])
-        print("RECREATED worktree " + tree)
+        print("RECREATED " + tree)
     state["worktree"] = tree
 
 
@@ -405,20 +405,20 @@ def keep_moving(cfg, skill_dir):
         if cfg.get("resume_on_limit") and LIMIT.search(tail) and state.get("limit_resumes", 0) < 6:
             if not state.get("limit_seen"):
                 state["limit_seen"] = time.time()
-                save(state, "hit a usage limit; waiting to resume")
+                save(state, "usage limit; waiting to resume")
             if time.time() - state["limit_seen"] < float(cfg.get("limit_wait", 1800)):
                 pending = True
                 continue
             state["limit_resumes"] = state.get("limit_resumes", 0) + 1
             state.pop("limit_seen")
-            relaunch(state, resume_prompt(state, skill_dir), cfg, "resumed after the usage limit")
+            relaunch(state, resume_prompt(state, skill_dir), cfg, "resumed after the limit")
         elif cfg.get("mend") and not state.get("mended"):
             prompt = MEND_PROMPT.format(slug=slug, branch=state["branch"], where=where(skill_dir),
                                         release=release_text(state), finding=state.get("finding") or "none recorded",
                                         tail=log_tail(slug, 1500, state.get("log_mark", 0)))
             state["mended"] = True
             state["tries"] = 0
-            relaunch(state, prompt, cfg, "a fresh agent is mending it")
+            relaunch(state, prompt, cfg, "a fresh agent mends it")
     return pending
 
 
@@ -513,8 +513,8 @@ def cmd_resume(args):
     if not state:
         sys.exit("REFUSED: no run named %s." % args.slug)
     was = state.get("status")
-    if was not in ("failed", "stopped") and not (was == "running" and state.get("external")):
-        sys.exit("REFUSED: %s is %s; resume takes only a failed or stopped goal." % (args.slug, was))
+    if not state.get("branch") or (was not in ("failed", "stopped") and not (was == "running" and state.get("external"))):
+        sys.exit("REFUSED: %s is %s; resume takes a failed or stopped goal." % (args.slug, was))
     if was == "stopped":
         state["tries"] = 0
     relaunch(state, resume_prompt(state, args.skill_dir), cfg, "resumed (was %s)" % was)

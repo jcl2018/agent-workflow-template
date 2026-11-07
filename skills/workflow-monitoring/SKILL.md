@@ -125,7 +125,8 @@ The operation session is for governance only: it assigns and watches, and runs n
 go through `scripts/batch.py`: `add NAME --poc QUESTION` or `add NAME --goal G --done L` adds a line under
 `## Batch: NAME` in `.loop/queue.md`, `start NAME` runs each POC in its own read-only worktree and hands goal lines to
 `watch.py`, `status NAME` lists the lines, and `promote SLUG` queues a goal from the `go` line a finished POC saved in
-`loop/pocs/`. A POC shows on the board as `done`, with its answer as the note.
+`loop/pocs/`. A POC shows on the board as `done`, with its answer as the note. One that changes its worktree is marked
+`failed`; `start` runs it again. Promote only when the user says so.
 
 ## Statuses
 
