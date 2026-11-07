@@ -113,7 +113,8 @@ loosen permissions, edit done lines or change `agent_command`.
 `mend` (one fresh agent for a failed or stopped goal) and `resume_on_limit` (continue after a usage limit) are off by
 default, since each spends your usage, and neither touches a visible session's goal. If a goal's pull request has
 landed, neither restarts it: the goal is marked `done`, and a mender still running on it is stopped. The pull request is
-found by branch, so this works when the run record has none. Background agents run `agent_command` with your own
+found by branch, so this works when the run record has none. A failed goal waits `mend_wait` seconds (default 120) before
+a mender starts, so a session can take it over first. Background agents run `agent_command` with your own
 permissions.
 
 ### Example
@@ -431,8 +432,8 @@ Proof: toy tests. Nothing enforces that the owner said so: that is an instructio
 
 ## Criteria
 
-Tests: 12.
-> **Unreviewed:** 9 of 12 criteria on this page have not been reviewed by the owner.
+Tests: 13.
+> **Unreviewed:** 10 of 13 criteria on this page have not been reviewed by the owner.
 
 - MON-1: **Proven** Two goals whose touched files overlap never run at the same time; the later one is held.
 - MON-2: **Proven** A goal the owner has retired no longer appears under what waits on the owner.
@@ -446,6 +447,7 @@ Tests: 12.
 - MON-10: **Unreviewed** A goal a session has taken over gets no mender.
 - MON-11: **Unreviewed** The board reports a change only when a run's state really changed, not when a field is new or gh fails to answer.
 - MON-12: **Unreviewed** A POC marked for a visible session keeps its goal in that session, whose prompt names the worktree, so the session never changes folder.
+- MON-13: **Unreviewed** A failed goal waits before a mender starts, so a session can take it over first.
 
 ## Enforced by
 
@@ -461,3 +463,4 @@ Tests: 12.
 - MON-10: MON-10
 - MON-11: MON-11
 - MON-12: MON-12
+- MON-13: MON-13
