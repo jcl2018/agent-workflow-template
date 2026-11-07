@@ -2,27 +2,58 @@
 
 One session runs the loop. It starts goals, reads what the others report, keeps a progress board and tells the owner
 what needs them. It never builds. Goals can run as hidden background agents (`watch.py go`) or as visible sessions
-(`watch.py go --session`, which prints `WORKTREE` and `PROMPT` for the owner to start in a new session).
+(`watch.py go --session`, which prints `WORKTREE` and `PROMPT` and starts no process).
+
+## Starting a visible session
+
+Start the new session from the main project folder, not from `WORKTREE`, because the host may refuse another folder on
+automated turns. Name the worktree in the brief: give it the printed `PROMPT` as it is, which names `WORKTREE` and tells
+the session to begin every shell command with `cd` to it. Never move the worktree or make a second one.
+
+If the session never starts or is lost, `watch.py resume SLUG` prints `WORKTREE` and `PROMPT` again and starts no
+process. A visible session's goal is never marked `failed`, mended or resumed by `watch`, and it keeps a plain `watch`
+open, so use `--once`. The board marks it `(quiet)` after 30 minutes with no update to its record.
 
 ## The loop
 
-Run `scripts/board.py cadence` to see the check-in gap in minutes (default 10, or `off`). Then repeat:
+Run `scripts/board.py cadence` to see the check-in gap in minutes (default 10, or `off`). Then repeat, waiting the
+gap between check-ins, or an hour when nothing runs or waits:
 
 1. Run `python3 scripts/watch.py watch --once` once. It starts queued goals, mends or resumes if the config allows,
    and prints what changed and what waits.
 2. Read each session's latest report: its run record, its log tail, and the note it left. A session leaves a note with
    `board.py note SLUG "<text>"`; the board shows it as the last message.
 3. Run `python3 scripts/board.py board --since <the last board.json>`. It prints `DIGEST`, `CHANGED`, one `CHANGE` line
-   per changed field, `NEXT_DELAY`, and the paths of `board.json`, `board.html` and `board-artifact.html`.
+   per changed field, `NO_CHANGE` if nothing changed while goals are open, `NEXT_DELAY`, and the path of `board.json`.
+   Then run `python3 scripts/board_page.py`, which adds the dependency map to `board.json` and prints the paths of
+   `board.html` and `board-artifact.html`.
 4. If you have an Artifact tool, publish `board-artifact.html` as it is, with no hand edits (it has no doctype, html, head
    or body tags): the same artifact URL each time, never a new one. Both pages follow the viewer's light or dark setting,
    and a manual `data-theme` of `dark` or `light` on the root wins. Otherwise give the owner the `board.html` path.
-5. Write one chat line only when `CHANGED` is yes. Say what changed, and what waits on the owner.
+5. Write one chat line only when `CHANGED` is yes. Say what changed, and what waits on the owner. When the board prints
+   `NO_CHANGE`, write that line instead: it gives the time of the next check-in, so a quiet loop doesn't look stalled.
 6. Report at most 6 lines to the owner, with anything waiting on them first.
 7. Wait `NEXT_DELAY` seconds, then go to step 1. `none` means the owner turned the loop off: stop and say so.
    Keep the previous `board.json` for the next `--since`.
 
 To pass the loop to a new session, run `board.py handoff` and give it the path.
+
+## Tracking sessions and retiring goals
+
+A session with no goal record still needs a lane. Run `board.py session add NAME --repo R [--branch B] [--waits-on X]`,
+then `session update NAME` with any of those flags or `--status`, `--note`, `--next`, `--pr` and `--eta`, and
+`session remove NAME` when it ends. `--eta` is the finish time shown on its box; give an ISO time.
+
+When a goal is superseded, run `board.py retire SLUG --reason "<why>"`. It leaves Waiting on you and the map, and stays
+in Runs marked `retired`. Only retire a goal the owner has said is superseded. It refuses a goal whose agent is running.
+
+## Reading the dependency map
+
+Each lane is a run and each box a step, coloured by status, with its expected finish. Solid arrows run inside a run.
+Thick dashed arrows cross runs and say why one waits, such as a goal or a shared file. A goal's `waits_on` is recorded
+when `watch` holds it, so the arrow stays through running and today's finished goals. Times come from the median
+finished goal of that level; without one the box says `no estimate`. Hover a box for what it is, what's done, what's
+next and what it unblocks, or tap it to open the same text in the list below. The page has no scripts.
 
 ## Rules
 
