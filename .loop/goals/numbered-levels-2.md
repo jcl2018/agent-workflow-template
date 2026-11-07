@@ -40,6 +40,15 @@ prints which. Risk: goal.py's 20 KB test cap (raised to 21 KB), and toy tests ke
 
 ## Evidence
 
-`grep -nE "minimum|quick|standard|full" listing.json docs/wiki/Release.md docs/wiki/Monitoring.md README.md docs/ROADMAP.md` finds
-nothing: those files use no old level names (listing.json and Release.md are untouched because they never held them).
-The only old-name hits in touched docs are the refusal lines in docs/wiki/Delivery.md and skills/workflow-delivery/SKILL.md.
+Command, run at the repo root over every tracked file outside .loop and dev/toy (the toy tests hold the refusal tests):
+
+`git grep -nwE "minimum|quick|standard|full" -- . ':!.loop' ':!dev/toy' | grep -iE "level|`(minimum|quick|standard|full)`|--level"`
+
+Output, complete:
+
+```
+docs/wiki/Delivery.md:23:path in `risky_paths`. The old names `minimum`, `quick`, `standard` and `full` are refused with a line naming 0, 1 and 2.
+skills/workflow-delivery/SKILL.md:49:The names `minimum`, `quick`, `standard` and `full` are refused with a line naming 0, 1 and 2. Any change to CI, auth
+```
+
+Both hits are the refusal. listing.json, docs/wiki/Release.md, Monitoring.md, README.md, ROADMAP.md, the other SKILL files and every script prompt have no hit.
