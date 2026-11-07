@@ -1,7 +1,9 @@
 <!-- workflow-docs -->
 # Release
 
-Skill: `workflow-release`. After a goal has a pull request and its checks hold. Script: `release.py`.
+## Summary
+
+Skill: `workflow-release`. After a goal has a pull request and its checks hold. Script: `release.py`. The criteria below are drafts until the owner approves them.
 
 ## Commands
 
@@ -19,12 +21,14 @@ show SLUG
   page that is stale since the goal's base or missing. After fixing a page, commit it and run `goal.py check` again.
   `cut` then moves the version (`patch` by default), writes the changelog, commits, pushes and creates a **draft**
   GitHub release. You publish it. A batch goal refuses `cut` without `--user`, which means your own words said to cut.
+- `cut` also refuses when a criterion on a wiki page (see Documentation) has a regression row that is missing, a draft
+  or failing. A repo with no criteria is unaffected.
 - `show` prints the `release` field, and the version and draft URL after a cut.
 
 After a cut, the agent publishes the wiki with `workflow-docs` if `.loop/docs.tsv` exists. If that fails, the draft
 stands.
 
-## Automatic draft releases
+### Automatic draft releases
 
 Set `"release_auto": true` in `.loop/config.json` to let a monitored batch goal decide from its diff. `ask` prints
 `NEED <leave|patch|minor|ask>: <reason>` and records it. Docs, tests and `.loop` changes leave. A fix cuts a `patch`
@@ -35,9 +39,21 @@ draft.
 
 No release is published and nothing merges without you.
 
-## Example
+### Example
 
 ```bash
 python3 scripts/release.py ask add-median
 python3 scripts/release.py cut add-median --bump minor --user
 ```
+
+## Criteria
+
+- REL-1: (draft) A release is refused unless the goal lists numbered steps to verify by hand, each with what to expect.
+- REL-2: (draft) A release is only ever created as a draft on GitHub, and nothing is merged.
+- REL-3: (draft) With automatic releases off, a goal run in a monitored batch cannot be cut unless the owner's own words said to cut.
+
+## Enforced by
+
+- REL-1: REL-1
+- REL-2: REL-2
+- REL-3: REL-3

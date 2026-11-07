@@ -3,14 +3,14 @@
 
 usage: goal.py <command> <slug> [options]
 
-  new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]  freeze a goal (no background agent)
-  queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]       add to .loop/queue.md
-  step SLUG NAME [--note TEXT]     record the step a goal is on
+  new SLUG --here --goal TEXT --done LINE [--level L] [--touches A,B] [--release R]  freeze a goal
+  queue SLUG --goal TEXT --done LINE [--level L] [--touches A,B]  add to .loop/queue.md
+  step SLUG NAME [--note TEXT]     record the step
   check SLUG                       run the repo's checks
   judge SLUG [--design]            run the fresh judge
   verdict SLUG --file FILE [--design]  record a fresh agent's verdict
   pr SLUG                          push the branch and open the pull request
-  wait SLUG --ask TEXT --words W [--words W]  stop until you answer
+  wait SLUG --ask TEXT --words W [--words W]  stop for an answer
   answer SLUG                      clear a wait
   finding SLUG TEXT                file a finding and stop the goal
   show SLUG                        print the goal's state
@@ -27,9 +27,24 @@ import sys
 import tempfile
 import time
 
-LEVELS = ("minimum", "quick", "standard", "full")
-UNJUDGED = ("minimum", "quick")
-FIRST = {"minimum": "build", "quick": "plan", "standard": "design", "full": "design"}
+LEVELS = ("0", "1", "2")
+UNJUDGED = ("0",)
+
+
+def level_arg(text):
+    if text not in LEVELS:
+        raise argparse.ArgumentTypeError("REFUSED: level %r. Fix: use 0 (no judge), 1 (one judge) or 2 (adds a design review)" % text)
+    return text
+
+
+def design_skill():
+    name = os.environ.get("LOOP_DESIGN_SKILL", "").strip()
+    try:
+        name = name or open(os.path.expanduser("~/.workflow-loop/design-skill")).read().strip()
+    except OSError:
+        return "", None
+    path = os.path.expanduser("~/.claude/skills/%s/SKILL.md" % name)
+    return name, read(path) if re.match(r"^[\w.:-]+$", name) and os.path.isfile(path) else None
 MAX_TRIES = 3
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 TEMPLATE = """# {goal}
@@ -138,7 +153,6 @@ def goal_file(slug):
 
 
 def done_lines(slug):
-    """The numbered lines under ## Done lines."""
     try:
         text = read(goal_file(slug))
     except OSError:
@@ -152,7 +166,6 @@ def done_sha(lines):
 
 
 def frozen(state):
-    """Refuse a goal whose done lines moved."""
     if done_sha(done_lines(state["slug"])) != state["done_sha"]:
         fail_stop(state, "The done lines changed after they were frozen. A wrong done line needs a new goal.")
 
@@ -177,7 +190,6 @@ def write_finding(state, text):
 
 
 def fail_stop(state, text):
-    """File a finding and stop for good."""
     state["status"] = "stopped"
     state["finding"] = text
     state["waiting"] = None
@@ -220,8 +232,8 @@ def cmd_new(args):
     level = args.level
     hit = risky(touches, cfg)
     if level in UNJUDGED and hit:
-        level = "standard"
-        print("LEVEL RAISED to standard: touches %s" % ", ".join(hit))
+        level = "1"
+        print("LEVEL RAISED to 1: touches %s" % ", ".join(hit))
     branch = "loop/" + args.slug
     current = git("branch", "--show-current")
     if current == cfg["base"]:
@@ -236,7 +248,7 @@ def cmd_new(args):
                                      touches=", ".join(touches) or "not declared", done="\n".join(lines)))
     git("add", path)
     git("commit", "-m", "Goal: %s" % args.slug, "--", path)
-    first = FIRST[level]
+    first = "design"
     state = {"slug": args.slug, "goal": args.goal, "level": level, "status": "running", "step": first, "tries": 0,
              "branch": branch, "worktree": root(), "touches": touches, "pid": None, "pr": "",
              "batch": bool(os.environ.get("LOOP_BATCH")), "done_sha": done_sha(lines), "checks": "", "judge": "",
@@ -302,8 +314,8 @@ def cmd_check(args):
         failed_try(state, "checks failed")
         return 1
     if state["level"] in UNJUDGED and risky(changed_files(state), config()):
-        state["level"] = "standard"
-        print("LEVEL RAISED to standard: the diff touches a risky path")
+        state["level"] = "1"
+        print("LEVEL RAISED to 1: the diff touches a risky path")
     save(state, "checks pass")
     print("CHECKS PASS %s" % args.slug)
     print("NEXT: " + ("pr" if state["level"] in UNJUDGED else "judge"))
@@ -311,10 +323,14 @@ def cmd_check(args):
 
 
 def make_pack(state, design):
-    """A folder outside the repo, holding only what the judge may see."""
     slug = state["slug"]
     pack = tempfile.mkdtemp(prefix="loop-judge-")
-    text = (DESIGN_PROMPT if design else JUDGE_PROMPT) + "=== GOAL FILE ===\n" + read(goal_file(slug))
+    extra = ""
+    if design:  # the private skill, if set, steers the review; say which ran
+        name, body = design_skill()
+        print("DESIGN REVIEW: " + ("using skill " + name if body else "built-in (%s)" % ("skill " + name + " not found" if name else "no design skill set")))
+        extra = "Review by this method:\n%s\n\n" % body if body else ""
+    text = (DESIGN_PROMPT if design else JUDGE_PROMPT) + extra + "=== GOAL FILE ===\n" + read(goal_file(slug))
     if not design:
         diff = git("diff", "%s...HEAD" % base_ref(state), "--", ".", ":(exclude).loop/goals")
         text += "\n=== DIFF ===\n" + diff + "\n=== CHECK RESULTS ===\n"
@@ -410,8 +426,8 @@ def cmd_pr(args):
         sys.exit("REFUSED: checks have not passed on this commit. Fix: run check.")
     if state["level"] not in UNJUDGED and (state.get("judge") != "pass" or state.get("judge_sha") != head):
         sys.exit("REFUSED: the fresh judge has not passed this commit. Fix: run judge.")
-    if state["level"] == "full" and state.get("design_review") != "pass":
-        sys.exit("REFUSED: full needs a design review. Fix: run judge --design.")
+    if state["level"] == "2" and state.get("design_review") != "pass":
+        sys.exit("REFUSED: level 2 needs a design review. Fix: run judge --design.")
     if git("status", "--porcelain", "--", "."):
         print("NOTE: uncommitted files stay out of the PR")
     head = bump_version(state, head)
@@ -480,7 +496,7 @@ def main():
         item.add_argument("slug")
         item.add_argument("--goal", required=True)
         item.add_argument("--done", action="append", default=[])
-        item.add_argument("--level", choices=LEVELS, default="minimum")
+        item.add_argument("--level", type=level_arg, default="0")
         item.add_argument("--touches", default="")
         item.set_defaults(func=func)
         if name == "new":

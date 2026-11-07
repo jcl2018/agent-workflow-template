@@ -28,12 +28,11 @@ agent-workflow-template is a pack of six focused skills, so an agent loads only 
 
 | Level | Steps | Fresh judge | Use it for |
 |---|---|---|---|
-| `minimum` | Build, checks | No | The default: fast work, with the agent's own planning |
-| `quick` | Written plan, build, checks | No | Small changes that need a plan on record |
-| `standard` | Short design, plan, build, checks | One, at the end | Most work |
-| `full` | Adds a design review before the build | One, plus the review | Risky or large changes |
+| `0` | Design, plan, build, checks | No | The default: most work |
+| `1` | Adds a judge | One, after the build | Work worth a second look |
+| `2` | Adds a design review before the build | One, plus the review | Risky or large changes |
 
-- Any change to CI, auth or data is `standard` at least.
+- Any change to CI, auth or data is level `1` at least.
 - The judge sees only the diff, the goal file and the check results.
 - After 3 failed tries, the run files a finding and stops.
 - The pull request is your review. The loop never merges.
@@ -54,7 +53,8 @@ One session starts and watches the others.
 
 ### Documentation
 
-- Pages live in `docs/wiki/`, and `.loop/docs.tsv` maps each page to the paths it describes.
+- Pages live in `docs/wiki/`, and `.loop/docs.tsv` maps each page to the paths it describes. The wiki is five feature pages (Delivery, Documentation, Monitoring, Regression, Release) plus Home; install steps and the file reference are in the README.
+- Each feature page lists draft criteria for the owner to approve, and each criterion has a row in `.loop/regression.tsv`.
 - `check` finds pages that are stale, missing or unwritten.
 - `publish` updates the GitHub wiki. It never deletes a page, and it won't replace a page it didn't write.
 - `restore` reverts the last publish.
@@ -93,19 +93,19 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 
 ### Done means
 
-1. On a toy repo, `quick` and `standard` goals each end in a pull request.
+1. On a toy repo, level 0 and level 1 goals each end in a pull request.
 2. The judge fails a planted bug, and the run fixes it or files a finding.
 3. `watch` runs 3 goals in parallel; one fails and the other two finish.
 4. `report` and `dashboard` match the true state, including a goal waiting on you.
 5. `cut` produces a draft release, and `leave` changes nothing versioned.
 6. `setup` runs twice on a repo with no change the second time.
 7. `dev/package.sh` passes, and refuses a package with one planted fault per rule.
-8. One real `quick` goal works on a real repo, and Codex can run the toy `quick` goal.
+8. One real level 0 goal works on a real repo, and Codex can run the toy level 0 goal.
 9. `publish` updates a real wiki without touching other pages, and a real release carries verify steps and docs.
 
 ## Second batch: built
 
-- `minimum` level, the new default, with no design round.
+- Numbered levels 0, 1 and 2; level 0 is the default.
 - One governing session: `/workflow-monitoring go` and `watch`.
 - `workflow-regression`: rows, known failures, a workflow, and an issue per failing row.
 - A POC's queue line, the mender, resuming after a usage limit, and optional version bumps on pull requests.
@@ -119,6 +119,6 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 
 1. **The wiki and the Agensi listing:** publish the wiki with `workflow-docs`, and list the package on Agensi.
 2. **Other agents:** Kimi, Qwen and OpenCode support.
-3. **The `full` level:** it has not run yet, on a toy repo or a real one.
+3. **Level 2:** it has not run yet, on a toy repo or a real one.
 
 Merging, a project board and milestones stay with you.

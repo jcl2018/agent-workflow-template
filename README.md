@@ -5,13 +5,13 @@ and builds it, a fresh agent that didn't do the work judges it, and you review t
 and the others build.
 
 **Status: early. Copy the `skills/` folders into your agent's skills folder, or run `dev/install-local.sh` for Claude
-Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md), the [roadmap](docs/ROADMAP.md) and the
+Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md) for the five features, the [roadmap](docs/ROADMAP.md) and the
 [release page](../../releases).
 
 ## What it aims to be
 
 - **Light:** Markdown instructions and a few small scripts, with no engine to run.
-- **Adjustable:** each goal runs at a level, from `minimum` to `full`, so small changes skip the heavy steps.
+- **Adjustable:** each goal runs at a level, from `0` to `2`, so small changes skip the heavy steps.
 - **Governed:** the session you talk to never builds. It starts background agents, shows what waits on you, and keeps a
   dashboard.
 - **Checkable by you:** every release says how to verify it by hand, and your wiki stays in step with the code.
@@ -19,7 +19,7 @@ Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md), the [road
 
 ## Commands
 
-All of these have run on a toy repo, except the `full` level. `go`, `docs` and `cut` have also run on a real repo. They may change while the first version settles. The examples use Claude Code. In other agents, you
+All of these have run on a toy repo, except level 2. `go`, `docs` and `cut` have also run on a real repo. They may change while the first version settles. The examples use Claude Code. In other agents, you
 can ask in plain words, such as "start a goal to add result caching".
 
 Set up a repo once:
@@ -43,12 +43,11 @@ The level sets how much process a goal gets:
 
 | Level | Steps | Use it for |
 |---|---|---|
-| `minimum` | Build, checks | The default: fast work, using the agent's own planning |
-| `quick` | Written plan, build, checks | Small changes you want a plan on record for |
-| `standard` | Short design, plan, build, checks, one fresh judge | Most work |
-| `full` | Adds a design review before the build | Risky or large changes |
+| `0` | Design, plan, build, checks | The default: most work |
+| `1` | Adds one fresh judge after the build | Work worth a second look |
+| `2` | Adds a design review before the build | Risky or large changes |
 
-Changes to CI, auth or data run at `standard` at least.
+Changes to CI, auth or data run at level `1` at least. At level 2 the design review uses a skill named in the private file `~/.workflow-loop/design-skill` or the variable `LOOP_DESIGN_SKILL` (never stored in the repo). With none set, or the skill missing, the built-in review runs; the output says which ran.
 
 See where things stand, or pick up a failed goal:
 
@@ -103,3 +102,48 @@ Release the work, or leave it unreleased for now:
 Every goal has a `Verify by hand` section: steps you can follow to see the change work, each with what to expect. `cut`
 refuses without one, and refuses if a wiki page is stale. It then creates a draft GitHub release that carries those
 steps and the docs that changed, for you to publish. Nothing merges or publishes without you.
+
+## Getting started
+
+From install to one finished goal.
+
+1. **Install.** Run `dev/install-local.sh`. It links each `skills/workflow-*` folder into `~/.claude/skills` (or
+   `$CLAUDE_SKILLS_DIR`) and prints `LINKED <name>`. It skips a name that is already a real folder. For another agent,
+   copy the `skills/` folders into its skills folder.
+2. **Set up your repo.** Run `/workflow-setup`. It writes `.loop/config.json`, `.loop/queue.md` and `.loop/findings.md`
+   on a branch called `workflow-setup`. Preview with `python3 scripts/setup.py --dry-run`, using the path to the skill's
+   folder. Then run each command in `checks` once and fix or add commands until they prove the repo works, allow the
+   tools a background agent needs in `agent_command` (for example
+   `["claude", "-p", "--allowedTools=Bash,Read,Write,Edit"]`), and review and merge the branch yourself. The other
+   skills read the config from the base branch.
+3. **Start a goal.** From the main checkout, on the base branch:
+   `/workflow-monitoring go "add result caching" --done "repeat searches are served from the cache"`. Done lines are
+   frozen once the goal starts, so make each one provable from the diff, the goal file and the check results. The level
+   is `0` unless you add `--level`, and only levels 1 and 2 get a fresh judge.
+4. **Watch it.** `/workflow-monitoring watch` starts queued goals in their own worktrees, prints what changed, and ends
+   with what waits on you. Use `report` for a snapshot.
+5. **Review.** The goal ends at a pull request. A monitored goal answers `leave` by itself, unless you started it with
+   `--release ask`; then it waits for `cut <slug>` or `leave <slug>`. Answer before you merge, because `cut` commits on
+   the goal's branch. Review and merge the pull request yourself; nothing here merges.
+
+## File reference
+
+In the repo:
+
+| File | Holds |
+|---|---|
+| `.loop/config.json` | Base branch, checks, agent commands, risky paths, wiki folder |
+| `.loop/queue.md` | Goals to run, one line each |
+| `.loop/goals/<slug>.md` | One goal: frozen done lines, plan, verify steps |
+| `.loop/findings.md` | Open findings |
+| `.loop/docs.tsv` | Each wiki page and the paths it describes |
+| `.loop/regression.tsv` | Test rows |
+| `.loop/regression-known.tsv` | Rows expected to fail, with a reason |
+| `docs/wiki/` | Wiki pages, each starting with `<!-- workflow-docs -->` |
+
+Outside the repo, run state lives in `<git common dir>/loop/`: `runs/<slug>.json`, `logs/<slug>.log`,
+`dashboard.html`, `wiki.json`, `board.json`, `board.html`, `cadence` (minutes between check-ins, or `off`) and
+`handoff.md`. Nothing there is committed. `board.py repos add` keeps a list of repo paths in `~/.workflow-loop/repos`.
+
+In this template: `skills/` (the six skills; the full contract is `skills/loop-files.md`), `dev/` (install, package and
+toy tests), `listing.json`, `VERSION`, `DECISIONS.md`, `FINDINGS.md` and `docs/ROADMAP.md`.

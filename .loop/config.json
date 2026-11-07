@@ -2,6 +2,7 @@
   "base": "main",
   "checks": [
     "bash dev/toy/test-docs.sh",
+    "bash dev/toy/test-criteria.sh",
     "bash dev/toy/test-release.sh",
     "bash dev/toy/test-goal.sh",
     "bash dev/toy/test-regression.sh",
@@ -32,5 +33,6 @@
   "wiki_dir": "docs/wiki",
   "pr_bumps_version": false,
   "mend": true,
-  "resume_on_limit": false
+  "resume_on_limit": false,
+  "criteria": true
 }

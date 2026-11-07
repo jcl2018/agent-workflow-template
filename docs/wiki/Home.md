@@ -2,19 +2,22 @@
 # agent-workflow-template
 
 A small agentic workflow for any repo: you state a goal and the checks that prove it, an agent builds it, a fresh agent
-judges it, and you review the pull request. One session governs and the others build.
+judges it, and you review the pull request. One session governs and the others build. To install it and run a first
+goal, or to see where every file lives, read the [README](https://github.com/jcl2018/agent-workflow-template#readme).
 
 ## Features
 
+Each feature page has a Summary, its Commands, draft Criteria for the owner to approve, and what enforces each one.
+
 | Feature | Skill | Page |
 |---|---|---|
-| Set up a repo | `workflow-setup` | [Getting started](Getting-started) |
 | Goal to judged pull request | `workflow-delivery` | [Delivery](Delivery) |
-| Run and watch many goals | `workflow-monitoring` | [Monitoring](Monitoring) |
 | Keep the wiki in step with code | `workflow-docs` | [Documentation](Documentation) |
+| Run and watch many goals | `workflow-monitoring` | [Monitoring](Monitoring) |
 | Keep tests visible and enforced | `workflow-regression` | [Regression](Regression) |
 | Cut a draft release or leave it | `workflow-release` | [Release](Release) |
-| Where every file lives | all | [Files](Files) |
+
+Setting up a repo (`workflow-setup`) is covered under Getting started in the README.
 
 ## What is proven
 
@@ -41,4 +44,4 @@ judges it, and you review the pull request. One session governs and the others b
 
 - The timed check-in loop (`board.py cadence`, then `watch.py watch --once` and `board.py board` on each wait) has not
   fired on its timer. No finding or decision records a run of it, and `dev/toy/test-board.sh` uses fixtures.
-- The `full` level has not run, on a toy repo or a real one (docs/ROADMAP.md).
+- Level 2 has not run, on a toy repo or a real one (docs/ROADMAP.md).

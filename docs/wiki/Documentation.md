@@ -1,10 +1,12 @@
 <!-- workflow-docs -->
 # Documentation
 
-Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests; `wiki_dir` in `.loop/config.json`
-changes the folder) and finds stale ones. Script: `docs.py`.
+## Summary
 
-## Init
+Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests; `wiki_dir` in `.loop/config.json`
+changes the folder) and finds stale ones. Script: `docs.py`. The criteria below are drafts until the owner approves them.
+
+### Init
 
 `init` is a step list in `skills/workflow-docs/SKILL.md`. It has no script command of its own: `docs.py` has `survey`,
 `add`, `check`, `publish` and `restore`.
@@ -22,10 +24,13 @@ makes the wiki's repo then. Tell them, then stop.
 
 ## Commands
 
+Pages are added and checked with these (`init` is a step list in the skill, not a command):
+
 ```text
 survey                          show the wiki's pages and this repo's page map
 add PAGE --paths A,B            add a page and the paths it describes
 check [--base REF]              list missing, stale, unmapped and unwritten pages; exit 1 if any
+criteria PAGE                   print the criterion format and the next free id for a page
 publish [--dry-run] [--adopt PAGE]   copy the pages to the GitHub wiki, commit and push
 restore                         revert the last publish, if nothing came after it
 ```
@@ -34,15 +39,32 @@ restore                         revert the last publish, if nothing came after i
 `UNMAPPED`, `NO PAGES` if the map is empty, and `DOCS OK` when clean. Only a commit that changes the page clears
 `STALE`.
 
+With `"criteria": true` in the config, `check` also enforces the criteria contract: only the pages Delivery,
+Documentation, Monitoring, Regression, Release and Home; each feature page has exactly the sections Summary, Commands,
+Criteria and Enforced by, in that order; a criterion is one line `- DEL-1: text` with a unique id, and each id needs an
+`- DEL-1: <regression row id>` line in Enforced by. Only the owner approves a changed criterion.
+
 `--base REF` counts only changes since `REF`. `publish` has no `--base`, so it counts every commit, and it refuses while
 `check` finds problems. It never deletes a page. It refuses a page in the repo that lost the marker
 `<!-- workflow-docs -->`, and won't replace a wiki page without that marker unless you name it with `--adopt`. `restore`
 refuses if the wiki changed since.
 
-## Example
+### Example
 
 ```bash
 python3 scripts/docs.py add Delivery --paths "skills/workflow-delivery"
 python3 scripts/docs.py check
 python3 scripts/docs.py publish --dry-run
 ```
+
+## Criteria
+
+- DOC-1: (draft) The check reports a page as stale when the code it describes changed in a commit after the page's last commit.
+- DOC-2: (draft) Publishing to the GitHub wiki is refused while the check finds a stale page.
+- DOC-3: (draft) Publishing never replaces a wiki page this tool did not write, unless the owner names that page.
+
+## Enforced by
+
+- DOC-1: DOC-1
+- DOC-2: DOC-2
+- DOC-3: DOC-3

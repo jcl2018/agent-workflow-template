@@ -30,17 +30,17 @@ PY
 echo "== new needs --here: one session governs"
 $goal new blocked --goal "No" --done "no" 2>&1 | grep -q "one session governs" && ok "new refused without --here" || bad "new refused"
 
-echo "== minimum is the default: no design, no plan, no judge"
+echo "== 0 is the default: design, plan, build, checks, no judge"
 out=$($goal new low --here --goal "Add low" --done "calc has low"); echo "$out"
-grep -q "level=minimum" <<<"$out" && grep -q "step=build" <<<"$out" && ok "default level minimum, starts at build" || bad "minimum start"
+grep -q "level=0" <<<"$out" && grep -q "step=design" <<<"$out" && ok "default level 0, starts at design" || bad "level 0 start"
 printf '\n\ndef low():\n    return 1\n' >> calc.py; git commit -qam "Add low"
-$goal check low | grep -q "NEXT: pr" && ok "minimum goes from checks to pr" || bad "minimum next"
-$goal pr low | grep -q "^PR " && ok "pr without a judge" || bad "minimum pr"
-grep -q "Not judged (minimum)" "$FAKE_GH_DIR/calls.log" && ok "pr says not judged" || bad "pr body"
+$goal check low | grep -q "NEXT: pr" && ok "level 0 goes from checks to pr" || bad "level 0 next"
+$goal pr low | grep -q "^PR " && ok "pr without a judge" || bad "level 0 pr"
+grep -q "Not judged (0)" "$FAKE_GH_DIR/calls.log" && ok "pr says not judged" || bad "pr body"
 git switch -q main
 
-echo "== risky paths raise minimum to standard"
-$goal new risky --here --goal "Touch CI" --done "ci" --touches ".github/x.yml" | grep -q "level=standard" && ok "raised at the start" || bad "raise start"
+echo "== risky paths raise 0 to 1"
+$goal new risky --here --goal "Touch CI" --done "ci" --touches ".github/x.yml" | grep -q "level=1" && ok "raised at the start" || bad "raise start"
 git switch -q main
 $goal new sneaky --here --goal "Sneak" --done "ci" >/dev/null
 mkdir -p .github; echo x > .github/x.yml; git add -A; git commit -qm "Sneak"
@@ -58,16 +58,31 @@ head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 0: python3" &&
 git switch -q main; git checkout -q -- .loop/config.json 2>/dev/null; cp "$d/cfg.bak" .loop/config.json; git status --porcelain | grep -q config.json && git commit -qam "Restore checks"
 
 echo "== queue adds a line a watcher can read, and poc stays read-only"
-$goal queue fix-a --goal "Fix a" --done "a is fixed" --level minimum --touches "a.py" | grep -q QUEUED && ok "queued" || bad "queue"
-grep -q '^- slug: fix-a | level: minimum | touches: a.py | goal: Fix a | done: a is fixed$' .loop/queue.md && ok "valid line" || bad "queue line"
+$goal queue fix-a --goal "Fix a" --done "a is fixed" --level 0 --touches "a.py" | grep -q QUEUED && ok "queued" || bad "queue"
+grep -q '^- slug: fix-a | level: 0 | touches: a.py | goal: Fix a | done: a is fixed$' .loop/queue.md && ok "valid line" || bad "queue line"
 $goal queue fix-a --goal "Fix a" --done "x" 2>&1 | grep -q "already exists" && ok "duplicate refused" || bad "duplicate"
 $goal queue pipe --goal "a|b" --done "x" 2>&1 | grep -q "no |" && ok "pipe refused" || bad "pipe"
 $M report | grep -q "fix-a" && ok "report reads it" || bad "report queue"
 git checkout -q -- .loop/queue.md
 
+echo "== the old level names are refused, naming the new levels"
+$goal new oldname --here --goal "Old" --done "old" --level standard 2>&1 | grep -q "use 0 (no judge), 1 (one judge) or 2 (adds a design review)" && ok "old name refused" || bad "old name"
+$goal queue oldq --goal "Old" --done "old" --level quick 2>&1 | grep -q "use 0 (no judge), 1 (one judge) or 2 (adds a design review)" && ok "old queue level refused" || bad "old queue level"
+[ -z "$(ls .loop/goals 2>/dev/null | grep oldname)" ] && ok "refused goal not created" || bad "old goal created"
+
+echo "== level 2 design review says which ran, and the private setting picks the skill"
+git switch -q main
+$goal new dskill --here --goal "Skilled" --done "skilled" --level 2 >/dev/null
+$goal judge dskill --design 2>&1 | grep -q "DESIGN REVIEW: built-in (no design skill set)" && ok "built-in review named" || bad "built-in review"
+mkdir -p "$d/home/.claude/skills/my-design"; echo "Review like this." > "$d/home/.claude/skills/my-design/SKILL.md"
+HOME="$d/home" LOOP_DESIGN_SKILL=my-design $goal judge dskill --design 2>&1 | grep -q "DESIGN REVIEW: using skill my-design" && ok "private skill used" || bad "private skill"
+HOME="$d/home" LOOP_DESIGN_SKILL=missing-one $goal judge dskill --design 2>&1 | grep -q "built-in (skill missing-one not found)" && ok "missing skill falls back" || bad "missing skill"
+git ls-files | grep -q design-skill && bad "setting in repo" || ok "setting is not in the repo"
+git switch -q main
+
 echo "== a failed design review stays at the design; the plan isn't reviewed yet"
 git switch -q main
-$goal new drev --here --goal "Review" --done "reviewed" --level full >/dev/null
+$goal new drev --here --goal "Review" --done "reviewed" --level 2 >/dev/null
 echo "VERDICT: fail" > "$d/vf"
 $goal verdict drev --file "$d/vf" --design > "$d/dr"
 grep -q "NEXT: rewrite the design" "$d/dr" && [ "$(field drev step)" = design ] && [ "$(field drev tries)" = 1 ] && ok "design failure goes back to the design" || bad "design failure"
@@ -75,7 +90,7 @@ grep -q "design and plan" "$here/skills/workflow-delivery/scripts/goal.py" && ba
 git switch -q main
 
 echo "== evidence needs new checks, and a verdict failed on proof alone costs a try"
-$goal new proof --here --goal "Add proof" --done "calc has proof" --level standard >/dev/null
+$goal new proof --here --goal "Add proof" --done "calc has proof" --level 1 >/dev/null
 printf '\n\ndef proof():\n    return 1\n' >> calc.py; git commit -qam "Add proof"
 $goal check proof >/dev/null
 printf '\n## Evidence\n\nsome output\n' >> .loop/goals/proof.md; git commit -qam "Evidence"
@@ -164,7 +179,7 @@ ok "every goal finished"
 [ "$(git rev-parse HEAD)" = "$head0" ] && [ -z "$(git status --porcelain -- calc.py)" ] && ok "governing checkout wrote no code" || bad "governor wrote code"
 [ "$(cat "$FAKE_AGENT/pwd-alpha")" != "$(cat "$FAKE_AGENT/pwd-beta")" ] && ok "each goal has its own worktree" || bad "worktree"
 case "$(cat "$FAKE_AGENT/pwd-alpha")" in */loop/worktrees/alpha) ok "worktree under loop/";; *) bad "worktree path";; esac
-grep -q "Start at step 4 (Build)" "$FAKE_AGENT/prompt-alpha-0" && ok "minimum starts at Build" || bad "prompt step"
+grep -q "Start at step 2 (Design)" "$FAKE_AGENT/prompt-alpha-0" && ok "level 0 starts at Design" || bad "prompt step"
 
 echo "== mender: one fresh agent, told only the finding and the log"
 printf 'fail\nfail\nfail\n' > "$FAKE_AGENT/behave-mendme"

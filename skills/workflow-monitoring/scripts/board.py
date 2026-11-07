@@ -26,10 +26,10 @@ import subprocess
 import sys
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
-STEPS = {"minimum": ["build", "checks", "pr"], "quick": ["plan", "build", "checks", "pr"],
-         "standard": ["design", "plan", "build", "checks", "judge", "pr"],
-         "full": ["design", "design-review", "plan", "build", "checks", "judge", "pr"]}
-ORDER = STEPS["full"] + ["release"]
+STEPS = {"0": ["design", "plan", "build", "checks", "pr"],
+         "1": ["design", "plan", "build", "checks", "judge", "pr"],
+         "2": ["design", "design-review", "plan", "build", "checks", "judge", "pr"]}
+ORDER = STEPS["2"] + ["release"]
 QUIET = 1800
 SECTIONS = ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step"]
 FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on")
@@ -156,7 +156,7 @@ def queue_of(path):
     goals = []
     for line in lines:
         if line.startswith("- slug:"):
-            item = {"touches": [], "level": "minimum"}
+            item = {"touches": [], "level": "0"}
             for part in line.strip()[2:].split("|"):
                 key, _, value = part.partition(":")
                 key, value = key.strip(), clean(value)
@@ -226,7 +226,7 @@ def collect(name, path, base, at):
             if len(live) >= int(cfg.get("parallel", 3) or 3):
                 why = "a free slot (%d of %s running)" % (len(live), cfg.get("parallel", 3))
         deps.append({"repo": name, "slug": goal["slug"], "waits_on": why, "on": blocker, "goal": clean(goal.get("goal"), 80),
-                     "level": goal["level"], "touches": goal["touches"], "boxes": STEPS.get(goal["level"], STEPS["standard"])})
+                     "level": goal["level"], "touches": goal["touches"], "boxes": STEPS.get(goal["level"], STEPS["1"])})
     return rows, deps
 
 
@@ -270,7 +270,7 @@ def build(at, since):
     for r in rows:
         if r["tracked"]:
             continue
-        mine = STEPS.get(r["level"], STEPS["standard"])
+        mine = STEPS.get(r["level"], STEPS["1"])
         at_step = ORDER.index(r["step"]) if r["step"] in ORDER else -1
         for step in mine + (["release"] if r["status"] == "done" or r["step"] == "release" else []):
             index = ORDER.index(step)

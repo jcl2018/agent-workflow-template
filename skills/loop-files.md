@@ -11,6 +11,7 @@ The six workflow skills share this contract. Skill instructions never go in the 
 | `.loop/goals/<slug>.md` | One goal: done lines, plan, log |
 | `.loop/findings.md` | Open findings, one line each |
 | `.loop/docs.tsv` | Each wiki page and the paths it describes |
+| `.loop/config.json` key `criteria` | `true` makes `docs.py check` enforce the criteria contract on the wiki pages; a criterion's regression row has its id as id or goal |
 | `.loop/regression.tsv` | Each test row: id, level, command, goal, date seen failing |
 | `.loop/regression-known.tsv` | Rows expected to fail, with a reason; they don't block |
 
@@ -51,10 +52,10 @@ refuses without one, and copies the steps into the changelog and the release pag
 One goal a line. Other lines are ignored.
 
 ```
-- slug: add-median | level: standard | touches: calc.py, test_calc.py | goal: Add median() | done: Odd lists give the middle value | done: Even lists average the two middle values
+- slug: add-median | level: 1 | touches: calc.py, test_calc.py | goal: Add median() | done: Odd lists give the middle value | done: Even lists average the two middle values
 ```
 
-`level` defaults to `minimum`. `touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
+`level` defaults to `0` (the old names are refused). `touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
 for your answer instead of answering `leave`. `session: yes` marks a goal for a visible session.
 
 ## Outside the repo: run state
@@ -78,7 +79,7 @@ loop/wiki.json            the last wiki publish, for restore
 
 ```json
 {
-  "slug": "add-median", "goal": "Add median()", "level": "standard",
+  "slug": "add-median", "goal": "Add median()", "level": "1",
   "status": "running", "step": "build", "tries": 0, "branch": "loop/add-median", "worktree": "/path",
   "touches": ["calc.py"], "pid": 123, "pr": "https://github.com/o/r/pull/1", "batch": true,
   "done_sha": "<sha256 of the done lines>", "checks": "pass", "judge": "pass", "release": "ask",

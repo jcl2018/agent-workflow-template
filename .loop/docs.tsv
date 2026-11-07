@@ -1,9 +1,7 @@
 # page<TAB>paths it describes, comma separated
 Delivery	skills/workflow-delivery
 Documentation	skills/workflow-docs
-Files	skills/loop-files.md,.loop/config.json
-Getting-started	dev/install-local.sh,skills/workflow-setup
-Home	README.md,FINDINGS.md,DECISIONS.md
+Home	README.md,FINDINGS.md,DECISIONS.md,skills/workflow-setup,dev/install-local.sh
 Monitoring	skills/workflow-monitoring
 Regression	skills/workflow-regression
 Release	skills/workflow-release
