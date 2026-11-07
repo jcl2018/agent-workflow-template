@@ -224,6 +224,12 @@ $W watch --once >/dev/null
 check "watch never marks a goal with no pid failed" '[ "$(field own status)" = running ]'
 timeout_watch() { python3 -c "import subprocess,sys;sys.exit(subprocess.run(sys.argv[1:],timeout=20,stdout=subprocess.DEVNULL).returncode)" "$@"; }
 check "a plain watch still ends beside a goal with no pid" 'timeout_watch python3 "$here/skills/workflow-monitoring/scripts/watch.py" watch --interval 0.2'
+$W go "Add free" --done "free" --touches free.py --slug free >/dev/null
+check "a goal with no pid uses no agent slot" '[ -n "$(field free pid)" ] && [ "$(field free pid)" != None ]'
+sets own 'touches=["held.py"]'
+$W go "Add held" --done "held" --touches held.py --slug heldby >/dev/null
+check "but it still holds a goal touching the same files" '[ ! -e "$C/loop/runs/heldby.json" ] && $M report | grep -q "^- heldby: conflict with own"'
+sed -i.bak '/slug: heldby /d' .loop/queue.md
 sets own 'status="stopped"'
 $W watch --once >/dev/null
 check "a goal with no pid is never mended" 'sleep 0.3; [ "$(field own status)" = stopped ] && [ "$(field own mended)" = None ]'

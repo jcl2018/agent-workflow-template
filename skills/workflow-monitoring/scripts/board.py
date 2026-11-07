@@ -219,8 +219,9 @@ def collect(name, path, base, at):
                 why, blocker = "goal %s (shared %s)" % (run["slug"], hit[0]), run["slug"]
                 break
         else:
-            if len(live) >= int(cfg.get("parallel", 3) or 3):
-                why = "a free slot (%d of %s running)" % (len(live), cfg.get("parallel", 3))
+            used = sum(1 for r in live if r.get("status") != "running" or r.get("pid") or r.get("external"))
+            if used >= int(cfg.get("parallel", 3) or 3):
+                why = "a free slot (%d of %s running)" % (used, cfg.get("parallel", 3))
         deps.append({"repo": name, "slug": goal["slug"], "waits_on": why, "on": blocker, "goal": clean(goal.get("goal"), 80),
                      "level": goal["level"], "touches": goal["touches"]})
     return rows, deps

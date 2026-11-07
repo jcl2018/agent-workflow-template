@@ -128,6 +128,11 @@ def overlap(a, b):
     return a == b or a.startswith(b + os.sep) or b.startswith(a + os.sep)
 
 
+def holds_slot(state):
+    """A running goal with no pid isn't a marked session: it still blocks overlapping files, but uses no agent slot."""
+    return state.get("status") != "running" or state.get("pid") or state.get("external")
+
+
 def blocker(goal, live):
     for state in live:
         if any(overlap(mine, theirs) for mine in goal["touches"] for theirs in state.get("touches") or []):
@@ -184,11 +189,11 @@ def plan(limit):
         hit = blocker(goal, live)
         if hit:
             held.append((goal, "conflict with %s" % hit))
-        elif len(live) >= limit:
-            held.append((goal, "slots full (%d of %d)" % (len(live), limit)))
+        elif sum(1 for state in live if holds_slot(state)) >= limit:
+            held.append((goal, "slots full (%d of %d)" % (sum(1 for state in live if holds_slot(state)), limit)))
         else:
             start.append(goal)
-            live.append({"slug": goal["slug"], "touches": goal["touches"], "status": "running"})
+            live.append({"slug": goal["slug"], "touches": goal["touches"], "status": "starting"})
     return start, held
 
 
