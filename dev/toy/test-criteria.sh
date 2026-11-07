@@ -10,7 +10,7 @@ reg="python3 $here/skills/workflow-regression/scripts/regression.py"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"; rel="python3 $here/skills/workflow-release/scripts/release.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 unset GH_TOKEN GITHUB_TOKEN
-cd "$d/repo"
+cd "$d/repo"; PWD_REPO=$PWD
 python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 fails=0
@@ -36,6 +36,15 @@ $docs check | grep -q "DOCS OK" && ok "a conforming page passes" || bad "conform
 $docs add Extras --paths calc.py >/dev/null
 page Extras "- EXT-1: x" "- EXT-1: x"
 $docs check | grep -q "^PAGE Extras" && ok "a page outside the list fails" || bad "extra page"
+for name in Documentation Monitoring Regression Release; do $docs add $name --paths calc.py >/dev/null; done
+page Documentation "- DOC-1: x." "- DOC-1: r"; page Monitoring "- MON-1: x." "- MON-1: r"
+page Regression "- REG-1: x." "- REG-1: r"; page Release "- REL-1: x." "- REL-1: r"
+$docs add Home --paths README.md >/dev/null
+printf '<!-- workflow-docs -->\n# Home\n\nFree-form home page with no required sections, written for this test of the toy.\n' > docs/wiki/Home.md
+out=$($docs check | grep -v Extras || true); echo "$out"
+grep -q "^PAGE\|^SECTIONS\|^CRITERION\|^UNENFORCED\|^DUPLICATE" <<<"$out" && bad "an allowed page failed" || ok "all five pages and Home are accepted"
+rm -f docs/wiki/{Documentation,Monitoring,Regression,Release,Home}.md
+grep -v '^\(Documentation\|Monitoring\|Regression\|Release\|Home\)' .loop/docs.tsv > .loop/t && mv .loop/t .loop/docs.tsv
 rm docs/wiki/Extras.md; grep -v '^Extras' .loop/docs.tsv > .loop/t && mv .loop/t .loop/docs.tsv
 page Delivery "- DEL-1: The calculator prints a median." "- DEL-1: del-1"
 sed -i.bak 's/^## Commands/## Usage/' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
@@ -86,6 +95,9 @@ git add -A; git commit -qm "Failing row" >/dev/null; $goal check crit >/dev/null
 $rel cut crit 2>&1 | grep -q "DEL-2 (row del-2 is a draft or failing)" && ok "cut refuses a failing row" || bad "cut failing row"
 $reg add del-2 --level land --command "true" --goal DEL-2 >/dev/null
 git add -A; git commit -qm "Passing row" >/dev/null; $goal check crit >/dev/null
+mv .loop/docs.tsv "$d/docs.tsv.away"
+(cd "$here/skills/workflow-release/scripts" && python3 -c "import release; print(release.criteria_trouble('$PWD_REPO', {}))") | grep -q '^\[\]$' && ok "no docs.tsv: criteria are ignored" || bad "no docs.tsv"
+mv "$d/docs.tsv.away" .loop/docs.tsv
 $rel cut crit | grep -q "^DRAFT" && ok "cut with every row passing" || bad "cut passing"
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
