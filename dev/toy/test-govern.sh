@@ -35,7 +35,7 @@ for s in stats-a stats-b; do
   [ "$(field $s status)" = done ] && ok "$s done" || bad "$s is $(field $s status)"
   [ "$(field $s level)" = None ] && ok "$s has no level" || bad "$s level"
   [ -n "$(field $s pr)" ] && [ "$(field $s pr)" != None ] && ok "$s has a pull request" || bad "$s pr"
-  [ "$(field $s judge)" = "" ] && ok "$s ran no judge" || bad "$s judged"
+  [ "$(field $s judge)" = None ] && ok "$s ran no judge" || bad "$s judged"
   [ -f "$C/loop/worktrees/$s/${s/-/_}.py" ] && ok "$s built in its own worktree" || bad "$s worktree"
 done
 [ "$(field stats-a worktree)" != "$(field stats-b worktree)" ] && ok "two worktrees" || bad "same worktree"

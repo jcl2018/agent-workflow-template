@@ -3,39 +3,28 @@
 ## How it runs
 
 One session governs, and the others build. Start every goal with `/workflow-monitoring go`, then run
-`/workflow-monitoring watch`. Each goal gets its own worktree and background agent, at every level.
+`/workflow-monitoring watch`. Each goal gets its own worktree and background agent.
 
-## First batch: built
+## Rescoped: delivery wraps your own skill suite
 
-Delivery, monitoring, documentation and release are built.
+Delivery no longer has its own design, design review, judge or release. Every goal runs one flow through the owner's
+own skill suite, unattended: idea, plan, build, review, qa and ship, with frozen done lines, the repo's checks, a 3-try
+stop and `Verify by hand` around them, and delivery's own pull request at the end. A private file,
+`~/.workflow-loop/flow.json`, names the skills; the repo never does. `poc`, the levels and `workflow-release` are gone,
+because the suite does those jobs.
 
-Together these give the whole path: start work, watch it run in parallel, document it, and ship the result.
-
-agent-workflow-template is a pack of six focused skills, so an agent loads only the one it needs.
+agent-workflow-template is now a pack of six focused skills, so an agent loads only the one it needs.
 
 | Skill | Commands | What it does |
 |---|---|---|
 | `workflow-setup` | `setup` | Surveys a repo and writes its config, on a branch |
-| `workflow-delivery` | `poc`, `go`, and the goal steps `new` to `show` | Takes a sentence to a pull request, judged at levels 1 and 2 |
-| `workflow-monitoring` | `go`, `watch`, `report`, `dashboard`, `resume`, `board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`, and the batch commands `add`, `start`, `status`, `promote` | One session governs; the others build |
+| `workflow-delivery` | `go`, and the goal steps `new` to `show`, with `flow` and `record` | Runs your skill flow from a sentence to a pull request |
+| `workflow-monitoring` | `go`, `watch`, `report`, `dashboard`, `resume`, `board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`, and the batch commands `add`, `start`, `status` | Starts goals in the background and shows what waits on you |
 | `workflow-regression` | `seed`, `add`, `sync`, `criteria`, `red`, `run`, `workflow` | Keeps tests visible and enforced |
-| `workflow-docs` | `init`, `survey`, `add`, `check`, `criteria`, `publish`, `restore` | Keeps wiki pages in the repo and finds stale ones |
-| `workflow-release` | `ask`, `cut`, `leave`, `show` | Versions the repo and writes a draft GitHub release |
+| `workflow-docs` | `init`, `survey`, `add`, `check`, `criteria`, `publish`, `restore` | Keeps wiki pages in the repo, holds the criteria contract |
+| `workflow-health` | `check`, `run`, and milestones | Checks the repo's health with fixed rules |
 
-### Delivery
-
-`poc` answers a question, writes nothing, and ends with one `go` line. `go` freezes the done lines and runs at a level:
-
-| Level | Steps | Fresh judge | Use it for |
-|---|---|---|---|
-| `0` | Design, plan, build, checks | No | The default: most work |
-| `1` | Adds a judge | One, after the build | Work worth a second look |
-| `2` | Adds a design review before the build | One, plus the review | Risky or large changes |
-
-- Any change to CI, auth or data is level `1` at least.
-- The judge sees only the diff, the goal file and the check results.
-- After 3 failed tries, the run files a finding and stops.
-- The pull request is your review. The loop never merges.
+The sections below record what earlier batches built, as history.
 
 ### Monitoring
 
@@ -65,19 +54,6 @@ One session starts and watches the others.
 - `publish` updates the GitHub wiki. It never deletes a page, and it won't replace a page it didn't write unless the
   owner names that page.
 - `restore` reverts the last publish.
-
-### Release
-
-For any repo using agent-workflow-template:
-
-- Once a goal's checks hold, it shows the docs that changed and the verify steps, then asks `cut` or `leave`.
-- Every goal has a `Verify by hand` section of numbered steps, each with what to expect. `cut` refuses without it.
-- `cut` refuses if a wiki page is stale or missing, or a criterion's regression row is missing, a draft or failing. It
-  then moves the version, writes the changelog and creates a draft GitHub
-  release carrying the verify steps and docs. You publish it.
-- After a cut, the wiki is published with `workflow-docs`.
-- `leave` keeps the work unreleased. A monitored batch can answer `leave` by itself. It never cuts, unless
-  `"release_auto": true` lets it cut a draft from what its diff shows. A breaking change always waits for the owner.
 
 For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZIP and refuses it if any published rule fails:
 
@@ -142,9 +118,9 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 1. **The Agensi listing:** list the package on Agensi. The wiki is published; republish it with `workflow-docs` when
    the pages change.
 2. **Other agents:** Kimi, Qwen and OpenCode support.
-3. **Level 2:** it has run on a toy repo, unattended. The design skill ran every phase when run alone, but not in the
-   goal run. It has not run on a real repo.
-4. **Real proof still missing:** `release_auto`, `restore`, a batch with a real agent, the regression workflow's first run on GitHub, the check-in loop firing on
+3. **The skill flow, for real:** one real goal ran the idea step unattended and waited for the owner's approval of the
+   design, as it should. The plan, review, qa and ship steps haven't run for real yet, and qa needs a browser.
+4. **Real proof still missing:** `restore`, a batch with a real agent, the regression workflow's first run on GitHub, the check-in loop firing on
    its timer, and today's level 0 on a real repo. The wiki's status lines list each one. Codex has run level 0 on a toy
    repo, and every row passes in a CI-like run on a Mac.
 

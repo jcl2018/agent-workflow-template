@@ -34,7 +34,7 @@ Read the dry run first and tell the user what it found.
 Keep to these rules:
 
 - Don't write skill instructions into the repo. `.loop/` holds only the repo's own data.
-- Don't change `agent_command` or `judge_command` to loosen permissions. The user's own settings decide what a
+- Don't change `agent_command` to loosen permissions. The user's own settings decide what a
   background agent may do.
 - Don't merge the branch. The user does.
 

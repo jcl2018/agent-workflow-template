@@ -1,8 +1,8 @@
 <!-- workflow-docs -->
 # agent-workflow-template
 
-A small agentic workflow for any repo: you state a goal and the checks that prove it, an agent builds it, a fresh agent
-judges it at levels 1 and 2, and you review the pull request. One session governs and the others build. To install it
+A small agentic workflow for any repo: you state a goal and the checks that prove it, and a background agent takes it
+through your own skill suite's flow, unattended, to a pull request you review. One session governs and the others build. To install it
 and run a first goal, or to see where every file lives, read the
 [README](https://github.com/jcl2018/agent-workflow-template#readme). It's released under the MIT license.
 
@@ -37,16 +37,11 @@ A toy test uses a throwaway repo and a stand-in for GitHub, so built and proven 
 `Proof:` says when it hasn't. Real runs were read on 2026-11-06 from the run records of this repo and one other it
 follows, plus their pull requests, releases and wikis. That second repo isn't named here. On this repo, eight real goals
 reached a pull request, all at the level now called 1, and three publishes reached the wiki. The second repo ran ten
-goals, including one real `cut` to a draft release. This repo has since had its own real `cut`, v0.1.1. Neither repo shows a level 2 run, a regression workflow run in CI, a
-`release_auto` run, or a batch with a real agent. Records older than these goals may be gone, so "not on record" doesn't mean it never happened.
+goals, including one real `cut` to a draft release. This repo has since had its own real `cut`, v0.1.1. Neither repo shows a regression workflow run in CI, a
+or a batch with a real agent. Records older than these goals may be gone, so "not on record" doesn't mean it never happened.
 
 ## What is proven
 
-- "A fresh judge only sees the goal file, the diff and the check output. On the first real run it failed two done lines
-  for missing evidence, correctly." (FINDINGS.md)
-- A failed fresh-judge verdict counts as a try, the same as a failed check (DECISIONS.md).
-- "`cut` refuses in a monitored batch unless `--user` is passed; the skill says to pass it only on the human's own
-  words." (DECISIONS.md)
 - "`report` left out queued goals that were ready to start. It now lists them." (FINDINGS.md)
 - Toy tests cover goals, the board, docs, criteria and regression, each under `dev/toy/`.
 - Codex ran a level 0 toy goal from design to pull request with no failed try (FINDINGS.md).
@@ -61,10 +56,9 @@ goals, including one real `cut` to a draft release. This repo has since had its 
 - Some scripts are within a few hundred bytes of the 20 KB limit, so the next feature needs a new script
   (FINDINGS.md).
 - "Codex's `workspace-write` sandbox blocks writes to `.git` and outside the workspace." (FINDINGS.md)
-- A pull request merged just before `cut` gives an empty changelog entry (FINDINGS.md).
 
 ## Gaps for the owner
 
 - The timed check-in loop (`cadence`, then `watch --once` and `board` on each wait) has not fired on its timer. No
   finding or decision records a run of it, and its toy test uses fixtures.
-- Level 2 has run only on a toy repo, and its design skill didn't finish every phase there (docs/ROADMAP.md).
+- The skill flow has run for real only up to the idea step, which waited for the owner as it should (docs/ROADMAP.md).

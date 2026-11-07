@@ -1,6 +1,6 @@
 {
   "license": "MIT",
-  "summary": "Seven small skills: one session governs while background agents take each goal to a pull request, keep a wiki current, run regression tests, report repo health, and cut draft releases with manual verify steps. Runs on Claude Code and Codex.",
+  "summary": "Six small skills: one session governs while background agents take each goal through your own idea, plan, review, test and ship skills to a pull request, unattended, and keep a wiki, regression tests and repo health in check. Runs on Claude Code and Codex.",
   "tags": [
     "workflow",
     "agents",
@@ -13,7 +13,6 @@
   ],
   "keywords": [
     "agentic workflow",
-    "judge",
     "pull request",
     "worktree",
     "dashboard",
@@ -22,9 +21,8 @@
     "unattended"
   ],
   "use_cases": [
-    "Take one sentence to a pull request you review",
+    "Take one sentence to a pull request through your own skills",
     "Run several goals in parallel and see what waits on you",
-    "Have a fresh agent judge a change it did not write",
     "Set up a repo's workflow config on a branch",
     "Keep a GitHub wiki in the repo and find stale pages",
     "Check a repo's health with fixed rules",
@@ -33,7 +31,6 @@
   ],
   "commands": [
     "setup",
-    "poc",
     "go",
     "report",
     "dashboard",
@@ -42,8 +39,6 @@
     "new",
     "step",
     "check",
-    "judge",
-    "verdict",
     "pr",
     "wait",
     "answer",
@@ -53,7 +48,6 @@
     "criteria",
     "publish",
     "restore",
-    "init",
     "watch",
     "queue",
     "run",
@@ -70,19 +64,17 @@
     "handoff",
     "start",
     "status",
-    "promote",
-    "save",
     "take",
     "review",
     "attach",
     "features",
     "move",
-    "record"
+    "record",
+    "init"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
     "run state under the git common dir, in loop/ (never committed)",
-    "loop/runs/<slug>.design.txt and .design.json under the git common dir, when you run design.py",
     "git worktrees under that loop/ folder",
     "git branches loop/<slug> and workflow-setup, commits on them",
     ".loop/docs.tsv and docs/wiki/*.md on a branch",
@@ -91,13 +83,11 @@
     "a version bump commit on a goal's branch, only with pr_bumps_version on",
     "loop/board.json, sessions.json, cadence and handoff.md under the git common dir, and a run record's note, retired mark or take-over, when you run board.py",
     "loop/board.html, board-artifact.html and the finished sections of board.json, when you run board_page.py",
-    "loop/pocs/<slug>.md and .go under the git common dir, a POC's saved answer and go line, when you run batch.py",
-    "a batch heading and its poc lines in .loop/queue.md, when you run batch.py add",
     "loop/waits/<slug> under the git common dir, when a goal is held by another",
     "~/.workflow-loop/repos in the home folder, when you run board.py repos add",
     "docs/wiki/*.md and a commit of them, when you run criteria.py review or sync --commit",
     "issues labelled regression or health, and milestones on them, on GitHub, only with --live or a token",
-    "reads ~/.workflow-loop/design-skill or LOOP_DESIGN_SKILL, and looks for that skill under ~/.claude/skills"
+    "reads ~/.workflow-loop/flow.json, and runs its probe and its command for each flow step"
   ],
   "network": [
     "github.com (git push, wiki push, gh pull request, issue and milestone calls, only when you run them)",
@@ -106,8 +96,9 @@
   "requires": [
     "python3",
     "git",
-    "gh, signed in, for pull requests, issues and releases",
-    "a background agent command such as claude or codex, for go and watch"
+    "a background agent command such as claude or codex, for go and watch",
+    "gh, signed in, for pull requests and issues",
+    "your own skill suite, named in ~/.workflow-loop/flow.json"
   ],
   "limitations": [
     "The checks command runs the repo's own check strings through a shell, so Agensi's scan flags shell=True in goal.py and regression.py.",
