@@ -10,6 +10,7 @@ Run state lives in <git common dir>/loop/. It runs git and nothing else. watch.p
 """
 import argparse
 import datetime
+import hashlib
 import html
 import json
 import os
@@ -20,6 +21,9 @@ import sys
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 LEVELS = ("0", "1", "2")
 LIVE = ("running", "waiting")
+
+
+CRITERION = re.compile(r"^- ([A-Z]{2,5}-\d+): \*\*(Unreviewed|Reviewed|Enforced|Proven)\*\* (.+?)(?: <!-- reviewed (\w+) -->)?$")
 
 
 def git(*args, cwd=None, check=True):
@@ -200,6 +204,20 @@ def facts():
     return states, held + [(goal, "ready; watch starts it") for goal in ready]
 
 
+def returned():
+    """Criteria changed after review, as (id, page, text): already returned, or changed and not yet synced."""
+    folder = os.path.join(root(), config().get("wiki_dir") or "docs/wiki")
+    found = []
+    for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
+        with open(os.path.join(folder, name)) as handle:
+            for match in filter(None, map(CRITERION.match, handle.read().splitlines())):
+                key, stage, text, mark = match.groups()
+                seal = hashlib.sha256(text.encode()).hexdigest()[:8]
+                if text.startswith("(changed after review) ") or (stage != "Unreviewed" and mark != seal):
+                    found.append((key, name[:-3], text.replace("(changed after review) ", "")))
+    return found
+
+
 def cmd_report(args):
     states, held = facts()
     rows = [("SLUG", "LEVEL", "STATUS", "STEP", "TRIES", "PR")]
@@ -226,6 +244,9 @@ def cmd_report(args):
         print("- %s (%s): %s" % (state["slug"], state["status"], " ".join(str(state.get("finding", "")).split())))
     if not found:
         print("(none)")
+    print("\nCRITERIA BACK TO UNREVIEWED")
+    back = returned()
+    print("\n".join("- %s (%s): %s" % item for item in back) if back else "(none)")
     print("\nQUEUED, NOT STARTED")
     for goal, why in held:
         print("- %s: %s" % (goal["slug"], why))
