@@ -13,8 +13,16 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. Open the repo's Actions tab on GitHub, pick regression, and choose Run workflow on `main`.
+   Expect: the run ends green, and every row prints PASS in its log.
 
 ## Design
 
+Commit the file `regression.py workflow` writes, unchanged, so the skill stays its one owner. It adds a daily run, so a
+failing row opens an issue with no one watching. What could go wrong: a row that only passes on a Mac. Running every row
+with an empty home folder, no git identity and a token set found none, but only a real run on GitHub proves it.
+
 ## Plan
+
+1. Run `regression.py workflow`, proved by the file in the diff and its triggers.
+2. Record the Codex run and the CI-like run in FINDINGS and the roadmap, proved by the diff.
