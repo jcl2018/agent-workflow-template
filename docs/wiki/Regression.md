@@ -4,7 +4,7 @@
 ## Summary
 
 Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.loop/regression.tsv`. Script:
-`regression.py`. The criteria below are drafts until the owner approves them.
+`regression.py`.
 
 ## Commands
 
@@ -41,9 +41,9 @@ python3 scripts/regression.py run land
 
 ## Criteria
 
-- REG-1: (draft) A test row that has never been seen failing is reported as unproven and blocks the run.
-- REG-2: (draft) A failure listed as known does not block the run and opens no issue.
-- REG-3: (draft) Without a GitHub token, a run only prints what it would do and never calls GitHub.
+- REG-1: A test row that has never been seen failing is reported as unproven and blocks the run.
+- REG-2: A failure listed as known does not block the run and opens no issue.
+- REG-3: Without a GitHub token, a run only prints what it would do and never calls GitHub.
 
 ## Enforced by
 

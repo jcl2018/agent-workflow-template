@@ -4,7 +4,7 @@
 ## Summary
 
 Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests; `wiki_dir` in `.loop/config.json`
-changes the folder) and finds stale ones. Script: `docs.py`. The criteria below are drafts until the owner approves them.
+changes the folder) and finds stale ones. Script: `docs.py`.
 
 ### Init
 
@@ -59,9 +59,9 @@ python3 scripts/docs.py publish --dry-run
 
 ## Criteria
 
-- DOC-1: (draft) The check reports a page as stale when the code it describes changed in a commit after the page's last commit.
-- DOC-2: (draft) Publishing to the GitHub wiki is refused while the check finds a stale page.
-- DOC-3: (draft) Publishing never replaces a wiki page this tool did not write, unless the owner names that page.
+- DOC-1: The check reports a page as stale when the code it describes changed in a commit after the page's last commit.
+- DOC-2: Publishing to the GitHub wiki is refused while the check finds a stale page.
+- DOC-3: Publishing never replaces a wiki page this tool did not write, unless the owner names that page.
 
 ## Enforced by
 

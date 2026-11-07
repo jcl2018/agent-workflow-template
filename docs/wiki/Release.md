@@ -3,7 +3,7 @@
 
 ## Summary
 
-Skill: `workflow-release`. After a goal has a pull request and its checks hold. Script: `release.py`. The criteria below are drafts until the owner approves them.
+Skill: `workflow-release`. After a goal has a pull request and its checks hold. Script: `release.py`.
 
 ## Commands
 
@@ -48,9 +48,9 @@ python3 scripts/release.py cut add-median --bump minor --user
 
 ## Criteria
 
-- REL-1: (draft) A release is refused unless the goal lists numbered steps to verify by hand, each with what to expect.
-- REL-2: (draft) A release is only ever created as a draft on GitHub, and nothing is merged.
-- REL-3: (draft) With automatic releases off, a goal run in a monitored batch cannot be cut unless the owner's own words said to cut.
+- REL-1: A release is refused unless the goal lists numbered steps to verify by hand, each with what to expect.
+- REL-2: A release is only ever created as a draft on GitHub, and nothing is merged.
+- REL-3: With automatic releases off, a goal run in a monitored batch cannot be cut unless the owner's own words said to cut.
 
 ## Enforced by
 

@@ -5,7 +5,7 @@
 
 Skill: `workflow-monitoring`. One session governs and the others build. Scripts: `watch.py` (`go`, `watch`, `resume`),
 `monitor.py` (`report`, `dashboard`) and `board.py` (`board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`). Run them from the
-main checkout, on the base branch. `board_page.py` draws the board's pages. The criteria below are drafts until the owner approves them.
+main checkout, on the base branch. `board_page.py` draws the board's pages.
 
 ## Commands
 
@@ -94,9 +94,9 @@ python3 scripts/monitor.py report
 
 ## Criteria
 
-- MON-1: (draft) Two goals whose touched files overlap never run at the same time; the later one is held.
-- MON-2: (draft) A goal the owner has retired no longer appears under what waits on the owner.
-- MON-3: (draft) A goal started with `--session` is recorded as running in a visible session, and no background process is started for it.
+- MON-1: Two goals whose touched files overlap never run at the same time; the later one is held.
+- MON-2: A goal the owner has retired no longer appears under what waits on the owner.
+- MON-3: A goal started with `--session` is recorded as running in a visible session, and no background process is started for it.
 
 ## Enforced by
 
