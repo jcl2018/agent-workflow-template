@@ -24,6 +24,15 @@ show SLUG
 After a cut, the agent publishes the wiki with `workflow-docs` if `.loop/docs.tsv` exists. If that fails, the draft
 stands.
 
+## Automatic draft releases
+
+Set `"release_auto": true` in `.loop/config.json` to let a monitored batch goal decide from its diff. `ask` prints
+`NEED <leave|patch|minor|ask>: <reason>` and records it. Docs, tests and `.loop` changes leave. A fix cuts a `patch`
+draft, and a new non-doc file or a `feat` commit cuts a `minor` draft, with no `--user`. A breaking change (a `BREAKING`
+or `!:` commit, or a removed file) always waits for you, and so does a goal marked `release: ask`. Every refusal of
+`cut` still applies, and then you decide. Without `release_auto`, a batch goal leaves as before. The release is always a
+draft.
+
 No release is published and nothing merges without you.
 
 ## Example

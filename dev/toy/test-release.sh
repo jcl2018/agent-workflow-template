@@ -20,8 +20,9 @@ finish() {  # finish SLUG [extra goal.py new args]: a done quick goal with a pul
   local slug=$1; shift
   git switch -q main
   $goal new "$slug" --here --goal "Add $slug" --done "calc has $slug" --level quick "$@" >/dev/null
-  printf '\n\ndef %s():\n    return 1\n' "${slug//-/_}" >> calc.py
-  git commit -qam "Add ${slug} to calc"
+  mkdir -p "$(dirname "${FILE:-calc.py}")"
+  printf '\n\ndef %s():\n    return 1\n' "${slug//-/_}" >> "${FILE:-calc.py}"
+  git add "${FILE:-calc.py}"; git commit -qm "${MSG:-Add ${slug} to calc}"
   [ -n "$NO_VERIFY" ] || python3 - "$slug" <<'PY'
 import sys
 path = ".loop/goals/%s.md" % sys.argv[1]
@@ -93,6 +94,59 @@ grep -q "answered by the batch" <<<"$out" && $rel show three | grep -qx "release
 LOOP_BATCH=1 finish four --release ask
 out=$($rel ask four); grep -q "WAITING four" <<<"$out" && ok "batch with release=ask waits" || bad "batch ask"
 $rel cut four --user >/dev/null && [ "$(cat VERSION)" = "0.1.1" ] && ok "batch cut with --user" || bad "batch --user"
+
+echo "== 4b. release_auto decides from the diff"
+git switch -q main
+sed -i.bak 's/"mend": false/"mend": false, "release_auto": true/' .loop/config.json && rm .loop/config.json.bak
+grep -q release_auto .loop/config.json && git commit -qam "Turn release_auto on" && ok "release_auto on" || bad "config"
+n=$(wc -l < "$FAKE_GH_DIR/calls.log")
+LOOP_BATCH=1 finish fixit
+out=$($rel ask fixit); echo "$out"
+grep -q "NEED patch" <<<"$out" && grep -q "^CUT fixit" <<<"$out" && $rel show fixit | grep -qx "release=cut" \
+  && ok "fix cut a patch draft with no --user" || bad "auto patch"
+$goal show fixit | grep -q '"release_need": "patch"' && $goal show fixit | grep -q release_reason && ok "need and reason recorded" || bad "need record"
+[ "$(git show loop/fixit:VERSION)" = "0.1.1" ] && ok "patch moved the last number" || bad "patch version"
+LOOP_BATCH=1 FILE=extra.py finish newcmd
+out=$($rel ask newcmd); grep -q "NEED minor" <<<"$out" && [ "$(git show loop/newcmd:VERSION)" = "0.2.0" ] && ok "new file cut a minor" || bad "auto minor"
+LOOP_BATCH=1 FILE=NOTES.md finish onlydocs
+out=$($rel ask onlydocs); grep -q "NEED leave" <<<"$out" && $rel show onlydocs | grep -qx "release=leave" && ok "docs only leaves" || bad "docs leave"
+LOOP_BATCH=1 MSG="feat!: drop the old API" finish brk
+out=$($rel ask brk); grep -q "NEED ask" <<<"$out" && grep -q "WAITING brk" <<<"$out" && $rel show brk | grep -qx "release=ask" && ok "breaking change waits" || bad "breaking"
+$rel cut brk && bad "breaking cut without --user" || ok "waiting breaking goal still refuses a bare cut"
+LOOP_BATCH=1 finish owner --release ask
+out=$($rel ask owner); grep -q "WAITING owner" <<<"$out" && ok "release: ask still waits" || bad "release ask"
+NO_VERIFY=1 LOOP_BATCH=1 finish nosteps
+out=$($rel ask nosteps); grep -q "REFUSED" <<<"$out" && grep -q "WAITING nosteps" <<<"$out" && ok "missing verify steps refuse, owner decides" || bad "nosteps"
+LOOP_BATCH=1 MSG="feat: calc gets a helper" finish featmsg
+out=$($rel ask featmsg); grep -q "NEED minor" <<<"$out" && ok "feat commit cuts a minor" || bad "feat minor"
+git switch -q main; echo old > old.py; git add old.py; git commit -qm "Add old.py"; git push -q origin main
+LOOP_BATCH=1 finish rmfile
+git rm -q old.py; git commit -qm "Remove old.py"
+out=$($rel ask rmfile); grep -q "NEED ask" <<<"$out" && grep -q "WAITING rmfile" <<<"$out" && ok "removed file waits" || bad "removed file"
+LOOP_BATCH=1 MSG="Rework calc
+
+BREAKING CHANGE: calc output moved" finish brkword
+out=$($rel ask brkword); grep -q "NEED ask" <<<"$out" && ok "BREAKING CHANGE footer waits" || bad "breaking footer"
+LOOP_BATCH=1 FILE=dev/install-local.sh finish devtool
+out=$($rel ask devtool); grep -q "NEED minor" <<<"$out" && ok "shipped dev tooling is not docs" || bad "dev tooling"
+LOOP_BATCH=1 FILE=tests/test_more.py finish testsonly
+out=$($rel ask testsonly); grep -q "NEED leave: only docs, tests" <<<"$out" && ok "tests only leaves" || bad "tests leave"
+LOOP_BATCH=1 finish nojudge
+python3 - "$(git rev-parse --git-common-dir)/loop/runs/nojudge.json" <<'PY2'
+import json, sys
+d = json.load(open(sys.argv[1])); d["level"] = "standard"; d["judge"] = ""; json.dump(d, open(sys.argv[1], "w"))
+PY2
+out=$($rel ask nojudge 2>&1 || true); grep -q "judge has not passed" <<<"$out" && ! grep -q "NEED" <<<"$out" && ok "no judge pass, no auto release" || bad "judge gate"
+git switch -q main; mkdir -p docs/wiki; echo page > docs/wiki/Calc.md; printf 'Calc\tcalc.py\n' > .loop/docs.tsv
+git add -A; git commit -qm "Map the Calc page"
+LOOP_BATCH=1 finish stalepage
+out=$($rel ask stalepage); grep -q "REFUSED: these pages are stale" <<<"$out" && grep -q "WAITING stalepage" <<<"$out" && ok "stale page refuses, owner decides" || bad "stale gate"
+git switch -q main; git rm -q .loop/docs.tsv docs/wiki/Calc.md; git commit -qm "Unmap the Calc page"
+grep -Eq "draft=false|release edit|release upload" "$FAKE_GH_DIR/calls.log" && bad "publish call" || ok "auto mode only made drafts"
+[ "$(grep -c '^release create' "$FAKE_GH_DIR/calls.log")" = "$(( $(grep -c '^release create' <(head -n "$n" "$FAKE_GH_DIR/calls.log")) + 4 ))" ] && ok "exactly four auto drafts" || bad "draft count"
+[ -z "$(git ls-remote --tags origin)" ] && ok "still no tag" || bad "tag pushed"
+[ "$(wc -c < "$here/skills/workflow-release/scripts/release.py")" -lt 20000 ] && ok "release.py under 20 KB" || bad "release.py size"
+git switch -q main; sed -i.bak 's/, "release_auto": true//' .loop/config.json && rm .loop/config.json.bak; git commit -qam "Turn release_auto off"
 
 if [ -n "$AGENT_TEST" ]; then
   echo "== 5. headless agent follows SKILL.md"
