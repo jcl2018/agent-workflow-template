@@ -32,8 +32,8 @@ python3 scripts/goal.py queue <slug> --goal "<the goal>" --done "<line 1>" --don
 `workflow-monitoring`, then watch:
 
 ```bash
-python3 ../workflow-monitoring/scripts/watch.py go "<goal>" --done "<line>" --level <level> --touches "<file,file>"
-python3 ../workflow-monitoring/scripts/watch.py watch
+python3 <workflow-monitoring>/scripts/watch.py go "<goal>" --done "<line>" --level <level> --touches "<file,file>"
+python3 <workflow-monitoring>/scripts/watch.py watch
 ```
 
 The steps below are for a background agent already inside its goal's worktree. Its prompt says so. The only other use
@@ -146,4 +146,4 @@ Then stop. In a monitored run, `report` shows it. After the answer, run `goal.py
 - Never merge, and never turn permissions off.
 - Keep skill instructions out of the repo. `.loop/` holds only the repo's own data.
 
-`../loop-files.md` describes every file.
+`loop-files.md` (`../` here, `shared/` in a pack) describes every file.

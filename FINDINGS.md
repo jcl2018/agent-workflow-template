@@ -20,3 +20,6 @@
 - In a goal run the same skill gave no verdict on the first try and stopped at its own phase guard on the second, so a pull request says `full` or `condensed`.
 - Codex ran a level 0 toy goal from design to pull request with no failed try, using `gpt-5.6-luna` and a test double of `gh`.
 - Every regression row passes with an empty home folder, no git identity and a token set, on a Mac. A real run on GitHub is still unproven.
+- A monitored Codex goal needs `-s workspace-write` with the git folder and remote as writable roots, and `setup`'s default `codex exec` has neither.
+- In a pack, a file outside every skill folder reaches no skill unless it's under `shared/`, so the ZIP moves `loop-files.md` there.
+- The first regression workflow run on GitHub failed 2 rows: one needed an agent on the machine, and one looked for a renamed test line.

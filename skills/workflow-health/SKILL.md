@@ -69,4 +69,4 @@ names, and `goal.py pr` runs it. `move` puts an issue in a feature's milestone. 
 - It fixes nothing. Tell the user what a `FAIL` or `UNREAD` line says to run, and don't run it unasked.
 - Never turn permissions off.
 
-`../loop-files.md` describes every file.
+`loop-files.md` (`../` here, `shared/` in a pack) describes every file.

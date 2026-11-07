@@ -26,6 +26,9 @@ OBFUSCATION = [r"base64\.b64decode", r"b64decode", r"\bexec\s*\(", r"\beval\s*\(
 AGENT_AIMED = [r"(?i)ignore (all |any )?(previous|prior|above) instructions", r"(?i)do not (tell|inform|mention to) the user",
                r"(?i)without (telling|asking|informing) the user", r"(?i)dangerously-skip-permissions", r"bypassPermissions",
                r"(?i)disregard (your|the) (system|safety)", r"(?i)you must (secretly|silently) "]
+DANGEROUS = [r"\bos\.system\(", r"chmod\s+777", r"\brm\s+-rf\s+/(\s|$)", r"\b(curl|wget)\b[^\n|]*\|\s*(ba)?sh\b"]
+INJECTION = [r"(?i)ignore previous instructions", r"(?i)do not tell the user", r"(?i)\bsecretly\b"]
+SHARED = {"skills/loop-files.md": "shared/loop-files.md"}  # in a pack, only shared/ reaches every skill
 LIMITS = {"tags": 10, "keywords": 10, "use_cases": 8}
 failures = []
 
@@ -162,11 +165,25 @@ def check_safety(root, files):
         if rel.endswith("/"):
             continue
         text = read(root, rel).decode("utf-8", "replace")
-        for group, patterns in (("secret", SECRETS), ("obfuscation or encoded text", OBFUSCATION), ("instruction aimed at the agent", AGENT_AIMED)):
+        for group, patterns in (("secret", SECRETS), ("obfuscation or encoded text", OBFUSCATION), ("instruction aimed at the agent", AGENT_AIMED + INJECTION),
+                               ("dangerous command", DANGEROUS)):
             for pattern in patterns:
                 match = re.search(pattern, text)
                 if match:
                     fail("Safety", "%s in %s: %r" % (group, rel, match.group(0)[:40]))
+
+
+def note_shell(root, files):
+    """Agensi's scan fails shell=True. Check commands are the repo's own strings, so it stays, and the listing says so."""
+    hits = [rel for rel in files if rel.endswith(".py") and "shell=True" in read(root, rel).decode("utf-8", "replace")]
+    if hits:
+        print("NOTE: Agensi's scan will flag shell=True in: " + ", ".join(hits))
+
+
+def check_pack(root):
+    with open(os.path.join(root, "README.md")) as handle:
+        if not re.match(r"# \S", handle.readline()):
+            fail("Files", "README.md must open with a # title: it names the pack")
 
 
 def check_disclosure(root, files, listing):
@@ -198,7 +215,7 @@ def build(root, files, out):
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as bundle:
         for rel in files:
-            info = zipfile.ZipInfo(rel, (2026, 1, 1, 0, 0, 0))
+            info = zipfile.ZipInfo(SHARED.get(rel, rel), (2026, 1, 1, 0, 0, 0))
             info.external_attr = 0o644 << 16
             bundle.writestr(info, read(root, rel))
 
@@ -217,10 +234,12 @@ def main():
     check_scripts(root, files)
     check_safety(root, files)
     check_disclosure(root, files, listing)
+    check_pack(root)
     if failures:
         print("REFUSED: %d rule failure(s); no ZIP built" % len(failures))
         return 1
     build(root, files, args.out)
+    note_shell(root, files)
     print("PASS: %d files, ZIP at %s (%d bytes)" % (len(files), os.path.abspath(args.out), os.path.getsize(args.out)))
     return 0
 
