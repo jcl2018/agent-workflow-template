@@ -15,5 +15,5 @@ Frozen. A wrong done line needs a new goal.
 
 1. Run `python3 skills/workflow-health/scripts/health.py check < /dev/null; echo $?`.
    Expect: it prints its findings and the HEALTH line without waiting for input, and returns at once.
-2. Run `grep -n "scripts refuse" docs/wiki/Delivery.md`.
+2. Run `grep -in "scripts refuse" docs/wiki/Delivery.md`.
    Expect: the DEL-10 line saying scripts refuse rather than wait when no terminal is attached.
