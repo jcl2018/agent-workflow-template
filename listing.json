@@ -69,6 +69,8 @@
     "start",
     "status",
     "worker",
+    "loop",
+    "met",
     "review",
     "attach",
     "features",
