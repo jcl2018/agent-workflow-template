@@ -2,7 +2,11 @@
 
 ## v0.1.2 - 2026-11-07
 
-- No code changes
+- Run the level 2 design skill through an agent with tools, and say in the pull request how much of it ran
+- Add workflow-health, milestones, batches of POCs and goals, and the operation role
+- Make the regression workflow pass on GitHub
+- Fit the package to Agensi's published rules: a seven-skill pack with its file contract under `shared/`
+- Run on Codex at level 0, directly and as a monitored background agent
 
 ### How to verify
 
