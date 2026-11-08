@@ -232,11 +232,13 @@ def doc_rows(top):
 
 
 def docs_trouble(top, base, fix=False):
-    """The docs audit's findings, or [] when the docs are in step. It only fixes files when fix is true."""
+    """The docs audit's findings; [] when the docs are in step."""
     if not doc_rows(top):
         return []
     done = run([sys.executable, DOCS, "audit", "--base", base] + ([] if fix else ["--dry-run"]), cwd=top)
     lines = [l for l in done.stdout.splitlines() if not l.startswith(("UNTESTED", "SKIP", "MILESTONE", "DOCS"))]
+    if done.returncode and not done.stdout.strip():
+        return ["the docs audit failed: " + (done.stderr.strip().splitlines() or ["no output"])[-1]]
     return [] if done.returncode == 0 else lines
 
 
