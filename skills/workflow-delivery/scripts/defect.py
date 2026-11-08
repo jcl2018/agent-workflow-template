@@ -32,7 +32,7 @@ def rows(root):
 
 
 def has(link, ref):
-    return re.search(r"(?:issues/|#)%s\b" % re.escape(ref), link) if ref.isdigit() else "finding:" + ref in link
+    return re.search(r"(?:issues/|#)%s\b" % re.escape(ref), link) if ref.isdigit() else re.search(r"finding:%s(?![\w-])" % re.escape(ref), link)
 
 
 def owed(root, text):

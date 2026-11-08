@@ -10,7 +10,7 @@ usage: criteria.py <command> [options]
 
 A page is Summary, Criteria and Tests. A criterion is '- ID: **Unreviewed** text' or '- ID: **Reviewed DATE** text',
 and a Reviewed line ends with <!-- reviewed HASH -->, a hash of its text. docs.py check fails when the text no longer
-matches its hash. A regression row whose goal column is '-' proves no criterion yet and is left out. A row with category defect\nis a defect test: it is listed under 'Defect tests' on the page of the criterion in its goal column, with its link. The Tests table lists each criterion's regression rows with the criterion's words, what the
+matches its hash. A regression row whose goal column is '-' proves no criterion yet and is left out. A row with category defect is a defect test: it is listed under 'Defect tests' on the page of the criterion in its goal column, with its link. The Tests table lists each criterion's regression rows with the criterion's words, what the
 test checks, when it runs, its last status and date from .loop/regression-runs.tsv and whether it was seen failing,
 and marks a criterion with no passing row as not enforced. It runs git and nothing else.
 """
