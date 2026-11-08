@@ -3,10 +3,11 @@
 
 usage: setup.py [--repo DIR] [--branch NAME] [--dry-run] [--bare]
 
-Writes .loop/ (config, queue, findings, docs map, regression rows), a page with a criterion and a Tests table for each
-top-level code folder and Home, and the regression workflow, and commits them on a branch (default workflow-setup). An
-existing file is adapted, never overwritten: a config keeps its values, a page keeps its words. It runs git and the
-sibling docs and regression scripts. A second run changes nothing. --bare writes only the config, queue and findings.
+Writes .loop/ (config with every repo setting and its default, queue, findings, docs map, regression rows), a page
+with a criterion and a Tests table for each top-level code folder and Home, and the regression workflow, and commits
+them on a branch (default workflow-setup). It also adds every missing private setting outside the repo. An existing
+file is adapted, never overwritten: a config keeps its values, a page keeps its words. It runs git and the sibling
+docs and regression scripts. A second run changes nothing. --bare writes only the config, queue and findings.
 """
 import argparse
 import json
@@ -15,15 +16,16 @@ import shutil
 import subprocess
 import sys
 
-import seed
-import survey
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import seed  # noqa: E402
+import settings  # noqa: E402
+import survey  # noqa: E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
-RISKY = ["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]
 QUEUE = """# Goal queue
 
 One goal a line. Other lines are ignored. Example:
@@ -99,20 +101,8 @@ def survey_agent():
 def merged(repo, old):
     """The config: values already there win, the survey fills the rest."""
     agent = survey_agent()
-    config = {
-        "base": base_branch(repo),
-        "checks": survey_checks(repo),
-        "agent_command": agent,
-        "parallel": 3,
-        "risky_paths": RISKY,
-        "version_file": "VERSION",
-        "wiki_dir": "docs/wiki",
-        "pr_bumps_version": False,
-        "mend": False,
-        "resume_on_limit": False,
-        "criteria": True,
-        "regression_cron": "17 9 * * *",
-    }
+    config = settings.repo_defaults()
+    config.update(base=base_branch(repo), checks=survey_checks(repo), agent_command=agent)
     config.update(old)
     return config
 
@@ -148,6 +138,8 @@ def main():
         acts = [a for a in acts if a[3] in ("config", "file")]
     for verb, path, note, _ in acts:
         print("%s: %s%s" % (verb, path, " (%s)" % note if note else ""))
+    if not args.dry_run:
+        print("PRIVATE settings added to %s: %s" % (settings.private_path(), ", ".join(settings.fill_private()) or "none missing"))
     if not [a for a in acts if a[3]]:
         print("NO CHANGE: nothing to add or convert")
         return 0

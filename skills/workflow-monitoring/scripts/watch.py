@@ -294,7 +294,7 @@ def plan(limit):
 
 
 def limit_of(args, cfg):
-    return args.max if args.max else int(cfg.get("parallel", 3) or 3)
+    return args.max if args.max else graph.parallel_of(cfg)
 
 
 def start_round(args, cfg):

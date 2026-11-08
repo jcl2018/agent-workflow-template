@@ -5,6 +5,7 @@ set -u
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 unset LOOP_BATCH
 here=$(cd "$(dirname "$0")/../.." && pwd); id=${1:?usage: test-rows.sh ID}
+export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
 d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
 "$here/dev/toy/make.sh" "$d/toy" >/dev/null || exit 1
 export LOOP_FLOW="$d/toy/flow.json"

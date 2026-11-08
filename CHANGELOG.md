@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.7.0 - 2026-11-08
+
+- Settings: one table, both halves written by setup, parallel 0 unlimited
+- Guard the token budget read
+- Merge origin/main into loop/setup-settings
+- Wiki: settings in Delivery and Monitoring
+
+### How to verify
+
+1. Run `python3 skills/workflow-setup/scripts/settings.py reference`.
+   Expect: a table of every repo and private setting, each with its default and a one-line explanation; `parallel` shows 0, unlimited.
+2. Run `grep parallel .loop/config.json`.
+   Expect: it prints `"parallel": 0`.
+3. Run `bash dev/toy/test-settings.sh`.
+   Expect: it ends with ALL PASS, after showing parallel 2 start two goals and parallel 0 start all four.
+
 ## v0.6.0 - 2026-11-08
 
 - Defect tests: categories, delivery gate, health rule, worker release, no checks step

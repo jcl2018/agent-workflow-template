@@ -145,13 +145,16 @@ def write(path, text):
     os.replace(temp, path)
 
 
-def cadence_of(base):
+def cadence_of(base, fallback="10"):
+    """The owner's cadence command wins; else the repo config's `cadence`; else 10. Read fresh each run."""
+    fallback = str(fallback)
+    fallback = fallback if fallback == "off" or fallback.isdigit() else "10"
     try:
         with open(os.path.join(base, "loop", "cadence")) as handle:
             value = handle.read().strip()
     except OSError:
         value = ""
-    return value if value == "off" or value.isdigit() else "10"
+    return value if value == "off" or value.isdigit() else fallback
 
 
 def delay_of(cadence, busy):
@@ -225,8 +228,9 @@ def collect(name, path, base, at):
             continue
         waits = graph.unmet(goal, by_slug, names)
         why = ", ".join("goal " + text for _, text in waits) if waits else "ready to start"
-        if not waits and used >= int(cfg.get("parallel", 3) or 3):
-            why = "a free slot (%d of %s running)" % (used, cfg.get("parallel", 3))
+        limit = graph.parallel_of(cfg)
+        if not waits and limit and used >= limit:
+            why = "a free slot (%d of %s running)" % (used, limit)
         deps.append({"repo": name, "slug": goal["slug"], "waits_on": why, "on": ", ".join(slug for slug, _ in waits), "goal": clean(goal.get("goal"), 80),
                      "level": goal["level"], "touches": goal["touches"],
                      "left": board_status and board_status.left_time({"slug": goal["slug"], "status": "queued"}, records, at)})
@@ -261,7 +265,8 @@ def build(at, since):
     for d in deps:
         flat.setdefault("%s/%s" % (d["repo"], d["slug"]), {"status": "queued"})
     count = lambda *kinds: sum(r["status"] in kinds for r in rows)
-    cadence = cadence_of(common()) if common() else "10"
+    held = (read_json(os.path.join(os.path.dirname(common()), ".loop", "config.json")) or {}) if common() else {}
+    cadence = cadence_of(common(), held.get("cadence", "10")) if common() else "10"
     digest = "%d runs: %d running, %d waiting on you, %d done, %d failed or stopped, %d queued, %d retired" % (
         len(rows), count("running"), len(waiting), count("done"), count("failed", "stopped"), len(deps), count("retired"))
     delay = delay_of(cadence, bool(live))

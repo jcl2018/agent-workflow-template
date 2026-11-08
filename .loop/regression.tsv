@@ -91,7 +91,7 @@ worker-reports-live	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the 
 status-roadmap-features	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: Roadmap counts merged goals per feature"	MON-4	-	The status block's Roadmap counts merged goals per feature.	criterion	
 operate-wakes-on-report	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: a worker's report wakes it before the cadence, and one line says nothing changed"	MON-5	2026-11-08	A worker's report wakes operate before the cadence; a quiet cycle prints one line.	criterion	
 adopt-set-1	land	bash dev/toy/test-adopt.sh SET-1	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1.	criterion	
-adopt-set-2	land	bash dev/toy/test-adopt.sh SET-2	SET-2	2026-11-08	The toy adopt-and-update test holds for SET-2.	criterion	
+adopt-set-2	land	bash dev/toy/test-adopt.sh SET-2	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1, suggest then apply.	criterion	
 adopt-set-3	land	bash dev/toy/test-adopt.sh SET-3	SET-3	2026-11-08	The toy adopt-and-update test holds for SET-3.	criterion	
 adopt-set-4	land	bash dev/toy/test-adopt.sh SET-4	SET-4	2026-11-08	The toy adopt-and-update test holds for SET-4.	criterion	
 adopt-set-5	land	bash dev/toy/test-adopt.sh SET-5	SET-5	2026-11-08	The toy adopt-and-update test holds for SET-5.	criterion	
@@ -116,3 +116,7 @@ cost-unread-tokens	land	bash dev/toy/test-health-judge.sh 2>&1 | grep -q "PASS: 
 judge-section-format	land	bash dev/toy/test-health-judge.sh 2>&1 | grep -q "PASS: the judge section is marked as suggestions"	HLT-5	2026-11-08	The judge prints its three reviews in a section marked as suggestions.	criterion	
 judge-verdict-unchanged	land	bash dev/toy/test-health-judge.sh 2>&1 | grep -q "PASS: a garbage judge cannot change the verdict"	HLT-5	2026-11-08	A failing or garbage judge leaves the verdict and exit code unchanged.	criterion	
 judge-needs-you	land	bash dev/toy/test-health-judge.sh 2>&1 | grep -q "PASS: suggested criterion wording lands under Needs you"	HLT-5	2026-11-08	Suggested criterion wording is listed under Needs you for the owner to apply.	criterion	
+settings-reference	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: the reference lists every repo and private setting with a default and a line"	SET-2	-	Every repo and private setting is listed with its default and a one-line explanation.	criterion	
+setup-both-halves	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: setup writes every repo setting, parallel 0"	SET-1	-	Setup writes the repo half and, outside the repo, the private half.	criterion	
+parallel-unlimited	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: parallel 0 starts all four"	SET-2	-	Parallel 0 means unlimited, and it is the default.	criterion	
+settings-read-fresh	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: parallel 1 starts one, read again on the next run"	SET-2	-	A changed setting takes effect on the next run.	criterion	
