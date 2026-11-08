@@ -42,7 +42,7 @@ def mine_rows(root):
         fix = str(rule.get("fix") or "run: " + " ".join(command))
         try:
             done = subprocess.run(command, cwd=root, capture_output=True, text=True, timeout=int(rule.get("timeout") or 120))
-        except (OSError, subprocess.SubprocessError) as error:
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
             rows.append(row("UNREAD", name, "could not run: %s" % str(error)[:100], fix))
             continue
         out = ((done.stdout or "").strip().splitlines() or (done.stderr or "").strip().splitlines() or [""])[-1][:100]

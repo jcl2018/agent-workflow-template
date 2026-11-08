@@ -35,7 +35,6 @@ exit code is then 1. `--json` prints the same rows as records, with the verdict.
 | `criteria` | `regression.py sync` | Done lines with no regression row, as one row | A criterion with no row, a draft row, or a row never seen failing |
 | `docs` | `docs.py check` | A stale page | Any other gap: missing, unwritten, unmapped or a broken page |
 | `hygiene` | `.loop/findings.md`, the run records and local branches | Over 5 open findings, a run waiting over 24 hours, a `loop/` branch already merged | None |
-
 | `mine` | The owner's own rules from `~/.workflow-loop/health.json` | exit 2 | exit 1; any other exit or an unreadable setting is `UNREAD` |
 
 `Mine` runs commands you name, outside the repo, so it is not covered by the read-only and same-answer promises, and `run` never files it.
