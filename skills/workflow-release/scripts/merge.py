@@ -4,7 +4,9 @@
 usage: merge.py SLUG
 
 It refuses unless `"auto_merge": true` is in .loop/config.json, the goal is done and its pull request is open. A repo
-without that switch keeps the owner's merge: nothing here merges there. It cuts no version. Where .loop/docs.tsv maps pages, it first refuses while a page the goal's paths map to is stale,
+without that switch keeps the owner's merge: nothing here merges there. Then it runs the routines listed in .loop/config.json on the base branch and refuses if one fails, merges, and
+releases: one version bump, a CHANGELOG entry and a published GitHub release (autorelease.py). Any failure is recorded
+on the goal as `release_error`. Where .loop/docs.tsv maps pages, it first refuses while a page the goal's paths map to is stale,
 and after the merge it publishes the wiki through wiki.py; a refused publish is recorded as `wiki_error`, not undone.
 """
 import argparse
@@ -14,6 +16,8 @@ import os
 import subprocess
 import sys
 
+import autorelease
+import release
 import wiki
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -55,21 +59,26 @@ def main():
         if wiki.top_of():
             stale = wiki.pending(top, cfg)
             if stale:
-                sys.exit("REFUSED: stale wiki pages: %s. Fix: update them, then run wiki.py prepare %s --commit." % (", ".join(stale), args.slug))
+                autorelease.fail(state, "stale wiki pages: %s. Fix: update them, then run wiki.py prepare %s --commit." % (", ".join(stale), args.slug))
             if run(["git", "branch", "-r", "--contains", "HEAD", "--list", "origin/*"], cwd=top).stdout.strip() == "":
                 sys.exit("REFUSED: this branch's latest commit is not on origin. Fix: run wiki.py prepare %s --commit." % args.slug)
         if known != "OPEN":
             sys.exit("REFUSED: the pull request %s is %s, not open." % (state["pr"], known or "unknown"))
+        autorelease.run_routines(top, cfg, state)
+        autorelease.stage_notes(top, state, cfg)
+        autorelease.stage_part(top, state)
         done = run(["gh", "pr", "merge", state["pr"], "--merge"])
         if done.returncode:
-            sys.exit("REFUSED: gh could not merge %s: %s" % (state["pr"], done.stderr.strip()[-300:]))
+            autorelease.fail(state, "gh could not merge %s: %s" % (state["pr"], done.stderr.strip()[-300:]))
     at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    state["release"], state["updated"] = "merged", at
+    state["release"] = state["release"] if state.get("release") == "cut" else "merged"
+    state["updated"] = at
     state.setdefault("log", []).append("%s merged %s (auto_merge)" % (at, state["pr"]))
     with open(path + ".tmp", "w") as handle:
         json.dump(state, handle, indent=2)
     os.replace(path + ".tmp", path)
     print("MERGED %s into %s" % (state["pr"], cfg.get("base", "main")))
+    autorelease.finish(top, cfg, state)
     if wiki.top_of():
         wiki.cmd_publish(argparse.Namespace(slug=args.slug))
     return 0

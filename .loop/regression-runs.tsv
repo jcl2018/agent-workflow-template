@@ -79,3 +79,4 @@ wiki-release	PASS	2026-11-08
 worker-per-goal	PASS	2026-11-08
 worker-refuses	FAIL	2026-11-08
 worker-reports	PASS	2026-11-08
+auto-release	PASS	2026-11-08

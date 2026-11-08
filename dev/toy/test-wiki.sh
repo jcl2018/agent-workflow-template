@@ -55,7 +55,7 @@ FAKE_GH_PR_STATE=MERGED $merge w | grep -q PUBLISHED && ok "merge publishes the 
 wikifile Using-the-toy.md | grep -q "w function" && ok "the page is on the wiki" || bad "page not on wiki"
 
 echo "== a refused publish says which page and why, under Needs you"
-git switch -q main; $docs add Home --paths README.md >/dev/null
+git switch -q main; git pull -q --no-edit origin main; $docs add Home --paths README.md >/dev/null
 printf '<!-- workflow-docs -->\n# Home\n\nThe toy home page, written by the tool, with enough words to count as written.\n' > docs/wiki/Home.md
 git add -A; git commit -qm "Map Home"; git push -q origin main
 $wiki publish w | grep -q "WIKI REFUSED w: .*Home" && ok "publish reports the page" || bad "publish report"

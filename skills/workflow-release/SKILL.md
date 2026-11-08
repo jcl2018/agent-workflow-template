@@ -11,20 +11,27 @@ missing, use `workflow-setup` first.
 
 You publish the draft release yourself. `release.py` never publishes, never pushes a tag and never merges.
 
-**For now, the release step merges and keeps the wiki current.** Where `"auto_merge": true` is set, which this repo does,
-and `.loop/docs.tsv` exists, first bring the goal's wiki pages up to date:
+**The release step is automatic.** Where `"auto_merge": true` is set, which this repo does, and `.loop/docs.tsv` exists,
+first bring the goal's wiki pages up to date:
 
 ```bash
 python3 scripts/wiki.py prepare <slug>
 ```
 
-It lists each mapped page that is stale. Rewrite those pages from what the goal changed, then run
+It lists each stale mapped page. Rewrite those pages from what the goal changed, then run
 `wiki.py prepare <slug> --commit`: it commits them on the goal's branch and pushes it. Then run `scripts/merge.py <slug>`
-after `goal.py pr`: it refuses while a mapped page is stale, merges the goal's open pull request into the base branch,
-records it, and publishes the wiki from a clean checkout of `origin/<base>` (`wiki.py publish <slug>`). If publish
-refuses, the merge stands: the page and the reason are recorded as `wiki_error` in the goal's report and show under Needs
-you. It cuts no version. Without the switch it refuses, and the owner merges. `ask`, `cut` and `leave` stay below for the
-owner's own routines before a release later.
+after `goal.py pr`. It asks nothing and drafts nothing:
+
+1. It refuses while a mapped page is stale.
+2. It runs each `routines` entry of `.loop/config.json` as read from `origin/<base>` (a pull request cannot add one), and
+   refuses the merge if one exits non-zero.
+3. It merges the goal's open pull request, then bumps the version once on the base branch (patch; minor for a new file or
+   `feat` commit; a breaking change is major, or minor while the version is 0.x), adds a CHANGELOG.md entry and creates a
+   published GitHub release (`autorelease.py`). A retry never bumps twice: the pushed version is recorded.
+4. It publishes the wiki from `origin/<base>` (`wiki.py publish <slug>`). A refused publish is `wiki_error`.
+
+Any release failure, a failed merge included, is recorded on the goal as `release_error` and shows under Needs you.
+Without the switch it refuses, and the owner merges. `ask`, `cut` and `leave` below are the manual path.
 
 ## `merge <slug>`
 
@@ -102,9 +109,8 @@ On the goal's branch `loop/<slug>` it:
 5. Runs `gh release create vX.Y.Z --draft --target loop/<slug>`, with the verify steps and docs in the notes, and prints
    `DRAFT <url>`.
 
-Then, if `.loop/docs.tsv` exists, publish the docs with `workflow-docs`, from the goal's branch. `publish` is stricter
-than `cut`: it counts every commit, and it refuses `UNWRITTEN` and `UNMAPPED` pages. If it fails, the draft stands:
-report the failure and the fix it printed.
+Then, if `.loop/docs.tsv` exists, publish the docs with `workflow-docs`, from the goal's branch. `publish` counts every
+commit and refuses `UNWRITTEN` and `UNMAPPED` pages. If it fails, the draft stands: report the fix it printed.
 
 Tell the user the draft URL, the wiki link, the steps to verify by hand, and that they publish it. The release commit
 rides on the goal's pull request, so the version lands when the user merges it.
@@ -113,7 +119,6 @@ If `cut` prints `ALREADY cut` or `ALREADY leave`, nothing was cut. Report it. If
 two files and reports the error. Report it too. Don't retry with other flags.
 
 ### Never
-
 - Never publish the draft: no `gh release edit`, no `--draft=false`, no tag push.
 - Never merge the pull request yourself; only `merge.py` merges, and only with `auto_merge` on.
 - Never edit `VERSION` or `CHANGELOG.md` by hand to get around a refusal.

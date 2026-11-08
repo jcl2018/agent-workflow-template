@@ -7,6 +7,8 @@ Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull reque
 
 Commands, flows and how-tos: `skills/workflow-docs/references/commands.md` and `skills/workflow-health/references/milestones.md`.
 
+The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a release, for the release tests.
+
 ## Criteria
 
 - DOC-1: **Reviewed 2026-11-08** Template: one template defines every feature page: Summary (2-3 lines), Criteria (max 5, each with review status), Tests (one row per test: criterion it proves, test linked to its regression row, last result and date, "not enforced" for a criterion with no passing test); nothing else. <!-- reviewed d6bed5d8 -->

@@ -79,3 +79,4 @@ keeps-seen-red	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: descri
 schedule-setting	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: changing regression_cron changes the schedule"	REG-4	2026-11-08	Changing the schedule setting and rewriting the workflow changes the Actions schedule.
 bad-schedule-refused	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a setting that is not five cron fields is refused"	REG-4	2026-11-08	A schedule setting that is not a cron time is refused.
 every-row-described	land	python3 skills/workflow-regression/scripts/regression.py sync | grep -c "^NODESC" | grep -qx 0	REG-2	2026-11-08	Every test row in this repo has a description.
+auto-release	land	bash dev/toy/test-autorelease.sh 2>&1 | grep -q "ALL PASS"	DEL-5	2026-11-08	A merged goal is released automatically when auto-release is on.

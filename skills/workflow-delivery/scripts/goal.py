@@ -388,7 +388,8 @@ def cmd_pr(args):
     if not url:
         body = read(goal_file(args.slug))
         flow = "".join("\n- %s: %s" % (step, state["flow"][step]) for step in FLOW)
-        body += "\n## Result\n\nChecks: pass on %s. Skill flow:%s\n" % (head[:10], flow)
+        ran = "pass on %s" % head[:10] if state.get("checks") == "pass" else "none ran; this repo configures no checks"
+        body += "\n## Result\n\nChecks: %s. Skill flow:%s\n" % (ran, flow)
         done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
                     "--title", state["goal"][:70], "--body", body], check=True)
         url = done.stdout.strip().splitlines()[-1]
