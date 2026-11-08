@@ -50,6 +50,18 @@ def tokens(text):
     return int(found[-1].replace(",", "")) if found else None
 
 
+def usage(text):
+    """(tokens, reply) from an agent's JSON output: the tokens it used (input + output + cache-creation, no cache reads)
+    and its result text. Anything else comes back as (the last count it printed in words, or None, the text itself)."""
+    try:
+        data = json.loads(text)
+        use = data["usage"]
+        spent = sum(int(use.get(key) or 0) for key in ("input_tokens", "output_tokens", "cache_creation_input_tokens"))
+        return (spent or None), str(data.get("result") or "")
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return tokens(text), text
+
+
 def git(*args):
     return subprocess.run(["git"] + list(args), capture_output=True, text=True)
 
