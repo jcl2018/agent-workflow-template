@@ -23,6 +23,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
+try:  # board.py runs alone with graph.py; without board_status.py there is no estimate
+    import board_status  # noqa: E402
+except ImportError:
+    board_status = None
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -211,6 +215,7 @@ def collect(name, path, base, at):
             "elapsed": (at - begun).total_seconds() if begun else 0, "age": span((at - begun).total_seconds()) if begun else "0m",
             "took": (last - begun).total_seconds() if begun and last else 0, "last": run.get("updated") or "",
             "waits_on": ", ".join(run.get("waits_on") or []), "touches": run.get("touches") or [],
+            "merged": graph.merged(run), "left": board_status and board_status.left_time(run, records, at),
             "eta": get("eta"), "next": get("next"), "branch": get("branch"), "reason": clean((run.get("retired") or {}).get("reason"))})
     by_slug = {r["slug"]: r for r in records}
     names = {goal["slug"] for goal in queue_of(path)}
@@ -223,7 +228,8 @@ def collect(name, path, base, at):
         if not waits and used >= int(cfg.get("parallel", 3) or 3):
             why = "a free slot (%d of %s running)" % (used, cfg.get("parallel", 3))
         deps.append({"repo": name, "slug": goal["slug"], "waits_on": why, "on": ", ".join(slug for slug, _ in waits), "goal": clean(goal.get("goal"), 80),
-                     "level": goal["level"], "touches": goal["touches"]})
+                     "level": goal["level"], "touches": goal["touches"],
+                     "left": board_status and board_status.left_time({"slug": goal["slug"], "status": "queued"}, records, at)})
     return rows, deps
 
 

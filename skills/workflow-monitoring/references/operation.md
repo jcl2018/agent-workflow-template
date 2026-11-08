@@ -77,14 +77,18 @@ To pass the loop to a new session, run `board.py handoff` and give it the path.
 Every check-in prints one block, and the dashboard and `board-artifact.html` carry the same content, in this order:
 
 1. **Needs you**: every stuck, waiting or failed worker, with the exact words to answer. Always first, never hidden.
-2. **Now**: each running goal's current step and stage, then every step with its estimated time and tokens, the actual
-   so far, and the estimate for the remaining steps.
-3. **Next**: only queued goals (with what each waits on) and goals whose pull request waits to merge.
-4. **Roadmap**: merged goals counted per feature, then a progress bar for each milestone and overall.
-5. **Goals**: each goal's done lines met so far. A worker marks one with `worker.py met SLUG N`.
+2. **Roadmap**: a dependency graph of every goal, grouped in levels (goals that wait on nothing first), each line marked
+   `merged`, `awaiting merge`, `running`, `waiting`, `failed` or `queued`, with its stage, progress bar, time left and
+   `<- waits on` what it waits on. A running goal keeps every step under it with its estimated time and tokens, the
+   actual so far, and the estimate for the remaining steps. Merged goals per feature and a bar per milestone follow.
+3. **Total**: the time for the whole graph, the longest chain of what is left (goals that don't wait on each other run
+   side by side), never the sum. It reads `at least` when a goal has no estimate yet.
+4. **Goals**: each goal's done lines met so far. A worker marks one with `worker.py met SLUG N`.
 
 Estimates are the median of other finished runs' steps, read from their logs; a step with none reads `no estimate yet`.
 Tokens read `unknown` until a run records them: `goal.py step SLUG NAME --tokens N` and `flow.py` record what the agent reports.
+A goal's step label changes when `flow.py` starts the step, and moves on when `goal.py record` records it, so the block, the
+graph and the board never show a finished step as current.
 
 ## Retiring goals
 

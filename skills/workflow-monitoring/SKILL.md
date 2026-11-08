@@ -123,10 +123,10 @@ agent ends, the worker sends its result back as a prompt message in the run reco
 `worker.py met SLUG N` marks a done line met; `worker.py send SLUG TEXT` leaves a message its agent sees next.
 
 Each check-in prints one status block (`scripts/board_status.py`), and `dashboard` and `board-artifact.html` carry the
-same content: Needs you (every stuck, waiting or failed worker, with the exact words to answer, always first), Now (each
-running goal's step and stage, with each step's estimated and actual time and tokens, and the estimate for the
-remaining steps or `no estimate yet`), Next (queued goals and pull requests waiting to merge only), Roadmap (merged goals
-per feature, then a bar per milestone) and Goals (done lines met so far). The loop is in `references/operation.md`.
+same content: Needs you (every stuck, waiting or failed worker, with the exact words to answer, always first), Roadmap (a
+dependency graph of every goal marked merged, running or queued, each with its stage, progress bar and time to finish,
+a running goal keeping each step's estimated and actual time and tokens under it, then merged goals per feature and a
+bar per milestone), Total (the longest chain of estimates, or `no estimate yet`) and Goals (done lines met so far). The loop is in `references/operation.md`.
 
 ## Statuses
 
