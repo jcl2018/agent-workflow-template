@@ -8,7 +8,7 @@ names a default suite under "suite" and, under "steps", a skill for any one step
 the skill for each step, the command that runs them, the environment that makes them run unattended, and a probe that proves it.
 The repo never names those skills. Each call waits a short while and prints RUNNING (run the same command again) or
 NEXT (the goal.py line that records the step). Nothing here approves, merges or pushes. It refuses outside a worker (LOOP_ROLE=worker), and prints what the operation
-session sent the worker. The tokens an agent reports are recorded against the step.
+session sent the worker. The tokens an agent used are read from its JSON output (input + output + cache-creation, no cache reads) and recorded against the step.
 """
 import argparse
 import json
@@ -141,9 +141,11 @@ def start(args, runs, reply, job):
                            note="The owner said: " + args.note + "\n" if args.note else "")
     if os.path.exists(reply):
         os.replace(reply, reply + ".last")
-    with open(reply, "w") as out:
+    if os.path.basename(command[0]) == "claude" and not any(part.startswith("--output-format") for part in command):
+        command += ["--output-format", "json"]  # its usage numbers come back in the reply, for role.usage
+    with open(reply, "w") as out, open(reply + ".err", "w") as err:
         child = subprocess.Popen(command + [prompt], cwd=top, stdin=subprocess.DEVNULL, stdout=out, env=env,
-                                 stderr=subprocess.STDOUT, start_new_session=True)
+                                 stderr=err, start_new_session=True)
     role.begin(os.path.join(runs, args.slug + ".json"), args.step)
     with open(job, "w") as handle:
         json.dump({"pid": child.pid, "started": time.time(), "limit": spec.get("limit") or int(cfg.get("step_limit") or 0) or args.limit}, handle)
@@ -185,8 +187,12 @@ def main():
             out.write("\nSTEP: failed the step passed its time limit\n")
     os.remove(job)
     open(base + ".ran", "w").close()
-    text = read(reply)
-    spent = role.tokens(text)
+    raw = read(reply)
+    spent, text = role.usage(raw)
+    if text != raw:  # JSON reply: keep it beside the file, and leave the result text where record reads it
+        os.replace(reply, reply + ".raw")
+        with open(reply, "w") as out:
+            out.write(text)
     if spent:
         record = os.path.join(runs, args.slug + ".json")
         state = json.loads(read(record))
