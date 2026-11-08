@@ -167,7 +167,7 @@ def facts():
     refresh()
     cfg = config()
     states = runs()
-    ready, held = plan(int(cfg.get("parallel", 3) or 3))
+    ready, held = plan(graph.parallel_of(cfg))
     return states, held + [(goal, "ready; watch starts it") for goal in ready]
 
 

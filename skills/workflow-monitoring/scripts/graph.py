@@ -3,7 +3,7 @@
 
 A queue line may carry `depends-on: a, b`. A goal waits only on goals it depends on, and only until they are merged;
 sharing files is never a reason to wait (the later goal merges the base before its pull request). The only other limit
-is `parallel` in .loop/config.json. Imported, not run.
+is `parallel` in .loop/config.json (0 or unset: unlimited). Imported, not run.
 """
 import re
 
@@ -49,8 +49,16 @@ def holds_slot(run):
     return run.get("status") != "running" or bool(run.get("pid"))
 
 
+def parallel_of(cfg):
+    """Workers allowed at once, read fresh from the config. 0, unset or unreadable means unlimited."""
+    try:
+        return max(0, int(cfg.get("parallel") or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 def ready(goals, records, limit):
-    """Split queued goals into (start, held). held is [(goal, reason)]; start never exceeds the free worker slots."""
+    """Split queued goals into (start, held). held is [(goal, reason)]; start never exceeds the free worker slots (limit 0: no limit)."""
     queued = {goal["slug"] for goal in goals}
     used = sum(1 for run in records.values() if run.get("status") in LIVE and holds_slot(run))
     start, held = [], []
@@ -60,7 +68,7 @@ def ready(goals, records, limit):
         waits = unmet(goal, records, queued)
         if waits:
             held.append((goal, "waits on " + ", ".join(why for _, why in waits)))
-        elif used >= limit:
+        elif limit and used >= limit:
             held.append((goal, "slots full (%d of %d)" % (used, limit)))
         else:
             start.append(goal)

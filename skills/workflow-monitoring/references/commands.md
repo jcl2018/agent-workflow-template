@@ -22,7 +22,7 @@ resume SLUG
   the cadence is off. `operate send SLUG TEXT` leaves a worker an answer or follow-up, which `goal.py` and `flow.py`
   print to its agent the next time they run. An LLM asked to run the operation session runs this command and nothing else.
 - `go` adds the goal to `.loop/queue.md` and starts a worker for it if a slot is free, or prints `QUEUED`.
-- `watch` starts every queued goal whose `depends-on` goals are merged (3 at a time by default, set `parallel`), each on branch `loop/<slug>` in its own worktree, and ends when
+- `watch` starts every queued goal whose `depends-on` goals are merged (all at once by default; set `parallel` to a number to cap them, 0 is unlimited), each on branch `loop/<slug>` in its own worktree, and ends when
   nothing is left. `--once` makes one pass, for a check-in.
 - `report` lists each run, what waits on you with the exact words to type, findings, criteria changed after review, and
   queued goals.

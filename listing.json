@@ -32,6 +32,9 @@
   ],
   "commands": [
     "setup",
+    "reference",
+    "fill-repo",
+    "fill-private",
     "go",
     "report",
     "dashboard",

@@ -24,7 +24,7 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 {
   "base": "main",
   "agent_command": ["claude", "-p"],
-  "parallel": 3,
+  "parallel": 0,
   "risky_paths": ["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"],
   "version_file": "VERSION",
   "wiki_dir": "docs/wiki",
@@ -34,6 +34,11 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 }
 ```
 
+- Every setting, repo and private, with its default and a one-line explanation, is listed in `workflow-setup/references/settings.md`
+  (generated from `settings.py`). `setup.py` writes each repo setting into `config.json` and each private setting into the
+  flow file, and keeps any value already set. Every script reads these files fresh on each run, so a change applies at once.
+- `parallel`: workers at once; `0` means unlimited, and it is the default.
+- `cadence`, `step_limit`, `token_budget`, `max_tries`, `routines` and `regression_cron` are optional repo settings; see the reference.
 - `agent_command` runs a goal in the background; the prompt is its last argument.
 - `auto_approve` (default `false`): `true` approves what a flow step leaves for the owner, logged as auto-approved.
 - `auto_merge` (default `false`): `true` lets the release step's `merge.py` merge a goal's pull request.
@@ -81,7 +86,10 @@ and the wiki pages on the `workflow-setup` branch and leaves existing values and
   "suite": {"idea": "<your idea skill>", "plan": "<your plan skill>", "review": "<your review skill>",
             "qa": "<your test skill>", "ship": "<your ship skill>"},
   "steps": {"review": "<a skill for this one step, replacing the suite's>"},
-  "limit": 2700
+  "limit": 2700,
+  "allowed_tools": [],
+  "model": "",
+  "overrides": {"qa": {"model": "<a model>", "allowed_tools": ["Bash", "Read"]}}
 }
 ```
 
