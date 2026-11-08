@@ -61,19 +61,20 @@ def one_pass(top, common, args, first):
     folder = os.path.join(common, "loop")
     board, before = os.path.join(folder, "board.json"), os.path.join(folder, "board.before.json")
     since = []
-    if not first and os.path.exists(board):
+    first = first and not os.path.exists(board)  # a board from an earlier run is the baseline, so a quiet restart is one line too
+    if os.path.exists(board):
         os.replace(board, before)
         since = ["--since", before]
     _, out = script("board.py", "board", *since, cwd=top)
     lines = out.splitlines()
-    changed = "CHANGED yes" in lines
     delay = next((line.split()[1] for line in lines if line.startswith("NEXT_DELAY ")), "none")
     quiet = [line for line in lines if line.startswith("NO_CHANGE")]
-    if changed or first or not quiet:
+    digest = next((line[7:] for line in lines if line.startswith("DIGEST ")), "")
+    if "CHANGED no" in lines and not first:
+        print(quiet[0].split(" ", 1)[1] if quiet else "Nothing changed. %s." % digest)
+    else:
         print(out.rstrip())
         print(script("board_page.py", cwd=top)[1].rstrip())
-    else:
-        print(quiet[0])
     try:
         with open(board) as handle:
             busy = bool(json.load(handle).get("open"))

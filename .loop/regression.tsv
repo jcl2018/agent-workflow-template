@@ -88,7 +88,7 @@ milestone-links	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: mil
 release-note-found	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: a tag with no release note"	DOC-5	2026-11-08	A release with no release note is found.	criterion	
 operate-all	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "ALL PASS"	MON-1	-	The operate command's whole toy suite passes.	criterion	
 worker-reports-live	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the worker's agent sees it the next time goal.py runs, once"	MON-2	2026-11-08	A report to a running worker reaches its agent once, the next time goal.py runs.	criterion	
-status-roadmap-features	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: Roadmap counts merged goals per feature"	MON-4	-	The status block's Roadmap counts merged goals per feature.	criterion	
+status-roadmap-features	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: Roadmap collapses merged goals to one line of pull request numbers"	MON-4	-	The status block's Roadmap collapses merged goals to one line of pull request numbers.	criterion	
 operate-wakes-on-report	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: a worker's report wakes it before the cadence, and one line says nothing changed"	MON-5	2026-11-08	A worker's report wakes operate before the cadence; a quiet cycle prints one line.	criterion	
 adopt-set-1	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-1	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1.	criterion	
 adopt-set-2	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-2	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1, suggest then apply.	criterion	
@@ -97,7 +97,7 @@ adopt-set-4	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-4	SET-4	2
 adopt-set-5	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-5	SET-5	2026-11-08	The toy adopt-and-update test holds for SET-5.	criterion	
 status-graph-order	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: four sections in the fixed order"	MON-4	-	The status block is Needs you, Roadmap, Total, Goals in that order.	criterion	
 status-graph-levels	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: parallel roots share a level, chained goals sit deeper"	MON-4	-	Parallel goals share a graph level and chained goals sit deeper.	criterion	
-status-graph-marks	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: marks, stage, bar and time to finish"	MON-4	-	The graph marks merged, running and queued goals with stage, bar and time to finish.	criterion	
+status-graph-marks	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: live goals only, stage, 10-cell bar, time to finish, merged collapsed to one line"	MON-4	-	The graph draws only live goals with stage, a 10-cell bar and time to finish, and collapses merged goals to one line.	criterion	
 status-graph-total	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: the total is the longest chain b > c > d, not the sum"	MON-4	-	The total is the longest chain of estimates, not their sum.	criterion	
 status-graph-board	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: the board's total is the same longest chain"	MON-4	-	The board carries the same marks and total as the status block.	criterion	
 step-label-live	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: recording moves the label on, so the finished step is never shown as current"	MON-4	-	A step's label changes when it starts and never shows a finished step as current.	criterion	
