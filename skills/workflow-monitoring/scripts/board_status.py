@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
 import status_graph  # noqa: E402
 
-STEPS = ("idea", "plan", "build", "checks", "review", "qa", "ship", "pr")
+STEPS = ("idea", "plan", "build", "review", "qa", "ship", "pr")
 ASKING = ("waiting", "failed", "stopped")
 TITLES = ("Needs you", "Roadmap", "Total", "Goals")
 

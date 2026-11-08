@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.6.0 - 2026-11-08
+
+- Defect tests: categories, delivery gate, health rule, worker release, no checks step
+- Wiki summaries, Verify by hand, defect rows seen failing, run ledger
+- Review fixes: finding ref match, docstring
+- Merge origin/main into defect-tests
+- Ledger and rows after merging main
+- Wiki: defect-test gate in Delivery, defect links in Documentation
+
+### How to verify
+
+1. Open `docs/wiki/Delivery.md` and look at the Tests section.
+   Expect: the criteria table, then a `### Defect tests` part listing the defects for issue 35 and pull requests 61 and 62, each linked to its source.
+2. Run `bash dev/toy/test-defect.sh`.
+   Expect: one `PASS:` line for each of wording, flow-steps, categories, defect-owed, health-closed, worker-release, pr-body, no-hang and known-defects, then `ALL PASS`.
+3. Run `python3 skills/workflow-delivery/scripts/goal.py check anything`.
+   Expect: an error saying `check` is not a valid command, because the checks step is gone.
+4. Run `python3 skills/workflow-health/scripts/health.py check --family criteria`.
+   Expect: no `defect-tests` FAIL line, because every issue or finding a goal says it fixed has a defect test.
+
+## v0.5.0 - 2026-11-08
+
+- Setup adopts a repo, update command, versioned package, design guide
+- Rows, wiki, verify steps
+- Setup: add only paths that exist
+- Setup: --bare writes only config, queue and findings; older toy tests use it
+- Merge main into loop/setup-adopt
+- Wiki: update pages for setup-adopt
+
+### How to verify
+
+1. Run `bash dev/toy/test-adopt.sh`.
+   Expect: it prints `PASS SET-1 SET-2`, `PASS SET-3`, `PASS SET-4 SET-5` and `ALL PASS`.
+2. In a scratch git repo with a code folder and an unmarked `docs/wiki/Home.md`, run `python3 skills/workflow-setup/scripts/setup.py --dry-run`.
+   Expect: a `FOUND:` line, then `add:` and `convert:` lines, and `DRY RUN: nothing written`.
+3. Run `bash dev/package.sh --out /tmp/pk.zip`, then `python3 skills/workflow-setup/scripts/update.py --from /tmp/pk.zip --skills <a copy of skills/>`.
+   Expect: `PASS: ... version 0.3.0`, then `INSTALLED:`, `AVAILABLE: 0.3.0` and a preview that writes nothing.
+
 ## v0.4.0 - 2026-11-08
 
 - Show the roadmap as a dependency graph in the status block and board

@@ -14,7 +14,7 @@ watch="python3 $here/skills/workflow-monitoring/scripts/watch.py"
 rel="python3 $here/skills/workflow-release/scripts/release.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 cd "$d/toy/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 no() { echo "FAIL $id: $1"; exit 1; }
 
@@ -27,7 +27,7 @@ text = open(path).read().replace("## Verify by hand\n", "## Verify by hand\n\n%s
 open(path, "w").write(text)
 PY
   printf '\n# %s\n' "$1" >> calc.py; git commit -qam "Add $1 to calc"
-  bash "$here/dev/toy/flow-done.sh" "$1" && $goal check "$1" >/dev/null && $goal pr "$1" >/dev/null || no "goal did not finish"
+  bash "$here/dev/toy/flow-done.sh" "$1" && $goal pr "$1" >/dev/null || no "goal did not finish"
 }
 STEPS=$'1. Open calc.py.\n   Expect: the new line.'
 
@@ -48,7 +48,7 @@ case "$id" in
     FAKE_SKILL_OUT='PENDING: approve the plan\nSTEP: done' $F held plan --wait 5 >/dev/null; FAKE_SKILL_OUT='x' $F held plan --wait 10 >/dev/null
     $goal record held plan --file "$R/held.plan.txt" | grep -q "^WAITING held" || no "a pending decision didn't wait"
     python3 -c "import json,sys;s=json.load(open(sys.argv[1]));assert s['status']=='waiting' and s['flow']['plan']=='pending'" "$R/held.json" || no "pending was approved"
-    $goal check held >/dev/null; $goal pr held 2>&1 | grep -q "the flow hasn't finished: idea, plan" || no "pr went on with a decision pending";;
+    $goal pr held 2>&1 | grep -q "the flow hasn't finished: idea, plan" || no "pr went on with a decision pending";;
   DEL-10)
     mkdir -p "$d/bin"
     printf '#!/bin/bash\n[ "$GH_PROMPT_DISABLED" = 1 ] || { read -r _; echo prompted >> "%s/prompted"; }\nexit 1\n' "$d" > "$d/bin/gh"; chmod +x "$d/bin/gh"

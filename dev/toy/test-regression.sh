@@ -10,16 +10,16 @@ reg="python3 $here/skills/workflow-regression/scripts/regression.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 unset GH_TOKEN GITHUB_TOKEN
 cd "$d/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 fails=0
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 calls() { grep -c "$1" "$FAKE_GH_DIR/calls.log" 2>/dev/null; }
 
-echo "== seed, and an unproven row blocks"
-$reg seed
-grep -q "^check-1" .loop/regression.tsv && ok "seeded a row" || bad "seed"
+echo "== add, and an unproven row blocks"
+$reg add check-1 --level land --command "python3 -m unittest discover" >/dev/null
+grep -q "^check-1" .loop/regression.tsv && ok "added a row" || bad "add"
 git add -A; git commit -qm "Rows"
 out=$($reg run land); rc=$?; echo "$out"
 [ $rc = 1 ] && grep -q "^UNPROVEN check-1" <<<"$out" && ok "unproven row blocks" || bad "unproven"

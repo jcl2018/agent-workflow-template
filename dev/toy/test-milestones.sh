@@ -13,7 +13,7 @@ ms="python3 $here/skills/workflow-health/scripts/milestone.py"
 health="python3 $here/skills/workflow-health/scripts/health.py"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 cd "$d/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 printf 'Calc\tcalc.py\nHome\tREADME.md\n' > .loop/docs.tsv
 mkdir -p docs/wiki; printf '<!-- workflow-docs -->\n# Calc\n' > docs/wiki/Calc.md
@@ -43,7 +43,7 @@ t = open(p).read().replace("## Verify by hand\n", "## Verify by hand\n\n1. Open 
 open(p, "w").write(t)
 PYEND
 git commit -qam "Verify steps"
-bash "$here/dev/toy/flow-done.sh" calc-goal; $goal check calc-goal >/dev/null; out=$($goal pr calc-goal); echo "$out"
+bash "$here/dev/toy/flow-done.sh" calc-goal; out=$($goal pr calc-goal); echo "$out"
 grep -q "ATTACHED pull request 1 to milestone Calc" <<<"$out" && [ "$(cat "$FAKE_GH_DIR/pr-milestone-1")" = Calc ] && ok "goal.py pr puts the pull request in the Calc milestone" || bad "attach"
 $goal new other-goal --here --goal "Other" --done "x" --touches "elsewhere.txt" >/dev/null 2>&1 || true
 out=$($ms attach other-goal 2>&1); grep -q "REFUSED: other-goal has no pull request" <<<"$out" && ok "no pull request, no attach" || bad "attach no pr"

@@ -1,6 +1,6 @@
 ---
 name: workflow-delivery
-description: Takes one sentence to a pull request by running your own idea, plan, review, test and ship skills unattended, in a background agent, with frozen done lines and the repo's checks around them. `go` starts a goal. Use when asked to build a change and open a pull request. It needs a configured skill flow.
+description: Takes one sentence to a pull request by running your own idea, plan, review, test and ship skills unattended, in a background agent, with frozen done lines around them and review as the only gate. `go` starts a goal. Use when asked to build a change and open a pull request. It needs a configured skill flow.
 ---
 
 # workflow-delivery
@@ -30,14 +30,14 @@ The steps below are for a background agent already inside its goal's worktree. I
 is a tool that can't run a background agent: tell the user, then freeze with `goal.py new <slug> --here`.
 
 If the user gave no done lines, write them and show them before you start. Each must be provable before the pull
-request, by the repo's checks or by what a person can see.
+request, by a test or by what a person can see.
 
 **Never run the suite's skills yourself.** Run each one through `flow.py`, which starts it in its own unattended mode
 and refuses if the probe says otherwise. Run interactively, a ship skill could push. The skills take their recommended
 answers; nothing is approved for the owner.
 
 ```text
-freeze -> idea -> plan -> build -> checks -> review -> checks -> qa -> checks -> ship -> checks -> pr -> release
+freeze -> idea -> plan -> build -> review -> qa -> ship -> pr -> release
 ```
 
 ### 1. Freeze
@@ -67,7 +67,7 @@ Run it again until it stops printing `RUNNING`: a step can take many minutes. Th
   run `goal.py answer <slug>`, then run the step again with `--note "<the owner's answer>"`.
 - `TRY n OF 3 FAILED`: fix the cause, then run the step again.
 
-Goal steps (`step`, `check`, `record`, `pr`, `flow.py`) refuse outside a worker (`LOOP_ROLE=worker`), naming
+Goal steps (`step`, `record`, `pr`, `flow.py`) refuse outside a worker (`LOOP_ROLE=worker`), naming
 `batch.py start NAME`. In a worker they print any message from the operation session once; treat it as the owner's answer
 or follow-up. Report your tokens for a step with `goal.py step <slug> <name> --tokens N`.
 
@@ -88,38 +88,34 @@ their own eyes. A release refuses without at least one.
 
 Write what they can see, not what the tests already prove.
 
-### 4. Checks
+### 4. Pull request
 
-Run `goal.py check <slug>` after the build and after every step that changes files: review, qa and ship can. On a
-failure, fix the cause, commit, and run it again. Its `NEXT` line names the next step.
-
-### 5. Pull request
-
-Run `goal.py pr <slug>`. It first merges the latest base branch; if that brings changes it reruns the checks, and only a
-real conflict costs a try (it aborts the merge: merge the base yourself, commit, check, and run `pr` again). It refuses
-until the checks hold on this commit and every flow step is done or skipped. The
+Run `goal.py pr <slug>`. It first merges the latest base branch, and only a real conflict costs a try (it aborts the
+merge: merge the base yourself, commit, and run `pr` again). It refuses until every flow step is done or skipped, and
+while the issue or finding the goal fixes ("fixes #N", "fixes finding:SLUG") has no defect test: a regression row of
+category defect, linked to it, seen failing on the old code and passing now (`regression.py add --category defect
+--link ...`, then `red`). The
 ship step never pushes, so this is what pushes the branch and opens the pull request, whose body lists each step's
 result. With `pr_bumps_version` on, it moves the last number of the version file once on this branch first, unless the
 branch already changed it. It retries a failed push twice, then prints git's full error. Never merge it yourself.
 
-### 6. Release
+### 5. Release
 
-Hand over to `workflow-release`. Where `.loop/docs.tsv` exists, its first act is `wiki.py prepare <slug>`: rewrite the
+Run the release step yourself, as the last step of the goal; never end with the pull request waiting. Hand over to `workflow-release`. Where `.loop/docs.tsv` exists, its first act is `wiki.py prepare <slug>`: rewrite the
 stale pages it lists and commit them on the goal's branch; after the merge it publishes the wiki. It asks `cut` or `leave`; a monitored goal without `--release ask` answers `leave` itself.
 
 ## Switches that remove gates
 
-Three keys in `.loop/config.json` remove gates, and each is off unless the owner turns it on:
+Two keys in `.loop/config.json` remove gates, and each is off unless the owner turns it on:
 
-- `"require_checks": false` with an empty `checks` list: `check` tests nothing and says so, and `pr` opens anyway.
 - `"auto_approve": true`: `record` approves what a step leaves for the owner, logs it as auto-approved, and goes on.
-- `"auto_merge": true`: after `pr`, the release step runs the `routines` from `.loop/config.json`, merges the pull request, bumps the version once and publishes a GitHub release with a CHANGELOG entry. With no checks configured the pull request body says none ran.
+- `"auto_merge": true`: after `pr`, the release step runs the `routines` from `.loop/config.json`, merges the pull request, bumps the version once and publishes a GitHub release with a CHANGELOG entry.
 
-This repo has all three on. Say so whenever you report a goal here.
+This repo has both on. Say so whenever you report a goal here.
 
 ## When a goal stops
 
-Failed checks, and a flow step that failed or gave no `STEP:` line, each cost a try. After 3, the script files a finding
+A flow step that failed or gave no `STEP:` line, each cost a try. After 3, the script files a finding
 in `.loop/findings.md` and stops with exit code 3. Stop, report it, and leave the done lines as they are.
 
 If you need an answer only the user can give:

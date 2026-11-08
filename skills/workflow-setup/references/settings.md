@@ -9,18 +9,16 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | Setting | Default | What it does |
 |---|---|---|
 | `base` | `main` | The branch goals start from and pull requests target. |
-| `checks` | `[]` | Commands that must pass before a pull request opens. |
 | `agent_command` | `[]` | The command that runs a goal in the background; the prompt is its last argument. |
 | `parallel` | `0` | Workers running at once; 0 means unlimited. |
 | `cadence` | `10` | Minutes between check-ins of the operation session, 1 to 60, or off. |
 | `auto_approve` | `false` | true approves what a flow step leaves for the owner, logged as auto-approved. |
 | `auto_merge` | `false` | true lets the release step merge a goal's pull request and publish its release. |
-| `require_checks` | `true` | false with no checks lets a pull request open without any. |
 | `pr_bumps_version` | `false` | true moves the last number of the version file once on a goal's branch. |
 | `version_file` | `VERSION` | The file that holds the version; a release bumps it and writes the changelog. |
 | `routines` | `[]` | Commands the release step runs on the base branch before it merges. |
 | `regression_cron` | `17 9 * * *` | Five cron fields: when the nightly regression runs in GitHub Actions. |
-| `criteria` | `false` | true makes docs check enforce the Summary, Criteria and Tests page contract. |
+| `criteria` | `true` | true makes docs check enforce the Summary, Criteria and Tests page contract. |
 | `wiki_dir` | `docs/wiki` | The folder of wiki pages. |
 | `risky_paths` | `["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]` | Regexes for paths whose goals need extra care. |
 | `step_limit` | `0` | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. |
@@ -41,7 +39,8 @@ Outside the repo, never committed: `~/.workflow-loop/flow.json` (or `$LOOP_FLOW`
 | `command` | `["claude", "-p"]` | Flow file: the agent command that runs each flow step unattended. |
 | `allowed_tools` | `[]` | Flow file: tools a step's agent may use, passed as --allowedTools; empty adds nothing. |
 | `model` | `(empty)` | Flow file: the model a step's agent uses, passed as --model; empty keeps the command's own. |
-| `steps` | `{"idea": "", "plan": "", "review": "", "qa": "", "ship": ""}` | Flow file: the skill for each step; the default suite is empty until you name your own. |
+| `suite` | `{"idea": "", "plan": "", "review": "", "qa": "", "ship": ""}` | Flow file: the default skill for each step; empty until you name your own. |
+| `steps` | `{}` | Flow file: a skill for any one step, replacing the suite's. |
 | `overrides` | `{}` | Flow file: per step {skill, model, allowed_tools} that replace the defaults above. |
 | `env` | `{}` | Flow file: environment that puts the skills in their unattended mode. |
 | `probe` | `[]` | Flow file: a command that prints probe_expect when the skills run unattended. |

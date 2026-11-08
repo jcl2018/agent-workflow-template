@@ -13,7 +13,7 @@ cri="python3 $here/skills/workflow-docs/scripts/criteria.py"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"
 ms="python3 $here/skills/workflow-health/scripts/milestone.py"
 cd "$d/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 python3 - <<'PY'
 import json

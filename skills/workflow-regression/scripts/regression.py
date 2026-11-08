@@ -3,10 +3,10 @@
 
 usage: regression.py <command> [options]
 
-  seed                          add one land row for each check in .loop/config.json
-  add ID --level L --command C [--goal SLUG:N] [--describe TEXT]
+  add ID --level L --command C [--goal SLUG:N] [--describe TEXT] [--category C --link L]
                                 add or replace a row. L is land, nightly, draft or covered;
-                                TEXT says in plain words what the test checks
+                                TEXT says in plain words what the test checks; C is criterion (default) or defect, and
+                                a defect row needs L, the issue URL or finding:SLUG it keeps fixed
   sync [--write]                list done lines and criteria with no row, rows with no description, rows never seen
                                 failing; --write drafts rows (a criterion's row has its id as id or goal)
   criteria                      run each wiki criterion's row; print one UNMET line for each missing, draft or failing
@@ -15,7 +15,7 @@ usage: regression.py <command> [options]
                                 run the rows, then open, update or close one issue per failing row
   workflow                      write .github/workflows/regression.yml, on the schedule in regression_cron
 
-Rows live in .loop/regression.tsv: id, level, command, goal, seen_red, description. Each run records its rows' last status and
+Rows live in .loop/regression.tsv: id, level, command, goal, seen_red, description, category, link. Each run records its rows' last status and
 date in .loop/regression-runs.tsv, which the wiki Tests tables show. Known failures live in .loop/regression-known.tsv: id, reason. A known failure never blocks. A row never seen failing does.
 Issues dry-run unless GH_TOKEN or GITHUB_TOKEN is set, or you pass --live. It runs git, gh and your test
 commands, and nothing else.
@@ -38,80 +38,10 @@ if not sys.stdin or not sys.stdin.isatty():
 
 LEVELS = ("land", "nightly", "draft", "covered")
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$")
-FIELDS = ("id", "level", "command", "goal", "seen_red", "description")
+FIELDS = ("id", "level", "command", "goal", "seen_red", "description", "category", "link")
 HEADER = "# " + "\t".join(FIELDS) + "\n"
 CRON = "17 9 * * *"
 MARK = "<!-- loop-regression %s -->"
-WORKFLOW = r"""# Written by workflow-regression. It reads .loop/regression.tsv and .loop/regression-known.tsv.
-name: regression
-on:
-  schedule:
-    - cron: "@CRON@"
-  push:
-    tags: ["v*"]
-  workflow_dispatch:
-permissions:
-  contents: read
-  issues: write
-concurrency:
-  group: regression
-  cancel-in-progress: false
-jobs:
-  regression:
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Run the rows, and keep one issue per failing row
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 - <<'PY'
-          import json, os, subprocess, sys
-          def rows(path):
-              if not os.path.exists(path):
-                  return []
-              return [line.rstrip("\n").split("\t") for line in open(path) if line.strip() and not line.startswith("#")]
-          known = {row[0] for row in rows(".loop/regression-known.tsv")}
-          def gh(*args):
-              return subprocess.run(("gh",) + args, capture_output=True, text=True)
-          gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
-          out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body")
-          issues = json.loads(out.stdout or "[]")
-          red, lines = [], ["| Row | Result |", "|---|---|"]
-          for row in rows(".loop/regression.tsv"):
-              if len(row) < 3 or row[1] not in ("land", "nightly"):
-                  continue
-              done = subprocess.run(row[2], shell=True, capture_output=True, text=True, timeout=900)
-              mark = "<!-- loop-regression %s -->" % row[0]
-              hits = [item for item in issues if mark in item["body"]]
-              hit = next((item for item in hits if item["state"] == "OPEN"), hits[0] if hits else None)
-              state = "PASS" if done.returncode == 0 else "FAIL"
-              print(state, row[0])
-              lines.append("| %s | %s |" % (row[0], state))
-              if done.returncode == 0:
-                  for item in hits:
-                      if item["state"] == "OPEN":
-                          gh("issue", "close", str(item["number"]), "--comment", "Passing again.")
-              elif row[0] not in known:
-                  red.append(row[0])
-                  body = "%s\nThe row `%s` fails.\n\n```\n%s\n```\n" % (mark, row[0], (done.stdout + done.stderr)[-1500:])
-                  if not hit:
-                      gh("issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--body", body)
-                  else:
-                      if hit["state"] != "OPEN":
-                          gh("issue", "reopen", str(hit["number"]))
-                      gh("issue", "comment", str(hit["number"]), "--body", "Still failing.")
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as out:
-              out.write("## Regression rows\n\n" + "\n".join(lines) + "\n")
-          sys.exit(1 if red else 0)
-          PY
-"""
-
-
 def run(args, cwd=None):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
 
@@ -138,13 +68,16 @@ def path_of(root, name):
 def cells_of(root, name):
     try:
         with open(path_of(root, name)) as handle:
-            return [line.rstrip("\n").split("\t") + [""] * 6 for line in handle if line.strip() and line[0] != "#"]
+            return [line.rstrip("\n").split("\t") + [""] * 8 for line in handle if line.strip() and line[0] != "#"]
     except OSError:
         return []
 
 
 def read_rows(root):
-    return {cells[0]: dict(zip(FIELDS, cells)) for cells in cells_of(root, "regression.tsv")}
+    rows = {cells[0]: dict(zip(FIELDS, cells)) for cells in cells_of(root, "regression.tsv")}
+    for row in rows.values():
+        row["category"] = row["category"] or "criterion"
+    return rows
 
 
 def write_rows(root, rows):
@@ -172,27 +105,6 @@ def clean(text):
     return text
 
 
-def cmd_seed(_args):
-    root = top()
-    try:
-        with open(path_of(root, "config.json")) as handle:
-            checks = json.load(handle).get("checks") or []
-    except (OSError, ValueError):
-        sys.exit("REFUSED: no readable .loop/config.json. Fix: run workflow-setup and merge its branch.")
-    rows = read_rows(root)
-    held = {row["command"] for row in rows.values()}
-    added = 0
-    for index, command in enumerate(checks, 1):
-        if command not in held:
-            key = "check-%d" % index
-            rows[key] = new(id=key, level="land", command=clean(command))
-            print("ADDED %s: %s" % (key, command))
-            added += 1
-    write_rows(root, rows)
-    print("SEEDED %d rows. Run red on each." % added)
-    return 0
-
-
 def cmd_add(args):
     if not ID.match(args.id):
         sys.exit("REFUSED: bad id. Fix: letters, digits, dots, dashes.")
@@ -200,7 +112,10 @@ def cmd_add(args):
     rows = read_rows(root)
     old = rows.get(args.id, {})
     same = old.get("command") == args.command
+    if args.category == "defect" and not args.link:
+        sys.exit("REFUSED: a defect row links to its issue or finding. Fix: add --link URL or finding:SLUG.")
     rows[args.id] = new(id=args.id, level=args.level, command=clean(args.command), goal=clean(args.goal),
+                        category=args.category, link=clean(args.link),
                         seen_red=old.get("seen_red", "") if same else "",
                         description=clean(args.describe if args.describe is not None else old.get("description", "")))
     write_rows(root, rows)
@@ -244,7 +159,7 @@ def criteria_ids(root):
 
 
 def criterion_rows(rows, key):
-    return [row for row in rows.values() if key in (row["id"], row["goal"])]
+    return [row for row in rows.values() if key in (row["id"], row["goal"]) and row["category"] != "defect"]
 
 
 def cmd_sync(args):
@@ -278,7 +193,11 @@ def cmd_sync(args):
     bare = [row["id"] for row in rows.values() if row["level"] != "covered" and not row["description"]]
     for key in bare:
         print("NODESC %s: no description. Fix: add --describe." % key)
-    if missing or drafts or never or bare:
+    odd = [row["id"] for row in rows.values() if row["category"] not in ("criterion", "defect")
+           or (row["category"] == "defect" and not row["link"])]
+    for key in odd:
+        print("NOCATEGORY %s: a category of criterion or defect, and a link for a defect. Fix: add --category, --link." % key)
+    if missing or drafts or never or bare or odd:
         return 1
     print("SYNC OK: %d rows" % len(rows))
     return 0
@@ -386,7 +305,7 @@ def cmd_run(args):
     root = top()
     rows = read_rows(root)
     if not rows:
-        print("NO ROWS: run seed or add first")
+        print("NO ROWS: run add first")
         return 1
     expected = known(root)
     results = []
@@ -425,36 +344,22 @@ def cmd_run(args):
 
 
 def cmd_workflow(_args):
-    root = top()
-    try:
-        with open(path_of(root, "config.json")) as handle:
-            cron = json.load(handle).get("regression_cron") or CRON
-    except (OSError, ValueError):
-        cron = CRON
-    if len(cron.split()) != 5 or '"' in cron:
-        sys.exit("REFUSED: regression_cron is not five cron fields. Fix: edit .loop/config.json.")
-    path = os.path.join(root, ".github", "workflows", "regression.yml")
-    if os.path.exists(path):
-        with open(path) as handle:
-            if not handle.read().startswith("# Written by workflow-regression"):
-                sys.exit("REFUSED: %s exists, and this tool didn't write it. Fix: merge by hand." % path)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as handle:
-        handle.write(WORKFLOW.replace("@CRON@", cron))
-    print("WROTE " + path)
-    return 0
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import actions
+    return actions.write(top(), CRON)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command_name", required=True)
-    sub.add_parser("seed").set_defaults(func=cmd_seed)
     item = sub.add_parser("add")
     item.add_argument("id")
     item.add_argument("--level", choices=LEVELS, default="nightly")
     item.add_argument("--command", required=True)
     item.add_argument("--goal", default="")
     item.add_argument("--describe")
+    item.add_argument("--category", choices=("criterion", "defect"), default="criterion")
+    item.add_argument("--link", default="")
     item.set_defaults(func=cmd_add)
     item = sub.add_parser("sync")
     item.add_argument("--write", action="store_true")

@@ -16,23 +16,24 @@ import os
 import subprocess
 import sys
 
+# No terminal, no waiting: a prompt from git must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
 REPO, PRIVATE = "repo", "private"
 RISKY = ["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]
 # (key, home, default, one-line explanation)
 TABLE = [
     ("base", REPO, "main", "The branch goals start from and pull requests target."),
-    ("checks", REPO, [], "Commands that must pass before a pull request opens."),
     ("agent_command", REPO, [], "The command that runs a goal in the background; the prompt is its last argument."),
     ("parallel", REPO, 0, "Workers running at once; 0 means unlimited."),
     ("cadence", REPO, "10", "Minutes between check-ins of the operation session, 1 to 60, or off."),
     ("auto_approve", REPO, False, "true approves what a flow step leaves for the owner, logged as auto-approved."),
     ("auto_merge", REPO, False, "true lets the release step merge a goal's pull request and publish its release."),
-    ("require_checks", REPO, True, "false with no checks lets a pull request open without any."),
     ("pr_bumps_version", REPO, False, "true moves the last number of the version file once on a goal's branch."),
     ("version_file", REPO, "VERSION", "The file that holds the version; a release bumps it and writes the changelog."),
     ("routines", REPO, [], "Commands the release step runs on the base branch before it merges."),
     ("regression_cron", REPO, "17 9 * * *", "Five cron fields: when the nightly regression runs in GitHub Actions."),
-    ("criteria", REPO, False, "true makes docs check enforce the Summary, Criteria and Tests page contract."),
+    ("criteria", REPO, True, "true makes docs check enforce the Summary, Criteria and Tests page contract."),
     ("wiki_dir", REPO, "docs/wiki", "The folder of wiki pages."),
     ("risky_paths", REPO, RISKY, "Regexes for paths whose goals need extra care."),
     ("step_limit", REPO, 0, "Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit."),
@@ -46,8 +47,9 @@ TABLE = [
     ("command", PRIVATE, ["claude", "-p"], "Flow file: the agent command that runs each flow step unattended."),
     ("allowed_tools", PRIVATE, [], "Flow file: tools a step's agent may use, passed as --allowedTools; empty adds nothing."),
     ("model", PRIVATE, "", "Flow file: the model a step's agent uses, passed as --model; empty keeps the command's own."),
-    ("steps", PRIVATE, {"idea": "", "plan": "", "review": "", "qa": "", "ship": ""},
-     "Flow file: the skill for each step; the default suite is empty until you name your own."),
+    ("suite", PRIVATE, {"idea": "", "plan": "", "review": "", "qa": "", "ship": ""},
+     "Flow file: the default skill for each step; empty until you name your own."),
+    ("steps", PRIVATE, {}, "Flow file: a skill for any one step, replacing the suite's."),
     ("overrides", PRIVATE, {}, "Flow file: per step {skill, model, allowed_tools} that replace the defaults above."),
     ("env", PRIVATE, {}, "Flow file: environment that puts the skills in their unattended mode."),
     ("probe", PRIVATE, [], "Flow file: a command that prints probe_expect when the skills run unattended."),
@@ -56,7 +58,7 @@ TABLE = [
     ("rules", PRIVATE, [], "Health file: your own health rules, each {name, command, fix}."),
     ("repos", PRIVATE, [], "Followed repos: one path a line in the repos file, shown on the board."),
 ]
-FLOW_KEYS = ("command", "allowed_tools", "model", "steps", "overrides", "env", "probe", "probe_expect", "limit")
+FLOW_KEYS = ("command", "allowed_tools", "model", "suite", "steps", "overrides", "env", "probe", "probe_expect", "limit")
 
 
 def keys(home):

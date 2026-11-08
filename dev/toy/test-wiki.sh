@@ -14,7 +14,7 @@ docs="python3 $here/skills/workflow-docs/scripts/docs.py"
 wiki="python3 $here/skills/workflow-release/scripts/wiki.py"
 merge="python3 $here/skills/workflow-release/scripts/merge.py"
 cd "$d/repo"
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 fails=0
 ok() { echo "PASS: $1"; }
@@ -40,7 +40,7 @@ text = open(path).read().replace("## Verify by hand\n", "## Verify by hand\n\n1.
 open(path, "w").write(text)
 PY
 git commit -qam "Verify steps for w"
-bash "$here/dev/toy/flow-done.sh" w && $goal check w >/dev/null && $goal pr w >/dev/null || bad "goal did not reach a pull request"
+bash "$here/dev/toy/flow-done.sh" w && $goal pr w >/dev/null || bad "goal did not reach a pull request"
 out=$($wiki prepare w 2>&1 || true); echo "$out"
 grep -q "^REWRITE Using-the-toy: STALE" <<<"$out" && ok "prepare lists the stale mapped page" || bad "prepare stale"
 $merge w 2>&1 | grep -q "REFUSED: stale wiki pages: .*Using-the-toy" && ok "merge refuses while the page is stale" || bad "merge stale"

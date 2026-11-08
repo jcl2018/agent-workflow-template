@@ -12,7 +12,7 @@ W="python3 $here/skills/workflow-monitoring/scripts/watch.py"
 M="python3 $here/skills/workflow-monitoring/scripts/monitor.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 cd "$d/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 fails=0
 ok() { echo "PASS: $1"; }
@@ -73,9 +73,8 @@ grep -q "Use the my-idea skill" "$p" && grep -q "Approve nothing, merge nothing 
 grep -rq "my-idea" .loop && bad "skill name in the repo" || ok "the skill's name stays out of the repo"
 echo "STEP: done" > "$d/forged.txt"
 $goal record low plan --file "$d/forged.txt" 2>&1 | grep -q "wasn't run by flow.py" && ok "record refuses a reply flow.py didn't run" || bad "forged reply"
-step low plan | grep -q "NEXT: build, then check" && ok "plan recorded, build next" || bad "plan"
+step low plan | grep -q "NEXT: build, then flow.py low review" && ok "plan recorded, build next" || bad "plan"
 printf '\n\ndef low():\n    return 1\n' >> calc.py; git commit -qam "Add low"
-$goal check low | grep -q "NEXT: flow.py low review" && ok "checks lead to review" || bad "check next"
 $goal pr low 2>&1 | grep -q "the flow hasn't finished: review, qa, ship" && ok "pr refuses until the flow ends" || bad "pr early"
 
 echo "== what a step leaves for the owner waits on the owner; a failed step is a try"
@@ -84,22 +83,17 @@ python3 -c "import json,sys;w=json.load(open(sys.argv[1]))['waiting'];assert 'ap
 $goal answer low >/dev/null
 FAKE_SKILL_OUT='STEP: failed the tests would not run' step low review | grep -q "TRY 1 OF 3 FAILED: review failed" && ok "a failed step costs a try" || bad "failed step"
 FAKE_SKILL_OUT='nothing useful' step low review | grep -q "gave no STEP line" && ok "no STEP line costs a try" || bad "no step line"
-step low review >/dev/null; $goal check low >/dev/null
+step low review >/dev/null
 FAKE_SKILL_OUT='STEP: skipped no browser on this machine' step low qa | grep -q "RECORDED qa skipped: no browser" && ok "a skipped step says why" || bad "skipped"
-$goal check low >/dev/null; step low ship >/dev/null; $goal check low >/dev/null
+step low ship >/dev/null
 $goal pr low | grep -q "^PR " && ok "pr once every step is done or skipped" || bad "pr"
 grep -q -- "- qa: skipped: no browser on this machine" "$FAKE_GH_DIR/calls.log" && ok "the pull request lists each step's result" || bad "pr body"
 git switch -q main
 
-echo "== check summarizes every command's exit code first, even past long output"
-cp .loop/config.json "$d/cfg.bak"
-cfg 'checks=["python3 -c \"print(\\\"x\\\"*20000)\"","exit 3"]'
-git commit -qam "Noisy checks"
-$goal new loud --here --goal "Loud" --done "loud" >/dev/null
-$goal check loud >/dev/null 2>&1
-head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 0: python3" && head -c 300 "$C/loop/runs/loud.checks.txt" | grep -q "^CHECK exit 3: exit 3" && ok "summary shows every check at the top" || bad "check summary"
+echo "== goal.py keeps room under 20 KB, and has no checks step"
 [ "$(wc -c < "$here/skills/workflow-delivery/scripts/goal.py")" -lt 19500 ] && ok "goal.py keeps room under 20 KB" || bad "goal.py size"
-git switch -q main; git checkout -q -- .loop/config.json 2>/dev/null; cp "$d/cfg.bak" .loop/config.json; git status --porcelain | grep -q config.json && git commit -qam "Restore checks"
+$goal check low 2>&1 | grep -q "invalid choice" && ok "goal.py has no check command" || bad "check command"
+git switch -q main
 
 echo "== queue adds a line a watcher can read"
 $goal queue fix-a --goal "Fix a" --done "a is fixed" --touches "a.py" | grep -q QUEUED && ok "queued" || bad "queue"
@@ -113,7 +107,7 @@ echo "== done lines stay frozen, 3 failed tries stop a goal, nothing merges"
 git switch -q main
 $goal new frz --here --goal "Add frz" --done "calc has frz" >/dev/null
 sed -i.bak 's/calc has frz/calc has something else/' .loop/goals/frz.md; rm .loop/goals/frz.md.bak; git commit -qam "Change a done line"
-$goal check frz >/dev/null 2>&1; rc=$?
+$goal pr frz >/dev/null 2>&1; rc=$?
 [ "$rc" = 3 ] && [ "$(field frz status)" = stopped ] && ok "a changed done line stops the goal" || bad "frozen done line ($rc $(field frz status))"
 git checkout -q -- . ; git switch -q main
 $goal new tries --here --goal "Add tries" --done "calc has tries" >/dev/null
@@ -124,16 +118,15 @@ git checkout -q -- . ; git switch -q main
 MG="python3 $here/skills/workflow-release/scripts/merge.py"
 $MG low 2>&1 | grep -q "REFUSED: auto_merge is off in this repo, so the owner merges" && ! grep -q "^pr merge" "$FAKE_GH_DIR/calls.log" && ok "with auto_merge off, merge.py refuses and nothing merges" || bad "merge gate"
 
-echo "== no gates: require_checks off, auto_approve and auto_merge on, in this repo only"
+echo "== no gates: auto_approve and auto_merge on, in this repo only"
 git switch -q main
 cp .loop/config.json "$d/cfg.gated"
-cfg 'checks=[]' 'require_checks=false' 'auto_approve=true' 'auto_merge=true'; git commit -qam "No gates"; git push -q origin main
+cfg 'auto_approve=true' 'auto_merge=true'; git commit -qam "No gates"; git push -q origin main
 $goal new open --here --goal "Add open" --done "calc has open" >/dev/null
 FAKE_SKILL_OUT='PENDING: approve the design\nSTEP: pending' step open idea | grep -q "AUTO-APPROVED open idea: approve the design" && ok "a pending decision is auto-approved" || bad "auto-approve"
 [ "$(field open status)" = running ] && grep -q "auto-approved" "$C/loop/runs/open.json" && python3 -c "import json,sys;s=json.load(open(sys.argv[1]));assert s['note']['text'].startswith('auto-approved at idea')" "$C/loop/runs/open.json" && ok "logged and on the board as auto-approved, nothing waits" || bad "auto-approve log"
 for s2 in plan review qa ship; do step open $s2 >/dev/null; done
 printf '\n\ndef open_():\n    return 1\n' >> calc.py; git commit -qam "Add open"; verify open
-$goal check open | grep -q "NO CHECKS open: require_checks is off" && ok "no checks: nothing is tested, and it says so" || bad "no checks"
 out=$($goal pr open); grep -q "^PR " <<<"$out" && grep -q "NEXT: workflow-release merges it: merge.py open" <<<"$out" && ok "pr opens with no checks and names the merge step" || bad "pr no gates: $out"
 FAKE_GH_PR_STATE=OPEN python3 "$here/skills/workflow-release/scripts/merge.py" open | grep -q "^MERGED" && grep -q "^pr merge .* --merge" "$FAKE_GH_DIR/calls.log" && [ "$(field open release)" = cut ] && ok "auto_merge: the release step merges the pull request and releases it" || bad "auto merge"
 git fetch -q origin; git switch -q main; git merge -q --ff-only origin/main
@@ -152,11 +145,10 @@ echo 1.3.3.3 > VERSION; git add -A; git commit -qm "Version"; git push -q origin
 cfg 'pr_bumps_version=true'; git commit -qam "Bump config"; git push -q origin main
 $goal new bump --here --goal "Add bump" --done "calc has bump" >/dev/null
 printf '\n\ndef bump():\n    return 1\n' >> calc.py; git commit -qam "Add bump"
-flowall bump; $goal check bump >/dev/null; $goal pr bump >/dev/null
+flowall bump; $goal pr bump >/dev/null
 [ "$(cat VERSION)" = "1.3.3.4" ] && ok "VERSION bumped" || bad "bump: $(cat VERSION)"
 [ "$(git log -1 --format=%s)" = "Bump version to 1.3.3.4" ] && ok "bump commit" || bad "bump commit"
 [ "$(git show origin/loop/bump:VERSION)" = "1.3.3.4" ] && ok "bump pushed" || bad "bump push"
-[ "$(field bump checks_sha)" = "$(git rev-parse HEAD)" ] && ok "checks stay valid" || bad "checks sha"
 $goal pr bump >/dev/null; [ "$(cat VERSION)" = "1.3.3.4" ] && ok "second pr doesn't bump again" || bad "double bump"
 git switch -q main
 cfg 'pr_bumps_version=false'; git commit -qam "Bump off"; git push -q origin main
@@ -167,13 +159,13 @@ printf '#!/bin/bash\n[ -e "%s/pushed-once" ] && exit 0\ntouch "%s/pushed-once"\n
 chmod +x "$hook"
 $goal new retry --here --goal "Add retry" --done "calc has retry" >/dev/null
 printf '\n\ndef retry():\n    return 1\n' >> calc.py; git commit -qam "Add retry"
-flowall retry; $goal check retry >/dev/null
+flowall retry
 $goal pr retry | grep -q "^PR " && ok "second push worked" || bad "retry"
 git switch -q main
 printf '#!/bin/bash\necho "the remote said no" >&2\nexit 1\n' > "$hook"
 $goal new nopush --here --goal "Add nopush" --done "calc has nopush" >/dev/null
 printf '\n\ndef nopush():\n    return 1\n' >> calc.py; git commit -qam "Add nopush"
-flowall nopush; $goal check nopush >/dev/null
+flowall nopush
 $goal pr nopush > "$d/np" 2>&1; rc=$?
 [ $rc != 0 ] && grep -q "the remote said no" "$d/np" && ok "final failure prints git's error" || bad "push error"
 rm -f "$hook"; git switch -q main

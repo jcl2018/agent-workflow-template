@@ -10,7 +10,7 @@ d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 export LOOP_FLOW="$d/flow.json"
 docs="python3 $here/skills/workflow-docs/scripts/docs.py"
 cd "$d/repo"
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 fails=0
 ok() { echo "PASS: $1"; }
@@ -95,11 +95,10 @@ python3 - <<'PY'
 p = ".loop/goals/stale.md"; t = open(p).read().replace("## Verify by hand\n", "## Verify by hand\n\n1. Open calc.py.\n   Expect: the change.\n", 1); open(p, "w").write(t)
 PY
 git commit -qam "Verify steps"
-bash "$here/dev/toy/flow-done.sh" stale; $goal check stale >/dev/null; $goal pr stale >/dev/null
+bash "$here/dev/toy/flow-done.sh" stale; $goal pr stale >/dev/null
 $rel ask stale | grep -q "STALE" && ok "ask warns about stale" || bad "ask stale"
 $rel cut stale 2>&1 | grep -q "docs audit found trouble" && ok "cut refused stale" || bad "cut stale"
 echo "Covers that change too, with a sentence about it." >> docs/wiki/Using-the-toy.md; git add -A; git commit -qm "Update docs"
-$goal check stale >/dev/null
 $rel cut stale | grep -q "^DRAFT" && ok "cut after the docs update" || bad "cut after update"
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

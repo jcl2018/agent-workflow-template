@@ -3,14 +3,19 @@
 
 usage: package.py [--root DIR] [--out FILE]
 
+The ZIP holds the skills, shared/ (the files every skill reads), PACKAGE.json (the version from VERSION, a hash of every
+skill file and the newest changelog entries, which update.py reads) and the same stamp as shared/workflow-package.json.
+
 Checks run in the order of the roadmap's rule table. Every failure is printed as
 `FAIL <rule>: <what>`. One failure means no ZIP and exit 1.
 """
 import argparse
 import ast
+import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -28,7 +33,7 @@ AGENT_AIMED = [r"(?i)ignore (all |any )?(previous|prior|above) instructions", r"
                r"(?i)disregard (your|the) (system|safety)", r"(?i)you must (secretly|silently) "]
 DANGEROUS = [r"\bos\.system\(", r"chmod\s+777", r"\brm\s+-rf\s+/(\s|$)", r"\b(curl|wget)\b[^\n|]*\|\s*(ba)?sh\b"]
 INJECTION = [r"(?i)ignore previous instructions", r"(?i)do not tell the user", r"(?i)\bsecretly\b"]
-SHARED = {"skills/loop-files.md": "shared/loop-files.md"}  # in a pack, only shared/ reaches every skill
+SHARED = {"skills/loop-files.md": "shared/loop-files.md", "skills/design-guide.md": "shared/design-guide.md"}  # in a pack, only shared/ reaches every skill
 LIMITS = {"tags": 10, "keywords": 10, "use_cases": 8}
 failures = []
 
@@ -139,6 +144,7 @@ def check_scripts(root, files):
         if len(data) >= MAX_SCRIPT:
             fail("Scripts", "%s is %d bytes, under 20 KB allowed" % (rel, len(data)))
         modules = set()
+        siblings = {n[:-3] for n in os.listdir(os.path.dirname(os.path.join(root, rel))) if n.endswith(".py")}
         try:
             for node in ast.walk(ast.parse(text)):
                 if isinstance(node, ast.Import):
@@ -147,17 +153,14 @@ def check_scripts(root, files):
                     modules.add(node.module.split(".")[0])
         except SyntaxError as error:
             fail("Scripts", "%s does not parse: %s" % (rel, error))
-        for name in sorted(modules - set(sys.stdlib_module_names)):
+        for name in sorted(modules - set(sys.stdlib_module_names) - siblings):
             fail("Scripts", "%s imports %s, which is not in the standard library" % (rel, name))
-        if "__file__" in text:
-            fail("Scripts", "%s reads its own location, so it can't run alone" % rel)
         if re.search(r"skills/|\.\./", text.replace("../loop-files.md", "")) and re.search(r"open\([^)]*(skills/|\.\./)", text):
             fail("Scripts", "%s opens another package file" % rel)
-        with tempfile.TemporaryDirectory() as lone:
-            copy = os.path.join(lone, "alone.py")
-            with open(copy, "wb") as handle:
-                handle.write(data)
-            done = subprocess.run([sys.executable, "-I", copy, "--help"], capture_output=True, text=True, cwd=lone)
+        with tempfile.TemporaryDirectory() as lone:  # a copy of its own scripts folder only: siblings, nothing else
+            shutil.copytree(os.path.dirname(os.path.join(root, rel)), os.path.join(lone, "scripts"))
+            done = subprocess.run([sys.executable, "-E", "-s", os.path.join(lone, "scripts", os.path.basename(rel)), "--help"],
+                                  capture_output=True, text=True, cwd=lone)
             if done.returncode:
                 fail("Scripts", "%s does not run alone: %s" % (rel, done.stderr.strip()[-200:]))
 
@@ -215,23 +218,61 @@ def check_disclosure(root, files, listing):
         fail("Disclosure", "listing.network is empty (state \"none\" or each host)")
 
 
-def build(root, files, out):
+def version_of(root):
+    try:
+        text = read(root, "VERSION").decode().strip()
+    except OSError:
+        text = ""
+    if not re.fullmatch(r"\d+\.\d+\.\d+", text):
+        fail("Version", "VERSION must hold one number like 1.2.3, not %r" % text[:20])
+    return text
+
+
+def check_inventory(root, files):
+    """Every skill folder in the tree ships a SKILL.md, so none is left out of the package."""
+    for name in sorted(os.listdir(os.path.join(root, "skills"))):
+        if os.path.isdir(os.path.join(root, "skills", name)) and "skills/%s/SKILL.md" % name not in files:
+            fail("Frontmatter", "skills/%s has no SKILL.md, so it would not ship as a skill" % name)
+
+
+def manifest(root, files, version):
+    """The skills-tree files with their hashes, and the newest changelog entries."""
+    hashes = {}
+    for rel in files:
+        if rel.startswith("skills/") and not rel.endswith("/"):
+            hashes[SHARED.get(rel, rel)[len("shared/" if rel in SHARED else "skills/"):]] = hashlib.sha256(read(root, rel)).hexdigest()
+    try:
+        log = read(root, "CHANGELOG.md").decode()
+        log = "\n".join(part.rstrip() for part in re.split(r"(?m)^(?=## v)", log)[1:4])
+    except OSError:
+        log = ""
+    return {"version": version, "files": dict(sorted(hashes.items())), "changelog": log[:6000]}
+
+
+def build(root, files, out, version):
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as bundle:
         for rel in files:
             info = zipfile.ZipInfo(SHARED.get(rel, rel), (2026, 1, 1, 0, 0, 0))
             info.external_attr = 0o644 << 16
             bundle.writestr(info, read(root, rel))
+        stamp = json.dumps(manifest(root, files, version), indent=1) + "\n"
+        for name in ("PACKAGE.json", "shared/workflow-package.json"):
+            info = zipfile.ZipInfo(name, (2026, 1, 1, 0, 0, 0))
+            info.external_attr = 0o644 << 16
+            bundle.writestr(info, stamp)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-    parser.add_argument("--out", default="dist/agent-workflow-template.zip")
+    parser.add_argument("--out", default=None)
     args = parser.parse_args()
     root = os.path.abspath(args.root)
     files = walk(root)
     check_frontmatter(root, files)
+    check_inventory(root, files)
+    version = version_of(root)
     listing = load_listing(root)
     check_listing(listing)
     check_files(root, files)
@@ -242,9 +283,10 @@ def main():
     if failures:
         print("REFUSED: %d rule failure(s); no ZIP built" % len(failures))
         return 1
-    build(root, files, args.out)
+    out = args.out or "dist/agent-workflow-template-v%s.zip" % version
+    build(root, files, out, version)
     note_shell(root, files)
-    print("PASS: %d files, ZIP at %s (%d bytes)" % (len(files), os.path.abspath(args.out), os.path.getsize(args.out)))
+    print("PASS: %d files, ZIP at %s (%d bytes), version %s" % (len(files), os.path.abspath(out), os.path.getsize(out), version))
     return 0
 
 

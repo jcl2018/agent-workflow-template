@@ -12,11 +12,11 @@ export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh" FAKE_GH_ORIGIN="$d/
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 merge() { FAKE_GH_PR_STATE=${PRS:-OPEN} python3 "$here/skills/workflow-release/scripts/merge.py" "$@"; }
 cd "$d/repo"
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 python3 - <<'PY'
 import json
-c = json.load(open(".loop/config.json")); c["auto_merge"] = True; c["require_checks"] = False; c["checks"] = []
+c = json.load(open(".loop/config.json")); c["auto_merge"] = True
 json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
 git commit -qam "Turn auto_merge on"; git push -q origin main
@@ -39,7 +39,7 @@ text = open(path).read().replace("## Verify by hand\n", "## Verify by hand\n\n1.
 open(path, "w").write(text)
 PY
   git commit -qam "Verify steps for $slug"
-  bash "$here/dev/toy/flow-done.sh" "$slug" && $goal check "$slug" >/dev/null && $goal pr "$slug" >/dev/null
+  bash "$here/dev/toy/flow-done.sh" "$slug" && $goal pr "$slug" >/dev/null
   git push -q origin "loop/$slug" 2>/dev/null || true
 }
 
@@ -118,8 +118,8 @@ finish stale
 FAKE_GH_MERGE_BRANCH=loop/stale merge stale && bad "merged past a stale page" || ok "stale page refused"
 state stale release_error | grep -q "stale wiki pages" && ok "stale refusal recorded" || bad "stale record"
 
-echo "== 7. the pull request body does not claim checks passed when there are none"
-grep -q "Checks: none ran" "$FAKE_GH_DIR"/body-1 && ! grep -q "Checks: pass" "$FAKE_GH_DIR"/body-1 && ok "honest PR body" || bad "PR body"
+echo "== 7. the pull request body says nothing about checks"
+! grep -qi "checks" "$FAKE_GH_DIR"/body-1 && grep -q "Skill flow:" "$FAKE_GH_DIR"/body-1 && ok "honest PR body" || bad "PR body"
 
 echo "repo: $d/repo"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

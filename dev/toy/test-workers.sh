@@ -23,7 +23,7 @@ esac
 GH
 chmod +x "$T/bin/gh"; export PATH="$T/bin:$PATH"
 cd "$T/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 C=$(cd "$(git rev-parse --git-common-dir)" && pwd); export COMMON="$C"
 field() { python3 -c "import json,sys;d=json.load(open(sys.argv[1])).get(sys.argv[2]);print(d)" "$C/loop/runs/$1.json" "$2"; }
@@ -53,7 +53,7 @@ git commit -qam "Agent"; git push -q origin main
 until_report() { for _ in $(seq 150); do [ "$(inner "$1" report status)" = "$2" ] && return 0; sleep 0.1; done; return 1; }
 
 echo "== the operation session refuses to work"
-for verb in build plan idea review qa ship step check pr; do
+for verb in build plan idea review qa ship step pr; do
   check "watch.py $verb refuses with one line naming the worker command" '[ "$($W $verb x 2>&1)" = "REFUSED: $verb is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME" ]'
 done
 check "batch.py plan refuses the same way" '$BA plan x 2>&1 | grep -q "^REFUSED: plan is worker work.*batch.py start NAME$"'
