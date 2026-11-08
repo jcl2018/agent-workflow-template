@@ -7,6 +7,8 @@ usage: worker.py <command> [options]
   report SLUG STATUS [--pr URL] [--words TEXT]
                             send a result back by hand: STATUS is merged, failed or waiting
   met SLUG N [N...]         record that done lines N are met, for the status block's Goals section
+  send SLUG TEXT            the operation session sends a worker an answer or follow-up; goal.py and flow.py print it
+                            to the worker's agent the next time they run, then file it away
 
 A report is a prompt message in the run record's `report`: {"status", "pr", "text", "at"}. The board shows it, and a
 failed or waiting one stays at the top of Needs you until the goal moves on. It never merges.
@@ -133,6 +135,17 @@ def cmd_met(args):
     return 0
 
 
+def cmd_send(args):
+    if not load(args.slug):
+        sys.exit("REFUSED: no run named %s." % args.slug)
+    folder = os.path.join(base(), "inbox")
+    os.makedirs(folder, exist_ok=True)
+    with open(os.path.join(folder, args.slug + ".txt"), "a") as handle:
+        handle.write(" ".join(args.text.split()) + "\n")
+    print("SENT to %s: %s" % (args.slug, " ".join(args.text.split())[:200]))
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -147,6 +160,9 @@ def main():
     item = sub.add_parser("met")
     item.add_argument("slug")
     item.add_argument("lines", nargs="+", type=int)
+    item = sub.add_parser("send")
+    item.add_argument("slug")
+    item.add_argument("text")
     args = parser.parse_args()
     if args.cmd == "loop" and args.command[:1] == ["--"]:
         args.command = args.command[1:]

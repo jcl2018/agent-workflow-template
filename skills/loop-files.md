@@ -58,7 +58,8 @@ One goal a line. Other lines are ignored.
 
 A `## Batch: NAME` heading groups goal lines for `batch.py`.
 
-`touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
+`touches` lists the files the goal declares; it never holds a goal back. `depends-on: a, b` names goals that must be merged
+before this one starts. `release: ask` makes a monitored goal wait
 for your answer instead of answering `leave`.
 
 ## Outside the repo: your skill flow
@@ -108,7 +109,9 @@ loop/wiki.json            the last wiki publish, for restore
   "done_sha": "<sha256 of the done lines>", "checks": "pass", "release": "ask",
   "flow": {"idea": "done", "plan": "done", "review": "done", "qa": "skipped: no browser", "ship": "done"},
   "waiting": {"ask": "Cut a release or leave it unreleased?", "words": ["cut add-median", "leave add-median"]},
-  "finding": "", "updated": "2026-01-01T00:00:00Z", "log": ["2026-01-01T00:00:00Z plan"]
+  "finding": "", "updated": "2026-01-01T00:00:00Z", "log": ["2026-01-01T00:00:00Z plan"],
+  "waits_on": ["a"], "reports": [{"at": "2026-01-01T00:00:00Z", "step": "plan", "status": "running", "text": "worker add-median: step plan, running"}],
+  "tokens": {"idea": 4200, "build": 1500}
 }
 ```
 
@@ -129,8 +132,14 @@ step's result: `done`, `skipped: <why>` or `pending`.
 A goal with no `pid` has no worker of ours: it is never marked `failed` or mended.
 `report` is `{"status", "pr", "text", "at"}`, the prompt message a worker sends back when its agent ends (`status` is
 `merged`, `failed` or `waiting`). `met` lists the done lines a worker has marked met, and `tokens` is `{"total": N}` or
-`{"<step>": N}` where an agent logs them. `note` is `{"text", "at"}`, a worker's latest message, kept as data. `waits_on` lists the goals that held this one.
+`{"<step>": N}`, which `goal.py step --tokens` and `flow.py` fill in when the agent reports them. `reports` is the latest 30 changes of step or
+status, each `{"at", "step", "status", "text"}`, written as they happen. `note` is `{"text", "at"}`, a worker's latest
+message, kept as data. `waits_on` lists the goals this one depends on. A goal counts as merged once it is `done` and its
+`release` is `merged` or `cut`, or its report says `merged`.
 `retired` is `{"reason", "at"}`. `board.py repos add` keeps a list of repo paths in
 `~/.workflow-loop/repos`.
+
+`<git common dir>/loop/inbox/<slug>.txt` holds what `operate.py send` left for a worker; `goal.py` and `flow.py` print it to the
+agent once, then move it to `<slug>.read`.
 
 Writes go through a temporary file and a rename, so a reader never sees half a file.

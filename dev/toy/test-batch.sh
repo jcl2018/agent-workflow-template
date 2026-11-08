@@ -2,6 +2,7 @@
 # Proves batch.py with a stand-in agent. No model is called. usage: test-batch.sh [DIR]
 # The governing session only adds and starts; every goal runs in its own process, in its own worktree.
 set -u
+unset LOOP_ROLE  # these tests act as the operation session
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 BA="python3 $here/skills/workflow-monitoring/scripts/batch.py"

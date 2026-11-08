@@ -19,15 +19,15 @@ Commands, flows and how-tos: `skills/workflow-health/references/commands.md`.
 
 | Criterion | Test | Last run |
 |---|---|---|
-| HLT-1 | [same-lines](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-1 | [check-writes-nothing](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-2 | [size-fail](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-2 | [stale-page-row](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-2 | [no-row-fail](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-3 | [unread-not-green](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [no-token-would](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [update-in-place](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [fixed-closes](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [repeat-no-second](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [unread-closes-none](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| HLT-1 | [same-lines](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-1 | [check-writes-nothing](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-2 | [size-fail](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-2 | [stale-page-row](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-2 | [no-row-fail](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-3 | [unread-not-green](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-4 | [no-token-would](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-4 | [update-in-place](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-4 | [fixed-closes](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-4 | [repeat-no-second](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-4 | [unread-closes-none](../../.loop/regression.tsv) | PASS 2026-11-08 |
 | HLT-5 | **not enforced** | |

@@ -29,15 +29,16 @@ Commands, flows and how-tos: `skills/workflow-delivery/references/commands.md` a
 
 | Criterion | Test | Last run |
 |---|---|---|
-| DEL-1 | [no-done-line-refused](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DEL-1 | [no-flow-refused](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DEL-1 | [stop-after-3-tries](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DEL-1 | [pr-needs-flow](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DEL-1 | [starts-at-idea](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DEL-1 | [steps-through-flow](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DEL-2 | [frozen-done-lines](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DEL-3 | [pending-waits](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DEL-3 | [auto-approved](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-1 | [no-done-line-refused](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DEL-1 | [no-flow-refused](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DEL-1 | [stop-after-3-tries](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DEL-1 | [pr-needs-flow](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DEL-1 | [starts-at-idea](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DEL-1 | [steps-through-flow](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DEL-2 | [frozen-done-lines](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DEL-3 | [pending-waits](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DEL-3 | [auto-approved](../../.loop/regression.tsv) | PASS 2026-11-08 |
 | DEL-4 | **not enforced** | |
-| DEL-5 | [never-merges](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DEL-5 | [wiki-release](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DEL-5 | [never-merges](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DEL-5 | [wiki-release](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DEL-5 | [auto-release](../../.loop/regression.tsv) | PASS 2026-11-08 |

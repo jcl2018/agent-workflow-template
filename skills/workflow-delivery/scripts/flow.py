@@ -6,7 +6,8 @@ usage: flow.py SLUG STEP [--note TEXT] [--wait SECONDS] [--limit SECONDS]
 STEP is idea, plan, review, qa or ship. A private file, ~/.workflow-loop/flow.json (or $LOOP_FLOW), names the skill
 for each step, the command that runs them, the environment that makes them run unattended, and a probe that proves it.
 The repo never names those skills. Each call waits a short while and prints RUNNING (run the same command again) or
-NEXT (the goal.py line that records the step). Nothing here approves, merges or pushes.
+NEXT (the goal.py line that records the step). Nothing here approves, merges or pushes. It refuses outside a worker (LOOP_ROLE=worker), and prints what the operation
+session sent the worker. The tokens an agent reports are recorded against the step.
 """
 import argparse
 import json
@@ -17,6 +18,8 @@ import signal
 import subprocess
 import sys
 import time
+
+import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -124,10 +127,12 @@ def main():
     parser.add_argument("--wait", type=float, default=90)
     parser.add_argument("--limit", type=float, default=2700)
     args = parser.parse_args()
+    role.guard("flow.py " + args.step)
     flow()
     runs =os.path.join(os.path.abspath(git("rev-parse", "--git-common-dir")), "loop", "runs")
     if not os.path.isfile(os.path.join(runs, args.slug + ".json")):
         sys.exit("REFUSED: no goal named %s. Fix: start it with new." % args.slug)
+    role.inbox(os.path.dirname(os.path.dirname(runs)), args.slug)
     base = os.path.join(runs, "%s.%s" % (args.slug, args.step))
     reply, job = base + ".txt", base + ".job"
     if not os.path.exists(job):
@@ -147,6 +152,14 @@ def main():
     os.remove(job)
     open(base + ".ran", "w").close()
     text = read(reply)
+    spent = role.tokens(text)
+    if spent:
+        record = os.path.join(runs, args.slug + ".json")
+        state = json.loads(read(record))
+        state["tokens"] = dict(state.get("tokens") or {}, **{args.step: spent})
+        with open(record + ".%d.tmp" % os.getpid(), "w") as handle:
+            json.dump(state, handle, indent=2)
+        os.replace(record + ".%d.tmp" % os.getpid(), record)
     print("\n".join(re.findall(r"^\W*(?:PENDING|STEP): .*", text, re.M)) or "STEP: it gave no STEP line")
     print("NEXT: goal.py record %s %s --file %s" % (args.slug, args.step, reply))
     return 0

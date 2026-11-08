@@ -5,7 +5,7 @@ pending-waits	land	bash dev/toy/test-rows.sh DEL-3	DEL-3	2026-11-07
 stale-found	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: stale found"	DOC-4	2026-11-07
 publish-refused-stale	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"	DOC-4	2026-11-07
 refuse-replace	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"	DOC-4	2026-11-07
-overlap-held	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the overlapping goal is held"	MON-1	2026-11-07
+dependency-held	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the dependent goal is held until its dependency is merged"	MON-1	2026-11-07
 retired-leaves-waiting	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a retired goal leaves Waiting on you"	MON-4	2026-11-07
 unproven-blocks	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"	REG-2	2026-11-07
 known-no-block	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: known doesn.t block or open an issue"	REG-5	2026-11-07
@@ -73,3 +73,7 @@ lock-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report n
 run-ledger	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a run records each row.s status and date"	REG-2	2026-11-07
 ci-summary	land	grep -q GITHUB_STEP_SUMMARY .github/workflows/regression.yml && grep -q GITHUB_STEP_SUMMARY skills/workflow-regression/scripts/regression.py	REG-4	2026-11-07
 auto-release	land	bash dev/toy/test-autorelease.sh 2>&1 | grep -q "ALL PASS"	DEL-5	2026-11-08
+operate-all	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "ALL PASS"	MON-1	-
+worker-reports-live	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the worker's agent sees it the next time goal.py runs, once"	MON-2	-
+status-roadmap-features	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: Roadmap counts merged goals per feature"	MON-4	-
+operate-wakes-on-report	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: a worker's report wakes it before the cadence, and one line says nothing changed"	MON-5	-

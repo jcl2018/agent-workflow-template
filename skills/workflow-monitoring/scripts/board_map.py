@@ -27,11 +27,6 @@ def stamp(text):
         return None
 
 
-def overlap(a, b):
-    a, b = os.path.normpath(a), os.path.normpath(b)
-    return a == b or a.startswith(b + os.sep) or b.startswith(a + os.sep)
-
-
 def key(run):
     return "%s/%s" % (run["repo"], run["slug"])
 
@@ -120,8 +115,7 @@ class Map:
         if found and found["status"] == "retired":
             return
         target = key(found) if found else "%s/%s" % (run["repo"], slug)
-        hit = [t for t in run.get("touches") or [] for u in (found or {}).get("touches") or [] if overlap(t, u)]
-        why = "goal " + slug + (", shared %s" % hit[0] if hit else "")
+        why = "depends on " + slug
         self.waiters.setdefault(target, []).append((key(run), why))
 
     def begins(self, run):

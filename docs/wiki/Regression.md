@@ -19,13 +19,13 @@ Commands, flows and how-tos: `skills/workflow-regression/references/commands.md`
 
 | Criterion | Test | Last run |
 |---|---|---|
-| REG-1 | [refused-unmet](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-2 | [unproven-blocks](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-2 | [tests-seen-failing](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-2 | [one-link](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-2 | [run-ledger](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-1 | [refused-unmet](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| REG-2 | [unproven-blocks](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| REG-2 | [tests-seen-failing](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| REG-2 | [one-link](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| REG-2 | [run-ledger](../../.loop/regression.tsv) | PASS 2026-11-08 |
 | REG-3 | **not enforced** | |
-| REG-4 | [ci-summary](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-5 | [known-no-block](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-5 | [no-token-dry-run](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-5 | [one-issue](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-4 | [ci-summary](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| REG-5 | [known-no-block](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| REG-5 | [no-token-dry-run](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| REG-5 | [one-issue](../../.loop/regression.tsv) | PASS 2026-11-08 |

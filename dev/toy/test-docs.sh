@@ -2,6 +2,7 @@
 # Test workflow-docs on a throwaway toy repo with a bare wiki. usage: test-docs.sh [DIR]
 unset LOOP_BATCH
 set -e
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d"

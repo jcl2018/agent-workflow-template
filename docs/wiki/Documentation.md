@@ -21,20 +21,20 @@ The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a releas
 
 | Criterion | Test | Last run |
 |---|---|---|
-| DOC-1 | [page-shape](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-1 | [criteria-no-scripts](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-1 | [tests-not-enforced](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-1 | [tests-last-run](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-1 | [tests-table-stale](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-2 | [review-dated](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-2 | [review-owner-only](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-2 | [reviewed-lock](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-2 | [unreview-lifts](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-2 | [lock-in-report](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-1 | [page-shape](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-1 | [criteria-no-scripts](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-1 | [tests-not-enforced](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-1 | [tests-last-run](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-1 | [tests-table-stale](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-2 | [review-dated](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-2 | [review-owner-only](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-2 | [reviewed-lock](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-2 | [unreview-lifts](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-2 | [lock-in-report](../../.loop/regression.tsv) | PASS 2026-11-08 |
 | DOC-3 | **not enforced** | |
-| DOC-4 | [stale-found](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-4 | [publish-refused-stale](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-4 | [refuse-replace](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-4 | [stale-merge-order](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-5 | [milestones-once](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-5 | [pr-in-milestone](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-4 | [stale-found](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-4 | [publish-refused-stale](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-4 | [refuse-replace](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-4 | [stale-merge-order](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-5 | [milestones-once](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-5 | [pr-in-milestone](../../.loop/regression.tsv) | PASS 2026-11-08 |

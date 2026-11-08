@@ -3,7 +3,7 @@
 
 usage: batch.py <command> [options]
 
-  add NAME --goal GOAL --done LINE [--done LINE] [--slug S] [--touches A,B] [--release ask]
+  add NAME --goal GOAL --done LINE [--done LINE] [--slug S] [--touches A,B] [--depends-on A,B] [--release ask]
       add a goal line under the heading '## Batch: NAME' in .loop/queue.md
   start NAME [--max N] [--skill-dir DIR]
       start one worker for each goal line (watch.py beside this file does it); each worker runs its own loop to the end
@@ -140,9 +140,15 @@ def cmd_add(args):
     slug = args.slug or "-".join(words)[:40].strip("-") or "item"
     if not SLUG.match(slug) or taken(slug):
         sys.exit("REFUSED: %s is a bad slug or already exists. Pick a new --slug." % slug)
+    depends = [x for x in re.split(r"[,\s]+", args.depends_on) if x]
+    unknown = [x for x in depends if not taken(x)]
+    if unknown:
+        sys.exit("REFUSED: depends-on %s is not a goal in the queue or the runs." % ", ".join(unknown))
     parts = ["slug: " + slug]
     if args.touches:
         parts.append("touches: " + clean(args.touches))
+    if depends:
+        parts.append("depends-on: " + ", ".join(depends))
     if args.release:
         parts.append("release: " + args.release)
     parts += ["goal: " + text] + ["done: " + clean(item) for item in args.done]
@@ -185,6 +191,7 @@ def main():
     item.add_argument("--done", action="append", default=[])
     item.add_argument("--slug", default="")
     item.add_argument("--touches", default="")
+    item.add_argument("--depends-on", default="")
     item.add_argument("--release", default="", choices=["", "ask"])
     item = sub.add_parser("start")
     item.add_argument("name")

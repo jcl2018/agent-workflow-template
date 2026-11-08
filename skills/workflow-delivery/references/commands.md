@@ -21,10 +21,10 @@ person can see, prove it before the pull request.
 
 ```text
 new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
-queue SLUG --goal TEXT --done LINE [--touches A,B]
+queue SLUG --goal TEXT --done LINE [--touches A,B] [--depends-on A,B]
 flow SLUG STEP [--note TEXT]
 record SLUG STEP --file REPLY
-step SLUG NAME [--note TEXT]
+step SLUG NAME [--note TEXT] [--tokens N]
 check SLUG
 pr SLUG
 wait SLUG --ask TEXT --words W [--words W]

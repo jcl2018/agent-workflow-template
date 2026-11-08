@@ -3,6 +3,7 @@
 # env: AGENT_TEST=1 also runs a headless agent (MODEL, default haiku) that follows SKILL.md to ask and cut.
 unset LOOP_BATCH
 set -e
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d"

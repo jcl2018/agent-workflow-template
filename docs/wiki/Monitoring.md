@@ -3,7 +3,7 @@
 
 ## Summary
 
-Skill: `workflow-monitoring`. The operation session never does work: it assigns goals in batches to workers, watches and reports, and each worker runs its own loop and reports back. Run the commands from the main checkout, on the base branch. Needs you also lists a merged goal whose wiki publish was refused, with the page and the reason. Codex has run as a monitored background agent on a toy repo; it needs `-s workspace-write`, with the git folder and the remote as writable roots.
+Skill: `workflow-monitoring`. The operation session never does work: `operate.py run` is its one command; it plans queued goals as a dependency graph (`depends-on`, capped by `parallel`), starts one worker per ready goal, watches and reports, and each worker runs its own loop and reports back. Run the commands from the main checkout, on the base branch. Needs you also lists a merged goal whose wiki publish was refused, with the page and the reason. Codex has run as a monitored background agent on a toy repo; it needs `-s workspace-write`, with the git folder and the remote as writable roots.
 
 Commands, flows and how-tos: `skills/workflow-monitoring/references/commands.md`.
 
@@ -21,20 +21,24 @@ A failed release is recorded as `release_error` and lists under Needs you beside
 
 | Criterion | Test | Last run |
 |---|---|---|
-| MON-1 | [overlap-held](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-1 | [no-line-in-governor](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-1 | [skill-says-governs](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-1 | [dependencies-on-map](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-1 | [failed-waits-mender](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-1 | [worker-refuses](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-1 | [worker-per-goal](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-1 | [one-way-to-run](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-2 | [worker-reports](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-3 | [waits-first](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-3 | [board-sections](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-4 | [retired-leaves-waiting](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-4 | [stuck-stays-top](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-4 | [status-order](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-4 | [needs-you-stuck](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-4 | [estimates-shown](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| MON-5 | [no-change-quiet](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| MON-1 | [dependency-held](../../.loop/regression.tsv) | not run |
+| MON-1 | [no-line-in-governor](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-1 | [skill-says-governs](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-1 | [dependencies-on-map](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-1 | [failed-waits-mender](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-1 | [worker-refuses](../../.loop/regression.tsv) | FAIL 2026-11-08 |
+| MON-1 | [worker-per-goal](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-1 | [one-way-to-run](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-1 | [operate-all](../../.loop/regression.tsv) | not run |
+| MON-2 | [worker-reports](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-2 | [worker-reports-live](../../.loop/regression.tsv) | not run |
+| MON-3 | [waits-first](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-3 | [board-sections](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-4 | [retired-leaves-waiting](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-4 | [stuck-stays-top](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-4 | [status-order](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-4 | [needs-you-stuck](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-4 | [estimates-shown](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-4 | [status-roadmap-features](../../.loop/regression.tsv) | not run |
+| MON-5 | [no-change-quiet](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| MON-5 | [operate-wakes-on-report](../../.loop/regression.tsv) | not run |
