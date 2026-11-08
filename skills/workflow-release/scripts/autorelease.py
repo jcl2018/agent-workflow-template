@@ -31,7 +31,7 @@ def fail(state, text):
     report = state.setdefault("report", {})
     report["text"] = ("%s Release failed: %s" % (report.get("text", ""), text)).strip()[:600]
     release.save(state, "release failed: " + text[:200])
-    sys.exit("REFUSED: release failed: " + text)
+    sys.exit("REFUSED: " + text)
 
 
 def base_config(top, cfg):
