@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.5.0 - 2026-11-08
+
+- Setup adopts a repo, update command, versioned package, design guide
+- Rows, wiki, verify steps
+- Setup: add only paths that exist
+- Setup: --bare writes only config, queue and findings; older toy tests use it
+- Merge main into loop/setup-adopt
+- Wiki: update pages for setup-adopt
+
+### How to verify
+
+1. Run `bash dev/toy/test-adopt.sh`.
+   Expect: it prints `PASS SET-1 SET-2`, `PASS SET-3`, `PASS SET-4 SET-5` and `ALL PASS`.
+2. In a scratch git repo with a code folder and an unmarked `docs/wiki/Home.md`, run `python3 skills/workflow-setup/scripts/setup.py --dry-run`.
+   Expect: a `FOUND:` line, then `add:` and `convert:` lines, and `DRY RUN: nothing written`.
+3. Run `bash dev/package.sh --out /tmp/pk.zip`, then `python3 skills/workflow-setup/scripts/update.py --from /tmp/pk.zip --skills <a copy of skills/>`.
+   Expect: `PASS: ... version 0.3.0`, then `INSTALLED:`, `AVAILABLE: 0.3.0` and a preview that writes nothing.
+
 ## v0.4.0 - 2026-11-08
 
 - Show the roadmap as a dependency graph in the status block and board
