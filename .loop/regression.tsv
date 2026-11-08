@@ -74,6 +74,6 @@ run-ledger	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a run record
 ci-summary	land	grep -q GITHUB_STEP_SUMMARY .github/workflows/regression.yml && grep -q GITHUB_STEP_SUMMARY skills/workflow-regression/scripts/regression.py	REG-4	2026-11-07
 auto-release	land	bash dev/toy/test-autorelease.sh 2>&1 | grep -q "ALL PASS"	DEL-5	2026-11-08
 operate-all	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "ALL PASS"	MON-1	-
-worker-reports-live	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the worker's agent sees it the next time goal.py runs, once"	MON-2	-
+worker-reports-live	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the worker's agent sees it the next time goal.py runs, once"	MON-2	2026-11-08
 status-roadmap-features	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: Roadmap counts merged goals per feature"	MON-4	-
 operate-wakes-on-report	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: a worker's report wakes it before the cadence, and one line says nothing changed"	MON-5	2026-11-08
