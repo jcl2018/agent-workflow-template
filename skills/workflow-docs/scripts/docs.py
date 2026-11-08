@@ -6,6 +6,8 @@ usage: docs.py <command> [options]
   survey                       show the wiki's pages and this repo's page map
   add PAGE --paths A,B         add a page and the paths it describes
   check [--base REF]           list missing, stale, unmapped and unwritten pages, and broken criteria; exit 1 if any
+  audit [--base REF] [--dry-run]
+                               the one command: check every required doc, fix what is mechanical, list wording to rewrite
   criteria PAGE                print the criterion format and the next free id for a page
   publish [--dry-run] [--adopt PAGE]
                                copy the pages to the wiki, commit and push
@@ -235,6 +237,11 @@ def cmd_check(args):
     return 0
 
 
+def cmd_audit(args):
+    import audit
+    return audit.audit(top(), args.base, args.dry_run)
+
+
 def cmd_publish(args):
     root = top()
     rows = read_map(root)
@@ -324,6 +331,10 @@ def main():
     item = sub.add_parser("check")
     item.add_argument("--base", default="")
     item.set_defaults(func=cmd_check)
+    item = sub.add_parser("audit")
+    item.add_argument("--base", default="")
+    item.add_argument("--dry-run", action="store_true")
+    item.set_defaults(func=cmd_audit)
     item = sub.add_parser("criteria")
     item.add_argument("page")
     item.set_defaults(func=cmd_criteria)

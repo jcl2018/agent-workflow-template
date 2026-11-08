@@ -1,6 +1,8 @@
 <!-- workflow-docs -->
 # Health
 
+Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/4
+
 ## Summary
 
 Skill: `workflow-health`. A check of the repo's health with fixed rules, so the same repo always gets the same answer. `check` is read-only; `run` files what it finds as issues on the Backlog milestone. It runs `workflow-docs` and `workflow-regression` and reports on what they say, and adds script size, old findings, stuck runs and merged branches. A Mine group runs the owner's own rules from a private setting outside the repo. `check` prints one fixed report ending in one `HEALTH:` line. `suggest` is a separate, advisory step that lists overlapping criteria and ranked next steps. On Agensi a script can't reach its siblings, so the criteria and docs rules print `UNREAD`, and the verdict says so.
@@ -19,15 +21,15 @@ Commands, flows and how-tos: `skills/workflow-health/references/commands.md`.
 
 | Criterion | Test | Last run |
 |---|---|---|
-| HLT-1 | [same-lines](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-1 | [check-writes-nothing](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-2 | [size-fail](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-2 | [stale-page-row](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-2 | [no-row-fail](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-3 | [unread-not-green](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [no-token-would](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [update-in-place](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [fixed-closes](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [repeat-no-second](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [unread-closes-none](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| HLT-1 | [same-lines](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-1 | [check-writes-nothing](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-2 | [size-fail](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-2 | [stale-page-row](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-2 | [no-row-fail](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-3 | [unread-not-green](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-4 | [no-token-would](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-4 | [update-in-place](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-4 | [fixed-closes](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-4 | [repeat-no-second](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| HLT-4 | [unread-closes-none](../../.loop/regression.tsv) | PASS 2026-11-08 |
 | HLT-5 | **not enforced** | |

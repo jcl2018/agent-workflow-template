@@ -73,3 +73,9 @@ lock-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report n
 run-ledger	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a run records each row.s status and date"	REG-2	2026-11-07
 ci-summary	land	grep -q GITHUB_STEP_SUMMARY .github/workflows/regression.yml && grep -q GITHUB_STEP_SUMMARY skills/workflow-regression/scripts/regression.py	REG-4	2026-11-07
 auto-release	land	bash dev/toy/test-autorelease.sh 2>&1 | grep -q "ALL PASS"	DEL-5	2026-11-08
+template-sheet	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: changing the cap in the sheet"	DOC-1	2026-11-08
+docs-audit	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: wording to rewrite is listed"	DOC-4	2026-11-08
+release-runs-audit	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: the release step reads the audit"	DOC-4	2026-11-08
+untested-listed	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: a test whose target is gone"	DOC-3	2026-11-08
+milestone-links	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: milestone.py links"	DOC-5	2026-11-08
+release-note-found	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: a tag with no release note"	DOC-5	2026-11-08

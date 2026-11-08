@@ -40,8 +40,8 @@ PY
 git commit -qam "Verify steps for w"
 bash "$here/dev/toy/flow-done.sh" w && $goal check w >/dev/null && $goal pr w >/dev/null || bad "goal did not reach a pull request"
 out=$($wiki prepare w 2>&1 || true); echo "$out"
-grep -q "^STALE Using-the-toy" <<<"$out" && ok "prepare lists the stale mapped page" || bad "prepare stale"
-$merge w 2>&1 | grep -q "REFUSED: stale wiki pages: Using-the-toy" && ok "merge refuses while the page is stale" || bad "merge stale"
+grep -q "^REWRITE Using-the-toy: STALE" <<<"$out" && ok "prepare lists the stale mapped page" || bad "prepare stale"
+$merge w 2>&1 | grep -q "REFUSED: stale wiki pages: .*Using-the-toy" && ok "merge refuses while the page is stale" || bad "merge stale"
 
 echo "== the page is updated, committed and pushed"
 echo "It now has a w function too, so the page covers it as well." >> docs/wiki/Using-the-toy.md

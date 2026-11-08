@@ -10,6 +10,7 @@ criteria-no-scripts	PASS	2026-11-08
 cut-draft	PASS	2026-11-08
 cut-needs-verify	PASS	2026-11-08
 dependencies-on-map	PASS	2026-11-08
+docs-audit	PASS	2026-11-08
 docs-only	PASS	2026-11-08
 estimates-shown	PASS	2026-11-08
 failed-waits-mender	PASS	2026-11-08
@@ -18,6 +19,7 @@ frozen-done-lines	PASS	2026-11-08
 known-no-block	PASS	2026-11-08
 landed-left-alone	PASS	2026-11-08
 lock-in-report	PASS	2026-11-08
+milestone-links	PASS	2026-11-08
 milestones-once	PASS	2026-11-08
 needs-you-stuck	PASS	2026-11-08
 never-merges	PASS	2026-11-08
@@ -42,6 +44,8 @@ pr-needs-flow	PASS	2026-11-08
 publish-refused-stale	PASS	2026-11-08
 refuse-replace	PASS	2026-11-08
 refused-unmet	PASS	2026-11-08
+release-note-found	PASS	2026-11-08
+release-runs-audit	PASS	2026-11-08
 repeat-no-second	PASS	2026-11-08
 retired-leaves-waiting	PASS	2026-11-08
 review-dated	PASS	2026-11-08
@@ -59,6 +63,7 @@ status-order	PASS	2026-11-08
 steps-through-flow	PASS	2026-11-08
 stop-after-3-tries	PASS	2026-11-08
 stuck-stays-top	PASS	2026-11-08
+template-sheet	PASS	2026-11-08
 tests-last-run	PASS	2026-11-08
 tests-not-enforced	PASS	2026-11-08
 tests-seen-failing	PASS	2026-11-08
@@ -67,6 +72,7 @@ unproven-blocks	PASS	2026-11-08
 unread-closes-none	PASS	2026-11-08
 unread-not-green	PASS	2026-11-08
 unreview-lifts	PASS	2026-11-08
+untested-listed	PASS	2026-11-08
 update-in-place	PASS	2026-11-08
 waits-first	PASS	2026-11-08
 wiki-release	PASS	2026-11-08

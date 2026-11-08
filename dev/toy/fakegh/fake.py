@@ -27,7 +27,8 @@ issues, miles = load("issues.json"), load("milestones.json")
 if args[0] == "api":
     if "-f" in args:
         title = next(a[6:] for a in args if a.startswith("title="))
-        miles.append({"number": len(miles) + 1, "title": title, "state": "open"})
+        miles.append({"number": len(miles) + 1, "title": title, "state": "open",
+                     "html_url": "https://example.test/milestone/%d" % (len(miles) + 1)})
         save("milestones.json", miles)
         print(json.dumps(miles[-1]))
     else:

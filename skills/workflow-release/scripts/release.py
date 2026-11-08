@@ -34,6 +34,9 @@ VERSION = re.compile(r"^\d+(\.\d+){2,3}$")
 ASK = "Cut a release or leave it unreleased?"
 
 
+DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-docs", "scripts", "docs.py")
+
+
 def run(args, cwd=None):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
 
@@ -132,9 +135,8 @@ def cmd_ask(args):
     base = base_of(top, cfg)
     for line in docs_lines(top, cfg, base):
         print(line)
-    stale = stale_pages(top, cfg, base)
-    if stale:
-        print("STALE pages, which cut will refuse: " + ", ".join(stale))
+    for line in docs_trouble(top, base):
+        print("DOCS, which cut will refuse: " + line)
     print("How to verify:\n%s" % (verify_steps(top, args.slug) or "NONE YET, which cut will refuse."))
     print("Type exactly one of:")
     for word in words:
@@ -229,20 +231,13 @@ def doc_rows(top):
     return {page: [i.strip() for i in paths.split(",") if i.strip()] for page, _, paths in lines}
 
 
-def stale_pages(top, cfg, base):
-    folder = cfg.get("wiki_dir") or "docs/wiki"
-    out = []
-    for page, paths in sorted(doc_rows(top).items()):
-        rel = "%s/%s.md" % (folder, page)
-        last = git("rev-list", "-1", "HEAD", "--", rel, cwd=top, check=False)
-        if not last or not os.path.exists(os.path.join(top, rel)):
-            out.append(page + " (missing)")
-            continue
-        seen = git("rev-list", "--no-merges", "HEAD", "--", rel, cwd=top, check=False).split()
-        if git("log", "--no-merges", "--full-history", "--format=%h", "HEAD", *["^" + c for c in seen + [base]], "--",
-               *paths, cwd=top, check=False):
-            out.append(page)
-    return out
+def docs_trouble(top, base, fix=False):
+    """The docs audit's findings, or [] when the docs are in step. It only fixes files when fix is true."""
+    if not doc_rows(top):
+        return []
+    done = run([sys.executable, DOCS, "audit", "--base", base] + ([] if fix else ["--dry-run"]), cwd=top)
+    lines = [l for l in done.stdout.splitlines() if not l.startswith(("UNTESTED", "SKIP", "MILESTONE", "DOCS"))]
+    return [] if done.returncode == 0 else lines
 
 
 def criteria_trouble(top, cfg):
@@ -360,10 +355,10 @@ def cmd_cut(args):
     if not steps:
         sys.exit("REFUSED: %s has no complete steps under ## Verify by hand. Fix: give every numbered step an Expect: "
                  "line in .loop/goals/%s.md, and commit it." % (slug, slug))
-    stale = stale_pages(cwd, cfg, base)
-    if stale:
-        sys.exit("REFUSED: these pages are stale: %s. Fix: update them with workflow-docs, commit, and run goal.py "
-                 "check again." % ", ".join(stale))
+    trouble = docs_trouble(cwd, base)
+    if trouble:
+        sys.exit("REFUSED: the docs audit found trouble:\n%s\nFix: run docs.py audit (workflow-docs), commit, and run "
+                 "goal.py check again." % "\n".join(trouble))
     unmet = criteria_trouble(cwd, cfg)
     if unmet:
         sys.exit("REFUSED: criteria without a passing regression row: %s." % ", ".join(unmet))

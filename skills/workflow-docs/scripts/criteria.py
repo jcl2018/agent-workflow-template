@@ -30,9 +30,22 @@ if not sys.stdin or not sys.stdin.isatty():
 
 LINE = re.compile(r"^- ([A-Z]{2,5}-\d+): \*\*(Unreviewed|Reviewed (\d{4}-\d\d-\d\d))\*\* (\S.*?)(?: <!-- reviewed (\w+) -->)?$")
 ID = re.compile(r"^[A-Z]{2,5}-\d+$")
-SECTIONS = ["Summary", "Criteria", "Tests"]
 SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
-MAX_CRITERIA = 5
+SHEET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "template.md")
+
+
+def rules():
+    """The page rules from the fenced rules block of the template sheet. Refuses when it is missing or incomplete."""
+    try:
+        with open(SHEET) as handle:
+            block = re.search(r"^```rules\n(.*?)^```", handle.read(), re.M | re.S)
+        found = dict(line.split(":", 1) for line in block.group(1).splitlines() if ":" in line)
+        found = {key.strip(): value.strip() for key, value in found.items()}
+        return {"sections": [x.strip() for x in found["sections"].split(",")], "summary_lines": int(found["summary_lines"]),
+                "max_criteria": int(found["max_criteria"]), "columns": [x.strip() for x in found["tests_columns"].split(",")],
+                "milestone": found["milestone_line"]}
+    except (OSError, AttributeError, KeyError, ValueError):
+        sys.exit("REFUSED: the rules block of skills/workflow-docs/references/template.md is missing or broken.")
 
 
 def git(*args, check=True):
@@ -102,7 +115,8 @@ def table(root, ids, linked):
     """The Tests table: each criterion's rows with their last run, and 'not enforced' when none passes."""
     ran = {row[0]: (row[1], row[2]) for row in tsv(root, "regression-runs.tsv")}
     link = "../" * (folder_of(root).count("/") + 1) + ".loop/regression.tsv"
-    out = ["| Criterion | Test | Last run |", "|---|---|---|"]
+    head = rules()["columns"]
+    out = ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
     for key in ids:
         passing = False
         for name in linked.get(key, []):
@@ -120,13 +134,13 @@ def criteria_of(lines):
 
 def contract(root, names, seen):
     """Page contract trouble for these feature pages, as (kind, page, detail). `seen` maps ids to their page."""
-    found = []
+    found, rule = [], rules()
     linked, loose = test_rows(root)
     for page in names:
         with open(os.path.join(root, folder_of(root), page + ".md")) as handle:
             parts = sections(handle.read())
-        if [name for name, _ in parts] != SECTIONS:
-            found.append(("SECTIONS", page, "have %s, want %s" % (", ".join(n for n, _ in parts) or "none", ", ".join(SECTIONS))))
+        if [name for name, _ in parts] != rule["sections"]:
+            found.append(("SECTIONS", page, "have %s, want %s" % (", ".join(n for n, _ in parts) or "none", ", ".join(rule["sections"]))))
             continue
         body, ids = dict(parts), []
         for line, match in criteria_of(body["Criteria"]):
@@ -145,8 +159,10 @@ def contract(root, names, seen):
             if mark != "Unreviewed" and mine != seal(text):
                 found.append(("LOCKED", page, "%s was reviewed and its wording changed. Fix: restore it, or the owner "
                               "marks it Unreviewed first" % key))
-        if len(ids) > MAX_CRITERIA:
-            found.append(("CAP", page, "has %d criteria, over the cap of %d" % (len(ids), MAX_CRITERIA)))
+        if len(ids) > rule["max_criteria"]:
+            found.append(("CAP", page, "has %d criteria, over the cap of %d" % (len(ids), rule["max_criteria"])))
+        if len([x for x in "\n".join(body["Summary"]).split("\n\n") if x.strip()]) > rule["summary_lines"]:
+            found.append(("SUMMARY", page, "is over %d lines" % rule["summary_lines"]))
         if [line for line in body["Tests"] if line.strip()] != table(root, ids, linked):
             found.append(("TESTS", page, "the Tests table is stale. Fix: run criteria.py render"))
     for name in loose:
@@ -216,7 +232,7 @@ def cmd_render(args):
         with open(os.path.join(root, rel)) as handle:
             text = handle.read()
         parts = sections(text)
-        if [name for name, _ in parts] != SECTIONS:
+        if [name for name, _ in parts] != rules()["sections"]:
             continue
         ids = [m.group(1) for _, m in criteria_of(dict(parts)["Criteria"]) if m]
         head, _, _ = text.partition("\n## Tests")

@@ -1,11 +1,13 @@
 <!-- workflow-docs -->
 # Documentation
 
+Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
+
 ## Summary
 
 Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests; `wiki_dir` in `.loop/config.json` changes the folder) and finds stale ones. Each feature has a GitHub milestone named for its page, plus a Backlog, made by `skills/workflow-health/scripts/milestone.py`; a goal's pull request goes in its feature's milestone.
 
-Commands, flows and how-tos: `skills/workflow-docs/references/commands.md` and `skills/workflow-health/references/milestones.md`.
+One command, `docs.py audit`, checks every page against the template sheet (`skills/workflow-docs/references/template.md`), fixes the mechanical, lists wording to rewrite and Reviewed criteria with no test, and the release step runs it on every goal. Commands, flows and how-tos: `skills/workflow-docs/references/commands.md` and `skills/workflow-health/references/milestones.md`.
 
 The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a release, for the release tests.
 
@@ -21,20 +23,25 @@ The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a releas
 
 | Criterion | Test | Last run |
 |---|---|---|
-| DOC-1 | [page-shape](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-1 | [criteria-no-scripts](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-1 | [tests-not-enforced](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-1 | [tests-last-run](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-1 | [tests-table-stale](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-2 | [review-dated](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-2 | [review-owner-only](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-2 | [reviewed-lock](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-2 | [unreview-lifts](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-2 | [lock-in-report](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-3 | **not enforced** | |
-| DOC-4 | [stale-found](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-4 | [publish-refused-stale](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-4 | [refuse-replace](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-4 | [stale-merge-order](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-5 | [milestones-once](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| DOC-5 | [pr-in-milestone](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| DOC-1 | [page-shape](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-1 | [criteria-no-scripts](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-1 | [tests-not-enforced](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-1 | [tests-last-run](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-1 | [tests-table-stale](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-1 | [template-sheet](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-2 | [review-dated](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-2 | [review-owner-only](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-2 | [reviewed-lock](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-2 | [unreview-lifts](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-2 | [lock-in-report](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-3 | [untested-listed](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-4 | [stale-found](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-4 | [publish-refused-stale](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-4 | [refuse-replace](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-4 | [stale-merge-order](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-4 | [docs-audit](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-4 | [release-runs-audit](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-5 | [milestones-once](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-5 | [pr-in-milestone](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-5 | [milestone-links](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| DOC-5 | [release-note-found](../../.loop/regression.tsv) | PASS 2026-11-08 |
