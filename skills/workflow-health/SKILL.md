@@ -5,11 +5,11 @@ description: Checks a repo's health with fixed rules that give the same answer e
 
 # workflow-health
 
-Two commands, `check` and `run`, and `milestone.py` for milestones. Run `scripts/health.py` with `python3` from the repo. If the skill's files aren't on disk, write
+Three commands, `check`, `suggest` and `run`, and `milestone.py` for milestones. Run `scripts/health.py` with `python3` from the repo. If the skill's files aren't on disk, write
 the script to a temporary file, run it, and delete it. It composes `workflow-docs` and `workflow-regression`, so
 install them beside it. If one is missing, its rule prints `UNREAD`.
 
-## `check [--json] [--family size|criteria|docs|hygiene]`
+## `check [--json] [--family size|criteria|docs|hygiene|mine]`
 
 ```bash
 python3 scripts/health.py check
@@ -26,7 +26,7 @@ It writes no file, makes no commit and calls no model. Each line reads
 | `UNREAD` | The rule couldn't read its data. Never a pass |
 | `INFO` | For reading only |
 
-The last line is `HEALTH: green (...)` or `HEALTH: not green (...)`. Only `FAIL` and `UNREAD` turn it red, and the
+The report is a fixed template: `HEALTH REPORT`, each group with its lines, then the last line, `HEALTH: green (...)` or `HEALTH: not green (...)`. Only `FAIL` and `UNREAD` turn it red, and the
 exit code is then 1. `--json` prints the same rows as records, with the verdict.
 
 | Family | Fixed rule | Warn | Fail |
@@ -35,8 +35,16 @@ exit code is then 1. `--json` prints the same rows as records, with the verdict.
 | `criteria` | `regression.py sync` | Done lines with no regression row, as one row | A criterion with no row, a draft row, or a row never seen failing |
 | `docs` | `docs.py check` | A stale page | Any other gap: missing, unwritten, unmapped or a broken page |
 | `hygiene` | `.loop/findings.md`, the run records and local branches | Over 5 open findings, a run waiting over 24 hours, a `loop/` branch already merged | None |
+| `mine` | The owner's own rules from `~/.workflow-loop/health.json` | exit 2 | exit 1; any other exit or an unreadable setting is `UNREAD` |
 
-There are at most eight rules, and the script refuses to load with more. Retire one before adding another.
+`Mine` runs commands you name, outside the repo, so it is not covered by the read-only and same-answer promises, and `run` never files it.
+
+There are at most eight fixed rules, and the script refuses to load with more. Retire one before adding another.
+
+## `suggest`
+
+Advisory, marked as suggestions, and it never changes the verdict: criteria that conflict or overlap, features with no
+criterion, and the warnings and failures ranked as next steps. Plain text matching, no model; same repo, same output.
 
 ## `run [--live] [--family NAME]`
 
