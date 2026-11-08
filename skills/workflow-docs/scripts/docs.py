@@ -52,6 +52,13 @@ def git(*args, cwd=None, check=True):
     return done.stdout.strip()
 
 
+def identity(cwd):
+    """git -c options giving a commit an author where none is configured, as on a CI runner; a real identity is kept."""
+    if git("config", "user.email", cwd=cwd, check=False):
+        return []
+    return ["-c", "user.name=workflow-docs", "-c", "user.email=workflow-docs@users.noreply.github.com"]
+
+
 def top():
     return git("rev-parse", "--show-toplevel")
 
@@ -289,7 +296,7 @@ def cmd_publish(args):
             return 0
         git("add", "--", *[page + ".md" for page in changed], cwd=wiki)
         head = git("rev-parse", "--short", "HEAD", cwd=root)
-        git("commit", "-m", "Docs from %s: %s" % (head, ", ".join(changed)), cwd=wiki)
+        git(*identity(wiki), "commit", "-m", "Docs from %s: %s" % (head, ", ".join(changed)), cwd=wiki)
         pushed = run(["git", "push", "origin", "HEAD"], cwd=wiki)
         if pushed.returncode:
             sys.exit("REFUSED: wiki push failed, nothing changed: " + pushed.stderr.strip()[:300])
@@ -314,7 +321,7 @@ def cmd_restore(_args):
         clone(held["url"], wiki)
         if git("rev-parse", "HEAD", cwd=wiki) != held["after"]:
             sys.exit("REFUSED: the wiki changed after the last publish, so nothing was reverted.")
-        git("revert", "--no-edit", held["after"], cwd=wiki)
+        git(*identity(wiki), "revert", "--no-edit", held["after"], cwd=wiki)
         pushed = run(["git", "push", "origin", "HEAD"], cwd=wiki)
         if pushed.returncode:
             sys.exit("REFUSED: wiki push failed: " + pushed.stderr.strip()[:300])

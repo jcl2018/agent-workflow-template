@@ -41,6 +41,7 @@ fi
 
 mk() { # mk DIR VERSION: a package tree at that version
   mkdir -p "$1"; cp -R "$here/skills" "$here/listing.json" "$here/README.md" "$here/LICENSE" "$1/"
+  find "$1" -name __pycache__ -prune -exec rm -rf {} +  # earlier tests may have left bytecode in the checkout
   echo "$2" > "$1/VERSION"; printf '# Changelog\n\n## v%s - 2026-01-01\n\n- change %s\n\n## v1.0.0 - 2026-01-01\n\n- first\n' "$2" "$2" > "$1/CHANGELOG.md"
 }
 pk="python3 $here/dev/package.py"

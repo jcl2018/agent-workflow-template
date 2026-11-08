@@ -3,13 +3,12 @@
 
 usage: release.py <command> <slug> [options]
 
-  ask SLUG                         show the docs and verify steps, then ask cut or leave;
-                                   a batch answers leave by itself
-  leave SLUG                       keep the work unreleased; changes nothing versioned
+  ask SLUG    show the docs and verify steps, then ask cut or leave; a batch answers leave by itself
+  leave SLUG  keep the work unreleased; changes nothing versioned
   cut SLUG [--bump patch|minor|major] [--user]
-                                   refuse without verify steps, with stale docs or an unmet criterion; bump the version,
-                                   write the changelog, commit, push, create a DRAFT release. You publish it.
-  show SLUG                        print the goal's release field
+              refuse without verify steps, with stale docs or an unmet criterion; bump the version,
+              write the changelog, commit, push, create a DRAFT release. You publish it.
+  show SLUG   print the goal's release field
 
 A batch goal never cuts unless --user is given, and --user means the human's own message said to cut.
 With "release_auto": true in .loop/config.json, a batch ask reads the diff: leave, patch or minor cut or leave by
@@ -32,8 +31,6 @@ if not sys.stdin or not sys.stdin.isatty():
 
 VERSION = re.compile(r"^\d+(\.\d+){2,3}$")
 ASK = "Cut a release or leave it unreleased?"
-
-
 DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-docs", "scripts", "docs.py")
 
 
@@ -56,15 +53,13 @@ def state_path(slug):
     if not re.match(r"^[a-z0-9][a-z0-9-]{0,50}$", slug):
         sys.exit("REFUSED: bad slug. Fix: lowercase letters, digits and dashes.")
     common = os.path.abspath(git("rev-parse", "--git-common-dir"))
-    path = os.path.join(common, "loop", "runs")
-    os.makedirs(path, exist_ok=True)
-    return os.path.join(path, slug + ".json")
+    os.makedirs(os.path.join(common, "loop", "runs"), exist_ok=True)
+    return os.path.join(common, "loop", "runs", slug + ".json")
 
 
 def load(slug):
     try:
-        with open(state_path(slug)) as handle:
-            return json.load(handle)
+        return json.load(open(state_path(slug)))
     except OSError:
         sys.exit("REFUSED: no goal named %s. Fix: run it with workflow-delivery first." % slug)
     except ValueError:
@@ -100,14 +95,11 @@ def do_leave(state, by):
 
 def cmd_ask(args):
     state = load(args.slug)
-    if state.get("release") in ("cut", "leave"):
-        print("ALREADY %s %s" % (state["release"], args.slug))
-        return 0
-    if state.get("status") != "done":
+    if state.get("release") not in ("cut", "leave") and state.get("status") != "done":
         sys.exit("REFUSED: %s is %s, not done. Fix: finish it with workflow-delivery." % (args.slug, state.get("status")))
     finished(state)
     tree = state.get("worktree") or ""
-    top = git("rev-parse", "--show-toplevel", cwd=tree if tree and os.path.isdir(tree) else None)
+    top = git("rev-parse", "--show-toplevel", cwd=tree if os.path.isdir(tree) else None)
     if state.get("batch") and state.get("release") != "ask":
         need = auto_need(top, state) if auto_on(top) else None
         if need is None:
@@ -121,7 +113,7 @@ def cmd_ask(args):
             except SystemExit as stop:
                 print(stop, "\nThe owner decides.")
                 state = load(args.slug)
-    words = ["cut %s" % args.slug, "leave %s" % args.slug]
+    words = ["cut " + args.slug, "leave " + args.slug]
     state["status"] = "waiting"
     state["step"] = "release"
     state["release"] = "ask"
@@ -144,20 +136,18 @@ def cmd_ask(args):
 
 def auto_on(top):
     try:
-        with open(os.path.join(top, ".loop", "config.json")) as handle:
-            return json.load(handle).get("release_auto") is True
-    except (OSError, ValueError, AttributeError):
+        return read_config(top).get("release_auto") is True
+    except (SystemExit, AttributeError):
         return False
 
 
 def auto_need(top, state):
     base = base_of(top, read_config(top))
-    rows = [line.split("\t") for line in git("diff", "--name-status", "--no-renames", "%s...HEAD" % base, cwd=top,
-                                             check=False).splitlines()]
+    rows = [line.split("\t") for line in git("diff", "--name-status", "--no-renames", base + "...HEAD", cwd=top, check=False).splitlines()]
     rows = [(r[0][0], r[-1]) for r in rows if len(r) > 1 and not r[-1].startswith(".loop/")]
     docs = re.compile(r"^(docs|tests?|dev/toy)/|\.md$|(^|/)test[-_.]|[-_.]test\.")
     code = [r for r in rows if not docs.search(r[1])]
-    msgs = git("log", "--format=%s%n%b", "%s..HEAD" % base, cwd=top, check=False)
+    msgs = git("log", "--format=%s%n%b", base + "..HEAD", cwd=top, check=False)
     if not code:
         need = ("leave", "only docs, tests or .loop changed")
     elif re.search(r"BREAKING|^\w+(\([^)]*\))?!:", msgs, re.M) or any(k == "D" for k, _ in code):
@@ -181,17 +171,15 @@ def cmd_leave(args):
 def cmd_show(args):
     state = load(args.slug)
     print("release=%s" % (state.get("release") or ""))
-    if state.get("release_version"):
-        print("release_version=%s" % state["release_version"])
-    if state.get("release_url"):
-        print("release_url=%s" % state["release_url"])
+    for key in ("release_version", "release_url"):
+        if state.get(key):
+            print("%s=%s" % (key, state[key]))
     return 0
 
 
 def read_config(top):
     try:
-        with open(os.path.join(top, ".loop", "config.json")) as handle:
-            return json.load(handle)
+        return json.load(open(os.path.join(top, ".loop", "config.json")))
     except (OSError, ValueError):
         sys.exit("REFUSED: no readable .loop/config.json. Fix: run workflow-setup and merge its branch.")
 
@@ -208,13 +196,10 @@ def bump(version, part):
 
 def verify_steps(top, slug):
     try:
-        with open(os.path.join(top, ".loop", "goals", slug + ".md")) as handle:
-            text = handle.read()
+        text = open(os.path.join(top, ".loop", "goals", slug + ".md")).read()
     except OSError:
         return ""
-    if "## Verify by hand" not in text:
-        return ""
-    part = text.split("## Verify by hand", 1)[1].split("\n## ", 1)[0]
+    part = text.partition("## Verify by hand")[2].split("\n## ", 1)[0]
     part = re.sub(r"<!--.*?-->", "", part, flags=re.S).strip()
     steps = re.split(r"^\s*\d+\.\s+(?=\S)", part, flags=re.M)[1:]
     return part if steps and all(re.search(r"Expect:\s*\S", step) for step in steps) else ""
@@ -222,8 +207,7 @@ def verify_steps(top, slug):
 
 def doc_rows(top):
     try:
-        with open(os.path.join(top, ".loop", "docs.tsv")) as handle:
-            lines = [line.rstrip("\n").partition("\t") for line in handle if line.strip() and line[0] != "#"]
+        lines = [line.rstrip("\n").partition("\t") for line in open(os.path.join(top, ".loop", "docs.tsv")) if line.strip() and line[0] != "#"]
     except OSError:
         return {}
     return {page: [i.strip() for i in paths.split(",") if i.strip()] for page, _, paths in lines}
@@ -233,24 +217,22 @@ def docs_trouble(top, base, fix=False):
     """The docs audit's findings; [] when the docs are in step."""
     if not doc_rows(top):
         return []
-    done = run([sys.executable, DOCS, "audit", "--base", base] + ([] if fix else ["--dry-run"]), cwd=top)
+    done = run([sys.executable, DOCS, "audit", "--base", base] + ([] if fix else ["--dry-run"]), top)
     lines = [l for l in done.stdout.splitlines() if not l.startswith(("UNTESTED", "SKIP", "MILESTONE", "DOCS"))]
     if done.returncode and not done.stdout.strip():
         return ["the docs audit failed: " + (done.stderr.strip().splitlines() or ["no output"])[-1]]
-    return [] if done.returncode == 0 else lines
+    return lines * bool(done.returncode)
 
 
 def criteria_trouble(top, cfg):
     try:
-        with open(os.path.join(top, ".loop", "regression.tsv")) as handle:
-            rows = [line.rstrip("\n").split("\t") + [""] * 5 for line in handle if line[0] != "#"]
+        rows = [line.rstrip("\n").split("\t") + [""] * 5 for line in open(os.path.join(top, ".loop", "regression.tsv")) if line[0] != "#"]
     except OSError:
         rows = []
     out = []
     for page in doc_rows(top):
         try:
-            with open(os.path.join(top, cfg.get("wiki_dir") or "docs/wiki", page + ".md")) as handle:
-                part = handle.read().partition("\n## Criteria")[2].split("\n## ")[0]
+            part = open(os.path.join(top, cfg.get("wiki_dir") or "docs/wiki", page + ".md")).read().partition("\n## Criteria")[2].split("\n## ")[0]
         except OSError:
             continue
         for key in re.findall(r"^- ([A-Z]{2,5}-\d+): \S", part, re.M):
@@ -262,69 +244,51 @@ def criteria_trouble(top, cfg):
     return out
 
 
-def docs_changed(top, cfg, base):
-    folder = cfg.get("wiki_dir") or "docs/wiki"
-    out = git("diff", "--name-only", "%s...HEAD" % base, "--", folder, cwd=top, check=False)
-    return [os.path.basename(name)[:-3] for name in out.splitlines() if name.endswith(".md")]
-
-
 def wiki_link(top):
-    url = git("remote", "get-url", "origin", cwd=top, check=False)
-    match = re.search(r"github\.com[:/](.+?)(\.git)?$", url)
+    match = re.search(r"github\.com[:/](.+?)(\.git)?$", git("remote", "get-url", "origin", cwd=top, check=False))
     return "https://github.com/%s/wiki" % match.group(1) if match else ""
 
 
 def base_of(top, cfg):
     base = cfg.get("base", "main")
-    if run(["git", "rev-parse", "--verify", "--quiet", "origin/" + base], cwd=top).returncode == 0:
-        return "origin/" + base
-    return base
+    return "origin/" + base if run(["git", "rev-parse", "--verify", "--quiet", "origin/" + base], cwd=top).returncode == 0 else base
 
 
 def docs_lines(top, cfg, base):
     if not doc_rows(top):
         return ["Documentation: not set up (run workflow-docs init)."]
-    changed = docs_changed(top, cfg, base)
+    out = git("diff", "--name-only", base + "...HEAD", "--", cfg.get("wiki_dir") or "docs/wiki", cwd=top, check=False)
+    changed = [os.path.basename(name)[:-3] for name in out.splitlines() if name.endswith(".md")]
     link = wiki_link(top)
     lines = ["Documentation changed: %s." % (", ".join(changed) if changed else "none")]
     return lines + (["Wiki: " + link] if link else [])
 
 
-def loop_only(sha, cwd):
-    files = git("diff-tree", "--no-commit-id", "--name-only", "-r", "-m", sha, cwd=cwd).splitlines()
-    return bool(files) and all(name.startswith(".loop/") for name in files)
-
-
 def subjects(base, cwd):
-    out = git("log", "--reverse", "--format=%H %s", "%s..HEAD" % base, cwd=cwd)
     lines = []
-    for line in out.splitlines():
+    for line in git("log", "--reverse", "--format=%H %s", base + "..HEAD", cwd=cwd).splitlines():
         sha, _, subject = line.partition(" ")
-        if not loop_only(sha, cwd):
+        files = git("diff-tree", "--no-commit-id", "--name-only", "-r", "-m", sha, cwd=cwd).splitlines()
+        if not (files and all(name.startswith(".loop/") for name in files)):
             lines.append(" ".join(subject.split()))
     return lines
 
 
 def changelog_text(old, version, day, bullets, steps):
     title = "## [%s] - %s" % (version, day) if re.search(r"^## \[", old, re.M) else "## v%s - %s" % (version, day)
-    body = "\n".join("- " + item for item in bullets) or "- No code changes"
-    entry = "%s\n\n%s\n\n### How to verify\n\n%s\n" % (title, body, steps)
+    entry = "%s\n\n%s\n\n### How to verify\n\n%s\n" % (title, "\n".join("- " + item for item in bullets) or "- No code changes", steps)
     if not old.strip():
         return "# Changelog\n\n" + entry
     first = re.search(r"^## ", old, re.M)
-    if first:
-        return old[:first.start()] + entry + "\n" + old[first.start():]
-    return old.rstrip("\n") + "\n\n" + entry
+    return old[:first.start()] + entry + "\n" + old[first.start():] if first else old.rstrip("\n") + "\n\n" + entry
 
 
 def restore(cwd, files, sha_before, message):
     if git("rev-parse", "HEAD", cwd=cwd) != sha_before:
-        if git("log", "-1", "--format=%s", cwd=cwd) == message:
-            git("reset", "--hard", "HEAD~1", cwd=cwd)
-            print("RESTORED: removed the release commit")
-        else:
-            print("NOTE: HEAD is not the release commit, so nothing was reset. Check the branch by hand.")
-            return
+        if git("log", "-1", "--format=%s", cwd=cwd) != message:
+            return print("NOTE: HEAD is not the release commit, so nothing was reset. Check the branch by hand.")
+        git("reset", "--hard", "HEAD~1", cwd=cwd)
+        print("RESTORED: removed the release commit")
     for name in files:
         if run(["git", "ls-files", "--error-unmatch", name], cwd=cwd).returncode == 0:
             git("checkout", "--", name, cwd=cwd, check=False)
@@ -334,16 +298,15 @@ def restore(cwd, files, sha_before, message):
 
 
 def cmd_cut(args):
-    state = load(args.slug)
     slug = args.slug
-    if state.get("batch") and not args.user and not getattr(args, "auto", False):
+    state = load(slug)
+    if state.get("batch") and not (args.user or getattr(args, "auto", False)):
         sys.exit("REFUSED: %s is a batch goal. A batch may answer leave, never cut. Fix: cut only when the human's "
                  "own message says \"cut %s\", then pass --user." % (slug, slug))
     finished(state)
     branch = state.get("branch") or "loop/" + slug
     tree = state.get("worktree") or ""
-    cwd = tree if tree and os.path.isdir(tree) else os.getcwd()
-    cwd = git("rev-parse", "--show-toplevel", cwd=cwd)
+    cwd = git("rev-parse", "--show-toplevel", cwd=tree if os.path.isdir(tree) else os.getcwd())
     current = git("branch", "--show-current", cwd=cwd)
     if current != branch:
         sys.exit("REFUSED: %s is on branch %r, not %s. Fix: switch to %s first." % (cwd, current, branch, branch))
@@ -365,10 +328,9 @@ def cmd_cut(args):
     version_file = cfg.get("version_file") or "VERSION"
     if os.path.isabs(version_file) or ".." in version_file.split("/"):
         sys.exit("REFUSED: version_file must be a path inside the repo.")
-    vpath = os.path.join(cwd, version_file)
+    vpath, cpath = os.path.join(cwd, version_file), os.path.join(cwd, "CHANGELOG.md")
     if os.path.exists(vpath):
-        with open(vpath) as handle:
-            old_version = handle.read().strip()
+        old_version = open(vpath).read().strip()
         version = bump(old_version, args.bump)
     else:
         old_version, version = "none", "0.1.0"
@@ -377,32 +339,24 @@ def cmd_cut(args):
             run(["git", "ls-remote", "--exit-code", "--tags", "origin", tag], cwd=cwd).returncode == 0:
         sys.exit("REFUSED: tag %s already exists. Fix: pick another --bump or set the version by hand." % tag)
     bullets = subjects(base, cwd)
-    day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
-    cpath = os.path.join(cwd, "CHANGELOG.md")
+    day = now()[:10]
     old = open(cpath).read() if os.path.exists(cpath) else ""
-    files = [version_file, "CHANGELOG.md"]
-    message = "Release " + tag
-    before = git("rev-parse", "HEAD", cwd=cwd)
+    files, message, before = [version_file, "CHANGELOG.md"], "Release " + tag, git("rev-parse", "HEAD", cwd=cwd)
     state["step"] = "release"
     save(state, "cutting %s from %s" % (tag, old_version))
-    with open(vpath, "w") as handle:
-        handle.write(version + "\n")
-    with open(cpath, "w") as handle:
-        handle.write(changelog_text(old, version, day, bullets, steps))
-    added = run(["git", "add", "--"] + files, cwd=cwd)
-    made = added.returncode == 0 and run(["git", "commit", "-m", message, "--"] + files, cwd=cwd).returncode == 0
-    if not made:
+    open(vpath, "w").write(version + "\n")
+    open(cpath, "w").write(changelog_text(old, version, day, bullets, steps))
+    if run(["git", "add", "--"] + files, cwd).returncode or run(["git", "commit", "-m", message, "--"] + files, cwd).returncode:
         restore(cwd, files, before, message)
         sys.exit("REFUSED: could not commit the release files.")
-    pushed = run(["git", "push", "-u", "origin", branch], cwd=cwd)
+    pushed = run(["git", "push", "-u", "origin", branch], cwd)
     if pushed.returncode:
         restore(cwd, files, before, message)
         sys.exit("REFUSED: push failed, release undone: " + pushed.stderr.strip()[:300])
     notes = tempfile.NamedTemporaryFile("w", suffix=".md", prefix="release-notes-", delete=False)
     with notes:
-        notes.write("\n".join("- " + item for item in bullets) + "\n\n## How to verify\n\n%s\n\n" % steps)
-        notes.write("## Documentation\n\n%s\n\n" % "\n\n".join(docs_lines(cwd, cfg, base)))
-        notes.write("Pull request: %s\n" % state.get("pr", ""))
+        notes.write("\n".join("- " + item for item in bullets) + "\n\n## How to verify\n\n%s\n\n## Documentation\n\n%s\n\nPull request: %s\n"
+                    % (steps, "\n\n".join(docs_lines(cwd, cfg, base)), state.get("pr", "")))
     try:
         made = run(["gh", "release", "create", tag, "--draft", "--title", tag, "--notes-file", notes.name,
                     "--target", branch], cwd=cwd)
@@ -412,9 +366,8 @@ def cmd_cut(args):
         os.remove(notes.name)
     if made.returncode:
         restore(cwd, files, before, message)
-        released = git("rev-parse", "origin/" + branch, cwd=cwd, check=False)
-        lease = run(["git", "push", "--force-with-lease=%s:%s" % (branch, released), "origin",
-                     "%s:%s" % (before, branch)], cwd=cwd)
+        lease = run(["git", "push", "--force-with-lease=%s:%s" % (branch, git("rev-parse", "origin/" + branch, cwd=cwd, check=False)),
+                     "origin", "%s:%s" % (before, branch)], cwd)
         if lease.returncode:
             print("NOTE: origin/%s still has the release commit; push the branch again to match." % branch)
         save(state, "cut %s failed at gh, restored" % tag)
@@ -431,12 +384,11 @@ def cmd_cut(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
-    for name, func, text in (("ask", cmd_ask, "ask cut or leave"), ("leave", cmd_leave, "keep it unreleased"),
-                             ("show", cmd_show, "print the release field")):
-        item = sub.add_parser(name, help=text)
+    for name, func in (("ask", cmd_ask), ("leave", cmd_leave), ("show", cmd_show)):
+        item = sub.add_parser(name)
         item.add_argument("slug")
         item.set_defaults(func=func)
-    item = sub.add_parser("cut", help="bump, changelog, commit, push, draft release")
+    item = sub.add_parser("cut")
     item.add_argument("slug")
     item.add_argument("--bump", choices=("patch", "minor", "major"), default="patch")
     item.add_argument("--user", action="store_true", help="the human's own message said to cut")
