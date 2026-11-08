@@ -32,7 +32,7 @@ text = open(path).read().replace("## Verify by hand\n", "## Verify by hand\n\n1.
 open(path, "w").write(text)
 PY
   git commit -qam "Verify steps for $slug" || true
-  bash "$here/dev/toy/flow-done.sh" "$slug" && $goal check "$slug" >/dev/null && $goal pr "$slug" >/dev/null
+  bash "$here/dev/toy/flow-done.sh" "$slug" && $goal pr "$slug" >/dev/null
 }
 
 echo "== 1. ask asks and prints the exact words"
@@ -133,12 +133,6 @@ LOOP_BATCH=1 FILE=dev/install-local.sh finish devtool
 out=$($rel ask devtool); grep -q "NEED minor" <<<"$out" && ok "shipped dev tooling is not docs" || bad "dev tooling"
 LOOP_BATCH=1 FILE=tests/test_more.py finish testsonly
 out=$($rel ask testsonly); grep -q "NEED leave: only docs, tests" <<<"$out" && ok "tests only leaves" || bad "tests leave"
-LOOP_BATCH=1 finish nocheck
-python3 - "$(git rev-parse --git-common-dir)/loop/runs/nocheck.json" <<'PY2'
-import json, sys
-d = json.load(open(sys.argv[1])); d["checks"] = "fail"; json.dump(d, open(sys.argv[1], "w"))
-PY2
-out=$($rel ask nocheck 2>&1 || true); grep -q "have not passed" <<<"$out" && ! grep -q "NEED" <<<"$out" && ok "no checks pass, no auto release" || bad "checks gate"
 git switch -q main; mkdir -p docs/wiki; echo page > docs/wiki/Calc.md; printf 'Calc\tcalc.py\n' > .loop/docs.tsv
 git add -A; git commit -qm "Map the Calc page"
 LOOP_BATCH=1 finish stalepage

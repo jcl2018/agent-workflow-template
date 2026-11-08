@@ -65,9 +65,9 @@ has "$T/b1" "CHANGED yes" "first board has changes"
 has "$T/b1" "CHANGE " "prints CHANGE lines"
 $B board --at $AT --since "$O/board.json" --out "$T/out3" > "$T/b3"
 has "$T/b3" "CHANGED no" "same state since the last board: CHANGED no"
-rec runa running 1 checks 2026-01-01T11:55:00Z 'checks="pass"' 'note={"text":"<b>hi</b> building","at":"x"}'
+rec runa running 1 review 2026-01-01T11:55:00Z 'checks="pass"' 'note={"text":"<b>hi</b> building","at":"x"}'
 $B board --at $AT --since "$O/board.json" --out "$T/out3" > "$T/b4"
-grep -q "^CHANGE .*runa step: build -> checks" "$T/b4" && ok "CHANGE line names the changed field" || bad "CHANGE line"
+grep -q "^CHANGE .*runa step: build -> review" "$T/b4" && ok "CHANGE line names the changed field" || bad "CHANGE line"
 [ "$(grep -c '^CHANGE ' "$T/b4")" = 1 ] && ok "only the changed field is listed" || bad "changed field count: $(grep -c '^CHANGE ' "$T/b4")"
 rec runa running 1 build 2026-01-01T11:50:00Z 'checks="pass"' 'note={"text":"<b>hi</b> building","at":"x"}'
 H="$O/board.html"
@@ -197,16 +197,16 @@ import json, re, sys
 d = json.load(open(sys.argv[1]))["dependency_map"]; h = open(sys.argv[2]).read()
 l = {x["run"]: x for x in d["lanes"]}
 assert set(l) == {"repo/first", "repo/donelong", "repo/shout"}, set(l)
-assert [b["step"] for b in l["repo/first"]["boxes"]] == ["idea", "plan", "build", "checks", "review", "qa", "ship", "pr"]
-assert [b["status"] for b in l["repo/first"]["boxes"]] == ["done", "done", "running"] + ["pending"] * 5
-assert [b["status"] for b in l["repo/shout"]["boxes"]] == ["queued"] * 8
+assert [b["step"] for b in l["repo/first"]["boxes"]] == ["idea", "plan", "build", "review", "qa", "ship", "pr"]
+assert [b["status"] for b in l["repo/first"]["boxes"]] == ["done", "done", "running"] + ["pending"] * 4
+assert [b["status"] for b in l["repo/shout"]["boxes"]] == ["queued"] * 7
 cross = [a for a in d["arrows"] if a["on"]]
 assert cross == [{"from": "repo/first:pr", "to": "repo/shout:idea", "on": "depends on first"}], cross
-assert len([a for a in d["arrows"] if not a["on"]]) == 7 + 8 + 7  # donelong also has a release box
+assert len([a for a in d["arrows"] if not a["on"]]) == 6 + 7 + 6  # donelong also has a release box
 names = [x["run"] for x in d["lanes"]]
 assert names.index("repo/first") < names.index("repo/shout")
 assert h.count("<a class='box ") == sum(len(x["boxes"]) for x in d["lanes"])
-assert h.count("<path class=wire ") == 1 and h.count("<path class=step ") == 22
+assert h.count("<path class=wire ") == 1 and h.count("<path class=step ") == 19
 assert "depends on first</text>" in h and "s-running" in h and "s-done" in h
 assert re.search(r"<title>.*Done: .*\nNext: .*\nUnblocks: ", h, re.S)
 PY
@@ -222,7 +222,7 @@ python3 - "$T/m/board.json" "$T/m/board.html" "$T/m/board-artifact.html" <<'PY' 
 import json, re, sys
 b = {x["id"]: x for l in json.load(open(sys.argv[1]))["dependency_map"]["lanes"] for x in l["boxes"]}
 assert b["repo/first:pr"]["unblocks"] == ["repo/shout (depends on first)"]
-assert b["repo/first:build"]["next"] == "Then checks" and b["repo/first:build"]["done"] == "idea, plan"
+assert b["repo/first:build"]["next"] == "Then review" and b["repo/first:build"]["done"] == "idea, plan"
 assert b["repo/shout:idea"]["next"].startswith("Waits on goal first")
 for page in sys.argv[2:]:
     h = open(page).read()
@@ -303,9 +303,9 @@ PATH=/usr/bin:/bin $B board --at $AT --since "$T/c2/board.json" --out "$T/c3" > 
 grep -q "CHANGED no" "$T/c.out" && ok "gh failing to answer is no change" || bad "unknown pull request state counted as a change"
 $B board --at $AT --since "$T/c3/board.json" --out "$T/c4" > "$T/c.out"
 grep -q "CHANGED no" "$T/c.out" && ok "and gh answering again is no change" || bad "pull request state flapped"
-rec chg1 running 1 checks 2026-01-01T11:50:00Z 'pr="https://x/pull/3"'
+rec chg1 running 1 review 2026-01-01T11:50:00Z 'pr="https://x/pull/3"'
 $B board --at $AT --since "$T/c4/board.json" --out "$T/c5" > "$T/c.out"
-grep -q "^CHANGE repo/chg1 step: build -> checks" "$T/c.out" && [ "$(grep -c '^CHANGE ' "$T/c.out")" = 1 ] && ok "a real change is still reported, alone" || bad "real change"
+grep -q "^CHANGE repo/chg1 step: build -> review" "$T/c.out" && [ "$(grep -c '^CHANGE ' "$T/c.out")" = 1 ] && ok "a real change is still reported, alone" || bad "real change"
 rm "$R/chg1.json"
 # board_page.py alone needs a finished board.json
 mkdir -p "$T/lone"; cp "$here/skills/workflow-monitoring/scripts/board_page.py" "$T/lone/"; $B board --at $AT --out "$T/c6" >/dev/null

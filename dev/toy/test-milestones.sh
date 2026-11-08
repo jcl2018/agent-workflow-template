@@ -42,7 +42,7 @@ t = open(p).read().replace("## Verify by hand\n", "## Verify by hand\n\n1. Open 
 open(p, "w").write(t)
 PYEND
 git commit -qam "Verify steps"
-bash "$here/dev/toy/flow-done.sh" calc-goal; $goal check calc-goal >/dev/null; out=$($goal pr calc-goal); echo "$out"
+bash "$here/dev/toy/flow-done.sh" calc-goal; out=$($goal pr calc-goal); echo "$out"
 grep -q "ATTACHED pull request 1 to milestone Calc" <<<"$out" && [ "$(cat "$FAKE_GH_DIR/pr-milestone-1")" = Calc ] && ok "goal.py pr puts the pull request in the Calc milestone" || bad "attach"
 $goal new other-goal --here --goal "Other" --done "x" --touches "elsewhere.txt" >/dev/null 2>&1 || true
 out=$($ms attach other-goal 2>&1); grep -q "REFUSED: other-goal has no pull request" <<<"$out" && ok "no pull request, no attach" || bad "attach no pr"

@@ -10,7 +10,7 @@ usage: criteria.py <command> [options]
 
 A page is Summary, Criteria and Tests. A criterion is '- ID: **Unreviewed** text' or '- ID: **Reviewed DATE** text',
 and a Reviewed line ends with <!-- reviewed HASH -->, a hash of its text. docs.py check fails when the text no longer
-matches its hash. A regression row whose goal column is '-' proves no criterion yet and is left out. The Tests table lists each criterion's regression rows with the criterion's words, what the
+matches its hash. A regression row whose goal column is '-' proves no criterion yet and is left out. A row with category defect is a defect test: it is listed under 'Defect tests' on the page of the criterion in its goal column, with its link. The Tests table lists each criterion's regression rows with the criterion's words, what the
 test checks, when it runs, its last status and date from .loop/regression-runs.tsv and whether it was seen failing,
 and marks a criterion with no passing row as not enforced. It runs git and nothing else.
 """
@@ -44,6 +44,7 @@ def rules():
         found = {key.strip(): value.strip() for key, value in found.items()}
         return {"sections": [x.strip() for x in found["sections"].split(",")], "summary_lines": int(found["summary_lines"]),
                 "max_criteria": int(found["max_criteria"]), "columns": [x.strip() for x in found["tests_columns"].split(",")],
+                "defect_columns": [x.strip() for x in found["defect_columns"].split(",")],
                 "milestone": found["milestone_line"]}
     except (OSError, AttributeError, KeyError, ValueError):
         sys.exit("REFUSED: the rules block of skills/workflow-docs/references/template.md is missing or broken.")
@@ -93,7 +94,7 @@ def sections(text):
 def tsv(root, name):
     try:
         with open(os.path.join(root, ".loop", name)) as handle:
-            return [line.rstrip("\n").split("\t") + [""] * 5 for line in handle if line.strip() and line[0] != "#"]
+            return [line.rstrip("\n").split("\t") + [""] * 8 for line in handle if line.strip() and line[0] != "#"]
     except OSError:
         return []
 
@@ -102,6 +103,8 @@ def test_rows(root):
     """Real tests as {criterion: [row id]}, plus ids linked to none."""
     linked, loose = {}, []
     for row in tsv(root, "regression.tsv"):
+        if row[6] == "defect":
+            continue
         key = "" if row[3] == "-" else next((item for item in (row[3], row[0]) if ID.match(item)), "")
         if row[1] == "draft":
             continue
@@ -110,6 +113,21 @@ def test_rows(root):
         elif row[3] != "-":
             loose.append(row[0])
     return linked, loose
+
+
+def defect_rows(root):
+    """Defect tests as {criterion whose page they guard: [row id]}; a row with goal '-' belongs to no page."""
+    found = {}
+    for row in tsv(root, "regression.tsv"):
+        if row[6] == "defect" and row[1] != "draft" and ID.match(row[3]):
+            found.setdefault(row[3], []).append(row[0])
+    return found
+
+
+def issue_cell(link):
+    """A defect's link as a table cell: the issue number linked to its URL, or the finding's id."""
+    number = re.search(r"/(?:issues|pull)/(\d+)$", link)
+    return "[#%s](%s)" % (number.group(1), link) if number else link.replace("finding:", "finding ", 1)
 
 
 RUNS = {"land": "both", "nightly": "nightly", "covered": "by a person"}
@@ -134,6 +152,16 @@ def table(root, ids, linked):
                        RUNS.get(row[1], row[1]), (status + " " + date).strip(), row[4] or "no"))
         if not passing:
             out.append("| %s | **not enforced** | | | | |" % words)
+    guards = defect_rows(root)
+    names = [name for key, _ in ids for name in guards.get(key, [])]
+    if names:
+        head = rules()["defect_columns"]
+        out += ["### Defect tests", "| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
+    for name in names:
+        row = rows[name]
+        status, date = ran.get(name, ("not run", ""))
+        out.append("| %s | [%s](%s) | %s | %s | %s | %s |" % (issue_cell(row[7]).replace("|", "\\|"), name, link,
+                   row[5].replace("|", "\\|") or "-", RUNS.get(row[1], row[1]), (status + " " + date).strip(), row[4] or "no"))
     return out
 
 
@@ -176,6 +204,8 @@ def contract(root, names, seen):
             found.append(("TESTS", page, "the Tests table is stale. Fix: run criteria.py render"))
     for name in loose:
         found.append(("LINK", "regression", "row %s links to no criterion" % name))
+    for key in sorted(set(defect_rows(root)) - set(seen)):
+        found.append(("LINK", "regression", "defect tests guard %s, which no page has" % key))
     for key in sorted(set(linked) - set(seen)):
         found.append(("LINK", "regression", "rows link to %s, which no page has" % key))
     return found

@@ -107,7 +107,7 @@ check "the worker's agent sees it the next time goal.py runs, once" 'grep -q "^M
 $OP send nosuch hi 2>&1 | grep -q "no run named nosuch" && ok "send refuses a goal that doesn't exist" || bad "send nosuch"
 
 echo "== goal steps refuse outside a worker"
-for verb in "step c build" "check c" "record c idea --file x" "pr c"; do
+for verb in "step c build" "record c idea --file x" "pr c"; do
   out=$(python3 "$D/goal.py" $verb 2>&1)
   check "goal.py ${verb%% *} refuses, naming the worker command" '[ "$out" = "REFUSED: ${verb%% *} is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME" ]'
 done
@@ -157,7 +157,7 @@ other="$T/other"; git clone -q "$T/origin.git" "$other"
 ( cd "$other" && git config user.email t@example.test && git config user.name Toy && echo n1 > n1.txt && printf '# from main\n' >> calc.py && git add -A && git commit -qm "Main moves" && git push -q origin main )
 git switch -q loop/s1
 out=$($goal pr s1 2>&1); echo "$out" | sed 's/^/  /'
-check "a clean merge reruns the checks and goes on, costing no try" 'grep -q "^MERGED origin/main into the branch; running the checks again" <<<"$out" && grep -q "^PR " <<<"$out" && [ "$(field s1 tries)" = 0 ] && [ -e n1.txt ]'
+check "a clean merge goes on, costing no try" 'grep -q "^MERGED origin/main into the branch" <<<"$out" && grep -q "^PR " <<<"$out" && [ "$(field s1 tries)" = 0 ] && [ -e n1.txt ]'
 git switch -q loop/s2
 out=$($goal pr s2 2>&1); echo "$out" | sed 's/^/  /'
 check "a real conflict costs a try, names the files and leaves the tree clean" 'grep -q "^TRY 1 OF 3 FAILED: merging main conflicts in: calc.py" <<<"$out" && [ "$(field s2 tries)" = 1 ] && [ ! -e "$(git rev-parse --git-dir)/MERGE_HEAD" ] && [ -z "$(git status --porcelain --untracked-files=no)" ]'

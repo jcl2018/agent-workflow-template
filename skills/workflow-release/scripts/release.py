@@ -89,8 +89,6 @@ def finished(state):
     if state.get("status") not in ("done", "waiting") or not state.get("pr"):
         sys.exit("REFUSED: %s is %s with no finished pull request. Fix: finish it with workflow-delivery."
                  % (state["slug"], state.get("status")))
-    if state.get("checks") != "pass":
-        sys.exit("REFUSED: the checks of %s have not passed. Fix: run goal.py check." % state["slug"])
 
 
 def do_leave(state, by):
@@ -360,15 +358,10 @@ def cmd_cut(args):
     trouble = docs_trouble(cwd, base)
     if trouble:
         sys.exit("REFUSED: the docs audit found trouble:\n%s\nFix: run docs.py audit (workflow-docs), commit, and run "
-                 "goal.py check again." % "\n".join(trouble))
+                 "the release again." % "\n".join(trouble))
     unmet = criteria_trouble(cwd, cfg)
     if unmet:
         sys.exit("REFUSED: criteria without a passing regression row: %s." % ", ".join(unmet))
-    checked = state.get("checks_sha")
-    if checked and checked != git("rev-parse", "HEAD", cwd=cwd):
-        later = git("log", "--format=%H", "%s..HEAD" % checked, cwd=cwd, check=False).splitlines()
-        if not later or not all(loop_only(sha, cwd) for sha in later):
-            sys.exit("REFUSED: code changed after the checks passed. Fix: run goal.py check again.")
     version_file = cfg.get("version_file") or "VERSION"
     if os.path.isabs(version_file) or ".." in version_file.split("/"):
         sys.exit("REFUSED: version_file must be a path inside the repo.")

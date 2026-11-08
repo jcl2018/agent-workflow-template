@@ -53,7 +53,7 @@ git commit -qam "Agent"; git push -q origin main
 until_report() { for _ in $(seq 150); do [ "$(inner "$1" report status)" = "$2" ] && return 0; sleep 0.1; done; return 1; }
 
 echo "== the operation session refuses to work"
-for verb in build plan idea review qa ship step check pr; do
+for verb in build plan idea review qa ship step pr; do
   check "watch.py $verb refuses with one line naming the worker command" '[ "$($W $verb x 2>&1)" = "REFUSED: $verb is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME" ]'
 done
 check "batch.py plan refuses the same way" '$BA plan x 2>&1 | grep -q "^REFUSED: plan is worker work.*batch.py start NAME$"'

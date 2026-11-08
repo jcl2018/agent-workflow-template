@@ -12,6 +12,11 @@ import re
 import subprocess
 import sys
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
+
 CODE = {".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java", ".rb", ".c", ".cc", ".cpp", ".h", ".sh", ".swift", ".kt", ".php"}
 NOT_AREAS = {"docs", "doc", "test", "tests", "dist", "build", "node_modules", "vendor", "scripts", "dev", "examples", "tools"}
 MARKER = "<!-- workflow-docs -->"

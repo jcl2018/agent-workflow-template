@@ -52,7 +52,7 @@ prompt says to stop at the pull request and never merge. A batch answers `leave`
 `release: ask` waits for the user.
 
 A goal waits only on goals it `depends-on`, never because it shares files: before its pull request a goal merges the
-latest base, reruns its checks if that brought changes, and only a real conflict costs it a try. A failed goal never
+latest base, and only a real conflict costs it a try. A failed goal never
 stops the others.
 
 ### Mending and usage limits
@@ -114,7 +114,7 @@ nothing is left. `operate.py send SLUG "<text>"` gives a worker an answer or fol
 (`repos add`), records a worker's latest message (`note SLUG TEXT`), retires a superseded goal (`retire SLUG --reason TEXT`) and writes a `handoff` file.
 `scripts/board_page.py` then has `board_map.py` finish `board.json` and draws `board.html` and `board-artifact.html`.
 Any command that would build, plan or run a goal step from this session (`build`, `plan`, `idea`, `review`, `qa`,
-`ship`, `step`, `check`, `pr`, `record`, `run`) refuses with one line naming `batch.py start NAME`.
+`ship`, `step`, `pr`, `record`, `run`) refuses with one line naming `batch.py start NAME`.
 
 Batches of goals go through `scripts/batch.py` (`add`, `start`, `status`). `start` begins one worker for each goal:
 `scripts/worker.py loop SLUG` runs the goal's agent in its own worktree, with `LOOP_ROLE=worker`, to the end. When the
@@ -135,7 +135,7 @@ bar per milestone), Total (the longest chain of estimates, or `no estimate yet`)
 | `queued` | Not started |
 | `running` | Its agent is at work |
 | `waiting` | Stopped until the user answers; `waiting.words` are the exact words |
-| `done` | Has a pull request and its checks hold |
+| `done` | Has a pull request |
 | `stopped` | Stopped itself after 3 failed tries, finding filed |
 | `failed` | The worker's agent ended without finishing (never set for a goal with no pid) |
 | `retired` | Superseded; set by `board.py retire`, and `watch` and `resume` leave it alone |

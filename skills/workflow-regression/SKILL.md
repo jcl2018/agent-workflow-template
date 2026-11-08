@@ -17,19 +17,13 @@ Rows live in `.loop/regression.tsv`: id, level, command, goal, and the date it w
 | `draft` | Nothing, until you give it a real command and level |
 | `covered` | Nothing. The done line is proved elsewhere; say where in the command |
 
-## `seed`
-
-```bash
-python3 scripts/regression.py seed
-```
-
-Adds one `land` row for each check in `.loop/config.json`. Run it once.
-
-## `add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>]`
+## `add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>] [--category criterion|defect --link <url>]`
 
 Adds or replaces a row. `--goal` ties it to a criterion, such as `DEL-5`, or a goal's done line, such as `add-median:2`. With criteria on, every
 test needs a criterion. A changed command must be proved
-again.
+again. `--category defect --link <url or finding:SLUG>` makes a defect test: one for every finding, issue or bug that
+gets fixed. It shows under "Defect tests" on the page of the criterion in `--goal`, never counts as proof of that
+criterion, and `sync` flags a defect row with no link.
 
 `run` also records each row's last status and date in `.loop/regression-runs.tsv`, which the wiki Tests tables show. The regression
 workflow on GitHub runs every `land` and `nightly` row, so a criterion's rows should be one of those; its run summary lists each row's result, and Actions keeps the run history.
