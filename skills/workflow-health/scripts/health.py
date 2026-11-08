@@ -3,11 +3,12 @@
 
 usage: health.py check [--json] [--family NAME]
        health.py run [--live] [--family NAME]
-       health.py suggest
+       health.py judge
 
-check prints a fixed template: HEALTH REPORT, each group (size, criteria, docs, hygiene, Mine) with its lines, then the
-verdict. Mine runs the owner's own rules from ~/.workflow-loop/health.json (see mine.py); one that cannot run is UNREAD.
-suggest is a separate, advisory step (see suggest.py); the rule check stays model-free and gives the same answer twice.
+check prints a fixed template: HEALTH REPORT, each group (size, criteria, docs, hygiene, cost, Mine) with its lines, then
+the verdict. Mine runs the owner's own rules from ~/.workflow-loop/health.json (see mine.py); one that cannot run is UNREAD.
+judge (alias suggest) prints the check report, then a judge section of suggestions (see judge.py). check stays model-free
+and gives the same answer twice; the judge never changes the verdict or the exit code.
 
 One line per finding:  STATE family subject rule: detail -> fix: what to run
 STATE is PASS, WARN, FAIL, UNREAD (a rule could not read its data) or INFO. The last line is
@@ -20,6 +21,8 @@ Rules (at most MAX_RULES, asserted when the script loads; retire one before addi
             done lines with no row WARN as one row
   docs      composes docs.py check: a stale page WARNs, any other gap FAILs
   hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches nobody has checked out
+  cost      a finished goal over time_budget_minutes or token_budget in .loop/config.json WARNs, naming its slowest or
+            costliest steps (cost.py); no tokens recorded is UNREAD
 
 run  files each WARN, FAIL or UNREAD row as one issue on the Backlog milestone, labelled health, found again by a
 hidden marker in its body: a repeat updates it, a fixed finding closes it, a returning one reopens it, and a moved
@@ -44,11 +47,11 @@ LIMIT = 20 * 1024
 WARN_AT = LIMIT * 9 // 10
 FINDINGS_WARN = 5
 WAITING_HOURS = 24
-RULES = ("size", "criteria-rows", "criteria-done", "criteria-proof", "docs-check", "findings", "waiting", "branches")
-MAX_RULES = 8
+RULES = ("size", "criteria-rows", "criteria-done", "criteria-proof", "docs-check", "findings", "waiting", "branches", "cost")
+MAX_RULES = 9  # raised from 8 on purpose, for cost
 assert len(RULES) <= MAX_RULES, "too many rules: retire one first"
-FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene", "mine": "mine"}
-ORDER = ("size", "criteria", "docs", "hygiene", "mine")  # the fixed order of the groups in the report
+FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene", "cost": "cost", "mine": "mine"}
+ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine")  # the fixed order of the groups in the report
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 
@@ -194,8 +197,20 @@ def mine_rows(root):
     return mine.mine_rows(root)
 
 
+def cost_rows(root):
+    sys.path.insert(0, HERE)
+    try:
+        import cost
+    except ImportError:
+        return [row("UNREAD", "cost", "cost.py", "cost", "cost.py is not installed beside health.py")]
+    finally:
+        sys.path.pop(0)
+    return cost.cost_rows(root, HERE)
+
+
 def gather(root, family):
-    rules = {"size": size_rows, "criteria": criteria_rows, "docs": docs_rows, "hygiene": hygiene_rows, "mine": mine_rows}
+    rules = {"size": size_rows, "criteria": criteria_rows, "docs": docs_rows, "hygiene": hygiene_rows, "cost": cost_rows,
+             "mine": mine_rows}
     rows = []
     for name in (family and [family] or ORDER):
         rows += rules[name](root)
@@ -235,23 +250,31 @@ def cmd_check(args):
     return 0 if green else 1
 
 
-def cmd_suggest(args):
-    """Advisory only: reads the same rows as check, never changes the verdict or the exit code."""
+def cmd_judge(args):
+    """The check report, then the judge section. The verdict and exit code are the check's, whatever the judge says."""
     root = repo_root()
+    rows = gather(root, None)
+    text, _, green, _ = report(rows)
+    print("\n".join(text))
+    print()
     sys.path.insert(0, HERE)
     try:
-        import suggest
+        import judge
     except ImportError:
-        sys.exit("REFUSED: suggest.py is not installed beside health.py.")
+        print("JUDGE UNAVAILABLE: judge.py is not installed beside health.py")
+        return 0 if green else 1
     finally:
         sys.path.pop(0)
-    lines, steps = suggest.suggestions(root, gather(root, None))
-    print("SUGGESTIONS (advisory, not findings: they do not change the verdict)")
-    print("== criteria ==")
-    print("\n".join(lines) or "none")
-    print("== next steps ==")
-    print("\n".join(steps) or "none")
-    return 0
+    try:
+        answer, why = judge.ask(judge.gather(root, HERE, rows), root)
+        found = judge.parse(answer)
+        if not why and not any(found.values()):
+            why = "the answer had no tagged line"
+        steps = judge.suggestions(root, rows)[1]
+        print("\n".join(judge.render(found, steps)) if not why else "JUDGE UNAVAILABLE: " + why)
+    except Exception as error:  # the judge is advice: nothing it does may change the verdict
+        print("JUDGE UNAVAILABLE: %s" % str(error)[:120])
+    return 0 if green else 1
 
 
 MARK = "<!-- loop-health %s -->"
@@ -334,8 +357,9 @@ def main():
     item.add_argument("--json", action="store_true")
     item.add_argument("--family", choices=sorted(FAMILY))
     item.set_defaults(func=cmd_check)
-    item = sub.add_parser("suggest", help="advisory suggestions, apart from the check")
-    item.set_defaults(func=cmd_suggest)
+    for name in ("judge", "suggest"):
+        item = sub.add_parser(name, help="the check report, then a judge section of suggestions")
+        item.set_defaults(func=cmd_judge)
     item = sub.add_parser("run", help="file findings as issues on the Backlog milestone")
     item.add_argument("--live", action="store_true")
     item.add_argument("--family", choices=sorted(FAMILY))
