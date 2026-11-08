@@ -27,18 +27,18 @@ Commands, flows and how-tos: `skills/workflow-delivery/references/commands.md` a
 
 ## Tests
 
-| Criterion | Test | Last run |
-|---|---|---|
-| DEL-1 | [no-done-line-refused](../../.loop/regression.tsv) | PASS 2026-11-08 |
-| DEL-1 | [no-flow-refused](../../.loop/regression.tsv) | PASS 2026-11-08 |
-| DEL-1 | [stop-after-3-tries](../../.loop/regression.tsv) | PASS 2026-11-08 |
-| DEL-1 | [pr-needs-flow](../../.loop/regression.tsv) | PASS 2026-11-08 |
-| DEL-1 | [starts-at-idea](../../.loop/regression.tsv) | PASS 2026-11-08 |
-| DEL-1 | [steps-through-flow](../../.loop/regression.tsv) | PASS 2026-11-08 |
-| DEL-2 | [frozen-done-lines](../../.loop/regression.tsv) | PASS 2026-11-08 |
-| DEL-3 | [pending-waits](../../.loop/regression.tsv) | PASS 2026-11-08 |
-| DEL-3 | [auto-approved](../../.loop/regression.tsv) | PASS 2026-11-08 |
-| DEL-4 | **not enforced** | |
-| DEL-5 | [never-merges](../../.loop/regression.tsv) | PASS 2026-11-08 |
-| DEL-5 | [wiki-release](../../.loop/regression.tsv) | PASS 2026-11-08 |
-| DEL-5 | [auto-release](../../.loop/regression.tsv) | PASS 2026-11-08 |
+| Criterion | Test | What it checks | Runs | Last result | Seen failing |
+|---|---|---|---|---|---|
+| **DEL-1** I give one sentence and the done lines, and a worker runs my own skill flow unattended from idea to merge; it won't start without the flow set up, and stops and says why after 3 failed tries. | [no-done-line-refused](../../.loop/regression.tsv) | A goal with no done line is refused. | both | PASS 2026-11-08 | 2026-11-07 |
+| **DEL-1** I give one sentence and the done lines, and a worker runs my own skill flow unattended from idea to merge; it won't start without the flow set up, and stops and says why after 3 failed tries. | [no-flow-refused](../../.loop/regression.tsv) | A goal does not start when no skill flow is set. | both | PASS 2026-11-08 | 2026-11-07 |
+| **DEL-1** I give one sentence and the done lines, and a worker runs my own skill flow unattended from idea to merge; it won't start without the flow set up, and stops and says why after 3 failed tries. | [stop-after-3-tries](../../.loop/regression.tsv) | Three failed tries stop a goal and file a finding. | both | PASS 2026-11-08 | 2026-11-07 |
+| **DEL-1** I give one sentence and the done lines, and a worker runs my own skill flow unattended from idea to merge; it won't start without the flow set up, and stops and says why after 3 failed tries. | [pr-needs-flow](../../.loop/regression.tsv) | A pull request is refused until every flow step is done. | both | PASS 2026-11-08 | 2026-11-07 |
+| **DEL-1** I give one sentence and the done lines, and a worker runs my own skill flow unattended from idea to merge; it won't start without the flow set up, and stops and says why after 3 failed tries. | [starts-at-idea](../../.loop/regression.tsv) | A goal starts at the idea step. | both | PASS 2026-11-08 | 2026-11-07 |
+| **DEL-1** I give one sentence and the done lines, and a worker runs my own skill flow unattended from idea to merge; it won't start without the flow set up, and stops and says why after 3 failed tries. | [steps-through-flow](../../.loop/regression.tsv) | A step reply is accepted only if the flow ran it. | both | PASS 2026-11-08 | 2026-11-07 |
+| **DEL-2** The done lines are frozen once the goal starts; changing one means a new goal. | [frozen-done-lines](../../.loop/regression.tsv) | Changing a frozen done line stops the goal. | both | PASS 2026-11-08 | 2026-11-07 |
+| **DEL-3** A decision left for me waits under Needs you, or, where the repo allows it, is auto-approved and logged. | [pending-waits](../../.loop/regression.tsv) | A step that leaves a decision for the owner stops and waits. | both | PASS 2026-11-08 | 2026-11-07 |
+| **DEL-3** A decision left for me waits under Needs you, or, where the repo allows it, is auto-approved and logged. | [auto-approved](../../.loop/regression.tsv) | An auto-approved step is logged and nothing waits. | both | PASS 2026-11-08 | 2026-11-07 |
+| **DEL-4** Every pull request carries the done lines, the plan, how to verify it by hand, and each step's result. | **not enforced** | | | | |
+| **DEL-5** Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you. | [never-merges](../../.loop/regression.tsv) | With auto_merge off, nothing is merged. | both | PASS 2026-11-08 | 2026-11-07 |
+| **DEL-5** Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you. | [wiki-release](../../.loop/regression.tsv) | Merging a goal publishes its wiki pages, even when python leaves cache files behind. | both | PASS 2026-11-08 | 2026-11-08 |
+| **DEL-5** Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you. | [auto-release](../../.loop/regression.tsv) | A merged goal is released automatically when auto-release is on. | both | PASS 2026-11-08 | 2026-11-08 |

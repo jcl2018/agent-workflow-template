@@ -7,6 +7,8 @@ import subprocess
 import sys
 
 REFUSE = "REFUSED: %s is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME"
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 TOKENS = re.compile(r"(\d[\d,]*) (?:total )?tokens", re.I)
 
 

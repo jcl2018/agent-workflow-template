@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.1.3 - 2026-11-08
+
+- Regression: descriptions, schedule setting, wiki test fix
+- Regenerate workflow and wiki tables; guard mine.py
+- Merge origin/main into loop/regression-format
+
+### How to verify
+
+1. Open `docs/wiki/Regression.md` and look at the Tests table.
+   Expect: columns Criterion, Test, What it checks, Runs, Last result and Seen failing, each row with a plain one-line description.
+2. In `.loop/config.json` set `"regression_cron": "5 4 * * 1"`, run `python3 skills/workflow-regression/scripts/regression.py workflow`, then `git diff .github`.
+   Expect: the schedule line reads `cron: "5 4 * * 1"`. Set it back to `17 9 * * *` and run it again to restore.
+3. After this merges, open the next run of the regression workflow on GitHub.
+   Expect: `wiki-release` passes and issue 58 closes with "Passing again".
+
 ## v0.1.2 - 2026-11-07
 
 - Run the level 2 design skill through an agent with tools, and say in the pull request how much of it ran
