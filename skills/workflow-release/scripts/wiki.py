@@ -19,7 +19,7 @@ import sys
 import tempfile
 
 import release
-from release import base_of, git, load, read_config, run, save, stale_pages
+from release import base_of, git, load, read_config, run, save
 
 os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")  # release.py sets the rest on import
 DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-docs", "scripts", "docs.py")
@@ -30,9 +30,9 @@ def top_of():
     return top if os.path.exists(os.path.join(top, ".loop", "docs.tsv")) else None
 
 
-def pending(top, cfg):
-    """The goal's stale or missing pages, as 'Page' or 'Page (missing)'."""
-    return stale_pages(top, cfg, base_of(top, cfg))
+def pending(top, cfg, fix=False):
+    """What the docs audit still finds for the goal, one line each. fix lets it mend the mechanical trouble first."""
+    return release.docs_trouble(top, base_of(top, cfg), fix)
 
 
 def commit(top, cfg, slug):
@@ -51,9 +51,11 @@ def cmd_prepare(args):
     cfg = read_config(top)
     if args.commit:
         commit(top, cfg, args.slug)
-    stale = pending(top, cfg)
-    for page in stale:
-        print("STALE %s: rewrite %s/%s.md from what the goal changed" % (page, cfg.get("wiki_dir") or "docs/wiki", page.split(" ")[0]))
+    stale = pending(top, cfg, fix=args.commit)
+    if args.commit:
+        commit(top, cfg, args.slug)  # the audit's mechanical fixes
+    for line in stale:
+        print(line)
     if stale:
         print("NEXT: update the pages above, then wiki.py prepare %s --commit" % args.slug)
         return 1

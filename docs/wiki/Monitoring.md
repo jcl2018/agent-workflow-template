@@ -1,6 +1,8 @@
 <!-- workflow-docs -->
 # Monitoring
 
+Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
+
 ## Summary
 
 Skill: `workflow-monitoring`. The operation session never does work: it assigns goals in batches to workers, watches and reports, and each worker runs its own loop and reports back. Run the commands from the main checkout, on the base branch. Needs you also lists a merged goal whose wiki publish was refused, with the page and the reason. Codex has run as a monitored background agent on a toy repo; it needs `-s workspace-write`, with the git folder and the remote as writable roots.

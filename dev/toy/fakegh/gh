@@ -22,6 +22,7 @@ case "$1 $2" in
   "release create") [ -n "${FAKE_GH_RELEASE_FAIL:-}" ] && { echo "release refused" >&2; exit 1; }
      while [ $# -gt 0 ]; do [ "$1" = --notes-file ] && cat "$2" >> "$d/notes.log"; shift; done
      echo "https://example.test/releases/draft";;
+  "release view") grep -qx "$3" "$d/releases" 2>/dev/null && exit 0; echo "release not found" >&2; exit 1;;
   "pr list") echo "[]";;
   "issue list") python3 -c '
 import datetime, json, os

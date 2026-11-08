@@ -1,6 +1,8 @@
 <!-- workflow-docs -->
 # Regression
 
+Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/7
+
 ## Summary
 
 Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.loop/regression.tsv`: a row tests code, not a delivery level. The `goal` column names the one criterion a row proves, and `-` marks a row that proves none yet.

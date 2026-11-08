@@ -5,7 +5,7 @@ description: Keeps a repo's wiki pages in the repo, finds pages that have gone s
 
 # workflow-docs
 
-Five commands: `init`, `check`, `criteria`, `publish` and `restore`, with `criteria.py` for review and the Tests table. `init` is the step list below, not a script command. The others
+Six commands: `init`, `check`, `audit`, `criteria`, `publish` and `restore`, with `criteria.py` for review and the Tests table. `init` is the step list below, not a script command. The others
 are `scripts/docs.py` commands, with `survey` and `add` for `init`. Run it with `python3`. If the skill's files aren't
 on disk, write the script to a temporary file, run it, and delete it. If `.loop/config.json` is missing, use
 `workflow-setup` first.
@@ -51,6 +51,20 @@ python3 scripts/docs.py check [--base <ref>]
 Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to
 count only changes since that point. `cut` counts from the goal's base the same way. `publish` has no `--base`: it
 counts every commit.
+
+## `audit`
+
+```bash
+python3 scripts/docs.py audit [--base <ref>] [--dry-run]
+```
+
+The one command. It checks every page against `references/template.md` (the page rules live in its `rules` block, so
+nothing else holds a number), the code (stale pages), the tests (Tests tables) and the required docs (each page's
+`Milestone:` line, the Backlog milestone, a release note per tag). It fixes the mechanical (`FIXED`: Tests tables, a
+missing Milestone line), lists wording for a person to write as `REWRITE`, and lists each Reviewed criterion with no
+test, or whose tests no longer match, as `UNTESTED` (also saved to `untested.tsv` under `.git/loop`, for the loop to
+queue goals from). Exit 0 only when nothing is left; `UNTESTED` and a `SKIP` for no `gh` answer don't fail it. The
+release step runs it on every goal. It never deletes a page or edits a criterion.
 
 ## `criteria`
 

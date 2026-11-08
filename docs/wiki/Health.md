@@ -1,6 +1,8 @@
 <!-- workflow-docs -->
 # Health
 
+Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/4
+
 ## Summary
 
 Skill: `workflow-health`. A check of the repo's health with fixed rules, so the same repo always gets the same answer. `check` is read-only; `run` files what it finds as issues on the Backlog milestone. It runs `workflow-docs` and `workflow-regression` and reports on what they say, and adds script size, old findings, stuck runs and merged branches. A Mine group runs the owner's own rules from a private setting outside the repo. `check` prints one fixed report ending in one `HEALTH:` line. `suggest` is a separate, advisory step that lists overlapping criteria and ranked next steps. On Agensi a script can't reach its siblings, so the criteria and docs rules print `UNREAD`, and the verdict says so.
