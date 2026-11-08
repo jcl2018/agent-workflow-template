@@ -2,9 +2,9 @@
 no-done-line-refused	land	bash dev/toy/test-rows.sh DEL-1	DEL-1	2026-11-07	A goal with no done line is refused.	criterion	
 no-flow-refused	land	bash dev/toy/test-rows.sh DEL-2	DEL-1	2026-11-07	A goal does not start when no skill flow is set.	criterion	
 pending-waits	land	bash dev/toy/test-rows.sh DEL-3	DEL-3	2026-11-07	A step that leaves a decision for the owner stops and waits.	criterion	
-stale-found	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: stale found"	DOC-4	2026-11-07	A wiki page behind the code it covers is reported as stale.	criterion	
-publish-refused-stale	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"	DOC-4	2026-11-07	The wiki is not published while a page is stale.	criterion	
-refuse-replace	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"	DOC-4	2026-11-07	A wiki page the tool did not write is never overwritten.	criterion	
+stale-found	land	bash dev/toy/ci-env.sh bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: stale found"	DOC-4	2026-11-07	A wiki page behind the code it covers is reported as stale.	criterion	
+publish-refused-stale	land	bash dev/toy/ci-env.sh bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"	DOC-4	2026-11-07	The wiki is not published while a page is stale.	criterion	
+refuse-replace	land	bash dev/toy/ci-env.sh bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"	DOC-4	2026-11-07	A wiki page the tool did not write is never overwritten.	criterion	
 dependency-held	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the dependent goal is held until its dependency is merged"	MON-1	2026-11-07	A goal that depends on an unmerged goal is held until that goal merges.	criterion	
 retired-leaves-waiting	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a retired goal leaves Waiting on you"	MON-4	2026-11-07	A retired goal no longer shows under Waiting on you.	criterion	
 unproven-blocks	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"	REG-2	2026-11-07	A test never seen failing blocks the run.	criterion	
@@ -37,7 +37,7 @@ stale-page-row	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a stale pa
 no-row-fail	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a criterion with no row is a FAIL"	HLT-2	2026-11-07	A criterion with no test row is a FAIL.	criterion	
 unread-not-green	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: no sibling script: UNREAD and not green"	HLT-3	2026-11-07	A health rule that cannot be read is never shown green.	criterion	
 check-writes-nothing	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: check writes no file and makes no commit"	HLT-1	2026-11-07	The health check writes no file and makes no commit.	criterion	
-stale-merge-order	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: clean after the merge, with the parents the other way round"	DOC-4	2026-11-07	A merge of docs in either order leaves no stale page.	criterion	
+stale-merge-order	land	bash dev/toy/ci-env.sh bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: clean after the merge, with the parents the other way round"	DOC-4	2026-11-07	A merge of docs in either order leaves no stale page.	criterion	
 no-pid-left-alone	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (report never marks a goal with no pid failed|watch never marks a goal with no pid failed|a goal with no pid is never mended)" | wc -l | grep -q 3	-	2026-11-07	A goal with no process id is never marked failed.	criterion	
 milestones-once	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: running it again creates nothing"	DOC-5	2026-11-07	Running milestones again creates nothing new.	criterion	
 pr-in-milestone	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: goal.py pr puts the pull request in the Calc milestone"	DOC-5	2026-11-07	A pull request goes into its milestone.	criterion	
