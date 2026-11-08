@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.8.4 - 2026-11-08
+
+- Design docs for setup-fit
+- Setup fits real repos: CI tests, allow-list refusal, feature pages, version habit, gitignore, private leak prefixes
+- Skip tracked files in the gitignore check
+- Merge remote-tracking branch 'origin/main' into loop/setup-fit
+- Wiki: update pages for setup-fit
+
+### How to verify
+
+1. In a repo whose CI runs `bash scripts/run-tests.sh` and whose `.gitignore` holds `.loop/`, run `python3 skills/workflow-setup/scripts/setup.py --dry-run`.
+   Expect: it lists the CI command as the check, prints `BLOCKED by .gitignore` with `!.loop/`, and a bare `claude -p` prints `REFUSED to call this done` with the line to add.
+2. Run `bash dev/toy/test-setup-fit.sh`.
+   Expect: it prints a PASS line.
+
 ## v0.8.3 - 2026-11-08
 
 - Record each flow step's tokens from the agent's JSON output
