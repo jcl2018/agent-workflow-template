@@ -3,9 +3,9 @@
 
 usage: setup.py [--repo DIR] [--branch NAME] [--dry-run]
 
-Writes .loop/config.json, .loop/queue.md and .loop/findings.md, and commits them on
-a new branch (default workflow-setup). It runs only git. It keeps every value already
-in a config, so a second run changes nothing.
+Writes .loop/config.json (every repo setting with its default, see settings.py), .loop/queue.md and
+.loop/findings.md, and commits them on a new branch (default workflow-setup). It also adds every missing private
+setting outside the repo. It keeps every value already in a config, so a second run changes nothing.
 """
 import argparse
 import json
@@ -14,12 +14,14 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import settings  # noqa: E402
+
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
-RISKY = ["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]
 QUEUE = """# Goal queue
 
 One goal a line. Other lines are ignored. Example:
@@ -95,18 +97,8 @@ def survey_agent():
 def merged(repo, old):
     """The config: values already there win, the survey fills the rest."""
     agent = survey_agent()
-    config = {
-        "base": base_branch(repo),
-        "checks": survey_checks(repo),
-        "agent_command": agent,
-        "parallel": 3,
-        "risky_paths": RISKY,
-        "version_file": "VERSION",
-        "wiki_dir": "docs/wiki",
-        "pr_bumps_version": False,
-        "mend": False,
-        "resume_on_limit": False,
-    }
+    config = settings.repo_defaults()
+    config.update(base=base_branch(repo), checks=survey_checks(repo), agent_command=agent)
     config.update(old)
     return config
 
@@ -132,6 +124,8 @@ def main():
     held = next((text for text in texts if text), None)
     old = json.loads(held) if held else {}
     config = merged(repo, old)
+    if not args.dry_run:
+        print("PRIVATE settings added to %s: %s" % (settings.private_path(), ", ".join(settings.fill_private()) or "none missing"))
     if held and config == old:
         print("NO CHANGE: .loop/config.json is complete")
         return 0

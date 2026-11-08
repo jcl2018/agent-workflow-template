@@ -40,7 +40,7 @@ Before the first run in a repo, show the user the queue and the `agent_command`.
 
 1. marks a `running` goal whose agent has gone as `failed`;
 2. mends and resumes, if the config says so (below);
-3. starts every queued goal whose `depends-on` goals are merged, up to `parallel` (default 3, or `--max N`);
+3. starts every queued goal whose `depends-on` goals are merged, up to `parallel` (default 0: unlimited; or `--max N`);
 4. prints each goal that changed, and each new `WAITS ON YOU` question with the exact words to type.
 
 It ends when nothing is running, startable or waiting out a limit, and then lists what needs the user. `--once` makes

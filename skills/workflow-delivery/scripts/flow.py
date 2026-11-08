@@ -90,6 +90,22 @@ def unattended(spec):
     return env
 
 
+def repo_config():
+    """The repo's settings, read fresh on every run; unreadable means none."""
+    try:
+        return json.loads(read(os.path.join(git("rev-parse", "--show-toplevel"), ".loop", "config.json")))
+    except (OSError, ValueError, SystemExit):
+        return {}
+
+
+def step_command(spec, step):
+    """The flow command with this step's allowed tools and model: a step's override beats the flow's own default."""
+    over = (spec.get("overrides") or {}).get(step) or {}
+    tools, model = over.get("allowed_tools") or spec.get("allowed_tools"), over.get("model") or spec.get("model")
+    return [os.path.expanduser(part) for part in spec["command"]] + (["--allowedTools=" + ",".join(tools)] if tools else []) \
+        + (["--model=" + model] if model else [])
+
+
 def alive(pid):
     try:
         os.kill(pid, 0)
@@ -101,11 +117,16 @@ def alive(pid):
 def start(args, runs, reply, job):
     spec = flow()
     env = unattended(spec)
-    command = [os.path.expanduser(part) for part in spec["command"]]
+    command = step_command(spec, args.step)
+    cfg = repo_config()
+    budget = int(cfg.get("token_budget") or 0)
+    spent = sum(v for v in (json.loads(read(os.path.join(runs, args.slug + ".json"))).get("tokens") or {}).values() if isinstance(v, int))
+    if budget and spent >= budget:
+        sys.exit("REFUSED: %d tokens spent, at the token_budget of %d in .loop/config.json. Fix: raise it, or stop the goal." % (spent, budget))
     if not shutil.which(command[0]):
         sys.exit("REFUSED: the flow's command %s isn't on this machine." % command[0])
     top = git("rev-parse", "--show-toplevel")
-    prompt = PROMPT.format(skill=spec["steps"][args.step], step=args.step, slug=args.slug,
+    prompt = PROMPT.format(skill=((spec.get("overrides") or {}).get(args.step) or {}).get("skill") or spec["steps"][args.step], step=args.step, slug=args.slug,
                            branch=git("branch", "--show-current"), purpose=PURPOSE[args.step].format(slug=args.slug),
                            note="The owner said: " + args.note + "\n" if args.note else "")
     if os.path.exists(reply):
@@ -115,7 +136,7 @@ def start(args, runs, reply, job):
                                  stderr=subprocess.STDOUT, start_new_session=True)
     role.begin(os.path.join(runs, args.slug + ".json"), args.step)
     with open(job, "w") as handle:
-        json.dump({"pid": child.pid, "started": time.time(), "limit": spec.get("limit") or args.limit}, handle)
+        json.dump({"pid": child.pid, "started": time.time(), "limit": spec.get("limit") or int(cfg.get("step_limit") or 0) or args.limit}, handle)
     print("FLOW %s: running your %s skill unattended" % (args.step, args.step))
     print("RUNNING: run this same command again")
 

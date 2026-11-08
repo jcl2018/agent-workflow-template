@@ -96,3 +96,7 @@ status-graph-marks	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: 
 status-graph-total	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: the total is the longest chain b > c > d, not the sum"	MON-4	-	The total is the longest chain of estimates, not their sum.
 status-graph-board	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: the board's total is the same longest chain"	MON-4	-	The board carries the same marks and total as the status block.
 step-label-live	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: recording moves the label on, so the finished step is never shown as current"	MON-4	-	A step's label changes when it starts and never shows a finished step as current.
+settings-reference	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: the reference lists every repo and private setting with a default and a line"	SET-2	-	Every repo and private setting is listed with its default and a one-line explanation.
+setup-both-halves	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: setup writes every repo setting, parallel 0"	SET-1	-	Setup writes the repo half and, outside the repo, the private half.
+parallel-unlimited	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: parallel 0 starts all four"	SET-2	-	Parallel 0 means unlimited, and it is the default.
+settings-read-fresh	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: parallel 1 starts one, read again on the next run"	SET-2	-	A changed setting takes effect on the next run.

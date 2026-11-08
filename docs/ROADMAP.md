@@ -32,7 +32,7 @@ The sections below record what earlier batches built, as history.
 One session starts and watches the others.
 
 - `go` queues a goal and starts it. `watch` takes goals from `.loop/queue.md` and gives each its own worktree and
-  background agent, 3 at a time by default.
+  background agent, unlimited by default (`parallel` caps it).
 - Goals that declare the same files don't run together.
 - Run state lives in the shared git folder, so every worktree sees it and nothing extra is committed.
 - `report` shows each goal's step, its pull request, and what's waiting on you with the exact words to type.
@@ -84,7 +84,7 @@ For agent-workflow-template's own Agensi release, `dev/package.sh` builds the ZI
 
 1. On a toy repo, level 0 and level 1 goals each end in a pull request.
 2. The judge fails a planted bug, and the run fixes it or files a finding.
-3. `watch` runs 3 goals in parallel; one fails and the other two finish.
+3. `watch` runs every ready goal in parallel; one fails and the others finish.
 4. `report` and `dashboard` match the true state, including a goal waiting on you.
 5. `cut` produces a draft release, and `leave` changes nothing versioned.
 6. `setup` runs twice on a repo with no change the second time.
