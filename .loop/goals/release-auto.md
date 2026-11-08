@@ -15,4 +15,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `bash dev/toy/test-autorelease.sh 2>&1 | tail -45`.
+   Expect: every line is PASS and it ends with ALL PASS.
+2. Run `grep -n "Checks:" skills/workflow-delivery/scripts/goal.py`.
+   Expect: the pull request body says "none ran; this repo configures no checks" when no checks ran.
