@@ -18,7 +18,7 @@ import statistics
 import subprocess
 import sys
 
-STEPS = ("idea", "plan", "build", "checks", "review", "qa", "ship", "pr")
+STEPS = ("idea", "plan", "build", "review", "qa", "ship", "pr")
 ASKING = ("waiting", "failed", "stopped")
 TITLES = ("Needs you", "Now", "Next", "Roadmap", "Goals")
 

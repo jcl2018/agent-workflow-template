@@ -1,6 +1,5 @@
 {
   "base": "main",
-  "checks": [],
   "agent_command": [
     "claude",
     "-p",
@@ -26,7 +25,6 @@
   "mend": true,
   "resume_on_limit": false,
   "criteria": true,
-  "require_checks": false,
   "auto_approve": true,
   "auto_merge": true,
   "regression_cron": "17 9 * * *",

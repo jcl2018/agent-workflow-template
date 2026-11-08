@@ -7,8 +7,7 @@ and run a first goal, or to see where every file lives, read the
 [README](https://github.com/jcl2018/agent-workflow-template#readme). It's released under the MIT license. The last step of every goal, the release step (see [Delivery](Delivery)), also brings the wiki up to date and publishes it.
 
 
-**This repo runs with no gates.** Its `.loop/config.json` turns off `require_checks`, with an empty `checks` list, and
-turns on `auto_approve` and `auto_merge`. A pull request opens without any check passing. What the skills leave for the
+**This repo runs with no gates.** Its `.loop/config.json` turns on `auto_approve` and `auto_merge`. Review is the only gate: delivery runs no check step. What the skills leave for the
 owner is approved automatically and logged as auto-approved, in the goal's log and on the board. The release step then
 merges the pull request into `main` by itself. The skills' own built-in refusals still apply, and the private-name leak
 scan still guards every commit. The risk is plain: a broken or wrong change can reach `main` with nobody looking, and

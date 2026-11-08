@@ -1,6 +1,6 @@
 ---
 name: workflow-release
-description: Once a goal has a pull request and its checks hold, shows its docs and manual verify steps, then asks `cut` or `leave`. `cut` moves the version, writes the changelog and creates a draft GitHub release for you to publish; `leave` keeps the work unreleased and changes nothing versioned. Use after workflow-delivery opens a pull request, or when asked to release or not release a goal.
+description: Once a goal has a pull request, shows its docs and manual verify steps, then asks `cut` or `leave`. `cut` moves the version, writes the changelog and creates a draft GitHub release for you to publish; `leave` keeps the work unreleased and changes nothing versioned. Use after workflow-delivery opens a pull request, or when asked to release or not release a goal.
 ---
 
 # workflow-release
@@ -50,7 +50,7 @@ When `workflow-delivery` ends with `NEXT: workflow-release asks cut or leave`, r
 python3 scripts/release.py ask <slug>
 ```
 
-It refuses unless the goal is `done` with checks `pass`.
+It refuses unless the goal is `done`.
 
 - `WAITING <slug>: ...`: the goal now waits on the user. Show everything it printed: the docs that changed, the wiki
   link, the steps to verify by hand, the question, and the two exact lines `cut <slug>` and `leave <slug>`. Then stop.
@@ -131,11 +131,10 @@ Each refusal says `REFUSED:` and a fix. Common ones:
 |---|---|
 | Checks have not passed | Finish the goal with `workflow-delivery` |
 | No complete steps under `## Verify by hand` | Give every numbered step an `Expect:` line, and commit it |
-| Pages are stale | Update them with `workflow-docs`, commit, and run `goal.py check` again |
+| Pages are stale | Update them with `workflow-docs`, commit, and run the release again |
 | A batch goal, no `--user` | Wait for the human's own `cut <slug>` |
 | On the wrong branch | Switch to `loop/<slug>` in the goal's worktree |
 | Uncommitted changes | Commit or set them aside |
-| Code changed after the checks | Run `goal.py check` again |
 | Tag already exists | Ask the user which version to use |
 
 `release.py show <slug>` prints the `release` field, and the version and draft URL after a cut.

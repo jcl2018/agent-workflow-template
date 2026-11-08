@@ -38,7 +38,7 @@ text = open(path).read().replace("## Verify by hand\n", "## Verify by hand\n\n1.
 open(path, "w").write(text)
 PY
 git commit -qam "Verify steps for w"
-bash "$here/dev/toy/flow-done.sh" w && $goal check w >/dev/null && $goal pr w >/dev/null || bad "goal did not reach a pull request"
+bash "$here/dev/toy/flow-done.sh" w && $goal pr w >/dev/null || bad "goal did not reach a pull request"
 out=$($wiki prepare w 2>&1 || true); echo "$out"
 grep -q "^REWRITE Using-the-toy: STALE" <<<"$out" && ok "prepare lists the stale mapped page" || bad "prepare stale"
 $merge w 2>&1 | grep -q "REFUSED: stale wiki pages: .*Using-the-toy" && ok "merge refuses while the page is stale" || bad "merge stale"

@@ -9,13 +9,13 @@ Moved from the wiki page, which is now only a summary, criteria and tests.
 
 ### The flow
 
-Freeze, then idea, plan, build, checks, review, checks, qa, checks, ship, checks, pull request and release. The chart
+Freeze, then idea, plan, build, review, qa, ship, pull request and release. Review is the only gate. Each step can be mapped to a skill in the private flow file, under `suite` (the default) or `steps` (an override for one step). The chart
 under `go` shows it.
 
 ### Done lines
 
-Done lines are frozen when the goal starts. A wrong one needs a new goal. Write each one so the repo's checks, or what a
-person can see, prove it before the pull request.
+Done lines are frozen when the goal starts. A wrong one needs a new goal. Write each one so a test, or what a
+person can see, proves it before the pull request.
 
 ### Goal steps
 
@@ -25,7 +25,6 @@ queue SLUG --goal TEXT --done LINE [--touches A,B]
 flow SLUG STEP [--note TEXT]
 record SLUG STEP --file REPLY
 step SLUG NAME [--note TEXT]
-check SLUG
 pr SLUG
 wait SLUG --ask TEXT --words W [--words W]
 answer SLUG
@@ -33,12 +32,12 @@ finding SLUG TEXT
 show SLUG
 ```
 
-A background agent runs `flow` for the idea and plan steps, builds, fills in `## Verify by hand`, then runs `check`
-after the build and after each of the review, qa and ship steps, and ends with `pr`. `flow` starts a step detached and
+A background agent runs `flow` for the idea and plan steps, builds, fills in `## Verify by hand`, then runs the review, qa and
+ship steps, and ends with `pr` and the release step. `flow` starts a step detached and
 prints `RUNNING` until it ends, then a `NEXT` line naming `record`. `record` refuses a reply that `flow` didn't produce.
-Failed checks, a failed step and a step with no `STEP:` line each cost a try. After 3 it files a finding in
-`.loop/findings.md` and stops with exit code 3. `pr` refuses until the checks hold on this commit and every step is done
-or skipped with a reason; its body lists each step's result. With `pr_bumps_version` on, it first moves the last number
+A failed step and a step with no `STEP:` line each cost a try. After 3 it files a finding in
+`.loop/findings.md` and stops with exit code 3. `pr` refuses until every step is done
+or skipped with a reason, and until the issue or finding the goal fixes has a defect test seen failing and passing; its body lists each step's result. With `pr_bumps_version` on, it first moves the last number
 of the version file once, unless the branch already changed it.
 
 ### Stage charts
@@ -54,7 +53,6 @@ flowchart TD
   c["Idea skill shapes the design"]
   d["Plan skill reviews it into a plan"]
   e["Build"]
-  f["Checks"]
   g["Review skill"]
   h["Test skill"]
   i["Ship skill, which never pushes"]
@@ -66,8 +64,7 @@ flowchart TD
   b --> c
   c --> d
   d --> e
-  e --> f
-  f --> g
+  e --> g
   g --> h
   h --> i
   i --> j
@@ -76,12 +73,12 @@ flowchart TD
   d -.-> w
   g -.-> w
   i -.-> w
-  f -->|fails 3 times| s
+  g -->|fails 3 times| s
   classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
   class w,o,s owner
 ```
 
-Status: built and proven: Done lines given or shown to the owner; Hand to Monitoring go; Build; Checks; Open pull request; Owner reviews the pull request; Stopped after 3 failed tries, finding filed. Built only: Idea skill shapes the design; Plan skill reviews it into a plan; Review skill; Test skill; Ship skill, which never pushes; A decision only the owner can make waits. Planned: none.
+Status: built and proven: Done lines given or shown to the owner; Hand to Monitoring go; Build; Open pull request; Owner reviews the pull request; Stopped after 3 failed tries, finding filed. Built only: Idea skill shapes the design; Plan skill reviews it into a plan; Review skill; Test skill; Ship skill, which never pushes; A decision only the owner can make waits. Planned: none.
 Stops for the owner: A decision only the owner can make waits; Owner reviews the pull request; Stopped after 3 failed tries, finding filed.
 Proof: toy tests with stand-in skills prove the order, the waits and the stops. One real goal on a toy repo ran the idea step with the real skill, unattended, in about 75 seconds, then waited for the owner's approval of the design, as it should. The steps after it haven't run for real.
 
@@ -169,30 +166,11 @@ Status: built and proven: Load the goal; Record the step in the run record. Buil
 Stops for the owner: none.
 Proof: the run records of real goals show their steps. No toy test calls it directly.
 
-#### `check`
-
-```mermaid
-flowchart TD
-  a["Run every check"]
-  b["Print each exit code first"]
-  c["Raise the level if the diff is risky"]
-  d(["Pass, next is judge or pr"])
-  e["Fail, costs a try"]
-  a --> b
-  b --> c
-  c -->|all pass| d
-  b -->|one fails| e
-```
-
-Status: built and proven: Run every check; Print each exit code first; Fail, costs a try. Built only: none. Planned: none.
-Stops for the owner: none.
-Proof: toy tests and real goals.
-
 #### `pr`
 
 ```mermaid
 flowchart LR
-  a["Refuse until checks hold and every step is done or skipped"]
+  a["Refuse until every step is done or skipped and each fixed issue has a defect test"]
   b["Move the version once if pr_bumps_version is on"]
   c["Push, retrying twice"]
   d["Open the pull request with each step's result"]
@@ -205,7 +183,7 @@ flowchart LR
   class o owner
 ```
 
-Status: built and proven: Refuse until checks hold and every step is done or skipped; Move the version once if pr_bumps_version is on; Push, retrying twice; Open the pull request with each step's result; Owner reviews and merges, or the release step merges with auto_merge on. Built only: none. Planned: none.
+Status: built and proven: Refuse until every step is done or skipped and each fixed issue has a defect test; Move the version once if pr_bumps_version is on; Push, retrying twice; Open the pull request with each step's result; Owner reviews and merges, or the release step merges with auto_merge on. Built only: none. Planned: none.
 Stops for the owner: Owner reviews and merges, or the release step merges with auto_merge on.
 Proof: toy tests with a stand-in for GitHub, and real pull requests on this repo from before the flow.
 

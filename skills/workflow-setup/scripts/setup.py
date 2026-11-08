@@ -46,43 +46,6 @@ def base_branch(repo):
     return git(repo, "branch", "--show-current") or "main"
 
 
-def survey_checks(repo):
-    """Best guess at the repo's checks, from the files it holds."""
-    has = lambda name: os.path.exists(os.path.join(repo, name))
-    if has("package.json"):
-        try:
-            with open(os.path.join(repo, "package.json")) as handle:
-                scripts = json.load(handle).get("scripts", {})
-            if "test" in scripts and "no test specified" not in scripts["test"]:
-                return ["npm test"]
-        except ValueError:
-            pass
-    if has("Makefile"):
-        with open(os.path.join(repo, "Makefile"), errors="replace") as handle:
-            if any(line.startswith("test:") for line in handle):
-                return ["make test"]
-    if has("Cargo.toml"):
-        return ["cargo test"]
-    if has("go.mod"):
-        return ["go test ./..."]
-    if has("pytest.ini"):
-        return ["python3 -m pytest -q"]
-    for folder in ("tests", "test"):
-        if has(folder):
-            return ["python3 -m unittest discover -s " + folder]
-    if has("pyproject.toml"):
-        return ["python3 -m unittest discover"]
-    files = git(repo, "ls-files").splitlines()
-    found = [name for name in files if os.path.basename(name).startswith("test_") and name.endswith(".py")]
-    if found:
-        folder = os.path.dirname(found[0])
-        return ["python3 -m unittest discover" + (" -s " + folder if folder else "")]
-    for name in ("scripts/validate.sh", "scripts/test.sh", "test.sh"):
-        if has(name):
-            return ["bash " + name]
-    return []
-
-
 def survey_agent():
     """The agent commands this machine has. Permissions stay as the user set them."""
     if shutil.which("claude"):
@@ -97,7 +60,6 @@ def merged(repo, old):
     agent = survey_agent()
     config = {
         "base": base_branch(repo),
-        "checks": survey_checks(repo),
         "agent_command": agent,
         "parallel": 3,
         "risky_paths": RISKY,
@@ -138,8 +100,6 @@ def main():
 
     text = json.dumps(config, indent=2) + "\n"
     print(text, end="")
-    if not config["checks"]:
-        print("NOTE: no check command found; add one to \"checks\"")
     if not config["agent_command"]:
         print("NOTE: no claude or codex on PATH; add \"agent_command\"")
     else:

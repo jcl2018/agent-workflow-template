@@ -29,7 +29,7 @@ if not sys.stdin or not sys.stdin.isatty():
 SELF = os.path.abspath(sys.argv[0])
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 HEAD = re.compile(r"^## Batch: (\S+)\s*$")
-STEPS = ("build", "plan", "idea", "review", "qa", "ship", "step", "check", "pr", "record", "run")
+STEPS = ("build", "plan", "idea", "review", "qa", "ship", "step", "pr", "record", "run")
 REFUSE = "REFUSED: %s is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME"
 
 def git(*args, cwd=None, check=True):

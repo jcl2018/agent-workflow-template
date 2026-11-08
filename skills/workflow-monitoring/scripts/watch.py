@@ -62,7 +62,7 @@ and flow.py with the slug {slug} for every step. Work only in this worktree.
 When a done line is proven, run `python3 {worker} met {slug} N` for its number N.
 Stop at the pull request (goal.py pr). Never merge it yourself. Then follow workflow-release if you have it: {release}
 """ + DATA
-STEPS = ("build", "plan", "idea", "review", "qa", "ship", "step", "check", "pr", "record", "run")
+STEPS = ("build", "plan", "idea", "review", "qa", "ship", "step", "pr", "record", "run")
 REFUSE = "REFUSED: %s is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME"
 LEAVE = "this is a monitored batch, so answer leave yourself, never cut."
 ASK = ('ask the user first: run goal.py wait {slug} --ask "Cut a release or leave it unreleased?" '
@@ -246,7 +246,8 @@ def where(skill_dir):
     return "The skills are in %s (workflow-delivery/SKILL.md, workflow-delivery/scripts/goal.py)." % os.path.abspath(skill_dir)
 
 
-MERGE = "this repo has auto_merge on, so run its merge step, merge.py {slug}, and stop. It cuts no version."
+MERGE = ("this repo has auto_merge on, so run its release step yourself, merge.py {slug}: it brings the docs up to date, "
+         "merges, bumps the version and writes the release note. Never end with the pull request waiting.")
 
 
 def release_text(state):
@@ -289,7 +290,7 @@ def freeze(goal, cfg):
     lines = ["%d. %s" % (index, line) for index, line in enumerate(goal["done"], 1)]
     state = {"slug": slug, "goal": goal["goal"], "status": "queued", "step": "", "tries": 0, "flow": {},
              "branch": branch, "worktree": tree, "touches": goal["touches"], "pid": None, "pr": "", "batch": True,
-             "done_sha": hashlib.sha256("\n".join(lines).encode()).hexdigest(), "checks": "",
+             "done_sha": hashlib.sha256("\n".join(lines).encode()).hexdigest(),
              "release": goal.get("release", ""), "waiting": None, "finding": "", "log": [],
              "waits_on": sorted(set(open(waits_file(slug)).read().split())) if os.path.exists(waits_file(slug)) else []}
     save(state, "queued")

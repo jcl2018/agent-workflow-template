@@ -8,7 +8,7 @@ One session governs, and the others build. Start every goal with `/workflow-moni
 ## Rescoped: delivery wraps your own skill suite
 
 Delivery no longer has its own design, design review or judge. Every goal runs one flow through the owner's
-own skill suite, unattended: idea, plan, build, review, qa and ship, with frozen done lines, the repo's checks, a 3-try
+own skill suite, unattended: idea, plan, build, review, qa and ship, with frozen done lines, a 3-try
 stop and `Verify by hand` around them, and delivery's own pull request at the end. A private file,
 `~/.workflow-loop/flow.json`, names the skills; the repo never does. `poc` and the levels are gone, because the suite does those jobs.
 `workflow-release` stays, as the place for the owner's own routines before a release.

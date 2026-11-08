@@ -11,10 +11,10 @@ import os
 import statistics
 import sys
 
-STEPS = {"goal": ["idea", "plan", "build", "checks", "review", "qa", "ship", "pr"]}
+STEPS = {"goal": ["idea", "plan", "build", "review", "qa", "ship", "pr"]}
 ORDER = STEPS["goal"] + ["release"]
 TEXT = {"idea": "Shape the idea into a design", "plan": "Review the design into a plan", "build": "Build the change",
-        "checks": "Run the checks", "review": "Review the change", "qa": "Test the change", "ship": "Prepare it to ship",
+        "review": "Review the change", "qa": "Test the change", "ship": "Prepare it to ship",
         "pr": "Open the pull request",
         "release": "Answer the release question"}
 OPEN = ("running", "waiting", "failed", "stopped", "queued")

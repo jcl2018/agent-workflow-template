@@ -3,8 +3,9 @@
 
 usage: flow.py SLUG STEP [--note TEXT] [--wait SECONDS] [--limit SECONDS]
 
-STEP is idea, plan, review, qa or ship. A private file, ~/.workflow-loop/flow.json (or $LOOP_FLOW), names the skill
-for each step, the command that runs them, the environment that makes them run unattended, and a probe that proves it.
+STEP is idea, plan, build, review, qa, ship, pr or release. A private file, ~/.workflow-loop/flow.json (or $LOOP_FLOW),
+names a default suite under "suite" and, under "steps", a skill for any one step that overrides it. It also names
+the skill for each step, the command that runs them, the environment that makes them run unattended, and a probe that proves it.
 The repo never names those skills. Each call waits a short while and prints RUNNING (run the same command again) or
 NEXT (the goal.py line that records the step). Nothing here approves, merges or pushes.
 """
@@ -23,16 +24,20 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
-STEPS = ("idea", "plan", "review", "qa", "ship")
+STEPS = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
+NEEDED = ("idea", "plan", "review", "qa", "ship")  # the others may stay unmapped: delivery runs them itself
 FLOW_FILE = "~/.workflow-loop/flow.json"
 PURPOSE = {
     "idea": "Shape this goal into a design. Read .loop/goals/{slug}.md first: its done lines are frozen, so the design "
             "must meet them, not change them.",
     "plan": "Review the design and turn it into a plan, then stop at its final gate.",
+    "build": "Make the change the plan describes, add a test for each done line, and commit.",
     "review": "Review this branch's change against the base branch before it lands.",
     "qa": "Test the change the way a user would. If this step needs a browser or a tool this machine doesn't have, "
           "don't fake it: end with STEP: skipped and say what was missing.",
     "ship": "Prepare this branch for a pull request. Don't push and don't open the pull request: delivery does that.",
+    "pr": "Open this goal's pull request with goal.py pr {slug}. Never merge it.",
+    "release": "Run the release step for this goal with workflow-release, as its skill says.",
 }
 PROMPT = """Use the {skill} skill for the {step} step of goal {slug}, in this git worktree on branch {branch}.
 {purpose}
@@ -65,8 +70,10 @@ def flow():
         spec = json.loads(read(path))
     except (OSError, ValueError):
         spec = {}
-    steps = spec.get("steps") or {}
-    if not (all(steps.get(step) for step in STEPS) and spec.get("command") and spec.get("probe")):
+    if not isinstance(spec, dict):
+        spec = {}
+    steps = spec["steps"] = dict(spec.get("suite") or {}, **(spec.get("steps") or {}))
+    if not (all(steps.get(step) for step in NEEDED) and spec.get("command") and spec.get("probe")):
         sys.exit("REFUSED: no skill flow is set. Fix: write %s naming your idea, plan, review, test and ship skills and "
                  "the command that runs them unattended (see loop-files.md)." % FLOW_FILE)
     return spec
@@ -124,7 +131,9 @@ def main():
     parser.add_argument("--wait", type=float, default=90)
     parser.add_argument("--limit", type=float, default=2700)
     args = parser.parse_args()
-    flow()
+    if not flow()["steps"].get(args.step):
+        sys.exit("REFUSED: no skill is mapped to the %s step. Fix: add it under \"steps\" or \"suite\" in %s; delivery "
+                 "runs it itself without one." % (args.step, FLOW_FILE))
     runs =os.path.join(os.path.abspath(git("rev-parse", "--git-common-dir")), "loop", "runs")
     if not os.path.isfile(os.path.join(runs, args.slug + ".json")):
         sys.exit("REFUSED: no goal named %s. Fix: start it with new." % args.slug)
