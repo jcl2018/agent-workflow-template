@@ -2,6 +2,7 @@
 # Proves assign -> worker loop -> report-back -> board with a stand-in agent. No model is called. usage: test-workers.sh [DIR]
 # The operation session only assigns, watches and reports; each worker runs its own loop and sends its result back.
 set -u
+unset LOOP_ROLE  # these tests act as the operation session
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 S="$here/skills/workflow-monitoring/scripts"
@@ -22,7 +23,7 @@ esac
 GH
 chmod +x "$T/bin/gh"; export PATH="$T/bin:$PATH"
 cd "$T/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 C=$(cd "$(git rev-parse --git-common-dir)" && pwd); export COMMON="$C"
 field() { python3 -c "import json,sys;d=json.load(open(sys.argv[1])).get(sys.argv[2]);print(d)" "$C/loop/runs/$1.json" "$2"; }
@@ -78,25 +79,25 @@ assert \"reports merged\" in r[\"g1\"][\"report\"] and \"reports failed\" in r[\
 
 echo "== the status block"
 $M report > "$T/report"
-check "five sections in the fixed order" 'python3 -c "import sys,json
+check "four sections in the fixed order" 'python3 -c "import sys,json
 t=open(sys.argv[1]).read()
-at=[t.index(\"== %s ==\" % n) for n in (\"Needs you\",\"Now\",\"Next\",\"Roadmap\",\"Goals\")]
+at=[t.index(\"== %s ==\" % n) for n in (\"Needs you\",\"Roadmap\",\"Total\",\"Goals\")]
 assert at==sorted(at) and at[0] < t.index(\"SLUG\")" "$T/report"'
-needs=$(sed -n '/== Needs you ==/,/== Now ==/p' "$T/report")
+needs=$(sed -n '/== Needs you ==/,/== Roadmap ==/p' "$T/report")
 check "Needs you holds the failed and the waiting worker, with the exact words" 'grep -q "h1 (failed)" <<<"$needs" && grep -q "answer: resume h1" <<<"$needs" && grep -q "w1 (waiting): Which database?" <<<"$needs" && grep -q "answer: use sqlite" <<<"$needs" && grep -q "answer: use postgres" <<<"$needs" && ! grep -q "g1" <<<"$needs"'
 check "board prints the same block" 'grep -q "== Needs you ==" "$T/board.out" && grep -q "answer: use sqlite" "$T/board.out"'
 $M dashboard > "$T/dash.path"; dash=$(cat "$T/dash.path")
 check "the dashboard carries the same block, Needs you first" 'python3 -c "import sys,json
 h=open(sys.argv[1]).read()
-at=[h.index(\"<h2>%s</h2>\" % n) for n in (\"Needs you\",\"Now\",\"Next\",\"Roadmap\",\"Goals\")]
+at=[h.index(\"<h2>%s</h2>\" % n) for n in (\"Needs you\",\"Roadmap\",\"Total\",\"Goals\")]
 assert at==sorted(at) and \"answer: use sqlite\" in h and \"h1 (failed)\" in h" "$dash"'
-check "a stuck worker stays at the top until it is answered" '$M report | sed -n "/== Needs you ==/,/== Now ==/p" | grep -q "w1 (waiting)"'
+check "a stuck worker stays at the top until it is answered" '$M report | sed -n "/== Needs you ==/,/== Roadmap ==/p" | grep -q "w1 (waiting)"'
 python3 - "$C/loop/runs/w1.json" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1])); s["status"], s["waiting"], s["pid"] = "running", None, None
 json.dump(s, open(sys.argv[1], "w"))
 PY
-after=$($M report | sed -n '/== Needs you ==/,/== Now ==/p')
+after=$($M report | sed -n '/== Needs you ==/,/== Roadmap ==/p')
 check "answered, it leaves Needs you; the failed one stays" '! grep -q "w1" <<<"$after" && grep -q "h1 (failed)" <<<"$after"'
 check "Roadmap has a bar for each milestone and overall" 'grep -q "Alpha \[########--\] 3 of 4" "$T/report" && grep -q "Beta \[##--------\] 1 of 4" "$T/report" && grep -q "overall \[#####-----\] 4 of 8" "$T/report"'
 check "Goals lists the done lines met so far" 'grep -q "g1: 1 of 1 done lines met" "$T/report" && grep -q "h1: 0 of 1 done lines met" "$T/report"'
@@ -116,7 +117,7 @@ now = {"slug": "cur", "goal": "Cur", "status": "running", "step": "idea", "pid":
 json.dump(now, open(os.path.join(d, "cur.json"), "w"))
 PY
 $M report > "$T/report2"
-cur=$(sed -n '/- cur:/,/== Next ==/p' "$T/report2")
+cur=$(sed -n '/\[running\] cur/,/== Total ==/p' "$T/report2")
 check "a running goal shows each step with an estimate from past runs" 'grep -q "idea   est 10m, no estimate yet tokens" <<<"$cur" && grep -q "plan   est 20m" <<<"$cur"'
 check "a step nobody has finished says no estimate yet" 'grep -q "review est no estimate yet" <<<"$cur"'
 check "actual time and tokens so far are shown, unknown when unrecorded" 'grep -Eq "idea .*\| actual [0-9<].*, unknown tokens" <<<"$cur"'

@@ -5,7 +5,9 @@ Moved from the wiki page, which is now only a summary, criteria and tests.
 ## Commands
 
 ```text
-go "GOAL" --done LINE [--done LINE] [--touches A,B] [--slug S] [--release ask]
+operate run [--once] [--poll S] [--max N]
+operate send SLUG TEXT
+go "GOAL" --done LINE [--done LINE] [--touches A,B] [--depends-on A,B] [--slug S] [--release ask]
 watch [--max N] [--once] [--interval S]
 report
 dashboard [--out FILE]
@@ -14,16 +16,24 @@ resume SLUG
 
 `go`, `watch` and `resume` also take `--skill-dir DIR`, the skills folder to name in a prompt.
 
+- `operate run` is the one command that runs the operation session: each pass it runs `watch --once`, `board.py board` and
+  `board_page.py`, prints the status block when something changed and one line (`NO_CHANGE`) when not, then waits the
+  gap from `board.py cadence`, or less when a worker reports. It stops when nothing is queued, running or waiting, or when
+  the cadence is off. `operate send SLUG TEXT` leaves a worker an answer or follow-up, which `goal.py` and `flow.py`
+  print to its agent the next time they run. An LLM asked to run the operation session runs this command and nothing else.
 - `go` adds the goal to `.loop/queue.md` and starts a worker for it if a slot is free, or prints `QUEUED`.
-- `watch` starts queued goals (3 at a time by default), each on branch `loop/<slug>` in its own worktree, and ends when
+- `watch` starts every queued goal whose `depends-on` goals are merged (3 at a time by default, set `parallel`), each on branch `loop/<slug>` in its own worktree, and ends when
   nothing is left. `--once` makes one pass, for a check-in.
 - `report` lists each run, what waits on you with the exact words to type, findings, criteria changed after review, and
   queued goals.
 - `dashboard` writes one self-contained HTML page under the git folder's `loop/`.
 - `resume` relaunches a `failed` or `stopped` goal as a worker, and refuses anything else.
 
-Goals whose `touches` overlap never run together. A running goal with no `pid` is never marked failed or mended, and it
-takes no worker slot, but it still holds back a goal touching the same files. A failed goal never stops the others. A batch goal answers the release
+A queue line may name `depends-on: a, b`. A goal waits only on those goals, until they are merged, and on a free worker
+slot; sharing files is never a reason to wait. Before its pull request the later goal merges the latest base branch, so it
+has the earlier goal's merged changes, and only a real conflict costs it
+a try. A running goal with no `pid` is never marked failed or mended and takes no worker slot. A failed goal never stops
+the others. A batch goal answers the release
 question with `leave` by itself, never `cut`; `--release ask` makes it wait for you.
 
 ### Operation session
@@ -78,10 +88,12 @@ handoff [--at TIME] [--out FILE]               write a file a new operation sess
 ```
 
 Every check-in prints one status block, and `report`, `board` and `dashboard` carry the same content, in this order:
-Needs you (every stuck, waiting or failed worker, with the exact words to answer, always first and never hidden), Now
-(each running goal's step and stage, and for each step the estimated and actual time and tokens, and the estimate for the
-goal's remaining steps), Next (queued goals and pull requests waiting for review), Roadmap (a progress bar per milestone
-and overall) and Goals (each goal's done lines met so far). Estimates are the median of other finished runs' steps, read
+Needs you (every stuck, waiting or failed worker, with the exact words to answer, always first and never hidden),
+Roadmap (a dependency graph of every goal, merged, running and queued, each with its stage, progress bar and time to
+finish and an arrow to what it waits on; a running goal keeps each step's estimated and actual time and tokens under
+it; then merged goals per feature and a progress bar per milestone), Total (the time for the whole graph: the longest
+chain of estimates, not their sum) and Goals (each goal's done lines met so far). The board draws the same marks and the
+same total. Estimates are the median of other finished runs' steps, read
 from their logs, and read `no estimate yet` without one; tokens read `unknown` until a run records them.
 
 The board's last section, Milestones, lists each GitHub milestone's open and closed counts and the age of the Backlog's
@@ -138,13 +150,13 @@ Amber marks where the command stops for the owner. [Home](Home) says what each s
 ```mermaid
 flowchart TD
   a["Add the goal to the queue"]
-  b["Hold it if its files overlap another goal"]
+  b["Hold it until the goals it depends on are merged"]
   c["Start a worker in its own worktree"]
   a --> b
   b --> c
 ```
 
-Status: built and proven: Add the goal to the queue; Hold it if its files overlap another goal; Start a worker in its own worktree. Built only: none. Planned: none.
+Status: built and proven: Add the goal to the queue; Hold it until the goals it depends on are merged; Start a worker in its own worktree. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests with a stand-in agent, plus real goals on this repo.
 
@@ -378,17 +390,15 @@ Proof: toy tests with a stand-in agent. It hasn't run on a real batch yet.
 ```mermaid
 flowchart LR
   a["Needs you: stuck, waiting and failed workers"]
-  b["Now: each step's estimate and actual"]
-  c["Next: queued goals"]
-  d["Roadmap: a bar per milestone"]
-  e["Goals: done lines met"]
+  b["Roadmap: the goals as a dependency graph"]
+  c["Total: the longest chain of estimates"]
+  d["Goals: done lines met"]
   a --> b
   b --> c
   c --> d
-  d --> e
 ```
 
-Status: built and proven: Needs you: stuck, waiting and failed workers; Now: each step's estimate and actual; Next: queued goals; Roadmap: a bar per milestone; Goals: done lines met. Built only: none. Planned: none.
+Status: built and proven: Needs you: stuck, waiting and failed workers; Roadmap: the goals as a dependency graph with stage, bar and time to finish; Total: the longest chain of estimates; Goals: done lines met. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests. Tokens read unknown until a run records them.
 

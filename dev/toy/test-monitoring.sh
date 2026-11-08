@@ -4,6 +4,7 @@
 # test-goal.sh covers go, watch, mend and usage limits. This covers what it doesn't: a killed agent, overlapping goals,
 # what report and dashboard show, and resume.
 set -u
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 W="python3 $here/skills/workflow-monitoring/scripts/watch.py"
@@ -21,7 +22,7 @@ check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 "$here/dev/toy/make.sh" "$T" >/dev/null || exit 1
 export LOOP_FLOW="$T/flow.json"
 cd "$T/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 C=$(cd "$(git rev-parse --git-common-dir)" && pwd); export COMMON="$C"
 field() { python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get(sys.argv[2]))" "$C/loop/runs/$1.json" "$2"; }
@@ -72,14 +73,19 @@ check "a failed goal leaves the others running" '[ "$(field other status)" = run
 rm "$FAKE_AGENT/hold-other"
 until_status other done && ok "another goal still finished" || bad "other goal"
 
-echo "== overlapping goals wait for each other"
-$W go "Add shout" --done "shout works" --touches pkg/shout.py --slug shout > "$T/g1"
-check "go says the overlap holds it" 'grep -q "QUEUED shout: conflict with first" "$T/g1"'
+echo "== a goal waits only for the goals it depends on"
+$W go "Add shout" --done "shout works" --touches pkg/shout.py --depends-on first --slug shout > "$T/g1"
+check "go says the dependency holds it" 'grep -q "QUEUED shout: waits on first (running)" "$T/g1"'
+$W go "Add shared" --done "shared works" --touches pkg/shared.py --slug shared >/dev/null
+check "a goal sharing the running goal's files still starts" '[ -e "$C/loop/runs/shared.json" ]'
 $W watch --once > "$T/w1"
-check "watch keeps it queued" 'grep -q "STILL QUEUED shout: conflict with first" "$T/w1"'
+check "watch keeps it queued" 'grep -q "STILL QUEUED shout: waits on first (running)" "$T/w1"'
 check "watch names the failed goal" 'grep -q "NEEDS YOU doomed" "$T/w1"'
-$M report | grep -q "^- shout: conflict with first" && ok "report says what holds it" || bad "report holds"
+$M report | grep -q "^- shout: waits on first (running)" && ok "report says what holds it" || bad "report holds"
 rm "$FAKE_AGENT/hold-first"; until_status first done || bad "first finished"
+$W watch --once >/dev/null
+check "done is not merged: the dependent goal still waits" '[ ! -e "$C/loop/runs/shout.json" ]'
+sets first 'release="merged"'
 $W watch --interval 0.2 > "$T/w2"
 check "watch started it after the other ended" '[ "$(field shout status)" = done ]'
 check "watch ended by itself" 'grep -q "NOTHING LEFT" "$T/w2"'
@@ -164,10 +170,10 @@ kill -9 -- "-$(field slow pid)" 2>/dev/null; sleep 0.3; rm -f "$FAKE_AGENT/promp
 $W watch --once >/dev/null
 check "a failed goal waits before a mender starts" 'sleep 0.3; [ ! -e "$FAKE_AGENT/prompt-slow" ] && [ "$(field slow status)" = failed ] && [ "$(field slow mended)" = None ]'
 sets slow 'status="done"' 
-mkdir -p "$T/lone"; cp "$here/skills/workflow-monitoring/scripts/watch.py" "$T/lone/"
+mkdir -p "$T/lone"; cp "$here/skills/workflow-monitoring/scripts/watch.py" "$here/skills/workflow-monitoring/scripts/graph.py" "$T/lone/"
 check "watch.py alone runs, and says it mended nothing" 'python3 "$T/lone/watch.py" watch --once | grep -q "mend.py isn.t beside"'
 check "watch.py alone refuses resume, and says why" 'python3 "$T/lone/watch.py" resume late 2>&1 | grep -q "needs mend.py"'
-cp "$here/skills/workflow-monitoring/scripts/board.py" "$T/lone/"
+cp "$here/skills/workflow-monitoring/scripts/board.py" "$T/lone/"  # graph.py is beside it already
 check "board.py alone refuses a run command, and says why" 'python3 "$T/lone/board.py" note late hi 2>&1 | grep -q "needs board_runs.py"'
 check "board.py alone still writes a board" 'python3 "$T/lone/board.py" board --out "$T/lone/b" | grep -q "^JSON "'
 
@@ -187,7 +193,7 @@ $W go "Add free" --done "free" --touches free.py --slug free >/dev/null
 check "a goal with no pid uses no agent slot" '[ -n "$(field free pid)" ] && [ "$(field free pid)" != None ]'
 sets own 'touches=["held.py"]'
 $W go "Add held" --done "held" --touches held.py --slug heldby >/dev/null
-check "but it still holds a goal touching the same files" '[ ! -e "$C/loop/runs/heldby.json" ] && $M report | grep -q "^- heldby: conflict with own"'
+check "and it holds back no goal touching the same files" '[ -e "$C/loop/runs/heldby.json" ]'
 sed -i.bak '/slug: heldby /d' .loop/queue.md
 sets own 'status="stopped"'
 $W watch --once >/dev/null

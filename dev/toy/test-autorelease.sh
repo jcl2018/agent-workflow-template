@@ -2,6 +2,7 @@
 # Proves the automatic release on a throwaway toy repo with a fake gh. usage: test-autorelease.sh [DIR]
 unset LOOP_BATCH
 set -e
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d"
@@ -10,7 +11,7 @@ export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh" FAKE_GH_ORIGIN="$d/
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 merge() { FAKE_GH_PR_STATE=${PRS:-OPEN} python3 "$here/skills/workflow-release/scripts/merge.py" "$@"; }
 cd "$d/repo"
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 python3 - <<'PY'
 import json

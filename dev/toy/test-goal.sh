@@ -2,6 +2,7 @@
 # Test the skill flow, the queue command, version bumps and the governing watch with a fake agent. No model is called.
 # usage: test-goal.sh [DIR]
 set -u
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1
@@ -10,7 +11,7 @@ W="python3 $here/skills/workflow-monitoring/scripts/watch.py"
 M="python3 $here/skills/workflow-monitoring/scripts/monitor.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 cd "$d/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 fails=0
 ok() { echo "PASS: $1"; }

@@ -2,6 +2,7 @@
 # Proves batch.py with a stand-in agent. No model is called. usage: test-batch.sh [DIR]
 # The governing session only adds and starts; every goal runs in its own process, in its own worktree.
 set -u
+unset LOOP_ROLE  # these tests act as the operation session
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 BA="python3 $here/skills/workflow-monitoring/scripts/batch.py"
@@ -14,7 +15,7 @@ check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 "$here/dev/toy/make.sh" "$T" >/dev/null || exit 1
 export LOOP_FLOW="$T/flow.json"
 cd "$T/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 C=$(cd "$(git rev-parse --git-common-dir)" && pwd); export COMMON="$C"
 field() { python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get(sys.argv[2]))" "$C/loop/runs/$1.json" "$2"; }

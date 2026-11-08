@@ -4,10 +4,11 @@
 usage: goal.py <command> <slug> [options]
 
   new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
-  queue SLUG --goal TEXT --done LINE [--touches A,B]
-  step SLUG NAME [--note TEXT]
+  queue SLUG --goal TEXT --done LINE [--touches A,B] [--depends-on A,B]
+  step SLUG NAME [--note TEXT] [--tokens N]
   record SLUG STEP --file REPLY  record a flow step flow.py ran: idea, plan, review, qa or ship
-  pr SLUG  push, open the PR, join its milestone
+  pr SLUG  merge the latest base (pull in the base if it moved), push, open the PR, join its milestone
+Goal steps (step, record, pr) refuse outside a worker; a worker also sees what the operation session sent it.
   wait SLUG --ask TEXT --words W [--words W]
   answer SLUG
   finding SLUG TEXT
@@ -25,6 +26,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import defect  # noqa: E402
+import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -106,6 +108,10 @@ def save(state, note=None):
     if note:
         state.setdefault("log", []).append("%s %s" % (state["updated"], note))
     path = state_path(state["slug"])
+    try:
+        role.report(json.loads(read(path)), state, state["updated"])
+    except (OSError, ValueError):
+        role.report({}, state, state["updated"])
     temp = path + ".%d.tmp" % os.getpid()
     write(temp, json.dumps(state, indent=2))
     os.replace(temp, path)
@@ -249,6 +255,8 @@ def cmd_queue(args):
     parts = ["slug: " + args.slug]
     if args.touches:
         parts.append("touches: " + args.touches)
+    if args.depends_on:
+        parts.append("depends-on: " + args.depends_on)
     parts.append("goal: " + " ".join(args.goal.split()))
     parts += ["done: " + " ".join(line.split()) for line in args.done]
     write(path, ("" if held.endswith("\n") or not held else "\n") + "- " + " | ".join(parts) + "\n", "a")
@@ -259,6 +267,8 @@ def cmd_queue(args):
 def cmd_step(args):
     state = load(args.slug)
     state["step"] = args.name
+    if args.tokens:
+        state["tokens"] = dict(state.get("tokens") or {}, **{args.name: args.tokens})
     save(state, args.name + (": " + args.note if args.note else ""))
     print("STEP %s %s" % (args.slug, args.name))
     return 0
@@ -284,6 +294,7 @@ def cmd_record(args):
     if (pending or result == "pending") and config().get("auto_approve") is True:
         took = "; ".join(pending) or why or "the step's pending gate"
         state["flow"][args.step] = "done: auto-approved: " + took[:200]
+        state["step"] = role.after(args.step)
         state["note"] = {"text": "auto-approved at %s: %s" % (args.step, took[:240]), "at": now()}
         save(state, "%s auto-approved: %s" % (args.step, took[:300]))
         print("AUTO-APPROVED %s %s: %s" % (args.slug, args.step, took))
@@ -299,7 +310,7 @@ def cmd_record(args):
         return 0
     if result in ("done", "skipped"):
         state["flow"][args.step] = result + (": " + why[:120] if why else "")
-        state["step"] = args.step
+        state["step"] = role.after(args.step)
         save(state, "%s %s" % (args.step, state["flow"][args.step]))
         print("RECORDED %s %s" % (args.step, state["flow"][args.step]))
         print("NEXT: " + ("build, then " if args.step == "plan" else "") + next_step(state))
@@ -332,6 +343,17 @@ def bump_version(state, head):
 
 def cmd_pr(args):
     state = held(args.slug)
+    left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
+    if left:
+        no("the flow hasn't finished: %s. Fix: run flow.py %s %s." % (", ".join(left), args.slug, left[0]))
+    what, detail = role.sync(config()["base"])
+    if what == "conflict":
+        failed_try(state, "merging %s conflicts in: %s" % (config()["base"], detail), "build",
+                   "merge %s yourself, resolve the conflicts, commit, then pr" % config()["base"])
+        return 1
+    if what == "merged":
+        print("MERGED %s into the branch" % detail)
+        state = held(args.slug)
     head = git("rev-parse", "HEAD")
     left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
     if left:
@@ -414,14 +436,17 @@ def main():
     goal = (("--goal", {"required": True}), ("--done", {"action": "append", "default": []}),
             ("--touches", {"default": ""}))
     add("new", cmd_new, *goal, ("--release", {"default": ""}), ("--here", {"action": "store_true"}))
-    add("queue", cmd_queue, *goal)
-    add("step", cmd_step, ("name", {}), ("--note", {"default": ""}))
+    add("queue", cmd_queue, *goal, ("--depends-on", {"default": ""}))
+    add("step", cmd_step, ("name", {}), ("--note", {"default": ""}), ("--tokens", {"type": int, "default": 0}))
     add("record", cmd_record, ("step", {"choices": FLOW}), ("--file", {"required": True}))
     add("wait", cmd_wait, ("--ask", {"required": True}), ("--words", {"action": "append", "required": True}))
     add("finding", cmd_finding, ("text", {}))
     for name, func in (("pr", cmd_pr), ("answer", cmd_answer), ("show", cmd_show)):
         add(name, func)
     args = parser.parse_args()
+    if args.command in ("step", "record", "pr"):
+        role.guard(args.command)
+        role.inbox(os.path.abspath(git("rev-parse", "--git-common-dir")), args.slug)
     return args.func(args)
 
 

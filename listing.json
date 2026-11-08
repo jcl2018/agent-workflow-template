@@ -25,7 +25,7 @@
     "Take one sentence to a pull request through your own skills",
     "Run several goals in parallel and see what waits on you",
     "Cut a draft GitHub release with a changelog",
-    "Set up a repo's workflow config on a branch",
+    "Adopt a new or existing repo in one command, and update the skills later",
     "Keep a GitHub wiki in the repo and find stale pages",
     "Check a repo's health with fixed rules",
     "Keep regression tests visible, with an issue per failure"
@@ -42,6 +42,7 @@
     "show",
     "new",
     "step",
+    "check",
     "pr",
     "wait",
     "answer",
@@ -75,7 +76,14 @@
     "features",
     "move",
     "record",
-    "merge"
+    "merge",
+    "audit",
+    "prepare",
+    "render",
+    "send",
+    "suggest",
+    "update",
+    "owed"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
@@ -95,7 +103,9 @@
     ".loop/regression-runs.tsv, when you run regression.py run",
     "issues labelled regression or health, and milestones on them, on GitHub, only with --live or a token",
     "reads ~/.workflow-loop/flow.json, and runs its probe and its command for each flow step",
-    "a merge of a goal's pull request into the base branch, only with auto_merge on, when you run merge.py"
+    "a merge of a goal's pull request into the base branch, only with auto_merge on, when you run merge.py",
+    "a feature page for each top-level code folder and Home, .loop/docs.tsv and .loop/regression.tsv rows, on the workflow-setup branch",
+    "the installed skill files and workflow-package.json in the skills folder, only when you run update.py --apply"
   ],
   "network": [
     "github.com (git push, wiki push, gh pull request, issue, milestone and draft release calls, only when you run them)",
@@ -109,7 +119,7 @@
     "your own skill suite, named in ~/.workflow-loop/flow.json"
   ],
   "limitations": [
-    "Regression runs each row's command through a shell, so Agensi's scan flags shell=True in regression.py and defect.py.",
+    "Regression runs each row's command through a shell, so Agensi's scan flags shell=True in regression.py, actions.py and defect.py.",
     "The regression workflow command writes a small runner into the repo, so the Actions run needs no skill files.",
     "Each background agent needs its own access to these skills, and scripts that call a sibling script need them on disk: mending, and health's criteria and docs rules, say so and skip otherwise.",
     "This repo itself runs with no gates: no check step, auto-approval and auto-merge. A new repo keeps auto-approval and auto-merge off until its owner turns them on."

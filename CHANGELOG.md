@@ -1,5 +1,62 @@
 # Changelog
 
+## v0.5.0 - 2026-11-08
+
+- Setup adopts a repo, update command, versioned package, design guide
+- Rows, wiki, verify steps
+- Setup: add only paths that exist
+- Setup: --bare writes only config, queue and findings; older toy tests use it
+- Merge main into loop/setup-adopt
+- Wiki: update pages for setup-adopt
+
+### How to verify
+
+1. Run `bash dev/toy/test-adopt.sh`.
+   Expect: it prints `PASS SET-1 SET-2`, `PASS SET-3`, `PASS SET-4 SET-5` and `ALL PASS`.
+2. In a scratch git repo with a code folder and an unmarked `docs/wiki/Home.md`, run `python3 skills/workflow-setup/scripts/setup.py --dry-run`.
+   Expect: a `FOUND:` line, then `add:` and `convert:` lines, and `DRY RUN: nothing written`.
+3. Run `bash dev/package.sh --out /tmp/pk.zip`, then `python3 skills/workflow-setup/scripts/update.py --from /tmp/pk.zip --skills <a copy of skills/>`.
+   Expect: `PASS: ... version 0.3.0`, then `INSTALLED:`, `AVAILABLE: 0.3.0` and a preview that writes nothing.
+
+## v0.4.0 - 2026-11-08
+
+- Show the roadmap as a dependency graph in the status block and board
+- Wiki: roadmap graph and live step label
+
+### How to verify
+
+1. Run `bash dev/toy/test-status-graph.sh`.
+   Expect: every line starts with PASS and the last line is ALL PASS.
+2. Run `python3 skills/workflow-monitoring/scripts/board_status.py`.
+   Expect: four sections in this order: Needs you, Roadmap, Total, Goals. Roadmap lists every goal under `level` headings, each marked merged, awaiting merge, running or queued, with a stage, a progress bar and a time left, and `<- waits on` for a goal that waits on another.
+3. Read the Total section of that output.
+   Expect: one line giving the longest chain of goals (`a > b > c`) with its time, which is shorter than the sum of every goal's time.
+4. Open `docs/wiki/Monitoring.md`.
+   Expect: MON-4 reads "Printout. Each check-in prints the same template as text: Needs you first, then the roadmap as a dependency graph ..." and is marked Reviewed 2026-11-08.
+
+## v0.3.0 - 2026-11-08
+
+- MON-1: rewrite for the dependency-graph planner
+- operate: dependency-graph planner, operate command, base merge, worker guard, live reports, status block
+- Regression: seen red for three operate rows; tighten the message check
+- Review: drop unused cycle(), take the inbox atomically
+- Merge origin/main into loop/operate; guard role.py against prompts
+- Release v0.1.4 (operate)
+- Undo the ship step's version bump: the release step owns the version
+- Wiki: update pages for operate
+- Merge origin/main into operate
+
+### How to verify
+
+1. From the repo root, run `bash dev/toy/test-operate.sh`.
+   Expect: it prints a `PASS:` line for each part (dependency start, status block, reports, follow-up, worker guard, operate loop, base merge) and ends with `ALL PASS`.
+2. Run `python3 skills/workflow-monitoring/scripts/operate.py run --once` on the base branch.
+   Expect: it prints the five status sections (Needs you, Now, Next, Roadmap, Goals), then `DIGEST`, `CHANGED`, `NEXT_DELAY` and the board paths.
+3. Run `python3 skills/workflow-delivery/scripts/goal.py check operate` in a plain shell.
+   Expect: one line, `REFUSED: check is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME`.
+4. Run `grep -n "MON-1" docs/wiki/Monitoring.md`.
+   Expect: the line says `Reviewed 2026-11-08` and begins `Roles, start and planning.`
+
 ## v0.2.0 - 2026-11-08
 
 - Give Documentation its one enforcing command: docs.py audit, template sheet, milestone links, release-note check

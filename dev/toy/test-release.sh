@@ -3,6 +3,7 @@
 # env: AGENT_TEST=1 also runs a headless agent (MODEL, default haiku) that follows SKILL.md to ask and cut.
 unset LOOP_BATCH
 set -e
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d"
@@ -11,7 +12,7 @@ export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 rel="python3 $here/skills/workflow-release/scripts/release.py"
 cd "$d/repo"
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 fails=0
 ok() { echo "PASS: $1"; }

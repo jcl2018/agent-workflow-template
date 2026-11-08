@@ -7,6 +7,7 @@ A goal fixes an issue when its text says "fixes #N" (or closes, resolves), and a
 Each needs a regression row with category defect, a link to it, a date it was seen failing, and a passing command.
 Prints one line per ref with no such row, and exits 1 if any. goal.py pr calls owed() and refuses on its answer.
 """
+import argparse
 import os
 import re
 import subprocess
@@ -46,11 +47,17 @@ def owed(root, text):
     return owe
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 3 or sys.argv[1] != "owed":
-        sys.exit(__doc__)
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("command", choices=("owed",))
+    parser.add_argument("slug")
+    args = parser.parse_args()
     top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
-    with open(os.path.join(top, ".loop", "goals", sys.argv[2] + ".md")) as handle:
+    with open(os.path.join(top, ".loop", "goals", args.slug + ".md")) as handle:
         left = owed(top, handle.read())
     print("\n".join("OWED %s: no defect test seen failing and passing" % ref for ref in left) or "NONE OWED")
-    sys.exit(1 if left else 0)
+    return 1 if left else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

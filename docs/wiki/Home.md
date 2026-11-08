@@ -2,7 +2,7 @@
 # agent-workflow-template
 
 A small agentic workflow for any repo: you state a goal and the checks that prove it, and a background agent takes it
-through your own skill suite's flow, unattended, to a pull request you review. One session governs and the others build. To install it
+through your own skill suite's flow, unattended, to a pull request you review. One session governs and the others build: `operate.py run` plans queued goals as a dependency graph and starts the workers. To install it
 and run a first goal, or to see where every file lives, read the
 [README](https://github.com/jcl2018/agent-workflow-template#readme). It's released under the MIT license. The last step of every goal, the release step (see [Delivery](Delivery)), also brings the wiki up to date and publishes it.
 
@@ -23,7 +23,7 @@ detail and charts are in each skill's `references/` folder.
 | Feature | Skill | Page |
 |---|---|---|
 | Goal to pull request, and release | `workflow-delivery`, `workflow-release` | [Delivery](Delivery) |
-| Run and watch many goals | `workflow-monitoring` | [Monitoring](Monitoring) |
+| Run and watch many goals, with the roadmap drawn as a dependency graph and a total time | `workflow-monitoring` | [Monitoring](Monitoring) |
 | Keep the docs, milestones and release notes in step | `workflow-docs` | [Documentation](Documentation) |
 | Keep tests visible and enforced | `workflow-regression` | [Regression](Regression) |
 | Check the repo's health | `workflow-health` | [Health](Health) |

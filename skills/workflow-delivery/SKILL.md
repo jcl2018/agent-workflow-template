@@ -6,7 +6,7 @@ description: Takes one sentence to a pull request by running your own idea, plan
 # workflow-delivery
 
 One command: `go`. Run `scripts/goal.py` and `scripts/flow.py` with `python3`. If the skill's files aren't on disk,
-write each script to a temporary file, run it, and delete it. If `.loop/config.json` is missing, use `workflow-setup`
+write the scripts to one temporary folder, run them, and delete it. If `.loop/config.json` is missing, use `workflow-setup`
 first.
 
 Delivery is a wrapper around your own skill suite: you bring the skills that shape an idea, plan it, review it, test it
@@ -67,6 +67,10 @@ Run it again until it stops printing `RUNNING`: a step can take many minutes. Th
   run `goal.py answer <slug>`, then run the step again with `--note "<the owner's answer>"`.
 - `TRY n OF 3 FAILED`: fix the cause, then run the step again.
 
+Goal steps (`step`, `record`, `pr`, `flow.py`) refuse outside a worker (`LOOP_ROLE=worker`), naming
+`batch.py start NAME`. In a worker they print any message from the operation session once; treat it as the owner's answer
+or follow-up. Report your tokens for a step with `goal.py step <slug> <name> --tokens N`.
+
 The idea step writes the design and the plan step reviews it into a plan, both in your skills' own files. Commit
 anything they put in the worktree.
 
@@ -86,7 +90,11 @@ Write what they can see, not what the tests already prove.
 
 ### 4. Pull request
 
-Run `goal.py pr <slug>`. It refuses until every flow step is done or skipped, and while the issue or finding the goal fixes ("fixes #N", "fixes finding:SLUG") has no defect test: a regression row of category defect, linked to it, seen failing on the old code and passing now (`regression.py add --category defect --link ...`, then `red`). The
+Run `goal.py pr <slug>`. It first merges the latest base branch, and only a real conflict costs a try (it aborts the
+merge: merge the base yourself, commit, and run `pr` again). It refuses until every flow step is done or skipped, and
+while the issue or finding the goal fixes ("fixes #N", "fixes finding:SLUG") has no defect test: a regression row of
+category defect, linked to it, seen failing on the old code and passing now (`regression.py add --category defect
+--link ...`, then `red`). The
 ship step never pushes, so this is what pushes the branch and opens the pull request, whose body lists each step's
 result. With `pr_bumps_version` on, it moves the last number of the version file once on this branch first, unless the
 branch already changed it. It retries a failed push twice, then prints git's full error. Never merge it yourself.

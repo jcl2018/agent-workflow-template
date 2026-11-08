@@ -2,7 +2,8 @@
 # Prove the defect-tests goal's done lines, and guard the known defects. usage: test-defect.sh [CASE]
 # With a CASE it exits non-zero if that case fails (regression rows call it so); with none it prints one PASS per case.
 set -u
-unset LOOP_BATCH LOOP_ROLE
+unset LOOP_BATCH
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 cases="wording flow-steps categories defect-owed health-closed worker-release pr-body no-hang known-defects"
 if [ $# = 0 ]; then

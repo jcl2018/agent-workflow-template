@@ -3,10 +3,10 @@
 
 usage: watch.py <command> [options]
 
-  go "GOAL" --done LINE [--done LINE] [--touches A,B] [--slug S] [--release ask]
+  go "GOAL" --done LINE [--done LINE] [--touches A,B] [--depends-on A,B] [--slug S] [--release ask]
       queue a goal and start a worker in its own worktree; the worker runs its own loop and reports back
   watch [--max N] [--once] [--interval S]
-      start queued goals, mend and resume if allowed, print what changed and what waits
+      start every queued goal whose dependencies are merged (up to parallel), mend and resume if allowed, print what waits
   resume SLUG
       relaunch a failed or stopped goal as a worker
 
@@ -23,6 +23,9 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import graph  # noqa: E402
+
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
@@ -32,7 +35,6 @@ SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 FLOW = ("idea", "plan", "review", "qa", "ship")
 NO_FLOW = ("REFUSED: no skill flow is set. Fix: write ~/.workflow-loop/flow.json naming your idea, plan, review, test "
            "and ship skills and the command that runs them unattended (see loop-files.md).")
-LIVE = ("running", "waiting")
 TEMPLATE = """# {goal}
 
 - Slug: {slug}
@@ -60,6 +62,7 @@ record exists. Do not run goal.py new and never edit the done lines. Start at st
 and flow.py with the slug {slug} for every step. Work only in this worktree.
 
 When a done line is proven, run `python3 {worker} met {slug} N` for its number N.
+A message from the operation session prints when you run goal.py: treat it as the owner's answer or follow-up.
 Stop at the pull request (goal.py pr). Never merge it yourself. Then follow workflow-release if you have it: {release}
 """ + DATA
 STEPS = ("build", "plan", "idea", "review", "qa", "ship", "step", "pr", "record", "run")
@@ -154,46 +157,15 @@ def parse_queue():
         return []
     goals, seen = [], set()
     for line in lines:
-        if not line.startswith("- slug:"):
+        item = graph.parse(line)
+        if not item:
             continue
-        item = {"done": [], "touches": [], "release": ""}
-        for part in line.strip()[2:].split("|"):
-            key, _, value = part.partition(":")
-            key, value = key.strip(), " ".join(value.split())
-            if key == "done" and value:
-                item["done"].append(value)
-            elif key == "touches":
-                item["touches"] = [path.strip() for path in value.split(",") if path.strip()]
-            elif key in ("slug", "goal", "release"):
-                item[key] = value
-        slug = item.get("slug", "")
-        if not SLUG.match(slug) or slug in seen or not item.get("goal") or not item["done"]:
+        if not SLUG.match(item["slug"]) or item["slug"] in seen or not item["goal"] or not item["done"]:
             print("SKIPPED queue line: " + line[:60])
             continue
-        seen.add(slug)
+        seen.add(item["slug"])
         goals.append(item)
     return goals
-
-
-def overlap(a, b):
-    a, b = os.path.normpath(a), os.path.normpath(b)
-    return a == b or a.startswith(b + os.sep) or b.startswith(a + os.sep)
-
-
-def waits_file(slug):
-    return os.path.join(loop_dir("waits"), slug)
-
-
-def holds_slot(state):
-    """A running goal with no pid still blocks overlapping files, but uses no worker slot."""
-    return state.get("status") != "running" or state.get("pid")
-
-
-def blocker(goal, live):
-    for state in live:
-        if any(overlap(mine, theirs) for mine in goal["touches"] for theirs in state.get("touches") or []):
-            return state["slug"]
-    return ""
 
 
 def alive(pid):
@@ -292,7 +264,7 @@ def freeze(goal, cfg):
              "branch": branch, "worktree": tree, "touches": goal["touches"], "pid": None, "pr": "", "batch": True,
              "done_sha": hashlib.sha256("\n".join(lines).encode()).hexdigest(),
              "release": goal.get("release", ""), "waiting": None, "finding": "", "log": [],
-             "waits_on": sorted(set(open(waits_file(slug)).read().split())) if os.path.exists(waits_file(slug)) else []}
+             "waits_on": goal["depends"]}
     save(state, "queued")
     if git("rev-parse", "--verify", "--quiet", "refs/heads/" + branch, check=False):
         git("worktree", "add", tree, branch)
@@ -318,23 +290,7 @@ def go_prompt(state, goal, skill_dir):
 
 
 def plan(limit):
-    records = {state["slug"]: state for state in runs()}
-    live = [state for state in records.values() if state.get("status") in LIVE]
-    start, held = [], []
-    for goal in parse_queue():
-        if goal["slug"] in records:
-            continue
-        hit = blocker(goal, live)
-        if hit:
-            with open(waits_file(goal["slug"]), "a") as handle:
-                handle.write(hit + "\n")
-            held.append((goal, "conflict with %s" % hit))
-        elif sum(1 for state in live if holds_slot(state)) >= limit:
-            held.append((goal, "slots full (%d of %d)" % (sum(1 for state in live if holds_slot(state)), limit)))
-        else:
-            start.append(goal)
-            live.append({"slug": goal["slug"], "touches": goal["touches"], "status": "starting"})
-    return start, held
+    return graph.ready(parse_queue(), {state["slug"]: state for state in runs()}, limit)
 
 
 def limit_of(args, cfg):
@@ -402,9 +358,15 @@ def cmd_go(args):
         sys.exit("REFUSED: bad slug (lowercase letters, digits, dashes).")
     if slug in known():
         sys.exit("REFUSED: %s already exists. Pick a new --slug." % slug)
+    depends = [x for x in re.split(r"[,\s]+", args.depends_on) if x]
+    unknown = [x for x in depends if x not in known()]
+    if unknown:
+        sys.exit("REFUSED: depends-on %s is not a goal in the queue or the runs." % ", ".join(unknown))
     parts = ["slug: " + slug]
     if args.touches:
         parts.append("touches: " + args.touches)
+    if depends:
+        parts.append("depends-on: " + ", ".join(depends))
     if args.release:
         parts.append("release: " + args.release)
     parts.append("goal: " + " ".join(args.goal.split()))
@@ -475,6 +437,7 @@ def main():
     item.add_argument("goal")
     item.add_argument("--done", action="append", default=[])
     item.add_argument("--touches", default="")
+    item.add_argument("--depends-on", default="")
     item.add_argument("--slug", default="")
     item.add_argument("--release", default="", choices=["", "ask"])
     item = sub.add_parser("watch")

@@ -1,6 +1,7 @@
 #!/bin/bash
 # Run every step of a goal's skill flow through flow.py and goal.py record, with the stand-in flow make.sh writes.
 # usage: flow-done.sh SLUG   (from the goal's worktree, with LOOP_FLOW set)
+export LOOP_ROLE=worker
 here=$(cd "$(dirname "$0")/../.." && pwd); slug=${1:?usage: flow-done.sh SLUG}
 runs="$(cd "$(git rev-parse --git-common-dir)" && pwd)/loop/runs"
 for step in idea plan review qa ship; do

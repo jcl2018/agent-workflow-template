@@ -11,6 +11,9 @@ import os
 import statistics
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import status_graph  # noqa: E402
+
 STEPS = {"goal": ["idea", "plan", "build", "review", "qa", "ship", "pr"]}
 ORDER = STEPS["goal"] + ["release"]
 TEXT = {"idea": "Shape the idea into a design", "plan": "Review the design into a plan", "build": "Build the change",
@@ -25,11 +28,6 @@ def stamp(text):
         return datetime.datetime.fromisoformat(str(text).replace("Z", "+00:00")).astimezone(datetime.timezone.utc)
     except ValueError:
         return None
-
-
-def overlap(a, b):
-    a, b = os.path.normpath(a), os.path.normpath(b)
-    return a == b or a.startswith(b + os.sep) or b.startswith(a + os.sep)
 
 
 def key(run):
@@ -120,8 +118,7 @@ class Map:
         if found and found["status"] == "retired":
             return
         target = key(found) if found else "%s/%s" % (run["repo"], slug)
-        hit = [t for t in run.get("touches") or [] for u in (found or {}).get("touches") or [] if overlap(t, u)]
-        why = "goal " + slug + (", shared %s" % hit[0] if hit else "")
+        why = "depends on " + slug
         self.waiters.setdefault(target, []).append((key(run), why))
 
     def begins(self, run):
@@ -179,17 +176,24 @@ class Map:
                         "next": self.next_text(run, state, ups, index), "unblocks": ups})
         return out
 
+    def nodes(self):
+        """The shown runs as status_graph nodes, named by repo/slug so goals of different repos never meet."""
+        return [dict(slug=name, mark=status_graph.mark(run["status"], run.get("merged", False)), stage=ORDER.index(run["step"]) + 1 if run.get("step") in STEPS["goal"] else 0,
+                     depends=["%s/%s" % (run["repo"], slug) for slug in blockers(run)], left=run.get("left")) for name, run in self.shown.items()
+                if not run.get("ghost")]
+
     def result(self):
         lanes, arrows = [], []
+        marks = {node["slug"]: node["mark"] for node in self.nodes()}
         for name, run in self.shown.items():
             boxes = self.boxes(name, run)
             lanes.append({"run": name, "title": run["goal"] or run["slug"], "status": run["status"], "branch": run.get("branch") or "",
-                          "boxes": boxes})
+                          "mark": marks.get(name, "unknown"), "boxes": boxes})
             arrows += [{"from": a["id"], "to": b["id"], "on": ""} for a, b in zip(boxes, boxes[1:])]
         ends = {lane["run"]: (lane["boxes"][0]["id"], lane["boxes"][-1]["id"]) for lane in lanes}
         for blocker, waiters in self.waiters.items():
             arrows += [{"from": ends[blocker][1], "to": ends[who][0], "on": why} for who, why in waiters if blocker in ends and who in ends]
-        return {"lanes": lanes, "arrows": arrows}
+        return {"lanes": lanes, "arrows": arrows, "total": status_graph.total(self.nodes())}
 
 
 def main():

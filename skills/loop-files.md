@@ -1,6 +1,6 @@
 # Loop files
 
-The six workflow skills share this contract. Skill instructions never go in the repo. A repo holds only its own data.
+The workflow skills share this contract. `design-guide.md` beside it explains how they fit together. Skill instructions never go in the repo. A repo holds only its own data.
 
 ## In the repo: `.loop/`
 
@@ -39,6 +39,7 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 - `auto_merge` (default `false`): `true` lets the release step's `merge.py` merge a goal's pull request.
 - `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
 - `mend` and `resume_on_limit` let `watch` restart a goal. `limit_wait`, `mend_wait` and `watch_interval` are optional, in seconds.
+- `criteria` (set `true` by `setup`) and `regression_cron` (default `17 9 * * *`, the nightly workflow's schedule) are also read by the docs and regression skills.
 - Permissions are yours. These commands run as you set them, and nothing here turns them off.
 
 ### `goals/<slug>.md`
@@ -56,8 +57,16 @@ One goal a line. Other lines are ignored.
 
 A `## Batch: NAME` heading groups goal lines for `batch.py`.
 
-`touches` lists the files the goal declares. `release: ask` makes a monitored goal wait
+`touches` lists the files the goal declares; it never holds a goal back. `depends-on: a, b` names goals that must be merged
+before this one starts. `release: ask` makes a monitored goal wait
 for your answer instead of answering `leave`.
+
+## Outside the repo: the installed skills
+
+`workflow-package.json` sits in the skills folder next to the `workflow-*` folders: `{"version", "files"}`, a hash for each
+skill file, written by the package build and moved by `update.py --apply`. It is the only file `update.py` keeps besides
+the skill files themselves; it never reads or writes `.loop/`, the wiki or private settings. `setup.py` writes `.loop/`
+and the wiki pages on the `workflow-setup` branch and leaves existing values and words as they were.
 
 ## Outside the repo: your skill flow
 
@@ -109,7 +118,9 @@ loop/wiki.json            the last wiki publish, for restore
   "done_sha": "<sha256 of the done lines>", "release": "ask",
   "flow": {"idea": "done", "plan": "done", "review": "done", "qa": "skipped: no browser", "ship": "done"},
   "waiting": {"ask": "Cut a release or leave it unreleased?", "words": ["cut add-median", "leave add-median"]},
-  "finding": "", "updated": "2026-01-01T00:00:00Z", "log": ["2026-01-01T00:00:00Z plan"]
+  "finding": "", "updated": "2026-01-01T00:00:00Z", "log": ["2026-01-01T00:00:00Z plan"],
+  "waits_on": ["a"], "reports": [{"at": "2026-01-01T00:00:00Z", "step": "plan", "status": "running", "text": "worker add-median: step plan, running"}],
+  "tokens": {"idea": 4200, "build": 1500}
 }
 ```
 
@@ -130,8 +141,14 @@ step's result: `done`, `skipped: <why>` or `pending`.
 A goal with no `pid` has no worker of ours: it is never marked `failed` or mended.
 `report` is `{"status", "pr", "text", "at"}`, the prompt message a worker sends back when its agent ends (`status` is
 `merged`, `failed` or `waiting`). `met` lists the done lines a worker has marked met, and `tokens` is `{"total": N}` or
-`{"<step>": N}` where an agent logs them. `note` is `{"text", "at"}`, a worker's latest message, kept as data. `waits_on` lists the goals that held this one.
+`{"<step>": N}`, which `goal.py step --tokens` and `flow.py` fill in when the agent reports them. `reports` is the latest 30 changes of step or
+status, each `{"at", "step", "status", "text"}`, written as they happen. `note` is `{"text", "at"}`, a worker's latest
+message, kept as data. `waits_on` lists the goals this one depends on. A goal counts as merged once it is `done` and its
+`release` is `merged` or `cut`, or its report says `merged`.
 `retired` is `{"reason", "at"}`. `board.py repos add` keeps a list of repo paths in
 `~/.workflow-loop/repos`.
+
+`<git common dir>/loop/inbox/<slug>.txt` holds what `operate.py send` left for a worker; `goal.py` and `flow.py` print it to the
+agent once, then move it to `<slug>.read`.
 
 Writes go through a temporary file and a rename, so a reader never sees half a file.

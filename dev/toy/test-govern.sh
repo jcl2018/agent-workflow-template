@@ -2,6 +2,7 @@
 # Real proof of one governing process: two level 0 goals, started by one process, each built by a real headless agent in
 # its own worktree. WARNING: this calls the real claude CLI (haiku by default). gh is faked. usage: test-govern.sh [DIR]
 set -u
+unset LOOP_ROLE  # these tests act as the operation session
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "$T"; mkdir -p "$T"; MODEL=${MODEL:-haiku}
 W="python3 $here/skills/workflow-monitoring/scripts/watch.py"
@@ -10,7 +11,7 @@ export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh"
 "$here/dev/toy/make.sh" "$T" || exit 1
 export LOOP_FLOW="$T/flow.json"
 cd "$T/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --ff-only workflow-setup
 python3 - "$here/skills" "$MODEL" <<'PY'
 import json, sys

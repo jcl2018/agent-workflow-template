@@ -2,13 +2,14 @@
 # Test workflow-docs on a throwaway toy repo with a bare wiki. usage: test-docs.sh [DIR]
 unset LOOP_BATCH
 set -e
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d"
 export LOOP_FLOW="$d/flow.json"
 docs="python3 $here/skills/workflow-docs/scripts/docs.py"
 cd "$d/repo"
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 fails=0
 ok() { echo "PASS: $1"; }
