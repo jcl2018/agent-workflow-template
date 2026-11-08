@@ -79,25 +79,28 @@ rm -f "$LOOP_HEALTH"
 echo "== one fixed template"
 out=$($health check); echo "$out" | head -3
 [ "$(head -1 <<<"$out")" = "HEALTH REPORT" ] && ok "starts with the title" || bad "title"
-[ "$(grep -n '^== ' <<<"$out" | sed 's/^[0-9]*:== \(.*\) ==$/\1/' | tr '\n' ' ')" = "size criteria docs hygiene Mine " ] && ok "groups come in a fixed order" || bad "group order"
+[ "$(grep -n '^== ' <<<"$out" | sed 's/^[0-9]*:== \(.*\) ==$/\1/' | tr '\n' ' ')" = "size criteria docs hygiene cost Mine " ] && ok "groups come in a fixed order" || bad "group order"
 [ "$(grep -c '^HEALTH: ' <<<"$out")" = 1 ] && tail -1 <<<"$out" | grep -q "^HEALTH: " && ok "exactly one verdict line, last" || bad "one verdict"
 grep -v '^\(HEALTH\|==\)' <<<"$out" | grep -v '^\(PASS\|WARN\|FAIL\|UNREAD\|INFO\) [a-z]* ' | grep -q . && bad "a line outside the template" || ok "every line is a title, group, finding or verdict"
 
-echo "== suggestions: a separate step, marked, model-free"
+echo "== judge hints: plain text matching, model-free, kept as input for the judge"
 cat >> docs/wiki/Calc.md <<'MD'
 - REL-2: Calc never rounds the sum of two numbers.
 - REL-3: Calc rounds the sum of two numbers.
 MD
 printf 'Calc\tcalc.py\nGhost\tghost.py\nEmpty\tempty.py\n' > .loop/docs.tsv
 printf '<!-- workflow-docs -->\n# Empty\n' > docs/wiki/Empty.md
-a=$($health suggest); b=$($health suggest); echo "$a"
-head -1 <<<"$a" | grep -q "^SUGGESTIONS (advisory" && ok "marked as suggestions" || bad "suggest mark"
-grep -q "^conflict: REL-2 and REL-3 " <<<"$a" && ok "conflicting criteria are listed" || bad "conflict"
-grep -q "^missing: feature Empty has no criterion" <<<"$a" && ok "a feature with no criterion is listed" || bad "missing criterion"
+hints() { python3 -c "
+import sys; sys.path.insert(0, '$here/skills/workflow-health/scripts')
+import judge; l, s = judge.suggestions('.', [{'state': 'FAIL', 'family': 'x', 'subject': 'y', 'fix': 'z'}])
+print('\n'.join(l + s))"; }
+a=$(hints); b=$(hints); echo "$a"
+grep -q "^conflict: REL-2 and REL-3 " <<<"$a" && ok "conflicting criteria are found" || bad "conflict"
+grep -q "^missing: feature Empty has no criterion" <<<"$a" && ok "a feature with no criterion is found" || bad "missing criterion"
 grep -q "^next 1: FAIL " <<<"$a" && ok "next steps are ranked, failures first" || bad "ranked"
-[ "$a" = "$b" ] && ok "suggestions repeat exactly" || bad "suggest differs"
-c=$($health check); e=$($health check); [ "$c" = "$e" ] && ! grep -q "SUGGESTIONS" <<<"$c" && ok "check stays apart from suggestions and repeats" || bad "check same"
-grep -rn "claude\|anthropic\|urllib\|http" "$here"/skills/workflow-health/scripts/suggest.py "$here"/skills/workflow-health/scripts/mine.py >/dev/null && bad "model or network in suggest" || ok "no model or network call in the new modules"
+[ "$a" = "$b" ] && ok "hints repeat exactly" || bad "hints differ"
+c=$($health check); e=$($health check); [ "$c" = "$e" ] && ! grep -q "JUDGE" <<<"$c" && ok "check stays apart from the judge and repeats" || bad "check same"
+grep -rn "claude\|anthropic\|urllib\|http" "$here"/skills/workflow-health/scripts/cost.py "$here"/skills/workflow-health/scripts/mine.py >/dev/null && bad "model or network in a rule module" || ok "no model or network call in the rule modules"
 
 echo "== a rule that cannot read says UNREAD, never green"
 lone=$(mktemp -d); cp "$here/skills/workflow-health/scripts/health.py" "$lone/"
@@ -114,7 +117,7 @@ after="$(git status --porcelain --ignored)|$(git rev-parse HEAD)|$(git branch | 
 [ "$before" = "$after" ] && ok "check writes no file and makes no commit" || bad "check changed the repo"
 mkdir -p "$d/bin"; printf '#!/bin/bash\necho "$*" >> "%s/gh-calls"\nexit 1\n' "$d" > "$d/bin/gh"; chmod +x "$d/bin/gh"
 PATH="$d/bin:$PATH" $health check >/dev/null; [ ! -e "$d/gh-calls" ] && ok "check makes no gh call" || bad "check called gh"
-for f in health mine suggest; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 20480 ] || bad "size of $f.py"; done; ok "health scripts under 20 KB"
+for f in health mine judge cost; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 20480 ] || bad "size of $f.py"; done; ok "health scripts under 20 KB"
 
 echo "repo: $d/repo"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

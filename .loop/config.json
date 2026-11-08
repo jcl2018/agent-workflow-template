@@ -28,5 +28,7 @@
   "auto_approve": true,
   "auto_merge": true,
   "regression_cron": "17 9 * * *",
-  "routines": []
+  "routines": [],
+  "time_budget_minutes": 120,
+  "token_budget": 3000000
 }

@@ -85,6 +85,7 @@
     "render",
     "send",
     "suggest",
+    "judge",
     "update",
     "owed"
   ],
