@@ -6,6 +6,7 @@
 Skill: `workflow-health`. A check of the repo's health with fixed rules, so the same repo always gets the same answer. `check` is
 read-only; `run` files what it finds as issues. It runs `workflow-docs` and `workflow-regression` and reports on what they say, and adds the checks they
 don't make: script size, old findings, stuck runs and merged branches.
+A Mine group runs the owner's own rules from a private setting outside the repo. `check` prints one fixed report ending in one `HEALTH:` line. `suggest` is a separate, advisory step that lists overlapping criteria and ranked next steps.
 
 Scripts here refuse rather than wait when no terminal is attached.
 

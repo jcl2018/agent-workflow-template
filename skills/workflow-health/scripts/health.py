@@ -3,6 +3,11 @@
 
 usage: health.py check [--json] [--family NAME]
        health.py run [--live] [--family NAME]
+       health.py suggest
+
+check prints a fixed template: HEALTH REPORT, each group (size, criteria, docs, hygiene, Mine) with its lines, then the
+verdict. Mine runs the owner's own rules from ~/.workflow-loop/health.json (see mine.py); one that cannot run is UNREAD.
+suggest is a separate, advisory step (see suggest.py); the rule check stays model-free and gives the same answer twice.
 
 One line per finding:  STATE family subject rule: detail -> fix: what to run
 STATE is PASS, WARN, FAIL, UNREAD (a rule could not read its data) or INFO. The last line is
@@ -42,7 +47,8 @@ WAITING_HOURS = 24
 RULES = ("size", "criteria-rows", "criteria-done", "criteria-proof", "docs-check", "findings", "waiting", "branches")
 MAX_RULES = 8
 assert len(RULES) <= MAX_RULES, "too many rules: retire one first"
-FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene"}
+FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene", "mine": "mine"}
+ORDER = ("size", "criteria", "docs", "hygiene", "mine")  # the fixed order of the groups in the report
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 
@@ -177,12 +183,38 @@ def line_of(item):
     return text + (" -> fix: " + item["fix"] if item["fix"] else "")
 
 
+def mine_rows(root):
+    sys.path.insert(0, HERE)
+    try:
+        import mine
+    except ImportError:
+        return [row("UNREAD", "mine", "mine.py", "mine", "mine.py is not installed beside health.py")]
+    finally:
+        sys.path.pop(0)
+    return mine.mine_rows(root)
+
+
 def gather(root, family):
-    rules = {"size": size_rows, "criteria": criteria_rows, "docs": docs_rows, "hygiene": hygiene_rows}
+    rules = {"size": size_rows, "criteria": criteria_rows, "docs": docs_rows, "hygiene": hygiene_rows, "mine": mine_rows}
     rows = []
-    for name in (family and [family] or sorted(rules)):
+    for name in (family and [family] or ORDER):
         rows += rules[name](root)
     return rows
+
+
+def report(rows):
+    """The fixed template: a title, each group with its lines (state, subject, detail, fix), one verdict line."""
+    counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
+    green = not counts["FAIL"] and not counts["UNREAD"]
+    verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % (
+        "green" if green else "not green", counts["PASS"], counts["WARN"], counts["FAIL"], counts["UNREAD"])
+    out = ["HEALTH REPORT"]
+    for name in ORDER:
+        group = [item for item in rows if item["family"] == name]
+        if group:
+            out.append("== %s ==" % ("Mine" if name == "mine" else name))
+            out += [line_of(item) for item in group]
+    return out + [verdict], counts, green, verdict
 
 
 def repo_root():
@@ -195,17 +227,31 @@ def repo_root():
 def cmd_check(args):
     root = repo_root()
     rows = gather(root, args.family)
-    counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
-    green = not counts["FAIL"] and not counts["UNREAD"]
-    verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % (
-        "green" if green else "not green", counts["PASS"], counts["WARN"], counts["FAIL"], counts["UNREAD"])
+    text, counts, green, verdict = report(rows)
     if args.json:
         print(json.dumps({"green": green, "counts": counts, "rows": rows, "verdict": verdict}, indent=2))
     else:
-        for item in rows:
-            print(line_of(item))
-        print(verdict)
+        print("\n".join(text))
     return 0 if green else 1
+
+
+def cmd_suggest(args):
+    """Advisory only: reads the same rows as check, never changes the verdict or the exit code."""
+    root = repo_root()
+    sys.path.insert(0, HERE)
+    try:
+        import suggest
+    except ImportError:
+        sys.exit("REFUSED: suggest.py is not installed beside health.py.")
+    finally:
+        sys.path.pop(0)
+    lines, steps = suggest.suggestions(root, gather(root, None))
+    print("SUGGESTIONS (advisory, not findings: they do not change the verdict)")
+    print("== criteria ==")
+    print("\n".join(lines) or "none")
+    print("== next steps ==")
+    print("\n".join(steps) or "none")
+    return 0
 
 
 MARK = "<!-- loop-health %s -->"
@@ -225,7 +271,7 @@ def cmd_run(args):
     root = repo_root()
     live = bool(args.live or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
     rows = gather(root, args.family)
-    found = [item for item in rows if item["state"] in ("WARN", "FAIL", "UNREAD")]
+    found = [item for item in rows if item["state"] in ("WARN", "FAIL", "UNREAD") and item["family"] != "mine"]
     got = run(["gh", "issue", "list", "--label", "health", "--state", "all", "--limit", "500", "--json",
                "number,state,body"], root)
     try:
@@ -288,6 +334,8 @@ def main():
     item.add_argument("--json", action="store_true")
     item.add_argument("--family", choices=sorted(FAMILY))
     item.set_defaults(func=cmd_check)
+    item = sub.add_parser("suggest", help="advisory suggestions, apart from the check")
+    item.set_defaults(func=cmd_suggest)
     item = sub.add_parser("run", help="file findings as issues on the Backlog milestone")
     item.add_argument("--live", action="store_true")
     item.add_argument("--family", choices=sorted(FAMILY))

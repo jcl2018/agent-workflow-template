@@ -56,6 +56,48 @@ PY
 out=$($health check --family criteria)
 grep -q "^WARN criteria done-lines rows: [0-9]* done lines have no regression row" <<<"$out" && ok "done lines with no row are one WARN row" || bad "done lines"
 
+echo "== Mine: the owner's own rules, from a private setting outside the repo"
+export LOOP_HEALTH="$d/health.json"
+out=$($health check --family mine); echo "$out"
+grep -q "^INFO mine setting mine: no private rules set" <<<"$out" && ok "no private setting: Mine says so and stays green" || bad "mine none"
+printf '#!/bin/bash\nexit 0\n' > "$d/pass.sh"; printf '#!/bin/bash\necho broke\nexit 1\n' > "$d/fail.sh"
+printf '#!/bin/bash\nexit 2\n' > "$d/warn.sh"; chmod +x "$d"/*.sh
+cat > "$LOOP_HEALTH" <<JSON
+{"rules": [{"name": "good", "command": ["$d/pass.sh"]}, {"name": "bad", "command": ["$d/fail.sh"], "fix": "fix bad"},
+ {"name": "meh", "command": ["$d/warn.sh"], "fix": "look at meh"}, {"name": "gone", "command": ["$d/nope.sh"]}]}
+JSON
+out=$($health check --family mine); rc=$?; echo "$out"
+grep -q "^== Mine ==" <<<"$out" && grep -q "^PASS mine good mine: " <<<"$out" && ok "a passing own rule is PASS" || bad "mine pass"
+grep -q "^FAIL mine bad mine: broke -> fix: fix bad" <<<"$out" && grep -q "^WARN mine meh mine: .* -> fix: look at meh" <<<"$out" && ok "exit 1 is FAIL and exit 2 is WARN, each with its fix" || bad "mine fail/warn"
+grep -q "^UNREAD mine gone mine: could not run" <<<"$out" && [ $rc = 1 ] && tail -1 <<<"$out" | grep -q "^HEALTH: not green" && ok "a rule that cannot run is UNREAD and never green" || bad "mine unread"
+echo "{ not json" > "$LOOP_HEALTH"
+out=$($health check --family mine); rc=$?
+grep -q "^UNREAD mine setting mine: " <<<"$out" && [ $rc = 1 ] && ok "an unreadable setting is UNREAD" || bad "mine setting"
+rm -f "$LOOP_HEALTH"
+
+echo "== one fixed template"
+out=$($health check); echo "$out" | head -3
+[ "$(head -1 <<<"$out")" = "HEALTH REPORT" ] && ok "starts with the title" || bad "title"
+[ "$(grep -n '^== ' <<<"$out" | sed 's/^[0-9]*:== \(.*\) ==$/\1/' | tr '\n' ' ')" = "size criteria docs hygiene Mine " ] && ok "groups come in a fixed order" || bad "group order"
+[ "$(grep -c '^HEALTH: ' <<<"$out")" = 1 ] && tail -1 <<<"$out" | grep -q "^HEALTH: " && ok "exactly one verdict line, last" || bad "one verdict"
+grep -v '^\(HEALTH\|==\)' <<<"$out" | grep -v '^\(PASS\|WARN\|FAIL\|UNREAD\|INFO\) [a-z]* ' | grep -q . && bad "a line outside the template" || ok "every line is a title, group, finding or verdict"
+
+echo "== suggestions: a separate step, marked, model-free"
+cat >> docs/wiki/Calc.md <<'MD'
+- REL-2: Calc never rounds the sum of two numbers.
+- REL-3: Calc rounds the sum of two numbers.
+MD
+printf 'Calc\tcalc.py\nGhost\tghost.py\nEmpty\tempty.py\n' > .loop/docs.tsv
+printf '<!-- workflow-docs -->\n# Empty\n' > docs/wiki/Empty.md
+a=$($health suggest); b=$($health suggest); echo "$a"
+head -1 <<<"$a" | grep -q "^SUGGESTIONS (advisory" && ok "marked as suggestions" || bad "suggest mark"
+grep -q "^conflict: REL-2 and REL-3 " <<<"$a" && ok "conflicting criteria are listed" || bad "conflict"
+grep -q "^missing: feature Empty has no criterion" <<<"$a" && ok "a feature with no criterion is listed" || bad "missing criterion"
+grep -q "^next 1: FAIL " <<<"$a" && ok "next steps are ranked, failures first" || bad "ranked"
+[ "$a" = "$b" ] && ok "suggestions repeat exactly" || bad "suggest differs"
+c=$($health check); e=$($health check); [ "$c" = "$e" ] && ! grep -q "SUGGESTIONS" <<<"$c" && ok "check stays apart from suggestions and repeats" || bad "check same"
+grep -rn "claude\|anthropic\|urllib\|http" "$here"/skills/workflow-health/scripts/suggest.py "$here"/skills/workflow-health/scripts/mine.py >/dev/null && bad "model or network in suggest" || ok "no model or network call in the new modules"
+
 echo "== a rule that cannot read says UNREAD, never green"
 lone=$(mktemp -d); cp "$here/skills/workflow-health/scripts/health.py" "$lone/"
 out=$(python3 "$lone/health.py" check --family docs); rc=$?; echo "$out"
@@ -71,7 +113,7 @@ after="$(git status --porcelain --ignored)|$(git rev-parse HEAD)|$(git branch | 
 [ "$before" = "$after" ] && ok "check writes no file and makes no commit" || bad "check changed the repo"
 mkdir -p "$d/bin"; printf '#!/bin/bash\necho "$*" >> "%s/gh-calls"\nexit 1\n' "$d" > "$d/bin/gh"; chmod +x "$d/bin/gh"
 PATH="$d/bin:$PATH" $health check >/dev/null; [ ! -e "$d/gh-calls" ] && ok "check makes no gh call" || bad "check called gh"
-[ "$(wc -c < "$here/skills/workflow-health/scripts/health.py")" -lt 20480 ] && ok "health.py under 20 KB" || bad "size of health.py"
+for f in health mine suggest; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 20480 ] || bad "size of $f.py"; done; ok "health scripts under 20 KB"
 
 echo "repo: $d/repo"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
