@@ -5,13 +5,22 @@ Moved from the wiki page, which is now only a summary, criteria and tests.
 ## Commands
 
 ```text
-check [--json] [--family size|criteria|docs|hygiene]
+check [--json] [--family size|criteria|docs|hygiene|mine]
 run [--live] [--family size|criteria|docs|hygiene]
+suggest
 ```
 
 - `check` prints one line per finding, then one `HEALTH:` verdict line. A `FAIL` or an `UNREAD` line makes the verdict
   not green and the exit code 1; a `WARN` never does. `UNREAD` means a rule couldn't read its data, and is never a pass:
   that includes a sync with no result, an unreadable run record and a failing branch list. Every non-pass line ends with the command that fixes it. `--json` prints the same rows as records.
+
+- `check` prints a fixed template: `HEALTH REPORT`, then each group (`size`, `criteria`, `docs`, `hygiene`, `Mine`) with its
+  lines, then the `HEALTH:` verdict. `Mine` runs the owner's own rules from `~/.workflow-loop/health.json` (or the file
+  `LOOP_HEALTH` names), outside the repo: exit 0 is `PASS`, 1 `FAIL`, 2 `WARN`, and a rule that can't run is `UNREAD`.
+  Mine runs the owner's commands, so it is outside the read-only and same-answer promises, and `run` never files it.
+
+- `suggest` is a separate, advisory step: criteria that conflict or overlap, features with no criterion, and the
+  warnings and failures ranked as next steps. Plain text matching, no model, and it never changes the verdict.
 
 - `run` files each warning, failure or unread finding as one issue on the `Backlog` milestone, labelled `health`. A hidden
   marker in the body finds it again: a repeat updates the issue, a fixed finding closes it, a returning one reopens it,

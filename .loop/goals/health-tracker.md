@@ -14,4 +14,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Write `~/.workflow-loop/health.json` as `{"rules": [{"name": "t", "command": ["false"], "fix": "fix t"}]}`, then run `python3 skills/workflow-health/scripts/health.py check`.
+   Expect: it starts with `HEALTH REPORT`, ends with one `HEALTH:` line, and under `== Mine ==` shows `FAIL mine t mine: ... -> fix: fix t`. Change the command to `["nope-not-here"]` and it shows `UNREAD`. Delete the file afterwards.
+2. Run `python3 skills/workflow-health/scripts/health.py suggest`.
+   Expect: a first line `SUGGESTIONS (advisory, not findings...`, then criteria notes and ranked `next N:` steps.
