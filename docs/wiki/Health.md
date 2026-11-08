@@ -17,17 +17,17 @@ Commands, flows and how-tos: `skills/workflow-health/references/commands.md`.
 
 ## Tests
 
-| Criterion | Test | Last run |
-|---|---|---|
-| HLT-1 | [same-lines](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-1 | [check-writes-nothing](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-2 | [size-fail](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-2 | [stale-page-row](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-2 | [no-row-fail](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-3 | [unread-not-green](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [no-token-would](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [update-in-place](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [fixed-closes](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [repeat-no-second](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-4 | [unread-closes-none](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| HLT-5 | **not enforced** | |
+| Criterion | Test | What it checks | Runs | Last result | Seen failing |
+|---|---|---|---|---|---|
+| **HLT-1** One command, run by group; fixed rules; same answer twice; changes nothing. | [same-lines](../../.loop/regression.tsv) | Two health runs print the same lines. | both | PASS 2026-11-08 | 2026-11-07 |
+| **HLT-1** One command, run by group; fixed rules; same answer twice; changes nothing. | [check-writes-nothing](../../.loop/regression.tsv) | The health check writes no file and makes no commit. | both | PASS 2026-11-08 | 2026-11-07 |
+| **HLT-2** The rules: Size (scripts under 20 KB, warn from 90%); Criteria (each criterion has a test seen failing once and passing now; done lines with no test warn); Docs (required docs match template and code; stale warns, other gaps fail); Hygiene (<=5 open findings, nothing waiting on me >24h, no leftover merged branches); Mine (my own rules, e.g. an outside code-quality command, named in a private setting). Adding a rule means retiring one or raising the cap on purpose; a rule may run an existing command to get its data. | [size-fail](../../.loop/regression.tsv) | A script over 20 KB is a FAIL with a fix. | both | PASS 2026-11-08 | 2026-11-07 |
+| **HLT-2** The rules: Size (scripts under 20 KB, warn from 90%); Criteria (each criterion has a test seen failing once and passing now; done lines with no test warn); Docs (required docs match template and code; stale warns, other gaps fail); Hygiene (<=5 open findings, nothing waiting on me >24h, no leftover merged branches); Mine (my own rules, e.g. an outside code-quality command, named in a private setting). Adding a rule means retiring one or raising the cap on purpose; a rule may run an existing command to get its data. | [stale-page-row](../../.loop/regression.tsv) | A stale wiki page shows as a docs row naming it. | both | PASS 2026-11-08 | 2026-11-07 |
+| **HLT-2** The rules: Size (scripts under 20 KB, warn from 90%); Criteria (each criterion has a test seen failing once and passing now; done lines with no test warn); Docs (required docs match template and code; stale warns, other gaps fail); Hygiene (<=5 open findings, nothing waiting on me >24h, no leftover merged branches); Mine (my own rules, e.g. an outside code-quality command, named in a private setting). Adding a rule means retiring one or raising the cap on purpose; a rule may run an existing command to get its data. | [no-row-fail](../../.loop/regression.tsv) | A criterion with no test row is a FAIL. | both | PASS 2026-11-08 | 2026-11-07 |
+| **HLT-3** One printout template like the status block: groups, findings pass/warn/fail/unread, fix line each, one verdict; unread never green. | [unread-not-green](../../.loop/regression.tsv) | A health rule that cannot be read is never shown green. | both | PASS 2026-11-08 | 2026-11-07 |
+| **HLT-4** Findings go to the Backlog: one issue each on the Backlog milestone; repeat updates, fix closes, return reopens; no token = preview. | [no-token-would](../../.loop/regression.tsv) | With no token, milestones only prints what it would do. | both | PASS 2026-11-08 | 2026-11-07 |
+| **HLT-4** Findings go to the Backlog: one issue each on the Backlog milestone; repeat updates, fix closes, return reopens; no token = preview. | [update-in-place](../../.loop/regression.tsv) | A later health run updates its issue and opens no other. | both | PASS 2026-11-08 | 2026-11-07 |
+| **HLT-4** Findings go to the Backlog: one issue each on the Backlog milestone; repeat updates, fix closes, return reopens; no token = preview. | [fixed-closes](../../.loop/regression.tsv) | A fixed finding closes its issue. | both | PASS 2026-11-08 | 2026-11-07 |
+| **HLT-4** Findings go to the Backlog: one issue each on the Backlog milestone; repeat updates, fix closes, return reopens; no token = preview. | [repeat-no-second](../../.loop/regression.tsv) | A repeated finding opens no second issue. | both | PASS 2026-11-08 | 2026-11-07 |
+| **HLT-4** Findings go to the Backlog: one issue each on the Backlog milestone; repeat updates, fix closes, return reopens; no token = preview. | [unread-closes-none](../../.loop/regression.tsv) | A rule that could not be read closes none of its issues. | both | PASS 2026-11-08 | 2026-11-07 |
+| **HLT-5** Next-step tracker: separate suggestions section: conflicting/overlapping criteria, features missing a criterion, ranked next steps from warnings and failures. | **not enforced** | | | | |

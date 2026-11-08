@@ -1,75 +1,82 @@
-# id	level	command	goal	seen_red
-no-done-line-refused	land	bash dev/toy/test-rows.sh DEL-1	DEL-1	2026-11-07
-no-flow-refused	land	bash dev/toy/test-rows.sh DEL-2	DEL-1	2026-11-07
-pending-waits	land	bash dev/toy/test-rows.sh DEL-3	DEL-3	2026-11-07
-stale-found	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: stale found"	DOC-4	2026-11-07
-publish-refused-stale	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"	DOC-4	2026-11-07
-refuse-replace	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"	DOC-4	2026-11-07
-overlap-held	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the overlapping goal is held"	MON-1	2026-11-07
-retired-leaves-waiting	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a retired goal leaves Waiting on you"	MON-4	2026-11-07
-unproven-blocks	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"	REG-2	2026-11-07
-known-no-block	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: known doesn.t block or open an issue"	REG-5	2026-11-07
-no-token-dry-run	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: no token: dry run, no gh call"	REG-5	2026-11-07
-cut-needs-verify	land	bash dev/toy/test-rows.sh REL-1	-	2026-11-07
-cut-draft	land	bash dev/toy/test-rows.sh REL-2	-	2026-11-07
-batch-cut-user	land	bash dev/toy/test-rows.sh REL-3	-	2026-11-07
-no-line-in-governor	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: start: no line runs in the governing session"	MON-1	2026-11-07
-skill-says-governs	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-delivery/SKILL.md says the operation session governs only"	MON-1	2026-11-07
-frozen-done-lines	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: a changed done line stops the goal"	DEL-2	2026-11-07
-stop-after-3-tries	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: three failed tries stop the goal with a finding"	DEL-1	2026-11-07
-never-merges	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: with auto_merge off, merge.py refuses and nothing merges"	DEL-5	2026-11-07
-waits-first	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: seven sections in order, with content"	MON-3	2026-11-07
-dependencies-on-map	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a dependency survives its goal starting"	MON-1	2026-11-07
-one-failure	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal leaves the others running"	-	2026-11-07
-tests-seen-failing	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a test that can.t fail stays unproven"	REG-2	2026-11-07
-one-issue	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: failure opened an issue"	REG-5	2026-11-07
-one-link	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a test with no criterion fails"	REG-2	2026-11-07
-refused-unmet	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: cut refuses a missing row"	REG-1	2026-11-07
-breaking-asks	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: breaking change waits"	-	2026-11-07
-docs-only	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: docs only leaves"	-	2026-11-07
-landed-left-alone	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal with an empty pr field|a mender running after its goal lands)" | wc -l | grep -q 2	-	2026-11-07
-no-change-quiet	land	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2	MON-5	2026-11-07
-pr-needs-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: pr refuses until the flow ends"	DEL-1	2026-11-07
-failed-waits-mender	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal waits before a mender starts"	MON-1	2026-11-07
-same-lines	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: two runs print the same lines"	HLT-1	2026-11-07
-size-fail	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: over 20 KB is a FAIL with a fix"	HLT-2	2026-11-07
-stale-page-row	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a stale page shows as a docs row naming it"	HLT-2	2026-11-07
-no-row-fail	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a criterion with no row is a FAIL"	HLT-2	2026-11-07
-unread-not-green	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: no sibling script: UNREAD and not green"	HLT-3	2026-11-07
-check-writes-nothing	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: check writes no file and makes no commit"	HLT-1	2026-11-07
-stale-merge-order	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: clean after the merge, with the parents the other way round"	DOC-4	2026-11-07
-no-pid-left-alone	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (report never marks a goal with no pid failed|watch never marks a goal with no pid failed|a goal with no pid is never mended)" | wc -l | grep -q 3	-	2026-11-07
-milestones-once	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: running it again creates nothing"	DOC-5	2026-11-07
-pr-in-milestone	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: goal.py pr puts the pull request in the Calc milestone"	DOC-5	2026-11-07
-no-token-would	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: no token and no --live: only WOULD lines, nothing written"	HLT-4	2026-11-07
-update-in-place	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a later run updates the issue where it is, and opens no other"	HLT-4	2026-11-07
-board-sections	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: seven sections in order, with content"	MON-3	2026-11-07
-fixed-closes	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a fixed finding closes its issue"	HLT-4	2026-11-07
-repeat-no-second	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a repeat opens no second issue"	HLT-4	2026-11-07
-unread-closes-none	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a rule that could not read closes none of its issues"	HLT-4	2026-11-07
-starts-at-idea	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: starts at idea, with no level"	DEL-1	2026-11-07
-steps-through-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: record refuses a reply flow.py didn.t run"	DEL-1	2026-11-07
-auto-approved	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: logged and on the board as auto-approved, nothing waits"	DEL-3	2026-11-07
-worker-refuses	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: watch.py build refuses with one line naming the worker command"	MON-1	2026-11-07
-worker-per-goal	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: each goal ran in its own process and worktree, as a worker"	MON-1	2026-11-07
-worker-reports	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: merged carries its pull request"	MON-2	2026-11-07
-one-way-to-run	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a grep finds nothing for the old upgrade paths"	MON-1	2026-11-07
-stuck-stays-top	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a stuck worker stays at the top until it is answered"	MON-4	2026-11-07
-status-order	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: five sections in the fixed order"	MON-4	2026-11-07
-needs-you-stuck	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: Needs you holds the failed and the waiting worker, with the exact words"	MON-4	2026-11-07
-estimates-shown	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a running goal shows each step with an estimate from past runs"	MON-4	2026-11-07
-no-prompts	land	bash dev/toy/test-rows.sh DEL-10	-	2026-11-07
-wiki-release	land	bash dev/toy/test-wiki.sh 2>&1 | grep -q "PASS: merge publishes the wiki"	DEL-5	2026-11-07
-page-shape	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a Commands section fails"	DOC-1	2026-11-07
-criteria-no-scripts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: script name fails: calc.py"	DOC-1	2026-11-07
-tests-not-enforced	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a criterion with no passing test shows as not enforced"	DOC-1	2026-11-07
-tests-last-run	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: render shows status and date"	DOC-1	2026-11-07
-tests-table-stale	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a table behind the last run is stale"	DOC-1	2026-11-07
-review-dated	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: review marks the line Reviewed with the date"	DOC-2	2026-11-07
-review-owner-only	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: review needs the owner.s words"	DOC-2	2026-11-07
-reviewed-lock	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: changing a reviewed criterion fails the check"	DOC-2	2026-11-07
-unreview-lifts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: unreview lifts the lock"	DOC-2	2026-11-07
-lock-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report names a changed reviewed criterion"	DOC-2	2026-11-07
-run-ledger	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a run records each row.s status and date"	REG-2	2026-11-07
-ci-summary	land	grep -q GITHUB_STEP_SUMMARY .github/workflows/regression.yml && grep -q GITHUB_STEP_SUMMARY skills/workflow-regression/scripts/regression.py	REG-4	2026-11-07
-auto-release	land	bash dev/toy/test-autorelease.sh 2>&1 | grep -q "ALL PASS"	DEL-5	2026-11-08
+# id	level	command	goal	seen_red	description
+no-done-line-refused	land	bash dev/toy/test-rows.sh DEL-1	DEL-1	2026-11-07	A goal with no done line is refused.
+no-flow-refused	land	bash dev/toy/test-rows.sh DEL-2	DEL-1	2026-11-07	A goal does not start when no skill flow is set.
+pending-waits	land	bash dev/toy/test-rows.sh DEL-3	DEL-3	2026-11-07	A step that leaves a decision for the owner stops and waits.
+stale-found	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: stale found"	DOC-4	2026-11-07	A wiki page behind the code it covers is reported as stale.
+publish-refused-stale	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"	DOC-4	2026-11-07	The wiki is not published while a page is stale.
+refuse-replace	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"	DOC-4	2026-11-07	A wiki page the tool did not write is never overwritten.
+overlap-held	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the overlapping goal is held"	MON-1	2026-11-07	A goal whose files overlap a running goal is held back.
+retired-leaves-waiting	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a retired goal leaves Waiting on you"	MON-4	2026-11-07	A retired goal no longer shows under Waiting on you.
+unproven-blocks	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"	REG-2	2026-11-07	A test never seen failing blocks the run.
+known-no-block	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: known doesn.t block or open an issue"	REG-5	2026-11-07	A known failure does not block the run or open an issue.
+no-token-dry-run	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: no token: dry run, no gh call"	REG-5	2026-11-07	With no GitHub token, a run only prints what it would do.
+cut-needs-verify	land	bash dev/toy/test-rows.sh REL-1	-	2026-11-07	A release is refused without Verify by hand steps.
+cut-draft	land	bash dev/toy/test-rows.sh REL-2	-	2026-11-07	Cutting a release writes a draft release, not a published one.
+batch-cut-user	land	bash dev/toy/test-rows.sh REL-3	-	2026-11-07	A monitored goal does not cut a release unless asked.
+no-line-in-governor	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: start: no line runs in the governing session"	MON-1	2026-11-07	No goal runs inside the governing session.
+skill-says-governs	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-delivery/SKILL.md says the operation session governs only"	MON-1	2026-11-07	The delivery skill says the operation session only governs.
+frozen-done-lines	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: a changed done line stops the goal"	DEL-2	2026-11-07	Changing a frozen done line stops the goal.
+stop-after-3-tries	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: three failed tries stop the goal with a finding"	DEL-1	2026-11-07	Three failed tries stop a goal and file a finding.
+never-merges	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: with auto_merge off, merge.py refuses and nothing merges"	DEL-5	2026-11-07	With auto_merge off, nothing is merged.
+waits-first	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: seven sections in order, with content"	MON-3	2026-11-07	The board lists the sections in order, with Waiting on you first.
+dependencies-on-map	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a dependency survives its goal starting"	MON-1	2026-11-07	A goal's dependency is kept once the goal starts.
+one-failure	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal leaves the others running"	-	2026-11-07	One failed goal leaves the others running.
+tests-seen-failing	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a test that can.t fail stays unproven"	REG-2	2026-11-07	A test that cannot fail stays unproven.
+one-issue	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: failure opened an issue"	REG-5	2026-11-07	A failing test opens one GitHub issue.
+one-link	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a test with no criterion fails"	REG-2	2026-11-07	A test linked to no criterion fails the check.
+refused-unmet	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: cut refuses a missing row"	REG-1	2026-11-07	A release is refused while a criterion has no test.
+breaking-asks	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: breaking change waits"	-	2026-11-07	A breaking change waits for the owner before a release.
+docs-only	land	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: docs only leaves"	-	2026-11-07	A docs-only change leaves the version alone.
+landed-left-alone	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal with an empty pr field|a mender running after its goal lands)" | wc -l | grep -q 2	-	2026-11-07	A landed goal is not marked failed or restarted.
+no-change-quiet	land	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2	MON-5	2026-11-07	A board field the old board lacked, or gh not answering, is no change.
+pr-needs-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: pr refuses until the flow ends"	DEL-1	2026-11-07	A pull request is refused until every flow step is done.
+failed-waits-mender	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal waits before a mender starts"	MON-1	2026-11-07	A failed goal waits before a mender starts.
+same-lines	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: two runs print the same lines"	HLT-1	2026-11-07	Two health runs print the same lines.
+size-fail	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: over 20 KB is a FAIL with a fix"	HLT-2	2026-11-07	A script over 20 KB is a FAIL with a fix.
+stale-page-row	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a stale page shows as a docs row naming it"	HLT-2	2026-11-07	A stale wiki page shows as a docs row naming it.
+no-row-fail	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: a criterion with no row is a FAIL"	HLT-2	2026-11-07	A criterion with no test row is a FAIL.
+unread-not-green	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: no sibling script: UNREAD and not green"	HLT-3	2026-11-07	A health rule that cannot be read is never shown green.
+check-writes-nothing	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: check writes no file and makes no commit"	HLT-1	2026-11-07	The health check writes no file and makes no commit.
+stale-merge-order	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: clean after the merge, with the parents the other way round"	DOC-4	2026-11-07	A merge of docs in either order leaves no stale page.
+no-pid-left-alone	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (report never marks a goal with no pid failed|watch never marks a goal with no pid failed|a goal with no pid is never mended)" | wc -l | grep -q 3	-	2026-11-07	A goal with no process id is never marked failed.
+milestones-once	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: running it again creates nothing"	DOC-5	2026-11-07	Running milestones again creates nothing new.
+pr-in-milestone	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: goal.py pr puts the pull request in the Calc milestone"	DOC-5	2026-11-07	A pull request goes into its milestone.
+no-token-would	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: no token and no --live: only WOULD lines, nothing written"	HLT-4	2026-11-07	With no token, milestones only prints what it would do.
+update-in-place	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a later run updates the issue where it is, and opens no other"	HLT-4	2026-11-07	A later health run updates its issue and opens no other.
+board-sections	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: seven sections in order, with content"	MON-3	2026-11-07	The board lists the sections in order, with content.
+fixed-closes	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a fixed finding closes its issue"	HLT-4	2026-11-07	A fixed finding closes its issue.
+repeat-no-second	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a repeat opens no second issue"	HLT-4	2026-11-07	A repeated finding opens no second issue.
+unread-closes-none	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a rule that could not read closes none of its issues"	HLT-4	2026-11-07	A rule that could not be read closes none of its issues.
+starts-at-idea	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: starts at idea, with no level"	DEL-1	2026-11-07	A goal starts at the idea step.
+steps-through-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: record refuses a reply flow.py didn.t run"	DEL-1	2026-11-07	A step reply is accepted only if the flow ran it.
+auto-approved	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: logged and on the board as auto-approved, nothing waits"	DEL-3	2026-11-07	An auto-approved step is logged and nothing waits.
+worker-refuses	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: watch.py build refuses with one line naming the worker command"	MON-1	2026-11-07	Building inside the governing session is refused with one line.
+worker-per-goal	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: each goal ran in its own process and worktree, as a worker"	MON-1	2026-11-07	Each goal runs in its own process and worktree.
+worker-reports	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: merged carries its pull request"	MON-2	2026-11-07	A merged goal shows its pull request.
+one-way-to-run	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a grep finds nothing for the old upgrade paths"	MON-1	2026-11-07	No old way to start a goal remains.
+stuck-stays-top	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a stuck worker stays at the top until it is answered"	MON-4	2026-11-07	A stuck goal stays on top until answered.
+status-order	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: five sections in the fixed order"	MON-4	2026-11-07	The status lists its five sections in a fixed order.
+needs-you-stuck	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: Needs you holds the failed and the waiting worker, with the exact words"	MON-4	2026-11-07	Needs you holds the failed and waiting goals with the exact words to type.
+estimates-shown	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a running goal shows each step with an estimate from past runs"	MON-4	2026-11-07	A running goal shows each step with an estimate from past runs.
+no-prompts	land	bash dev/toy/test-rows.sh DEL-10	-	2026-11-07	No tool waits on a terminal prompt.
+wiki-release	land	out=$(env -u PYTHONDONTWRITEBYTECODE bash dev/toy/test-wiki.sh 2>&1); echo "$out" | grep -E "^(PASS|FAIL)" >&2; echo "$out" | grep -q "PASS: merge publishes the wiki" && ! echo "$out" | grep -q "^FAIL"	DEL-5	2026-11-08	Merging a goal publishes its wiki pages, even when python leaves cache files behind.
+page-shape	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a Commands section fails"	DOC-1	2026-11-07	A wiki page with a Commands section fails the check.
+criteria-no-scripts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: script name fails: calc.py"	DOC-1	2026-11-07	A criterion that names a script fails the check.
+tests-not-enforced	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a criterion with no passing test shows as not enforced"	DOC-1	2026-11-07	A criterion with no passing test shows as not enforced.
+tests-last-run	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: render shows status and date"	DOC-1	2026-11-07	The Tests table shows each test's last result and date.
+tests-table-stale	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a table behind the last run is stale"	DOC-1	2026-11-07	A Tests table behind the last run is reported stale.
+review-dated	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: review marks the line Reviewed with the date"	DOC-2	2026-11-07	Reviewing a criterion marks it Reviewed with the date.
+review-owner-only	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: review needs the owner.s words"	DOC-2	2026-11-07	A criterion is reviewed only with the owner's words.
+reviewed-lock	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: changing a reviewed criterion fails the check"	DOC-2	2026-11-07	Changing a reviewed criterion fails the check.
+unreview-lifts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: unreview lifts the lock"	DOC-2	2026-11-07	Unreviewing a criterion lifts its lock.
+lock-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report names a changed reviewed criterion"	DOC-2	2026-11-07	The report names a reviewed criterion that changed.
+run-ledger	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a run records each row.s status and date"	REG-2	2026-11-07	A run records each test's result and date.
+ci-summary	land	grep -q GITHUB_STEP_SUMMARY .github/workflows/regression.yml && grep -q GITHUB_STEP_SUMMARY skills/workflow-regression/scripts/regression.py	REG-4	2026-11-07	The nightly run writes a results table to the job summary.
+tests-table-columns	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: table has the six columns"	REG-2	2026-11-08	The Tests table has columns for the test, its description, when it runs, last result and seen failing.
+tests-row-shape	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a row shows the criterion words"	REG-2	2026-11-08	A Tests row shows the criterion's words, the description, when it runs, the result and the date seen failing.
+describe-needed	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: sync flags a row with no description"	REG-2	2026-11-08	A test row with no description is flagged.
+keeps-seen-red	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: describing a row keeps its seen-failing date"	REG-2	2026-11-08	Adding a description to a row does not lose its seen-failing date.
+schedule-setting	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: changing regression_cron changes the schedule"	REG-4	2026-11-08	Changing the schedule setting and rewriting the workflow changes the Actions schedule.
+bad-schedule-refused	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a setting that is not five cron fields is refused"	REG-4	2026-11-08	A schedule setting that is not a cron time is refused.
+every-row-described	land	python3 skills/workflow-regression/scripts/regression.py sync | grep -c "^NODESC" | grep -qx 0	REG-2	2026-11-08	Every test row in this repo has a description.
+auto-release	land	bash dev/toy/test-autorelease.sh 2>&1 | grep -q "ALL PASS"	DEL-5	2026-11-08	A merged goal is released automatically when auto-release is on.

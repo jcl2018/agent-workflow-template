@@ -86,6 +86,11 @@ $reg add add-median-1 --level land --command "test -e calc.py" --goal add-median
 $reg add add-median-2 --level covered --command "read by a person" --goal add-median:2
 git add -A; git commit -qm "Rows for the goal"
 $reg red add-median-1 --break "rm calc.py" >/dev/null
+$reg sync | grep -q "^NODESC add-median-1" && ok "sync flags a row with no description" || bad "no-description flag"
+$reg add check-1 --level land --command "$(awk -F'\t' '$1=="check-1"{print $3}' .loop/regression.tsv)" --describe "The toy calculator still runs." >/dev/null
+$reg add flag --level land --command "test ! -e BROKEN" --describe "No BROKEN file exists." >/dev/null
+$reg add add-median-1 --level land --command "test -e calc.py" --goal add-median:1 --describe "calc.py exists." >/dev/null
+[ -n "$(awk -F'\t' '$1=="check-1"{print $5}' .loop/regression.tsv)" ] && ok "describing a row keeps its seen-failing date" || bad "date lost"
 $reg sync && ok "sync clean" || bad "sync clean"
 
 echo "== the written workflow runs"
@@ -105,6 +110,19 @@ touch BROKEN; git add -A; git commit -qm "Break it" >/dev/null
 python3 ci-block.py; rc=$?
 [ $rc = 1 ] && [ "$(calls '^issue create')" = 1 ] && ok "CI block fails and opens an issue" || bad "CI block"
 rm -f BROKEN ci-block.py
+grep -q 'cron: "17 9 \* \* \*"' .github/workflows/regression.yml && ok "default schedule written" || bad "default cron"
+python3 - <<'PY'
+import json
+c = json.load(open(".loop/config.json")); c["regression_cron"] = "5 4 * * 1"
+json.dump(c, open(".loop/config.json", "w"), indent=2)
+PY
+$reg workflow >/dev/null; grep -q 'cron: "5 4 \* \* 1"' .github/workflows/regression.yml && ! grep -q '17 9' .github/workflows/regression.yml && ok "changing regression_cron changes the schedule" || bad "cron setting"
+python3 - <<'PY'
+import json
+c = json.load(open(".loop/config.json")); c["regression_cron"] = "nightly"
+json.dump(c, open(".loop/config.json", "w"), indent=2)
+PY
+$reg workflow >/dev/null 2>&1 && bad "bad cron written" || ok "a setting that is not five cron fields is refused"
 echo "other" > .github/workflows/regression.yml
 $reg workflow >/dev/null 2>&1 && bad "replaced another workflow" || ok "won't replace another workflow"
 
