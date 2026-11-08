@@ -56,6 +56,7 @@ operate-all	PASS	2026-11-08
 operate-wakes-on-report	PASS	2026-11-08
 page-shape	PASS	2026-11-08
 pending-waits	PASS	2026-11-08
+pr-body-criterion	PASS	2026-11-08
 pr-body-no-checks	PASS	2026-11-08
 pr-in-milestone	PASS	2026-11-08
 pr-needs-flow	PASS	2026-11-08
@@ -111,3 +112,4 @@ worker-refuses	PASS	2026-11-08
 worker-reports	PASS	2026-11-08
 worker-reports-live	PASS	2026-11-08
 worker-runs-release	PASS	2026-11-08
+workflow-same-as-run	PASS	2026-11-08

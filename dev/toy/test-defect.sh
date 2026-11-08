@@ -5,7 +5,7 @@ set -u
 unset LOOP_BATCH
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
-cases="wording flow-steps categories defect-owed health-closed worker-release pr-body no-hang known-defects"
+cases="wording flow-steps categories defect-owed health-closed worker-release pr-body pr-body-criterion no-hang known-defects"
 if [ $# = 0 ]; then
   fails=0
   for c in $cases; do
@@ -149,6 +149,22 @@ PY
     finish pb "calc has pb"; $goal pr pb >/dev/null || no "pr"
     grep -qi "checks" "$d/gh/body-1" && no "the body talks about checks"
     grep -q "Skill flow:" "$d/gh/body-1" || no "the body lists no steps"
+    exit 0;;
+  pr-body-criterion) # DEL-4: the body carries the title, the done lines, the verify steps and each step's result
+    toy
+    finish pc "calc has pc"
+    python3 - <<'PY'
+path = ".loop/goals/pc.md"
+text = open(path).read().replace("## Verify by hand\n", "## Verify by hand\n\n1. Open calc.py.\n   Expect: it has pc.\n", 1)
+open(path, "w").write(text)
+PY
+    git commit -qam "Verify steps for pc"
+    $goal pr pc >/dev/null || no "pr"
+    body="$d/gh/body-1"
+    grep -q "^# Add pc" "$body" || no "the body has no goal"
+    grep -q "calc has pc" "$body" || no "the body has no done line"
+    grep -q "Open calc.py" "$body" || no "the body has no verify step"
+    for step in idea plan review qa ship; do grep -q "^- $step: " "$body" || no "the body has no result for $step"; done
     exit 0;;
   no-hang) # issue 35: scripts fail with an error instead of hanging with no terminal
     bash "$here/dev/toy/test-rows.sh" DEL-10 || no "a script can prompt"
