@@ -120,7 +120,7 @@ Batches of goals go through `scripts/batch.py` (`add`, `start`, `status`). `star
 `scripts/worker.py loop SLUG` runs the goal's agent in its own worktree, with `LOOP_ROLE=worker`, to the end. When the
 agent ends, the worker sends its result back as a prompt message in the run record's `report` (`merged`, `failed` or
 `waiting`, with the pull request), which the board shows; each change of step or status is in `reports` as it happens.
-`worker.py met SLUG N` marks a done line met; `worker.py send SLUG TEXT` leaves a message its agent sees next.
+`worker.py met SLUG N` marks a done line met; `worker.py send SLUG TEXT` leaves a message its agent sees next; `worker.py cleanup [--dry-run]` deletes merged `loop/*` branches no worktree has checked out (`git branch -d`, local only).
 
 Each check-in prints one status block (`scripts/board_status.py`), and `dashboard` and `board-artifact.html` carry the
 same content: Needs you (every stuck, waiting or failed worker, with the exact words to answer, always first), Roadmap (a

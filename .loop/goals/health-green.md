@@ -14,4 +14,11 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `bash dev/toy/test-tokens.sh`.
+   Expect: it ends with ALL PASS, and a fake agent's step shows 175 tokens (input + output + cache-creation).
+2. Run `wc -c skills/workflow-release/scripts/release.py`.
+   Expect: it prints a number under 18432.
+3. Run `python3 skills/workflow-health/scripts/health.py check --family hygiene`.
+   Expect: no WARN line for findings or merged branches.
+4. Run `bash dev/toy/test-cleanup.sh`.
+   Expect: it ends with ALL PASS; `python3 skills/workflow-monitoring/scripts/worker.py cleanup --dry-run` lists merged loop branches without deleting any.

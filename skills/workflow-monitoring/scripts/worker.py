@@ -7,6 +7,8 @@ usage: worker.py <command> [options]
   report SLUG STATUS [--pr URL] [--words TEXT]
                             send a result back by hand: STATUS is merged, failed or waiting
   met SLUG N [N...]         record that done lines N are met, for the status block's Goals section
+  cleanup [--dry-run]       delete the loop/* branches already merged into main that no worktree has checked out
+                            (git branch -d, never a remote); health.py check names this as the fix
   send SLUG TEXT            the operation session sends a worker an answer or follow-up; goal.py and flow.py print it
                             to the worker's agent the next time they run, then file it away
 
@@ -163,6 +165,27 @@ def cmd_send(args):
     return 0
 
 
+def cmd_cleanup(args):
+    top = git("rev-parse", "--show-toplevel")
+    try:
+        with open(os.path.join(top, ".loop", "config.json")) as handle:
+            name = json.load(handle).get("base") or "main"
+    except (OSError, ValueError, AttributeError):
+        name = "main"
+    ref = "origin/" + name if git("rev-parse", "--verify", "--quiet", "origin/" + name) else name
+    gone = 0
+    for line in sorted(git("branch", "--merged", ref).splitlines()):
+        branch = line[2:].strip()
+        if line.startswith("  ") and branch.startswith("loop/"):  # "*" and "+" mark a branch checked out somewhere
+            if not args.dry_run and subprocess.run(["git", "branch", "-d", branch], capture_output=True).returncode:
+                print("KEPT %s: git would not delete it" % branch)
+                continue
+            gone += 1
+            print("%s %s" % ("WOULD DELETE" if args.dry_run else "DELETED", branch))
+    print("%d merged loop branch(es) %s" % (gone, "found" if args.dry_run else "deleted"))
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -177,6 +200,8 @@ def main():
     item = sub.add_parser("met")
     item.add_argument("slug")
     item.add_argument("lines", nargs="+", type=int)
+    item = sub.add_parser("cleanup")
+    item.add_argument("--dry-run", action="store_true")
     item = sub.add_parser("send")
     item.add_argument("slug")
     item.add_argument("text")

@@ -189,7 +189,7 @@ def hygiene_rows(root):
             name = line[2:].strip()
             if line.startswith("  ") and name.startswith("loop/"):
                 rows.append(row("WARN", "hygiene", name, "branch", "already merged into %s" % base,
-                                "git branch -d %s" % name))
+                                "worker.py cleanup"))
     return rows or [row("PASS", "hygiene", "repo", "clean", "no stale findings, runs or merged branches")]
 
 
