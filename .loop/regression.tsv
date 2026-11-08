@@ -120,5 +120,5 @@ settings-reference	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: the 
 setup-both-halves	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: setup writes every repo setting, parallel 0"	SET-1	-	Setup writes the repo half and, outside the repo, the private half.	criterion	
 parallel-unlimited	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: parallel 0 starts all four"	SET-2	-	Parallel 0 means unlimited, and it is the default.	criterion	
 settings-read-fresh	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: parallel 1 starts one, read again on the next run"	SET-2	-	A changed setting takes effect on the next run.	criterion	
-pr-body-criterion	land	bash dev/toy/test-defect.sh pr-body-criterion	DEL-4		Every pull request body carries the goal, the done lines, the verify steps and each step's result.	criterion	
-workflow-same-as-run	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a failing row: same exit (1) and same issues opened (1)"	REG-3		The workflow's run and a local regression.py run end the same way and open the same issues.	criterion	
+pr-body-criterion	land	bash dev/toy/test-defect.sh pr-body-criterion	DEL-4	2026-11-08	Every pull request body carries the goal, the done lines, the verify steps and each step's result.	criterion	
+workflow-same-as-run	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a failing row: same exit (1) and same issues opened (1)"	REG-3	2026-11-08	The workflow's run and a local regression.py run end the same way and open the same issues.	criterion	
