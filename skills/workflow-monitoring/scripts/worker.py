@@ -174,7 +174,8 @@ def cmd_cleanup(args):
         name = "main"
     ref = "origin/" + name if git("rev-parse", "--verify", "--quiet", "origin/" + name) else name
     gone = 0
-    for line in sorted(git("branch", "--merged", ref).splitlines()):
+    listed = subprocess.run(["git", "branch", "--merged", ref], capture_output=True, text=True).stdout  # git() strips the first line's indent
+    for line in sorted(listed.splitlines()):
         branch = line[2:].strip()
         if line.startswith("  ") and branch.startswith("loop/"):  # "*" and "+" mark a branch checked out somewhere
             if not args.dry_run and subprocess.run(["git", "branch", "-d", branch], capture_output=True).returncode:
