@@ -11,7 +11,7 @@ export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh"
 "$here/dev/toy/make.sh" "$T" || exit 1
 export LOOP_FLOW="$T/flow.json"
 cd "$T/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --ff-only workflow-setup
 python3 - "$here/skills" "$MODEL" <<'PY'
 import json, sys
