@@ -1,6 +1,6 @@
 # Loop files
 
-The six workflow skills share this contract. Skill instructions never go in the repo. A repo holds only its own data.
+The workflow skills share this contract. `design-guide.md` beside it explains how they fit together. Skill instructions never go in the repo. A repo holds only its own data.
 
 ## In the repo: `.loop/`
 
@@ -41,6 +41,7 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 - `auto_merge` (default `false`): `true` lets the release step's `merge.py` merge a goal's pull request.
 - `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
 - `mend` and `resume_on_limit` let `watch` restart a goal. `limit_wait`, `mend_wait` and `watch_interval` are optional, in seconds.
+- `criteria` (set `true` by `setup`) and `regression_cron` (default `17 9 * * *`, the nightly workflow's schedule) are also read by the docs and regression skills.
 - Permissions are yours. These commands run as you set them, and nothing here turns them off.
 
 ### `goals/<slug>.md`
@@ -61,6 +62,13 @@ A `## Batch: NAME` heading groups goal lines for `batch.py`.
 `touches` lists the files the goal declares; it never holds a goal back. `depends-on: a, b` names goals that must be merged
 before this one starts. `release: ask` makes a monitored goal wait
 for your answer instead of answering `leave`.
+
+## Outside the repo: the installed skills
+
+`workflow-package.json` sits in the skills folder next to the `workflow-*` folders: `{"version", "files"}`, a hash for each
+skill file, written by the package build and moved by `update.py --apply`. It is the only file `update.py` keeps besides
+the skill files themselves; it never reads or writes `.loop/`, the wiki or private settings. `setup.py` writes `.loop/`
+and the wiki pages on the `workflow-setup` branch and leaves existing values and words as they were.
 
 ## Outside the repo: your skill flow
 

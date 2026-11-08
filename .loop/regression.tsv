@@ -90,3 +90,8 @@ operate-all	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "ALL PASS"	MON-1	-	
 worker-reports-live	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the worker's agent sees it the next time goal.py runs, once"	MON-2	2026-11-08	A report to a running worker reaches its agent once, the next time goal.py runs.
 status-roadmap-features	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: Roadmap counts merged goals per feature"	MON-4	-	The status block's Roadmap counts merged goals per feature.
 operate-wakes-on-report	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: a worker's report wakes it before the cadence, and one line says nothing changed"	MON-5	2026-11-08	A worker's report wakes operate before the cadence; a quiet cycle prints one line.
+adopt-set-1	land	bash dev/toy/test-adopt.sh SET-1	SET-1		The toy adopt-and-update test holds for SET-1.
+adopt-set-2	land	bash dev/toy/test-adopt.sh SET-2	SET-2		The toy adopt-and-update test holds for SET-2.
+adopt-set-3	land	bash dev/toy/test-adopt.sh SET-3	SET-3		The toy adopt-and-update test holds for SET-3.
+adopt-set-4	land	bash dev/toy/test-adopt.sh SET-4	SET-4		The toy adopt-and-update test holds for SET-4.
+adopt-set-5	land	bash dev/toy/test-adopt.sh SET-5	SET-5		The toy adopt-and-update test holds for SET-5.
