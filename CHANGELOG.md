@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.7.1 - 2026-11-08
+
+- Merge main
+
+### How to verify
+
+1. Run `sed -n 84p .loop/goals/defect-tests.design.md`.
+   Expect: the line starts with "Run the delivery loop on this design" and names no private skill.
+2. Run `git grep -n 'goal_\*'`.
+   Expect: no match in the design note.
+
 ## v0.7.0 - 2026-11-08
 
 - Settings: one table, both halves written by setup, parallel 0 unlimited
