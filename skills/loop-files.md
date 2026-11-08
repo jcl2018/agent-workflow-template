@@ -62,7 +62,7 @@ One goal a line. Other lines are ignored.
 
 A `## Batch: NAME` heading groups goal lines for `batch.py`.
 
-`touches` lists the files the goal declares; it never holds a goal back. `depends-on: a, b` names goals that must be merged
+`touches` lists the files the goal declares; it never holds a goal back. `depends: a, b` (or `depends-on: a, b`, the same key) names goals that must be merged
 before this one starts. `release: ask` makes a monitored goal wait
 for your answer instead of answering `leave`.
 
