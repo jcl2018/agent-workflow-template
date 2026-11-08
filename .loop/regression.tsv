@@ -59,7 +59,7 @@ status-order	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: four sectio
 needs-you-stuck	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: Needs you holds the failed and the waiting worker, with the exact words"	MON-4	2026-11-07	Needs you holds the failed and waiting goals with the exact words to type.	criterion	
 estimates-shown	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a running goal shows each step with an estimate from past runs"	MON-4	2026-11-07	A running goal shows each step with an estimate from past runs.	criterion	
 no-prompts	land	bash dev/toy/test-rows.sh DEL-10	-	2026-11-07	No tool waits on a terminal prompt.	criterion	
-wiki-release	land	out=$(env -u PYTHONDONTWRITEBYTECODE bash dev/toy/test-wiki.sh 2>&1); echo "$out" | grep -E "^(PASS|FAIL)" >&2; echo "$out" | grep -q "PASS: merge publishes the wiki" && ! echo "$out" | grep -q "^FAIL"	DEL-5	2026-11-08	Merging a goal publishes its wiki pages, even when python leaves cache files behind.	criterion	
+wiki-release	land	out=$(bash dev/toy/ci-env.sh bash dev/toy/test-wiki.sh 2>&1); echo "$out" | grep -E "^(PASS|FAIL)|fatal"; echo "$out" | grep -q "PASS: merge publishes the wiki" && ! echo "$out" | grep -q "^FAIL"	DEL-5	2026-11-08	Merging a goal publishes its wiki pages, even when python leaves cache files behind.	criterion	
 page-shape	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a Commands section fails"	DOC-1	2026-11-07	A wiki page with a Commands section fails the check.	criterion	
 criteria-no-scripts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: script name fails: calc.py"	DOC-1	2026-11-07	A criterion that names a script fails the check.	criterion	
 tests-not-enforced	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a criterion with no passing test shows as not enforced"	DOC-1	2026-11-07	A criterion with no passing test shows as not enforced.	criterion	
@@ -90,11 +90,11 @@ operate-all	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "ALL PASS"	MON-1	-	
 worker-reports-live	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the worker's agent sees it the next time goal.py runs, once"	MON-2	2026-11-08	A report to a running worker reaches its agent once, the next time goal.py runs.	criterion	
 status-roadmap-features	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: Roadmap counts merged goals per feature"	MON-4	-	The status block's Roadmap counts merged goals per feature.	criterion	
 operate-wakes-on-report	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: a worker's report wakes it before the cadence, and one line says nothing changed"	MON-5	2026-11-08	A worker's report wakes operate before the cadence; a quiet cycle prints one line.	criterion	
-adopt-set-1	land	bash dev/toy/test-adopt.sh SET-1	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1.	criterion	
-adopt-set-2	land	bash dev/toy/test-adopt.sh SET-2	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1, suggest then apply.	criterion	
-adopt-set-3	land	bash dev/toy/test-adopt.sh SET-3	SET-3	2026-11-08	The toy adopt-and-update test holds for SET-3.	criterion	
-adopt-set-4	land	bash dev/toy/test-adopt.sh SET-4	SET-4	2026-11-08	The toy adopt-and-update test holds for SET-4.	criterion	
-adopt-set-5	land	bash dev/toy/test-adopt.sh SET-5	SET-5	2026-11-08	The toy adopt-and-update test holds for SET-5.	criterion	
+adopt-set-1	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-1	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1.	criterion	
+adopt-set-2	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-2	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1, suggest then apply.	criterion	
+adopt-set-3	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-3	SET-3	2026-11-08	The toy adopt-and-update test holds for SET-3.	criterion	
+adopt-set-4	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-4	SET-4	2026-11-08	The toy adopt-and-update test holds for SET-4.	criterion	
+adopt-set-5	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-5	SET-5	2026-11-08	The toy adopt-and-update test holds for SET-5.	criterion	
 status-graph-order	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: four sections in the fixed order"	MON-4	-	The status block is Needs you, Roadmap, Total, Goals in that order.	criterion	
 status-graph-levels	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: parallel roots share a level, chained goals sit deeper"	MON-4	-	Parallel goals share a graph level and chained goals sit deeper.	criterion	
 status-graph-marks	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: marks, stage, bar and time to finish"	MON-4	-	The graph marks merged, running and queued goals with stage, bar and time to finish.	criterion	
@@ -102,7 +102,7 @@ status-graph-total	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: 
 status-graph-board	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: the board's total is the same longest chain"	MON-4	-	The board carries the same marks and total as the status block.	criterion	
 step-label-live	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: recording moves the label on, so the finished step is never shown as current"	MON-4	-	A step's label changes when it starts and never shows a finished step as current.	criterion	
 scripts-no-hang	land	bash dev/toy/test-defect.sh no-hang	DEL-1	2026-11-08	A script with no terminal fails with an error instead of hanging on a prompt.	defect	https://github.com/jcl2018/agent-workflow-template/issues/35
-wiki-release-pycache	land	out=$(env -u PYTHONDONTWRITEBYTECODE bash dev/toy/test-wiki.sh 2>&1); echo "$out" | grep -E "^(PASS|FAIL)" >&2; echo "$out" | grep -q "PASS: merge publishes the wiki" && ! echo "$out" | grep -q "^FAIL"	DEL-5	2026-11-08	Merging a goal publishes its wiki pages even when python leaves cache files behind.	defect	https://github.com/jcl2018/agent-workflow-template/issues/58
+wiki-release-pycache	land	out=$(bash dev/toy/ci-env.sh bash dev/toy/test-wiki.sh 2>&1); echo "$out" | grep -E "^(PASS|FAIL)|fatal"; echo "$out" | grep -q "PASS: merge publishes the wiki" && ! echo "$out" | grep -q "^FAIL"	DEL-5	2026-11-08	Merging a goal publishes its wiki pages even when python leaves cache files behind.	defect	https://github.com/jcl2018/agent-workflow-template/issues/58
 worker-runs-release	land	bash dev/toy/test-defect.sh worker-release	DEL-5	2026-11-08	A worker that ends with its pull request waiting runs the release step itself.	defect	https://github.com/jcl2018/agent-workflow-template/pull/61
 pr-body-no-checks	land	bash dev/toy/test-defect.sh pr-body	DEL-4	2026-11-08	The pull request body says nothing about checks and lists each step's result.	defect	https://github.com/jcl2018/agent-workflow-template/pull/62
 defect-wording	land	bash dev/toy/test-defect.sh wording	-	2026-11-08	REG-1, REG-2 and DEL-1 carry the owner's approved words and stay sealed.	criterion	

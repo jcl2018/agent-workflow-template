@@ -284,7 +284,8 @@ def cmd_publish(args):
             return 0
         git("add", "--", *[page + ".md" for page in changed], cwd=wiki)
         head = git("rev-parse", "--short", "HEAD", cwd=root)
-        git("commit", "-m", "Docs from %s: %s" % (head, ", ".join(changed)), cwd=wiki)
+        who = [] if git("config", "user.email", cwd=wiki, check=False) else ["-c", "user.name=workflow-docs", "-c", "user.email=workflow-docs@users.noreply.github.com"]
+        git(*who, "commit", "-m", "Docs from %s: %s" % (head, ", ".join(changed)), cwd=wiki)
         pushed = run(["git", "push", "origin", "HEAD"], cwd=wiki)
         if pushed.returncode:
             sys.exit("REFUSED: wiki push failed, nothing changed: " + pushed.stderr.strip()[:300])
