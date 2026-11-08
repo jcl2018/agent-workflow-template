@@ -7,7 +7,7 @@ Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
 Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests; `wiki_dir` in `.loop/config.json` changes the folder) and finds stale ones. Each feature has a GitHub milestone named for its page, plus a Backlog, made by `skills/workflow-health/scripts/milestone.py`; a goal's pull request goes in its feature's milestone.
 
-One command, `docs.py audit`, checks every page against the template sheet (`skills/workflow-docs/references/template.md`), fixes the mechanical (the Tests tables, with defect tests in their own part), lists wording to rewrite and Reviewed criteria with no test, and the release step runs it on every goal. Commands, flows and how-tos: `skills/workflow-docs/references/commands.md` and `skills/workflow-health/references/milestones.md`.
+One command, `docs.py audit`, checks every page against the template sheet (`skills/workflow-docs/references/template.md`), fixes the mechanical (the Tests tables, with defect tests in their own part), lists wording to rewrite (a defect test's link is shown with its issue number) and Reviewed criteria with no test, and the release step runs it on every goal. Commands, flows and how-tos: `skills/workflow-docs/references/commands.md` and `skills/workflow-health/references/milestones.md`.
 
 The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a release, for the release tests.
 
