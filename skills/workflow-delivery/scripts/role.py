@@ -5,6 +5,8 @@ import os
 import re
 import subprocess
 import sys
+import json
+import datetime
 
 REFUSE = "REFUSED: %s is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME"
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -65,3 +67,25 @@ def sync(base):
     files = git("diff", "--name-only", "--diff-filter=U").stdout.split()
     git("merge", "--abort")
     return "conflict", ", ".join(files) or " ".join((done.stderr or done.stdout).split())[:200]
+
+
+def after(step):
+    """The label once a flow step is recorded: what comes next, never the step that just finished."""
+    return {"idea": "plan", "plan": "build"}.get(step, "checks")
+
+
+def begin(record, step):
+    """A step's label changes when the step starts: set it in the run record and log the start, so the time from here
+    to the recorded step is the step's own. The log word 'start' is no step name, so the gap before it counts for none."""
+    try:
+        with open(record) as handle:
+            state = json.load(handle)
+    except (OSError, ValueError):
+        return
+    state["step"] = step
+    state["updated"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    state.setdefault("log", []).append("%s start %s" % (state["updated"], step))
+    temp = record + ".%d.tmp" % os.getpid()
+    with open(temp, "w") as handle:
+        json.dump(state, handle, indent=2)
+    os.replace(temp, record)

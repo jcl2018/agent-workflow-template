@@ -83,13 +83,13 @@ until_status d done
 
 echo "== the status block"
 python3 "$M/board_status.py" > "$T/block"
-nxt=$(sed -n '/== Next ==/,/== Roadmap ==/p' "$T/block")
-check "Next holds queued goals with what they wait on, and goals waiting to merge" 'grep -q "b: queued, waits on goal a (done)\|b: queued, waits on a (done)" <<<"$nxt" && grep -q "a: waiting to merge" <<<"$nxt"'
-check "Next shows no running goal" '! grep -q "c:" <<<"$nxt"'
+nxt=$(sed -n '/== Roadmap ==/,/== Total ==/p' "$T/block")
+check "Roadmap holds queued goals with what they wait on, and goals waiting to merge" 'grep -q "\[queued\] b .*<- waits on a" <<<"$nxt" && grep -q "\[awaiting merge\] a " <<<"$nxt" && grep -q "waiting to merge" <<<"$nxt"'
+check "Roadmap marks a running goal" 'grep -q "\[running\] c " <<<"$nxt"'
 sets a 'release="merged"'; sets d 'release="merged"'
 python3 "$M/board_status.py" > "$T/block2"
-check "Roadmap counts merged goals per feature" 'sed -n "/== Roadmap ==/,/== Goals ==/p" "$T/block2" | grep -q -- "- Shared: 1 merged goal$" && sed -n "/== Roadmap ==/,/== Goals ==/p" "$T/block2" | grep -q -- "- other: 1 merged goal$"'
-check "merged goals leave Next" '! sed -n "/== Next ==/,/== Roadmap ==/p" "$T/block2" | grep -q "a: waiting to merge"'
+check "Roadmap counts merged goals per feature" 'sed -n "/== Roadmap ==/,/== Total ==/p" "$T/block2" | grep -q -- "- Shared: 1 merged goal$" && sed -n "/== Roadmap ==/,/== Total ==/p" "$T/block2" | grep -q -- "- other: 1 merged goal$"'
+check "merged goals leave the waiting-to-merge list" 'grep -q "\[merged\] a " "$T/block2" && ! grep -q "waiting to merge" "$T/block2"'
 
 echo "== workers report as they go"
 check "each change of step is reported as it happens" 'python3 -c "import json,sys;r=json.load(open(sys.argv[1]))[\"reports\"];assert [x[\"step\"] for x in r][-2:]==[\"plan\",\"build\"] and \"worker c: step build\" in r[-1][\"text\"] and r[-1][\"at\"],r" "$C/loop/runs/c.json"'
@@ -124,7 +124,7 @@ $W go "Add f" --done "f works" --depends-on c --slug f >/dev/null
 $OP run --poll 0.1 > "$T/op.out" 2>&1 & oppid=$!
 until_text "$T/op.out" "== Needs you =="
 check "it starts a batch line by itself" 'until_file "$C/loop/runs/g.json"'
-check "the first pass prints the status block, on the cadence from board.py cadence" 'grep -q "== Next ==" "$T/op.out" && grep -q "^NEXT_DELAY 120$" "$T/op.out"'
+check "the first pass prints the status block, on the cadence from board.py cadence" 'grep -q "== Total ==" "$T/op.out" && grep -q "^NEXT_DELAY 120$" "$T/op.out"'
 sleep 4  # the pass's own starts are seen once more, then it is quiet
 lines=$(wc -l < "$T/op.out"); quiet=$(grep -c "^NO_CHANGE" "$T/op.out"); blocks=$(grep -c "== Needs you ==" "$T/op.out"); sleep 1.5
 check "nothing is printed while nothing changes" '[ "$(wc -l < "$T/op.out")" = "$lines" ]'

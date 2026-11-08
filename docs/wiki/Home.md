@@ -24,7 +24,7 @@ detail and charts are in each skill's `references/` folder.
 | Feature | Skill | Page |
 |---|---|---|
 | Goal to pull request, and release | `workflow-delivery`, `workflow-release` | [Delivery](Delivery) |
-| Run and watch many goals | `workflow-monitoring` | [Monitoring](Monitoring) |
+| Run and watch many goals, with the roadmap drawn as a dependency graph and a total time | `workflow-monitoring` | [Monitoring](Monitoring) |
 | Keep the docs, milestones and release notes in step | `workflow-docs` | [Documentation](Documentation) |
 | Keep tests visible and enforced | `workflow-regression` | [Regression](Regression) |
 | Check the repo's health | `workflow-health` | [Health](Health) |
