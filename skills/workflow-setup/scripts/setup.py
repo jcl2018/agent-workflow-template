@@ -7,7 +7,7 @@ Writes .loop/ (config with every repo setting and its default, queue, findings, 
 with a criterion and a Tests table for each top-level code folder and Home, and the regression workflow, and commits
 them on a branch (default workflow-setup). It also adds every missing private setting outside the repo. An existing
 file is adapted, never overwritten: a config keeps its values, a page keeps its words. It runs git and the sibling
-docs and regression scripts. A second run changes nothing. --bare writes only the config, queue and findings.
+docs and regression scripts. A second run changes nothing. --bare writes only the config, queue and findings, and skips the agent_command refusal.
 """
 import argparse
 import json
@@ -52,43 +52,6 @@ def base_branch(repo):
     return git(repo, "branch", "--show-current") or "main"
 
 
-def survey_checks(repo):
-    """Best guess at the repo's checks, from the files it holds."""
-    has = lambda name: os.path.exists(os.path.join(repo, name))
-    if has("package.json"):
-        try:
-            with open(os.path.join(repo, "package.json")) as handle:
-                scripts = json.load(handle).get("scripts", {})
-            if "test" in scripts and "no test specified" not in scripts["test"]:
-                return ["npm test"]
-        except ValueError:
-            pass
-    if has("Makefile"):
-        with open(os.path.join(repo, "Makefile"), errors="replace") as handle:
-            if any(line.startswith("test:") for line in handle):
-                return ["make test"]
-    if has("Cargo.toml"):
-        return ["cargo test"]
-    if has("go.mod"):
-        return ["go test ./..."]
-    if has("pytest.ini"):
-        return ["python3 -m pytest -q"]
-    for folder in ("tests", "test"):
-        if has(folder):
-            return ["python3 -m unittest discover -s " + folder]
-    if has("pyproject.toml"):
-        return ["python3 -m unittest discover"]
-    files = git(repo, "ls-files").splitlines()
-    found = [name for name in files if os.path.basename(name).startswith("test_") and name.endswith(".py")]
-    if found:
-        folder = os.path.dirname(found[0])
-        return ["python3 -m unittest discover" + (" -s " + folder if folder else "")]
-    for name in ("scripts/validate.sh", "scripts/test.sh", "test.sh"):
-        if has(name):
-            return ["bash " + name]
-    return []
-
-
 def survey_agent():
     """The agent commands this machine has. Permissions stay as the user set them."""
     if shutil.which("claude"):
@@ -98,11 +61,28 @@ def survey_agent():
     return []
 
 
+ALLOWS = {"claude": ("--allowedtools", "--allowed-tools", "--permission-mode"),
+          "codex": ("-s", "--sandbox", "--full-auto")}
+ADD = {"claude": ["--allowedTools", "Bash,Read,Write,Edit"], "codex": ["--full-auto"]}
+
+
+def bare_agent(command):
+    """The line to add when the agent command grants no tools, else None."""
+    name = os.path.basename(command[0]) if command else ""
+    if name in ALLOWS and not any(a.lower().split("=")[0] in ALLOWS[name] or a.lower().startswith("--dangerous") for a in command[1:]):
+        return '"agent_command": %s' % json.dumps(command + ADD[name])
+    return None
+
+
 def merged(repo, old):
     """The config: values already there win, the survey fills the rest."""
     agent = survey_agent()
     config = settings.repo_defaults()
-    config.update(base=base_branch(repo), checks=survey_checks(repo), agent_command=agent)
+    files = git(repo, "ls-files").splitlines()
+    config.update(base=base_branch(repo), checks=survey.checks(repo, files)[0], agent_command=agent)
+    version = survey.version_habit(repo, files)[0]
+    if version and "version_file" not in old:
+        config["version_file"] = version
     config.update(old)
     return config
 
@@ -133,6 +113,9 @@ def main():
         config["criteria"] = False
     found = survey.survey(repo, config)
     print(survey.found_line(found, config))
+    files = git(repo, "ls-files").splitlines()
+    for note in survey.checks(repo, files)[1] + survey.version_habit(repo, files)[1]:
+        print("NOTE: " + note)
     acts = seed.decide(repo, config, found)
     if args.bare:
         acts = [a for a in acts if a[3] in ("config", "file")]
@@ -140,9 +123,20 @@ def main():
         print("%s: %s%s" % (verb, path, " (%s)" % note if note else ""))
     if not args.dry_run:
         print("PRIVATE settings added to %s: %s" % (settings.private_path(), ", ".join(settings.fill_private()) or "none missing"))
+    bare = None if args.bare else bare_agent(config["agent_command"])
+    code = 1 if bare and not args.dry_run else 0
+    if bare:
+        print("REFUSED to call this done: agent_command %s grants no tools, so a background agent stops at its first "
+              "permission prompt. Add to .loop/config.json: %s" % (config["agent_command"], bare))
+    blocked = survey.ignored(repo, [a[1] for a in acts if a[3] and a[0] in ("add", "convert")] + [".loop/config.json"])
+    for path, line in blocked:
+        print("BLOCKED by .gitignore: %s would be left out of the commit. Add this line to .gitignore: %s" % (path, line))
+    if blocked and not args.dry_run:
+        print("REFUSED: nothing written. Fix .gitignore, then run setup again.")
+        return 1
     if not [a for a in acts if a[3]]:
         print("NO CHANGE: nothing to add or convert")
-        return 0
+        return code
     if not config["checks"]:
         print("NOTE: no test command found, so no regression row is seeded")
     if not config["agent_command"]:
@@ -152,7 +146,7 @@ def main():
               "allow to \"agent_command\" yourself, or goals show failed")
     if args.dry_run:
         print("DRY RUN: nothing written")
-        return 0
+        return code
 
     current = git(repo, "branch", "--show-current")
     if current != args.branch:
@@ -169,7 +163,7 @@ def main():
     git(repo, "commit", "-m", "Adopt the workflow loop", "--allow-empty")
     print("WROTE the adoption on branch %s at %s" % (args.branch, git(repo, "rev-parse", "--short", "HEAD")))
     print("NEXT: review the branch, then merge it into %s; then run milestone.py new --all --live" % config["base"])
-    return 0
+    return code
 
 
 if __name__ == "__main__":

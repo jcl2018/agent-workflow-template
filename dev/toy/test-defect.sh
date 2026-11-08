@@ -25,7 +25,7 @@ toy() { # a toy repo with the loop set up, the stand-in flow and the fake gh
   "$here/dev/toy/make.sh" "$d/toy" >/dev/null || exit 1
   export LOOP_FLOW="$d/toy/flow.json" PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
   cd "$d/toy/repo" || exit 1
-  python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+  python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null || true  # a bare agent_command exits 1 after writing
   git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 }
 finish() { # finish SLUG TEXT: a goal whose flow is done, with a change committed

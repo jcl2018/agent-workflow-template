@@ -206,8 +206,8 @@ def contract(root):
         return []
     found, names = [], []
     for page in sorted(read_map(root)):
-        if page != "Home" and page not in PREFIXES:
-            found.append(("PAGE", page, "not allowed. Fix: use %s or Home" % ", ".join(sorted(PREFIXES))))
+        if not PAGE.match(page):
+            found.append(("PAGE", page, "not a page name. Fix: letters, digits and hyphens, or remove its .loop/docs.tsv row"))
         elif page != "Home" and os.path.exists(os.path.join(root, wiki_dir(root), page + ".md")):
             names.append(page)
     return found + criteria.contract(root, names, {})
@@ -215,11 +215,16 @@ def contract(root):
 
 def cmd_criteria(args):
     root = top()
-    prefix = PREFIXES.get(args.page)
-    if not prefix:
-        sys.exit("REFUSED: %s has no criteria. Fix: use %s." % (args.page, ", ".join(sorted(PREFIXES))))
-    used = [0]
     folder = os.path.join(root, wiki_dir(root))
+    if args.page not in read_map(root) or args.page == "Home":
+        sys.exit("REFUSED: %s has no criteria. Fix: use a page listed in .loop/docs.tsv, not Home." % args.page)
+    held = ""
+    if os.path.exists(os.path.join(folder, args.page + ".md")):
+        with open(os.path.join(folder, args.page + ".md")) as handle:
+            held = handle.read()
+    own = re.findall(r"^- ([A-Z]{2,5})-\d+: ", held, re.M)
+    prefix = PREFIXES.get(args.page) or (own[0] if own else re.sub(r"[^A-Z]", "", args.page.upper())[:3].ljust(2, "X"))
+    used = [0]
     for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
         if name.endswith(".md"):
             with open(os.path.join(folder, name)) as handle:

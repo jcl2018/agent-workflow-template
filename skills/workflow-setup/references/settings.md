@@ -45,6 +45,7 @@ Outside the repo, never committed: `~/.workflow-loop/flow.json` (or `$LOOP_FLOW`
 | `env` | `{}` | Flow file: environment that puts the skills in their unattended mode. |
 | `probe` | `[]` | Flow file: a command that prints probe_expect when the skills run unattended. |
 | `probe_expect` | `unattended` | Flow file: the word the probe must print. |
+| `leak_prefixes` | `[]` | Flow file: case-insensitive regexes the package scan blocks in any file or file name, as your leak hook does. |
 | `limit` | `2700` | Flow file: seconds one flow step may run. |
 | `rules` | `[]` | Health file: your own health rules, each {name, command, fix}. |
 | `repos` | `[]` | Followed repos: one path a line in the repos file, shown on the board. |
