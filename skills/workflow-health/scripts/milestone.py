@@ -24,6 +24,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 BACKLOG = "Backlog"
+URLS = {}
 LIST = "repos/{owner}/{repo}/milestones?state=all&per_page=100"
 
 
@@ -61,6 +62,7 @@ def live(args):
 def held(root):
     done = run(["gh", "api", LIST], root)
     try:
+        URLS.update({item["title"]: item.get("html_url", "") for item in json.loads(done.stdout)})
         return {item["title"]: item["number"] for item in json.loads(done.stdout)}
     except (ValueError, KeyError, TypeError):
         sys.exit("REFUSED: could not read the milestones: %s" % (done.stderr.strip() or "no answer")[:200])
@@ -75,9 +77,25 @@ def title_of(root, name):
     sys.exit("REFUSED: %r is not a feature. Fix: use backlog or one of %s." % (name, ", ".join(features(root)) or "none"))
 
 
+def link_page(root, title):
+    """Put 'Milestone: <url>' under the feature page's title, unless the page has one."""
+    try:
+        folder = json.load(open(os.path.join(root, ".loop", "config.json"))).get("wiki_dir") or "docs/wiki"
+        path = os.path.join(root, folder, title + ".md")
+        text = open(path).read()
+    except (OSError, ValueError):
+        return
+    if URLS.get(title) and not re.search(r"^Milestone: \S", text.partition("\n## ")[0], re.M):
+        with open(path, "w") as handle:
+            handle.write(re.sub(r"^# .*$", lambda m: "%s\n\nMilestone: %s" % (m.group(0), URLS[title]), text, count=1, flags=re.M))
+        print("LINKED %s to its milestone" % title)
+
+
 def ensure(root, title, args, have):
     if title in have:
         print("EXISTS %s" % title)
+        if live(args) and title != BACKLOG:
+            link_page(root, title)
     elif not live(args):
         print("WOULD create milestone %s" % title)
     else:
@@ -86,7 +104,13 @@ def ensure(root, title, args, have):
         if made.returncode:
             sys.exit("REFUSED: could not create %s: %s" % (title, made.stderr.strip()[:200]))
         have[title] = 0
+        try:
+            URLS[title] = json.loads(made.stdout)["html_url"]
+        except (ValueError, KeyError, TypeError):
+            pass
         print("CREATED %s" % title)
+        if title != BACKLOG:
+            link_page(root, title)
 
 
 def cmd_features(_args):

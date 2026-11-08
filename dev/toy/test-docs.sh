@@ -95,8 +95,8 @@ p = ".loop/goals/stale.md"; t = open(p).read().replace("## Verify by hand\n", "#
 PY
 git commit -qam "Verify steps"
 bash "$here/dev/toy/flow-done.sh" stale; $goal check stale >/dev/null; $goal pr stale >/dev/null
-$rel ask stale | grep -q "STALE pages" && ok "ask warns about stale" || bad "ask stale"
-$rel cut stale 2>&1 | grep -q "pages are stale" && ok "cut refused stale" || bad "cut stale"
+$rel ask stale | grep -q "STALE" && ok "ask warns about stale" || bad "ask stale"
+$rel cut stale 2>&1 | grep -q "docs audit found trouble" && ok "cut refused stale" || bad "cut stale"
 echo "Covers that change too, with a sentence about it." >> docs/wiki/Using-the-toy.md; git add -A; git commit -qm "Update docs"
 $goal check stale >/dev/null
 $rel cut stale | grep -q "^DRAFT" && ok "cut after the docs update" || bad "cut after update"

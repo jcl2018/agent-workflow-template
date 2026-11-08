@@ -80,6 +80,12 @@ schedule-setting	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: chan
 bad-schedule-refused	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a setting that is not five cron fields is refused"	REG-4	2026-11-08	A schedule setting that is not a cron time is refused.
 every-row-described	land	python3 skills/workflow-regression/scripts/regression.py sync | grep -c "^NODESC" | grep -qx 0	REG-2	2026-11-08	Every test row in this repo has a description.
 auto-release	land	bash dev/toy/test-autorelease.sh 2>&1 | grep -q "ALL PASS"	DEL-5	2026-11-08	A merged goal is released automatically when auto-release is on.
+template-sheet	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: changing the cap in the sheet"	DOC-1	2026-11-08	The page rules are read from the template sheet, so changing the sheet changes the check.
+docs-audit	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: wording to rewrite is listed"	DOC-4	2026-11-08	The docs command fixes the Tests table, lists wording to rewrite and exits 1 while any is left.
+release-runs-audit	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: the release step reads the audit"	DOC-4	2026-11-08	The release step reads the docs command and sees its trouble.
+untested-listed	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: a test whose target is gone"	DOC-3	2026-11-08	A Reviewed criterion with no test, or a test that no longer matches, is listed.
+milestone-links	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: milestone.py links"	DOC-5	2026-11-08	A feature page links to its GitHub milestone, and a missing Backlog is found.
+release-note-found	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: a tag with no release note"	DOC-5	2026-11-08	A release with no release note is found.
 operate-all	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "ALL PASS"	MON-1	-	The operate command's whole toy suite passes.
 worker-reports-live	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the worker's agent sees it the next time goal.py runs, once"	MON-2	2026-11-08	A report to a running worker reaches its agent once, the next time goal.py runs.
 status-roadmap-features	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: Roadmap counts merged goals per feature"	MON-4	-	The status block's Roadmap counts merged goals per feature.

@@ -142,7 +142,7 @@ out=$($rel ask nocheck 2>&1 || true); grep -q "have not passed" <<<"$out" && ! g
 git switch -q main; mkdir -p docs/wiki; echo page > docs/wiki/Calc.md; printf 'Calc\tcalc.py\n' > .loop/docs.tsv
 git add -A; git commit -qm "Map the Calc page"
 LOOP_BATCH=1 finish stalepage
-out=$($rel ask stalepage); grep -q "REFUSED: these pages are stale" <<<"$out" && grep -q "WAITING stalepage" <<<"$out" && ok "stale page refuses, owner decides" || bad "stale gate"
+out=$($rel ask stalepage); grep -q "REFUSED: the docs audit found trouble" <<<"$out" && grep -q "WAITING stalepage" <<<"$out" && ok "stale page refuses, owner decides" || bad "stale gate"
 git switch -q main; git rm -q .loop/docs.tsv docs/wiki/Calc.md; git commit -qm "Unmap the Calc page"
 grep -Eq "draft=false|release edit|release upload" "$FAKE_GH_DIR/calls.log" && bad "publish call" || ok "auto mode only made drafts"
 [ "$(grep -c '^release create' "$FAKE_GH_DIR/calls.log")" = "$(( $(grep -c '^release create' <(head -n "$n" "$FAKE_GH_DIR/calls.log")) + 4 ))" ] && ok "exactly four auto drafts" || bad "draft count"

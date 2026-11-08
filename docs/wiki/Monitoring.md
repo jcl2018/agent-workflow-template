@@ -1,6 +1,8 @@
 <!-- workflow-docs -->
 # Monitoring
 
+Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
+
 ## Summary
 
 Skill: `workflow-monitoring`. The operation session never does work: `operate.py run` is its one command; it plans queued goals as a dependency graph (`depends-on`, capped by `parallel`), starts one worker per ready goal, watches and reports, and each worker runs its own loop and reports each change of step as it happens, and the session can send it an answer with `operate.py send`. Run the commands from the main checkout, on the base branch. Needs you also lists a merged goal whose wiki publish was refused, with the page and the reason. Codex has run as a monitored background agent on a toy repo; it needs `-s workspace-write`, with the git folder and the remote as writable roots.

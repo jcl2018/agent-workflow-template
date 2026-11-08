@@ -116,9 +116,8 @@ $cri unreview DEL-1 --user | grep -q "UNREVIEWED DEL-1" && sub 's/prints a media
 git checkout -q -- docs/wiki/Delivery.md; good; git add -A; git commit -qm "Good page again" >/dev/null || true
 
 echo "== regression sync reports criteria with no row"
-page Delivery "- DEL-1: The calculator prints a median.
-- DEL-2: It exits 0." "- DEL-1: del-1
-- DEL-2: del-2"
+page Delivery "- DEL-1: **Unreviewed** The calculator prints a median.
+- DEL-2: **Unreviewed** It exits 0."; $cri render >/dev/null
 out=$($reg sync || true); echo "$out"
 grep -q "^GAP DEL-1" <<<"$out" && grep -q "^GAP DEL-2" <<<"$out" && ok "both criteria are gaps" || bad "gaps"
 $reg add del-1 --level land --command "true" --goal DEL-1 >/dev/null
@@ -135,19 +134,19 @@ python3 - <<'PY'
 p = ".loop/goals/crit.md"; t = open(p).read().replace("## Verify by hand\n", "## Verify by hand\n\n1. Open calc.py.\n   Expect: the change.\n", 1); open(p, "w").write(t)
 PY
 echo "Covers the change too, with more words for the check." >> docs/wiki/Delivery.md
-git add -A; git commit -qm "Change calc"
+$cri render >/dev/null; git add -A; git commit -qm "Change calc"
 bash "$here/dev/toy/flow-done.sh" crit; $goal check crit >/dev/null; $goal pr crit >/dev/null
 $rel cut crit 2>&1 | grep -q "DEL-2 (no regression row)" && ok "cut refuses a missing row" || bad "cut missing row"
 $reg add del-2 --level land --command "false" --goal DEL-2 >/dev/null
-git add -A; git commit -qm "Failing row" >/dev/null; $goal check crit >/dev/null
+$cri render >/dev/null; git add -A; git commit -qm "Failing row" >/dev/null; $goal check crit >/dev/null
 $rel cut crit 2>&1 | grep -q "DEL-2 (row del-2 is a draft or failing)" && ok "cut refuses a failing row" || bad "cut failing row"
 $reg add del-2 --level land --command "true" --goal DEL-2 >/dev/null
 $reg add del-2b --level land --command "false" --goal DEL-2 >/dev/null
-git add -A; git commit -qm "Second row" >/dev/null; $goal check crit >/dev/null
+$cri render >/dev/null; git add -A; git commit -qm "Second row" >/dev/null; $goal check crit >/dev/null
 $rel cut crit 2>&1 | grep -q "DEL-2 (row del-2b is a draft or failing)" && ok "cut checks every row of a criterion" || bad "cut second row"
 $reg sync >/dev/null || true; python3 "$here/skills/workflow-regression/scripts/regression.py" criteria | grep -q "del-2b" && ok "regression criteria runs every row" || bad "criteria every row"
 $reg add del-2b --level land --command "true" --goal DEL-2 >/dev/null
-git add -A; git commit -qm "Passing row" >/dev/null; $goal check crit >/dev/null
+$cri render >/dev/null; git add -A; git commit -qm "Passing row" >/dev/null; $goal check crit >/dev/null
 mv .loop/docs.tsv "$d/docs.tsv.away"
 (cd "$here/skills/workflow-release/scripts" && python3 -c "import release; print(release.criteria_trouble('$PWD_REPO', {}))") | grep -q '^\[\]$' && ok "no docs.tsv: criteria are ignored" || bad "no docs.tsv"
 
