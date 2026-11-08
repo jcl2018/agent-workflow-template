@@ -28,5 +28,6 @@
   "criteria": true,
   "require_checks": false,
   "auto_approve": true,
-  "auto_merge": true
+  "auto_merge": true,
+  "routines": []
 }

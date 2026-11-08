@@ -7,6 +7,8 @@ Skill: `workflow-monitoring`. The operation session never does work: it assigns 
 
 Commands, flows and how-tos: `skills/workflow-monitoring/references/commands.md`.
 
+A failed release is recorded as `release_error` and lists under Needs you beside `wiki_error`.
+
 ## Criteria
 
 - MON-1: **Reviewed 2026-11-08** Roles and start: one command starts the operation session and drives the whole process deterministically (assign, start workers, watch, cadence printouts); when I start it by talking to an LLM, the LLM runs that command and does not improvise the process. The operation session creates the work and the workers do it; it assigns goals in batches, starts one worker per goal in its own worktree, and never builds; goals touching the same files never run together; a failed goal can get one fresh worker. <!-- reviewed fda9b7c7 -->

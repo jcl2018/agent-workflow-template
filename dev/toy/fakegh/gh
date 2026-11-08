@@ -9,13 +9,18 @@ case "$1 $2" in
   "issue edit"|"issue close"|"issue reopen"|"issue comment"|"pr edit") [ -f "$d/issues.json" ] || [ "$1" = pr ] && exec python3 "$here/fake.py" "$@";;
 esac
 case "$1 $2" in
-  "pr create") head=""; while [ $# -gt 0 ]; do [ "$1" = --head ] && head=$2; shift; done
-     n=$(( $(ls "$d"/pr-* 2>/dev/null | wc -l) + 1 )); echo "$head" > "$d/pr-$n"
+  "pr create") head=""; body=""; while [ $# -gt 0 ]; do [ "$1" = --head ] && head=$2; [ "$1" = --body ] && body=$2; shift; done
+     n=$(( $(ls "$d"/pr-[0-9]* 2>/dev/null | wc -l) + 1 )); echo "$head" > "$d/pr-$n"; printf '%s\n' "$body" > "$d/body-$n"
      echo "https://example.test/pull/$n";;
   "pr view") [ -n "${FAKE_GH_PR_STATE:-}" ] && { echo "{\"state\": \"$FAKE_GH_PR_STATE\"}"; exit 0; }
      echo "no pull requests found" >&2; exit 1;;
-  "pr merge") [ -n "${FAKE_GH_MERGE_FAIL:-}" ] && { echo "merge refused" >&2; exit 1; }; echo "merged";;
-  "release create") while [ $# -gt 0 ]; do [ "$1" = --notes-file ] && cat "$2" >> "$d/notes.log"; shift; done
+  "pr merge") [ -n "${FAKE_GH_MERGE_FAIL:-}" ] && { echo "merge refused" >&2; exit 1; }; 
+     if [ -n "${FAKE_GH_MERGE_BRANCH:-}" ]; then  # really merge the branch into origin/main
+       t=$(mktemp -d); git clone -q "$FAKE_GH_ORIGIN" "$t" && ( cd "$t" && git config user.email t@example.test && git config user.name Toy \
+         && git merge -q --no-edit "origin/$FAKE_GH_MERGE_BRANCH" && git push -q origin HEAD:main ); rm -rf "$t"
+     fi; echo "merged";;
+  "release create") [ -n "${FAKE_GH_RELEASE_FAIL:-}" ] && { echo "release refused" >&2; exit 1; }
+     while [ $# -gt 0 ]; do [ "$1" = --notes-file ] && cat "$2" >> "$d/notes.log"; shift; done
      echo "https://example.test/releases/draft";;
   "pr list") echo "[]";;
   "issue list") python3 -c '

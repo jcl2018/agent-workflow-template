@@ -107,7 +107,7 @@ Three keys in `.loop/config.json` remove gates, and each is off unless the owner
 
 - `"require_checks": false` with an empty `checks` list: `check` tests nothing and says so, and `pr` opens anyway.
 - `"auto_approve": true`: `record` approves what a step leaves for the owner, logs it as auto-approved, and goes on.
-- `"auto_merge": true`: after `pr`, the release step merges the pull request.
+- `"auto_merge": true`: after `pr`, the release step runs the `routines` from `.loop/config.json`, merges the pull request, bumps the version once and publishes a GitHub release with a CHANGELOG entry. With no checks configured the pull request body says none ran.
 
 This repo has all three on. Say so whenever you report a goal here.
 
