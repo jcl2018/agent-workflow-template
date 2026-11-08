@@ -156,6 +156,8 @@ def sections(root=None, at=None):
         report = (run.get("report") or {}).get("text", "")
         if run.get("wiki_error"):
             needs.append("- %s (wiki not published): %s" % (run["slug"], " ".join(str(run["wiki_error"]).split())[:200]))
+        if run.get("release_error"):
+            needs.append("- %s (release failed): %s" % (run["slug"], " ".join(str(run["release_error"]).split())[:200]))
         if run.get("status") in ASKING:
             ask = run.get("waiting") or {}
             words = ask.get("words") or ["resume " + run["slug"]]

@@ -11,8 +11,8 @@ missing, use `workflow-setup` first.
 
 You publish the draft release yourself. `release.py` never publishes, never pushes a tag and never merges.
 
-**For now, the release step merges and keeps the wiki current.** Where `"auto_merge": true` is set, which this repo does,
-and `.loop/docs.tsv` exists, first bring the goal's wiki pages up to date:
+**The release step is automatic.** Where `"auto_merge": true` is set, which this repo does, and `.loop/docs.tsv` exists,
+first bring the goal's wiki pages up to date:
 
 ```bash
 python3 scripts/wiki.py prepare <slug>
@@ -20,11 +20,18 @@ python3 scripts/wiki.py prepare <slug>
 
 It lists each mapped page that is stale. Rewrite those pages from what the goal changed, then run
 `wiki.py prepare <slug> --commit`: it commits them on the goal's branch and pushes it. Then run `scripts/merge.py <slug>`
-after `goal.py pr`: it refuses while a mapped page is stale, merges the goal's open pull request into the base branch,
-records it, and publishes the wiki from a clean checkout of `origin/<base>` (`wiki.py publish <slug>`). If publish
-refuses, the merge stands: the page and the reason are recorded as `wiki_error` in the goal's report and show under Needs
-you. It cuts no version. Without the switch it refuses, and the owner merges. `ask`, `cut` and `leave` stay below for the
-owner's own routines before a release later.
+after `goal.py pr`. It asks nothing and drafts nothing:
+
+1. It refuses while a mapped page is stale.
+2. It runs each entry of `routines` in `.loop/config.json` (shell strings or argv lists), read from `origin/<base>` so a
+   pull request cannot add one, and refuses the merge if one exits non-zero.
+3. It merges the goal's open pull request, then bumps the version once on the base branch (patch; minor for a new file or
+   `feat` commit; a breaking change is major, or minor while the version is 0.x), adds a CHANGELOG.md entry and creates a
+   published GitHub release (`autorelease.py`). A retry never bumps twice: the pushed version is recorded.
+4. It publishes the wiki from `origin/<base>` (`wiki.py publish <slug>`). A refused publish is `wiki_error`.
+
+Any release failure, a failed merge included, is recorded on the goal as `release_error` and shows under Needs you.
+Without the switch it refuses, and the owner merges. `ask`, `cut` and `leave` below are the older manual path.
 
 ## `merge <slug>`
 

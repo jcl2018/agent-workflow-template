@@ -133,7 +133,8 @@ for s2 in plan review qa ship; do step open $s2 >/dev/null; done
 printf '\n\ndef open_():\n    return 1\n' >> calc.py; git commit -qam "Add open"; verify open
 $goal check open | grep -q "NO CHECKS open: require_checks is off" && ok "no checks: nothing is tested, and it says so" || bad "no checks"
 out=$($goal pr open); grep -q "^PR " <<<"$out" && grep -q "NEXT: workflow-release merges it: merge.py open" <<<"$out" && ok "pr opens with no checks and names the merge step" || bad "pr no gates: $out"
-FAKE_GH_PR_STATE=OPEN python3 "$here/skills/workflow-release/scripts/merge.py" open | grep -q "^MERGED" && grep -q "^pr merge .* --merge" "$FAKE_GH_DIR/calls.log" && [ "$(field open release)" = merged ] && ok "auto_merge: the release step merges the pull request" || bad "auto merge"
+FAKE_GH_PR_STATE=OPEN python3 "$here/skills/workflow-release/scripts/merge.py" open | grep -q "^MERGED" && grep -q "^pr merge .* --merge" "$FAKE_GH_DIR/calls.log" && [ "$(field open release)" = cut ] && ok "auto_merge: the release step merges the pull request and releases it" || bad "auto merge"
+git fetch -q origin; git switch -q main; git merge -q --ff-only origin/main
 FAKE_GH_PR_STATE=CLOSED python3 "$here/skills/workflow-release/scripts/merge.py" open 2>&1 | grep -q "is CLOSED, not open" && ok "a closed pull request is not merged" || bad "closed pr"
 git switch -q main; cp "$d/cfg.gated" .loop/config.json; git commit -qam "Gates back on" >/dev/null; git push -q origin main
 
