@@ -63,7 +63,7 @@ live in the owning skill's `SKILL.md` and `references/`, not on the page.
 python3 scripts/docs.py criteria <Page>
 ```
 
-It prints the format and the next free id for the page (`DEL`, `DOC`, `HLT`, `MIL`, `MON`, `REG`, `REL`).
+It prints the format and the next free id for the page (`DEL`, `DOC`, `HLT`, `MON`, `REG`, `SET`).
 
 Two levels: criteria are for the owner, tests are for the machine.
 

@@ -118,7 +118,7 @@ Keep the wiki in step with the code. Pages live in `docs/wiki/`, so they're revi
 `publish` only adds or updates pages it wrote, unless you name one with `--adopt`, and never deletes one. `restore`
 undoes the last publish.
 
-With `"criteria": true` in the config, `check` also holds the wiki to a contract: the feature pages plus Home: each feature page is a Summary, up to 6 plain
+With `"criteria": true` in the config, `check` also holds the wiki to a contract: the feature pages plus Home: each feature page is a Summary, up to 5 plain
 criteria marked Unreviewed or Reviewed with a date, and a Tests table of the regression rows that enforce them with their
 last result. A Reviewed criterion's wording is locked until the owner marks it Unreviewed.
 
@@ -156,7 +156,7 @@ From install to one finished goal.
    with what waits on you. Use `report` for a snapshot.
 5. **Answer what waits on you**, in the exact words `watch` prints.
 6. **Review.** The goal ends at a pull request. A monitored goal answers `leave` by itself, unless you started it with
-   `--release ask`; then it waits for `cut <slug>` or `leave <slug>` (see [Release](docs/wiki/Release.md)). With
+   `--release ask`; then it waits for `cut <slug>` or `leave <slug>` (see [Delivery](docs/wiki/Delivery.md)). With
    `"release_auto": true`, it decides from its diff and may cut a draft instead. Answer before you merge, because `cut`
    commits on the goal's branch. Review and merge the pull request yourself; nothing here merges unless `auto_merge` is on.
 

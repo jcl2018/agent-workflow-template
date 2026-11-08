@@ -129,6 +129,6 @@ echo "== one way to run"
 check "go has no --session" '$W go "x" --done y --session 2>&1 | grep -q "unrecognized arguments: --session"'
 check "batch add has no --session" '$BA add night --goal x --done y --session 2>&1 | grep -q "unrecognized arguments: --session"'
 check "board.py has no take or session" '! $BO take g1 2>&1 | grep -q TAKEN && $BO session add x --repo r 2>&1 | grep -q "invalid choice"'
-check "a grep finds nothing for the old upgrade paths" '[ -z "$(grep -rniE --exclude=test-workers.sh -- "--session|board.py take|session (add|update|remove)|visible session|hand_over|sessions\.json|taken over" "$here/skills" "$here/docs/wiki" "$here/README.md" "$here/listing.json" "$here/dev/toy")" ]'
+check "a grep finds nothing for the old upgrade paths" '[ -z "$(grep -rniE --exclude=test-workers.sh -- "--session|board.py take|session (add|update|remove) |visible session|hand_over|sessions\.json|taken over" "$here/skills" "$here/docs/wiki" "$here/README.md" "$here/listing.json" "$here/dev/toy")" ]'
 check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -size +20479c)" ]'
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

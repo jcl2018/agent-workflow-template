@@ -27,7 +27,7 @@ suggest
   and an issue you moved to a feature stays there. With no `--live`, `GH_TOKEN` or `GITHUB_TOKEN` it only prints what it
   would do. Create the milestones first (see Milestones).
 
-The milestones the issues land in are on the [Milestones](Milestones) page.
+The milestones the issues land in are on the [Documentation](Documentation) page.
 
 ### Stage charts
 

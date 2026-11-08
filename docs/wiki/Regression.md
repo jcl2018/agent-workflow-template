@@ -3,28 +3,29 @@
 
 ## Summary
 
-Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.loop/regression.tsv`. A row tests code, not a delivery level: delivery has one flow. Like every script, it refuses rather than waits when no terminal is attached.
+Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.loop/regression.tsv`: a row tests code, not a delivery level. The `goal` column names the one criterion a row proves, and `-` marks a row that proves none yet.
 
 Commands, flows and how-tos: `skills/workflow-regression/references/commands.md`.
 
 ## Criteria
 
-- REG-4: **Unreviewed** A test counts only after it has been seen failing.
-- REG-5: **Unreviewed** A failure already known doesn't block work or open an issue.
-- REG-6: **Unreviewed** Without a GitHub token, nothing reaches GitHub.
-- REG-7: **Unreviewed** A failing test keeps one issue until it passes.
-- REG-8: **Unreviewed** Every test belongs to exactly one criterion.
-- REG-9: **Unreviewed** Every run records each test's last status and date, and the regression workflow on GitHub runs them all and shows them.
+- REG-1: **Reviewed 2026-11-08** Every criterion is enforced: every Reviewed criterion has at least one test; no passing test = not enforced; release refused while one is unmet. <!-- reviewed 732c2385 -->
+- REG-2: **Reviewed 2026-11-08** Test format: each test listed in one fixed format: name, the criterion it proves with its words, what it checks in one plain line, when it runs (push, nightly, both), last result and date, seen failing once. <!-- reviewed bb7597fb -->
+- REG-3: **Reviewed 2026-11-08** One command runs it, the same way for me, the loop and GitHub. <!-- reviewed fccc7d92 -->
+- REG-4: **Reviewed 2026-11-08** Runs in GitHub Actions: the routine run lives in GitHub Actions, not a session, on every push and nightly, with the schedule as a setting I can change (e.g. hourly). <!-- reviewed 9fce961f -->
+- REG-5: **Reviewed 2026-11-08** Failures go to GitHub: one issue per failing test, updated, closed on pass; known failures don't block; no token = preview only. <!-- reviewed 8074710d -->
 
 ## Tests
 
 | Criterion | Test | Last run |
 |---|---|---|
-| REG-4 | [REG-1](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-4 | [tests-seen-failing](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-5 | [REG-2](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-6 | [REG-3](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-7 | [one-issue](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-8 | [one-link](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-9 | [run-ledger](../../.loop/regression.tsv) | PASS 2026-11-07 |
-| REG-9 | [ci-summary](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-1 | [refused-unmet](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-2 | [unproven-blocks](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-2 | [tests-seen-failing](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-2 | [one-link](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-2 | [run-ledger](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-3 | **not enforced** | |
+| REG-4 | [ci-summary](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-5 | [known-no-block](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-5 | [no-token-dry-run](../../.loop/regression.tsv) | PASS 2026-11-07 |
+| REG-5 | [one-issue](../../.loop/regression.tsv) | PASS 2026-11-07 |
