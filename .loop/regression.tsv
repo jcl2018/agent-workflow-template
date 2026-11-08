@@ -5,7 +5,7 @@ pending-waits	land	bash dev/toy/test-rows.sh DEL-3	DEL-3	2026-11-07	A step that 
 stale-found	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: stale found"	DOC-4	2026-11-07	A wiki page behind the code it covers is reported as stale.
 publish-refused-stale	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"	DOC-4	2026-11-07	The wiki is not published while a page is stale.
 refuse-replace	land	bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"	DOC-4	2026-11-07	A wiki page the tool did not write is never overwritten.
-overlap-held	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the overlapping goal is held"	MON-1	2026-11-07	A goal whose files overlap a running goal is held back.
+dependency-held	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the dependent goal is held until its dependency is merged"	MON-1	2026-11-07	A goal that depends on an unmerged goal is held until that goal merges.
 retired-leaves-waiting	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a retired goal leaves Waiting on you"	MON-4	2026-11-07	A retired goal no longer shows under Waiting on you.
 unproven-blocks	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"	REG-2	2026-11-07	A test never seen failing blocks the run.
 known-no-block	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: known doesn.t block or open an issue"	REG-5	2026-11-07	A known failure does not block the run or open an issue.
@@ -86,3 +86,7 @@ release-runs-audit	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: 
 untested-listed	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: a test whose target is gone"	DOC-3	2026-11-08	A Reviewed criterion with no test, or a test that no longer matches, is listed.
 milestone-links	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: milestone.py links"	DOC-5	2026-11-08	A feature page links to its GitHub milestone, and a missing Backlog is found.
 release-note-found	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: a tag with no release note"	DOC-5	2026-11-08	A release with no release note is found.
+operate-all	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "ALL PASS"	MON-1	-	The operate command's whole toy suite passes.
+worker-reports-live	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the worker's agent sees it the next time goal.py runs, once"	MON-2	2026-11-08	A report to a running worker reaches its agent once, the next time goal.py runs.
+status-roadmap-features	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: Roadmap counts merged goals per feature"	MON-4	-	The status block's Roadmap counts merged goals per feature.
+operate-wakes-on-report	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: a worker's report wakes it before the cadence, and one line says nothing changed"	MON-5	2026-11-08	A worker's report wakes operate before the cadence; a quiet cycle prints one line.

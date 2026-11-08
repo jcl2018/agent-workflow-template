@@ -21,6 +21,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import graph  # noqa: E402
+
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
@@ -163,23 +166,11 @@ def queue_of(path):
         return []
     goals = []
     for line in lines:
-        if line.startswith("- slug:"):
-            item = {"touches": [], "level": "goal"}
-            for part in line.strip()[2:].split("|"):
-                key, _, value = part.partition(":")
-                key, value = key.strip(), clean(value)
-                if key == "touches":
-                    item["touches"] = [p.strip() for p in value.split(",") if p.strip()]
-                elif key in ("slug", "goal"):
-                    item[key] = value
-            if SLUG.match(item.get("slug", "")):
-                goals.append(item)
+        item = graph.parse(line)
+        if item and SLUG.match(item["slug"]):
+            item["level"] = "goal"
+            goals.append(item)
     return goals
-
-
-def overlap(a, b):
-    a, b = os.path.normpath(a), os.path.normpath(b)
-    return a == b or a.startswith(b + os.sep) or b.startswith(a + os.sep)
 
 
 def started(run):
@@ -221,20 +212,17 @@ def collect(name, path, base, at):
             "took": (last - begun).total_seconds() if begun and last else 0, "last": run.get("updated") or "",
             "waits_on": ", ".join(run.get("waits_on") or []), "touches": run.get("touches") or [],
             "eta": get("eta"), "next": get("next"), "branch": get("branch"), "reason": clean((run.get("retired") or {}).get("reason"))})
+    by_slug = {r["slug"]: r for r in records}
+    names = {goal["slug"] for goal in queue_of(path)}
+    used = sum(1 for r in live if graph.holds_slot(r))
     for goal in queue_of(path):
-        if any(r["slug"] == goal["slug"] for r in records):
+        if goal["slug"] in by_slug:
             continue
-        why, blocker = "ready to start", ""
-        for run in live:
-            hit = [t for t in goal["touches"] for u in run.get("touches") or [] if overlap(t, u)]
-            if hit:
-                why, blocker = "goal %s (shared %s)" % (run["slug"], hit[0]), run["slug"]
-                break
-        else:
-            used = sum(1 for r in live if r.get("status") != "running" or r.get("pid"))
-            if used >= int(cfg.get("parallel", 3) or 3):
-                why = "a free slot (%d of %s running)" % (used, cfg.get("parallel", 3))
-        deps.append({"repo": name, "slug": goal["slug"], "waits_on": why, "on": blocker, "goal": clean(goal.get("goal"), 80),
+        waits = graph.unmet(goal, by_slug, names)
+        why = ", ".join("goal " + text for _, text in waits) if waits else "ready to start"
+        if not waits and used >= int(cfg.get("parallel", 3) or 3):
+            why = "a free slot (%d of %s running)" % (used, cfg.get("parallel", 3))
+        deps.append({"repo": name, "slug": goal["slug"], "waits_on": why, "on": ", ".join(slug for slug, _ in waits), "goal": clean(goal.get("goal"), 80),
                      "level": goal["level"], "touches": goal["touches"]})
     return rows, deps
 

@@ -69,8 +69,20 @@ See where things stand, or pick up a failed goal:
 `mend` and `resume_on_limit` in `.loop/config.json` let `watch` give a failed goal one fresh agent, and continue after a
 usage limit. Both are off until you turn them on. Background agents need the tools you allow in `agent_command`.
 
-Run an operation session that follows everything and keeps a progress board (see
-`skills/workflow-monitoring/references/operation.md`):
+Run the operation session with one command. It plans queued goals as a dependency graph (`depends-on` on a queue line,
+at most `parallel` workers at once, no waiting for shared files), starts every goal whose dependencies are merged, watches
+the workers, updates the board and prints the status block on the cadence, or at once when a worker reports, and prints one
+line when nothing changed:
+
+```text
+python3 skills/workflow-monitoring/scripts/operate.py run
+python3 skills/workflow-monitoring/scripts/operate.py send <slug> "<answer or follow-up>"
+```
+
+A goal merges the latest base branch before its pull request and reruns its checks if that changed anything; only a real
+conflict costs it a try. Goal steps refuse outside a worker.
+
+The pieces it runs, if you want them by hand (see `skills/workflow-monitoring/references/operation.md`):
 
 ```text
 python3 skills/workflow-monitoring/scripts/board.py board

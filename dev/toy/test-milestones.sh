@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test feature milestones and health run on a throwaway toy repo with a fake gh. usage: test-milestones.sh [DIR]
 set -u
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1

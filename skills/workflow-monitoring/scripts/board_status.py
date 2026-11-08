@@ -4,7 +4,8 @@
 usage: board_status.py [--html]
 
 Prints the block as text, or with --html as a fragment the dashboard and board-artifact.html embed. Report, board and
-dashboard all print this same content. Needs you comes first and is never hidden: every waiting, failed or stopped
+dashboard all print this same content. Next lists only queued goals (with what they wait on) and goals whose pull
+request waits to merge; Roadmap counts merged goals per feature (a docs.tsv page) before the milestone bars. Needs you comes first and is never hidden: every waiting, failed or stopped
 worker, with the exact words to answer. Estimates come from the median of other runs' steps, read from their logs, and
 read "no estimate yet" when there is none. Tokens read "unknown" until a run records them.
 """
@@ -17,6 +18,9 @@ import re
 import statistics
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import graph  # noqa: E402
 
 STEPS = ("idea", "plan", "build", "checks", "review", "qa", "ship", "pr")
 ASKING = ("waiting", "failed", "stopped")
@@ -112,16 +116,34 @@ def goal_lines(run, root):
 
 
 def queued(root, runs):
-    names, found = {run["slug"] for run in runs}, []
+    """Queued goals, as (slug, what it waits on): other goals' dependencies that aren't merged yet."""
+    by_slug, goals = {run["slug"]: run for run in runs}, []
     try:
         with open(os.path.join(root, ".loop", "queue.md")) as handle:
-            for line in handle:
-                match = re.match(r"- slug: ([a-z0-9-]+)", line)
-                if match and match.group(1) not in names:
-                    found.append(match.group(1))
+            goals = [item for item in map(graph.parse, handle.read().splitlines()) if item and item["slug"] not in by_slug]
     except OSError:
         pass
-    return found
+    names = {goal["slug"] for goal in goals}
+    return [(goal["slug"], ", ".join(why for _, why in graph.unmet(goal, by_slug, names))) for goal in goals]
+
+
+def features(root, runs):
+    """Merged goals per feature: the docs.tsv page whose paths a goal touched, or 'other'."""
+    pages = []
+    try:
+        with open(os.path.join(root, ".loop", "docs.tsv")) as handle:
+            pages = [line.rstrip("\n").split("\t") for line in handle if line.strip() and not line.startswith("#")]
+    except OSError:
+        pass
+    counts = {}
+    for run in runs:
+        if graph.merged(run):
+            hit = [page[0] for page in pages if len(page) > 1 and any(
+                mine.rstrip("/") == path.strip().rstrip("/") or mine.startswith(path.strip().rstrip("/") + "/") or path.strip().startswith(mine.rstrip("/") + "/")
+                for mine in run.get("touches") or [] for path in page[1].split(","))]
+            for name in hit or ["other"]:
+                counts[name] = counts.get(name, 0) + 1
+    return ["- %s: %d merged goal%s" % (name, n, "" if n == 1 else "s") for name, n in sorted(counts.items())] or ["(no merged goals yet)"]
 
 
 def bar(closed, total):
@@ -129,7 +151,7 @@ def bar(closed, total):
     return "[%s%s] %d of %d" % ("#" * full, "-" * (10 - full), closed, total)
 
 
-def roadmap(root):
+def roadmap(root, runs=()):
     try:
         done = subprocess.run(["gh", "api", "repos/{owner}/{repo}/milestones?state=all&per_page=100"], cwd=root,
                               capture_output=True, text=True, timeout=20)
@@ -138,11 +160,11 @@ def roadmap(root):
         found = []
     found = [item for item in found if isinstance(item, dict)]
     if not found:
-        return ["(no milestone data)"]
+        return features(root, runs)
     closed = sum(item.get("closed_issues", 0) for item in found)
     total = closed + sum(item.get("open_issues", 0) for item in found)
-    return ["- %s %s" % (" ".join(str(item.get("title")).split()), bar(item.get("closed_issues", 0), item.get("closed_issues", 0) + item.get("open_issues", 0)))
-            for item in found] + ["overall %s" % bar(closed, total)]
+    return features(root, runs) + ["- %s %s" % (" ".join(str(item.get("title")).split()), bar(item.get("closed_issues", 0), item.get("closed_issues", 0) + item.get("open_issues", 0)))
+                                   for item in found] + ["overall %s" % bar(closed, total)]
 
 
 def sections(root=None, at=None):
@@ -153,7 +175,7 @@ def sections(root=None, at=None):
     runs = [run for run in runs if isinstance(run, dict) and run.get("slug") and run.get("status") != "retired"]
     needs, now, nxt = [], [], []
     for run in runs:
-        report = (run.get("report") or {}).get("text", "")
+        report = (run.get("report") or {}).get("text", "") or ((run.get("reports") or [{}])[-1].get("text", "") if run.get("status") == "running" else "")
         if run.get("wiki_error"):
             needs.append("- %s (wiki not published): %s" % (run["slug"], " ".join(str(run["wiki_error"]).split())[:200]))
         if run.get("release_error"):
@@ -167,11 +189,11 @@ def sections(root=None, at=None):
             now.append("- %s: step %s (stage %d of %d)%s" % (run["slug"], run.get("step") or "-", STEPS.index(run["step"]) + 1 if run.get("step") in STEPS else 0,
                                                               len(STEPS), (" - " + report) if report else ""))
             now += step_lines(run, runs, at)
-        elif run.get("status") == "done" and (run.get("report") or {}).get("status") != "merged":
-            nxt.append("- %s: %s" % (run["slug"], report or "pull request %s" % (run.get("pr") or "open")))
-    nxt = ["- %s: queued" % slug for slug in queued(root, runs)] + nxt
+        elif run.get("status") == "done" and not graph.merged(run):
+            nxt.append("- %s: waiting to merge: %s" % (run["slug"], report or "pull request %s" % (run.get("pr") or "open")))
+    nxt = ["- %s: queued, %s" % (slug, "waits on " + why if why else "ready to start") for slug, why in queued(root, runs)] + nxt
     goals = [line for run in runs for line in goal_lines(run, root)]
-    return list(zip(TITLES, [needs or ["(nothing needs you)"], now or ["(nothing running)"], nxt or ["(nothing queued)"], roadmap(root), goals or ["(no goals)"]]))
+    return list(zip(TITLES, [needs or ["(nothing needs you)"], now or ["(nothing running)"], nxt or ["(nothing queued)"], roadmap(root, runs), goals or ["(no goals)"]]))
 
 
 def text(parts):

@@ -11,6 +11,7 @@ criteria-no-scripts	PASS	2026-11-08
 cut-draft	PASS	2026-11-08
 cut-needs-verify	PASS	2026-11-08
 dependencies-on-map	PASS	2026-11-08
+dependency-held	PASS	2026-11-08
 describe-needed	PASS	2026-11-08
 docs-audit	PASS	2026-11-08
 docs-only	PASS	2026-11-08
@@ -40,6 +41,8 @@ one-failure	PASS	2026-11-08
 one-issue	PASS	2026-11-08
 one-link	PASS	2026-11-08
 one-way-to-run	PASS	2026-11-08
+operate-all	PASS	2026-11-08
+operate-wakes-on-report	PASS	2026-11-08
 overlap-held	PASS	2026-11-08
 page-shape	PASS	2026-11-08
 pending-waits	PASS	2026-11-08
@@ -65,6 +68,7 @@ stale-merge-order	PASS	2026-11-08
 stale-page-row	PASS	2026-11-08
 starts-at-idea	PASS	2026-11-08
 status-order	PASS	2026-11-08
+status-roadmap-features	PASS	2026-11-08
 steps-through-flow	PASS	2026-11-08
 stop-after-3-tries	PASS	2026-11-08
 stuck-stays-top	PASS	2026-11-08
@@ -84,5 +88,6 @@ update-in-place	PASS	2026-11-08
 waits-first	PASS	2026-11-08
 wiki-release	PASS	2026-11-08
 worker-per-goal	PASS	2026-11-08
-worker-refuses	FAIL	2026-11-08
+worker-refuses	PASS	2026-11-08
 worker-reports	PASS	2026-11-08
+worker-reports-live	PASS	2026-11-08

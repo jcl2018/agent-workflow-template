@@ -2,6 +2,7 @@
 # Run one goal on a toy repo with a headless agent. usage: run-goal.sh REPO_DIR LEVEL SLUG "GOAL" "DONE1" ["DONE2"] 
 # env: AGENT=claude|codex  MODEL=<model>  EXTRA=<more prompt text>
 set -e
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd); repo=$1; level=$2; slug=$3; goal=$4; shift 4
 done_args=""; for d in "$@"; do done_args="$done_args --done \"$d\""; done
 prompt="You are a background agent, so build this yourself and freeze with goal.py new --here. Follow the skill at $here/skills/workflow-delivery/SKILL.md. Its script is $here/skills/workflow-delivery/scripts/goal.py. Run \`go \"$goal\"$done_args --level $level\` in this repo with the slug $slug. Do the whole run to the pull request. $EXTRA"

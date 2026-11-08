@@ -1,6 +1,7 @@
 #!/bin/bash
 # Proves the operation board with fixtures. No model is called and no network is used. usage: test-board.sh [DIR]
 set -u
+unset LOOP_ROLE  # these tests act as the operation session
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 B="python3 $here/skills/workflow-monitoring/scripts/board.py"
@@ -52,7 +53,7 @@ rec prlost running 1 pr 2026-01-01T11:55:00Z 'pr="https://x/pull/9"'
 rec failb failed 0 build 2026-01-01T11:00:00Z 'finding="boom <script>alert(1)</script>"'
 rec ext1 running 0 build 2026-01-01T11:00:00Z
 cat >> .loop/queue.md <<'Q'
-- slug: nextq | level: 0 | touches: f_runa.py | goal: Next | done: Something
+- slug: nextq | level: 0 | touches: f_runa.py | depends-on: runa | goal: Next | done: Something
 Q
 AT=2026-01-01T12:00:00Z
 O="$T/out"; mkdir -p "$O"
@@ -80,7 +81,7 @@ assert pos == sorted(pos), pos
 w = {x["slug"]: x for x in d["waiting"]}
 assert w["waita"]["words"] == ["cut waita", "leave waita"] and w["waita"]["where"] == "the operation session, which owns repo/waita" and "/wt/" not in w["waita"]["where"]
 assert "failb" in w and w["failb"]["words"] == ["resume failb"]
-assert any(x["slug"] == "nextq" and "runa" in x["waits_on"] and "f_runa.py" in x["waits_on"] for x in d["dependencies"])
+assert any(x["slug"] == "nextq" and "goal runa (running)" in x["waits_on"] and x["on"] == "runa" for x in d["dependencies"])
 r = {x["slug"]: x for x in d["runs"]}
 for k in ("goal", "level", "step", "elapsed", "tries", "pr", "checks", "status", "note"):
     assert k in r["runa"], k
@@ -188,7 +189,7 @@ map() { rm -rf "$T/m"; $B board --at $AT --out "$T/m" >/dev/null; $P --in "$T/m/
 rec first running 0 build 2026-01-01T11:30:00Z 'touches=["pkg/"]'
 rec donelong done 0 pr 2026-01-01T09:30:00Z 'pr="https://x/pull/3"'
 cat >> .loop/queue.md <<'Q'
-- slug: shout | level: 0 | touches: pkg/shout.py | goal: Shout | done: It shouts
+- slug: shout | level: 0 | touches: pkg/shout.py | depends-on: first | goal: Shout | done: It shouts
 Q
 map
 python3 - "$T/m/board.json" "$T/m/board.html" <<'PY' && ok "one lane a run, one box a step, solid inside a run, dashed across with its reason" || bad "lanes and arrows"
@@ -200,13 +201,13 @@ assert [b["step"] for b in l["repo/first"]["boxes"]] == ["idea", "plan", "build"
 assert [b["status"] for b in l["repo/first"]["boxes"]] == ["done", "done", "running"] + ["pending"] * 5
 assert [b["status"] for b in l["repo/shout"]["boxes"]] == ["queued"] * 8
 cross = [a for a in d["arrows"] if a["on"]]
-assert cross == [{"from": "repo/first:pr", "to": "repo/shout:idea", "on": "goal first, shared pkg/shout.py"}], cross
+assert cross == [{"from": "repo/first:pr", "to": "repo/shout:idea", "on": "depends on first"}], cross
 assert len([a for a in d["arrows"] if not a["on"]]) == 7 + 8 + 7  # donelong also has a release box
 names = [x["run"] for x in d["lanes"]]
 assert names.index("repo/first") < names.index("repo/shout")
 assert h.count("<a class='box ") == sum(len(x["boxes"]) for x in d["lanes"])
 assert h.count("<path class=wire ") == 1 and h.count("<path class=step ") == 22
-assert "goal first, shared pkg/shout.py</text>" in h and "s-running" in h and "s-done" in h
+assert "depends on first</text>" in h and "s-running" in h and "s-done" in h
 assert re.search(r"<title>.*Done: .*\nNext: .*\nUnblocks: ", h, re.S)
 PY
 python3 - "$T/m/board.json" <<'PY' && ok "the finish time is on each box, from finished goals" || bad "box times"
@@ -220,7 +221,7 @@ PY
 python3 - "$T/m/board.json" "$T/m/board.html" "$T/m/board-artifact.html" <<'PY' && ok "hover and tap say what it is, what is done, what is next, what it unblocks" || bad "hover and tap"
 import json, re, sys
 b = {x["id"]: x for l in json.load(open(sys.argv[1]))["dependency_map"]["lanes"] for x in l["boxes"]}
-assert b["repo/first:pr"]["unblocks"] == ["repo/shout (goal first, shared pkg/shout.py)"]
+assert b["repo/first:pr"]["unblocks"] == ["repo/shout (depends on first)"]
 assert b["repo/first:build"]["next"] == "Then checks" and b["repo/first:build"]["done"] == "idea, plan"
 assert b["repo/shout:idea"]["next"].startswith("Waits on goal first")
 for page in sys.argv[2:]:
@@ -240,13 +241,13 @@ json.dump({"slug": "shout", "goal": "Shout", "level": "0", "status": "running", 
 PY
 git checkout -q -- .loop/queue.md
 rec first done 0 pr 2026-01-01T11:50:00Z 'touches=["pkg/"]'
-wired='import json,sys;d=json.load(open(sys.argv[1]))["dependency_map"];assert [a["on"] for a in d["arrows"] if a["on"]]==["goal first, shared pkg/shout.py"],d["arrows"]'
+wired='import json,sys;d=json.load(open(sys.argv[1]))["dependency_map"];assert [a["on"] for a in d["arrows"] if a["on"]]==["depends on first"],d["arrows"]'
 map; python3 -c "$wired" "$T/m/board.json" && ok "a dependency survives its goal starting" || bad "dependency lost on start"
 rec shout done 0 pr 2026-01-01T11:58:00Z 'touches=["pkg/shout.py"]' 'waits_on=["first"]'
 map; python3 -c "$wired" "$T/m/board.json" && ok "and stays drawn through today's finished goals" || bad "dependency lost on finish"
 $B board --at 2026-01-03T12:00:00Z --out "$T/m" >/dev/null; $P --in "$T/m/board.json" >/dev/null
 python3 -c "import json,sys;assert json.load(open(sys.argv[1]))['dependency_map']['lanes']==[]" "$T/m/board.json" && ok "goals finished on another day leave the map" || bad "old goals"
-# watch.py records what held a goal
+# watch.py records what a goal depends on
 cat > "$T/hold.sh" <<'A'
 #!/bin/bash
 while [ -e "$HOLD" ]; do sleep 0.1; done
@@ -258,10 +259,10 @@ c = json.load(open(".loop/config.json")); c["agent_command"] = ["bash", sys.argv
 PY
 git commit -qam "Hold agent"; export HOLD="$T/hold"; touch "$HOLD"
 $W go "Holder" --done "x" --touches lib/ --slug holder >/dev/null
-$W go "Held" --done "x" --touches lib/a.py --slug held >/dev/null
-[ ! -e "$R/held.json" ] && ok "the overlapping goal is held" || bad "held goal started"
+$W go "Held" --done "x" --touches lib/a.py --depends-on holder --slug held >/dev/null
+[ ! -e "$R/held.json" ] && ok "the dependent goal is held until its dependency is merged" || bad "held goal started"
 rm "$HOLD"
-rec holder done 0 pr 2026-01-01T11:50:00Z 'touches=["lib/"]'
+rec holder done 0 pr 2026-01-01T11:50:00Z 'touches=["lib/"]' 'release="merged"'
 $W watch --once >/dev/null
 python3 -c "import json,sys;assert json.load(open(sys.argv[1]))['waits_on']==['holder']" "$R/held.json" && ok "watch records waits_on on the run when the goal starts" || bad "waits_on not recorded"
 git revert --no-edit HEAD >/dev/null; git checkout -q -- .loop/queue.md 2>/dev/null; rm -f "$R/holder.json" "$R/held.json"

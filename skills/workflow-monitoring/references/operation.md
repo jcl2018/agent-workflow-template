@@ -26,6 +26,19 @@ flowchart LR
   class g owner
 ```
 
+**The one command is `python3 scripts/operate.py run`.** It runs the loop below the same way every time, with no model in
+it: each pass is `watch.py watch --once`, `board.py board --since <the last board.json>` and `board_page.py`. It prints
+the status block and the changes when something changed, and one `NO_CHANGE` line when nothing did. It waits the gap from
+`board.py cadence`, or less: a run record changing (a worker reported) or a new queue line starts the next pass at once.
+It stops when nothing is queued, running or waiting, or when the cadence is `off`. `operate.py send SLUG "<text>"` gives a
+worker an answer or follow-up. When the owner asks an LLM to run the operation session, the LLM runs this command and
+does not improvise the steps below. They are what it does.
+
+A queue line may carry `depends-on: a, b`. Queued goals form a dependency graph: a goal starts once every goal it depends
+on is merged and a slot is free (`parallel` in `.loop/config.json`); goals that share files run together, because the later
+one merges the latest base before its pull request. A dependency on a failed or unknown goal keeps the goal queued, and
+the board says why.
+
 Put goals in a named batch with `scripts/batch.py` (`add NAME --goal G --done L`, `start NAME`, `status NAME`). `start`
 begins one worker for each goal line, up to `parallel`. Each worker runs `scripts/worker.py loop SLUG` around the agent,
 so it carries its own loop to the end without this session. When the agent ends, the worker writes its result into the
@@ -40,8 +53,8 @@ and stays there until it is answered. A worker whose process vanishes is marked 
 Run `scripts/board.py cadence` to see the check-in gap in minutes (default 10, or `off`). Then repeat, waiting the
 gap between check-ins, or an hour when nothing runs or waits:
 
-1. Run `python3 scripts/watch.py watch --once` once. It starts queued goals, mends or resumes if the config allows,
-   and prints what changed and what waits.
+1. Run `python3 scripts/watch.py watch --once` once. It starts queued goals whose dependencies are merged, mends or
+   resumes if the config allows, and prints what changed and what waits.
 2. Read each worker's latest report: its run record, its log tail, and the message it sent back. A worker may also leave
    a note with `board.py note SLUG "<text>"`; the board shows the report or note as the last message.
 3. Run `python3 scripts/board.py board --since <the last board.json>`. It prints `DIGEST`, `CHANGED`, one `CHANGE` line
@@ -66,12 +79,12 @@ Every check-in prints one block, and the dashboard and `board-artifact.html` car
 1. **Needs you**: every stuck, waiting or failed worker, with the exact words to answer. Always first, never hidden.
 2. **Now**: each running goal's current step and stage, then every step with its estimated time and tokens, the actual
    so far, and the estimate for the remaining steps.
-3. **Next**: queued goals, and goals whose pull request waits for review.
-4. **Roadmap**: a progress bar for each milestone and overall.
+3. **Next**: only queued goals (with what each waits on) and goals whose pull request waits to merge.
+4. **Roadmap**: merged goals counted per feature, then a progress bar for each milestone and overall.
 5. **Goals**: each goal's done lines met so far. A worker marks one with `worker.py met SLUG N`.
 
 Estimates are the median of other finished runs' steps, read from their logs; a step with none reads `no estimate yet`.
-Tokens read `unknown` until a run records them.
+Tokens read `unknown` until a run records them: `goal.py step SLUG NAME --tokens N` and `flow.py` record what the agent reports.
 
 ## Retiring goals
 
@@ -81,8 +94,8 @@ in Runs marked `retired`. Only retire a goal the owner has said is superseded. I
 ## Reading the dependency map
 
 Each lane is a run and each box a step, coloured by status, with its expected finish. Solid arrows run inside a run.
-Thick dashed arrows cross runs and say why one waits, such as a goal or a shared file. A goal's `waits_on` is recorded
-when `watch` holds it, so the arrow stays through running and today's finished goals. Times come from the median
+Thick dashed arrows cross runs and say that one goal depends on another. A goal's `waits_on` is its `depends-on` list,
+recorded when `watch` starts it, so the arrow stays through running and today's finished goals. Times come from the median
 finished goal; without one the box says `no estimate`. Hover a box for what it is, what's done, what's
 next and what it unblocks, or tap it to open the same text in the list below. The page has no scripts.
 

@@ -2,6 +2,7 @@
 # One small test for each Delivery and Release criterion, so a regression row doesn't run a whole toy script.
 # usage: test-rows.sh ID   exits non-zero if the criterion doesn't hold. No model is called.
 set -u
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 unset LOOP_BATCH
 here=$(cd "$(dirname "$0")/../.." && pwd); id=${1:?usage: test-rows.sh ID}
 d=$(mktemp -d); trap 'rm -rf "$d"' EXIT

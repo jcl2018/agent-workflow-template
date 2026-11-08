@@ -18,13 +18,15 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import graph  # noqa: E402
+
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
-LIVE = ("running", "waiting")
 
 
 CRITERION = re.compile(r"^- ([A-Z]{2,5}-\d+): \*\*(Unreviewed|Reviewed \d{4}-\d\d-\d\d)\*\* (.+?)(?: <!-- reviewed (\w+) -->)?$")
@@ -107,42 +109,15 @@ def parse_queue():
         return []
     goals, seen = [], set()
     for line in lines:
-        if not line.startswith("- slug:"):
+        item = graph.parse(line)
+        if not item:
             continue
-        item = {"done": [], "touches": [], "release": ""}
-        for part in line.strip()[2:].split("|"):
-            key, _, value = part.partition(":")
-            key, value = key.strip(), " ".join(value.split())
-            if key == "done" and value:
-                item["done"].append(value)
-            elif key == "touches":
-                item["touches"] = [path.strip() for path in value.split(",") if path.strip()]
-            elif key in ("slug", "goal", "release"):
-                item[key] = value
-        slug = item.get("slug", "")
-        if not SLUG.match(slug) or slug in seen or not item.get("goal") or not item["done"]:
+        if not SLUG.match(item["slug"]) or item["slug"] in seen or not item["goal"] or not item["done"]:
             print("SKIPPED queue line (needs a good slug, a goal and a done line): %s" % line.strip()[:80])
             continue
-        seen.add(slug)
+        seen.add(item["slug"])
         goals.append(item)
     return goals
-
-
-def overlap(a, b):
-    a, b = os.path.normpath(a), os.path.normpath(b)
-    return a == b or a.startswith(b + os.sep) or b.startswith(a + os.sep)
-
-
-def holds_slot(state):
-    """A running goal with no pid still blocks overlapping files, but uses no worker slot."""
-    return state.get("status") != "running" or state.get("pid")
-
-
-def blocker(goal, live):
-    for state in live:
-        if any(overlap(mine, theirs) for mine in goal["touches"] for theirs in state.get("touches") or []):
-            return state["slug"]
-    return ""
 
 
 def alive(pid):
@@ -185,21 +160,7 @@ def refresh():
 
 def plan(limit):
     """Split queued goals into those that may start now and those that wait, with the reason."""
-    records = {state["slug"]: state for state in runs()}
-    live = [state for state in records.values() if state.get("status") in LIVE]
-    start, held = [], []
-    for goal in parse_queue():
-        if goal["slug"] in records:
-            continue
-        hit = blocker(goal, live)
-        if hit:
-            held.append((goal, "conflict with %s" % hit))
-        elif sum(1 for state in live if holds_slot(state)) >= limit:
-            held.append((goal, "slots full (%d of %d)" % (sum(1 for state in live if holds_slot(state)), limit)))
-        else:
-            start.append(goal)
-            live.append({"slug": goal["slug"], "touches": goal["touches"], "status": "starting"})
-    return start, held
+    return graph.ready(parse_queue(), {state["slug"]: state for state in runs()}, limit)
 
 
 def facts():

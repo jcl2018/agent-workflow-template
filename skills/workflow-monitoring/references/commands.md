@@ -5,7 +5,9 @@ Moved from the wiki page, which is now only a summary, criteria and tests.
 ## Commands
 
 ```text
-go "GOAL" --done LINE [--done LINE] [--touches A,B] [--slug S] [--release ask]
+operate run [--once] [--poll S] [--max N]
+operate send SLUG TEXT
+go "GOAL" --done LINE [--done LINE] [--touches A,B] [--depends-on A,B] [--slug S] [--release ask]
 watch [--max N] [--once] [--interval S]
 report
 dashboard [--out FILE]
@@ -14,16 +16,24 @@ resume SLUG
 
 `go`, `watch` and `resume` also take `--skill-dir DIR`, the skills folder to name in a prompt.
 
+- `operate run` is the one command that runs the operation session: each pass it runs `watch --once`, `board.py board` and
+  `board_page.py`, prints the status block when something changed and one line (`NO_CHANGE`) when not, then waits the
+  gap from `board.py cadence`, or less when a worker reports. It stops when nothing is queued, running or waiting, or when
+  the cadence is off. `operate send SLUG TEXT` leaves a worker an answer or follow-up, which `goal.py` and `flow.py`
+  print to its agent the next time they run. An LLM asked to run the operation session runs this command and nothing else.
 - `go` adds the goal to `.loop/queue.md` and starts a worker for it if a slot is free, or prints `QUEUED`.
-- `watch` starts queued goals (3 at a time by default), each on branch `loop/<slug>` in its own worktree, and ends when
+- `watch` starts every queued goal whose `depends-on` goals are merged (3 at a time by default, set `parallel`), each on branch `loop/<slug>` in its own worktree, and ends when
   nothing is left. `--once` makes one pass, for a check-in.
 - `report` lists each run, what waits on you with the exact words to type, findings, criteria changed after review, and
   queued goals.
 - `dashboard` writes one self-contained HTML page under the git folder's `loop/`.
 - `resume` relaunches a `failed` or `stopped` goal as a worker, and refuses anything else.
 
-Goals whose `touches` overlap never run together. A running goal with no `pid` is never marked failed or mended, and it
-takes no worker slot, but it still holds back a goal touching the same files. A failed goal never stops the others. A batch goal answers the release
+A queue line may name `depends-on: a, b`. A goal waits only on those goals, until they are merged, and on a free worker
+slot; sharing files is never a reason to wait. Before its pull request the later goal merges the latest base branch, so it
+has the earlier goal's merged changes; if that brings changes it runs its checks again, and only a real conflict costs it
+a try. A running goal with no `pid` is never marked failed or mended and takes no worker slot. A failed goal never stops
+the others. A batch goal answers the release
 question with `leave` by itself, never `cut`; `--release ask` makes it wait for you.
 
 ### Operation session
@@ -138,13 +148,13 @@ Amber marks where the command stops for the owner. [Home](Home) says what each s
 ```mermaid
 flowchart TD
   a["Add the goal to the queue"]
-  b["Hold it if its files overlap another goal"]
+  b["Hold it until the goals it depends on are merged"]
   c["Start a worker in its own worktree"]
   a --> b
   b --> c
 ```
 
-Status: built and proven: Add the goal to the queue; Hold it if its files overlap another goal; Start a worker in its own worktree. Built only: none. Planned: none.
+Status: built and proven: Add the goal to the queue; Hold it until the goals it depends on are merged; Start a worker in its own worktree. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests with a stand-in agent, plus real goals on this repo.
 
