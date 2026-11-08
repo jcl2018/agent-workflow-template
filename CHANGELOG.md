@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.4.0 - 2026-11-08
+
+- Show the roadmap as a dependency graph in the status block and board
+- Wiki: roadmap graph and live step label
+
+### How to verify
+
+1. Run `bash dev/toy/test-status-graph.sh`.
+   Expect: every line starts with PASS and the last line is ALL PASS.
+2. Run `python3 skills/workflow-monitoring/scripts/board_status.py`.
+   Expect: four sections in this order: Needs you, Roadmap, Total, Goals. Roadmap lists every goal under `level` headings, each marked merged, awaiting merge, running or queued, with a stage, a progress bar and a time left, and `<- waits on` for a goal that waits on another.
+3. Read the Total section of that output.
+   Expect: one line giving the longest chain of goals (`a > b > c`) with its time, which is shorter than the sum of every goal's time.
+4. Open `docs/wiki/Monitoring.md`.
+   Expect: MON-4 reads "Printout. Each check-in prints the same template as text: Needs you first, then the roadmap as a dependency graph ..." and is marked Reviewed 2026-11-08.
+
 ## v0.3.0 - 2026-11-08
 
 - MON-1: rewrite for the dependency-graph planner

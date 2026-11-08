@@ -89,7 +89,7 @@ def svg(graph, ids):
     out.append("</defs>")
     for lane, top in bands:
         out.append("<rect class=band x=0 y=%d width=%d height=%d rx=6></rect>" % (top - 2, width, HEAD + BOX_H + 10))
-        out.append("<text class=lane x=%d y=%d>%s</text>" % (gutter + 26, top + 13, esc(cut(lane["run"] + ": " + lane["title"], 70))))
+        out.append("<text class=lane x=%d y=%d>%s</text>" % (gutter + 26, top + 13, esc(cut("[%s] %s: %s" % (lane["mark"], lane["run"], lane["title"]), 70))))
     for arrow in graph["arrows"]:
         if not arrow["on"] and arrow["from"] in places and arrow["to"] in places:
             x1, y1 = places[arrow["from"]]
@@ -120,8 +120,8 @@ def svg(graph, ids):
 def words(graph, ids):
     out = ["<div class=list>"]
     for lane in graph["lanes"]:
-        out.append("<details><summary><b>%s</b>: %s (%s)%s</summary>" % (
-            esc(lane["run"]), esc(lane["title"]), esc(WORDS.get(lane["status"], lane["status"])),
+        out.append("<details><summary><b>%s</b>: %s [%s] (%s)%s</summary>" % (
+            esc(lane["run"]), esc(lane["title"]), esc(lane["mark"]), esc(WORDS.get(lane["status"], lane["status"])),
             esc(", branch " + lane["branch"]) if lane["branch"] else ""))
         for box in lane["boxes"]:
             out.append("<details><summary>%s, %s, %s</summary><dl id=b%d>" % (esc(box["step"]), esc(WORDS.get(box["status"], box["status"])), esc(box["eta"]), ids[box["id"]]))
@@ -168,8 +168,8 @@ def page(doc, bare=False):
     ids = {box["id"]: index for index, box in enumerate(b for lane in graph["lanes"] for b in lane["boxes"])}
     out.append("<h2>%s</h2>" % sections[1])
     if graph["lanes"]:
-        out.append("<p class=mute>%s</p><div class=keys>%s<span>Dashed: waits on another run</span></div><div class='scroll map'>%s</div>%s" % (
-            e(HOW), "".join("<span><i class='key s-%s'></i>%s</span>" % pair for pair in (
+        out.append("<p><b>Total:</b> %s</p><p class=mute>%s</p><div class=keys>%s<span>Dashed: waits on another run</span></div><div class='scroll map'>%s</div>%s" % (
+            e(graph["total"]), e(HOW), "".join("<span><i class='key s-%s'></i>%s</span>" % pair for pair in (
                 ("done", "Done"), ("running", "Running"), ("waiting", "Needs you"), ("failed", "Failed or stopped"), ("queued", "Queued or pending"))),
             svg(graph, ids), words(graph, ids)))
     else:

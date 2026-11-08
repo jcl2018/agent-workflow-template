@@ -325,6 +325,7 @@ def cmd_record(args):
     if (pending or result == "pending") and config().get("auto_approve") is True:
         took = "; ".join(pending) or why or "the step's pending gate"
         state["flow"][args.step] = "done: auto-approved: " + took[:200]
+        state["step"] = role.after(args.step)
         state["note"] = {"text": "auto-approved at %s: %s" % (args.step, took[:240]), "at": now()}
         save(state, "%s auto-approved: %s" % (args.step, took[:300]))
         print("AUTO-APPROVED %s %s: %s" % (args.slug, args.step, took))
@@ -340,7 +341,7 @@ def cmd_record(args):
         return 0
     if result in ("done", "skipped"):
         state["flow"][args.step] = result + (": " + why[:120] if why else "")
-        state["step"] = args.step
+        state["step"] = role.after(args.step)
         save(state, "%s %s" % (args.step, state["flow"][args.step]))
         print("RECORDED %s %s" % (args.step, state["flow"][args.step]))
         print("NEXT: " + ("build, then check" if args.step == "plan" else "check" if args.step != "idea" else next_step(state)))

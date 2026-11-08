@@ -113,6 +113,7 @@ def start(args, runs, reply, job):
     with open(reply, "w") as out:
         child = subprocess.Popen(command + [prompt], cwd=top, stdin=subprocess.DEVNULL, stdout=out, env=env,
                                  stderr=subprocess.STDOUT, start_new_session=True)
+    role.begin(os.path.join(runs, args.slug + ".json"), args.step)
     with open(job, "w") as handle:
         json.dump({"pid": child.pid, "started": time.time(), "limit": spec.get("limit") or args.limit}, handle)
     print("FLOW %s: running your %s skill unattended" % (args.step, args.step))

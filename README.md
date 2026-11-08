@@ -97,8 +97,8 @@ python3 skills/workflow-monitoring/scripts/watch.py go "<goal>" --done "<line>"
 
 An operation session only assigns, watches and reports. It puts goals in a named batch, `start` begins one worker for
 each goal, each worker runs its own loop to the end, and each sends its result (merged, failed or waiting, with the pull
-request) back as a prompt message that the board shows. A check-in prints one status block: Needs you, Now, Next,
-Roadmap, Goals:
+request) back as a prompt message that the board shows. A check-in prints one status block: Needs you, Roadmap (a
+dependency graph of every goal), Total, Goals:
 
 ```text
 python3 skills/workflow-monitoring/scripts/batch.py add nightly --goal "<goal>" --done "<line>"

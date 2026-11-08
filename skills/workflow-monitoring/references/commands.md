@@ -88,10 +88,12 @@ handoff [--at TIME] [--out FILE]               write a file a new operation sess
 ```
 
 Every check-in prints one status block, and `report`, `board` and `dashboard` carry the same content, in this order:
-Needs you (every stuck, waiting or failed worker, with the exact words to answer, always first and never hidden), Now
-(each running goal's step and stage, and for each step the estimated and actual time and tokens, and the estimate for the
-goal's remaining steps), Next (queued goals and pull requests waiting for review), Roadmap (a progress bar per milestone
-and overall) and Goals (each goal's done lines met so far). Estimates are the median of other finished runs' steps, read
+Needs you (every stuck, waiting or failed worker, with the exact words to answer, always first and never hidden),
+Roadmap (a dependency graph of every goal, merged, running and queued, each with its stage, progress bar and time to
+finish and an arrow to what it waits on; a running goal keeps each step's estimated and actual time and tokens under
+it; then merged goals per feature and a progress bar per milestone), Total (the time for the whole graph: the longest
+chain of estimates, not their sum) and Goals (each goal's done lines met so far). The board draws the same marks and the
+same total. Estimates are the median of other finished runs' steps, read
 from their logs, and read `no estimate yet` without one; tokens read `unknown` until a run records them.
 
 The board's last section, Milestones, lists each GitHub milestone's open and closed counts and the age of the Backlog's
@@ -388,17 +390,15 @@ Proof: toy tests with a stand-in agent. It hasn't run on a real batch yet.
 ```mermaid
 flowchart LR
   a["Needs you: stuck, waiting and failed workers"]
-  b["Now: each step's estimate and actual"]
-  c["Next: queued goals"]
-  d["Roadmap: a bar per milestone"]
-  e["Goals: done lines met"]
+  b["Roadmap: the goals as a dependency graph"]
+  c["Total: the longest chain of estimates"]
+  d["Goals: done lines met"]
   a --> b
   b --> c
   c --> d
-  d --> e
 ```
 
-Status: built and proven: Needs you: stuck, waiting and failed workers; Now: each step's estimate and actual; Next: queued goals; Roadmap: a bar per milestone; Goals: done lines met. Built only: none. Planned: none.
+Status: built and proven: Needs you: stuck, waiting and failed workers; Roadmap: the goals as a dependency graph with stage, bar and time to finish; Total: the longest chain of estimates; Goals: done lines met. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests. Tokens read unknown until a run records them.
 
