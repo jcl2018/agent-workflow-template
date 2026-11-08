@@ -12,4 +12,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `sed -n 84p .loop/goals/defect-tests.design.md`.
+   Expect: the line starts with "Run the delivery loop on this design" and names no private skill.
+2. Run `git grep -n 'goal_\*'`.
+   Expect: no match in the design note.
