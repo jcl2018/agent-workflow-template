@@ -15,7 +15,7 @@ ci-summary	PASS	2026-11-08
 criteria-no-scripts	PASS	2026-11-08
 cut-draft	PASS	2026-11-08
 cut-needs-verify	PASS	2026-11-08
-defect-categories	FAIL	2026-11-08
+defect-categories	PASS	2026-11-08
 defect-flow-steps	PASS	2026-11-08
 defect-health	PASS	2026-11-08
 defect-known	PASS	2026-11-08
@@ -54,7 +54,6 @@ one-link	PASS	2026-11-08
 one-way-to-run	PASS	2026-11-08
 operate-all	PASS	2026-11-08
 operate-wakes-on-report	PASS	2026-11-08
-overlap-held	PASS	2026-11-08
 page-shape	PASS	2026-11-08
 pending-waits	PASS	2026-11-08
 pr-body-no-checks	PASS	2026-11-08
@@ -80,8 +79,14 @@ stale-found	PASS	2026-11-08
 stale-merge-order	PASS	2026-11-08
 stale-page-row	PASS	2026-11-08
 starts-at-idea	PASS	2026-11-08
+status-graph-board	PASS	2026-11-08
+status-graph-levels	PASS	2026-11-08
+status-graph-marks	PASS	2026-11-08
+status-graph-order	PASS	2026-11-08
+status-graph-total	PASS	2026-11-08
 status-order	PASS	2026-11-08
 status-roadmap-features	PASS	2026-11-08
+step-label-live	PASS	2026-11-08
 steps-through-flow	PASS	2026-11-08
 stop-after-3-tries	PASS	2026-11-08
 stuck-stays-top	PASS	2026-11-08
