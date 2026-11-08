@@ -79,6 +79,7 @@ a=$($health check); b=$($health check); rc_check=$?
 [ "$a" = "$b" ] && ok "check gives the same answer twice" || bad "check differs"
 [ ! -e "$JUDGE_CALLS" ] && ok "check never calls the judge" || bad "check called the judge"
 out=$($health judge); rc=$?; echo "$out"
+[ $rc = $rc_check ] && ok "stand-in judge: same exit code as check" || bad "exit code with judge"
 [ -e "$JUDGE_CALLS" ] && ok "judge calls the judge command" || bad "judge not called"
 [ "$(sed -n '1,/^$/p' <<<"$out" | sed '$d')" = "$a" ] && ok "the rules and the verdict print first, as check prints them" || bad "rules first"
 sec=$(sed -n '/^JUDGE (suggestions, never part of the verdict)$/,$p' <<<"$out")
@@ -100,10 +101,10 @@ v0=$(verdict "$a")
 [ "$(verdict "$out")" = "$v0" ] && ok "stand-in judge: same verdict line" || bad "verdict with judge"
 setcfg "judge_command=[\"$d/broken.sh\"]"
 out2=$($health judge); rc2=$?
-grep -q "^JUDGE UNAVAILABLE: the judge exited 3" <<<"$out2" && [ "$(verdict "$out2")" = "$v0" ] && [ $rc2 = $rc ] && ok "a failing judge: unavailable, same verdict and exit code" || bad "broken judge"
+grep -q "^JUDGE UNAVAILABLE: the judge exited 3" <<<"$out2" && [ "$(verdict "$out2")" = "$v0" ] && [ $rc2 = $rc_check ] && ok "a failing judge: unavailable, same verdict and exit code" || bad "broken judge"
 setcfg "judge_command=[\"$d/garbage.sh\"]"
 out3=$($health judge); rc3=$?
-grep -q "^JUDGE UNAVAILABLE: the answer had no tagged line" <<<"$out3" && [ "$(grep -c '^HEALTH: ' <<<"$out3")" = 1 ] && [ "$(verdict "$out3")" = "$v0" ] && [ $rc3 = $rc ] && ok "a garbage judge cannot change the verdict" || bad "garbage judge"
+grep -q "^JUDGE UNAVAILABLE: the answer had no tagged line" <<<"$out3" && [ "$(grep -c '^HEALTH: ' <<<"$out3")" = 1 ] && [ "$(verdict "$out3")" = "$v0" ] && [ $rc3 = $rc_check ] && ok "a garbage judge cannot change the verdict" || bad "garbage judge"
 setcfg judge_command=
 out4=$($health judge); grep -q "^JUDGE UNAVAILABLE: no judge_command" <<<"$out4" && ok "no judge_command: unavailable" || bad "no command"
 $health suggest | grep -q "^JUDGE UNAVAILABLE" && ok "suggest is kept as an alias of judge" || bad "alias"
