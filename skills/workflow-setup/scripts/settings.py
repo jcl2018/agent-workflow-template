@@ -54,6 +54,7 @@ TABLE = [
     ("env", PRIVATE, {}, "Flow file: environment that puts the skills in their unattended mode."),
     ("probe", PRIVATE, [], "Flow file: a command that prints probe_expect when the skills run unattended."),
     ("probe_expect", PRIVATE, "unattended", "Flow file: the word the probe must print."),
+    ("leak_prefixes", PRIVATE, [], "Flow file: case-insensitive regexes the package scan blocks in any file or file name, as your leak hook does."),
     ("limit", PRIVATE, 2700, "Flow file: seconds one flow step may run."),
     ("rules", PRIVATE, [], "Health file: your own health rules, each {name, command, fix}."),
     ("repos", PRIVATE, [], "Followed repos: one path a line in the repos file, shown on the board."),

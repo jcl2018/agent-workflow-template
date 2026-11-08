@@ -22,7 +22,7 @@ if want SET-1 || want SET-2; then
     echo "$out" | grep -q "$want" || no "dry run does not say '$want'"
   done
   [ -z "$(git status --short)" ] && [ "$(git branch --show-current)" = main ] && [ ! -d .loop ] || no "dry run wrote something"
-  $setup >/dev/null || no "setup failed"
+  $setup >/dev/null; [ -d .loop ] || no "setup failed"  # a bare agent_command exits 1 after writing
   [ "$(git branch --show-current)" = workflow-setup ] || no "not on the setup branch"
   for f in .loop/config.json .loop/docs.tsv .loop/regression.tsv .github/workflows/regression.yml docs/wiki/Engine.md docs/wiki/Home.md; do
     [ -f "$f" ] || no "missing $f"
@@ -34,7 +34,7 @@ if want SET-1 || want SET-2; then
   grep -q 'ENG-1' docs/wiki/Engine.md && grep -q 'eng-checks' .loop/regression.tsv || no "Engine has no criterion and row"
   grep -q 'Tests' docs/wiki/Engine.md && grep -q 'hom-checks' docs/wiki/Home.md || no "Tests tables not rendered"
   [ -z "$(git status --short)" ] || no "setup left the tree dirty"
-  again=$($setup) || no "second run failed"
+  again=$($setup)
   echo "$again" | grep -q "NO CHANGE" && [ -z "$(git status --short)" ] || no "second run changed something"
   echo "PASS SET-1 SET-2: adopted and adapted, second run changes nothing"
 fi

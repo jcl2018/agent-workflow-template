@@ -165,11 +165,30 @@ def check_scripts(root, files):
                 fail("Scripts", "%s does not run alone: %s" % (rel, done.stderr.strip()[-200:]))
 
 
+def private_prefixes():
+    """The private leak_prefixes setting (flow file, outside the repo): case-insensitive regexes the local leak hook blocks."""
+    path = os.environ.get("LOOP_FLOW") or os.path.expanduser("~/.workflow-loop/flow.json")
+    try:
+        with open(path) as handle:
+            return [p for p in json.load(handle).get("leak_prefixes", []) if isinstance(p, str) and p]
+    except (OSError, ValueError, AttributeError):
+        print("NOTE: no leak_prefixes in %s; only the built-in scans ran" % path)
+        return []
+
+
 def check_safety(root, files):
+    private = private_prefixes()
     for rel in files:
+        for prefix in private:
+            if re.search(prefix, rel, re.I):
+                fail("Safety", "private prefix %r in the file name %s" % (prefix, rel))
         if rel.endswith("/"):
             continue
         text = read(root, rel).decode("utf-8", "replace")
+        for prefix in private:
+            match = re.search(prefix, text, re.I)
+            if match:
+                fail("Safety", "private prefix %r in %s: %r" % (prefix, rel, match.group(0)[:40]))
         for group, patterns in (("secret", SECRETS), ("obfuscation or encoded text", OBFUSCATION), ("instruction aimed at the agent", AGENT_AIMED + INJECTION),
                                ("dangerous command", DANGEROUS)):
             for pattern in patterns:
