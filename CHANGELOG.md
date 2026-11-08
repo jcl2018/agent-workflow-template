@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.8.3 - 2026-11-08
+
+- Record each flow step's tokens from the agent's JSON output
+- Trim release.py under 90% of 20 KB, no behaviour change
+- Add worker.py cleanup, health fix line, verify steps and docs
+- Keep the first merged branch's indent in cleanup; test it
+- Test cleanup on the first listed merged branch
+- Add cleanup to the listing's commands so the package check passes
+- Merge remote-tracking branch 'origin/main' into loop/health-green
+- Wiki: update pages for health-green
+
+### How to verify
+
+1. Run `bash dev/toy/test-tokens.sh`.
+   Expect: it ends with ALL PASS, and a fake agent's step shows 175 tokens (input + output + cache-creation).
+2. Run `wc -c skills/workflow-release/scripts/release.py`.
+   Expect: it prints a number under 18432.
+3. Run `python3 skills/workflow-health/scripts/health.py check --family hygiene`.
+   Expect: no WARN line for findings or merged branches.
+4. Run `bash dev/toy/test-cleanup.sh`.
+   Expect: it ends with ALL PASS; `python3 skills/workflow-monitoring/scripts/worker.py cleanup --dry-run` lists merged loop branches without deleting any.
+
 ## v0.8.2 - 2026-11-08
 
 - Fix wiki identity and bytecode causes; criterion tests for DEL-4 and REG-3
