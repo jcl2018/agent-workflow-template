@@ -13,4 +13,11 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `dev/toy/ci-env.sh bash dev/toy/test-wiki.sh` and `dev/toy/ci-env.sh bash dev/toy/test-adopt.sh`.
+   Expect: both end with every line PASS (the first prints `PASS: merge publishes the wiki`, the second `ALL PASS`), with no bytecode setting and no git identity.
+2. Open the Delivery and Regression wiki pages and find DEL-4 and REG-3 in their Tests tables.
+   Expect: each lists a test (`pr-body-criterion`, `workflow-same-as-run`), not "not enforced".
+3. Run `python3 skills/workflow-health/scripts/health.py check`.
+   Expect: no FAIL line for DEL-4 or REG-3.
+4. After merge, open the next GitHub Actions regression run and the issues list.
+   Expect: the run is green and issues 58, 68, 69, 70, 71, 72 and 74 are closed with "Passing again".
