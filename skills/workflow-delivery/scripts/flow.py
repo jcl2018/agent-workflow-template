@@ -120,7 +120,10 @@ def start(args, runs, reply, job):
     command = step_command(spec, args.step)
     cfg = repo_config()
     budget = int(cfg.get("token_budget") or 0)
-    spent = sum(v for v in (json.loads(read(os.path.join(runs, args.slug + ".json"))).get("tokens") or {}).values() if isinstance(v, int))
+    try:
+        spent = sum(v for v in (json.loads(read(os.path.join(runs, args.slug + ".json"))).get("tokens") or {}).values() if isinstance(v, int))
+    except (OSError, ValueError):
+        spent = 0
     if budget and spent >= budget:
         sys.exit("REFUSED: %d tokens spent, at the token_budget of %d in .loop/config.json. Fix: raise it, or stop the goal." % (spent, budget))
     if not shutil.which(command[0]):
