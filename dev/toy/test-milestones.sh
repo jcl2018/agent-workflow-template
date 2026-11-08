@@ -12,7 +12,7 @@ ms="python3 $here/skills/workflow-health/scripts/milestone.py"
 health="python3 $here/skills/workflow-health/scripts/health.py"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 cd "$d/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 printf 'Calc\tcalc.py\nHome\tREADME.md\n' > .loop/docs.tsv
 mkdir -p docs/wiki; printf '<!-- workflow-docs -->\n# Calc\n' > docs/wiki/Calc.md

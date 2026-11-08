@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Survey a git repo and write its .loop/ config on a branch.
+"""Adopt a new or existing git repo: survey it, print what it would add or convert, then write it on a branch.
 
-usage: setup.py [--repo DIR] [--branch NAME] [--dry-run]
+usage: setup.py [--repo DIR] [--branch NAME] [--dry-run] [--bare]
 
-Writes .loop/config.json, .loop/queue.md and .loop/findings.md, and commits them on
-a new branch (default workflow-setup). It runs only git. It keeps every value already
-in a config, so a second run changes nothing.
+Writes .loop/ (config, queue, findings, docs map, regression rows), a page with a criterion and a Tests table for each
+top-level code folder and Home, and the regression workflow, and commits them on a branch (default workflow-setup). An
+existing file is adapted, never overwritten: a config keeps its values, a page keeps its words. It runs git and the
+sibling docs and regression scripts. A second run changes nothing. --bare writes only the config, queue and findings.
 """
 import argparse
 import json
@@ -13,6 +14,9 @@ import os
 import shutil
 import subprocess
 import sys
+
+import seed
+import survey
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -106,6 +110,8 @@ def merged(repo, old):
         "pr_bumps_version": False,
         "mend": False,
         "resume_on_limit": False,
+        "criteria": True,
+        "regression_cron": "17 9 * * *",
     }
     config.update(old)
     return config
@@ -122,6 +128,7 @@ def main():
     parser.add_argument("--repo", default=".")
     parser.add_argument("--branch", default="workflow-setup")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--bare", action="store_true", help="only the config, queue and findings")
     args = parser.parse_args()
     repo = git(args.repo, "rev-parse", "--show-toplevel")
     config_path = os.path.join(repo, ".loop", "config.json")
@@ -132,12 +139,18 @@ def main():
     held = next((text for text in texts if text), None)
     old = json.loads(held) if held else {}
     config = merged(repo, old)
-    if held and config == old:
-        print("NO CHANGE: .loop/config.json is complete")
+    if args.bare and "criteria" not in old:
+        config["criteria"] = False
+    found = survey.survey(repo, config)
+    print(survey.found_line(found, config))
+    acts = seed.decide(repo, config, found)
+    if args.bare:
+        acts = [a for a in acts if a[3] in ("config", "file")]
+    for verb, path, note, _ in acts:
+        print("%s: %s%s" % (verb, path, " (%s)" % note if note else ""))
+    if not [a for a in acts if a[3]]:
+        print("NO CHANGE: nothing to add or convert")
         return 0
-
-    text = json.dumps(config, indent=2) + "\n"
-    print(text, end="")
     if not config["checks"]:
         print("NOTE: no check command found; add one to \"checks\"")
     if not config["agent_command"]:
@@ -154,19 +167,16 @@ def main():
         if git(repo, "rev-parse", "--verify", "--quiet", args.branch, check=False):
             git(repo, "switch", args.branch)
         else:
-            git(repo, "switch", "-c", args.branch)
+            git(repo, "checkout", "-q", "-b", args.branch)
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
     with open(config_path, "w") as handle:
-        handle.write(text)
-    for name, body in (("queue.md", QUEUE), ("findings.md", FINDINGS)):
-        path = os.path.join(repo, ".loop", name)
-        if not os.path.exists(path):
-            with open(path, "w") as handle:
-                handle.write(body)
-    git(repo, "add", ".loop/config.json", ".loop/queue.md", ".loop/findings.md")
-    git(repo, "commit", "-m", "Add workflow config", "--", ".loop/config.json", ".loop/queue.md", ".loop/findings.md")
-    print("WROTE .loop/ on branch %s at %s" % (args.branch, git(repo, "rev-parse", "--short", "HEAD")))
-    print("NEXT: review the config, then merge the branch into %s" % config["base"])
+        handle.write(json.dumps(config, indent=2) + "\n")
+    seed.apply(repo, config, found, acts)
+    paths = [p for p in (".loop", found["wiki"], ".github/workflows/regression.yml") if os.path.exists(os.path.join(repo, p))]
+    git(repo, "add", "-A", "--", *paths)
+    git(repo, "commit", "-m", "Adopt the workflow loop", "--allow-empty")
+    print("WROTE the adoption on branch %s at %s" % (args.branch, git(repo, "rev-parse", "--short", "HEAD")))
+    print("NEXT: review the branch, then merge it into %s; then run milestone.py new --all --live" % config["base"])
     return 0
 
 

@@ -7,7 +7,7 @@ d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 export LOOP_FLOW="$d/flow.json"
 health="python3 $here/skills/workflow-health/scripts/health.py"
 cd "$d/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 fails=0
 ok() { echo "PASS: $1"; }

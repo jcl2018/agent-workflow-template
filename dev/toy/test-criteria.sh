@@ -13,7 +13,7 @@ goal="python3 $here/skills/workflow-delivery/scripts/goal.py"; rel="python3 $her
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 unset GH_TOKEN GITHUB_TOKEN
 cd "$d/repo"; PWD_REPO=$PWD
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 fails=0
 ok() { echo "PASS: $1"; }

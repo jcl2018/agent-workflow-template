@@ -13,7 +13,7 @@ docs="python3 $here/skills/workflow-docs/scripts/docs.py"
 wiki="python3 $here/skills/workflow-release/scripts/wiki.py"
 merge="python3 $here/skills/workflow-release/scripts/merge.py"
 cd "$d/repo"
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 fails=0
 ok() { echo "PASS: $1"; }

@@ -13,7 +13,7 @@ watch="python3 $here/skills/workflow-monitoring/scripts/watch.py"
 rel="python3 $here/skills/workflow-release/scripts/release.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
 cd "$d/toy/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 no() { echo "FAIL $id: $1"; exit 1; }
 

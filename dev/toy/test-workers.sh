@@ -23,7 +23,7 @@ esac
 GH
 chmod +x "$T/bin/gh"; export PATH="$T/bin:$PATH"
 cd "$T/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 C=$(cd "$(git rev-parse --git-common-dir)" && pwd); export COMMON="$C"
 field() { python3 -c "import json,sys;d=json.load(open(sys.argv[1])).get(sys.argv[2]);print(d)" "$C/loop/runs/$1.json" "$2"; }
