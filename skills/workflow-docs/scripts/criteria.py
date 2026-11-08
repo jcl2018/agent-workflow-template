@@ -10,7 +10,7 @@ usage: criteria.py <command> [options]
 
 A page is Summary, Criteria and Tests. A criterion is '- ID: **Unreviewed** text' or '- ID: **Reviewed DATE** text',
 and a Reviewed line ends with <!-- reviewed HASH -->, a hash of its text. docs.py check fails when the text no longer
-matches its hash. The Tests table lists each criterion's regression rows with their last status and date from
+matches its hash. A regression row whose goal column is '-' proves no criterion yet and is left out. The Tests table lists each criterion's regression rows with their last status and date from
 .loop/regression-runs.tsv, and marks a criterion with no passing row as not enforced. It runs git and nothing else.
 """
 import argparse
@@ -32,7 +32,7 @@ LINE = re.compile(r"^- ([A-Z]{2,5}-\d+): \*\*(Unreviewed|Reviewed (\d{4}-\d\d-\d
 ID = re.compile(r"^[A-Z]{2,5}-\d+$")
 SECTIONS = ["Summary", "Criteria", "Tests"]
 SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
-MAX_CRITERIA = 6
+MAX_CRITERIA = 5
 
 
 def git(*args, check=True):
@@ -88,12 +88,12 @@ def test_rows(root):
     """Real tests as {criterion: [row id]}, plus ids linked to none."""
     linked, loose = {}, []
     for row in tsv(root, "regression.tsv"):
-        key = next((item for item in (row[3], row[0]) if ID.match(item)), "")
+        key = "" if row[3] == "-" else next((item for item in (row[3], row[0]) if ID.match(item)), "")
         if row[1] == "draft":
             continue
         if key:
             linked.setdefault(key, []).append(row[0])
-        else:
+        elif row[3] != "-":
             loose.append(row[0])
     return linked, loose
 
