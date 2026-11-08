@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.2.0 - 2026-11-08
+
+- Give Documentation its one enforcing command: docs.py audit, template sheet, milestone links, release-note check
+- Release step: a failed audit refuses instead of passing
+- Merge origin/main into docs-command: rules read from the template sheet, six Tests columns
+- Delivery page: the release step runs the docs audit
+
+### How to verify
+
+1. Run `python3 skills/workflow-docs/scripts/docs.py audit --dry-run`.
+   Expect: `WOULD FIX` or `REWRITE` lines for what needs work, `UNTESTED` lines for Reviewed criteria with no test, and exit 1 while anything is left.
+2. Open `skills/workflow-docs/references/template.md`, then change `max_criteria` in its rules block and run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: `CAP` lines that follow the new number. Put it back to 5 afterwards.
+3. Open `docs/wiki/Documentation.md`.
+   Expect: a `Milestone:` line under the title linking its GitHub milestone.
+4. Run `bash dev/toy/test-docs-command.sh`.
+   Expect: every line prints PASS and the last line is ALL PASS.
+
 ## v0.1.3 - 2026-11-08
 
 - Regression: descriptions, schedule setting, wiki test fix
