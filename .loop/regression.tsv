@@ -91,7 +91,7 @@ worker-reports-live	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the 
 status-roadmap-features	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: Roadmap counts merged goals per feature"	MON-4	-	The status block's Roadmap counts merged goals per feature.	criterion	
 operate-wakes-on-report	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: a worker's report wakes it before the cadence, and one line says nothing changed"	MON-5	2026-11-08	A worker's report wakes operate before the cadence; a quiet cycle prints one line.	criterion	
 adopt-set-1	land	bash dev/toy/test-adopt.sh SET-1	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1.	criterion	
-adopt-set-2	land	bash dev/toy/test-adopt.sh SET-2	SET-2	2026-11-08	The toy adopt-and-update test holds for SET-2.	criterion	
+adopt-set-2	land	bash dev/toy/test-adopt.sh SET-2	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1, suggest then apply.	criterion	
 adopt-set-3	land	bash dev/toy/test-adopt.sh SET-3	SET-3	2026-11-08	The toy adopt-and-update test holds for SET-3.	criterion	
 adopt-set-4	land	bash dev/toy/test-adopt.sh SET-4	SET-4	2026-11-08	The toy adopt-and-update test holds for SET-4.	criterion	
 adopt-set-5	land	bash dev/toy/test-adopt.sh SET-5	SET-5	2026-11-08	The toy adopt-and-update test holds for SET-5.	criterion	
@@ -111,3 +111,7 @@ defect-categories	land	bash dev/toy/test-defect.sh categories	REG-2	2026-11-08	E
 defect-owed	land	bash dev/toy/test-defect.sh defect-owed	REG-1	2026-11-08	A goal that fixes an issue cannot open its pull request without a defect test seen failing.	criterion	
 defect-health	land	bash dev/toy/test-defect.sh health-closed	HLT-2	2026-11-08	Health flags a closed issue or finding that has no defect test.	criterion	
 defect-known	land	bash dev/toy/test-defect.sh known-defects	-	2026-11-08	Defect tests exist for issues 35 and 58 and the two worker defects.	criterion	
+settings-reference	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: the reference lists every repo and private setting with a default and a line"	SET-2	-	Every repo and private setting is listed with its default and a one-line explanation.	criterion	
+setup-both-halves	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: setup writes every repo setting, parallel 0"	SET-1	-	Setup writes the repo half and, outside the repo, the private half.	criterion	
+parallel-unlimited	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: parallel 0 starts all four"	SET-2	-	Parallel 0 means unlimited, and it is the default.	criterion	
+settings-read-fresh	land	bash dev/toy/test-settings.sh 2>&1 | grep -q "PASS: parallel 1 starts one, read again on the next run"	SET-2	-	A changed setting takes effect on the next run.	criterion	

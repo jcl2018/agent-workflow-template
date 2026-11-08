@@ -187,11 +187,12 @@ def fail_stop(state, text):
 
 def failed_try(state, why, step="build", fix="fix it, then run the step again"):
     state["tries"] = state.get("tries", 0) + 1
-    if state["tries"] >= MAX_TRIES:
+    most = int(config().get("max_tries") or MAX_TRIES)
+    if state["tries"] >= most:
         fail_stop(state, "Failed %d tries. Last: %s" % (state["tries"], why))
     state["step"] = step
     save(state, "try %d failed: %s" % (state["tries"], why))
-    print("TRY %d OF %d FAILED: %s" % (state["tries"], MAX_TRIES, why))
+    print("TRY %d OF %d FAILED: %s" % (state["tries"], most, why))
     print("NEXT: " + fix)
 
 

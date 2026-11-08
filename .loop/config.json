@@ -12,7 +12,7 @@
     "--tools",
     ""
   ],
-  "parallel": 3,
+  "parallel": 0,
   "risky_paths": [
     "^\\.github/",
     "(^|/)auth",

@@ -1,6 +1,7 @@
 #!/bin/bash
 # Prove dev/package.sh passes the real tree and refuses one planted fault per rule. Free: no model calls.
 here=$(cd "$(dirname "$0")/.." && pwd); T=$(mktemp -d); ok=0; bad=0
+export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
 copy() { rm -rf "$T/t"; mkdir -p "$T/t"; (cd "$here" && cp -R skills listing.json README.md LICENSE VERSION CHANGELOG.md "$T/t/"); }
 expect() { # name, rule text expected, command run inside $T/t
   copy; (cd "$T/t" && eval "$3")
