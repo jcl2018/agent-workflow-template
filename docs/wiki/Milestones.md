@@ -12,6 +12,8 @@ Delivery's `pr` puts the pull request in its milestone before any merge, so a pu
 
 Commands, flows and how-tos: `skills/workflow-health/references/milestones.md`.
 
+The fake `gh` used by the toy tests can also merge a branch and fail a release.
+
 ## Criteria
 
 - MIL-1: **Unreviewed** Creating milestones makes one per feature page and one Backlog, and running it again creates nothing.

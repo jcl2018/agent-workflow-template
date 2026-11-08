@@ -18,6 +18,8 @@ request. With it off, the goal stops at the pull request for you.
 
 Commands, flows and how-tos: `skills/workflow-monitoring/references/commands.md`.
 
+A failed release is recorded as `release_error` and lists under Needs you beside `wiki_error`.
+
 ## Criteria
 
 - MON-14: **Unreviewed** What waits on the owner comes first, including every stuck worker until it is answered, retired work leaves it, and the board reports only real changes.

@@ -38,7 +38,7 @@ Commands, flows and how-tos: `skills/workflow-delivery/references/commands.md`.
 - DEL-6: **Unreviewed** Every goal runs the owner's own idea, plan, review, test and ship skills in their unattended mode, and nothing starts without them.
 - DEL-7: **Unreviewed** What the skills leave for the owner waits on the owner, unless the repo turns on auto_approve, as this one does: then it is approved and logged as auto-approved.
 - DEL-8: **Unreviewed** A goal that keeps failing stops and says why.
-- DEL-9: **Unreviewed** No script merges but the release step, and it merges only where the repo turns on auto_merge, as this one does.
+- DEL-9: **Unreviewed** No script merges but the release step (which then runs the owner's routines and releases), and it merges only where the repo turns on auto_merge, as this one does.
 - DEL-10: **Unreviewed** Scripts refuse rather than wait when no terminal is attached.
 
 ## Tests
