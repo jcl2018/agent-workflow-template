@@ -154,8 +154,10 @@ def version_habit(repo, files):
 
 def ignored(repo, paths):
     """(path, exception line) for each path .gitignore would keep out of the setup commit."""
-    found = []
+    found, tracked = [], set(git(repo, "ls-files").splitlines())
     for path in paths:
+        if path in tracked:
+            continue
         parts = path.split("/")
         for size in range(1, len(parts) + 1):
             part = "/".join(parts[:size])
