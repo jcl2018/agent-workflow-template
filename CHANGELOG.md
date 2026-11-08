@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.3.0 - 2026-11-08
+
+- MON-1: rewrite for the dependency-graph planner
+- operate: dependency-graph planner, operate command, base merge, worker guard, live reports, status block
+- Regression: seen red for three operate rows; tighten the message check
+- Review: drop unused cycle(), take the inbox atomically
+- Merge origin/main into loop/operate; guard role.py against prompts
+- Release v0.1.4 (operate)
+- Undo the ship step's version bump: the release step owns the version
+- Wiki: update pages for operate
+- Merge origin/main into operate
+
+### How to verify
+
+1. From the repo root, run `bash dev/toy/test-operate.sh`.
+   Expect: it prints a `PASS:` line for each part (dependency start, status block, reports, follow-up, worker guard, operate loop, base merge) and ends with `ALL PASS`.
+2. Run `python3 skills/workflow-monitoring/scripts/operate.py run --once` on the base branch.
+   Expect: it prints the five status sections (Needs you, Now, Next, Roadmap, Goals), then `DIGEST`, `CHANGED`, `NEXT_DELAY` and the board paths.
+3. Run `python3 skills/workflow-delivery/scripts/goal.py check operate` in a plain shell.
+   Expect: one line, `REFUSED: check is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME`.
+4. Run `grep -n "MON-1" docs/wiki/Monitoring.md`.
+   Expect: the line says `Reviewed 2026-11-08` and begins `Roles, start and planning.`
+
 ## v0.2.0 - 2026-11-08
 
 - Give Documentation its one enforcing command: docs.py audit, template sheet, milestone links, release-note check
