@@ -103,7 +103,7 @@ echo "== the operation session sends a worker a follow-up"
 $OP send c "use sqlite, then add the index" > "$T/send"
 check "send files the message for the worker" 'grep -q "^SENT to c: use sqlite" "$T/send" && grep -q "use sqlite, then add the index" "$C/loop/inbox/c.txt"'
 touch "$FAKE_AGENT/pick-c"; until_file "$FAKE_AGENT/seen-c"; until_text "$FAKE_AGENT/seen-c" "MESSAGE FROM THE OPERATION SESSION"
-check "the worker's agent sees it the next time goal.py runs, once" 'grep -q "use sqlite, then add the index" "$FAKE_AGENT/seen-c" && [ ! -e "$C/loop/inbox/c.txt" ] && grep -q "add the index" "$C/loop/inbox/c.read"'
+check "the worker's agent sees it the next time goal.py runs, once" 'grep -q "^MESSAGE FROM THE OPERATION SESSION.*use sqlite, then add the index" "$FAKE_AGENT/seen-c" && [ ! -e "$C/loop/inbox/c.txt" ] && grep -q "add the index" "$C/loop/inbox/c.read"'
 $OP send nosuch hi 2>&1 | grep -q "no run named nosuch" && ok "send refuses a goal that doesn't exist" || bad "send nosuch"
 
 echo "== goal steps refuse outside a worker"
