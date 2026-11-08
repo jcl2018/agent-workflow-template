@@ -18,4 +18,11 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. From the repo root, run `bash dev/toy/test-operate.sh`.
+   Expect: it prints a `PASS:` line for each part (dependency start, status block, reports, follow-up, worker guard, operate loop, base merge) and ends with `ALL PASS`.
+2. Run `python3 skills/workflow-monitoring/scripts/operate.py run --once` on the base branch.
+   Expect: it prints the five status sections (Needs you, Now, Next, Roadmap, Goals), then `DIGEST`, `CHANGED`, `NEXT_DELAY` and the board paths.
+3. Run `python3 skills/workflow-delivery/scripts/goal.py check operate` in a plain shell.
+   Expect: one line, `REFUSED: check is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME`.
+4. Run `grep -n "MON-1" docs/wiki/Monitoring.md`.
+   Expect: the line says `Reviewed 2026-11-08` and begins `Roles, start and planning.`
