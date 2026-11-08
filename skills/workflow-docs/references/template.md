@@ -7,7 +7,7 @@ rule here changes the check; nothing else holds these numbers. A missing or brok
 sections: Summary, Criteria, Tests
 summary_lines: 3
 max_criteria: 5
-tests_columns: Criterion, Test, Last run
+tests_columns: Criterion, Test, What it checks, Runs, Last result, Seen failing
 milestone_line: Milestone
 ```
 
@@ -25,9 +25,12 @@ in the order of `sections`, and nothing else.
 
 | Column | Means |
 |---|---|
-| Criterion | The criterion id the row proves |
+| Criterion | The criterion's id and words, so the table reads alone |
 | Test | The regression row that proves it, linked to `.loop/regression.tsv`; `**not enforced**` when no row passes |
-| Last run | Its last status and date from `.loop/regression-runs.tsv`; blank for `**not enforced**` |
+| What it checks | The row's description, in plain words |
+| Runs | When it runs: both (every push and nightly), nightly, or by a person |
+| Last result | Its last status and date from `.loop/regression-runs.tsv`; `not run` if never |
+| Seen failing | The date the test was first seen failing, or `no` |
 
 ## Required docs
 

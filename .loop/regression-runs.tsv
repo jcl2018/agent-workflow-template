@@ -1,6 +1,7 @@
 # id	status	date
 auto-approved	PASS	2026-11-08
 auto-release	PASS	2026-11-08
+bad-schedule-refused	PASS	2026-11-08
 batch-cut-user	PASS	2026-11-08
 board-sections	PASS	2026-11-08
 breaking-asks	PASS	2026-11-08
@@ -10,12 +11,15 @@ criteria-no-scripts	PASS	2026-11-08
 cut-draft	PASS	2026-11-08
 cut-needs-verify	PASS	2026-11-08
 dependencies-on-map	PASS	2026-11-08
+describe-needed	PASS	2026-11-08
 docs-audit	PASS	2026-11-08
 docs-only	PASS	2026-11-08
 estimates-shown	PASS	2026-11-08
+every-row-described	PASS	2026-11-08
 failed-waits-mender	PASS	2026-11-08
 fixed-closes	PASS	2026-11-08
 frozen-done-lines	PASS	2026-11-08
+keeps-seen-red	PASS	2026-11-08
 known-no-block	PASS	2026-11-08
 landed-left-alone	PASS	2026-11-08
 lock-in-report	PASS	2026-11-08
@@ -53,6 +57,7 @@ review-owner-only	PASS	2026-11-08
 reviewed-lock	PASS	2026-11-08
 run-ledger	PASS	2026-11-08
 same-lines	PASS	2026-11-08
+schedule-setting	PASS	2026-11-08
 size-fail	PASS	2026-11-08
 skill-says-governs	PASS	2026-11-08
 stale-found	PASS	2026-11-08
@@ -66,7 +71,9 @@ stuck-stays-top	PASS	2026-11-08
 template-sheet	PASS	2026-11-08
 tests-last-run	PASS	2026-11-08
 tests-not-enforced	PASS	2026-11-08
+tests-row-shape	PASS	2026-11-08
 tests-seen-failing	PASS	2026-11-08
+tests-table-columns	PASS	2026-11-08
 tests-table-stale	PASS	2026-11-08
 unproven-blocks	PASS	2026-11-08
 unread-closes-none	PASS	2026-11-08

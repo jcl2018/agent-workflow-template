@@ -45,8 +45,9 @@ jobs:
               mark = "<!-- loop-regression %s -->" % row[0]
               hits = [item for item in issues if mark in item["body"]]
               hit = next((item for item in hits if item["state"] == "OPEN"), hits[0] if hits else None)
-              print("%s %s" % ("PASS" if done.returncode == 0 else "FAIL", row[0]))
-              lines.append("| %s | %s |" % (row[0], "PASS" if done.returncode == 0 else "FAIL"))
+              state = "PASS" if done.returncode == 0 else "FAIL"
+              print(state, row[0])
+              lines.append("| %s | %s |" % (row[0], state))
               if done.returncode == 0:
                   for item in hits:
                       if item["state"] == "OPEN":

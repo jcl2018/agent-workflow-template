@@ -29,5 +29,6 @@
   "require_checks": false,
   "auto_approve": true,
   "auto_merge": true,
+  "regression_cron": "17 9 * * *",
   "routines": []
 }
