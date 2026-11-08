@@ -61,10 +61,10 @@ $docs check | grep -q "^CRITERION Delivery" && ok "a criterion with no mark fail
 good; sub 's/\*\*Unreviewed\*\*/**Reviewed**/'
 $docs check | grep -q "^CRITERION Delivery" && ok "Reviewed with no date fails" || bad "no date"
 $docs criteria Delivery | grep -q "NEXT DEL-2" && ok "criteria prints the next free id" || bad "criteria"
-six=$(for n in 1 2 3 4 5 6; do echo "- DEL-$n: **Unreviewed** Point $n."; done)
-page Delivery "$six"; $docs check | grep -q "^CAP" && bad "six criteria over the cap" || ok "six criteria pass"
+six=$(for n in 1 2 3 4 5; do echo "- DEL-$n: **Unreviewed** Point $n."; done)
+page Delivery "$six"; $docs check | grep -q "^CAP" && bad "five criteria over the cap" || ok "five criteria pass"
 page Delivery "$six
-- DEL-7: **Unreviewed** Point 7."; $docs check | grep -q "^CAP Delivery: has 7 criteria" && ok "a seventh criterion fails" || bad "cap"
+- DEL-6: **Unreviewed** Point 6."; $docs check | grep -q "^CAP Delivery: has 6 criteria" && ok "a sixth criterion fails" || bad "cap"
 for name in calc.py run.sh skills/x/scripts/tool.py app.js; do
   page Delivery "- DEL-1: **Unreviewed** Runs $name for more."
   $docs check | grep -q "^SCRIPT Delivery: DEL-1 names $name" && ok "script name fails: $name" || bad "script name: $name"

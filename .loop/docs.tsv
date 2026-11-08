@@ -1,9 +1,8 @@
 # page<TAB>paths it describes, comma separated
-Delivery	skills/workflow-delivery
-Documentation	skills/workflow-docs
+Delivery	skills/workflow-delivery,skills/workflow-release
+Documentation	skills/workflow-docs,skills/workflow-health/scripts/milestone.py,dev/toy/fakegh
 Health	skills/workflow-health
-Home	README.md,FINDINGS.md,DECISIONS.md,skills/workflow-setup,dev/install-local.sh
-Milestones	skills/workflow-health/scripts/milestone.py,dev/toy/fakegh
+Home	README.md,FINDINGS.md,DECISIONS.md
 Monitoring	skills/workflow-monitoring
 Regression	skills/workflow-regression
-Release	skills/workflow-release
+Setup	skills/workflow-setup,dev/install-local.sh

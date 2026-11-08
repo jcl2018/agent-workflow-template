@@ -15,4 +15,14 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `ls docs/wiki`.
+   Expect: Delivery, Documentation, Health, Home, Monitoring, Regression and Setup, and no Release or Milestones.
+2. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: it prints `DOCS OK: 7 pages`.
+3. Open `docs/wiki/Setup.md`.
+   Expect: five criteria SET-1 to SET-5, each Reviewed 2026-11-08, and every Tests row says **not enforced**.
+
+## Report
+
+Regression rows that prove no new criterion (goal column `-`): cut-needs-verify, cut-draft, batch-cut-user, breaking-asks,
+docs-only, one-failure, landed-left-alone, no-pid-left-alone, no-prompts.

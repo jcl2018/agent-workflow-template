@@ -35,7 +35,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 MARKER = "<!-- workflow-docs -->"
 PAGE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]{0,80}$")
-PREFIXES = {"Delivery": "DEL", "Documentation": "DOC", "Health": "HLT", "Milestones": "MIL", "Monitoring": "MON", "Regression": "REG", "Release": "REL"}
+PREFIXES = {"Delivery": "DEL", "Documentation": "DOC", "Health": "HLT", "Monitoring": "MON", "Regression": "REG", "Setup": "SET"}
 PLACEHOLDER = "Write this page from what is really in the repo."
 
 

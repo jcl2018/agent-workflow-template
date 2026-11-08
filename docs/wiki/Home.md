@@ -4,7 +4,7 @@
 A small agentic workflow for any repo: you state a goal and the checks that prove it, and a background agent takes it
 through your own skill suite's flow, unattended, to a pull request you review. One session governs and the others build. To install it
 and run a first goal, or to see where every file lives, read the
-[README](https://github.com/jcl2018/agent-workflow-template#readme). It's released under the MIT license. The last step of every goal, the release step (see [Release](Release)), also brings the wiki up to date and publishes it.
+[README](https://github.com/jcl2018/agent-workflow-template#readme). It's released under the MIT license. The last step of every goal, the release step (see [Delivery](Delivery)), also brings the wiki up to date and publishes it.
 
 
 **This repo runs with no gates.** Its `.loop/config.json` turns off `require_checks`, with an empty `checks` list, and
@@ -23,15 +23,12 @@ detail and charts are in each skill's `references/` folder.
 
 | Feature | Skill | Page |
 |---|---|---|
-| Goal to pull request | `workflow-delivery` | [Delivery](Delivery) |
-| Keep the wiki in step with code | `workflow-docs` | [Documentation](Documentation) |
-| Check the repo's health | `workflow-health` | [Health](Health) |
-| Milestones per feature, and a Backlog | `workflow-health` | [Milestones](Milestones) |
+| Goal to pull request, and release | `workflow-delivery`, `workflow-release` | [Delivery](Delivery) |
 | Run and watch many goals | `workflow-monitoring` | [Monitoring](Monitoring) |
+| Keep the docs, milestones and release notes in step | `workflow-docs` | [Documentation](Documentation) |
 | Keep tests visible and enforced | `workflow-regression` | [Regression](Regression) |
-| Cut a draft release or leave it | `workflow-release` | [Release](Release) |
-
-Setting up a repo (`workflow-setup`) is covered under Getting started in the README.
+| Check the repo's health | `workflow-health` | [Health](Health) |
+| Adopt a repo into this format | `workflow-setup` | [Setup](Setup) |
 
 ## Reading the charts
 
