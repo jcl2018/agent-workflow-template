@@ -59,7 +59,7 @@ status-order	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: five sectio
 needs-you-stuck	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: Needs you holds the failed and the waiting worker, with the exact words"	MON-4	2026-11-07	Needs you holds the failed and waiting goals with the exact words to type.
 estimates-shown	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: a running goal shows each step with an estimate from past runs"	MON-4	2026-11-07	A running goal shows each step with an estimate from past runs.
 no-prompts	land	bash dev/toy/test-rows.sh DEL-10	-	2026-11-07	No tool waits on a terminal prompt.
-wiki-release	land	out=$(env -u PYTHONDONTWRITEBYTECODE bash dev/toy/test-wiki.sh 2>&1); echo "$out" | grep -E "^(PASS|FAIL)" >&2; echo "$out" | grep -q "PASS: merge publishes the wiki" && ! echo "$out" | grep -q "^FAIL"	DEL-5		Merging a goal publishes its wiki pages, even when python leaves cache files behind.
+wiki-release	land	out=$(env -u PYTHONDONTWRITEBYTECODE bash dev/toy/test-wiki.sh 2>&1); echo "$out" | grep -E "^(PASS|FAIL)" >&2; echo "$out" | grep -q "PASS: merge publishes the wiki" && ! echo "$out" | grep -q "^FAIL"	DEL-5	2026-11-08	Merging a goal publishes its wiki pages, even when python leaves cache files behind.
 page-shape	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a Commands section fails"	DOC-1	2026-11-07	A wiki page with a Commands section fails the check.
 criteria-no-scripts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: script name fails: calc.py"	DOC-1	2026-11-07	A criterion that names a script fails the check.
 tests-not-enforced	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a criterion with no passing test shows as not enforced"	DOC-1	2026-11-07	A criterion with no passing test shows as not enforced.
@@ -72,10 +72,10 @@ unreview-lifts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: unreview
 lock-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report names a changed reviewed criterion"	DOC-2	2026-11-07	The report names a reviewed criterion that changed.
 run-ledger	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a run records each row.s status and date"	REG-2	2026-11-07	A run records each test's result and date.
 ci-summary	land	grep -q GITHUB_STEP_SUMMARY .github/workflows/regression.yml && grep -q GITHUB_STEP_SUMMARY skills/workflow-regression/scripts/regression.py	REG-4	2026-11-07	The nightly run writes a results table to the job summary.
-tests-table-columns	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: table has the six columns"	REG-2		The Tests table has columns for the test, its description, when it runs, last result and seen failing.
-tests-row-shape	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a row shows the criterion words"	REG-2		A Tests row shows the criterion's words, the description, when it runs, the result and the date seen failing.
-describe-needed	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: sync flags a row with no description"	REG-2		A test row with no description is flagged.
-keeps-seen-red	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: describing a row keeps its seen-failing date"	REG-2		Adding a description to a row does not lose its seen-failing date.
-schedule-setting	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: changing regression_cron changes the schedule"	REG-4		Changing the schedule setting and rewriting the workflow changes the Actions schedule.
-bad-schedule-refused	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a setting that is not five cron fields is refused"	REG-4		A schedule setting that is not a cron time is refused.
-every-row-described	land	python3 skills/workflow-regression/scripts/regression.py sync | grep -c "^NODESC" | grep -qx 0	REG-2		Every test row in this repo has a description.
+tests-table-columns	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: table has the six columns"	REG-2	2026-11-08	The Tests table has columns for the test, its description, when it runs, last result and seen failing.
+tests-row-shape	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a row shows the criterion words"	REG-2	2026-11-08	A Tests row shows the criterion's words, the description, when it runs, the result and the date seen failing.
+describe-needed	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: sync flags a row with no description"	REG-2	2026-11-08	A test row with no description is flagged.
+keeps-seen-red	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: describing a row keeps its seen-failing date"	REG-2	2026-11-08	Adding a description to a row does not lose its seen-failing date.
+schedule-setting	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: changing regression_cron changes the schedule"	REG-4	2026-11-08	Changing the schedule setting and rewriting the workflow changes the Actions schedule.
+bad-schedule-refused	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a setting that is not five cron fields is refused"	REG-4	2026-11-08	A schedule setting that is not a cron time is refused.
+every-row-described	land	python3 skills/workflow-regression/scripts/regression.py sync | grep -c "^NODESC" | grep -qx 0	REG-2	2026-11-08	Every test row in this repo has a description.
