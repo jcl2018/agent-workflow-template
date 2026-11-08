@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.4 - 2026-11-08
+
+- Operate: `operate.py run` plans queued goals as a dependency graph (`depends-on`, capped by `parallel`) and starts one worker per ready goal
+- Workers report live, read the operation session's messages, and bring the latest base into their branch
+- Status block with Needs you, Now, Next, Roadmap and Goals; a worker's report wakes operate before its cadence
+- Guard `role.py` against git and gh prompts; merge in the regression-format change from main
+
 ## v0.1.3 - 2026-11-08
 
 - Regression: descriptions, schedule setting, wiki test fix
