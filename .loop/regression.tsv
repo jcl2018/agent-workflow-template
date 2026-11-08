@@ -71,7 +71,7 @@ reviewed-lock	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: changing 
 unreview-lifts	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: unreview lifts the lock"	DOC-2	2026-11-07	Unreviewing a criterion lifts its lock.	criterion	
 lock-in-report	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: report names a changed reviewed criterion"	DOC-2	2026-11-07	The report names a reviewed criterion that changed.	criterion	
 run-ledger	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a run records each row.s status and date"	REG-2	2026-11-07	A run records each test's result and date.	criterion	
-ci-summary	land	grep -q GITHUB_STEP_SUMMARY .github/workflows/regression.yml && grep -q GITHUB_STEP_SUMMARY skills/workflow-regression/scripts/regression.py	REG-4	2026-11-07	The nightly run writes a results table to the job summary.	criterion	
+ci-summary	land	grep -q GITHUB_STEP_SUMMARY .github/workflows/regression.yml && grep -q GITHUB_STEP_SUMMARY skills/workflow-regression/scripts/actions.py	REG-4	2026-11-07	The nightly run writes a results table to the job summary.	criterion	
 tests-table-columns	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: table has the six columns"	REG-2	2026-11-08	The Tests table has columns for the test, its description, when it runs, last result and seen failing.	criterion	
 tests-row-shape	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a row shows the criterion words"	REG-2	2026-11-08	A Tests row shows the criterion's words, the description, when it runs, the result and the date seen failing.	criterion	
 describe-needed	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: sync flags a row with no description"	REG-2	2026-11-08	A test row with no description is flagged.	criterion	
@@ -86,13 +86,13 @@ release-runs-audit	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: 
 untested-listed	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: a test whose target is gone"	DOC-3	2026-11-08	A Reviewed criterion with no test, or a test that no longer matches, is listed.	criterion	
 milestone-links	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: milestone.py links"	DOC-5	2026-11-08	A feature page links to its GitHub milestone, and a missing Backlog is found.	criterion	
 release-note-found	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: a tag with no release note"	DOC-5	2026-11-08	A release with no release note is found.	criterion	
-scripts-no-hang	land	bash dev/toy/test-defect.sh no-hang	DEL-1		A script with no terminal fails with an error instead of hanging on a prompt.	defect	https://github.com/jcl2018/agent-workflow-template/issues/35
-wiki-release-pycache	land	out=$(env -u PYTHONDONTWRITEBYTECODE bash dev/toy/test-wiki.sh 2>&1); echo "$out" | grep -E "^(PASS|FAIL)" >&2; echo "$out" | grep -q "PASS: merge publishes the wiki" && ! echo "$out" | grep -q "^FAIL"	DEL-5		Merging a goal publishes its wiki pages even when python leaves cache files behind.	defect	https://github.com/jcl2018/agent-workflow-template/issues/58
-worker-runs-release	land	bash dev/toy/test-defect.sh worker-release	DEL-5		A worker that ends with its pull request waiting runs the release step itself.	defect	https://github.com/jcl2018/agent-workflow-template/pull/61
-pr-body-no-checks	land	bash dev/toy/test-defect.sh pr-body	DEL-4		The pull request body says nothing about checks and lists each step's result.	defect	https://github.com/jcl2018/agent-workflow-template/pull/62
-defect-wording	land	bash dev/toy/test-defect.sh wording	-		REG-1, REG-2 and DEL-1 carry the owner's approved words and stay sealed.	criterion	
-defect-flow-steps	land	bash dev/toy/test-defect.sh flow-steps	DEL-1		The flow has no checks step and every step can be mapped, with a default suite and overrides.	criterion	
-defect-categories	land	bash dev/toy/test-defect.sh categories	REG-2		Every row has a category, defect rows link their issue, and the page shows defect tests apart.	criterion	
-defect-owed	land	bash dev/toy/test-defect.sh defect-owed	REG-1		A goal that fixes an issue cannot open its pull request without a defect test seen failing.	criterion	
-defect-health	land	bash dev/toy/test-defect.sh health-closed	HLT-2		Health flags a closed issue or finding that has no defect test.	criterion	
-defect-known	land	bash dev/toy/test-defect.sh known-defects	-		Defect tests exist for issues 35 and 58 and the two worker defects.	criterion	
+scripts-no-hang	land	bash dev/toy/test-defect.sh no-hang	DEL-1	2026-11-08	A script with no terminal fails with an error instead of hanging on a prompt.	defect	https://github.com/jcl2018/agent-workflow-template/issues/35
+wiki-release-pycache	land	out=$(env -u PYTHONDONTWRITEBYTECODE bash dev/toy/test-wiki.sh 2>&1); echo "$out" | grep -E "^(PASS|FAIL)" >&2; echo "$out" | grep -q "PASS: merge publishes the wiki" && ! echo "$out" | grep -q "^FAIL"	DEL-5	2026-11-08	Merging a goal publishes its wiki pages even when python leaves cache files behind.	defect	https://github.com/jcl2018/agent-workflow-template/issues/58
+worker-runs-release	land	bash dev/toy/test-defect.sh worker-release	DEL-5	2026-11-08	A worker that ends with its pull request waiting runs the release step itself.	defect	https://github.com/jcl2018/agent-workflow-template/pull/61
+pr-body-no-checks	land	bash dev/toy/test-defect.sh pr-body	DEL-4	2026-11-08	The pull request body says nothing about checks and lists each step's result.	defect	https://github.com/jcl2018/agent-workflow-template/pull/62
+defect-wording	land	bash dev/toy/test-defect.sh wording	-	2026-11-08	REG-1, REG-2 and DEL-1 carry the owner's approved words and stay sealed.	criterion	
+defect-flow-steps	land	bash dev/toy/test-defect.sh flow-steps	DEL-1	2026-11-08	The flow has no checks step and every step can be mapped, with a default suite and overrides.	criterion	
+defect-categories	land	bash dev/toy/test-defect.sh categories	REG-2	2026-11-08	Every row has a category, defect rows link their issue, and the page shows defect tests apart.	criterion	
+defect-owed	land	bash dev/toy/test-defect.sh defect-owed	REG-1	2026-11-08	A goal that fixes an issue cannot open its pull request without a defect test seen failing.	criterion	
+defect-health	land	bash dev/toy/test-defect.sh health-closed	HLT-2	2026-11-08	Health flags a closed issue or finding that has no defect test.	criterion	
+defect-known	land	bash dev/toy/test-defect.sh known-defects	-	2026-11-08	Defect tests exist for issues 35 and 58 and the two worker defects.	criterion	

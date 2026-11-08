@@ -10,6 +10,12 @@ ci-summary	PASS	2026-11-08
 criteria-no-scripts	PASS	2026-11-08
 cut-draft	PASS	2026-11-08
 cut-needs-verify	PASS	2026-11-08
+defect-categories	FAIL	2026-11-08
+defect-flow-steps	PASS	2026-11-08
+defect-health	PASS	2026-11-08
+defect-known	PASS	2026-11-08
+defect-owed	PASS	2026-11-08
+defect-wording	PASS	2026-11-08
 dependencies-on-map	PASS	2026-11-08
 describe-needed	PASS	2026-11-08
 docs-audit	PASS	2026-11-08
@@ -32,7 +38,7 @@ no-done-line-refused	PASS	2026-11-08
 no-flow-refused	PASS	2026-11-08
 no-line-in-governor	PASS	2026-11-08
 no-pid-left-alone	PASS	2026-11-08
-no-prompts	FAIL	2026-11-08
+no-prompts	PASS	2026-11-08
 no-row-fail	PASS	2026-11-08
 no-token-dry-run	PASS	2026-11-08
 no-token-would	PASS	2026-11-08
@@ -43,6 +49,7 @@ one-way-to-run	PASS	2026-11-08
 overlap-held	PASS	2026-11-08
 page-shape	PASS	2026-11-08
 pending-waits	PASS	2026-11-08
+pr-body-no-checks	PASS	2026-11-08
 pr-in-milestone	PASS	2026-11-08
 pr-needs-flow	PASS	2026-11-08
 publish-refused-stale	PASS	2026-11-08
@@ -58,6 +65,7 @@ reviewed-lock	PASS	2026-11-08
 run-ledger	PASS	2026-11-08
 same-lines	PASS	2026-11-08
 schedule-setting	PASS	2026-11-08
+scripts-no-hang	PASS	2026-11-08
 size-fail	PASS	2026-11-08
 skill-says-governs	PASS	2026-11-08
 stale-found	PASS	2026-11-08
@@ -83,6 +91,8 @@ untested-listed	PASS	2026-11-08
 update-in-place	PASS	2026-11-08
 waits-first	PASS	2026-11-08
 wiki-release	PASS	2026-11-08
+wiki-release-pycache	PASS	2026-11-08
 worker-per-goal	PASS	2026-11-08
-worker-refuses	FAIL	2026-11-08
+worker-refuses	PASS	2026-11-08
 worker-reports	PASS	2026-11-08
+worker-runs-release	PASS	2026-11-08

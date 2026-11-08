@@ -19,4 +19,11 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Open `docs/wiki/Delivery.md` and look at the Tests section.
+   Expect: the criteria table, then a `### Defect tests` part listing the defects for issue 35 and pull requests 61 and 62, each linked to its source.
+2. Run `bash dev/toy/test-defect.sh`.
+   Expect: one `PASS:` line for each of wording, flow-steps, categories, defect-owed, health-closed, worker-release, pr-body, no-hang and known-defects, then `ALL PASS`.
+3. Run `python3 skills/workflow-delivery/scripts/goal.py check anything`.
+   Expect: an error saying `check` is not a valid command, because the checks step is gone.
+4. Run `python3 skills/workflow-health/scripts/health.py check --family criteria`.
+   Expect: no `defect-tests` FAIL line, because every issue or finding a goal says it fixed has a defect test.

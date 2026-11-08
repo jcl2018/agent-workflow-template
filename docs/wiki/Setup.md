@@ -3,7 +3,7 @@
 
 ## Summary
 
-Skill: `workflow-setup`. Adopts a repo into this template's format: loop config and checks, feature pages, milestones and the regression workflow. Getting started is in the README.
+Skill: `workflow-setup`. Adopts a repo into this template's format: loop config, feature pages, milestones and the regression workflow. Getting started is in the README.
 
 Commands, flows and how-tos: `skills/workflow-setup/SKILL.md`.
 
