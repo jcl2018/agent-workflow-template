@@ -69,7 +69,8 @@ Run it again until it stops printing `RUNNING`: a step can take many minutes. Th
 
 Goal steps (`step`, `record`, `pr`, `flow.py`) refuse outside a worker (`LOOP_ROLE=worker`), naming
 `batch.py start NAME`. In a worker they print any message from the operation session once; treat it as the owner's answer
-or follow-up. Report your tokens for a step with `goal.py step <slug> <name> --tokens N`.
+or follow-up. `flow.py` records each step's tokens itself, from the agent's JSON output (input + output + cache-creation
+tokens, no cache reads); report a step it didn't run with `goal.py step <slug> <name> --tokens N`.
 
 The idea step writes the design and the plan step reviews it into a plan, both in your skills' own files. Commit
 anything they put in the worktree.
