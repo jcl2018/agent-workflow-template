@@ -101,3 +101,8 @@ status-graph-marks	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: 
 status-graph-total	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: the total is the longest chain b > c > d, not the sum"	MON-4	-	The total is the longest chain of estimates, not their sum.
 status-graph-board	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: the board's total is the same longest chain"	MON-4	-	The board carries the same marks and total as the status block.
 step-label-live	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: recording moves the label on, so the finished step is never shown as current"	MON-4	-	A step's label changes when it starts and never shows a finished step as current.
+cost-time-warn	land	bash dev/toy/test-health-judge.sh 2>&1 | grep -q "PASS: a goal over the time budget warns and names its slowest steps"	HLT-2		A goal over its time budget is a Cost warning naming its slowest steps.
+cost-unread-tokens	land	bash dev/toy/test-health-judge.sh 2>&1 | grep -q "PASS: no tokens recorded prints UNREAD"	HLT-2		A Cost rule with no tokens recorded prints UNREAD.
+judge-section-format	land	bash dev/toy/test-health-judge.sh 2>&1 | grep -q "PASS: the judge section is marked as suggestions"	HLT-5		The judge prints its three reviews in a section marked as suggestions.
+judge-verdict-unchanged	land	bash dev/toy/test-health-judge.sh 2>&1 | grep -q "PASS: a garbage judge cannot change the verdict"	HLT-5		A failing or garbage judge leaves the verdict and exit code unchanged.
+judge-needs-you	land	bash dev/toy/test-health-judge.sh 2>&1 | grep -q "PASS: suggested criterion wording lands under Needs you"	HLT-5		Suggested criterion wording is listed under Needs you for the owner to apply.
