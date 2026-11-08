@@ -4,9 +4,9 @@
 usage: board_status.py [--html]
 
 Prints the block as text, or with --html as a fragment the dashboard and board-artifact.html embed. Report, board and
-dashboard all print this same content. Roadmap is a dependency graph of every goal (status_graph.py): merged, running
-and queued goals with their stage, progress bar and time left, then merged goals per feature (a docs.tsv page) and the
-milestone bars; Total is the longest chain of time left, not the sum. Needs you comes first and is never hidden: every
+dashboard all print this same content. Roadmap is a dependency graph of the live goals (status_graph.py): running, queued and waiting goals with their
+stage, 10-cell bar and time left, then one line of merged pull request numbers; a goal GitHub says is merged counts as
+merged. Total is the longest chain of time left and its finish time, not the sum. Needs you comes first and is never hidden: every
 waiting, failed or stopped worker, with the exact words to answer. Estimates come from the median of other runs' steps, read from their logs, and
 read "no estimate yet" when there is none. Tokens read "unknown" until a run records them.
 """
@@ -134,44 +134,23 @@ def queued(root, runs):
         return []
 
 
-def features(root, runs):
-    """Merged goals per feature: the docs.tsv page whose paths a goal touched, or 'other'."""
-    pages = []
+def github_merged(url, cwd):
+    """True only when gh says the pull request is MERGED; any doubt (no gh, no answer, open, closed) is False."""
     try:
-        with open(os.path.join(root, ".loop", "docs.tsv")) as handle:
-            pages = [line.rstrip("\n").split("\t") for line in handle if line.strip() and not line.startswith("#")]
-    except OSError:
-        pass
-    counts = {}
-    for run in runs:
-        if graph.merged(run):
-            hit = [page[0] for page in pages if len(page) > 1 and any(
-                mine.rstrip("/") == path.strip().rstrip("/") or mine.startswith(path.strip().rstrip("/") + "/") or path.strip().startswith(mine.rstrip("/") + "/")
-                for mine in run.get("touches") or [] for path in page[1].split(","))]
-            for name in hit or ["other"]:
-                counts[name] = counts.get(name, 0) + 1
-    return ["- %s: %d merged goal%s" % (name, n, "" if n == 1 else "s") for name, n in sorted(counts.items())] or ["(no merged goals yet)"]
+        done = subprocess.run(["gh", "pr", "view", url, "--json", "state"], cwd=cwd, capture_output=True, text=True, timeout=20)
+        return done.returncode == 0 and json.loads(done.stdout).get("state", "").upper() == "MERGED"
+    except (OSError, ValueError, AttributeError, subprocess.SubprocessError):
+        return False
 
 
-def bar(closed, total):
-    full = round(10 * closed / total) if total else 0
-    return "[%s%s] %d of %d" % ("#" * full, "-" * (10 - full), closed, total)
+def merged_now(run, root):
+    """Merged by the record, or done with a pull request that GitHub says is merged."""
+    return graph.merged(run) or (run.get("status") == "done" and bool(run.get("pr")) and github_merged(run["pr"], root))
 
 
-def roadmap(root, runs=()):
-    try:
-        done = subprocess.run(["gh", "api", "repos/{owner}/{repo}/milestones?state=all&per_page=100"], cwd=root,
-                              capture_output=True, text=True, timeout=20)
-        found = json.loads(done.stdout) if done.returncode == 0 else []
-    except (OSError, ValueError, subprocess.SubprocessError):
-        found = []
-    found = [item for item in found if isinstance(item, dict)]
-    if not found:
-        return features(root, runs)
-    closed = sum(item.get("closed_issues", 0) for item in found)
-    total = closed + sum(item.get("open_issues", 0) for item in found)
-    return features(root, runs) + ["- %s %s" % (" ".join(str(item.get("title")).split()), bar(item.get("closed_issues", 0), item.get("closed_issues", 0) + item.get("open_issues", 0)))
-                                   for item in found] + ["overall %s" % bar(closed, total)]
+def pr_number(run):
+    found = re.search(r"/pull/(\d+)", str(run.get("pr") or "")) or re.search(r"(\d+)\s*$", str(run.get("pr") or ""))
+    return "#" + found.group(1) if found else "#" + run["slug"]
 
 
 def sections(root=None, at=None):
@@ -181,11 +160,12 @@ def sections(root=None, at=None):
     runs = [read_json(os.path.join(folder, name)) for name in sorted(os.listdir(folder)) if name.endswith(".json")] if os.path.isdir(folder) else []
     runs = [run for run in runs if isinstance(run, dict) and run.get("slug") and run.get("status") != "retired"]
     needs, under = [], {}
+    gone = {run["slug"] for run in runs if merged_now(run, root)}
     for run in runs:
         report = (run.get("report") or {}).get("text", "") or ((run.get("reports") or [{}])[-1].get("text", "") if run.get("status") == "running" else "")
-        if run.get("wiki_error"):
+        if run.get("wiki_error") and run["slug"] not in gone:
             needs.append("- %s (wiki not published): %s" % (run["slug"], " ".join(str(run["wiki_error"]).split())[:200]))
-        if run.get("release_error"):
+        if run.get("release_error") and run["slug"] not in gone:
             needs.append("- %s (release failed): %s" % (run["slug"], " ".join(str(run["release_error"]).split())[:200]))
         if run.get("status") in ASKING:
             ask = run.get("waiting") or {}
@@ -194,15 +174,18 @@ def sections(root=None, at=None):
             needs += ["    answer: " + w for w in words]
         elif run.get("status") == "running":
             under[run["slug"]] = ["    step %s%s" % (run.get("step") or "-", (" - " + report) if report else "")] + step_lines(run, runs, at)
-        elif run.get("status") == "done" and not graph.merged(run):
+        elif run.get("status") == "done" and run["slug"] not in gone:
             under[run["slug"]] = ["    waiting to merge: %s" % (report or "pull request %s" % (run.get("pr") or "open"))]
-    items = [dict(slug=run["slug"], mark=status_graph.mark(run.get("status"), graph.merged(run)), depends=list(run.get("waits_on") or []),
+    items = [dict(slug=run["slug"], mark=status_graph.mark(run.get("status"), run["slug"] in gone), depends=[d for d in run.get("waits_on") or [] if d not in gone],
                   stage=STEPS.index(run["step"]) + 1 if run.get("step") in STEPS else 0, left=left_time(run, runs, at)) for run in runs]
-    items += [dict(slug=goal["slug"], mark="queued", depends=goal["depends"], stage=0,
+    items += [dict(slug=goal["slug"], mark="queued", depends=[d for d in goal["depends"] if d not in gone], stage=0,
                    left=left_time({"slug": goal["slug"], "status": "queued"}, runs, at)) for goal in queued(root, runs)]
+    live = [item for item in items if item["mark"] != "merged"]
+    prs = sorted((pr_number(run) for run in runs if run["slug"] in gone), key=lambda n: (len(n), n))
+    road = status_graph.render_text(live, under) + [status_graph.merged_line(prs)]
     goals = [line for run in runs for line in goal_lines(run, root)]
-    return list(zip(TITLES, [needs or ["(nothing needs you)"], status_graph.render_text(items, under) + roadmap(root, runs),
-                             [status_graph.total(items)], goals or ["(no goals)"]]))
+    return list(zip(TITLES, [needs or ["(nothing needs you)"], road,
+                             [status_graph.total(live, at)], goals or ["(no goals)"]]))
 
 
 def text(parts):

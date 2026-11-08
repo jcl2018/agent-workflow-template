@@ -7,7 +7,10 @@ unknown for a dependency that is no goal here. The total is the longest chain of
 because goals that don't wait on each other run side by side; it is never the sum. Pure functions, nothing read from disk.
 Imported, not run.
 """
+import datetime
+
 STAGES = 8
+CELLS = 10
 DONE = ("merged", "awaiting merge")
 MARKS = {"done": "awaiting merge", "stopped": "failed"}
 
@@ -54,7 +57,7 @@ def unknown(items):
     return [node["slug"] for node in items if node["left"] is None and node["mark"] not in DONE]
 
 
-def total(items):
+def total(items, at=None):
     """The total line: the longest chain, 'at least' when some goal has no estimate, and a note for a cut cycle."""
     seconds, path, cycles = chain(items)
     missing = unknown(items)
@@ -64,6 +67,7 @@ def total(items):
         line = "nothing left"
     else:
         line = "%s%s, the longest chain: %s" % ("at least " if missing else "about ", span(seconds), " > ".join(path))
+        line += ", finish about %s" % (at + datetime.timedelta(seconds=seconds)).astimezone().strftime("%H:%M") if at else ""
         line += " (%d goal%s without an estimate)" % (len(missing), "" if len(missing) == 1 else "s") if missing else ""
     return line + ("; cycle cut at " + ", ".join(cycles) if cycles else "")
 
@@ -83,7 +87,13 @@ def levels(items):
 
 
 def bar(stage):
-    return "[%s%s]" % ("#" * stage, "-" * (STAGES - stage))
+    full = round(CELLS * stage / STAGES)
+    return "[%s%s]" % ("#" * full, "-" * (CELLS - full))
+
+
+def merged_line(prs):
+    """Merged goals collapse to one line of pull request numbers."""
+    return "merged: " + " ".join(prs) if prs else "(no merged goals yet)"
 
 
 def line(node):

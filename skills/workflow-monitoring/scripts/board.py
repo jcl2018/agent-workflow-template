@@ -37,7 +37,7 @@ SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 QUIET = 1800
 RUN_COMMANDS = ("note", "retire")
 SECTIONS = ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step", "Milestones"]
-FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on", "report")
+FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on", "report", "wiki_error", "release_error")
 
 
 def git(*args, cwd=None):
@@ -212,6 +212,7 @@ def collect(name, path, base, at):
         rows.append({
             "repo": run.get("repo") or name, "slug": run["slug"], "goal": get("goal", 80), "level": kind(run), "status": get("status"),
             "step": get("step") or "-", "tries": run.get("tries", 0), "pr": pr, "prstate": pr_state(pr, path) if pr else "",
+            "wiki_error": "yes" if run.get("wiki_error") else "", "release_error": "yes" if run.get("release_error") else "",
             "checks": get("checks"), "quiet": "yes" if quiet else "no", "report": clean((run.get("report") or {}).get("text")),
             "note": clean(note.get("text")) if isinstance(note, dict) else "",
             "waiting": run.get("waiting") if isinstance(run.get("waiting"), dict) else None, "finding": get("finding", 200),

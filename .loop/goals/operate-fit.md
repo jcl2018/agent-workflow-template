@@ -16,3 +16,12 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-monitoring/scripts/board_status.py` in a repo with a merged goal that once failed to publish its wiki.
+   Expect: Needs you does not list that goal; only open asks and errors remain.
+2. Merge a goal's pull request on GitHub, then run `python3 skills/workflow-monitoring/scripts/operate.py run --once`.
+   Expect: the goal is not drawn and its number shows on the `merged: #N` line, never as awaiting merge.
+3. Read the Roadmap section of that output.
+   Expect: only running, queued and waiting goals, each with a 10-cell bar and time left, `<- waits on` arrows, and a Total line ending in `finish about HH:MM`.
+4. Run `operate.py run --once` again straight away.
+   Expect: one line starting `Nothing changed.`
+

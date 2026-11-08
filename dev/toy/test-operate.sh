@@ -88,8 +88,8 @@ check "Roadmap holds queued goals with what they wait on, and goals waiting to m
 check "Roadmap marks a running goal" 'grep -q "\[running\] c " <<<"$nxt"'
 sets a 'release="merged"'; sets d 'release="merged"'
 python3 "$M/board_status.py" > "$T/block2"
-check "Roadmap counts merged goals per feature" 'sed -n "/== Roadmap ==/,/== Total ==/p" "$T/block2" | grep -q -- "- Shared: 1 merged goal$" && sed -n "/== Roadmap ==/,/== Total ==/p" "$T/block2" | grep -q -- "- other: 1 merged goal$"'
-check "merged goals leave the waiting-to-merge list" 'grep -q "\[merged\] a " "$T/block2" && ! grep -q "waiting to merge" "$T/block2"'
+check "Roadmap collapses merged goals to one line of pull request numbers" '[ "$(sed -n "/== Roadmap ==/,/== Total ==/p" "$T/block2" | grep -c "^merged: ")" = 1 ]'
+check "merged goals leave the waiting-to-merge list and the drawn graph" '! grep -q "\[merged\] a " "$T/block2" && ! grep -q "waiting to merge" "$T/block2"'
 
 echo "== workers report as they go"
 check "each change of step is reported as it happens" 'python3 -c "import json,sys;r=json.load(open(sys.argv[1]))[\"reports\"];assert [x[\"step\"] for x in r][-2:]==[\"plan\",\"build\"] and \"worker c: step build\" in r[-1][\"text\"] and r[-1][\"at\"],r" "$C/loop/runs/c.json"'
@@ -126,11 +126,11 @@ until_text "$T/op.out" "== Needs you =="
 check "it starts a batch line by itself" 'until_file "$C/loop/runs/g.json"'
 check "the first pass prints the status block, on the cadence from board.py cadence" 'grep -q "== Total ==" "$T/op.out" && grep -q "^NEXT_DELAY 120$" "$T/op.out"'
 sleep 4  # the pass's own starts are seen once more, then it is quiet
-lines=$(wc -l < "$T/op.out"); quiet=$(grep -c "^NO_CHANGE" "$T/op.out"); blocks=$(grep -c "== Needs you ==" "$T/op.out"); sleep 1.5
+lines=$(wc -l < "$T/op.out"); quiet=$(grep -c "^Nothing changed" "$T/op.out"); blocks=$(grep -c "== Needs you ==" "$T/op.out"); sleep 1.5
 check "nothing is printed while nothing changes" '[ "$(wc -l < "$T/op.out")" = "$lines" ]'
 touch "$C/loop/runs/c.json"
-until_text "$T/op.out" "^NO_CHANGE" ; for _ in $(seq 50); do [ "$(grep -c "^NO_CHANGE" "$T/op.out")" -gt "$quiet" ] && break; sleep 0.1; done
-check "a worker's report wakes it before the cadence, and one line says nothing changed" '[ "$(grep -c "^NO_CHANGE" "$T/op.out")" = $((quiet + 1)) ] && [ "$(grep -c "== Needs you ==" "$T/op.out")" = "$blocks" ]'
+for _ in $(seq 50); do [ "$(grep -c "^Nothing changed" "$T/op.out")" -gt "$quiet" ] && break; sleep 0.1; done
+check "a worker's report wakes it before the cadence, and one line says nothing changed" '[ "$(grep -c "^Nothing changed" "$T/op.out")" = $((quiet + 1)) ] && [ "$(grep -c "== Needs you ==" "$T/op.out")" = "$blocks" ]'
 (cd "$C/loop/worktrees/c" && $goal step c review >/dev/null)
 until_text "$T/op.out" "step: build -> review"
 check "a change prints the status block and the CHANGE line" 'grep -q "^CHANGE .*c step: build -> review" "$T/op.out" && [ "$(grep -c "== Needs you ==" "$T/op.out")" -ge 2 ]'
