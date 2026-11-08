@@ -148,9 +148,39 @@ def merged_now(run, root):
     return graph.merged(run) or (run.get("status") == "done" and bool(run.get("pr")) and github_merged(run["pr"], root))
 
 
+def error_open(run, gone, marker):
+    """An error stays under Needs you unless its goal merged. A record-merged goal's error stays when it was logged after the merge
+    (the wiki publishes after it); one merged only on GitHub never merged through here, so what it logged came before."""
+    if run["slug"] not in gone:
+        return True
+    log = [str(entry).split(" ", 2)[1:] or [""] for entry in run.get("log") or []]
+    last = lambda test: max([n for n, parts in enumerate(log) if test(parts)] + [-1])
+    return graph.merged(run) and last(lambda parts: " ".join(parts).startswith(marker)) > last(lambda parts: parts[0] == "merged")
+
+
 def pr_number(run):
     found = re.search(r"/pull/(\d+)", str(run.get("pr") or "")) or re.search(r"(\d+)\s*$", str(run.get("pr") or ""))
     return "#" + found.group(1) if found else "#" + run["slug"]
+
+
+def bar(closed, total):
+    full = round(10 * closed / total) if total else 0
+    return "[%s%s] %d of %d" % ("#" * full, "-" * (10 - full), closed, total)
+
+
+def milestones(root):
+    """Milestone bars from gh, one per milestone and an overall one; none when gh gives no answer."""
+    try:
+        done = subprocess.run(["gh", "api", "repos/{owner}/{repo}/milestones?state=all&per_page=100"], cwd=root,
+                              capture_output=True, text=True, timeout=20)
+        found = json.loads(done.stdout) if done.returncode == 0 else []
+    except (OSError, ValueError, subprocess.SubprocessError):
+        found = []
+    found = [item for item in found if isinstance(item, dict)]
+    closed = sum(item.get("closed_issues", 0) for item in found)
+    total = closed + sum(item.get("open_issues", 0) for item in found)
+    return ["- %s %s" % (" ".join(str(item.get("title")).split()), bar(item.get("closed_issues", 0), item.get("closed_issues", 0) + item.get("open_issues", 0)))
+            for item in found] + ["overall %s" % bar(closed, total)] if found else []
 
 
 def sections(root=None, at=None):
@@ -163,9 +193,9 @@ def sections(root=None, at=None):
     gone = {run["slug"] for run in runs if merged_now(run, root)}
     for run in runs:
         report = (run.get("report") or {}).get("text", "") or ((run.get("reports") or [{}])[-1].get("text", "") if run.get("status") == "running" else "")
-        if run.get("wiki_error") and run["slug"] not in gone:
+        if run.get("wiki_error") and error_open(run, gone, "wiki not published"):
             needs.append("- %s (wiki not published): %s" % (run["slug"], " ".join(str(run["wiki_error"]).split())[:200]))
-        if run.get("release_error") and run["slug"] not in gone:
+        if run.get("release_error") and error_open(run, gone, "release failed"):
             needs.append("- %s (release failed): %s" % (run["slug"], " ".join(str(run["release_error"]).split())[:200]))
         if run.get("status") in ASKING:
             ask = run.get("waiting") or {}
@@ -182,7 +212,7 @@ def sections(root=None, at=None):
                    left=left_time({"slug": goal["slug"], "status": "queued"}, runs, at)) for goal in queued(root, runs)]
     live = [item for item in items if item["mark"] != "merged"]
     prs = sorted((pr_number(run) for run in runs if run["slug"] in gone), key=lambda n: (len(n), n))
-    road = status_graph.render_text(live, under) + [status_graph.merged_line(prs)]
+    road = status_graph.render_text(live, under) + [status_graph.merged_line(prs)] + milestones(root)
     goals = [line for run in runs for line in goal_lines(run, root)]
     return list(zip(TITLES, [needs or ["(nothing needs you)"], road,
                              [status_graph.total(live, at)], goals or ["(no goals)"]]))

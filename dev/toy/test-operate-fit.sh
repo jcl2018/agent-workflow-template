@@ -31,8 +31,12 @@ def write(slug, **more):
     json.dump(dict({"slug": slug, "goal": "Goal " + slug, "tries": 0, "pr": "", "waits_on": [], "updated": "2026-06-01T12:00:00Z",
                     "log": ["2026-06-01T11:00:00Z queued"]}, **more), open(os.path.join(folder, slug + ".json"), "w"))
 err = "page Home is stale"
-write("rec", status="done", step="pr", release="merged", pr="https://example.test/pull/71", wiki_error=err)   # merged in the record, stale error
+merged = ["2026-06-01T11:30:00Z merged https://example.test/pull/71 (auto_merge)"]
+write("rec", status="done", step="pr", release="merged", pr="https://example.test/pull/71", wiki_error=err,
+      log=["2026-06-01T11:00:00Z wiki not published: x"] + merged)   # merged in the record, stale error
 write("gh", status="done", step="pr", pr="https://example.test/pull/72", wiki_error=err, release_error="boom")  # merged only on GitHub
+write("late", status="done", step="pr", release="merged", pr="https://example.test/pull/74", wiki_error=err,
+      log=merged + ["2026-06-01T11:45:00Z wiki not published: y"])   # the publish after the merge failed: still open
 write("fresh", status="done", step="pr", release="merged", pr="https://example.test/pull/73")                  # published again: no error left
 write("run", status="running", step="build", pid=1)
 write("wait", status="waiting", step="plan", waiting={"ask": "Which one?", "words": ["pick a", "pick b"]})
@@ -50,14 +54,14 @@ echo "== GitHub says merged"
 FAKE_GH_PR_STATE=MERGED block > "$T/block"
 needs() { sed -n '/== Needs you ==/,/== Roadmap ==/p' "$T/block"; }
 road() { sed -n '/== Roadmap ==/,/== Total ==/p' "$T/block"; }
-check "line 1: a merged goal's old wiki_error and release_error are gone from Needs you" '! needs | grep -q "rec\|gh\|fresh"'
+check "line 1: a merged goal's old wiki_error and release_error are gone from Needs you" '! needs | grep -q "rec\|gh\|fresh" && needs | grep -q "late (wiki not published)"'
 check "line 1: errors and asks that are still open stay" 'needs | grep -q "wait (waiting): Which one" && needs | grep -q "answer: pick a"'
 FAKE_GH_PR_STATE=OPEN block > "$T/open"
 check "line 1: with GitHub saying open, the unmerged goal keeps its error" 'sed -n "/== Needs you ==/,/== Roadmap ==/p" "$T/open" | grep -q "gh (wiki not published)"'
 check "line 2: a pull request merged on GitHub shows merged, never awaiting merge" '! grep -q "awaiting merge\] gh\|waiting to merge: .*72" "$T/block" && road | grep -q "^merged: .*#72"'
 check "line 2: its dependant no longer waits on it" 'road | grep "\[queued\] q " | grep -q "waits on run" && ! road | grep "\[queued\] q " | grep -q "gh"'
 check "line 3: only live goals are drawn, with the stage, a 10-cell bar and an arrow" '! road | grep -q "\[merged\]" && road | grep -q "\[running\] run  stage 3 of 8 \[####------\]" && road | grep -q "\[waiting\] wait " && road | grep -q "\[awaiting merge\] stale "'
-check "line 3: merged goals collapse to one line of pull request numbers" '[ "$(road | grep -c "^merged:")" = 1 ] && road | grep -q "^merged: #71 #72 #73$"'
+check "line 3: merged goals collapse to one line of pull request numbers" '[ "$(road | grep -c "^merged:")" = 1 ] && road | grep -q "^merged: #71 #72 #73 #74$"'
 check "line 3: the total names the longest path, then a finish time" 'grep -q "^no estimate yet\|the longest chain:.*, finish about [0-9][0-9]:[0-9][0-9]" "$T/block" || python3 - "$M" <<PY
 import sys, datetime
 sys.path.insert(0, sys.argv[1]); import status_graph as g
