@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.8.0 - 2026-11-08
+
+- Health: Cost rule, judge command, HLT-2 and HLT-5 wording
+- Compare judge exit codes with the check's
+- Health: docs for Cost and the judge
+- Verify by hand; milestones test follows issue numbers
+- Merge origin/main into health-judge-4
+- Health scripts: no terminal prompt, like the others
+- Merge origin/main into health-judge-4; list judge
+- Merge remote-tracking branch 'origin/main' into loop/health-judge-4
+- Wiki: update pages for health-judge-4
+
+### How to verify
+
+1. Run `python3 skills/workflow-health/scripts/health.py check --family cost`.
+   Expect: a `cost` group; each goal over `time_budget_minutes` or `token_budget` is a WARN naming its slowest or costliest steps, and `UNREAD cost tokens` prints if no recent goal recorded tokens.
+2. Run `python3 skills/workflow-health/scripts/health.py judge`.
+   Expect: the normal report and `HEALTH:` line, then `JUDGE (suggestions, never part of the verdict)` with criteria quality, test quality, performance and tokens, `Needs you`, candidate goals and next steps (or `JUDGE UNAVAILABLE: ...` if the judge fails), with the same exit code as `check`.
+
 ## v0.7.1 - 2026-11-08
 
 - Merge main
