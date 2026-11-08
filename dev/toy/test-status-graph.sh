@@ -91,6 +91,13 @@ t=json.load(open(\"$T/out/board.json\"))[\"dependency_map\"][\"total\"]
 assert t.startswith(\"about 2h54m, the longest chain: \") and t.count(\" > \")==2, t"'
 check "the page shows the mark on each lane and the total" 'grep -q "Total:" "$T/out/board.html" && grep -q "\[running\] " "$T/out/board.html" && grep -q "about 2h54m" "$T/out/board-artifact.html"'
 
+echo "== both dependency spellings"
+check "depends: and depends-on: parse to the same waits" 'python3 -c "
+import sys; sys.path.insert(0, \"$M\"); import graph
+a=graph.parse(\"- slug: x | depends: a, b | goal: X\")
+b=graph.parse(\"- slug: x | depends-on: a, b | goal: X\")
+assert a[\"depends\"]==b[\"depends\"]==[\"a\",\"b\"], (a, b)"'
+
 echo "== the step label"
 $goal new lv --here --goal "Label" --done "label" >/dev/null
 label() { python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['step'])" "$C/loop/runs/lv.json"; }

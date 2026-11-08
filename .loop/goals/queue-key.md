@@ -12,4 +12,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `bash dev/toy/test-status-graph.sh`.
+   Expect: it ends with ALL PASS, including "depends: and depends-on: parse to the same waits".
+2. Open `skills/loop-files.md` and find the queue-line paragraph.
+   Expect: it shows `depends: a, b` (or `depends-on:`) as the dependency key.
