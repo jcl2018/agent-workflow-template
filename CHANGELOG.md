@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.8.1 - 2026-11-08
+
+- Accept both depends: and depends-on: in queue lines
+- Toy: both keys together, neither key
+- Wiki: update pages for queue-key
+
+### How to verify
+
+1. Run `bash dev/toy/test-status-graph.sh`.
+   Expect: it ends with ALL PASS, including "depends: and depends-on: parse to the same waits".
+2. Open `skills/loop-files.md` and find the queue-line paragraph.
+   Expect: it shows `depends: a, b` (or `depends-on:`) as the dependency key.
+
 ## v0.8.0 - 2026-11-08
 
 - Health: Cost rule, judge command, HLT-2 and HLT-5 wording
