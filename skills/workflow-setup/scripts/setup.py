@@ -167,7 +167,8 @@ def main():
     with open(config_path, "w") as handle:
         handle.write(json.dumps(config, indent=2) + "\n")
     seed.apply(repo, config, found, acts)
-    git(repo, "add", "-A", "--", ".loop", found["wiki"], ".github/workflows/regression.yml")
+    paths = [p for p in (".loop", found["wiki"], ".github/workflows/regression.yml") if os.path.exists(os.path.join(repo, p))]
+    git(repo, "add", "-A", "--", *paths)
     git(repo, "commit", "-m", "Adopt the workflow loop", "--allow-empty")
     print("WROTE the adoption on branch %s at %s" % (args.branch, git(repo, "rev-parse", "--short", "HEAD")))
     print("NEXT: review the branch, then merge it into %s; then run milestone.py new --all --live" % config["base"])
