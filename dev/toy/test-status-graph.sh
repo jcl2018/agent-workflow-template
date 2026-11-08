@@ -16,7 +16,7 @@ check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 "$here/dev/toy/make.sh" "$T" >/dev/null || exit 1
 export LOOP_FLOW="$T/flow.json" PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh"
 cd "$T/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null || true  # a bare agent_command exits 1 after writing
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
 C=$(cd "$(git rev-parse --git-common-dir)" && pwd)
 AT=2026-06-01T12:00:00Z

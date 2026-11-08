@@ -41,7 +41,8 @@ $docs add Delivery --paths calc.py >/dev/null
 good; git add -A; git commit -qm "Delivery page"
 $docs check | grep -q "DOCS OK" && ok "a conforming page passes" || bad "conforming page"
 $docs add Extras --paths calc.py >/dev/null; page Extras "- EXT-1: **Unreviewed** x"
-$docs check | grep -q "^PAGE Extras" && ok "a page outside the list fails" || bad "extra page"
+$docs check | grep -q "^PAGE Extras" && bad "a page in docs.tsv was refused" || ok "a page in docs.tsv outside the old set passes"
+$docs criteria Extras | grep -q "NEXT EXT-2" && ok "criteria numbers a listed page by its own prefix" || bad "extra page prefix"
 rm docs/wiki/Extras.md; grep -v '^Extras' .loop/docs.tsv > .loop/t && mv .loop/t .loop/docs.tsv
 good; sub 's/^## Tests/## Usage/'
 $docs check | grep -q "^SECTIONS Delivery" && ok "wrong sections fail" || bad "sections"

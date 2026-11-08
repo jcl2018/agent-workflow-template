@@ -23,7 +23,7 @@ check "parallel 0 means unlimited and is the default" 'grep -q "^| .parallel. | 
 check "this repo commits parallel 0" '[ "$(python3 -c "import json;print(json.load(open(\"$here/.loop/config.json\"))[\"parallel\"])")" = 0 ]'
 
 cd "$T/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null || true  # a bare agent_command exits 1 after writing
 all=$(python3 - <<PY
 import json, sys
 sys.path.insert(0, "$here/skills/workflow-setup/scripts")
