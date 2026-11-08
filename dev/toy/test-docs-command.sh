@@ -34,7 +34,7 @@ bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 
 echo "== 1. the template sheet holds the rules and the check reads them"
 sheet=$here/skills/workflow-docs/references/template.md
-grep -q '^```rules' "$sheet" && grep -q "Last run" "$sheet" && grep -q "not enforced" "$sheet" && ok "the sheet defines the page and each Tests column" || bad "sheet"
+grep -q '^```rules' "$sheet" && grep -q "Last result" "$sheet" && grep -q "not enforced" "$sheet" && ok "the sheet defines the page and each Tests column" || bad "sheet"
 cp -r "$here/skills/workflow-docs" "$d/skill"
 page "Short." "- DEL-1: **Unreviewed** One.
 - CAL-2: **Unreviewed** Two."
@@ -57,7 +57,7 @@ git add -A; git commit -qm "Long summary"
 out=$($docs audit --dry-run); echo "$out"
 grep -q "^WOULD FIX docs/wiki/Delivery.md: re-render the Tests table" <<<"$out" && [ -z "$(git status --porcelain)" ] && ok "dry run says what it would fix and writes nothing" || bad "dry run"
 out=$($docs audit); rc=$?; echo "$out"
-grep -q "^FIXED docs/wiki/Delivery.md: re-render" <<<"$out" && grep -q '^| DEL-1 | \*\*not enforced\*\*' docs/wiki/Delivery.md && ok "the Tests table is fixed" || bad "fix tables"
+grep -q "^FIXED docs/wiki/Delivery.md: re-render" <<<"$out" && grep -q '^| \*\*DEL-1\*\* .* | \*\*not enforced\*\*' docs/wiki/Delivery.md && ok "the Tests table is fixed" || bad "fix tables"
 grep -q "^REWRITE Delivery: SUMMARY is over 3 lines" <<<"$out" && [ "$rc" = 1 ] && ok "wording to rewrite is listed and the exit is 1" || bad "rewrite"
 [ -f docs/wiki/Delivery.md ] && grep -q "Four, which" docs/wiki/Delivery.md && ok "it deletes and rewrites no page" || bad "kept page"
 git add -A; git commit -qm "Rendered" >/dev/null
