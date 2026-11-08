@@ -75,20 +75,20 @@ good; echo "The Summary may name run.sh freely." >> docs/wiki/Delivery.md
 $docs check | grep -q "^SCRIPT" && bad "summary checked" || ok "only the criteria are checked for script names"
 
 echo "== the Tests table: rows, last runs, and not enforced"
-good; grep -q '^| DEL-1 | \*\*not enforced\*\* |' docs/wiki/Delivery.md && ok "a criterion with no test shows as not enforced" || bad "not enforced"
+good; grep -q '^| \*\*DEL-1\*\* [^|]* | \*\*not enforced\*\* |' docs/wiki/Delivery.md && ok "a criterion with no test shows as not enforced" || bad "not enforced"
 $docs check | grep -q "DOCS OK" && ok "a rendered table passes" || bad "rendered table"
 $reg add del-1a --level land --command "true" --goal DEL-1 >/dev/null; $reg add del-1b --level land --command "false" --goal DEL-1 >/dev/null
 $cri render >/dev/null
-grep -q '^| DEL-1 | \[del-1a\](.*) | not run |' docs/wiki/Delivery.md && grep -q '^| DEL-1 | \*\*not enforced\*\*' docs/wiki/Delivery.md && ok "a test that never ran is not enforcing" || bad "not run"
+grep -q '^| \*\*DEL-1\*\* [^|]* | \[del-1a\](.*) | - | both | not run | no |' docs/wiki/Delivery.md && grep -q '^| \*\*DEL-1\*\* [^|]* | \*\*not enforced\*\*' docs/wiki/Delivery.md && ok "a test that never ran is not enforcing" || bad "not run"
 $reg run land >/dev/null || true
 grep -q "^del-1a	PASS	$day" .loop/regression-runs.tsv && grep -q "^del-1b	FAIL	$day" .loop/regression-runs.tsv && ok "a run records each row's status and date" || bad "ledger"
 $docs check | grep -q "^TESTS Delivery" && ok "a table behind the last run is stale" || bad "stale after run"
 $cri render --check | grep -q "^STALE" && ok "render --check names the stale page" || bad "render check"
 $cri render >/dev/null
-grep -q "^| DEL-1 | \[del-1a\](.*) | PASS $day |" docs/wiki/Delivery.md && grep -q "^| DEL-1 | \[del-1b\](.*) | FAIL $day |" docs/wiki/Delivery.md && ok "render shows status and date" || bad "render shows"
-grep -q '^| DEL-1 | \*\*not enforced' docs/wiki/Delivery.md && bad "one passing row still not enforced" || ok "one passing row is enough to be enforced"
+grep -q "^| \*\*DEL-1\*\* [^|]* | \[del-1a\](.*) | - | both | PASS $day | no |" docs/wiki/Delivery.md && grep -q "^| \*\*DEL-1\*\* [^|]* | \[del-1b\](.*) | - | both | FAIL $day | no |" docs/wiki/Delivery.md && ok "render shows status and date" || bad "render shows"
+grep -q '^| \*\*DEL-1\*\* [^|]* | \*\*not enforced' docs/wiki/Delivery.md && bad "one passing row still not enforced" || ok "one passing row is enough to be enforced"
 $reg add del-1a --level land --command "false" --goal DEL-1 >/dev/null; $reg run del-1a >/dev/null || true; $cri render >/dev/null
-grep -q '^| DEL-1 | \*\*not enforced' docs/wiki/Delivery.md && ok "a criterion with no passing test shows as not enforced" || bad "all failing"
+grep -q '^| \*\*DEL-1\*\* [^|]* | \*\*not enforced' docs/wiki/Delivery.md && ok "a criterion with no passing test shows as not enforced" || bad "all failing"
 sub 's/FAIL/PASS/'
 $docs check | grep -q "^TESTS Delivery" && ok "a hand-edited table fails" || bad "hand edit"
 printf 'orphan\tland\ttrue\t\t\nDEL-9x\tland\ttrue\tDEL-9\t\n' >> .loop/regression.tsv
@@ -149,7 +149,17 @@ $reg add del-2b --level land --command "true" --goal DEL-2 >/dev/null
 git add -A; git commit -qm "Passing row" >/dev/null; $goal check crit >/dev/null
 mv .loop/docs.tsv "$d/docs.tsv.away"
 (cd "$here/skills/workflow-release/scripts" && python3 -c "import release; print(release.criteria_trouble('$PWD_REPO', {}))") | grep -q '^\[\]$' && ok "no docs.tsv: criteria are ignored" || bad "no docs.tsv"
+
 mv "$d/docs.tsv.away" .loop/docs.tsv
 $rel cut crit | grep -q "^DRAFT" && ok "cut with every row passing" || bad "cut passing"
+
+echo "== the Tests table shows words, description, when it runs, result and seen failing"
+good
+$reg add del-1c --level nightly --command "true" --goal DEL-1 --describe "Checks the median of a short list." >/dev/null
+$reg red del-1c --break "true" >/dev/null || true
+printf 'del-1c\tnightly\ttrue\tDEL-1\t2026-01-02\tChecks the median of a short list.\n' > .loop/regression.tsv
+$reg run del-1c >/dev/null || true; $cri render >/dev/null
+grep -q "^| Criterion | Test | What it checks | Runs | Last result | Seen failing |" docs/wiki/Delivery.md && ok "table has the six columns" || bad "columns"
+grep -q "^| \*\*DEL-1\*\* The calculator prints a median. | \[del-1c\](.*) | Checks the median of a short list. | nightly | PASS $day | 2026-01-02 |" docs/wiki/Delivery.md && ok "a row shows the criterion words, description, schedule, result and seen-failing date" || bad "row shape"
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

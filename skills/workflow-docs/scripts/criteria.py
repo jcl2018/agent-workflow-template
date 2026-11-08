@@ -10,8 +10,9 @@ usage: criteria.py <command> [options]
 
 A page is Summary, Criteria and Tests. A criterion is '- ID: **Unreviewed** text' or '- ID: **Reviewed DATE** text',
 and a Reviewed line ends with <!-- reviewed HASH -->, a hash of its text. docs.py check fails when the text no longer
-matches its hash. A regression row whose goal column is '-' proves no criterion yet and is left out. The Tests table lists each criterion's regression rows with their last status and date from
-.loop/regression-runs.tsv, and marks a criterion with no passing row as not enforced. It runs git and nothing else.
+matches its hash. A regression row whose goal column is '-' proves no criterion yet and is left out. The Tests table lists each criterion's regression rows with the criterion's words, what the
+test checks, when it runs, its last status and date from .loop/regression-runs.tsv and whether it was seen failing,
+and marks a criterion with no passing row as not enforced. It runs git and nothing else.
 """
 import argparse
 import datetime
@@ -98,19 +99,27 @@ def test_rows(root):
     return linked, loose
 
 
+RUNS = {"land": "both", "nightly": "nightly", "covered": "by a person"}
+
+
 def table(root, ids, linked):
-    """The Tests table: each criterion's rows with their last run, and 'not enforced' when none passes."""
+    """The Tests table: each criterion's rows with the criterion's words, what the test checks, when it runs, its
+    last result and whether it was seen failing; 'not enforced' when no row passes. `ids` is (id, text) pairs."""
     ran = {row[0]: (row[1], row[2]) for row in tsv(root, "regression-runs.tsv")}
+    rows = {row[0]: row for row in tsv(root, "regression.tsv")}
     link = "../" * (folder_of(root).count("/") + 1) + ".loop/regression.tsv"
-    out = ["| Criterion | Test | Last run |", "|---|---|---|"]
-    for key in ids:
+    out = ["| Criterion | Test | What it checks | Runs | Last result | Seen failing |", "|---|---|---|---|---|---|"]
+    for key, text in ids:
+        words = ("**%s** %s" % (key, text)).replace("|", "\\|")
         passing = False
         for name in linked.get(key, []):
             status, date = ran.get(name, ("not run", ""))
             passing = passing or status == "PASS"
-            out.append("| %s | [%s](%s) | %s |" % (key, name, link, (status + " " + date).strip()))
+            row = rows[name]
+            out.append("| %s | [%s](%s) | %s | %s | %s | %s |" % (words, name, link, row[5].replace("|", "\\|") or "-",
+                       RUNS.get(row[1], row[1]), (status + " " + date).strip(), row[4] or "no"))
         if not passing:
-            out.append("| %s | **not enforced** | |" % key)
+            out.append("| %s | **not enforced** | | | | |" % words)
     return out
 
 
@@ -138,7 +147,7 @@ def contract(root, names, seen):
                 found.append(("DUPLICATE", page, "%s is also in %s" % (key, seen[key])))
                 continue
             seen[key] = page
-            ids.append(key)
+            ids.append((key, text))
             named = SCRIPT_FILE.findall(text)
             if named:
                 found.append(("SCRIPT", page, "%s names %s. Fix: say what it does, not the file" % (key, ", ".join(named))))
@@ -218,7 +227,7 @@ def cmd_render(args):
         parts = sections(text)
         if [name for name, _ in parts] != SECTIONS:
             continue
-        ids = [m.group(1) for _, m in criteria_of(dict(parts)["Criteria"]) if m]
+        ids = [(m.group(1), m.group(4)) for _, m in criteria_of(dict(parts)["Criteria"]) if m]
         head, _, _ = text.partition("\n## Tests")
         fresh = head + "\n## Tests\n\n" + "\n".join(table(root, ids, linked)) + "\n"
         if fresh != text:
