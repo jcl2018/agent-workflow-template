@@ -22,7 +22,7 @@ show SLUG
   monitored batch goal without `release: ask` answers `leave` by itself.
 - `leave` keeps the work unreleased and changes nothing versioned.
 - `cut` refuses without numbered steps under `## Verify by hand`, if any step has no `Expect:` line, or with a mapped
-  page that is stale since the goal's base or missing. After fixing a page, commit it and run the goal's `check` again.
+  page that is stale since the goal's base or missing. After fixing a page, commit it and run the release again.
   `cut` then moves the version (`patch` by default), writes the changelog, commits, pushes and creates a **draft**
   GitHub release. You publish it. A batch goal refuses `cut` without `--user`, which means your own words said to cut.
 - `cut` also refuses when a criterion on a wiki page (see Documentation) has a regression row that is missing, a draft

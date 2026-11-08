@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Hold one goal's record: done lines, the skill flow's steps, checks, PR.
+"""Hold one goal's record: done lines, the skill flow's steps, PR.
 
 usage: goal.py <command> <slug> [options]
 
   new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
   queue SLUG --goal TEXT --done LINE [--touches A,B] [--depends-on A,B]
   step SLUG NAME [--note TEXT] [--tokens N]
-  check SLUG
   record SLUG STEP --file REPLY  record a flow step flow.py ran: idea, plan, review, qa or ship
-  pr SLUG  merge the latest base (rerun checks if it changed), push, open the PR, join its milestone
-Goal steps (step, check, record, pr) refuse outside a worker; a worker also sees what the operation session sent it.
+  pr SLUG  merge the latest base (pull in the base if it moved), push, open the PR, join its milestone
+Goal steps (step, record, pr) refuse outside a worker; a worker also sees what the operation session sent it.
   wait SLUG --ask TEXT --words W [--words W]
   answer SLUG
   finding SLUG TEXT
@@ -25,6 +24,8 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import defect  # noqa: E402
 import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -184,7 +185,7 @@ def fail_stop(state, text):
     sys.exit(3)
 
 
-def failed_try(state, why, step="build", fix="fix it, then run check again"):
+def failed_try(state, why, step="build", fix="fix it, then run the step again"):
     state["tries"] = state.get("tries", 0) + 1
     if state["tries"] >= MAX_TRIES:
         fail_stop(state, "Failed %d tries. Last: %s" % (state["tries"], why))
@@ -197,8 +198,9 @@ def failed_try(state, why, step="build", fix="fix it, then run check again"):
 def flow_set():
     """The private flow file names a skill for every step. Its contents never go in the repo."""
     try:
-        steps = json.loads(read(os.path.expanduser(os.environ.get("LOOP_FLOW") or FLOW_FILE))).get("steps") or {}
-    except (OSError, ValueError, AttributeError):
+        spec = json.loads(read(os.path.expanduser(os.environ.get("LOOP_FLOW") or FLOW_FILE)))
+        steps = dict(spec.get("suite") or {}, **(spec.get("steps") or {}))
+    except (OSError, ValueError, AttributeError, TypeError):
         return False
     return all(steps.get(step) for step in FLOW)
 
@@ -235,7 +237,7 @@ def cmd_new(args):
     git("commit", "-m", "Goal: %s" % args.slug, "--", path)
     state = {"slug": args.slug, "goal": args.goal, "status": "running", "step": "idea", "tries": 0, "flow": {},
              "branch": branch, "worktree": root(), "touches": touches, "pid": None, "pr": "",
-             "batch": bool(os.environ.get("LOOP_BATCH")), "done_sha": done_sha(lines), "checks": "",
+             "batch": bool(os.environ.get("LOOP_BATCH")), "done_sha": done_sha(lines),
              "release": args.release, "waiting": None, "finding": "", "log": []}
     save(state, "frozen %d done lines" % len(lines))
     print("FROZEN %s branch=%s step=idea" % (args.slug, branch))
@@ -272,39 +274,6 @@ def cmd_step(args):
     return 0
 
 
-def cmd_check(args):
-    state = held(args.slug)
-    state["step"] = "checks"
-    save(state, "checks")
-    commands = config().get("checks", [])
-    if not commands and config().get("require_checks", True) is False:
-        state["checks"], state["checks_sha"] = "none", git("rev-parse", "HEAD")
-        save(state, "no checks: require_checks is off")
-        print("NO CHECKS %s: require_checks is off in this repo, so nothing was tested" % args.slug)
-        print("NEXT: " + next_step(state))
-        return 0
-    if not commands:
-        fail_stop(state, "The repo has no check commands. Add them to .loop/config.json.")
-    parts, sums, failed = [], [], False
-    for command in commands:
-        done = subprocess.run(command, shell=True, capture_output=True, text=True, cwd=root())
-        parts.append("$ %s\nexit %d\n%s%s" % (command, done.returncode, done.stdout[-4000:], done.stderr[-4000:]))
-        sums.append("CHECK exit %d: %s" % (done.returncode, command))
-        failed = failed or done.returncode != 0
-    report = "\n".join(sums) + "\n\n" + "\n".join(parts)
-    write(os.path.join(state_dir(), args.slug + ".checks.txt"), report)
-    state["checks"] = "fail" if failed else "pass"
-    state["checks_sha"] = git("rev-parse", "HEAD")
-    if failed:
-        print(report)
-        failed_try(state, "checks failed")
-        return 1
-    save(state, "checks pass")
-    print("CHECKS PASS %s" % args.slug)
-    print("NEXT: " + next_step(state))
-    return 0
-
-
 def next_step(state):
     left = [step for step in FLOW if step not in state.get("flow", {})]
     return "flow.py %s %s" % (state["slug"], left[0]) if left else "pr"
@@ -329,7 +298,7 @@ def cmd_record(args):
         state["note"] = {"text": "auto-approved at %s: %s" % (args.step, took[:240]), "at": now()}
         save(state, "%s auto-approved: %s" % (args.step, took[:300]))
         print("AUTO-APPROVED %s %s: %s" % (args.slug, args.step, took))
-        print("NEXT: " + ("build, then check" if args.step == "plan" else "check" if args.step != "idea" else next_step(state)))
+        print("NEXT: " + ("build, then " if args.step == "plan" else "") + next_step(state))
         return 0
     if pending or result == "pending":
         state["flow"][args.step] = "pending"
@@ -344,7 +313,7 @@ def cmd_record(args):
         state["step"] = role.after(args.step)
         save(state, "%s %s" % (args.step, state["flow"][args.step]))
         print("RECORDED %s %s" % (args.step, state["flow"][args.step]))
-        print("NEXT: " + ("build, then check" if args.step == "plan" else "check" if args.step != "idea" else next_step(state)))
+        print("NEXT: " + ("build, then " if args.step == "plan" else "") + next_step(state))
         return 0
     failed_try(state, "%s %s" % (args.step, "failed: " + why[:200] if result else "gave no STEP line"), args.step,
                "fix the cause, then run flow.py %s %s again" % (args.slug, args.step))
@@ -368,7 +337,6 @@ def bump_version(state, head):
     git("add", "--", name)
     git("commit", "-m", "Bump version to " + ".".join(parts), "--", name)
     new = git("rev-parse", "HEAD")
-    state["checks_sha"] = new
     save(state, "bumped %s to %s" % (name, ".".join(parts)))
     return new
 
@@ -381,17 +349,18 @@ def cmd_pr(args):
     what, detail = role.sync(config()["base"])
     if what == "conflict":
         failed_try(state, "merging %s conflicts in: %s" % (config()["base"], detail), "build",
-                   "merge %s yourself, resolve the conflicts, commit, run check, then pr" % config()["base"])
+                   "merge %s yourself, resolve the conflicts, commit, then pr" % config()["base"])
         return 1
     if what == "merged":
-        print("MERGED %s into the branch; running the checks again" % detail)
-        if cmd_check(args):
-            return 1
+        print("MERGED %s into the branch" % detail)
         state = held(args.slug)
     head = git("rev-parse", "HEAD")
-    gated = config().get("require_checks", True) is not False
-    if gated and (state.get("checks") != "pass" or state.get("checks_sha") != head):
-        no("checks have not passed on this commit. Fix: run check.")
+    left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
+    if left:
+        no("the flow hasn't finished: %s. Fix: run flow.py %s %s." % (", ".join(left), args.slug, left[0]))
+    owed = defect.owed(root(), read(goal_file(args.slug)))
+    if owed:
+        no("no passing defect test, seen failing, for %s. Fix: regression.py add --category defect --link ..., then red." % ", ".join(owed))
     if git("status", "--porcelain", "--", "."):
         print("NOTE: uncommitted files stay out of the PR")
     head = bump_version(state, head)
@@ -410,8 +379,7 @@ def cmd_pr(args):
     if not url:
         body = read(goal_file(args.slug))
         flow = "".join("\n- %s: %s" % (step, state["flow"][step]) for step in FLOW)
-        ran = "pass on %s" % head[:10] if state.get("checks") == "pass" else "none ran; this repo configures no checks"
-        body += "\n## Result\n\nChecks: %s. Skill flow:%s\n" % (ran, flow)
+        body += "\n## Result\n\nSkill flow:%s\n" % flow
         done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
                     "--title", state["goal"][:70], "--body", body], check=True)
         url = done.stdout.strip().splitlines()[-1]
@@ -473,10 +441,10 @@ def main():
     add("record", cmd_record, ("step", {"choices": FLOW}), ("--file", {"required": True}))
     add("wait", cmd_wait, ("--ask", {"required": True}), ("--words", {"action": "append", "required": True}))
     add("finding", cmd_finding, ("text", {}))
-    for name, func in (("check", cmd_check), ("pr", cmd_pr), ("answer", cmd_answer), ("show", cmd_show)):
+    for name, func in (("pr", cmd_pr), ("answer", cmd_answer), ("show", cmd_show)):
         add(name, func)
     args = parser.parse_args()
-    if args.command in ("step", "check", "record", "pr"):
+    if args.command in ("step", "record", "pr"):
         role.guard(args.command)
         role.inbox(os.path.abspath(git("rev-parse", "--git-common-dir")), args.slug)
     return args.func(args)

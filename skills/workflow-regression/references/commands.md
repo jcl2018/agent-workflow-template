@@ -5,8 +5,7 @@ Moved from the wiki page, which is now only a summary, criteria and tests.
 ## Commands
 
 ```text
-seed
-add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>]
+add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>] [--category criterion|defect --link <url>]
 sync [--write]
 criteria
 red <id> --break "<command>"
@@ -21,9 +20,10 @@ workflow
 | `draft` | Nothing, until given a real command |
 | `covered` | Nothing; proved elsewhere |
 
-- `seed` adds a `land` row for each check in the config.
 - `add` adds or replaces a row. `--goal` ties it to a criterion or a goal's done line, and a changed command must be
-  proved again.
+  proved again. `--category defect --link <issue or pull request URL, or finding:SLUG>` makes it a defect test: it keeps a
+  fixed issue, finding or bug fixed, shows under "Defect tests" on the page of the criterion in `--goal`, and never counts as
+  proof of that criterion. A row with no category reads as a criterion test; a defect row with no link is flagged by `sync`.
 - `sync` lists done lines, and wiki criteria (a row whose id or `--goal` is the criterion id), with no row (`GAP`), `DRAFT` rows and `UNPROVEN` rows; `--write` adds drafts.
 - `criteria` runs the row of every wiki criterion and prints any that is missing, a draft or failing.
 - `red` copies `HEAD` to a temporary worktree, applies the break and records the date if the test fails. `STILL GREEN`
@@ -42,19 +42,6 @@ workflow
 ### Stage charts
 
 Amber marks where the command stops for the owner. [Home](Home) says what each status means. "Toy test" means a throwaway repo with stand-ins for GitHub.
-
-#### `seed`
-
-```mermaid
-flowchart LR
-  a["Read the checks in the config"]
-  b["Add one land row each"]
-  a --> b
-```
-
-Status: built and proven: Read the checks in the config; Add one land row each. Built only: none. Planned: none.
-Stops for the owner: none.
-Proof: toy tests.
 
 #### `add`
 

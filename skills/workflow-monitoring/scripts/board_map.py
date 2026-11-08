@@ -14,10 +14,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import status_graph  # noqa: E402
 
-STEPS = {"goal": ["idea", "plan", "build", "checks", "review", "qa", "ship", "pr"]}
+STEPS = {"goal": ["idea", "plan", "build", "review", "qa", "ship", "pr"]}
 ORDER = STEPS["goal"] + ["release"]
 TEXT = {"idea": "Shape the idea into a design", "plan": "Review the design into a plan", "build": "Build the change",
-        "checks": "Run the checks", "review": "Review the change", "qa": "Test the change", "ship": "Prepare it to ship",
+        "review": "Review the change", "qa": "Test the change", "ship": "Prepare it to ship",
         "pr": "Open the pull request",
         "release": "Answer the release question"}
 OPEN = ("running", "waiting", "failed", "stopped", "queued")

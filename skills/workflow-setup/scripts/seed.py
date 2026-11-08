@@ -16,6 +16,11 @@ import sys
 
 import survey
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLACEHOLDER = "Write this page from what is really in the repo."
 CRITERION = re.compile(r"[A-Z]{2,5}(?=-\d+:)")
@@ -61,7 +66,7 @@ def decide(repo, config, found):
     """The plan: a list of (verb, path, note, action) with action None for skip and no fit."""
     acts, wiki = [], found["wiki"]
     old = survey.read(repo, ".loop/config.json")
-    if old is None or json.loads(old) != config:
+    if old is None or json.loads(old) != {k: v for k, v in config.items() if k != "checks"}:
         acts.append(("add" if old is None else "convert", ".loop/config.json", "keys added; yours kept", "config"))
     for name in ("queue.md", "findings.md"):
         if survey.read(repo, ".loop/" + name) is None:

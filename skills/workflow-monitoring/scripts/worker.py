@@ -73,6 +73,21 @@ def merged(url):
         return False
 
 
+def release_step(state):
+    """The release step is part of the goal: a worker that ended with its pull request waiting, where auto_merge is on,
+    gets merge.py run for it, so the goal is never left half done."""
+    tree = state.get("worktree") or ""
+    try:
+        with open(os.path.join(tree, ".loop", "config.json")) as handle:
+            auto = json.load(handle).get("auto_merge") is True
+    except (OSError, ValueError):
+        return
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-release", "scripts", "merge.py")
+    if auto and state.get("status") == "done" and state.get("pr") and not merged(state["pr"]) and os.path.exists(script):
+        done = subprocess.run([sys.executable, script, state["slug"]], cwd=tree, capture_output=True, text=True)
+        print("release step for %s: exit %d %s" % (state["slug"], done.returncode, (done.stdout + done.stderr).strip()[-300:]))
+
+
 def message(slug, status, pr, words=""):
     text = "worker %s reports %s" % (slug, status) + (" (%s)" % pr if pr else "") + (": " + words if words else "")
     return {"status": status, "pr": pr or "", "text": text, "at": now()}
@@ -105,6 +120,8 @@ def cmd_loop(args):
         sys.exit("REFUSED: loop needs a run record and a command after --.")
     mark = os.path.getsize(os.path.join(base(), "logs", args.slug + ".log")) if os.path.exists(os.path.join(base(), "logs", args.slug + ".log")) else 0
     code = subprocess.run(args.command, env=dict(os.environ, LOOP_ROLE="worker")).returncode
+    state = load(args.slug) or state
+    release_step(state)
     state = load(args.slug) or state
     text = log_since(args.slug, mark)
     if state.get("status") == "running":

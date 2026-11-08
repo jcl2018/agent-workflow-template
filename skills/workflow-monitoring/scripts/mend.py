@@ -149,7 +149,8 @@ def where(skill_dir):
     return "The skills are in %s (workflow-delivery/SKILL.md, workflow-delivery/scripts/goal.py)." % os.path.abspath(skill_dir)
 
 
-MERGE = "this repo has auto_merge on, so run its merge step, merge.py {slug}, and stop. It cuts no version."
+MERGE = ("this repo has auto_merge on, so run its release step yourself, merge.py {slug}: it brings the docs up to date, "
+         "merges, bumps the version and writes the release note. Never end with the pull request waiting.")
 
 
 def release_text(state):

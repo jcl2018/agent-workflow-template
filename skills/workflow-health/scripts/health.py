@@ -17,7 +17,7 @@ Only FAIL and UNREAD turn it red, and the exit code is then 1. --json prints the
 Rules (at most MAX_RULES, asserted when the script loads; retire one before adding another):
   size      scripts under skills/*/scripts against 20 KB: WARN from 90%, FAIL over
   criteria  composes regression.py sync: a criterion with no row FAILs, a draft or never-failed row FAILs,
-            done lines with no row WARN as one row
+            done lines with no row WARN as one row; a closed issue or finding with no defect test FAILs (defects.py)
   docs      composes docs.py check: a stale page WARNs, any other gap FAILs
   hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches nobody has checked out
 
@@ -44,7 +44,7 @@ LIMIT = 20 * 1024
 WARN_AT = LIMIT * 9 // 10
 FINDINGS_WARN = 5
 WAITING_HOURS = 24
-RULES = ("size", "criteria-rows", "criteria-done", "criteria-proof", "docs-check", "findings", "waiting", "branches")
+RULES = ("size", "criteria-rows", "criteria-done", "defect-tests", "docs-check", "findings", "waiting", "branches")
 MAX_RULES = 8
 assert len(RULES) <= MAX_RULES, "too many rules: retire one first"
 FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene", "mine": "mine"}
@@ -135,6 +135,18 @@ def docs_rows(root):
     return rows
 
 
+def defect_rows(root):
+    sys.path.insert(0, HERE)
+    try:
+        import defects
+    except ImportError:
+        return [row("UNREAD", "criteria", "defects", "defect-tests", "defects.py is not installed beside health.py")]
+    finally:
+        sys.path.pop(0)
+    return [row("FAIL", "criteria", ref, "defect-tests", "closed by %s with no defect test" % source,
+                "regression.py add --category defect --link ...") for ref, source in defects.missing(root)]
+
+
 def hours_old(stamp):
     try:
         when = datetime.datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
@@ -195,7 +207,7 @@ def mine_rows(root):
 
 
 def gather(root, family):
-    rules = {"size": size_rows, "criteria": criteria_rows, "docs": docs_rows, "hygiene": hygiene_rows, "mine": mine_rows}
+    rules = {"size": size_rows, "criteria": lambda root: criteria_rows(root) + defect_rows(root), "docs": docs_rows, "hygiene": hygiene_rows, "mine": mine_rows}
     rows = []
     for name in (family and [family] or ORDER):
         rows += rules[name](root)

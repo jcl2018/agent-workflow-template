@@ -59,4 +59,4 @@ folder, so config, criteria, docs and private settings stay as they are.
 
 - Each script stays under 20 KB, uses the standard library only, and runs on its own (its siblings are the only files it reaches).
 - Skill instructions stay out of the repo. `.loop/` holds the repo's own data.
-- Gates (`require_checks`, `auto_approve`, `auto_merge`) are off only where the owner turned them off.
+- Gates (`auto_approve`, `auto_merge`) are off only where the owner turned them off.

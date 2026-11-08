@@ -152,7 +152,7 @@ def main():
         print("NO CHANGE: nothing to add or convert")
         return 0
     if not config["checks"]:
-        print("NOTE: no check command found; add one to \"checks\"")
+        print("NOTE: no test command found, so no regression row is seeded")
     if not config["agent_command"]:
         print("NOTE: no claude or codex on PATH; add \"agent_command\"")
     else:
@@ -170,7 +170,7 @@ def main():
             git(repo, "checkout", "-q", "-b", args.branch)
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
     with open(config_path, "w") as handle:
-        handle.write(json.dumps(config, indent=2) + "\n")
+        handle.write(json.dumps({k: v for k, v in config.items() if k != "checks"}, indent=2) + "\n")
     seed.apply(repo, config, found, acts)
     paths = [p for p in (".loop", found["wiki"], ".github/workflows/regression.yml") if os.path.exists(os.path.join(repo, p))]
     git(repo, "add", "-A", "--", *paths)

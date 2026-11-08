@@ -135,18 +135,18 @@ p = ".loop/goals/crit.md"; t = open(p).read().replace("## Verify by hand\n", "##
 PY
 echo "Covers the change too, with more words for the check." >> docs/wiki/Delivery.md
 $cri render >/dev/null; git add -A; git commit -qm "Change calc"
-bash "$here/dev/toy/flow-done.sh" crit; $goal check crit >/dev/null; $goal pr crit >/dev/null
+bash "$here/dev/toy/flow-done.sh" crit; $goal pr crit >/dev/null
 $rel cut crit 2>&1 | grep -q "DEL-2 (no regression row)" && ok "cut refuses a missing row" || bad "cut missing row"
 $reg add del-2 --level land --command "false" --goal DEL-2 >/dev/null
-$cri render >/dev/null; git add -A; git commit -qm "Failing row" >/dev/null; $goal check crit >/dev/null
+$cri render >/dev/null; git add -A; git commit -qm "Failing row" >/dev/null
 $rel cut crit 2>&1 | grep -q "DEL-2 (row del-2 is a draft or failing)" && ok "cut refuses a failing row" || bad "cut failing row"
 $reg add del-2 --level land --command "true" --goal DEL-2 >/dev/null
 $reg add del-2b --level land --command "false" --goal DEL-2 >/dev/null
-$cri render >/dev/null; git add -A; git commit -qm "Second row" >/dev/null; $goal check crit >/dev/null
+$cri render >/dev/null; git add -A; git commit -qm "Second row" >/dev/null
 $rel cut crit 2>&1 | grep -q "DEL-2 (row del-2b is a draft or failing)" && ok "cut checks every row of a criterion" || bad "cut second row"
 $reg sync >/dev/null || true; python3 "$here/skills/workflow-regression/scripts/regression.py" criteria | grep -q "del-2b" && ok "regression criteria runs every row" || bad "criteria every row"
 $reg add del-2b --level land --command "true" --goal DEL-2 >/dev/null
-$cri render >/dev/null; git add -A; git commit -qm "Passing row" >/dev/null; $goal check crit >/dev/null
+$cri render >/dev/null; git add -A; git commit -qm "Passing row" >/dev/null
 mv .loop/docs.tsv "$d/docs.tsv.away"
 (cd "$here/skills/workflow-release/scripts" && python3 -c "import release; print(release.criteria_trouble('$PWD_REPO', {}))") | grep -q '^\[\]$' && ok "no docs.tsv: criteria are ignored" || bad "no docs.tsv"
 

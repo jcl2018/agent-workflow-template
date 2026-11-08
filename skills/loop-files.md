@@ -23,7 +23,6 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 ```json
 {
   "base": "main",
-  "checks": ["python3 -m unittest"],
   "agent_command": ["claude", "-p"],
   "parallel": 3,
   "risky_paths": ["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"],
@@ -36,7 +35,6 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 ```
 
 - `agent_command` runs a goal in the background; the prompt is its last argument.
-- `require_checks` (default `true`): `false` with an empty `checks` list lets a pull request open with no checks.
 - `auto_approve` (default `false`): `true` approves what a flow step leaves for the owner, logged as auto-approved.
 - `auto_merge` (default `false`): `true` lets the release step's `merge.py` merge a goal's pull request.
 - `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
@@ -80,8 +78,9 @@ and the wiki pages on the `workflow-setup` branch and leaves existing values and
   "env": {"YOUR_SUITE_MODE": "unattended"},
   "probe": ["/path/to/a/command/that/prints/the/mode"],
   "probe_expect": "unattended",
-  "steps": {"idea": "<your idea skill>", "plan": "<your plan skill>", "review": "<your review skill>",
+  "suite": {"idea": "<your idea skill>", "plan": "<your plan skill>", "review": "<your review skill>",
             "qa": "<your test skill>", "ship": "<your ship skill>"},
+  "steps": {"review": "<a skill for this one step, replacing the suite's>"},
   "limit": 2700
 }
 ```
@@ -89,7 +88,9 @@ and the wiki pages on the `workflow-setup` branch and leaves existing values and
 - `command` runs one step; the prompt is its last argument. `env` is added to its environment.
 - `probe` runs under the same environment, and its output must hold `probe_expect`, or no step starts. Use it to prove
   your skills will take their recommended answers, leave approvals pending, and never push.
-- `steps` names the skill for each step. `limit` stops a step after that many seconds.
+- `suite` is your default skill for each step, and `steps` replaces the skill for any one step. The steps are `idea`,
+  `plan`, `build`, `review`, `qa`, `ship`, `pr` and `release`; the first five must be mapped, and delivery runs `build`,
+  `pr` and `release` itself unless you map them. `limit` stops a step after that many seconds.
 
 ## Outside the repo: run state
 
@@ -114,7 +115,7 @@ loop/wiki.json            the last wiki publish, for restore
   "slug": "add-median", "goal": "Add median()",
   "status": "running", "step": "build", "tries": 0, "branch": "loop/add-median", "worktree": "/path",
   "touches": ["calc.py"], "pid": 123, "pr": "https://github.com/o/r/pull/1", "batch": true,
-  "done_sha": "<sha256 of the done lines>", "checks": "pass", "release": "ask",
+  "done_sha": "<sha256 of the done lines>", "release": "ask",
   "flow": {"idea": "done", "plan": "done", "review": "done", "qa": "skipped: no browser", "ship": "done"},
   "waiting": {"ask": "Cut a release or leave it unreleased?", "words": ["cut add-median", "leave add-median"]},
   "finding": "", "updated": "2026-01-01T00:00:00Z", "log": ["2026-01-01T00:00:00Z plan"],
@@ -128,12 +129,12 @@ loop/wiki.json            the last wiki publish, for restore
 | `queued` | Not started |
 | `running` | A step is under way |
 | `waiting` | Stopped until you answer; `waiting.words` are the exact words |
-| `done` | Has a pull request and its checks hold; nothing is asked |
+| `done` | Has a pull request; nothing is asked |
 | `stopped` | Stopped itself after 3 failed tries, finding filed |
 | `failed` | The agent ended without finishing |
 | `retired` | Superseded, by `board.py retire` |
 
-`step` is one of `idea`, `plan`, `build`, `checks`, `review`, `qa`, `ship`, `pr`, `release`. `flow` holds each flow
+`step` is one of `idea`, `plan`, `build`, `review`, `qa`, `ship`, `pr`, `release`. `flow` holds each flow
 step's result: `done`, `skipped: <why>` or `pending`.
 `release` is empty, `ask`, `cut` or `leave`.
 

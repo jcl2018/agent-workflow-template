@@ -1,0 +1,163 @@
+#!/bin/bash
+# Prove the defect-tests goal's done lines, and guard the known defects. usage: test-defect.sh [CASE]
+# With a CASE it exits non-zero if that case fails (regression rows call it so); with none it prints one PASS per case.
+set -u
+unset LOOP_BATCH
+export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
+here=$(cd "$(dirname "$0")/../.." && pwd)
+cases="wording flow-steps categories defect-owed health-closed worker-release pr-body no-hang known-defects"
+if [ $# = 0 ]; then
+  fails=0
+  for c in $cases; do
+    out=$(bash "$0" "$c" 2>&1) && echo "PASS: $c" || { echo "FAIL: $c: $out"; fails=$((fails + 1)); }
+  done
+  [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
+  exit
+fi
+case=$1
+no() { echo "$case: $1"; exit 1; }
+d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
+goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
+flow="python3 $here/skills/workflow-delivery/scripts/flow.py"
+reg="python3 $here/skills/workflow-regression/scripts/regression.py"
+health="python3 $here/skills/workflow-health/scripts/health.py"
+toy() { # a toy repo with the loop set up, the stand-in flow and the fake gh
+  "$here/dev/toy/make.sh" "$d/toy" >/dev/null || exit 1
+  export LOOP_FLOW="$d/toy/flow.json" PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
+  cd "$d/toy/repo" || exit 1
+  python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null
+  git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
+}
+finish() { # finish SLUG TEXT: a goal whose flow is done, with a change committed
+  $goal new "$1" --here --goal "Add $1" --done "$2" >/dev/null || no "new"
+  printf '\n# %s\n' "$1" >> calc.py; git commit -qam "Add $1 to calc"
+  bash "$here/dev/toy/flow-done.sh" "$1" || no "flow"
+}
+
+case "$case" in
+  wording) # done lines 1 and 2: REG-1, REG-2 and DEL-1 carry the owner's words, Reviewed 2026-11-08, seals intact
+    python3 - "$here" <<'PY' || no "the wording differs"
+import re, sys
+want = {
+ "docs/wiki/Regression.md": {
+  "REG-1": "Two kinds of tests. The suite has two categories: criteria tests, which prove each Reviewed criterion, and defect tests, one for every finding, issue or bug that gets fixed, which prove it stays fixed. A criterion with no passing test shows as not enforced, and a fix isn't finished until its defect test exists and passes.",
+  "REG-2": "Test format. Every test is listed in one fixed format: its category (criterion or defect), what it guards (the criterion's words, or a link to the finding or issue it came from), what it checks in one plain line, when it runs, its last result and date, and whether it has been seen failing once."},
+ "docs/wiki/Delivery.md": {
+  "DEL-1": "The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries."}}
+for page, ids in want.items():
+    text = open("%s/%s" % (sys.argv[1], page)).read()
+    for key, words in ids.items():
+        assert re.search(r"^- %s: \*\*Reviewed 2026-11-08\*\* %s <!-- reviewed \w+ -->$" % (key, re.escape(words)), text, re.M), key
+PY
+    out=$(cd "$here" && python3 skills/workflow-docs/scripts/docs.py check 2>&1); grep -q "LOCKED" <<<"$out" && no "a reviewed criterion's seal is broken"
+    exit 0;;
+  flow-steps) # done line 3: no checks step; every step can be mapped, with a default suite and per-step overrides
+    toy
+    $goal check x 2>&1 | grep -q "invalid choice" || no "goal.py still has check"
+    [ -z "$(git -C "$here" grep -l "require_checks" -- skills docs README.md .loop/config.json)" ] || no "require_checks is still named"
+    grep -q '"checks"' "$here/.loop/config.json" && no "the config still has checks"
+    steps=$(python3 -c "
+import re; print(re.search(r'^STEPS = \((.*)\)', open('$here/skills/workflow-delivery/scripts/flow.py').read(), re.M).group(1))")
+    for step in idea plan build review qa ship pr release; do
+      grep -q "\"$step\"" <<<"$steps" || no "flow.py has no $step step"
+    done
+    printf '#!/bin/bash\necho "$1" > "%s/prompt-$(date +%%s%%N)"\necho "STEP: done"\n' "$d" > "$d/say.sh"
+    python3 - "$d" <<'PY'
+import json, sys
+d = sys.argv[1]
+suite = {s: "suite-" + s for s in ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")}
+base = {"command": ["bash", d + "/say.sh"], "env": {"FAKE_MODE": "unattended"}, "probe": ["bash", "-c", "echo $FAKE_MODE"], "probe_expect": "unattended"}
+json.dump(dict(base, suite=suite, steps={"review": "own-review"}), open(d + "/mapped.json", "w"))
+json.dump(dict(base, suite={s: suite[s] for s in ("idea", "plan", "review", "qa", "ship")}), open(d + "/five.json", "w"))
+PY
+    $goal new fs --here --goal "Map" --done "mapped" >/dev/null || no "new"
+    for step in build review; do
+      LOOP_FLOW="$d/mapped.json" $flow fs $step --wait 5 >/dev/null; LOOP_FLOW="$d/mapped.json" $flow fs $step --wait 10 >/dev/null
+    done
+    grep -l "Use the suite-build skill" "$d"/prompt-* >/dev/null || no "build did not use the default suite"
+    grep -l "Use the own-review skill" "$d"/prompt-* >/dev/null && ! grep -l "Use the suite-review skill" "$d"/prompt-* >/dev/null || no "the override did not win"
+    LOOP_FLOW="$d/five.json" $flow fs release 2>&1 | grep -q "no skill is mapped to the release step" || no "an unmapped step ran"
+    exit 0;;
+  categories) # done line 4: every row has a category, defect rows link their issue, the page shows defect tests apart
+    awk -F'\t' '/^#/ || NF == 0 {next} $7 != "criterion" && $7 != "defect" {print $1; bad = 1} $7 == "defect" && $8 == "" {print $1; bad = 1} END {exit bad}' "$here/.loop/regression.tsv" || no "a row has no category, or a defect has no link"
+    toy
+    $reg add dd --level land --command true --category defect 2>&1 | grep -q "links to its issue or finding" || no "a defect row without a link was added"
+    $reg add dd --level land --command true --category defect --link https://example.test/issues/1 >/dev/null || no "add defect"
+    awk -F'\t' '$1 == "dd" && $7 == "defect" && $8 ~ /issues\/1$/ {ok = 1} END {exit !ok}' .loop/regression.tsv || no "the row lost its category or link"
+    $reg add cc --level land --command true >/dev/null; awk -F'\t' '$1 == "cc" && $7 == "criterion" {ok = 1} END {exit !ok}' .loop/regression.tsv || no "no default category"
+    python3 - "$here" <<'PY' || no "the page shows no separate defect part"
+import sys
+text = open(sys.argv[1] + "/docs/wiki/Delivery.md").read()
+head, _, defects = text.split("\n## Tests", 1)[1].partition("### Defect tests")
+assert "issues/35" in defects, "no defect part"
+assert "scripts-no-hang" not in head and "scripts-no-hang" in defects
+PY
+    (cd "$here" && python3 skills/workflow-docs/scripts/criteria.py render --check >/dev/null) || no "the Tests tables are stale"
+    exit 0;;
+  defect-owed) # done line 5: a goal that fixes an issue cannot open its pull request without a defect test seen failing
+    toy
+    finish fixit "calc has fixit (fixes #77)"
+    $goal pr fixit 2>&1 | grep -q "no passing defect test, seen failing, for #77" || no "pr opened with no defect test"
+    $reg add fixit-77 --level land --command 'test -f calc.py' --goal - --category defect --link https://github.com/o/r/issues/77 --describe "calc.py stays" >/dev/null
+    $goal pr fixit 2>&1 | grep -q "no passing defect test, seen failing, for #77" || no "pr accepted a defect row never seen failing"
+    git add -A; git commit -qm "Defect row"
+    $reg red fixit-77 --break 'rm calc.py' | grep -q "SEEN RED" || no "red"
+    git add -A; git commit -qm "Seen failing"
+    $goal pr fixit 2>&1 | grep -q "^PR " || no "pr refused with a defect test seen failing and passing"
+    exit 0;;
+  health-closed) # done line 6: health flags a closed issue or finding with no defect test
+    toy
+    mkdir -p .loop/goals; printf '# Goal\n\n## Done lines\n\n1. fixes #78 here\n' > .loop/goals/old.md
+    printf -- '- bar: Failed 3 tries [closed]\n' >> .loop/findings.md
+    git add -A; git commit -qm "Closed work"
+    out=$($health check --family criteria)
+    grep -q "^FAIL criteria #78 defect-tests: closed by old" <<<"$out" && grep -q "^FAIL criteria finding:bar defect-tests" <<<"$out" || no "closed work with no defect test was not flagged: $out"
+    $reg add old-78 --level land --command true --goal - --category defect --link https://github.com/o/r/issues/78 >/dev/null
+    $reg add bar --level land --command true --goal - --category defect --link finding:bar >/dev/null
+    out=$($health check --family criteria)
+    grep -q "defect-tests" <<<"$out" && no "a guarded issue is still flagged: $out"
+    exit 0;;
+  worker-release) # done line 7, and the release step that pull requests 61 and 62 skipped
+    toy
+    finish w "calc has w"; $goal pr w >/dev/null || no "pr"
+    python3 - "$here" <<'PY' || no "the worker did not run the release step"
+import argparse, json, subprocess, sys
+sys.path.insert(0, sys.argv[1] + "/skills/workflow-monitoring/scripts")
+import worker
+real, calls = subprocess.run, []
+def fake(argv, **kw):
+    if any("merge.py" in str(part) for part in argv):
+        calls.append(argv)
+        return subprocess.CompletedProcess(argv, 0, "merged", "")
+    return real(argv, **kw)
+worker.subprocess.run = fake
+def ends(auto, landed):
+    path = worker.path_of("w")
+    state = json.load(open(path)); state.update(status="done", pr="https://x/pull/1"); json.dump(state, open(path, "w"))
+    cfg = json.load(open(".loop/config.json")); cfg["auto_merge"] = auto; json.dump(cfg, open(".loop/config.json", "w"))
+    worker.merged = lambda url: landed
+    del calls[:]
+    worker.cmd_loop(argparse.Namespace(slug="w", command=["true"]))
+    return len(calls)
+assert ends(True, False) == 1, "a worker that ended with its pull request waiting did not run merge.py"
+assert ends(True, True) == 0, "ran the release step on a merged pull request"
+assert ends(False, False) == 0, "ran the release step with auto_merge off"
+PY
+    exit 0;;
+  pr-body) # the pull request body that said checks passed with no checks
+    toy
+    finish pb "calc has pb"; $goal pr pb >/dev/null || no "pr"
+    grep -qi "checks" "$d/gh/body-1" && no "the body talks about checks"
+    grep -q "Skill flow:" "$d/gh/body-1" || no "the body lists no steps"
+    exit 0;;
+  no-hang) # issue 35: scripts fail with an error instead of hanging with no terminal
+    bash "$here/dev/toy/test-rows.sh" DEL-10 || no "a script can prompt"
+    exit 0;;
+  known-defects) # done line 8: defect tests exist, linked and seen failing, for issues 35 and 58 and the two worker defects
+    for want in "scripts-no-hang issues/35" "wiki-release-pycache issues/58" "worker-runs-release pull/61" "pr-body-no-checks pull/62"; do
+      set -- $want
+      awk -F'\t' -v id="$1" -v link="$2" '$1 == id && $7 == "defect" && $8 ~ link && $5 != "" {ok = 1} END {exit !ok}' "$here/.loop/regression.tsv" || no "no defect row $1 linked to $2, seen failing"
+    done
+    exit 0;;
+  *) no "unknown case";;
+esac

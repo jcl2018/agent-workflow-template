@@ -5,7 +5,7 @@ Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/9
 
 ## Summary
 
-Skill: `workflow-setup`. Adopts a repo into this template's format: loop config and checks, feature pages with criteria and tests, and the regression workflow, printing what it found and would add or convert before writing on a branch. `update.py` refreshes only the skills from a newer package, and `design-guide.md` explains how the parts fit. `--bare` writes only the config, queue and findings. Getting started is in the README.
+Skill: `workflow-setup`. Adopts a repo into this template's format: loop config, feature pages with criteria and tests, and the regression workflow, printing what it found and would add or convert before writing on a branch. `update.py` refreshes only the skills from a newer package, and `design-guide.md` explains how the parts fit. `--bare` writes only the config, queue and findings. Getting started is in the README.
 
 Commands, flows and how-tos: `skills/workflow-setup/SKILL.md`.
 
