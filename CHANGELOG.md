@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.8.5 - 2026-11-08
+
+- operate: live status block, GitHub-merged goals, one quiet line
+- operate: keep post-merge publish errors, keep milestone bars
+- Merge remote-tracking branch 'origin/main' into loop/operate-fit
+- Merge remote-tracking branch 'origin/main' into loop/operate-fit
+- README: the roadmap graph shows the live goals
+- Wiki: update pages for operate-fit
+- Wiki: update pages for operate-fit
+
+### How to verify
+
+1. Run `python3 skills/workflow-monitoring/scripts/board_status.py` in a repo with a merged goal that once failed to publish its wiki.
+   Expect: Needs you does not list that goal; only open asks and errors remain.
+2. Merge a goal's pull request on GitHub, then run `python3 skills/workflow-monitoring/scripts/operate.py run --once`.
+   Expect: the goal is not drawn and its number shows on the `merged: #N` line, never as awaiting merge.
+3. Read the Roadmap section of that output.
+   Expect: only running, queued and waiting goals, each with a 10-cell bar and time left, `<- waits on` arrows, and a Total line ending in `finish about HH:MM`.
+4. Run `operate.py run --once` again straight away.
+   Expect: one line starting `Nothing changed.`
+
 ## v0.8.4 - 2026-11-08
 
 - Design docs for setup-fit
