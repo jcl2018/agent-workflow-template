@@ -20,11 +20,12 @@ def inbox(common, slug):
     """Print, and file away, what the operation session sent this worker (`worker.py send`)."""
     path = os.path.join(common, "loop", "inbox", slug + ".txt")
     try:
-        with open(path) as handle:
+        os.replace(path, path + ".taking")  # a message sent from now on lands in a new file, so none is lost
+        with open(path + ".taking") as handle:
             text = " ".join(handle.read().split())
         with open(path[:-4] + ".read", "a") as handle:
             handle.write(text + "\n")
-        os.remove(path)
+        os.remove(path + ".taking")
     except OSError:
         return
     if text:

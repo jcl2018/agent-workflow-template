@@ -67,15 +67,3 @@ def ready(goals, records, limit):
             used += 1
     return start, held
 
-
-def cycle(slug, depends, queue):
-    """True when adding slug with these dependencies would make a loop, given the queued goals' own dependencies."""
-    seen, todo = set(), list(depends)
-    while todo:
-        name = todo.pop()
-        if name == slug:
-            return True
-        if name not in seen:
-            seen.add(name)
-            todo += queue.get(name, [])
-    return False
