@@ -124,6 +124,32 @@ c = json.load(open(".loop/config.json")); c["regression_cron"] = "nightly"
 json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
 $reg workflow >/dev/null 2>&1 && bad "bad cron written" || ok "a setting that is not five cron fields is refused"
+echo "== the workflow and a local run do the same (REG-3)"
+python3 - <<'PY'
+import json
+c = json.load(open(".loop/config.json")); c["regression_cron"] = "17 9 * * *"
+json.dump(c, open(".loop/config.json", "w"), indent=2)
+PY
+$reg workflow >/dev/null
+python3 - <<'PY'
+import re
+text = open(".github/workflows/regression.yml").read()
+block = re.search(r"python3 - <<'PY'\n(.*?)\n\s+PY\n", text, re.S).group(1)
+open("ci-block.py", "w").write("\n".join(line[10:] for line in block.split("\n")))
+PY
+agree() { # agree NAME: the local run and the workflow's block end the same way and open the same issues
+  : > .loop/regression-known.tsv; printf 'known-row\tbroken on purpose\n' >> .loop/regression-known.tsv
+  rm -f "$FAKE_GH_DIR/calls.log"; GH_TOKEN=x $reg run nightly >/dev/null; local_rc=$?; local_new=$(calls '^issue create')
+  rm -f "$FAKE_GH_DIR/calls.log"; GH_TOKEN=x GITHUB_STEP_SUMMARY=/dev/null python3 ci-block.py >/dev/null; ci_rc=$?; ci_new=$(calls '^issue create')
+  [ "$local_rc" = "$ci_rc" ] && [ "${local_new:-0}" = "${ci_new:-0}" ] && ok "$1: same exit ($ci_rc) and same issues opened ($ci_new)" || bad "$1: local $local_rc/$local_new, workflow $ci_rc/$ci_new"
+}
+row() { printf '%s\t%s\t%s\t-\t2026-01-01\tx\tcriterion\t\n' "$1" nightly "$2" >> .loop/regression.tsv; }
+printf '# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\n' > .loop/regression.tsv
+row good-row true; row known-row false
+agree "passing and known rows"
+row bad-row false
+agree "a failing row"
+rm -f ci-block.py; git checkout -q .loop/regression.tsv .loop/regression-known.tsv 2>/dev/null; git clean -fdq .loop 2>/dev/null
 echo "other" > .github/workflows/regression.yml
 $reg workflow >/dev/null 2>&1 && bad "replaced another workflow" || ok "won't replace another workflow"
 

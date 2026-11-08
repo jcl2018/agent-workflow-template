@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The goal dependency graph: which queued goals wait on which, and which may start. Shared by watch, monitor and board.
 
-A queue line may carry `depends-on: a, b`. A goal waits only on goals it depends on, and only until they are merged;
+A queue line may carry `depends: a, b` or `depends-on: a, b` (both spellings mean the same). A goal waits only on goals it depends on, and only until they are merged;
 sharing files is never a reason to wait (the later goal merges the base before its pull request). The only other limit
 is `parallel` in .loop/config.json (0 or unset: unlimited). Imported, not run.
 """
@@ -21,8 +21,9 @@ def parse(line):
         key, value = key.strip(), " ".join(value.split())
         if key == "done" and value:
             item["done"].append(value)
-        elif key in ("touches", "depends-on"):
-            item["touches" if key == "touches" else "depends"] = [x.strip() for x in re.split(r"[,\s]+", value) if x.strip()]
+        elif key in ("touches", "depends", "depends-on"):
+            name = "touches" if key == "touches" else "depends"
+            item[name] += [x.strip() for x in re.split(r"[,\s]+", value) if x.strip() and x.strip() not in item[name]]
         elif key in ("slug", "goal", "release"):
             item[key] = value
     return item

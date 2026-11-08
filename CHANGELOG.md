@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.8.2 - 2026-11-08
+
+- Fix wiki identity and bytecode causes; criterion tests for DEL-4 and REG-3
+- Render Tests tables, record runs, verify steps
+- Merge remote-tracking branch 'origin/main' into loop/regression-green
+- Give the wiki revert a fallback identity; run docs rows as CI does
+- Wiki: update pages for regression-green
+
+### How to verify
+
+1. Run `dev/toy/ci-env.sh bash dev/toy/test-wiki.sh` and `dev/toy/ci-env.sh bash dev/toy/test-adopt.sh`.
+   Expect: both end with every line PASS (the first prints `PASS: merge publishes the wiki`, the second `ALL PASS`), with no bytecode setting and no git identity.
+2. Open the Delivery and Regression wiki pages and find DEL-4 and REG-3 in their Tests tables.
+   Expect: each lists a test (`pr-body-criterion`, `workflow-same-as-run`), not "not enforced".
+3. Run `python3 skills/workflow-health/scripts/health.py check`.
+   Expect: no FAIL line for DEL-4 or REG-3.
+4. After merge, open the next GitHub Actions regression run and the issues list.
+   Expect: the run is green and issues 58, 68, 69, 70, 71, 72 and 74 are closed with "Passing again".
+
+## v0.8.1 - 2026-11-08
+
+- Accept both depends: and depends-on: in queue lines
+- Toy: both keys together, neither key
+- Wiki: update pages for queue-key
+
+### How to verify
+
+1. Run `bash dev/toy/test-status-graph.sh`.
+   Expect: it ends with ALL PASS, including "depends: and depends-on: parse to the same waits".
+2. Open `skills/loop-files.md` and find the queue-line paragraph.
+   Expect: it shows `depends: a, b` (or `depends-on:`) as the dependency key.
+
 ## v0.8.0 - 2026-11-08
 
 - Health: Cost rule, judge command, HLT-2 and HLT-5 wording
