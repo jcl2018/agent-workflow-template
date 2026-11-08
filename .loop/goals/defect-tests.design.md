@@ -81,5 +81,5 @@ script must stay flat or shrink.
 
 ## Assignment
 
-Run `/CJ_goal_*`-style delivery on this design: build items 4, 5 first (net deletions), then 1, 2, 3, 6, 7, then the
+Run the delivery loop on this design: build items 4, 5 first (net deletions), then 1, 2, 3, 6, 7, then the
 four defect rows and the toy test.
