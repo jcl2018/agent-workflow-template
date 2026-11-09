@@ -161,6 +161,8 @@ $cri review DEL-1 Nosuch --user 2>&1 | grep -q "REFUSED: Nosuch is not a feature
 $cri review Delivery --user --date 2026-13-45x 2>&1 | grep -q "REFUSED: --date 2026-13-45x is not a YYYY-MM-DD date.*Fix:" && ok "a bad --date is refused" || bad "bad date"
 $cri review Delivery --user --date 2999-01-01 2>&1 | grep -q "REFUSED: --date 2999-01-01 .*on or before today" && cmp -s $P "$d/before.md" && ok "a future --date is refused" || bad "future date"
 $cri unreview Home --user 2>&1 | grep -q "REFUSED: Home is not a feature page" && ok "Home is not a feature page" || bad "home"
+! $cri review DEL-1 delivery --user >/dev/null 2>&1 && cmp -s $P "$d/before.md" && ok "a page name must match the page's own case; nothing changes" || bad "page case"
+! $cri unreview ../../README --user >/dev/null 2>&1 && ok "a page name outside the wiki is refused" || bad "page path"
 
 echo "== 4. a Usage change after the review is CHANGED: the check fails, the board lists it, audit and publish ignore it"
 edit "prints the median." "prints the median of the numbers."

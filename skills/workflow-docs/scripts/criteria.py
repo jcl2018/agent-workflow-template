@@ -320,9 +320,10 @@ def mark_all(args, make, page_change):
         sys.exit("REFUSED: no requirement %s (an ID matches ^[A-Z]{2,5}-\\d+$). Nothing was changed. Fix: use an ID "
                  "from a page's Requirements." % ", ".join(missing))
     held = dict(touched)
+    known = {os.path.basename(rel)[:-3]: rel for rel in pages(root)}  # exact names, keyed like rewrite()'s
     for name in names:
-        rel = "%s/%s.md" % (folder_of(root), name)
-        if name == "Home" or not os.path.isfile(os.path.join(root, rel)):
+        rel = known.get(name)
+        if name == "Home" or not rel:
             sys.exit("REFUSED: %s is not a feature page (a page is a file in %s other than Home; an ID matches "
                      "^[A-Z]{2,5}-\\d+$). Nothing was changed. Fix: name a page such as Delivery, or a requirement ID."
                      % (name, folder_of(root)))
