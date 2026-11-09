@@ -48,31 +48,31 @@ grep -q "ATTACHED pull request 1 to milestone Calc" <<<"$out" && [ "$(cat "$FAKE
 $goal new other-goal --here --goal "Other" --done "x" --touches "elsewhere.txt" >/dev/null 2>&1 || true
 out=$($ms attach other-goal 2>&1); grep -q "REFUSED: other-goal has no pull request" <<<"$out" && ok "no pull request, no attach" || bad "attach no pr"
 
-echo "== health run: one issue per finding on the Backlog"
+echo "== health file: one issue per finding on the Backlog"
 git switch -q main
 mkdir -p skills/x/scripts; python3 -c "print('# pad\n' * 3400)" > skills/x/scripts/near.py
 git add -A; git commit -qm "A near-limit script"
-out=$($health run --family size); echo "$out"
-grep -q "^WOULD create issue 'health: size skills/x/scripts/near.py limit' on Backlog" <<<"$out" && [ ! -f "$FAKE_GH_DIR/issues.json" ] \
-  && ok "no token and no --live: only WOULD lines, nothing written" || bad "run dry"
-out=$($health run --family size --live); echo "$out"
-python3 - <<'PYEND' && ok "live: one issue on Backlog, labelled, with the hidden marker" || bad "issue created"
+out=$($health preview --group size); echo "$out"
+grep -q "^WOULD open issue 'health: size skills/x/scripts/near.py limit' on Backlog \[health:size\]" <<<"$out" && [ ! -f "$FAKE_GH_DIR/issues.json" ] \
+  && ok "preview: only WOULD lines, nothing written" || bad "run dry"
+out=$($health file --group size); echo "$out"
+python3 - <<'PYEND' && ok "file: one issue on Backlog, labelled, with the hidden marker" || bad "issue created"
 import json, os
 issues = json.load(open(os.environ["FAKE_GH_DIR"] + "/issues.json"))
 assert len(issues) == 1 and issues[0]["milestone"]["title"] == "Backlog"
 assert "<!-- loop-health size:skills/x/scripts/near.py:limit -->" in issues[0]["body"]
 PYEND
-grep -q -e "--label health --milestone Backlog" "$FAKE_GH_DIR/calls.log" && ok "labelled health" || bad "label"
-out=$($health run --family size --live); echo "$out"
+grep -q -e "--label health --label health:size --milestone Backlog" "$FAKE_GH_DIR/calls.log" && ok "labelled health and health:size" || bad "label"
+out=$($health file --group size); echo "$out"
 grep -q "^SAME #1" <<<"$out" && [ "$(python3 -c "import json,os;print(len(json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json'))))")" = 1 ] && ok "a repeat opens no second issue" || bad "duplicate"
 python3 -c "print('# pad\n' * 3500)" > skills/x/scripts/near.py; git commit -qam "Bigger"
-out=$($health run --family size --live); echo "$out"
+out=$($health file --group size); echo "$out"
 grep -q "^DONE update #1" <<<"$out" && ok "a changed finding updates its issue" || bad "update"
 
 echo "== moved issues stay moved"
 $ms move 1 calc --live | grep -q "^MOVED issue 1 to milestone Calc" && ok "move puts the issue in the feature's milestone" || bad "move"
 python3 -c "print('# pad\n' * 3600)" > skills/x/scripts/near.py; git commit -qam "Bigger again"
-out=$($health run --family size --live); echo "$out"
+out=$($health file --group size); echo "$out"
 python3 - <<'PYEND' && ok "a later run updates the issue where it is, and opens no other" || bad "moved"
 import json, os
 issues = json.load(open(os.environ["FAKE_GH_DIR"] + "/issues.json"))
@@ -81,24 +81,24 @@ PYEND
 
 echo "== fixed closes, returning reopens"
 git rm -q skills/x/scripts/near.py; git commit -qm "Remove it"
-out=$($health run --family size --live); echo "$out"
+out=$($health file --group size); echo "$out"
 grep -q "^DONE close #1 size:skills/x/scripts/near.py:limit" <<<"$out" && grep -q '"state": "CLOSED"' "$FAKE_GH_DIR/issues.json" && ok "a fixed finding closes its issue" || bad "close"
 mkdir -p skills/x/scripts; python3 -c "print('# pad\n' * 3600)" > skills/x/scripts/near.py; git add -A; git commit -qm "Back again"
-out=$($health run --family size --live); echo "$out"
+out=$($health file --group size); echo "$out"
 grep -q "^DONE reopen #1" <<<"$out" && grep -q '"state": "OPEN"' "$FAKE_GH_DIR/issues.json" && [ "$(python3 -c "import json,os;print(len(json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json'))))")" = 1 ] \
   && ok "a returning finding reopens the same issue" || bad "reopen"
 grep -Eq "^(release |pr merge|api .*-X)|draft=false" "$FAKE_GH_DIR/calls.log" && bad "publish or merge call" || ok "no release or merge call"
 
-echo "== a family run or an unread rule closes nothing it did not check"
-out=$($health run --live); echo "$out" | grep -c "^DONE" 
+echo "== a group run or an unread rule closes nothing it did not check"
+out=$($health file --group criteria,docs,hygiene,performance); echo "$out" | grep -c "^DONE" 
 open_other=$(python3 -c "import json,os;print(sorted(i['number'] for i in json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json')) if i['state']=='OPEN' and 'size:' not in i['body']))")
 [ "$open_other" != "[]" ] && ok "other families have open issues: $open_other" || bad "no other issues to guard"
 git rm -q skills/x/scripts/near.py; git commit -qm "Remove it again"
-$health run --family size --live >/dev/null
+$health file --group size >/dev/null
 still=$(python3 -c "import json,os;print(sorted(i['number'] for i in json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json')) if i['state']=='OPEN' and 'size:' not in i['body']))")
-[ "$still" = "$open_other" ] && grep -q '"number": 1, .*"state": "CLOSED"' "$FAKE_GH_DIR/issues.json" && ok "run --family size closed only the size issue" || bad "family close: $still"
+[ "$still" = "$open_other" ] && grep -q '"number": 1, .*"state": "CLOSED"' "$FAKE_GH_DIR/issues.json" && ok "file --group size closed only the size issue" || bad "family close: $still"
 lone=$(mktemp -d); cp "$here/skills/workflow-health/scripts/health.py" "$lone/"
-python3 "$lone/health.py" run --live >/dev/null
+python3 "$lone/health.py" file --group size,criteria,docs >/dev/null 2>&1
 still=$(python3 -c "import json,os;print(sorted(i['number'] for i in json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json')) if i['state']=='OPEN' and 'size:' not in i['body'] and i['number'] in $open_other))")
 [ "$still" = "$open_other" ] && ok "a rule that could not read closes none of its issues" || bad "unread close: $still"
 

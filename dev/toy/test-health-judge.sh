@@ -42,22 +42,22 @@ PY
 echo "== Cost: no budget set"
 goal quick 6 100
 out=$($health check --family cost); echo "$out"
-grep -q "^INFO cost budgets cost: " <<<"$out" && ok "no budget set is INFO" || bad "info"
+grep -q "^INFO performance budgets cost: " <<<"$out" && ok "no budget set is INFO" || bad "info"
 
 echo "== Cost: over a time and a token budget"
 setcfg time_budget_minutes=30 token_budget=1000
 goal slowone 90 5000
 out=$($health check --family cost); echo "$out"
-grep -q "^WARN cost slowone time: .*over 30 min; slowest: " <<<"$out" && ok "a goal over the time budget warns and names its slowest steps" || bad "time"
-grep -q "^WARN cost slowone tokens: 5000 tokens, over 1000; costliest: build 4500" <<<"$out" && ok "a goal over the token budget warns and names its costliest step" || bad "tokens"
-! grep -q "cost quick " <<<"$out" && ok "a goal within both budgets is not named" || bad "quick named"
+grep -q "^WARN performance slowone time: .*over 30 min; slowest: " <<<"$out" && ok "a goal over the time budget warns and names its slowest steps" || bad "time"
+grep -q "^WARN performance slowone tokens: 5000 tokens, over 1000; costliest: build 4500" <<<"$out" && ok "a goal over the token budget warns and names its costliest step" || bad "tokens"
+! grep -q "performance quick " <<<"$out" && ok "a goal within both budgets is not named" || bad "quick named"
 [ "$(tail -1 <<<"$out" | cut -c1-12)" = "HEALTH: gree" ] && ok "cost warnings never turn the verdict red" || bad "cost red"
 
 echo "== Cost: no tokens recorded"
 rm "$runs"/*.json; goal notokens 90 0
 out=$($health check --family cost); rc=$?; echo "$out"
-grep -q "^UNREAD cost tokens cost: no tokens recorded" <<<"$out" && [ $rc = 1 ] && ok "no tokens recorded prints UNREAD" || bad "unread"
-grep -q "^WARN cost notokens time: " <<<"$out" && ok "time is still judged" || bad "time without tokens"
+grep -q "^UNREAD performance tokens cost: no tokens recorded" <<<"$out" && [ $rc = 1 ] && ok "no tokens recorded prints UNREAD" || bad "unread"
+grep -q "^WARN performance notokens time: " <<<"$out" && ok "time is still judged" || bad "time without tokens"
 rm "$runs"/*.json; goal slowone 90 5000
 
 echo "== the judge: a stand-in, after the rules"

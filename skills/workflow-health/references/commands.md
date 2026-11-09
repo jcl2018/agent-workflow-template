@@ -5,8 +5,9 @@ Moved from the wiki page, which is now only a summary, criteria and tests.
 ## Commands
 
 ```text
-check [--json] [--family size|criteria|docs|hygiene|cost|mine]
-run [--live] [--family size|criteria|docs|hygiene|cost]
+check [--json] [--group size|criteria|docs|hygiene|performance|mine]
+preview [--group NAME[,NAME]]   (run is a deprecated alias)
+file --group NAME[,NAME]
 judge   (alias: suggest)
 ```
 
@@ -14,10 +15,10 @@ judge   (alias: suggest)
   not green and the exit code 1; a `WARN` never does. `UNREAD` means a rule couldn't read its data, and is never a pass:
   that includes a sync with no result, an unreadable run record and a failing branch list. Every non-pass line ends with the command that fixes it. `--json` prints the same rows as records.
 
-- `check` prints a fixed template: `HEALTH REPORT`, then each group (`size`, `criteria`, `docs`, `hygiene`, `cost`, `Mine`) with its
+- `check` prints a fixed template: `HEALTH REPORT`, then each group (`size`, `criteria`, `docs`, `hygiene`, `performance` (the Cost rule), `Mine`) with every rule it checked, a header naming the groups run and skipped,
   lines, then the `HEALTH:` verdict. `Mine` runs the owner's own rules from `~/.workflow-loop/health.json` (or the file
   `LOOP_HEALTH` names), outside the repo: exit 0 is `PASS`, 1 `FAIL`, 2 `WARN`, and a rule that can't run is `UNREAD`.
-  Mine runs the owner's commands, so it is outside the read-only and same-answer promises, and `run` never files it.
+  Mine runs the owner's commands, so it is outside the read-only and same-answer promises, and it is filed only when named.
 
 - `cost` reads the last 10 finished goals' run records: seconds per step from the log gaps and tokens from the record. A
   goal over `time_budget_minutes` or `token_budget` in `.loop/config.json` is a `WARN` naming its three slowest or
@@ -30,10 +31,16 @@ judge   (alias: suggest)
   reads only tagged lines (`CRITERION`, `TEST`, `SAVES`); any failure prints `JUDGE UNAVAILABLE`. It never changes the
   verdict or the exit code, and `check` itself calls no model.
 
-- `run` files each warning, failure or unread finding as one issue on the `Backlog` milestone, labelled `health`. A hidden
+- `preview` lists exactly what `file` would do: each issue it would open, update, close or reopen, with its
+  `health:<group>` tag. It has no write path, even with a token. With no `--group` it covers every group except `mine`;
+  the judge runs (and its savings are included) only when `performance` is named.
+
+- `file --group NAME[,NAME]` is the only writer, and refuses without a group. For the named groups only it files each
+  warning, failure or unread finding as one issue on the `Backlog` milestone, labelled `health:<group>` (`size`,
+  `criteria`, `docs`, `hygiene`, `performance` for Cost and the judge's savings, `mine`) and the older `health`. A hidden
   marker in the body finds it again: a repeat updates the issue, a fixed finding closes it, a returning one reopens it,
-  and an issue you moved to a feature stays there. With no `--live`, `GH_TOKEN` or `GITHUB_TOKEN` it only prints what it
-  would do. Create the milestones first (see Milestones).
+  and an issue you moved to a feature stays there. A rule that could not be read closes none of its issues. Create the
+  milestones first (see Milestones).
 
 The milestones the issues land in are on the [Documentation](Documentation) page.
 
