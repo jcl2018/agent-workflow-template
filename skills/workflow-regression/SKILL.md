@@ -90,8 +90,10 @@ the files they name (a skill folder counts as a whole). It prints one of:
 | `FULL: <reason>` | Every row ran: no record, an unreadable one, one with a failing row, or a moved base |
 | `UNMAPPED <file>: full run` | A changed file no row reads, outside the docs and release files: every row ran |
 | `NOT RECORDED: <reason>` | Uncommitted changes or a detached HEAD: tested, but the record is unchanged |
+| `NOT RECORDED: the rows left uncommitted files: <files>; record dropped` | The rows left files behind: the record is deleted, so the next run is full |
 
-A row whose command names no repo path always runs. `RESULT` counts reused rows (`3 passed (2 reused)`). A reusing run
+A row whose command names no repo path always runs. `RESULT` counts reused rows (`3 passed (2 reused)`); a reused known
+failure counts as known. A reusing run
 writes nothing in the worktree and opens no issue: a failure shows in its exit status and output (the last 20 lines of
 each failing row), and the plain `run` in GitHub Actions keeps the issues. A plain `run` forces every row and rewrites
 the record. Try it on a toy repo: `bash dev/toy/test-lanes.sh "" regression` (in this repo) walks every case.

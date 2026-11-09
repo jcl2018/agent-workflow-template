@@ -80,7 +80,8 @@ lane, `python3 <workflow-regression>/scripts/regression.py run land --reuse`, in
 ends). It runs through your flow file's `test_record` prefix when you set one (a receipt recorder, so your ship skill's
 own check of recorded test runs can reuse it), and tests the committed HEAD only: an unclean tree fails it (`LANE_DIRTY`).
 A failing or never-seen-failing row fails the qa step before your skill runs, and `goal.py record <slug> qa` refuses
-until a qa lane passed on HEAD (`LANE_MISSING`; start one with `role.py lane <slug> qa`). `flow.py ship` and `goal.py pr`
+until a qa lane passed on HEAD (`LANE_MISSING`; start one with `role.py lane <slug> qa`), except for a reply whose last
+`STEP:` line is `failed` and that has no `PENDING:` line, which records as a failed try. `flow.py ship` and `goal.py pr`
 run the same lane: on unchanged content it prints `REUSED` and runs nothing, and after a commit or a base merge it reruns
 only the rows the change can affect. The release step itself (merge.py) doesn't rerun it; GitHub Actions still runs the
 full suite.

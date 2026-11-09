@@ -118,7 +118,7 @@ loop/waits/<slug>         the goals that held a queued goal, one a line
 loop/cadence              minutes between check-ins (1 to 60), or off
 loop/handoff.md           the last handoff file
 loop/wiki.json            the last wiki publish, for restore
-loop/tests/<branch>-<sha8>.json   a branch's last regression run: each row's result and commit (regression.py --reuse)
+loop/tests/<branch>-<sha8>.json   a branch's last regression run: each row's result and commit (regression.py --reuse); deleted when its rows leave uncommitted files
 loop/runs/<slug>.qa-lane.*, ship-lane.*, pr-lane.*   a goal's regression lanes: job, exit status, output; qa-lane.ok
 ```
 
