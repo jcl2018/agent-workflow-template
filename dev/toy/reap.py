@@ -108,9 +108,9 @@ def guarded(procs):
 
 
 def find(test, procs=None):
-    """[(pid, start, argv)] whose environment passes test(env), plus [(pid, why)] unreadable."""
+    """[(pid, start, argv, ppid)] whose environment passes test(env), plus [(pid, why)] live unreadable."""
     procs = table() if procs is None else procs
-    keep, hits, unread, hidden = guarded(procs), [], [], []
+    keep, hits, unread, hidden, other = guarded(procs), [], [], [], set()
     for pid, (ppid, start, zombie) in sorted(procs.items()):
         if pid in keep or zombie:
             continue
@@ -118,15 +118,18 @@ def find(test, procs=None):
             argv, env = procargs(pid)
         except OSError as e:
             unread.append((pid, start, errno.errorcode.get(e.errno, str(e.errno))))
+            other.add(pid)
             continue
         if test(env):
             hits.append((pid, start, argv, ppid))
         elif not env:  # macOS hides a system binary's environment (/bin/sleep, /bin/bash): judged by its parent
             hidden.append((pid, start, argv, ppid))
+        else:
+            other.add(pid)
     marked = {h[0] for h in hits}
-    for pid, start, argv, ppid in hidden:
+    for pid, start, argv, ppid in hidden:  # judged by the nearest ancestor whose environment is known
         up, seen = ppid, 0
-        while up > 1 and seen < 64 and up not in marked:
+        while up > 1 and seen < 64 and up not in marked and up not in other:
             up, seen = procs.get(up, (0,))[0], seen + 1
         if up in marked:
             hits.append((pid, start, argv, ppid))

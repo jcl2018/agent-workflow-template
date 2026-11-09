@@ -233,6 +233,19 @@ echo "$dry" | grep -q "WOULD SWEEP $a3 $mk" && echo "$sw" | grep -q "^SWEPT $a3 
   && ok "--sweep-dead stops a dead test's process, says SWEPT, and skips a live owner's" \
   || bad "sweep: dry=[$dry] live=[$live] sweep=[$sw]"
 kill -9 "$a3" "$a4" 2>/dev/null; wait "$a3" "$a4" 2>/dev/null
+if [ "$(uname)" = Darwin ]; then  # a hidden-env process is judged by its nearest known ancestor, not a farther one
+  mo="nest-$$"; rm -f "$T/nest"
+  env "TOY_REAP_ID=$mo" python3 -c 'import os, subprocess, sys, time
+inner = [sys.executable, "-c", "import subprocess, sys, time\np = subprocess.Popen([\"/bin/sleep\", \"120\"])\nopen(sys.argv[1], \"w\").write(str(p.pid))\ntime.sleep(120)", sys.argv[2]]
+subprocess.Popen(inner, env=dict(os.environ, TOY_REAP_ID=sys.argv[1] + "-inner"))
+time.sleep(120)' "$mo" "$T/nest" & a5=$!
+waitfor "$T/nest" 5; sleep 0.2; s5=$(cat "$T/nest" 2>/dev/null || echo 1)
+$R reap "TOY_REAP_ID=$mo" >/dev/null 2>&1
+gone "$a5" && ! gone "$s5" && ok "a system binary under another marker's process is left to that marker" \
+  || bad "reaping one marker stopped a system binary started under another marker"
+$R reap "TOY_REAP_ID=$mo-inner" >/dev/null 2>&1; wait "$a5" 2>/dev/null
+gone "$s5" || bad "the inner marker's reap left its system binary"
+fi
 
 # ---- real tests
 budget=600 start=$SECONDS
