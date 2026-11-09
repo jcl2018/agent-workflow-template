@@ -207,9 +207,10 @@ NOUNS = {"skill": "skill", "skills": "skill", "feature page": "page", "feature p
          "criteria": "criteria", "test": "test", "tests": "test"}
 CLAIM = re.compile(r"(?<![-\w.,/#])(\d+|%s) (?:workflow )?(skills?|feature pages?|criteri(?:on|a)|tests?)\b" % "|".join(WORDS),
                    re.I | re.ASCII)
-FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})(.*)$")
 QUOTE = re.compile(r"^(?: {0,3}> ?)+")
 NOT_A_COUNT = "<!-- not-a-count -->"
+BOUND = re.compile(r"\b(up to|at most|at least|no more than|more than|fewer than|over|under)\s*$", re.I)
 
 
 def prose(text):
@@ -258,7 +259,10 @@ def counts(root):
                 texts[rel] = handle.read()
             page = os.path.basename(rel)[:-3] if rel.startswith(folder + "/") else ""
             if on and page in pages:
-                part = prose("\n".join(dict(criteria.sections(texts[rel])).get("Criteria", []))) or []
+                part, keep = [], False  # the Criteria section, read with prose()'s fence rules
+                for line in prose(texts[rel]) or []:
+                    keep = line.strip() == "## Criteria" or (keep and not line.startswith("## "))
+                    part += [line] if keep else []
                 ids[rel] = [m.group(1) for _, m in criteria.criteria_of(part) if m]
     known = set(i for found in ids.values() for i in found)
     found = []
@@ -271,11 +275,17 @@ def counts(root):
         real = {"skill": skills or None, "page": len(pages) if on else None,
                 "criteria": len(mine) if mine is not None else None,
                 "test": sum(len(linked.get(i, [])) for i in mine) if mine is not None else None}
+        paras = []  # soft-wrapped lines joined, so a claim split across a line break is still read
         for line in lines:
+            new = not paras or not line.strip() or re.match(r"\s*([|#]|$)", paras[-1]) or re.match(r"\s*([-*+|#>]|\d+\.)", line)
+            paras.append(line) if new else paras.__setitem__(-1, paras[-1] + " " + line.strip())
+        for line in paras:
             if NOT_A_COUNT in line or known.intersection(re.findall(r"\b[A-Z]{2,5}-\d+\b", line)):
                 continue  # marked, or about one criterion
             for match in CLAIM.finditer(line):
                 said, noun = match.group(1).lower(), match.group(2).lower()
+                if BOUND.search(line[:match.start()]):  # "up to 6 criteria" is a limit, not a count
+                    continue
                 if said == "one":  # "one test" is nearly always "a single test", not a count
                     continue
                 said = int(said) if said.isdigit() else WORDS.index(said) + 1
@@ -346,7 +356,7 @@ def cmd_publish(args):
     rows = read_map(root)
     if not rows:
         sys.exit("REFUSED: no pages. Fix: run add first.")
-    found = problems(root, None) + contract(root) + counts(root)
+    found = problems(root, None) + contract(root) + [c for c in counts(root) if c[1].startswith(wiki_dir(root) + "/")]
     if found:
         for kind, page, detail in found:
             print("%s %s: %s" % (kind, page, detail))
