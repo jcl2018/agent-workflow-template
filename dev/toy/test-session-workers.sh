@@ -79,6 +79,16 @@ printf 'Shaped it.\nSTEP: done\n' > "$R/b.idea.txt"
   && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/goal.py" record b idea --file "$R/b.idea.txt" > "$T/f3" 2>&1)
 check "the session's reply is recorded with goal.py record" 'grep -q "^NEXT: goal.py record b idea" "$T/f2" && grep -q "^RECORDED idea done" "$T/f3"'
 
+(cd "$C/loop/worktrees/b" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/flow.py" b idea > "$T/f4" 2>&1)
+check "a reply left by an earlier try is never recorded again: the step is asked for afresh" 'grep -q "^IN SESSION idea" "$T/f4" && [ -e "$R/b.idea.txt.last" ] && [ ! -e "$R/b.idea.ran" ]'
+python3 - "$C/loop/sessions.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1])); p["dead"] = {"name": "worker · old", "slug": "old", "state": "free"}; json.dump(p, open(sys.argv[1], "w"))
+PY
+printf '#!/bin/bash\n[ "$2" = dead ] && exit 1\nexec "%s" "$@"\n' "$T/tool.sh" > "$T/tool2.sh"; chmod +x "$T/tool2.sh"
+LOOP_SESSION_TOOL="$T/tool2.sh" go e
+check "a free session that can't be reached is skipped for a new one before any fallback" '[ "$(field e worker)" = session ] && [ "$(field e session.id)" = s2 ] && $SE list | grep -q "^dead  unreachable"'
+
 echo "== issue 98: a goal moved into a session"
 python3 - "$R/d.json" <<'PY'
 import json, sys

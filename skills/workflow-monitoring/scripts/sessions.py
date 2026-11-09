@@ -106,23 +106,27 @@ def assign(state, prompt, cfg):
     state["worker"], state["worker_why"] = "background", "no session tool is set (session_command)"
     if not command:
         return False
-    found = pool()
-    free = sorted(sid for sid, item in found.items() if item.get("state") == "free")
-    sid = free[0] if free else call(command, "start", name_of(slug))
-    if not sid:
-        state["worker_why"] = "the session tool could not start a session"
-        return False
-    to = os.environ.get("LOOP_OPERATION_SESSION", "")
-    if call(command, "rename", sid, name_of(slug)) is None or call(command, "send", sid, SEND.format(slug=slug, to=" (%s)" % to if to else "") + prompt) is None:
+    found, to = pool(), os.environ.get("LOOP_OPERATION_SESSION", "")
+    text = SEND.format(slug=slug, to=" (%s)" % to if to else "") + prompt
+    state["worker_why"] = "the session tool could not start a session"
+    for sid in sorted(s for s, item in found.items() if item.get("state") == "free") + [None]:  # free ones first, then a new one
+        reused = sid is not None
+        sid = sid or call(command, "start", name_of(slug))
+        if not sid:
+            state["worker_why"] = "the session tool could not start a session"
+            break
+        if call(command, "rename", sid, name_of(slug)) is not None and call(command, "send", sid, text) is not None:
+            break
         state["worker_why"] = "the session tool could not reach session %s" % sid
-        if sid in found:
-            found[sid]["state"] = "unreachable"
-            save_pool(found)
+        found.setdefault(sid, {})["state"] = "unreachable"
+        save_pool(found)
+        sid = None
+    if not sid:
         return False
     found[sid] = {"name": name_of(slug), "slug": slug, "state": "busy", "since": now()}
     save_pool(found)
     state.update(worker="session", worker_why="", session={"id": sid, "name": name_of(slug)}, pid=None, status="running")
-    save(state, "assigned to session %s (%s)%s" % (sid, name_of(slug), ", reused" if free else ""))
+    save(state, "assigned to session %s (%s)%s" % (sid, name_of(slug), ", reused" if reused else ""))
     return True
 
 

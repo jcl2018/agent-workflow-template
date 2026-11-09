@@ -163,8 +163,13 @@ def in_session(args, runs, reply, base):
         state = {}
     if state.get("worker") != "session" and not os.environ.get("LOOP_SESSION"):
         return False
-    text = read(reply) if os.path.exists(reply) else ""
+    asked = base + ".asked"  # a reply counts only if written after this step was asked for, never one left by a try before
+    fresh = os.path.exists(asked) and os.path.exists(reply) and os.path.getmtime(reply) >= os.path.getmtime(asked)
+    text = read(reply) if fresh else ""
     if not re.search(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I):
+        if not os.path.exists(asked) and os.path.exists(reply):
+            os.replace(reply, reply + ".last")
+        open(asked, "a").close()
         spec = flow()
         role.begin(os.path.join(runs, args.slug + ".json"), args.step)
         skill = ((spec.get("overrides") or {}).get(args.step) or {}).get("skill") or spec["steps"][args.step]
@@ -174,6 +179,7 @@ def in_session(args, runs, reply, base):
                             note="The owner said: " + args.note + "\n" if args.note else "").rstrip())
         print("Write its reply, ending with the STEP line, to %s, then run this same command again." % reply)
         return True
+    os.remove(asked)
     open(base + ".ran", "w").close()
     print("\n".join(re.findall(r"^\W*(?:PENDING|STEP): .*", text, re.M)))
     print("NEXT: goal.py record %s %s --file %s" % (args.slug, args.step, reply))
