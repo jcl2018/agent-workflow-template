@@ -73,7 +73,7 @@ PY
 echo "== 3. a failing routine refuses the merge and shows under Needs you"
 python3 - <<'PY'
 import json
-c = json.load(open(".loop/config.json")); c["routines"] = ["touch routine-ran", "false"]
+c = json.load(open(".loop/config.json")); c["routines"] = ["touch ../routine-ran", "false"]  # outside the repo, so later goals start clean
 json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
 git switch -q main; git pull -q origin main; git commit -qam "Add routines"; git push -q origin main
@@ -81,7 +81,7 @@ finish rtn
 export FAKE_GH_MERGE_BRANCH=loop/rtn
 before=$(git rev-parse origin/main)
 merge rtn && bad "merged past a failing routine" || ok "failing routine refused"
-[ -f routine-ran ] && ok "the owner's routine ran" || bad "routine ran"
+[ -f ../routine-ran ] && ok "the owner's routine ran" || bad "routine ran"
 git fetch -q origin; [ "$(git rev-parse origin/main)" = "$before" ] && ok "nothing merged" || bad "merged"
 state rtn release_error | grep -q "routine false" && ok "failure recorded on the goal" || bad "release_error"
 (cd "$here" && python3 - "$d/repo" <<'PY'
