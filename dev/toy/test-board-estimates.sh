@@ -8,6 +8,7 @@ T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 M="$here/skills/workflow-monitoring/scripts"
 export HOME="$T/home"; mkdir -p "$HOME"
 export LOOP_BOARD_HEALTH=green PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh"
+export TZ=UTC  # the checks compare HH:MM text and the zone name; pin the zone so they hold everywhere
 fails=0
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
@@ -62,5 +63,12 @@ check "re-estimate: a short step past its time still has a minute left" '[ "$(py
 # Value: protects=a single token over 60 chars is cut to the board width; fails_when=break_long_words is turned off; why_new=no
 #   fixture line holds a 60+ char word; seam=none; no_claim=real terminal width (text model only)
 check "fit: a word longer than the width is cut to it" 'python3 -B -c "import sys; sys.path.insert(0, sys.argv[1]); import live_board as l; o = l.fit([\"x\" * 75]); sys.exit(0 if o[0] == \"x\" * 60 and all(len(i) <= 60 for i in o) and \"\".join(i.strip() for i in o) == \"x\" * 75 else 1)" "$M"'
+# Value: protects=the over-by mark shows only from a full minute over; fails_when=the over >= 60 threshold is dropped or moved;
+#   why_new=the fixture is only 0 or 30m over, never near the minute; seam=none; no_claim=none beyond protects (direct call)
+check "over by: 59s over has no mark, 60s over reads over by 1m" 'python3 -B -c "import sys; sys.path.insert(0, sys.argv[1]); import live_board as l; r = {\"status\": \"running\", \"step\": \"build\"}; a, b = \" \".join(l.flow_lines(r, 59)), \" \".join(l.flow_lines(r, 60)); sys.exit(0 if \"over by\" not in a and \"[build over by 1m]\" in b else 1)" "$M"'
+# Value: protects=a wrapped line keeps hyphenated names whole and indents its continuation two past its own indent;
+#   fails_when=break_on_hyphens is turned on or the continuation indent changes; why_new=the other checks collapse whitespace or
+#   never put a hyphenated word across the 60th column; seam=none; no_claim=real terminal width (text model only)
+check "fit: a hyphenated name is not split and the continuation is indented two more" 'python3 -B -c "import sys; sys.path.insert(0, sys.argv[1]); import live_board as l; o = l.fit([\"    next: merge \" + \"a\" * 30 + \" the-goal-with-a-long-name now\"]); sys.exit(0 if o == [\"    next: merge \" + \"a\" * 30, \"      the-goal-with-a-long-name now\"] else 1)" "$M"'
 echo
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
