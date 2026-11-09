@@ -33,6 +33,7 @@ import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
 import lanes  # noqa: E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.

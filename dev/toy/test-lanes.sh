@@ -74,6 +74,9 @@ check "a missing record means a full run" 'grep -q "^FULL: no record" <<<"$out" 
 echo "{broken" > "$(ls "$common"/loop/tests/main-*.json)"
 fresh; out=$($reg run land --reuse); echo "$out"
 check "an unreadable record means a full run" 'grep -q "^FULL: record unreadable" <<<"$out" && [ "$(ran)" = "a b " ]'
+python3 -c "import json,sys;p=sys.argv[1];r=json.load(open(p));r['worktree']='/elsewhere';json.dump(r,open(p,'w'))" "$(ls "$common"/loop/tests/main-*.json)"
+fresh; out=$($reg run land --reuse); echo "$out"
+check "a record from another worktree means a full run" 'grep -q "^FULL: record from another worktree" <<<"$out" && [ "$(ran)" = "a b " ]'
 
 echo "== uncommitted work is tested but never recorded"
 rec=$(ls "$common"/loop/tests/main-*.json); sum=$(cksum < "$rec")
@@ -97,6 +100,16 @@ printf 'e\tland\tbash dev/a.sh\tX-1\t\tE works.\tcriterion\t\n' >> .loop/regress
 $reg run land --reuse >/dev/null; fresh; out=$($reg run land --reuse); rc=$?; echo "$out"
 check "a row never seen failing fails the run even when reused" '[ $rc = 1 ] && grep -q "^UNPROVEN e: never seen failing. Fix: python3 .* red e --break" <<<"$out"'
 grep -v "^e	" .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv && git commit -qam "Drop row e"
+
+echo "== release and loop files no row's own scripts name are no change"
+printf '# notes go to CHANGELOG.md\n' >> dev/lib.sh; printf 'v1\n' > CHANGELOG.md; git add -A; git commit -qm "Lib names the changelog"
+$reg run land --reuse >/dev/null; printf 'v2\n' > CHANGELOG.md; git commit -qam "Changelog"
+fresh; out=$($reg run land --reuse); echo "$out"
+check "a changelog-only commit reuses every row, even one reaching a file that names it" 'grep -q "^REUSED" <<<"$out" && [ -z "$(ran)" ]'
+printf 'cat CHANGELOG.md >/dev/null\necho a >> "$TOY_LOG"; grep -q ok src/a.txt\n' > dev/a.sh; git commit -qam "a reads the changelog"
+$reg run land --reuse >/dev/null; printf 'v3\n' > CHANGELOG.md; git commit -qam "Changelog again"
+fresh; out=$($reg run land --reuse); echo "$out"
+check "a row whose own script names a release file reruns when it changes" '[ "$(ran)" = "a d " ]'
 fi
 
 if [ "$part" != regression ]; then
@@ -145,6 +158,7 @@ touch stray.txt
 out=$(python3 "$here/skills/workflow-delivery/scripts/role.py" lane lf qa 2>&1)
 check "the lane refuses an unclean tree" 'grep -q "LANE_DIRTY at start: stray.txt" <<<"$out"'
 rm -f stray.txt
+
 fi
 
 [ $fails = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

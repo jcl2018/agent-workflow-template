@@ -28,6 +28,7 @@ PATH = re.compile(r"(?<![\w.@+/-])(?:\$\{?here\}?/|\./)?((?:\.?[A-Za-z0-9_@+-][A
                   r"|[A-Za-z0-9_-]+\.[A-Za-z0-9]+)")
 BARE = re.compile(r"\$\{?here\}?/skills\b(?!/)")
 ROOT = re.compile(r"\$\{?here\}?/?(?=[\s\"')]|$)")
+RUNNER = "skills/workflow-regression/scripts/regression.py"  # rows that reach it read .loop/regression.tsv
 TOKEN = re.compile(r"\bworkflow-[a-z]+\b")
 IMPORT = re.compile(r"^\s*(?:import|from)\s+([A-Za-z_]\w*)", re.M)
 
@@ -91,7 +92,7 @@ def save(path, root, command, results, head, at, fresh):
 
 
 def dirty(root):
-    """Paths git status lists, the run log aside."""
+    """Paths git status lists, the loop's bookkeeping files aside."""
     out = git(root, "status", "--porcelain", "--no-renames", "--untracked-files=all") or ""
     paths = [line[3:].strip('"') for line in out.splitlines()]
     return [p for p in paths if not p.startswith(BOOKKEEPING)]
@@ -132,6 +133,28 @@ def references(root, text, folder):
     return found, whole
 
 
+def scan(root, rel, cache):
+    """The repo paths one file names; each file is read once per plan."""
+    files = cache.setdefault(None, {})
+    if rel not in files:
+        try:
+            with open(os.path.join(root, rel), errors="replace") as handle:
+                text = handle.read(400000)
+        except OSError:
+            text = ""
+        more, _ = references(root, text, os.path.dirname(rel))  # a script's own `cd "$here"` reads nothing by itself
+        if rel.endswith(".py"):
+            more |= {os.path.join(os.path.dirname(rel), m + ".py") for m in IMPORT.findall(text)
+                     if os.path.isfile(os.path.join(root, os.path.dirname(rel), m + ".py"))}
+        files[rel] = more
+    return files[rel]
+
+
+def walk(root, prefix):
+    return [os.path.relpath(os.path.join(here, n), root) for here, _, names in os.walk(os.path.join(root, prefix))
+            for n in names if "__pycache__" not in here]
+
+
 def closure(root, command, cache):
     """(dependency paths, always-run) for a row command, following every file it reaches."""
     if command in cache:
@@ -140,69 +163,69 @@ def closure(root, command, cache):
     always = whole or not deps
     todo, seen = [p for p in deps if not p.endswith("/")], set()
     for prefix in [p for p in deps if p.endswith("/")]:
-        for here, _, names in os.walk(os.path.join(root, prefix)):
-            todo += [os.path.relpath(os.path.join(here, n), root) for n in names if "__pycache__" not in here]
+        todo += walk(root, prefix)
     while todo:
         rel = todo.pop()
         if rel in seen:
             continue
         seen.add(rel)
-        try:
-            with open(os.path.join(root, rel), errors="replace") as handle:
-                text = handle.read(400000)
-        except OSError:
-            continue
-        more, _ = references(root, text, os.path.dirname(rel))  # a script's own `cd "$here"` reads nothing by itself
-        if rel.endswith(".py"):
-            more |= {os.path.join(os.path.dirname(rel), m + ".py") for m in IMPORT.findall(text)
-                     if os.path.isfile(os.path.join(root, os.path.dirname(rel), m + ".py"))}
-        for path in more - deps:
+        for path in scan(root, rel, cache) - deps:
             deps.add(path)
-            if path.endswith("/"):
-                for here, _, names in os.walk(os.path.join(root, path)):
-                    todo += [os.path.relpath(os.path.join(here, n), root) for n in names if "__pycache__" not in here]
-            else:
-                todo.append(path)
+            todo += walk(root, path) if path.endswith("/") else [path]
     cache[command] = (deps, always)
     return cache[command]
+
+
+def named(root, command, cache):
+    """The paths a row names itself: its command's paths and what the files it names name (not the whole closure)."""
+    key = ("named", command)
+    if key not in cache:
+        found, _ = references(root, command, "")
+        cache[key] = set(found).union(*[scan(root, p, cache) for p in found if not p.endswith("/")])
+    return cache[key]
 
 
 def hits(path, deps):
     return path in deps or any(d.endswith("/") and path.startswith(d) for d in deps)
 
 
-def table(root, commit, name):
+def table(root, commit, name, memo):
     """The rows of a .loop table at a commit, as {id: line}."""
-    text = git(root, "show", "%s:.loop/%s" % (commit, name)) or ""
-    return {line.split("\t")[0]: line for line in text.splitlines() if line.strip() and line[0] != "#"}
+    if (commit, name) not in memo:
+        text = git(root, "show", "%s:.loop/%s" % (commit, name)) or ""
+        memo[commit, name] = {line.split("\t")[0]: line for line in text.splitlines() if line.strip() and line[0] != "#"}
+    return memo[commit, name]
 
 
 def plan(root, selected, record, current_tsv, current_known):
     """Decide each selected row: (to_run ids, reused ids, notes, full reason or '')."""
-    rows, cache, notes = record["rows"], {}, []
+    rows, cache, notes, memo = record["rows"], {}, [], {}
     failed = [r["id"] for r in selected if rows.get(r["id"], {}).get("status") == "FAIL"]
     if failed:
         return [r["id"] for r in selected], [], notes, "record has FAIL rows %s" % ", ".join(failed[:10])
-    run, reuse, since = [], [], {}
+    run, reuse, since, kin = [], [], {}, {}
     for row in selected:
         rid, prior = row["id"], rows.get(row["id"])
         deps, always = closure(root, row["command"], cache)
-        if always or not prior or not ancestor(root, prior["commit"]):
+        if prior and prior["commit"] not in kin:
+            kin[prior["commit"]] = ancestor(root, prior["commit"])
+        if always or not prior or not kin[prior["commit"]]:
             run.append(rid)
             continue
         if prior["commit"] not in since:
-            since[prior["commit"]] = changed(root, prior["commit"]) or []
-        stale = False
-        for path in since[prior["commit"]]:
+            since[prior["commit"]] = changed(root, prior["commit"])
+        stale = since[prior["commit"]] is None  # git couldn't say what changed: run it
+        for path in since[prior["commit"]] or []:
             if path == ".loop/regression.tsv":
-                stale = table(root, prior["commit"], "regression.tsv").get(rid) != current_tsv.get(rid) \
-                    or hits("skills/workflow-regression/x", deps)
+                stale = table(root, prior["commit"], "regression.tsv", memo).get(rid) != current_tsv.get(rid) \
+                    or hits(RUNNER, deps)
             elif path == ".loop/regression-known.tsv":
-                stale = table(root, prior["commit"], "regression-known.tsv").get(rid) != current_known.get(rid)
+                stale = table(root, prior["commit"], "regression-known.tsv", memo).get(rid) != current_known.get(rid)
+            elif any(path == n or (n.endswith("/") and path.startswith(n)) for n in NO_EFFECT):
+                stale = hits(path, named(root, row["command"], cache))  # release and loop files: only a row naming one
             elif hits(path, deps):
                 stale = True
-            elif not any(path == n or (n.endswith("/") and path.startswith(n)) for n in NO_EFFECT) \
-                    and not any(hits(path, closure(root, other["command"], cache)[0]) for other in selected):
+            elif not any(hits(path, closure(root, other["command"], cache)[0]) for other in selected):
                 notes.append("UNMAPPED %s: full run" % path)
                 return [r["id"] for r in selected], [], notes, "unmapped change %s" % path
             if stale:
