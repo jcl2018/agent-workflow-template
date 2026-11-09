@@ -28,7 +28,7 @@ sessions the default worker and session messages the channel.
 ## Approaches considered
 
 - **A: Session tool behind a small module (recommended, taken).** `sessions.py` keeps a pool in
-  `<common>/loop/sessions.json`, assigns, renames, sends, records and falls back. The rest of the loop stays the same.
+  `<common>/loop/session-pool.json`, assigns, renames, sends, records and falls back. The rest of the loop stays the same.
   Effort M, risk low. Tests use a stand-in tool.
 - **B: The operation model does everything by hand.** `operate.py` prints ASSIGN lines and the model acts on them with
   app tools. Rejected: it isn't deterministic (MON-1: "the same way every time") and can't be tested without a model.

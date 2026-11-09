@@ -1,14 +1,13 @@
 ---
 name: workflow-monitoring
-description: One session governs and the others build. `go` starts a goal as a background agent in its own worktree; `watch` keeps goals moving, mends failures if allowed, and says what waits on you; `report`, `dashboard` and `resume` show and restart them. Use for every goal, and to run the queue or check on running goals.
+description: One session governs and the others build. `go` starts a goal in its own worker session and worktree; `watch` keeps goals moving, mends failures if allowed, and says what waits on you; `report`, `dashboard` and `resume` show and restart them. Use for every goal, and to run the queue or check on running goals.
 ---
 
 # workflow-monitoring
 
-**One session governs, and the others build.** The session you talk to starts goals and watches them. It never writes
-the code. Each goal runs in its own worktree, in its own worker session in the app, named `worker · <goal>`, through the
-one skill flow. A worker session reports each change of step and its result by session message, and the board shows it.
-A background process is used only when no session can be started or reached, and the board says `background`.
+**One session governs, and the others build.** It starts goals and watches them, and never writes the code. Each goal
+runs in its own worktree and its own app session, `worker · <goal>`, which reports each step and its result by session
+message; a background process only when no session can be started or reached (the board says `background`).
 
 **To run the operation session, run `python3 scripts/operate.py run` and nothing else.** It drives the whole process the
 same way every time (below). Other commands: `go`, `watch`, `report`, `dashboard` and `resume`. `go`, `watch` and
@@ -96,11 +95,9 @@ nothing is left. `operate.py send SLUG "<text>"` gives a worker an answer or fol
 Any command that would build, plan or run a goal step from this session (`build`, `plan`, `idea`, `review`, `qa`,
 `ship`, `step`, `pr`, `record`, `run`) refuses with one line naming `batch.py start NAME`.
 
-Worker sessions go through `scripts/sessions.py`: `assign SLUG` (watch.py does it for each goal it starts: a free session
-or a new one from the session tool in `session_command`, renamed `worker · <goal>`, sent the goal), `bind SLUG ID` (a
-session you started with the app's own tools), `report SLUG --step S | --status merged|failed|waiting [--pr URL]` (record
-each message a worker session sends; merged or failed frees the session for the next goal) and `list`. The live board
-shows each running goal's worker: its session name, or `background` and why.
+`scripts/sessions.py`: `assign SLUG` (watch.py runs it: a free or new session from `session_command`, renamed
+`worker · <goal>`, sent the goal), `bind SLUG ID` (a session started with the app's tools), `list`, and `report SLUG
+--step S | --status merged|failed|waiting [--pr URL]` for each worker message (merged or failed frees the session).
 
 Batches of goals go through `scripts/batch.py` (`add`, `start`, `status`). `start` begins one worker for each goal:
 `scripts/worker.py loop SLUG` runs the goal's agent in its own worktree, with `LOOP_ROLE=worker`, to the end. When the

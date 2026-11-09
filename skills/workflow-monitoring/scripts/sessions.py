@@ -13,7 +13,7 @@ usage: sessions.py <command> [options]
 A session tool does the talking: the command in `session_command` (.loop/config.json) or $LOOP_SESSION_TOOL, called as
 `TOOL start NAME` (prints the new session's id), `TOOL rename ID NAME` and `TOOL send ID TEXT`. With no tool, or one
 that fails or takes over 30 seconds, the goal falls back to a background process and the board says "background".
-The pool lives in <git common dir>/loop/sessions.json. It never merges.
+The pool lives in <git common dir>/loop/session-pool.json. It never merges.
 """
 import argparse
 import datetime
@@ -61,11 +61,11 @@ def write(path, data):
 
 
 def pool():
-    return read(os.path.join(base(), "sessions.json"), {})
+    return read(os.path.join(base(), "session-pool.json"), {})
 
 
 def save_pool(found):
-    write(os.path.join(base(), "sessions.json"), found)
+    write(os.path.join(base(), "session-pool.json"), found)
 
 
 def load(slug):

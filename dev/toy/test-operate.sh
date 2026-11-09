@@ -61,7 +61,7 @@ printf 'Shared\tshared.py\n' > .loop/docs.tsv
 git add -A; git commit -qm "Agent"; git push -q origin main
 
 echo "== MON-1 carries the owner's wording, reviewed"
-check "MON-1 is the dependency-graph wording and Reviewed 2026-11-08" 'grep -q "^- MON-1: \*\*Reviewed 2026-11-08\*\* Roles, start and planning. One command starts the operation session and drives the whole process the same way every time. The operation session plans queued goals as a dependency graph and runs every goal whose dependencies are met in parallel, each in its own worker and worktree, and never builds. A goal waits only on goals it truly depends on; sharing files is not a reason to wait: the later goal brings in the earlier one.s merged changes and runs its checks again, and only a real conflict sends it back to fix. <!-- reviewed [0-9a-f]\{8\} -->$" "$here/docs/wiki/Monitoring.md"'
+check "MON-1 is the dependency-graph wording and Reviewed 2026-11-08" 'grep -q "^- MON-1: \*\*Reviewed 2026-11-08\*\* Roles, start and planning. One command starts the operation session and drives the whole process the same way every time. The operation session plans queued goals as a dependency graph and gives every goal whose dependencies are met its own worker session in the app, renamed worker · <goal>, running in parallel; it never builds. A goal waits only on goals it truly depends on; sharing files is not a reason to wait. When a worker session finishes, the operation session gives it the next ready goal, renaming it again. <!-- reviewed [0-9a-f]\{8\} -->$" "$here/docs/wiki/Monitoring.md"'
 
 echo "== a goal waits only for the goals it depends on"
 touch "$FAKE_AGENT/hold-a" "$FAKE_AGENT/hold-c"

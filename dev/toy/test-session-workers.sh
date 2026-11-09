@@ -81,7 +81,7 @@ check "the session's reply is recorded with goal.py record" 'grep -q "^NEXT: goa
 
 (cd "$C/loop/worktrees/b" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/flow.py" b idea > "$T/f4" 2>&1)
 check "a reply left by an earlier try is never recorded again: the step is asked for afresh" 'grep -q "^IN SESSION idea" "$T/f4" && [ -e "$R/b.idea.txt.last" ] && [ ! -e "$R/b.idea.ran" ]'
-python3 - "$C/loop/sessions.json" <<'PY'
+python3 - "$C/loop/session-pool.json" <<'PY'
 import json, sys
 p = json.load(open(sys.argv[1])); p["dead"] = {"name": "worker · old", "slug": "old", "state": "free"}; json.dump(p, open(sys.argv[1], "w"))
 PY
