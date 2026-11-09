@@ -33,7 +33,7 @@ Skill: `workflow-health`. A check of the repo's health with fixed rules, so the 
 ## Success metrics
 
 - Two runs on an unchanged repo print the same lines.
-- Every finding is one issue on the Backlog milestone, closed when it is fixed.
+- Every finding in a group the owner files is one issue on the Backlog milestone, tagged with its group, closed when it is fixed.
 - The verdict is never green while a rule could not be read.
 
 ## Tests
