@@ -30,6 +30,7 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `resume_on_limit` | `false` | true lets watch resume a goal that hit a usage limit. |
 | `limit_wait` | `1800` | Seconds to wait after a usage limit before resuming. |
 | `watch_interval` | `20` | Seconds between rounds of watch. |
+| `reply_hook` | `true` | false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session. |
 
 ## Private settings
 

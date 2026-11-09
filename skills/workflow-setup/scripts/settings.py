@@ -45,6 +45,7 @@ TABLE = [
     ("resume_on_limit", REPO, False, "true lets watch resume a goal that hit a usage limit."),
     ("limit_wait", REPO, 1800, "Seconds to wait after a usage limit before resuming."),
     ("watch_interval", REPO, 20, "Seconds between rounds of watch."),
+    ("reply_hook", REPO, True, "false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session."),
     ("command", PRIVATE, ["claude", "-p"], "Flow file: the agent command that runs each flow step unattended."),
     ("allowed_tools", PRIVATE, [], "Flow file: tools a step's agent may use, passed as --allowedTools; empty adds nothing."),
     ("model", PRIVATE, "", "Flow file: the model a step's agent uses, passed as --model; empty keeps the command's own."),

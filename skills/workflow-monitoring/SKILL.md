@@ -111,6 +111,8 @@ open now, a stuck worker first, each with its fix in plain words and the exact w
 with percent and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current
 step in brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows; and one
 finish time. Merged work, history and totals are left out. The loop is in `references/operation.md`.
+Every operation-session reply ends with one `Decisions:` line and then the full live board; `scripts/reply_hook.py`, a Stop
+hook that `workflow-setup` installs with `setup.py --reply-hook`, blocks one that doesn't (never a worker's).
 
 ## Statuses
 
@@ -147,3 +149,5 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-monitoring dashboard` | `python3 scripts/monitor.py dashboard` |
 | `/workflow-monitoring met SLUG N` | `python3 scripts/worker.py met SLUG N` |
 | `/workflow-monitoring cleanup` | `python3 scripts/worker.py cleanup` |
+| `/workflow-monitoring reply-check FILE` | `python3 scripts/reply_hook.py check FILE` |
+| `/workflow-monitoring reply-status` | `python3 scripts/reply_hook.py status` |

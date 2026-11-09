@@ -19,6 +19,7 @@ A failed release is recorded as `release_error` and lists under Issues beside `w
 - `/workflow-monitoring go "goal" --done "line"` queues and starts a goal; `/workflow-monitoring watch` keeps goals moving; `/workflow-monitoring resume SLUG` restarts one.
 - `/workflow-monitoring report` and `/workflow-monitoring dashboard` show where every goal stands.
 - `/workflow-monitoring met SLUG N` marks a done line met; `/workflow-monitoring cleanup` deletes merged `loop/*` branches ("list them first" previews).
+- `/workflow-monitoring reply-check FILE` prints what an operation-session reply is missing; `/workflow-monitoring reply-status` says whether the reply hook (installed by `/workflow-setup reply-hook`) is on in this repo.
 
 ## Requirements
 
@@ -26,7 +27,7 @@ A failed release is recorded as `release_error` and lists under Issues beside `w
 - MON-2: **Reviewed 2026-11-08** Live communication. Operation and workers talk through session messages: a worker reports each change of step or status as it happens, and its result when it ends (merged, failed or waiting, with the pull request); the operation session sends a worker its answer or a follow-up. Background processes are used only when the app can't start or reach a session, and the board says so. <!-- reviewed 3c99a1c2 -->
 - MON-3: **Reviewed 2026-11-08** Board view: the board shows everything in one fixed template: what needs me, each running goal's progress bar and current step, what's next, roadmap progress, done lines met. <!-- reviewed b45361d0 -->
 - MON-4: **Reviewed 2026-11-08** Live board. Each check-in prints the live board, always in the same format: Issues first (only what is open now, each with its fix in plain words); then Running goals, each with a progress bar, time left, its step flow with the current step marked, and its next step; then Queued goals; then the dependencies between running and queued goals as arrows; then one finish time. Merged work, history and totals are left out. A stuck worker stays at the top of Issues until I answer. <!-- reviewed e4985fe1 -->
-- MON-5: **Reviewed 2026-11-08** Cadence. The operation session updates the board and prints the live board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new. It prints the full board every time. <!-- reviewed b74f3855 -->
+- MON-5: **Unreviewed** Cadence and reply format. The operation session updates the board and prints the live board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new. It prints the full board every time. Every reply it gives ends with one decisions line and then the full live board, and a hook that setup installs blocks a reply that doesn't, saying what is missing; the hook never checks worker sessions or other repos, and one setting turns it off.
 
 ## Non-goals
 

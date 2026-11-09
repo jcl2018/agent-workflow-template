@@ -15,4 +15,16 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. In the main checkout, run `python3 skills/workflow-monitoring/scripts/live_board.py > /tmp/board.txt`, then
+   `{ echo "Decisions: none"; cat /tmp/board.txt; } | python3 skills/workflow-monitoring/scripts/reply_hook.py check -`.
+   Expect: it prints nothing and exits 0.
+2. Run `echo "all quiet" | python3 skills/workflow-monitoring/scripts/reply_hook.py check -`.
+   Expect: `it does not end with the live board (no LIVE BOARD header)`, exit 1.
+3. In a scratch clone that has `.loop/config.json`, run `python3 skills/workflow-setup/scripts/setup.py --reply-hook` twice.
+   Expect: `HOOK: added` and a NOTE the first time, `HOOK: already installed` the second; `.claude/settings.local.json` holds
+   one Stop hook naming reply_hook.py, and `git status` does not list it.
+4. In that clone, run `python3 skills/workflow-monitoring/scripts/reply_hook.py status`, then
+   `python3 skills/workflow-setup/scripts/setup.py --reply-hook --remove`.
+   Expect: `REPLY HOOK: installed, setting on, script found, ...`, then `HOOK: removed`.
+5. Open the Monitoring wiki page.
+   Expect: MON-5 reads `**Unreviewed**` with the reply-format sentence, waiting for the owner's review.
