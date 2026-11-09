@@ -8,7 +8,7 @@ usage: criteria.py <command> [options]
   render [--check]             rewrite each feature page's Tests table from the regression rows and their last runs;
                                --check only says which pages are stale
 
-A page is Summary, Criteria and Tests. A criterion is '- ID: **Unreviewed** text' or '- ID: **Reviewed DATE** text',
+A page is Summary, an optional Usage, Criteria and Tests; Criteria hold up to criteria_max lines (default 6, .loop/config.json). A criterion is '- ID: **Unreviewed** text' or '- ID: **Reviewed DATE** text',
 and a Reviewed line ends with <!-- reviewed HASH -->, a hash of its text. docs.py check fails when the text no longer
 matches its hash. A regression row whose goal column is '-' proves no criterion yet and is left out. A row with category defect is a defect test: it is listed under 'Defect tests' on the page of the criterion in its goal column, with its link. The Tests table lists each criterion's regression rows with the criterion's words, what the
 test checks, when it runs, its last status and date from .loop/regression-runs.tsv and whether it was seen failing,
@@ -43,11 +43,25 @@ def rules():
         found = dict(line.split(":", 1) for line in block.group(1).splitlines() if ":" in line)
         found = {key.strip(): value.strip() for key, value in found.items()}
         return {"sections": [x.strip() for x in found["sections"].split(",")], "summary_lines": int(found["summary_lines"]),
-                "max_criteria": int(found["max_criteria"]), "columns": [x.strip() for x in found["tests_columns"].split(",")],
+                "usage": found.get("usage_section", "Usage"), "columns": [x.strip() for x in found["tests_columns"].split(",")],
                 "defect_columns": [x.strip() for x in found["defect_columns"].split(",")],
                 "milestone": found["milestone_line"]}
     except (OSError, AttributeError, KeyError, ValueError):
         sys.exit("REFUSED: the rules block of skills/workflow-docs/references/template.md is missing or broken.")
+
+
+def criteria_max(root):
+    """The criteria limit: `criteria_max` in .loop/config.json, 6 when absent. A bad value refuses, never falls back."""
+    path = os.path.join(root, ".loop", "config.json")
+    try:
+        with open(path) as handle:
+            value = json.load(handle).get("criteria_max", 6)
+    except (OSError, ValueError, AttributeError):
+        value = 6
+    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 50:
+        sys.exit("REFUSED: criteria_max is %r in %s. Fix: set it to a whole number from 1 to 50, or remove it for the default 6."
+                 % (value, path))
+    return value
 
 
 def git(*args, check=True):
@@ -169,17 +183,48 @@ def criteria_of(lines):
     return [(line, LINE.match(line)) for line in lines if line.strip()]
 
 
+def unknown_commands(root, lines):
+    """Backticked `script.py verb` commands of a Usage block whose script name no skill file under skills/ mentions."""
+    known, base = "", os.path.join(root, "skills")
+    for here, _, files in os.walk(base):
+        for name in files:
+            if name == "SKILL.md" or name == "commands.md":
+                with open(os.path.join(here, name)) as handle:
+                    known += handle.read()
+    if not known:
+        return []
+    out = []
+    for command in re.findall(r"`([^`]+)`", "\n".join(lines)):
+        script = re.search(r"\b([\w-]+\.py)\b", command)
+        if script and script.group(1) not in known and script.group(1) not in out:
+            out.append(script.group(1))
+    return out
+
+
 def contract(root, names, seen):
     """Page contract trouble for these feature pages, as (kind, page, detail). `seen` maps ids to their page."""
     found, rule = [], rules()
+    limit = criteria_max(root)
     linked, loose = test_rows(root)
     for page in names:
         with open(os.path.join(root, folder_of(root), page + ".md")) as handle:
             parts = sections(handle.read())
-        if [name for name, _ in parts] != rule["sections"]:
-            found.append(("SECTIONS", page, "have %s, want %s" % (", ".join(n for n, _ in parts) or "none", ", ".join(rule["sections"]))))
+        have = [name for name, _ in parts]
+        want = rule["sections"]
+        if rule["usage"] in have:
+            want = want[:1] + [rule["usage"]] + want[1:]
+        if have != want:
+            hint = ""
+            if "Commands" in have or rule["usage"] in have:
+                hint = ". Fix: rename Commands to %s and place it between %s and %s" % (rule["usage"], rule["sections"][0], rule["sections"][1])
+            found.append(("SECTIONS", page, "have %s, want %s%s" % (", ".join(have) or "none", ", ".join(want), hint)))
             continue
         body, ids = dict(parts), []
+        if rule["usage"] in body:
+            if not [x for x in body[rule["usage"]] if x.strip()]:
+                found.append(("USAGE", page, "has an empty %s section. Fix: list its commands, or remove the section" % rule["usage"]))
+            for command in unknown_commands(root, body[rule["usage"]]):
+                found.append(("USAGE", page, "`%s` is in no skill file. Fix: use a real command" % command))
         for line, match in criteria_of(body["Criteria"]):
             if not match:
                 found.append(("CRITERION", page, "not one line '- ID: **Unreviewed** text': " + line.strip()[:60]))
@@ -196,8 +241,9 @@ def contract(root, names, seen):
             if mark != "Unreviewed" and mine != seal(text):
                 found.append(("LOCKED", page, "%s was reviewed and its wording changed. Fix: restore it, or the owner "
                               "marks it Unreviewed first" % key))
-        if len(ids) > rule["max_criteria"]:
-            found.append(("CAP", page, "has %d criteria, over the cap of %d" % (len(ids), rule["max_criteria"])))
+        if len(ids) > limit:
+            found.append(("CAP", page, "has %d criteria, over the limit of %d (criteria_max in .loop/config.json). Fix: merge criteria, "
+                          "or raise criteria_max" % (len(ids), limit)))
         if len([x for x in "\n".join(body["Summary"]).split("\n\n") if x.strip()]) > rule["summary_lines"]:
             found.append(("SUMMARY", page, "is over %d lines" % rule["summary_lines"]))
         if [line for line in body["Tests"] if line.strip()] != table(root, ids, linked):
@@ -271,7 +317,7 @@ def cmd_render(args):
         with open(os.path.join(root, rel)) as handle:
             text = handle.read()
         parts = sections(text)
-        if [name for name, _ in parts] != rules()["sections"]:
+        if [n for n, _ in parts if n != rules()["usage"]] != rules()["sections"]:
             continue
         ids = [(m.group(1), m.group(4)) for _, m in criteria_of(dict(parts)["Criteria"]) if m]
         head, _, _ = text.partition("\n## Tests")
