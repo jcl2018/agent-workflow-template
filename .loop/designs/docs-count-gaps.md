@@ -65,3 +65,76 @@ link, so it renders under DOC-4's Defect tests on the Documentation page with it
 ## The Assignment
 After merge, run `python3 skills/workflow-docs/scripts/docs.py check` in a consumer repo with indented examples and
 confirm no COUNT line comes from them.
+
+## Plan
+
+Reviewed by autoplan, unattended (CEO and eng phases in-session; UI and DX scope: none, a check script's internals;
+one independent Claude reviewer on the plan and code; Codex not used). Nothing here waits on the owner.
+
+### CEO review
+- Premise 1 REALITY: "no new module" is wrong. docs.py is 20,281 B against health's 20 KB FAIL limit (WARN from
+  90%), and row prd-repo-green fails on any health FAIL. The count code (~5 KB) moves to a new
+  `skills/workflow-docs/scripts/counting.py`; `docs.counts(root)` stays as a one-line wrapper because audit.py and
+  dev/toy/test-prd.sh call it. Decision: accept (P2, in blast radius, one file).
+- Premise 2 REALITY: holds. No README, wiki or skills/*.md line today matches the widened pattern (scanned), and the
+  repo-green row checks it again in qa.
+- Premise 3 REALITY: holds; partial counts stay a non-goal, noted in the PR body.
+- Scope: the four issues and their tests; docs (SKILL.md COUNT row, Documentation page check bullet) say what is
+  skipped now. Not in scope: a Markdown parser, partial counts, other readers of Requirements.
+- Failure modes: a modifier missing from the part-word list makes a partial count read as a whole-set count (false
+  COUNT, visible, fixed by a marker or rewording); deep list continuation misread as code (missed count, silent).
+
+### Eng review
+Data flow: `docs.py check|audit|publish` -> `docs.counts(root)` -> `counting.counts(root, folder, rows, on)` ->
+`prose(text)` per file -> paragraph join -> `CLAIM.finditer` -> compare with skills / pages / criteria /
+criterion rows + defect rows of the page's own ids.
+
+1. CLAIM: `(\d+|WORD)[ \t]+(?:(?!STOP\b)([A-Za-z]+(?:-[A-Za-z]+)*)[ \t]+)?(NOUN)\b`, re.I|re.ASCII. The lookahead
+   (not a post-filter) lets "two skills tests" still match "two skills" and makes "two other skills" match nothing.
+2. prose(): per QUOTE-stripped line, `was_blank` from the previous line; tab-expanded indent; list column from a
+   marker `^( {0,3})([-*+]|\d{1,9}[.)])( +|$)`; code = indent >= list column + 4 and (was_blank or in code). Code
+   lines append "" so paragraphs split. Fence lines reset the code state.
+3. Tests total adds `criteria.defect_rows(root)` (non-draft, goal is an id), the same rows `criteria.table()` lists
+   under the page's Defect tests.
+4. `alone` uses the file's own ids; the paragraph join keeps using `alone`, so a joined line skips only on its page.
+5. Tests (dev/toy/test-criteria.sh, each run once on the unfixed code and seen failing):
+   - "a word or extra space before the noun does not hide a count (104)": "twenty workflow-ready skills" and
+     "nineteen  skills" each give a COUNT; "two other skills" gives none.
+   - "an indented code block is not read as prose (105)": a count in a 4-space block after a blank line gives no
+     COUNT; the same indent inside a list item is still read.
+   - "a page's tests count includes its defect tests (106)": one criterion row plus one defect row, "2 tests" passes.
+   - "a criterion id from another page does not hide a count (107)": on Delivery, a line naming EXT-1 with a wrong
+     criteria count gives a COUNT; a line naming DEL-1 is still skipped.
+   - The existing "defect rows left out" assertion changes to the new rule.
+   Rows: four `defect` rows, goal DOC-4, linked to issues 104-107, Given/When/Then words; `criteria.py render`
+   puts them under DOC-4's Defect tests on the Documentation page.
+6. Size: counting.py well under 20 KB; docs.py drops to about 15 KB.
+
+<!-- autoplan-accepted:ceo -->
+- Move the count code to counting.py and keep docs.counts(root) as a wrapper; health shows no size FAIL for docs.py.
+- SKILL.md COUNT row and the Documentation page say indented code is skipped and a criterion line is skipped only on its own page.
+<!-- /autoplan-accepted:ceo -->
+<!-- autoplan-accepted:eng -->
+- One defect test per issue in dev/toy/test-criteria.sh, each seen failing on the unfixed code, each a defect row (goal DOC-4, issue link).
+- CLAIM uses a negative lookahead for the part-word list; prose() skips indented code outside list content; tests total adds defect rows; id skip is per file.
+<!-- /autoplan-accepted:eng -->
+
+<!-- AUTONOMOUS DECISION LOG -->
+## Decision Audit Trail
+
+| # | Phase | Decision | Classification | Principle | Rationale | Rejected |
+|---|-------|----------|----------------|-----------|-----------|----------|
+| 1 | CEO | Approach A (patch in place) | Mechanical | P5 | smallest explicit fix per issue | B tokenizer, C markers |
+| 2 | CEO | New counting.py module | Mechanical | P2 | docs.py would pass the 20 KB FAIL limit | trimming docs.py elsewhere |
+| 3 | CEO | Partial counts out of scope | Taste | P3 | no done line; noted in PR | widening the goal |
+| 4 | Eng | Lookahead instead of post-filter | Mechanical | P5 | keeps the no-modifier match | skip after match |
+| 5 | Eng | Tests in test-criteria.sh | Mechanical | P4 | it already builds pages with criteria and rows | a new test file |
+| 6 | Eng | Modifier word is an allowlist (workflow, workflow-*, installed, available, bundled, shipped, listed), not a denylist | Taste | P5 | reviewer: "two delivery skills", "3 regression tests", "Python 3 unit tests" are subsets or labels a denylist can't foresee; a false failure is worse than a miss (premise 2) | denylist |
+| 7 | Eng | #107: a line naming another page's id still skips its criteria and tests counts; its skills and pages counts are checked. A line naming the file's own id is skipped whole | Taste | P1 | reviewer: "DEL-1 has 2 tests" on another page is about DEL-1, not that page | checking every count on such lines |
+| 8 | Eng | "N defect tests" is checked against the page's defect rows | Mechanical | P1 | "9 tests plus 2 defect tests" must pass once the total includes defects | leaving it unmatched |
+| 9 | Eng | List column: any marker below column + 4 sets it (nested lists); a heading, fence or table line at indent 0 clears it; CommonMark width (marker + 1-4 spaces, `1)` markers) | Mechanical | P1 | reviewer list gaps | indent<4 markers only |
+
+Independent reviewer (Claude subagent, read-only): plan sound after items 6-9; no repo doc newly fails; counting.py
+import is safe (no circular import, docs.tsv already maps skills/workflow-docs). Eng items 1, 4 and the 107 test
+change accordingly: 107's test is "Unlike EXT-1, the toy has twenty skills." gives a COUNT, "EXT-1 alone has 3
+tests." on Delivery gives none, and a line naming DEL-1 on Delivery is still skipped whole.
