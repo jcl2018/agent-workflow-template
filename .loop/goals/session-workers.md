@@ -14,6 +14,10 @@ Frozen. A wrong done line needs a new goal.
 5. A toy test with a stand-in session tool proves assignment, renaming, the report path, reuse of a finished session for the next goal, and the background fallback
 6. A defect test linked to issue 98 proves a goal worked in a session shows on the board with its session name and current step, never as a failed background worker, and issue 98 closes when this merges
 
+## Issue
+
+Fixes #98. The defect test is the regression row `session-board-issue98`, linked to the issue and seen failing on the old code.
+
 ## Verify by hand
 
 1. From the main checkout, run `python3 skills/workflow-monitoring/scripts/live_board.py`.
