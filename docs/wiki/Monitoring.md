@@ -114,13 +114,13 @@ Cadence and reply format. The operation session updates the board on a set caden
 - Given a worker's report, when it arrives before the cadence, then operate wakes and every pass prints the full board. — [operate-wakes-on-report](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given an unchanged pass, when the board is printed, then the full board is printed again and there is no one-line mode. — [live-board-no-oneline](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given no cadence setting, when check-ins are scheduled, then the cadence is 30 minutes. — [live-board-cadence](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
-- Given an operation-session check-in reply, when it stops without the headline, All sessions, Dependencies, Needs you and Coming up last, then the hook blocks it and says what is missing, and a reply in that layout passes. — [reply-hook-blocks](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
-- Given a worker session or a session in another repo, when it stops with any reply, then the hook never checks it, and only the operation session is checked. — [reply-hook-scope](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
+- Given an operation-session check-in reply, when it stops without the headline, All sessions, Dependencies, Needs you and Coming up last, then the hook blocks it and says what is missing, and a reply in that layout passes. — [reply-hook-blocks](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a worker session or a session in another repo, when it stops with any reply, then the hook never checks it, and only the operation session is checked. — [reply-hook-scope](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given reply_hook set to false in the config, when the operation session stops without the board, then the hook lets it through. — [reply-hook-off](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a reply blocked twice in a row or a broken hook input, when the session stops again, then the hook lets it through and logs it instead of looping. — [reply-hook-guard](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a repo, when setup --reply-hook runs, then the Stop hook is merged into its machine-local Claude settings, which git ignores, and a second run changes nothing. — [reply-hook-install](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given the reply hook's toy suite, when it runs, then every check passes. — [reply-hook-all](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
-- Given the Monitoring PRD, when MON-5 is read, then it carries the check-in reply layout the hook enforces. — [reply-hook-mon5-wording](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
+- Given the Monitoring PRD, when MON-5 is read, then it carries the check-in reply layout the hook enforces. — [reply-hook-mon5-wording](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 
 ### Defect tests
 
