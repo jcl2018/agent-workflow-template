@@ -9,7 +9,7 @@ Skill: `workflow-monitoring`. The operation session never does work: `/workflow-
 
 Commands, flows and how-tos: `skills/workflow-monitoring/references/commands.md`.
 
-A failed release is recorded as `release_error` and lists under Issues beside `wiki_error`, which leaves Issues once a later publish succeeds or the goal is merged. A pull request closed or merged on GitHub leaves the live board.
+A failed release is recorded as `release_error` and lists under Issues beside `wiki_error`, which leaves Issues once a later publish succeeds or the goal is merged. A pull request closed or merged on GitHub leaves the live board. Every board line fits 60 characters, and a step past its usual time shows `over by Nm` with its time left re-estimated.
 
 ## Usage
 
