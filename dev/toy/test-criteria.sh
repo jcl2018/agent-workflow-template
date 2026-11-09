@@ -88,9 +88,9 @@ grep -q "^COUNT docs/wiki/Delivery.md: says 2 tests, the repo has 0$" <<<"$out" 
 n=$(grep -c . <(grep -v '^Home' .loop/docs.tsv | grep -v '^#'))
 grep -q "^COUNT docs/wiki/Delivery.md: says 4 feature pages, the repo has $n$" <<<"$out" && ok "a wrong number of feature pages fails" || bad "feature pages count ($n)"
 good; printf '# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\ndel-1a\tland\ttrue\tDEL-1\t\tFirst test.\tcriterion\t\ndel-1b\tland\ttrue\tDEL-1\t\tSecond test.\tcriterion\t\nbug-1\tland\ttrue\tDEL-1\t\tA defect test.\tdefect\thttps://example.test/1\n' > .loop/regression.tsv
-echo "This page has 3 tests." >> docs/wiki/Delivery.md
-$docs check | grep -q "^COUNT docs/wiki/Delivery.md: says 3 tests, the repo has 2$" && ok "a nonzero test count is checked, defect rows left out" || bad "nonzero tests count"
-sed -i.bak 's/This page has 3 tests\./This page has 2 tests./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+echo "This page has 2 tests." >> docs/wiki/Delivery.md
+$docs check | grep -q "^COUNT docs/wiki/Delivery.md: says 2 tests, the repo has 3$" && ok "a nonzero test count is checked, defect rows counted" || bad "nonzero tests count"
+sed -i.bak 's/This page has 2 tests\./This page has 3 tests./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
 nocount && ok "the right test count passes" || bad "the right test count failed"
 good; sed -i.bak 's/^The Delivery page of the toy calculator, written for this test\./- DEL-7: **Unreviewed** An example line, not a criterion. This page has 1 criterion./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
 nocount && ok "only the Requirements section is counted" || bad "a requirement-like line outside Requirements counted"
@@ -108,6 +108,26 @@ $docs check | grep -q "^COUNT docs/wiki/Delivery.md: says 2 criteria, the repo h
 good; echo "The README lists 5 criteria and 7 tests." >> README.md
 $docs check | grep -q "^COUNT README.md" && bad "the README's criteria or tests count was checked" || ok "criteria and tests counts outside a feature page are not checked"
 git checkout -q -- README.md
+echo "== docs check: the four count gaps (issues 104-107)"
+mkdir -p skills/a; touch skills/a/SKILL.md  # one skill, so skills counts are checked
+good; printf '\nThe toy has twenty workflow-ready skills.\n\nThe toy has nineteen  skills.\n\nIt also has two other skills.\n' >> docs/wiki/Delivery.md
+out=$($docs check 2>&1 || true)
+grep -q "^COUNT docs/wiki/Delivery.md: says twenty workflow-ready skills, " <<<"$out" && grep -q "^COUNT docs/wiki/Delivery.md: says nineteen  skills, " <<<"$out" \
+  && ! grep -q "other skills" <<<"$out" && ok "a word or extra space before the noun does not hide a count (104)" || bad "a word or extra space hid a count (104): $out"
+good; printf '\nAn example page:\n\n    This page has 9 criteria.\n\tIt has 8 tests.\n\n- A list item.\n\n    This page has 4 criteria.\n' >> docs/wiki/Delivery.md
+out=$($docs check 2>&1 || true)
+! grep -q "says 9 criteria\|says 8 tests" <<<"$out" && grep -q "^COUNT docs/wiki/Delivery.md: says 4 criteria, the repo has 1$" <<<"$out" \
+  && ok "an indented code block is not read as prose (105)" || bad "an indented code block was read, or list text lost (105): $out"
+good; printf '# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\ndel-1a\tland\ttrue\tDEL-1\t\tA test.\tcriterion\t\nbug-1\tland\ttrue\tDEL-1\t\tA defect test.\tdefect\thttps://example.test/1\n' > .loop/regression.tsv
+echo "This page has 2 tests, and 1 defect test." >> docs/wiki/Delivery.md
+nocount && ok "a page's tests count includes its defect tests (106)" || bad "defect tests left out of the tests count (106): $($docs check 2>&1 | grep COUNT)"
+$docs add Extras --paths calc.py >/dev/null; page Extras "- EXT-1: **Unreviewed** x"
+good; printf '\nUnlike EXT-1, the toy has twenty skills.\n\nEXT-1 alone has 3 tests.\n\nDEL-1 needs nineteen skills.\n' >> docs/wiki/Delivery.md
+out=$($docs check 2>&1 || true)
+grep -q "^COUNT docs/wiki/Delivery.md: says twenty skills, " <<<"$out" && ! grep -q "says 3 tests\|says nineteen skills" <<<"$out" \
+  && ok "a criterion id from another page does not hide a count (107)" || bad "another page's id hid a count (107): $out"
+rm docs/wiki/Extras.md; grep -v '^Extras' .loop/docs.tsv > .loop/t && mv .loop/t .loop/docs.tsv
+rm -rf skills/a
 good
 
 echo "== the Tests table: rows, last runs, and not enforced"
