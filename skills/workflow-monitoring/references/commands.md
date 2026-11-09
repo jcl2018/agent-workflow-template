@@ -94,7 +94,9 @@ and time left, the step flow idea, plan, build, review, qa, ship, pr, release wi
 brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows (`a --> b`); and one
 finish time (the longest chain of estimates, not their sum). Merged and closed work, history, milestones, duplicate totals, token
 tables and done-line lists are left out. Estimates are the median of other finished runs' steps, read from their logs, and read
-`no estimate yet` without one.
+`no estimate yet` without one. A current step past its estimate has its time left re-estimated (half the time it has run, at
+least a minute), so time left and the finish time grow; a minute or more past, it reads `over by Nm` in its brackets. Every line
+fits 60 characters: the step flow wraps at its ` > ` joints and a long header splits in two.
 
 The page step (`--in FILE`, `--out DIR`) reads `board.json` and writes `board.html` and `board-artifact.html`, each with a
 header line and the same live board. The pages have no scripts and load nothing from the network.
