@@ -5,6 +5,7 @@ usage: board_runs.py <command> [options]
 
   note SLUG TEXT        record a worker's latest message on its run
   retire SLUG --reason TEXT
+  checkin               mark now as the last check-in; the status block lists only goals merged after it
 """
 import argparse
 import datetime
@@ -85,6 +86,12 @@ def cmd_retire(args):
     return 0
 
 
+def cmd_checkin(args):
+    write(os.path.join(loop_dir(common()), "checkin.json"), json.dumps({"at": now()}))
+    print("CHECKED IN")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -94,6 +101,7 @@ def main():
     item = sub.add_parser("retire")
     item.add_argument("slug")
     item.add_argument("--reason", required=True)
+    sub.add_parser("checkin")
     args = parser.parse_args()
     return globals()["cmd_" + args.command](args)
 

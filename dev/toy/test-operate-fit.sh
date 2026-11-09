@@ -41,6 +41,13 @@ write("fresh", status="done", step="pr", release="merged", pr="https://example.t
 write("run", status="running", step="build", pid=1)
 write("wait", status="waiting", step="plan", waiting={"ask": "Which one?", "words": ["pick a", "pick b"]})
 write("stale", status="done", step="pr", wiki_error="page Docs is stale")   # still open: not merged
+write("healed", status="done", step="pr", pr="https://example.test/pull/80", wiki_error=err,
+      log=["2026-06-01T11:00:00Z wiki not published: z", "2026-06-01T11:50:00Z wiki published"])   # published later, not merged
+write("shut", status="done", step="pr", pr="https://example.test/pull/81")      # pull request closed without merging
+write("old1", status="done", step="pr", release="merged", pr="https://example.test/pull/75", log=["2026-05-01T11:00:00Z merged x"])
+write("old2", status="done", step="pr", release="merged", pr="https://example.test/pull/76", log=["2026-05-02T11:00:00Z merged x"])
+write("newer", status="done", step="pr", release="merged", pr="https://example.test/pull/77", log=["2026-07-01T11:00:00Z merged x"])
+json.dump({"at": "2026-06-15T00:00:00Z"}, open(os.path.join(os.path.dirname(folder), "checkin.json"), "w"))
 PY
 echo '- slug: q | touches: x | depends-on: run, gh | goal: Q | done: q' >> .loop/queue.md
 block() { python3 -c "
@@ -61,13 +68,24 @@ check "line 1: with GitHub saying open, the unmerged goal keeps its error" 'sed 
 check "line 2: a pull request merged on GitHub shows merged, never awaiting merge" '! grep -q "awaiting merge\] gh\|waiting to merge: .*72" "$T/block" && road | grep -q "^merged: .*#72"'
 check "line 2: its dependant no longer waits on it" 'road | grep "\[queued\] q " | grep -q "waits on run" && ! road | grep "\[queued\] q " | grep -q "gh"'
 check "line 3: only live goals are drawn, with the stage, a 10-cell bar and an arrow" '! road | grep -q "\[merged\]" && road | grep -q "\[running\] run  stage 3 of 8 \[####------\]" && road | grep -q "\[waiting\] wait " && road | grep -q "\[awaiting merge\] stale "'
-check "line 3: merged goals collapse to one line of pull request numbers" '[ "$(road | grep -c "^merged:")" = 1 ] && road | grep -q "^merged: #71 #72 #73 #74$"'
+check "line 3: merged goals collapse to one line of pull request numbers" '[ "$(road | grep -c "^merged:")" = 1 ] && road | grep -q "^merged: #71 #72 #73 #74 #75 #76 #77 #80 #81$"'
 check "line 3: the total names the longest path, then a finish time" 'grep -q "^no estimate yet\|the longest chain:.*, finish about [0-9][0-9]:[0-9][0-9]" "$T/block" || python3 - "$M" <<PY
 import sys, datetime
 sys.path.insert(0, sys.argv[1]); import status_graph as g
 t = g.total([dict(slug="a", mark="running", depends=[], stage=1, left=600), dict(slug="b", mark="queued", depends=["a"], stage=0, left=600)], datetime.datetime(2026, 6, 1, 12, 0, tzinfo=datetime.timezone.utc))
 import re; assert re.search(r"about 20m, the longest chain: a > b, finish about \d\d:\d\d$", t), t
 PY'
+
+echo "== closed, healed and old goals"
+FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_STATE_81=CLOSED block > "$T/closed"
+cneeds() { sed -n '/== Needs you ==/,/== Roadmap ==/p' "$T/closed"; }
+croad() { sed -n '/== Roadmap ==/,/== Total ==/p' "$T/closed"; }
+cgoals() { sed -n '/== Goals ==/,$p' "$T/closed"; }
+check "line 1: a later publish clears the wiki_error of an unmerged goal" '! cneeds | grep -q "healed" && cneeds | grep -q "stale (wiki not published)"'
+check "line 2: a pull request closed without merging reads closed, never awaiting merge" 'croad | grep -q "^closed without merging: #81" && ! croad | grep -q "shut" && ! grep -q "waiting to merge: .*81" "$T/closed"'
+check "line 2: an open pull request still reads awaiting merge" 'croad | grep -q "\[awaiting merge\] healed "'
+check "line 3: Goals lists running, waiting, queued and newly merged goals only" 'cgoals | grep -q "^- run:" && cgoals | grep -q "^- wait:" && cgoals | grep -q "^- q:" && cgoals | grep -q "^- newer:"'
+check "line 3: old merged goals appear only in the merged line" '! cgoals | grep -q "^- old1\|^- old2\|^- rec:\|^- shut" && croad | grep -q "^merged: .*#75 #76"'
 
 echo "== operate"
 sed -i.bak '/depends-on: run, gh/d' .loop/queue.md; rm -f .loop/queue.md.bak
@@ -81,6 +99,8 @@ s = json.load(open(sys.argv[1])); s.pop("wiki_error"); json.dump(s, open(sys.arg
 PY
 FAKE_GH_PR_STATE=MERGED $OP run --once > "$T/third" 2>&1
 check "line 1: clearing an error counts as a change and reprints the block" 'grep -q "wiki_error" "$T/third" && grep -q "== Needs you ==" "$T/third"'
+
+check "line 4: a full block writes the check-in and a quiet pass leaves it alone" '[ -f "$C/loop/checkin.json" ] && sum1=$(cksum < "$C/loop/checkin.json") && sleep 1 && FAKE_GH_PR_STATE=MERGED $OP run --once > "$T/fourth" 2>&1 && grep -q "^Nothing changed" "$T/fourth" && [ "$sum1" = "$(cksum < "$C/loop/checkin.json")" ]'
 
 echo "== sizes"
 check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -size +20479c)" ]'
