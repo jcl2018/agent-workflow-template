@@ -77,6 +77,15 @@ $docs check | grep -q "^SCRIPT" && bad "other file names failed" || ok "other fi
 good; echo "The Summary may name run.sh freely." >> docs/wiki/Delivery.md
 $docs check | grep -q "^SCRIPT" && bad "summary checked" || ok "only the criteria are checked for script names"
 
+echo "== docs check: counts on a feature page match its criteria and tests"
+good; echo "This page has 3 criteria and 2 tests, across 4 feature pages." >> docs/wiki/Delivery.md
+out=$($docs check || true); echo "$out" | grep COUNT
+grep -q "^COUNT docs/wiki/Delivery.md: says 3 criteria, the repo has 1$" <<<"$out" && ok "a wrong number of criteria fails" || bad "criteria count"
+grep -q "^COUNT docs/wiki/Delivery.md: says 2 tests, the repo has 0$" <<<"$out" && ok "a wrong number of tests fails" || bad "tests count"
+n=$(grep -c . <(grep -v '^Home' .loop/docs.tsv | grep -v '^#'))
+grep -q "^COUNT docs/wiki/Delivery.md: says 4 feature pages, the repo has $n$" <<<"$out" && ok "a wrong number of feature pages fails" || bad "feature pages count ($n)"
+good
+
 echo "== the Tests table: rows, last runs, and not enforced"
 good; grep -q '^| \*\*DEL-1\*\* [^|]* | \*\*not enforced\*\* |' docs/wiki/Delivery.md && ok "a criterion with no test shows as not enforced" || bad "not enforced"
 $docs check | grep -q "DOCS OK" && ok "a rendered table passes" || bad "rendered table"

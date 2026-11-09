@@ -14,3 +14,8 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+
+1. Run `python3 skills/workflow-docs/scripts/docs.py check` in the repo.
+   Expect: `DOCS OK`, because the README and design guide say seven skills and there are seven.
+2. Change "the seven skills" to "the eight skills" in `skills/design-guide.md` and run the check again.
+   Expect: `COUNT skills/design-guide.md: says eight skills, the repo has 7`, and exit code 1. Undo the change.

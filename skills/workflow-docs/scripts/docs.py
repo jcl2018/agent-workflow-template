@@ -200,6 +200,48 @@ def problems(root, base):
     return found
 
 
+WORDS = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split()
+CLAIM = re.compile(r"\b(\d+|%s) (?:workflow )?(skills?|feature pages?|criteri(?:on|a)|tests?)\b" % "|".join(WORDS), re.I)
+
+
+def counts(root):
+    """Numbers the docs state that the repo can check, as (COUNT, file, detail) rows."""
+    import glob
+    skills = len(glob.glob(os.path.join(root, "skills", "*", "SKILL.md")))
+    folder, rows = wiki_dir(root), read_map(root)
+    on = config(root).get("criteria")
+    pages = [p for p in rows if p != "Home" and os.path.exists(os.path.join(root, folder, p + ".md"))]
+    linked = criteria.test_rows(root)[0] if on else {}
+    names = ["README.md"] + ["%s/%s" % (folder, n) for n in sorted(os.listdir(os.path.join(root, folder)))
+                             if n.endswith(".md")] if os.path.isdir(os.path.join(root, folder)) else ["README.md"]
+    names += sorted(os.path.relpath(n, root) for n in glob.glob(os.path.join(root, "skills", "*.md")))
+    found = []
+    for rel in names:
+        try:
+            with open(os.path.join(root, rel)) as handle:
+                text = handle.read()
+        except OSError:
+            continue
+        page = os.path.basename(rel)[:-3] if rel.startswith(folder + "/") else ""
+        ids = [m.group(1) for _, m in criteria.criteria_of(text.splitlines()) if m] if on and page in pages else []
+        real = {"skill": skills or None, "feature page": len(pages) if on else None,
+                "criteri": len(ids) if ids else None, "test": sum(len(linked.get(i, [])) for i in ids) if ids else None}
+        fenced = False
+        for line in text.splitlines():
+            if line.startswith("```"):
+                fenced = not fenced
+            for match in [] if fenced else CLAIM.finditer(line):
+                said = match.group(1).lower()
+                said = int(said) if said.isdigit() else WORDS.index(said) + 1
+                if said == 1:  # "one test" is nearly always "a single test", not a count
+                    continue
+                thing = match.group(2).lower().rstrip("s").replace("criteria", "criteri").replace("criterion", "criteri")
+                want = real[thing]
+                if want is not None and said != want:
+                    found.append(("COUNT", rel, "says %s, the repo has %d" % (match.group(0), want)))
+    return found
+
+
 def contract(root):
     """Criteria contract trouble, as (kind, page, detail). Off unless config sets "criteria": true."""
     if not config(root).get("criteria"):
@@ -240,7 +282,7 @@ def cmd_check(args):
     if not read_map(root):
         print("NO PAGES: run add first")
         return 1
-    found = problems(root, args.base) + contract(root)
+    found = problems(root, args.base) + contract(root) + counts(root)
     for kind, page, detail in found:
         print("%s %s: %s" % (kind, page, detail))
     if found:
@@ -259,7 +301,7 @@ def cmd_publish(args):
     rows = read_map(root)
     if not rows:
         sys.exit("REFUSED: no pages. Fix: run add first.")
-    found = problems(root, None) + contract(root)
+    found = problems(root, None) + contract(root) + counts(root)
     if found:
         for kind, page, detail in found:
             print("%s %s: %s" % (kind, page, detail))

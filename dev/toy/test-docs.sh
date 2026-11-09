@@ -101,4 +101,19 @@ $rel cut stale 2>&1 | grep -q "docs audit found trouble" && ok "cut refused stal
 echo "Covers that change too, with a sentence about it." >> docs/wiki/Using-the-toy.md; git add -A; git commit -qm "Update docs"
 $rel cut stale | grep -q "^DRAFT" && ok "cut after the docs update" || bad "cut after update"
 
+echo "== docs check: a stated count must match the repo"
+mkdir -p skills/a skills/b; touch skills/a/SKILL.md skills/b/SKILL.md
+echo "The toy has three skills." >> docs/wiki/Using-the-toy.md
+out=$($docs check || true); echo "$out" | grep COUNT
+grep -q "^COUNT docs/wiki/Using-the-toy.md: says three skills, the repo has 2$" <<<"$out" && ok "a page with the wrong number of skills fails, naming the file and both numbers" || bad "wrong skill count"
+$docs publish --dry-run >/dev/null 2>&1 && bad "published a wrong count" || ok "publish refuses a wrong count"
+sed -i.bak 's/The toy has three skills\./The toy has 2 skills./' docs/wiki/Using-the-toy.md; rm docs/wiki/Using-the-toy.md.bak
+$docs check | grep -q "^COUNT" && bad "the right number failed" || ok "the right number of skills passes"
+printf '\n```text\nthree skills\n```\nA single page can say one skill.\n' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT" && bad "a code block or 'one' counted" || ok "numbers in code blocks, and 'one', are not counts"
+echo "The README says four skills." >> README.md
+$docs check | grep -q "^COUNT README.md: says four skills, the repo has 2$" && ok "the README is checked too" || bad "readme count"
+git checkout -q -- docs/wiki/Using-the-toy.md README.md; rm -rf skills
+$docs check | grep -q "^COUNT" && bad "a repo with no skills folder checked skills" || ok "no skills folder, no skills check"
+
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
