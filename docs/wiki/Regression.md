@@ -101,4 +101,4 @@ Temporary, until the PRD format replaces the criteria pages: a goal runs the ful
 
 ### Defect tests
 
-- Given a toy test that starts stand-in agents, when it passes, fails, is interrupted or its pipe closes, then no process it started is left running. — [#100](https://github.com/jcl2018/agent-workflow-template/issues/100), [toy-no-leftovers](../../.loop/regression.tsv), both, not run, seen failing no
+- Given a toy test that starts stand-in agents, when it passes, fails, is interrupted or its pipe closes, then no process it started is left running. — [#100](https://github.com/jcl2018/agent-workflow-template/issues/100), [toy-no-leftovers](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
