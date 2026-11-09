@@ -14,7 +14,7 @@ usage: sessions.py <command> [options]
 
 A session tool does the talking: the command in `session_command` (.loop/config.json) or $LOOP_SESSION_TOOL, called as
 `TOOL start NAME` (prints the new session's id), `TOOL rename ID NAME` and `TOOL send ID TEXT`. With no tool, or one
-that fails or takes over 30 seconds, the goal falls back to a background process and the board says "background".
+that fails or passes its timeout (LOOP_SESSION_TIMEOUT, 30 s), the goal falls back to a background process and the board says "background".
 The pool lives in <git common dir>/loop/session-pool.json. Where auto_merge is on, a goal that ends with its pull
 request open gets the release step run for it, as worker.py does for a background goal. Nothing else here merges.
 """
@@ -27,6 +27,7 @@ import shlex
 import signal
 import subprocess
 import sys
+import tempfile
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -117,27 +118,42 @@ def tool(cfg):
 HUNG = []  # set when a call times out: the tool is given up for the rest of this run
 
 
+def timeout():
+    try:
+        return max(1.0, float(os.environ.get("LOOP_SESSION_TIMEOUT") or 30))
+    except ValueError:
+        return 30.0
+
+
 def call(command, *args):
     """One session tool call: its last output line, or None when it can't start or reach a session. A call past the
-    timeout (LOOP_SESSION_TIMEOUT, default 30 s) is killed with all its children, so a hung tool can't hold the loop."""
+    timeout (LOOP_SESSION_TIMEOUT, default 30 s) is killed with its process group, then the tool is given up for the
+    run (watch.py clears that each round). Output goes to a file, so a helper the tool leaves running can't hold it."""
     if HUNG:
         return None
-    try:
-        child = subprocess.Popen(command + list(args), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                                 stdin=subprocess.DEVNULL, text=True, start_new_session=True)
-    except OSError:
-        return None
-    try:
-        out, _ = child.communicate(timeout=float(os.environ.get("LOOP_SESSION_TIMEOUT") or 30))
-    except subprocess.TimeoutExpired:
+    with tempfile.TemporaryFile("w+") as out:
         try:
-            os.killpg(child.pid, signal.SIGKILL)
+            child = subprocess.Popen(command + list(args), stdout=out, stderr=subprocess.DEVNULL,
+                                     stdin=subprocess.DEVNULL, start_new_session=True)
         except OSError:
-            pass
-        child.communicate()
-        HUNG.append(" ".join(args[:1]))
-        return None
-    lines = out.strip().splitlines()
+            return None
+        try:
+            child.wait(timeout=timeout())
+        except BaseException as error:  # a timeout, or an interrupt: never leave the tool running
+            try:
+                os.killpg(child.pid, signal.SIGKILL)
+            except OSError:
+                pass
+            try:
+                child.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+            if not isinstance(error, subprocess.TimeoutExpired):
+                raise
+            HUNG.append(" ".join(args[:1]))
+            return None
+        out.seek(0)
+        lines = out.read().strip().splitlines()
     return (lines[-1].strip() if lines else "") if child.returncode == 0 else None
 
 

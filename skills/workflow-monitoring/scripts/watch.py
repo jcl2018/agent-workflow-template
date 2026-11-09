@@ -303,6 +303,8 @@ def limit_of(args, cfg):
 
 
 def start_round(args, cfg):
+    if sessions:
+        sessions.HUNG.clear()  # a session tool that hung last round gets another chance
     begun, held = plan(limit_of(args, cfg))
     for goal in begun:
         try:

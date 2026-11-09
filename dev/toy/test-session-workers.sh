@@ -134,6 +134,17 @@ printf '#!/bin/bash\nsleep 20\n' > "$T/slowtool.sh"; chmod +x "$T/slowtool.sh"
 start=$(date +%s); LOOP_SESSION_TIMEOUT=2 LOOP_SESSION_TOOL="$T/slowtool.sh" go h; took=$(( $(date +%s) - start ))
 check "a hung session tool is cut off at its timeout, with its children, and the goal falls back at once" '[ "$took" -lt 10 ] && [ "$(field h worker)" = background ] && grep -q "timed out" "$C/loop/runs/h.json"'
 
+printf '#!/bin/bash\nif [ "$1" = start ]; then echo s9; (sleep 20 &); fi\nexit 0\n' > "$T/helpertool.sh"; chmod +x "$T/helpertool.sh"
+python3 - "$C/loop/session-pool.json" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1]))
+for item in p.values():
+    item["state"] = "busy" if item.get("state") == "free" else item.get("state")
+json.dump(p, open(sys.argv[1], "w"))
+PY
+start=$(date +%s); LOOP_SESSION_TOOL="$T/helpertool.sh" go i; took=$(( $(date +%s) - start ))
+check "a helper the tool leaves running never holds the call: the new session is taken at once" '[ "$took" -lt 10 ] && [ "$(field i session.id)" = s9 ]'
+
 echo "== issue 98: a goal moved into a session"
 python3 - "$R/d.json" <<'PY'
 import json, sys
