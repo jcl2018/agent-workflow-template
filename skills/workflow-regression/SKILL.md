@@ -88,3 +88,15 @@ issues. It refuses to replace a workflow it didn't write.
 - Never turn permissions off.
 
 `loop-files.md` (`../` here, `shared/` in a pack) describes every file.
+
+## Command map
+
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+
+| Ask | Runs |
+|---|---|
+| `/workflow-regression add ID --level land --command "cmd" --goal DEL-1` | `python3 scripts/regression.py add ID --level land --command "cmd" --goal DEL-1` |
+| `/workflow-regression red ID --break "cmd"` | `python3 scripts/regression.py red ID --break "cmd"` |
+| `/workflow-regression run land` | `python3 scripts/regression.py run land` |
+| `/workflow-regression sync` | `python3 scripts/regression.py sync` |
+| `/workflow-regression workflow` | `python3 scripts/regression.py workflow` |

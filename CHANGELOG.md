@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.9.1 - 2026-11-09
+
+- Usage as agent requests: command maps, docs check, DOC-6
+- Trim SKILL.md files under 150 lines after command maps
+- Wiki: update pages for usage-as-skills
+
+### How to verify
+
+1. Open `docs/wiki/Monitoring.md`.
+   Expect: every Usage line is a `/workflow-monitoring ...` command or a plain request, and no line names a `.py` file.
+2. Open `skills/workflow-monitoring/SKILL.md` and find `## Command map`.
+   Expect: a row `/workflow-monitoring operate` mapped to `python3 scripts/operate.py run`.
+3. Put a `.py` file name in any wiki Usage line and run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: a `USAGE` line saying it names a script, with the fix.
+
 ## v0.9.0 - 2026-11-09
 
 - live-board: replace the status block with the live board (MON-4, MON-5)

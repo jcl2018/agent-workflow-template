@@ -9,12 +9,10 @@ Skill: `workflow-health`. A check of the repo's health with fixed rules, so the 
 
 ## Usage
 
-Ask your agent:
-
-- "Run a health check": `health.py check` prints the formal report; `--group NAME` limits it to one group.
-- "Preview what health would file": `health.py preview` lists each issue it would open, update, close or reopen, with its tag, and writes nothing.
-- "File the health:docs findings" (or any named groups): `health.py file --group docs` writes only those groups; with no group it refuses.
-- "Judge the health report": `health.py judge` adds the judge section of suggestions and ranked next steps; it never changes the verdict. Name `performance` to preview or file to include the judge's savings.
+- `/workflow-health check` prints the formal report ending in a `HEALTH:` line; "check only the docs health" limits it to one group.
+- `/workflow-health preview` lists each issue it would open, update, close or reopen, with its tag, and writes nothing.
+- `/workflow-health file --group docs` writes only the named groups as issues on the Backlog; with no group it refuses.
+- `/workflow-health judge` adds the judge section of suggestions and ranked next steps; it never changes the verdict. Name `performance` to preview or file to include the judge's savings.
 
 ## Criteria
 
