@@ -71,7 +71,7 @@ import json, sys
 s = json.load(open(sys.argv[1])); s["status"] = "running"; json.dump(s, open(sys.argv[1], "w"))
 PY
 $LB > "$T/board2"
-check "the board marks a fallback goal as background" 'grep -q "^    worker: background (the session tool could not start a session)$" "$T/board2"'
+check "the board marks a fallback goal as background" 'tr "\n" " " < "$T/board2" | tr -s " " | grep -q " worker: background (the session tool could not start a session)"'
 
 echo "== steps run inside the worker session"
 R="$C/loop/runs"; (cd "$C/loop/worktrees/b" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/flow.py" b idea > "$T/f1" 2>&1)

@@ -51,5 +51,16 @@ check "over: the finish time grows with it" '[ "$(fin "$T/later")" \> "$(fin "$T
 wide() { python3 -c "import sys; sys.exit(0 if any(len(l.rstrip(chr(10))) > 60 for l in sys.stdin) else 1)"; }
 check "no line is over 60 characters (early, late, later)" '! cat "$T/early" "$T/late" "$T/later" | wide'
 check "the HTML fragment holds the same short lines" '! python3 "$M/board_status.py" --html | sed "s/<[^>]*>//g; s/&gt;/>/g" | wide'
+# Value: protects=a header past 60 chars splits into name+clock, then version+health; fails_when=the split is removed or cuts the
+#   wrong fields; why_new=the other checks use a short repo name; seam=none; no_claim=real terminal width (text model only)
+ln -s "$T/repo" "$T/a-repo-with-a-rather-long-name-12345"
+python3 "$T/at.py" "$M" "$T/a-repo-with-a-rather-long-name-12345" 600 > "$T/longhead"
+check "a long header splits: name and clock, then version and health" 'sed -n 1p "$T/longhead" | grep -Eq "^LIVE BOARD  a-repo-with-a-rather-long-name-12345  [0-9]{2}:[0-9]{2}( [A-Z]+)?$" && sed -n 2p "$T/longhead" | grep -Eq "^v0\.1\.2  health: green$" && ! wide < "$T/longhead"'
+# Value: protects=a re-estimated step never reads under 60s left, however short its usual time; fails_when=the max(60, ...) floor
+#   is removed; why_new=the fixture's 30m estimate never reaches the floor; seam=none; no_claim=none beyond protects (direct call)
+check "re-estimate: a short step past its time still has a minute left" '[ "$(python3 -B -c "import sys; sys.path.insert(0, sys.argv[1]); import board_status as b; print(b.step_left(30, 40))" "$M")" = "(60, 10)" ]'
+# Value: protects=a single token over 60 chars is cut to the board width; fails_when=break_long_words is turned off; why_new=no
+#   fixture line holds a 60+ char word; seam=none; no_claim=real terminal width (text model only)
+check "fit: a word longer than the width is cut to it" 'python3 -B -c "import sys; sys.path.insert(0, sys.argv[1]); import live_board as l; o = l.fit([\"x\" * 75]); sys.exit(0 if o[0] == \"x\" * 60 and all(len(i) <= 60 for i in o) and \"\".join(i.strip() for i in o) == \"x\" * 75 else 1)" "$M"'
 echo
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
