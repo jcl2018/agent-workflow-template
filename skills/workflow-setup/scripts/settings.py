@@ -34,6 +34,7 @@ TABLE = [
     ("routines", REPO, [], "Commands the release step runs on the base branch before it merges."),
     ("regression_cron", REPO, "17 9 * * *", "Five cron fields: when the nightly regression runs in GitHub Actions."),
     ("criteria", REPO, True, "true makes docs check enforce the Summary, Criteria and Tests page contract."),
+    ("criteria_max", REPO, 6, "Most criteria a wiki page may hold, 1 to 50; docs check and health fail a page over it."),
     ("wiki_dir", REPO, "docs/wiki", "The folder of wiki pages."),
     ("risky_paths", REPO, RISKY, "Regexes for paths whose goals need extra care."),
     ("step_limit", REPO, 0, "Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit."),
@@ -157,6 +158,9 @@ def main():
         top = subprocess.run(["git", "-C", args.repo, "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
         path = os.path.join(top or args.repo, ".loop", "config.json")
         held = load(path)
+        if "criteria_max" in held and (isinstance(held["criteria_max"], bool) or not isinstance(held["criteria_max"], int)
+                                       or not 1 <= held["criteria_max"] <= 50):
+            sys.exit("REFUSED: criteria_max is %r in %s. Fix: a whole number from 1 to 50." % (held["criteria_max"], path))
         added = [k for k in repo_defaults() if k not in held]
         write_json(path, dict(repo_defaults(), **held))
         print("FILLED %s: %s" % (path, ", ".join(added) or "nothing missing"))

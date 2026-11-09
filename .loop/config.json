@@ -25,6 +25,7 @@
   "mend": true,
   "resume_on_limit": false,
   "criteria": true,
+  "criteria_max": 6,
   "auto_approve": true,
   "auto_merge": true,
   "regression_cron": "17 9 * * *",

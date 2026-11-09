@@ -83,7 +83,7 @@ Two levels: criteria are for the owner, tests are for the machine.
 
 - A criterion is one line under `## Criteria`: `- DEL-3: **Unreviewed** what must hold`. It is a short, high-level,
   PRD-style statement in plain words, with no script names (`SCRIPT` if one appears) and no sub-bullets. A page has at
-  most 6 (`CAP`). Ids are stable: take the next free id, and never reuse or renumber one.
+  most `criteria_max` (default 6, `CAP`). Ids are stable: take the next free id, and never reuse or renumber one.
 - A test is a row in `.loop/regression.tsv`, linked to one criterion by its `goal` column (or its id). A criterion has
   at least one, and `LINK` flags a test with no criterion. Rows that enforce a criterion are `land` or `nightly`, so the
   regression workflow on GitHub runs them and shows each run's result.

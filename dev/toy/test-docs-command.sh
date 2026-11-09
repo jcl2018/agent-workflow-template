@@ -40,9 +40,13 @@ cp -r "$here/skills/workflow-docs" "$d/skill"
 page "Short." "- DEL-1: **Unreviewed** One.
 - CAL-2: **Unreviewed** Two."
 $cri render >/dev/null
-python3 "$d/skill/scripts/docs.py" check | grep -q "^CAP" && bad "two criteria are over the cap of five" || ok "the sheet's cap of 5 lets two criteria pass"
-sed -i.bak 's/^max_criteria: 5/max_criteria: 1/' "$d/skill/references/template.md"
-python3 "$d/skill/scripts/docs.py" check | grep -q "^CAP Delivery: has 2 criteria, over the cap of 1" && ok "changing the cap in the sheet changes the check" || bad "cap from sheet"
+python3 "$d/skill/scripts/docs.py" check | grep -q "^CAP" && bad "two criteria are over the default limit of six" || ok "the default limit of 6 lets two criteria pass"
+grep -q max_criteria "$d/skill/references/template.md" && bad "the sheet still holds max_criteria" || ok "the sheet no longer holds the limit"
+python3 - <<'PY'
+import json
+c = json.load(open(".loop/config.json")); c["criteria_max"] = 1; json.dump(c, open(".loop/config.json", "w"))
+PY
+python3 "$d/skill/scripts/docs.py" check | grep -q "^CAP Delivery: has 2 criteria, over the limit of 1 (criteria_max" && ok "criteria_max in the config changes the check" || bad "cap from config"
 sed -i.bak '/^```rules/,/^```$/d' "$d/skill/references/template.md"
 python3 "$d/skill/scripts/docs.py" check 2>&1 | grep -q "REFUSED: the rules block" && ok "no rules block: the check refuses" || bad "refuse without sheet"
 
