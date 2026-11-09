@@ -15,7 +15,7 @@ The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a releas
 
 - `docs.py audit` checks every page against the template, fixes the mechanical and lists the wording to rewrite; it exits 1 while any is left.
 - `docs.py check` lists missing, stale, unmapped and unwritten pages and broken criteria; `docs.py criteria PAGE` prints the format and the next free id.
-- `criteria.py review ID --user` marks a criterion Reviewed on the owner's words; `criteria.py render` rewrites the Tests tables.
+- `criteria.py review ID --user` marks a criterion Reviewed on the owner's words; `criteria.py render` rewrites the Tests tables; a test never seen failing, or dated `-`, shows `no` under Seen failing.
 - `docs.py publish` copies the pages to the GitHub wiki, and `docs.py restore` undoes the last publish.
 - `milestone.py new --all` makes each feature's milestone and the Backlog; running it again creates nothing.
 
