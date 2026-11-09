@@ -108,6 +108,12 @@ def repo_defaults():
     return {k: d for k, _, d, _ in keys(REPO)}
 
 
+def check_depth(held, path):
+    """Refuse an unknown review_depth: anything but full or condensed would silently count as full."""
+    if "review_depth" in held and held["review_depth"] not in DEPTHS:
+        sys.exit("REFUSED: review_depth is %r in %s. Fix: full or condensed." % (held["review_depth"], path))
+
+
 def repo_help(held):
     """The config's _help map: review_depth's one-line explanation added when missing, anything already there kept."""
     found = held.get("_help") if isinstance(held.get("_help"), dict) else {}
@@ -170,10 +176,11 @@ def main():
         if "criteria_max" in held and (isinstance(held["criteria_max"], bool) or not isinstance(held["criteria_max"], int)
                                        or not 1 <= held["criteria_max"] <= 50):
             sys.exit("REFUSED: criteria_max is %r in %s. Fix: a whole number from 1 to 50." % (held["criteria_max"], path))
-        if "review_depth" in held and held["review_depth"] not in DEPTHS:
-            sys.exit("REFUSED: review_depth is %r in %s. Fix: full or condensed." % (held["review_depth"], path))
+        check_depth(held, path)
         added = [k for k in repo_defaults() if k not in held]
-        write_json(path, dict(repo_defaults(), **held, _help=repo_help(held)))
+        merged = dict(repo_defaults(), **held)
+        merged["_help"] = repo_help(held)
+        write_json(path, merged)
         print("FILLED %s: %s" % (path, ", ".join(added) or "nothing missing"))
     else:
         added = fill_private(args.file or None)

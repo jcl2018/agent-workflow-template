@@ -116,7 +116,7 @@ This repo has both on. Say so whenever you report a goal here.
 
 ## When a goal stops
 
-A flow step that failed or gave no `STEP:` line, each cost a try. After 3, the script files a finding
+A flow step that failed, gave no `STEP:` line or was refused for its depth, each cost a try. After 3, the script files a finding
 in `.loop/findings.md` and stops with exit code 3. Stop, report it, and leave the done lines as they are.
 
 If you need an answer only the user can give:

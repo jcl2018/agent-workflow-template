@@ -190,7 +190,7 @@ def in_session(args, runs, reply, base):
         print(PROMPT.format(skill=skill, step=args.step, slug=args.slug, branch=git("branch", "--show-current"),
                             purpose=PURPOSE[args.step].format(slug=args.slug),
                             note="The owner said: " + args.note + "\n" if args.note else "", depth=depth_rule(args.step)).rstrip())
-        print("Write its reply, ending with the STEP line, to %s, then run this same command again." % reply)
+        print("Write its reply, ending with the DEPTH line and then the STEP line, to %s, then run this same command again." % reply)
         return True
     os.remove(asked)
     open(base + ".ran", "w").close()

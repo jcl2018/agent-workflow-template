@@ -95,6 +95,7 @@ def begin(record, step):
     except (OSError, ValueError):
         return
     state["step"] = step
+    (state.get("depth") or {}).pop(step, None)  # a rerun step's earlier depth no longer stands
     state["updated"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     state.setdefault("log", []).append("%s start %s" % (state["updated"], step))
     temp = record + ".%d.tmp" % os.getpid()
@@ -103,48 +104,64 @@ def begin(record, step):
     os.replace(temp, record)
 
 
-DEPTH = re.compile(r"^\W*DEPTH:\s*(full|condensed)\b", re.M | re.I)
+DEPTH = re.compile(r"^[ \t*_]*DEPTH:\s*(full|condensed)[ \t*_.]*$", re.M | re.I)  # a line of its own, never prose or a quote
 STEP = re.compile(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", re.M | re.I)
 
 
 def depth_of(cfg):
-    """review_depth from .loop/config.json: condensed only when it says so, full otherwise (the default)."""
+    """review_depth from the base branch's .loop/config.json, which a worker's worktree can't change: condensed only
+    when the base branch says so, full otherwise (the default). cfg is the worktree's config, read for its base name."""
+    base = (cfg or {}).get("base") or "main"
+    for ref in ("origin/" + base, base):
+        done = git("show", "%s:.loop/config.json" % ref)
+        if done.returncode == 0:
+            try:
+                return "condensed" if json.loads(done.stdout).get("review_depth") == "condensed" else "full"
+            except ValueError:
+                return "full"
     return "condensed" if (cfg or {}).get("review_depth") == "condensed" else "full"
 
 
 def markers(step):
-    """The private evidence strings a full plan or review reply must carry: full_markers in the flow file, or none."""
-    try:
-        with open(os.path.expanduser(os.environ.get("LOOP_FLOW") or "~/.workflow-loop/flow.json")) as handle:
-            spec = json.load(handle)
-    except (OSError, ValueError):
-        return []
-    found = spec.get("full_markers") if isinstance(spec, dict) else None
-    items = found.get(step) if isinstance(found, dict) else None
-    if items is None:
-        return []
-    if not isinstance(items, list) or not all(isinstance(m, str) and m.strip() for m in items):
-        print("NOTE: full_markers for %s is not a list of non-empty strings; ignored" % step)
-        return []
-    return items
+    """(markers, error): the private strings a full plan or review reply must carry, from full_markers in the flow file
+    at its default place and at $LOOP_FLOW (both, so pointing LOOP_FLOW elsewhere can't drop them). Malformed is an error."""
+    found = []
+    for path in dict.fromkeys(os.path.expanduser(p) for p in ("~/.workflow-loop/flow.json", os.environ.get("LOOP_FLOW") or "~/.workflow-loop/flow.json")):
+        try:
+            with open(path) as handle:
+                spec = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        held = spec.get("full_markers") if isinstance(spec, dict) else None
+        items = held.get(step) if isinstance(held, dict) else None
+        if items is None:
+            continue
+        if not isinstance(items, list) or not all(isinstance(m, str) and m.strip() for m in items):
+            return [], "full_markers for %s in the flow file is not a list of non-empty strings. Fix: the owner corrects it" % step
+        found += items
+    return found, ""
 
 
 def record_depth(state, step, text, cfg, result):
-    """(stamp, error) for a step that advances. Every step states its depth on a DEPTH: line before its STEP line; under
-    review_depth full, plan and review may not run condensed, and a full one carries every private marker."""
+    """(stamp, error) for a step that advances. Every step states its depth on a DEPTH: line of its own before its STEP
+    line; under review_depth full, plan and review may not run condensed, and a full one carries every private marker.
+    A skipped step is held to neither: it ran nothing."""
     setting = depth_of(cfg)
     ends = list(STEP.finditer(text))
     body = text[:ends[-1].start()] if ends else text
     found = DEPTH.findall(body)
     if not found:
-        return "", "no DEPTH line. Fix: end the reply with 'DEPTH: full' or 'DEPTH: condensed' just before the STEP line (review_depth is %s)" % setting
+        return "", "no DEPTH line. Fix: write 'DEPTH: full' or 'DEPTH: condensed' on a line of its own just before the STEP line"
     depth = found[-1].lower()
-    if step in ("plan", "review") and depth == "condensed" and setting == "full":
-        return "", ("the %s step ran condensed while review_depth is full in .loop/config.json. Fix: rerun it at full depth, "
-                    "or set review_depth to condensed" % step)
-    if step in ("plan", "review") and depth == "full":
-        rest = "\n".join(line for line in body.splitlines() if not DEPTH.match(line)).lower()
-        if any(m.lower() not in rest for m in markers(step)):
-            return "", "a configured full_markers evidence string for %s is missing from the reply. Fix: rerun the %s step at full depth" % (step, step)
+    if step in ("plan", "review") and result != "skipped":
+        if depth == "condensed" and setting == "full":
+            return "", "the %s step ran condensed while review_depth is full. Fix: rerun the %s step at full depth" % (step, step)
+        if depth == "full":
+            wanted, bad = markers(step)
+            if bad:
+                return "", bad
+            rest = "\n".join(line for line in body.splitlines() if not DEPTH.match(line)).lower()
+            if any(m.lower() not in rest for m in wanted):
+                return "", "a configured full_markers evidence string for %s is missing from the reply. Fix: rerun the %s step at full depth" % (step, step)
     state.setdefault("depth", {})[step] = depth
     return " (depth %s%s)" % (depth, ", skipped" if result == "skipped" else ""), ""
