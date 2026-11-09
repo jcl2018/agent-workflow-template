@@ -124,8 +124,8 @@ def lane_text():
 
 def unclean():
     out = git("status", "--porcelain", "--no-renames", "--untracked-files=all").stdout
-    return [line[3:] for line in out.splitlines()  # the run log and delivery's goal files are no row's input
-            if line[3:] != ".loop/regression-runs.tsv" and not line[3:].startswith(".loop/goals/")]
+    return [line[3:] for line in out.splitlines()  # the loop's own bookkeeping files are no row's input
+            if not line[3:].startswith((".loop/regression-runs.tsv", ".loop/goals/", ".loop/queue.md", ".loop/findings.md"))]
 
 
 def kill(pid):

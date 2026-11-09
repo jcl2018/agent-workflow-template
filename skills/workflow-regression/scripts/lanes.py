@@ -12,9 +12,16 @@ import json
 import os
 import re
 import subprocess
+import sys
+
+# No terminal, no waiting: a prompt from git must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 SCHEMA = 1
 RUNS_FILE = ".loop/regression-runs.tsv"
+BOOKKEEPING = (RUNS_FILE, ".loop/goals/", ".loop/queue.md", ".loop/findings.md")  # the loop's own files: no row reads them
 NO_EFFECT = ("CHANGELOG.md", "VERSION", "README.md", "FINDINGS.md", "DECISIONS.md", "LICENSE", "docs/ROADMAP.md",
              "docs/designs/", ".loop/goals/", ".loop/findings.md", ".loop/queue.md", RUNS_FILE)
 PATH = re.compile(r"(?<![\w.@+/-])(?:\$\{?here\}?/|\./)?((?:\.?[A-Za-z0-9_@+-][A-Za-z0-9._@+-]*/)+[A-Za-z0-9._@+-]*"
@@ -87,7 +94,7 @@ def dirty(root):
     """Paths git status lists, the run log aside."""
     out = git(root, "status", "--porcelain", "--no-renames", "--untracked-files=all") or ""
     paths = [line[3:].strip('"') for line in out.splitlines()]
-    return [p for p in paths if p != RUNS_FILE and not p.startswith(".loop/goals/")]  # no row reads either
+    return [p for p in paths if not p.startswith(BOOKKEEPING)]
 
 
 def changed(root, commit):
