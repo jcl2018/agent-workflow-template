@@ -5,7 +5,7 @@ adopt-set-3	FAIL	2026-11-09
 adopt-set-4	FAIL	2026-11-09
 adopt-set-5	FAIL	2026-11-09
 auto-approved	PASS	2026-11-09
-auto-release	FAIL	2026-11-09
+auto-release	PASS	2026-11-09
 bad-schedule-refused	PASS	2026-11-09
 batch-cut-user	PASS	2026-11-09
 board-sections	PASS	2026-11-09
@@ -58,7 +58,7 @@ no-done-line-refused	PASS	2026-11-09
 no-flow-refused	PASS	2026-11-09
 no-line-in-governor	PASS	2026-11-09
 no-pid-left-alone	PASS	2026-11-09
-no-prompts	FAIL	2026-11-09
+no-prompts	PASS	2026-11-09
 no-row-fail	PASS	2026-11-09
 no-token-dry-run	PASS	2026-11-09
 no-token-would	PASS	2026-11-09
