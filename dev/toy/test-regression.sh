@@ -24,9 +24,17 @@ git add -A; git commit -qm "Rows"
 out=$($reg run land); rc=$?; echo "$out"
 [ $rc = 1 ] && grep -q "^UNPROVEN check-1" <<<"$out" && ok "unproven row blocks" || bad "unproven"
 grep -q "^WOULD" <<<"$out" && [ ! -e "$FAKE_GH_DIR/calls.log" ] && ok "no token: dry run, no gh call" || bad "dry run"
-printf 'dash-1\tland\ttrue\t-\t-\tA row dated with a dash.\tcriterion\t\n' >> .loop/regression.tsv
+printf 'dash-1\tland\ttrue\tREG-9\t-\tA row dated with a dash.\tcriterion\t\n' >> .loop/regression.tsv
+printf 'text-1\tland\ttrue\tREG-9\tn/a\tA row dated with words.\tcriterion\t\n' >> .loop/regression.tsv
 $reg sync | grep -q "^UNPROVEN dash-1" && $reg run dash-1 | grep -q "^UNPROVEN dash-1" && ok "a seen-failing date of - is unproven" || bad "a - date counted as seen failing"
-sed -i.bak '/^dash-1	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak
+$reg sync | grep -q "^UNPROVEN text-1" && ok "a seen-failing value that is not a date is unproven" || bad "a non-date counted as seen failing"
+python3 - "$here/skills/workflow-docs/scripts" <<'PY' && ok "the Tests table shows no for a - or a non-date" || bad "Tests table shows a non-date as seen failing"
+import sys; sys.path.insert(0, sys.argv[1]); import criteria
+out = criteria.table(".", [("REG-9", "Words.")], {"REG-9": ["dash-1", "text-1"]})
+cells = [line.rstrip(" |").rsplit("| ", 1)[-1] for line in out if "[dash-1]" in line or "[text-1]" in line]
+assert cells == ["no", "no"], out
+PY
+sed -i.bak '/^dash-1	/d; /^text-1	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak
 
 echo "== red proves a test can fail, on a copy"
 sum=$(git status --porcelain calc.py)
@@ -113,11 +121,23 @@ python3 -c 'import yaml; yaml.safe_load(open(".github/workflows/regression.yml")
 touch BROKEN; git add -A; git commit -qm "Break it" >/dev/null
 python3 ci-block.py; rc=$?
 [ $rc = 1 ] && [ "$(calls '^issue create')" = 1 ] && ok "CI block fails and opens an issue" || bad "CI block"
-printf 'hang\tland\tsleep 31.7 & sleep 31.7\t-\t2026-01-01\tA row that hangs.\tcriterion\t\n' >> .loop/regression.tsv
-began=$(date +%s); REGRESSION_ROW_SECONDS=2 GITHUB_STEP_SUMMARY="$d/summary.md" python3 ci-block.py >/dev/null 2>&1; took=$(( $(date +%s) - began ))
+nap="31.$((RANDOM % 9000 + 1000))"  # a sleep no other run on this machine uses
+printf 'hang\tland\techo started-hang; sleep %s & sleep %s\t-\t2026-01-01\tA row that hangs.\tcriterion\t\n' "$nap" "$nap" >> .loop/regression.tsv
+printf 'own-124\tland\techo own-exit; exit 124\t-\t2026-01-01\tA row that exits 124 itself.\tcriterion\t\n' >> .loop/regression.tsv
+printf 'no-token\tland\ttest -z "$GH_TOKEN$GITHUB_TOKEN"\t-\t2026-01-01\tA row checks it cannot see the token.\tcriterion\t\n' >> .loop/regression.tsv
+: > "$FAKE_GH_DIR/calls.log"
+began=$(date +%s); GH_TOKEN=fake-token REGRESSION_ROW_SECONDS=2 GITHUB_STEP_SUMMARY="$d/summary.md" python3 ci-block.py >/dev/null 2>&1; took=$(( $(date +%s) - began ))
 [ "$took" -lt 25 ] && grep -q "^| hang | FAIL |" "$d/summary.md" && grep -q "timed out after 2 s" "$FAKE_GH_DIR/calls.log" && ok "a row that times out fails alone, and the run goes on" || bad "row timeout (took ${took}s)"
-sleep 0.5; ! pgrep -f "sleep 31.7" >/dev/null && ok "a timed-out row leaves no process behind" || { bad "a timed-out row left a process"; pkill -f "sleep 31.7"; }
-sed -i.bak '/^hang	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak
+grep -q "started-hang" "$FAKE_GH_DIR/calls.log" && ok "a row that times out keeps what it printed" || bad "a timed-out row lost its output"
+sleep 0.5; ! pgrep -f "sleep $nap" >/dev/null && ok "a timed-out row leaves no process behind" || { bad "a timed-out row left a process"; pkill -f "sleep $nap"; }
+grep -q "own-exit" "$FAKE_GH_DIR/calls.log" && ! grep -A3 "own-exit" "$FAKE_GH_DIR/calls.log" | grep -q "timed out" && ok "a row that exits 124 itself is not called a timeout" || bad "own exit 124 called a timeout"
+grep -q "^| no-token | PASS |" "$d/summary.md" && ok "a row cannot see the job's token" || bad "a row saw the token"
+: > "$d/summary2.md"
+REGRESSION_JOB_SECONDS=1 GITHUB_STEP_SUMMARY="$d/summary2.md" python3 ci-block.py >/dev/null 2>&1; rc=$?
+[ $rc = 1 ] && grep -q "^| own-124 | SKIPPED |" "$d/summary2.md" && ! grep -q "| PASS |" "$d/summary2.md" && grep -q "was skipped" "$FAKE_GH_DIR/calls.log" && ok "rows that would pass the job budget are skipped, fail, and open an issue" || bad "job budget skip"
+REGRESSION_ROW_SECONDS=zero REGRESSION_JOB_SECONDS=-5 GITHUB_STEP_SUMMARY="$d/summary3.md" timeout 120 python3 -c "exec(open('ci-block.py').read().replace('run(row[2])', '(0, \"\")'))" >/dev/null 2>&1
+grep -q "^| own-124 | PASS |" "$d/summary3.md" && ok "a bad time setting falls back to the default" || bad "bad time setting"
+sed -i.bak '/^hang	/d; /^own-124	/d; /^no-token	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak
 rm -f BROKEN ci-block.py
 grep -q 'cron: "17 9 \* \* \*"' .github/workflows/regression.yml && ok "default schedule written" || bad "default cron"
 python3 - <<'PY'

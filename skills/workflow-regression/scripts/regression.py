@@ -39,7 +39,7 @@ if not sys.stdin or not sys.stdin.isatty():
 LEVELS = ("land", "nightly", "draft", "covered")
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$")
 FIELDS = ("id", "level", "command", "goal", "seen_red", "description", "category", "link")
-UNSEEN = ("", "-")  # a seen_red that is not a date: never seen failing
+SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date; "", "-" or any other text is never seen failing
 HEADER = "# " + "\t".join(FIELDS) + "\n"
 CRON = "17 9 * * *"
 MARK = "<!-- loop-regression %s -->"
@@ -188,7 +188,7 @@ def cmd_sync(args):
     drafts = [row["id"] for row in rows.values() if row["level"] == "draft"]
     for key in drafts:
         print("DRAFT %s: not run until it has a command and level" % key)
-    never = [row["id"] for row in rows.values() if row["level"] in ("land", "nightly") and row["seen_red"] in UNSEEN]
+    never = [row["id"] for row in rows.values() if row["level"] in ("land", "nightly") and not SEEN.match(row["seen_red"])]
     for key in never:
         print("UNPROVEN %s: never seen failing. Run red." % key)
     bare = [row["id"] for row in rows.values() if row["level"] != "covered" and not row["description"]]
@@ -332,7 +332,7 @@ def cmd_run(args):
     if results:
         with open(path_of(root, "regression-runs.tsv"), "w") as handle:
             handle.write("# id\tstatus\tdate\n" + "".join("\t".join(ran[key]) + "\n" for key in sorted(ran)))
-    never = [item["id"] for item in results if rows[item["id"]]["seen_red"] in UNSEEN]
+    never = [item["id"] for item in results if not SEEN.match(rows[item["id"]]["seen_red"])]
     for key in never:
         print("UNPROVEN %s: never seen failing. Run red." % key)
     live = args.live or bool(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
