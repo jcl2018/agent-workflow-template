@@ -167,7 +167,7 @@ def tries(run, most):
 def max_tries(root):
     try:
         return max(1, int((bs.read_json(os.path.join(root, ".loop", "config.json")) or {}).get("max_tries") or 3))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, AttributeError):
         return 3
 
 
@@ -187,10 +187,7 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
         if run.get("release_error") and bs.error_open(run, gone, "release failed"):
             other += ["- %s: the release failed: %s" % (slug, plain(run["release_error"])), '    fix: look at the problem, then type "resume %s"' % slug]
     for run in runs:
-        try:
-            last = datetime.datetime.fromisoformat(str(run.get("updated")).replace("Z", "+00:00"))
-        except ValueError:
-            last = None
+        last = parse_at(run.get("updated"))
         quiet = bool(at and last and (at - last).total_seconds() >= QUIET)
         if quiet and is_held(run, taken) and graph.holds_slot(run):
             other += ["- %s: held %s and holds a slot" % (run["slug"], age(run.get("updated"), at)),

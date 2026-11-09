@@ -219,6 +219,40 @@ $SE free lc > "$T/o2" 2>&1; r2=$?
 check "bind and free on an unreadable pool exit 1, say why, and leave the file unchanged" '[ $r1 = 1 ] && [ $r2 = 1 ] && grep -q "REFUSED: the session pool .* can.t be read (bad JSON.*Nothing was changed." "$T/o1" && cmp -s "$POOL" "$T/bad.copy"'
 cp "$T/pool.good" "$POOL"
 
+echo "== review: report on an unreadable pool, the start_round re-check, held and done transitions"
+printf '{bad' > "$POOL"; cp "$R/lc.json" "$T/lc.before"
+$SE report lc --status failed --text x > "$T/o3" 2>&1; r3=$?
+check "a report that ends a goal on an unreadable pool exits 1 and changes nothing" '[ $r3 = 1 ] && grep -q "REFUSED: the session pool" "$T/o3" && cmp -s "$R/lc.json" "$T/lc.before" && cmp -s "$POOL" "$T/bad.copy"'
+cp "$T/pool.good" "$POOL"
+python3 - "$S" "$T/repo" "$POOL" > "$T/race2.out" 2>&1 <<'PY'
+import sys, os, json
+sys.path.insert(0, sys.argv[1]); os.chdir(sys.argv[2])
+import watch
+p = json.load(open(sys.argv[3])); p["s77"] = {"name": "worker · race2", "slug": "race2", "state": "busy", "since": "2026-01-01T00:00:00Z"}
+json.dump(p, open(sys.argv[3], "w"))
+calls = []
+watch.plan = lambda limit: ([{"slug": "race2", "goal": "R", "done": ["r"], "touches": [], "depends": [], "release": ""}], [])
+watch.freeze = lambda goal, cfg: calls.append("freeze") or {"slug": "race2"}
+watch.launch = lambda *a: calls.append("launch")
+class A: max = 0; skill_dir = None
+begun, held = watch.start_round(A, {})
+print("race2", [g["slug"] for g in begun], calls)
+PY
+check "start_round skips a goal a session took after plan" 'grep -qx "race2 \[\] \[\]" "$T/race2.out"'
+echo '{"slug": "hb", "status": "running", "step": "build", "worker": "session", "session": {"id": "s90", "name": "worker · hb"}, "updated": "2026-01-01T00:00:00Z", "log": []}' > "$R/hb.json"
+$SE free hb > "$T/o" 2>&1
+check "free on a held session goal with no busy entry releases its slot and it stays held" 'grep -q "^FREED 0 session(s) for hb; slot released" "$T/o" && board | grep -q "^- hb .*  held$"'
+$SE report hb --step review --text "still here" >/dev/null 2>&1
+check "a report on a held goal is recorded and the goal stays held" 'board | grep -q "^- hb .*  held$" && [ "$(python3 -c "import json;d=json.load(open(\"$R/hb.json\"));print(d[\"status\"],d[\"reports\"][-1][\"text\"])")" = "running still here" ]'
+$SE bind hb s91 > "$T/o" 2>&1
+check "binding a held goal to a new session makes it running under that session" 'grep -q "^BOUND hb to session s91" "$T/o" && board | grep -A3 "^- hb " | grep -q "worker: session worker · hb" && ! board | grep -q "^- hb .*  held$" && python3 -c "import json;p=json.load(open(\"$POOL\"));assert p[\"s91\"][\"slug\"]==\"hb\" and p[\"s91\"][\"state\"]==\"busy\""'
+$SE bind dn s92 > "$T/o" 2>&1; $SE free dn > "$T/o2" 2>&1
+check "bind and free on a done goal keep it done with its merge evidence" 'python3 -c "
+import json,sys;sys.path.insert(0,\"$S\");import graph
+d=json.load(open(\"$R/dn.json\"));assert d[\"status\"]==\"done\" and graph.merged(d)"'
+$SE bind fz s93 >/dev/null 2>&1; $SE free fz > "$T/o" 2>&1
+check "free on a freezing goal says its slot was released" 'grep -q "^FREED 1 session(s) for fz; slot released" "$T/o"'
+
 echo "== sizes"
 check "watch.py and sessions.py stay under the health rule's 20 KB" '[ $(wc -c < "$S/watch.py") -le 20480 ] && [ $(wc -c < "$S/sessions.py") -le 20480 ]'
 

@@ -36,7 +36,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
-from session_tool import HUNG, call, timeout, tool  # noqa: E402,F401  (watch.py clears sessions.HUNG)
+from session_tool import HUNG, call, tool  # noqa: E402  (watch.py clears sessions.HUNG)
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -163,6 +163,12 @@ def assign(state, prompt, cfg):
         if not sid:
             state["worker_why"] = "the session tool timed out" if HUNG else "the session tool could not start a session"
             break
+        with locked():  # claim it before sending, so a concurrent assign or bind can't give it a second goal
+            found = pool()
+            if reused and (found.get(sid) or {}).get("state") != "free":
+                continue
+            found[sid] = {"name": name_of(slug), "slug": slug, "state": "busy", "since": now()}
+            save_pool(found)
         if call(command, "rename", sid, name_of(slug)) is not None and call(command, "send", sid, text) is not None:
             break
         state["worker_why"] = ("the session tool timed out on session %s" if HUNG else "the session tool could not reach session %s") % sid
@@ -175,10 +181,6 @@ def assign(state, prompt, cfg):
             break
     if not sid:
         return False
-    with locked():
-        found = pool()
-        found[sid] = {"name": name_of(slug), "slug": slug, "state": "busy", "since": now()}
-        save_pool(found)
     state.update(worker="session", worker_why="", session={"id": sid, "name": name_of(slug)}, pid=None, status="running",
                  bound_at=now())
     save(state, "assigned to session %s (%s)%s" % (sid, name_of(slug), ", reused" if reused else ""))
@@ -245,14 +247,15 @@ def cmd_bind(args):
             release(args.slug, found)  # a session the goal had before goes back to the pool
             found[args.id] = {"name": name, "slug": args.slug, "state": "busy", "since": now()}
             save_pool(found)
+        if state:
+            if state.get("status") in ("failed", "stopped", "queued", "", None):
+                state.update(status="running", finding="", report=None)
+            state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None, bound_at=now())
+            save(state, "bound to session %s (%s)" % (args.id, name))
     if not state:
         print("ASSIGNED %s to session %s (%s); not frozen yet. Next: in its worktree the worker runs goal.py new %s "
               "--here ..., then sessions.py bind %s %s." % (args.slug, args.id, name, args.slug, args.slug, args.id))
         return 0
-    if state.get("status") in ("failed", "stopped", "queued", "", None):
-        state.update(status="running", finding="", report=None)
-    state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None, bound_at=now())
-    save(state, "bound to session %s (%s)" % (args.id, name))
     print("BOUND %s to session %s (%s)" % (args.slug, args.id, name))
     return 0
 
@@ -268,10 +271,10 @@ def cmd_free(args):
             sys.exit("REFUSED: %s is waiting on the owner (%s); answer it first. Nothing was changed." % (args.slug, ask))
         count = release(args.slug, found, mark=True)
         save_pool(found)
-    slot = state.get("worker") == "session"
-    if slot:
-        state.update(worker="", session=None)
-        save(state, "freed %d session(s); slot released" % count)
+        slot = state.get("worker") == "session" or bool(count and not state)  # a freezing goal's busy entry was its slot
+        if state.get("worker") == "session":
+            state.update(worker="", session=None)
+            save(state, "freed %d session(s); slot released" % count)
     if not count and not slot:
         print("NOTHING TO FREE for %s: no busy session and no session run." % args.slug)
     else:
@@ -339,9 +342,9 @@ def cmd_report(args):
     del state["reports"][:-30]
     if said in ("merged", "failed", "waiting"):
         state["report"] = {"status": said, "pr": pr, "text": text, "at": now()}
+    save(state, "session report: " + text)  # saved first: a pool that breaks now can't lose a merged result
     if ended:
         release(args.slug)
-    save(state, "session report: " + text)
     return 0
 
 
