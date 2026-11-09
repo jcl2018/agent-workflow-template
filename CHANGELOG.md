@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.8.7 - 2026-11-09
+
+- doc-usage: criteria_max, Usage section, pages, tests
+- doc-usage: pages, tests, rows, verify steps
+- Merge origin/main into loop/doc-usage
+
+### How to verify
+
+1. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: it prints `DOCS OK: 7 pages`.
+2. Set `"criteria_max": 1` in `.loop/config.json`, run the same command, then put it back to 6.
+   Expect: it prints a `CAP` line for every page with more than one criterion, naming `criteria_max`.
+3. Open `docs/wiki/Health.md`.
+   Expect: a Usage section between Summary and Criteria listing `health.py check`, `judge` and `run`.
+
 ## v0.8.6 - 2026-11-09
 
 - operate-fit-2: clear stale wiki errors, know closed PRs, live-only Goals
