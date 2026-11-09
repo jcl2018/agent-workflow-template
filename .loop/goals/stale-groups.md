@@ -14,4 +14,11 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `bash dev/toy/test-stale-groups.sh`.
+   Expect: it prints `PASS: no removed feature group comes back`.
+2. Run `python3 skills/workflow-health/scripts/milestone.py features`.
+   Expect: only Delivery, Documentation, Health, Monitoring, Regression and Setup are listed.
+3. Open the repo's Milestones page on GitHub.
+   Expect: Release and Milestones are closed; Delivery, Documentation, Health, Monitoring, Regression, Setup and Backlog are open.
+4. Run `grep -n "Criteria and tests" skills/design-guide.md`.
+   Expect: no output.
