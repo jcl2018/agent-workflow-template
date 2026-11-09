@@ -97,6 +97,13 @@ refused-unmet	PASS	2026-11-09
 release-note-found	PASS	2026-11-09
 release-runs-audit	PASS	2026-11-09
 repeat-no-second	PASS	2026-11-09
+reply-hook-all	PASS	2026-11-09
+reply-hook-blocks	PASS	2026-11-09
+reply-hook-guard	PASS	2026-11-09
+reply-hook-install	PASS	2026-11-09
+reply-hook-mon5-wording	PASS	2026-11-09
+reply-hook-off	PASS	2026-11-09
+reply-hook-scope	PASS	2026-11-09
 retired-leaves-waiting	PASS	2026-11-09
 review-dated	PASS	2026-11-09
 review-owner-only	PASS	2026-11-09

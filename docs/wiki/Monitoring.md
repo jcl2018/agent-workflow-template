@@ -108,12 +108,19 @@ Live board. Each check-in prints the live board, always in the same format: Issu
 
 #### MON-5
 
-Cadence. The operation session updates the board and prints the live board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new. It prints the full board every time.
+Cadence and reply format. The operation session updates the board and prints the live board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new. It prints the full board every time. Every reply it gives ends with one decisions line and then the full live board, and a hook that setup installs blocks a reply that doesn't, saying what is missing; the hook never checks worker sessions or other repos, and one setting turns it off.
 
 - Given a board field the old board lacked or gh not answering, when boards are compared, then it counts as no change. — [no-change-quiet](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a worker's report, when it arrives before the cadence, then operate wakes and every pass prints the full board. — [operate-wakes-on-report](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given an unchanged pass, when the board is printed, then the full board is printed again and there is no one-line mode. — [live-board-no-oneline](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given no cadence setting, when check-ins are scheduled, then the cadence is 30 minutes. — [live-board-cadence](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given an operation-session reply, when it stops without one Decisions line and the full live board last, then the hook blocks it and says what is missing, and a reply with them passes. — [reply-hook-blocks](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a worker session or a session in another repo, when it stops with any reply, then the hook never checks it, and only the operation session is checked. — [reply-hook-scope](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given reply_hook set to false in the config, when the operation session stops without the board, then the hook lets it through. — [reply-hook-off](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a reply blocked twice in a row or a broken hook input, when the session stops again, then the hook lets it through and logs it instead of looping. — [reply-hook-guard](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a repo, when setup --reply-hook runs, then the Stop hook is merged into its machine-local Claude settings, which git ignores, and a second run changes nothing. — [reply-hook-install](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given the reply hook's toy suite, when it runs, then every check passes. — [reply-hook-all](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given the Monitoring PRD, when MON-5 is read, then it carries the reply-format rule the hook enforces. — [reply-hook-mon5-wording](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 
 ### Defect tests
 
