@@ -10,9 +10,7 @@ retired-leaves-waiting	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a r
 unproven-blocks	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"	REG-2	2026-11-07	A test never seen failing blocks the run.	criterion	
 known-no-block	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: known doesn.t block or open an issue"	REG-5	2026-11-07	A known failure does not block the run or open an issue.	criterion	
 no-token-dry-run	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: no token: dry run, no gh call"	REG-5	2026-11-07	With no GitHub token, a run only prints what it would do.	criterion	
-cut-needs-verify	land	bash dev/toy/test-rows.sh REL-1	-	2026-11-07	A release is refused without Verify by hand steps.	criterion	
-cut-draft	land	bash dev/toy/test-rows.sh REL-2	-	2026-11-07	Cutting a release writes a draft release, not a published one.	criterion	
-batch-cut-user	land	bash dev/toy/test-rows.sh REL-3	-	2026-11-07	A monitored goal does not cut a release unless asked.	criterion	
+cut-needs-verify	land	bash dev/toy/test-rows.sh DEL-4-verify	DEL-4	2026-11-07	A release is refused without Verify by hand steps.	criterion	
 no-line-in-governor	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: start: no line runs in the governing session"	MON-1	2026-11-07	No goal runs inside the governing session.	criterion	
 skill-says-governs	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-delivery/SKILL.md says the operation session governs only"	MON-1	2026-11-07	The delivery skill says the operation session only governs.	criterion	
 frozen-done-lines	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: a changed done line stops the goal"	DEL-2	2026-11-07	Changing a frozen done line stops the goal.	criterion	
@@ -137,5 +135,6 @@ live-board-cadence	land	bash dev/toy/test-live-board.sh 2>&1 | grep -q "PASS: th
 report-header	land	bash dev/toy/test-health-report.sh 2>&1 | grep -q "PASS: the header names every group run and the one skipped"	HLT-3	2026-11-09	The health report header names every group run and skipped, and Cost reads as performance.	criterion	
 preview-writes-nothing	land	bash dev/toy/test-health-report.sh 2>&1 | grep -q "PASS: preview made no write call"	HLT-4	2026-11-09	Health preview lists the issues it would write and makes no write call.	criterion	
 file-one-group	land	bash dev/toy/test-health-report.sh 2>&1 | grep -q "PASS: file --group docs closed the docs issue only"	HLT-4	2026-11-09	Filing one group touches only that group's issues, tagged health:<group> on the Backlog.	criterion	
+stale-groups-defect	land	bash dev/toy/test-stale-groups.sh | grep -q "PASS: no removed feature group comes back"	stale-groups:3	2026-11-09	A removed feature group name (Release, Milestones, Criteria and tests) does not come back in the wiki, README, skill files, docs.tsv or the milestone list.	defect	https://github.com/jcl2018/agent-workflow-template/issues/89
 usage-no-script	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a Usage naming a .py file fails"	DOC-6	2026-11-09		criterion	
 usage-agent-requests	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a Usage of agent requests passes"	DOC-6	2026-11-09		criterion	

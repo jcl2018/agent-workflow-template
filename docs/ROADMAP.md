@@ -43,8 +43,8 @@ One session starts and watches the others.
 
 ### Documentation
 
-- Pages live in `docs/wiki/`, and `.loop/docs.tsv` maps each page to the paths it describes. The wiki is five feature
-  pages (Delivery, Documentation, Monitoring, Regression, Release) plus Home; install steps and the file reference are
+- Pages live in `docs/wiki/`, and `.loop/docs.tsv` maps each page to the paths it describes. The wiki is six feature
+  pages (Delivery, Documentation, Health, Monitoring, Regression, Setup) plus Home; install steps and the file reference are
   in the README.
 - Each feature page lists its criteria and stages: Unreviewed, Reviewed, Enforced or Proven. Tests are rows in
   `.loop/regression.tsv`, each linked to one criterion, and the page counts them.
