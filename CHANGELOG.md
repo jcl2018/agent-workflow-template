@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.9.2 - 2026-11-09
+
+- Remove every leftover of the removed feature groups (Release, Milestones, Criteria and tests) from the wiki and skill files
+- Relink regression rows that pointed at removed Release criteria
+- Add a defect test for issue 89 that fails if a removed group name comes back
+
+### How to verify
+
+1. Run `bash dev/toy/test-stale-groups.sh`.
+   Expect: it prints `PASS: no removed feature group comes back`.
+2. Run `grep -n "Criteria and tests" skills/design-guide.md`.
+   Expect: no output.
+
 ## v0.9.1 - 2026-11-09
 
 - Usage as agent requests: command maps, docs check, DOC-6
