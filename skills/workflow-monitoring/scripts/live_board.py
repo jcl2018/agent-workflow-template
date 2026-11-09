@@ -5,7 +5,7 @@ usage: live_board.py [--html]
 
 LIVE BOARD header (repo, local time, version, health), then Issues (only what is open now, a stuck worker first, each with its
 fix in plain words), Running goals (10-cell bar with percent and time left, the step flow with done steps ticked and the current
-step in brackets, one next step), Queued goals, Dependencies (arrows between running and queued goals) and one Finish time.
+step in brackets, the worker: its session name or background, one next step), Queued goals, Dependencies (arrows between running and queued goals) and one Finish time.
 Merged work, history and totals are left out. Estimates and the finish come from board_status.py and status_graph.py.
 Health is workflow-health's verdict, or "unknown"; LOOP_BOARD_HEALTH replaces it (tests). Imported by board_status.py.
 """
@@ -88,6 +88,13 @@ def next_line(run):
     return "merge the pull request" if run.get("status") == "done" else "finish %s, then %s" % (FLOW[here], FLOW[min(here + 1, len(FLOW) - 1)])
 
 
+def worker_of(run):
+    """Which worker has the goal: its app session by name, or a background process (the fallback) and why."""
+    if run.get("worker") == "session" or run.get("session"):
+        return "session %s" % ((run.get("session") or {}).get("name") or "worker · " + run["slug"])
+    return "background" + (" (%s)" % plain(run["worker_why"], 80) if run.get("worker_why") else "")
+
+
 def issues(runs, gone, root):
     stuck, other = [], []
     for run in runs:
@@ -134,7 +141,7 @@ def render(root=None, at=None):
         left = next(i["left"] for i in items if i["slug"] == run["slug"])
         out += ["- %s  [%s%s] %d%%  %s" % (run["slug"], "#" * full, "-" * (10 - full), round(100 * done / len(FLOW)),
                                          "no estimate yet" if left is None else "%s left" % status_graph.span(left)),
-                "    " + flow_line(run), "    next: " + next_line(run)]
+                "    " + flow_line(run), "    worker: " + worker_of(run), "    next: " + next_line(run)]
     out += ([] if running else ["- (none)"]) + ["", "Queued goals"]
     for goal in queue:
         left = next(i["left"] for i in items if i["slug"] == goal["slug"])
