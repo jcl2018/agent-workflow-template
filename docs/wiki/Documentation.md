@@ -26,7 +26,7 @@ The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a releas
 - DOC-3: **Reviewed 2026-11-08** Tests follow on their own: once I review a criterion, the loop writes the tests that prove it, links each to a regression row, adds it to the tests table; I never write or manage tests; a changed criterion gets its tests updated. <!-- reviewed e7ad710b -->
 - DOC-4: **Reviewed 2026-11-08** One command enforces it: checks all required docs against the template, code and tests, fixes what's mechanical, lists wording to rewrite; the release step runs it on every goal before merging; I can run it myself. It never deletes a page, never overwrites a page it didn't write unless I name it, and the last publish can be undone. <!-- reviewed 72374942 -->
 - DOC-5: **Reviewed 2026-11-08** Required docs: every repo keeps up to date one wiki page per feature, one GitHub milestone per feature linked from its page plus a Backlog milestone, and a release note for every release; each goal's pull request lands in its feature's milestone. <!-- reviewed f4c8ca82 -->
-- DOC-6: **Unreviewed** A feature page's Usage is written as what the owner asks the agent, a skill command or a plain request, and names no script file.
+- DOC-6: **Reviewed 2026-11-09** A feature page's Usage is written as what the owner asks the agent, a skill command or a plain request, and names no script file. <!-- reviewed ec0e28c5 -->
 
 ## Tests
 
