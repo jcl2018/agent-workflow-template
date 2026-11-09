@@ -148,7 +148,7 @@ def gaps(root):
 
 
 def criteria_ids(root):
-    """Criterion ids written under ## Criteria in the wiki pages."""
+    """Requirement ids written under ## Requirements (or the old ## Criteria) in the wiki pages, outside code fences."""
     try:
         with open(path_of(root, "config.json")) as handle:
             folder = json.load(handle).get("wiki_dir") or "docs/wiki"
@@ -157,9 +157,9 @@ def criteria_ids(root):
     ids = []
     for name in sorted(glob.glob(os.path.join(root, folder, "*.md"))):
         with open(name) as handle:
-            text = handle.read()
-        if "\n## Criteria" in text:
-            part = text.split("\n## Criteria", 1)[1].split("\n## ", 1)[0]
+            text = re.sub(r"(?ms)^```.*?^```[^\n]*$", "", handle.read())
+        if re.search(r"\n## (?:Requirements|Criteria)[ \t]*\n", text):
+            part = re.split(r"\n## (?:Requirements|Criteria)[ \t]*\n", text, maxsplit=1)[1].split("\n## ", 1)[0]
             ids += re.findall(r"^- ([A-Z]{2,5}-\d+): \S", part, re.M)
     return ids
 

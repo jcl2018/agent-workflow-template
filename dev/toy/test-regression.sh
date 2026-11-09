@@ -32,7 +32,7 @@ $reg sync | grep -q "^UNPROVEN text-1" && ok "a seen-failing value that is not a
 python3 - "$here/skills/workflow-docs/scripts" <<'PY' && ok "the Tests table shows no for a - or a non-date" || bad "Tests table shows a non-date as seen failing"
 import sys; sys.path.insert(0, sys.argv[1]); import criteria
 out = criteria.table(".", [("REG-9", "Words.")], {"REG-9": ["dash-1", "text-1"]})
-cells = [line.rstrip(" |").rsplit("| ", 1)[-1] for line in out if "[dash-1]" in line or "[text-1]" in line]
+cells = [line.rsplit("seen failing ", 1)[-1] for line in out if "[dash-1]" in line or "[text-1]" in line]
 assert cells == ["no", "no"], out
 PY
 sed -i.bak '/^dash-1	/d; /^text-1	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak

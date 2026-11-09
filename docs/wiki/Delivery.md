@@ -3,7 +3,9 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/1
 
-## Summary
+Review: **Unreviewed**
+
+## Problem
 
 Skill: `workflow-delivery`, with `workflow-release` as its last step. Takes one sentence to a pull request by running your own skill suite's flow unattended, with frozen done lines, a 3-try stop, review as the only gate and a manual verify section, then the release step runs the docs audit and refuses while it finds trouble (any page `docs.py check` calls stale, whether or not the goal touched its paths), runs the `routines` in `.loop/config.json`, merges where the repo allows it, bumps the version once, writes the CHANGELOG entry and a published GitHub release, and publishes the wiki. A failure is recorded as `release_error` and shows under Needs you.
 
@@ -24,7 +26,7 @@ template keeps every gate until its owner turns one off.
 - `/workflow-delivery pr SLUG` merges the latest base branch, pushes and opens the pull request; it never merges. A goal that fixes an issue or finding needs a defect test with a real seen-failing date first; anything that is not a date does not count.
 - `/workflow-release merge SLUG` is the release step: it brings the docs up to date, merges where `auto_merge` is on, bumps the version and writes the release note. `/workflow-release ask SLUG`, `/workflow-release cut SLUG` and `/workflow-release leave SLUG` are the manual path.
 
-## Criteria
+## Requirements
 
 - DEL-1: **Reviewed 2026-11-08** The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries. <!-- reviewed 46d7806a -->
 - DEL-2: **Reviewed 2026-11-08** The done lines are frozen once the goal starts; changing one means a new goal. <!-- reviewed 7eb4f867 -->
@@ -32,30 +34,65 @@ template keeps every gate until its owner turns one off.
 - DEL-4: **Reviewed 2026-11-08** Every pull request carries the done lines, the plan, how to verify it by hand, and each step's result. <!-- reviewed 85dc7a9a -->
 - DEL-5: **Reviewed 2026-11-08** Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you. <!-- reviewed c2490e55 -->
 
+## Non-goals
+
+- It does not decide what to build: the owner gives the sentence and the done lines.
+- It never changes a done line once the goal starts; a wrong one needs a new goal.
+- It does not plan or govern several goals at once; workflow-monitoring does that.
+
+## Success metrics
+
+- Every merged goal's pull request carries its done lines, plan, verify steps and each step's result.
+- A goal that fails three tries stops and says why instead of trying again.
+- No goal merges while a wiki page is stale.
+
 ## Tests
 
-| Criterion | Test | What it checks | Runs | Last result | Seen failing |
-|---|---|---|---|---|---|
-| **DEL-1** The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries. | [no-done-line-refused](../../.loop/regression.tsv) | A goal with no done line is refused. | both | PASS 2026-11-09 | 2026-11-07 |
-| **DEL-1** The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries. | [no-flow-refused](../../.loop/regression.tsv) | A goal does not start when no skill flow is set. | both | PASS 2026-11-09 | 2026-11-07 |
-| **DEL-1** The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries. | [stop-after-3-tries](../../.loop/regression.tsv) | Three failed tries stop a goal and file a finding. | nightly | PASS 2026-11-09 | 2026-11-07 |
-| **DEL-1** The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries. | [pr-needs-flow](../../.loop/regression.tsv) | A pull request is refused until every flow step is done. | nightly | PASS 2026-11-09 | 2026-11-07 |
-| **DEL-1** The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries. | [starts-at-idea](../../.loop/regression.tsv) | A goal starts at the idea step. | nightly | PASS 2026-11-09 | 2026-11-07 |
-| **DEL-1** The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries. | [steps-through-flow](../../.loop/regression.tsv) | A step reply is accepted only if the flow ran it. | nightly | PASS 2026-11-09 | 2026-11-07 |
-| **DEL-1** The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries. | [defect-flow-steps](../../.loop/regression.tsv) | The flow has no checks step and every step can be mapped, with a default suite and overrides. | both | PASS 2026-11-09 | 2026-11-08 |
-| **DEL-2** The done lines are frozen once the goal starts; changing one means a new goal. | [frozen-done-lines](../../.loop/regression.tsv) | Changing a frozen done line stops the goal. | nightly | PASS 2026-11-09 | 2026-11-07 |
-| **DEL-3** A decision left for me waits under Needs you, or, where the repo allows it, is auto-approved and logged. | [pending-waits](../../.loop/regression.tsv) | A step that leaves a decision for the owner stops and waits. | both | PASS 2026-11-09 | 2026-11-07 |
-| **DEL-3** A decision left for me waits under Needs you, or, where the repo allows it, is auto-approved and logged. | [auto-approved](../../.loop/regression.tsv) | An auto-approved step is logged and nothing waits. | both | PASS 2026-11-09 | 2026-11-07 |
-| **DEL-4** Every pull request carries the done lines, the plan, how to verify it by hand, and each step's result. | [cut-needs-verify](../../.loop/regression.tsv) | A release is refused without Verify by hand steps. | both | PASS 2026-11-09 | 2026-11-07 |
-| **DEL-4** Every pull request carries the done lines, the plan, how to verify it by hand, and each step's result. | [pr-body-criterion](../../.loop/regression.tsv) | Every pull request body carries the goal, the done lines, the verify steps and each step's result. | both | PASS 2026-11-09 | 2026-11-08 |
-| **DEL-5** Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you. | [never-merges](../../.loop/regression.tsv) | With auto_merge off, nothing is merged. | nightly | PASS 2026-11-09 | 2026-11-07 |
-| **DEL-5** Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you. | [wiki-release](../../.loop/regression.tsv) | Merging a goal publishes its wiki pages, even when python leaves cache files behind. | both | PASS 2026-11-09 | 2026-11-08 |
-| **DEL-5** Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you. | [auto-release](../../.loop/regression.tsv) | A merged goal is released automatically when auto-release is on. | both | PASS 2026-11-09 | 2026-11-08 |
-| **DEL-5** Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you. | [wiki-unmapped-stale](../../.loop/regression.tsv) | A page no touched path maps to is refreshed by the release step, which refuses to merge while it is stale. | both | PASS 2026-11-09 | 2026-11-09 |
+#### DEL-1
+
+The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries.
+
+- Given a goal with no done line, when it is started, then it is refused. — [no-done-line-refused](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given no skill flow is set, when a goal is started, then it does not start. — [no-flow-refused](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a goal, when three tries fail, then the goal stops and files a finding. — [stop-after-3-tries](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a flow step not yet done, when a pull request is opened, then it is refused. — [pr-needs-flow](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a new goal, when it starts, then it starts at the idea step. — [starts-at-idea](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a step reply, when it is recorded, then it is accepted only if the flow ran that step. — [steps-through-flow](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given any tool, when it runs, then it never waits on a terminal prompt. — [no-prompts](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given the flow, when it is checked, then it has no checks step and every step can be mapped, with a default suite and overrides. — [defect-flow-steps](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+
+#### DEL-2
+
+The done lines are frozen once the goal starts; changing one means a new goal.
+
+- Given a running goal, when a frozen done line is changed, then the goal stops. — [frozen-done-lines](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+
+#### DEL-3
+
+A decision left for me waits under Needs you, or, where the repo allows it, is auto-approved and logged.
+
+- Given a step that leaves a decision for the owner, when it ends, then the goal stops and waits. — [pending-waits](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given an auto-approved step, when it ends, then it is logged and nothing waits. — [auto-approved](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+
+#### DEL-4
+
+Every pull request carries the done lines, the plan, how to verify it by hand, and each step's result.
+
+- Given no Verify by hand steps, when a release is cut, then it is refused. — [cut-needs-verify](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a pull request, when its body is written, then it carries the goal, the done lines, the verify steps and each step's result. — [pr-body-criterion](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+
+#### DEL-5
+
+Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you.
+
+- Given auto_merge is off, when goals finish, then nothing is merged. — [never-merges](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a merged goal, when the release runs, then its wiki pages are published, even when python leaves cache files behind. — [wiki-release](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given auto-release is on, when a goal merges, then it is released automatically. — [auto-release](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a page no touched path maps to, when the release step runs, then it refreshes the page and refuses to merge while it is stale. — [wiki-unmapped-stale](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+
 ### Defect tests
-| Defect | Test | What it checks | Runs | Last result | Seen failing |
-|---|---|---|---|---|---|
-| [#35](https://github.com/jcl2018/agent-workflow-template/issues/35) | [scripts-no-hang](../../.loop/regression.tsv) | A script with no terminal fails with an error instead of hanging on a prompt. | both | PASS 2026-11-09 | 2026-11-08 |
-| [#62](https://github.com/jcl2018/agent-workflow-template/pull/62) | [pr-body-no-checks](../../.loop/regression.tsv) | The pull request body says nothing about checks and lists each step's result. | both | PASS 2026-11-09 | 2026-11-08 |
-| [#58](https://github.com/jcl2018/agent-workflow-template/issues/58) | [wiki-release-pycache](../../.loop/regression.tsv) | Merging a goal publishes its wiki pages even when python leaves cache files behind. | both | PASS 2026-11-09 | 2026-11-08 |
-| [#61](https://github.com/jcl2018/agent-workflow-template/pull/61) | [worker-runs-release](../../.loop/regression.tsv) | A worker that ends with its pull request waiting runs the release step itself. | both | PASS 2026-11-09 | 2026-11-08 |
+
+- Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. — [#35](https://github.com/jcl2018/agent-workflow-template/issues/35), [scripts-no-hang](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a pull request, when its body is written, then it says nothing about checks and lists each step's result. — [#62](https://github.com/jcl2018/agent-workflow-template/pull/62), [pr-body-no-checks](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given python leaves cache files behind, when a goal merges, then its wiki pages are still published. — [#58](https://github.com/jcl2018/agent-workflow-template/issues/58), [wiki-release-pycache](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a worker that ends with its pull request waiting, when it finishes, then it runs the release step itself. — [#61](https://github.com/jcl2018/agent-workflow-template/pull/61), [worker-runs-release](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08

@@ -232,7 +232,7 @@ def criteria_trouble(top, cfg):
     out = []
     for page in doc_rows(top):
         try:
-            part = open(os.path.join(top, cfg.get("wiki_dir") or "docs/wiki", page + ".md")).read().partition("\n## Criteria")[2].split("\n## ")[0]
+            part = (re.split(r"\n## (?:Requirements|Criteria)[ \t]*\n", re.sub(r"(?ms)^```.*?^```[^\n]*$", "", open(os.path.join(top, cfg.get("wiki_dir") or "docs/wiki", page + ".md")).read()), maxsplit=1) + [""])[1].split("\n## ")[0]
         except OSError:
             continue
         for key in re.findall(r"^- ([A-Z]{2,5}-\d+): \S", part, re.M):
