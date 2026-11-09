@@ -14,4 +14,11 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. Run `python3 skills/workflow-setup/scripts/settings.py reference | grep review_depth`.
+   Expect: one row, `review_depth`, default `full`, with a one-line explanation.
+2. Open `.loop/config.json`.
+   Expect: `"review_depth": "full"` and its explanation under `_help`.
+3. On the next goal, run `python3 skills/workflow-monitoring/scripts/live_board.py` while it runs.
+   Expect: under its `worker:` line, a `depth:` line listing each recorded step's depth and `(setting full)`.
+4. Open that goal's pull request.
+   Expect: under Result, each step ends with `(depth full)`.
