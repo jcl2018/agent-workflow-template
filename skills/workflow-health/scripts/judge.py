@@ -48,7 +48,8 @@ def criteria(root, page):
             text = handle.read()
     except OSError:
         return []
-    body = text.split("## Criteria", 1)[-1].split("\n## ", 1)[0] if "## Criteria" in text else ""
+    found = re.split(r"\n## (?:Requirements|Criteria)[ \t]*\n", re.sub(r"(?ms)^```.*?^```[^\n]*$", "", text), maxsplit=1)
+    body = found[1].split("\n## ", 1)[0] if len(found) > 1 else ""
     return [(m.group(1), m.group(2)) for m in re.finditer(r"^- ([A-Z]+-\d+[a-z]?): (.*)$", body, re.M)]
 
 
@@ -57,7 +58,7 @@ def suggestions(root, rows):
     for page in pages(root):
         found = criteria(root, page)
         if not found:
-            lines.append("missing: feature %s has no criterion -> add a Criteria section with at least one line" % page)
+            lines.append("missing: feature %s has no requirement -> add a Requirements section with at least one line" % page)
         items += found
     pairs = []
     for i, (a_id, a_text) in enumerate(items):
@@ -99,7 +100,7 @@ def read(path):
 
 def gather(root, here, rows):
     """The judge input as one labelled, size-capped text."""
-    out = ["## Criteria"]
+    out = ["## Requirements"]
     for page in pages(root):
         out += ["%s [%s]: %s" % (cid, page, text) for cid, text in criteria(root, page)]
     out += ["## Test rows (id | goal | command | description)"]

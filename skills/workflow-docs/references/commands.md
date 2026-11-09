@@ -1,6 +1,6 @@
 # Documentation: commands and flows
 
-Moved from the wiki page, which is now only a summary, criteria and tests.
+Moved from the wiki page, which is now only a short PRD and its tests.
 
 ### Init
 
@@ -28,11 +28,14 @@ Pages are added and checked with these:
 init                            the step list above; an agent follows it
 survey                          show the wiki's pages and this repo's page map
 add PAGE --paths A,B            add a page and the paths it describes
-check [--base REF]              list page problems, and contract problems when criteria is on; exit 1 if any
+check [--base REF]              list page problems, and PRD contract problems when criteria is on; exit 1 if any
 audit [--base REF] [--dry-run]  check all required docs against the template, fix the mechanical, list wording to rewrite
-criteria PAGE                   print the criterion format and the next free id for a page
-review ID [ID ...] --user       mark criteria reviewed, on the owner's own words
-sync [--commit] [--dry-run]     return changed reviewed criteria to Unreviewed; --commit commits the pages
+criteria PAGE                   print the requirement format and the next free id for a page
+review PAGE|ID [...] --user [--date D]   the owner marks a PRD, or a requirement, Reviewed
+unreview PAGE|ID [...] --user   the owner lifts that review
+render [--check]                rewrite each page's Tests from the regression rows
+prd NAME "<idea>" --paths A,B   draft a new feature's PRD, Unreviewed, and map it
+convert                         turn old Summary/Criteria pages into PRD pages (prd.py convert previews, --write writes)
 publish [--dry-run] [--adopt PAGE]   copy the pages to the GitHub wiki, commit and push
 restore                         revert the last publish, if nothing came after it
 ```
@@ -42,45 +45,38 @@ restore                         revert the last publish, if nothing came after i
 no later commit to the page has it in its history. Merge commits don't count, so a page gives the same answer before and
 after a merge. Only a commit that changes the page clears `STALE`.
 
-With `"criteria": true` in the config, `check` also enforces the criteria contract: only the pages Delivery,
-Documentation, Health, Milestones, Monitoring, Regression, Release and Home; each feature page has exactly the sections Summary, Commands,
-Criteria and Enforced by, in that order; a criterion is one line `- DEL-1: **Stage** text` with a unique id, and each id needs an
-`- DEL-1: <regression row ids>` line in Enforced by.
+With `"criteria": true` in the config, every feature page is a short PRD (`references/template.md` holds the rules and
+an example page): the Review line, then Problem, an optional Usage, Requirements, Non-goals, Success metrics and Tests,
+in that order and nothing else. Requirements are the owner's lines (`- DEL-1: **Unreviewed** text`, up to
+`criteria_max`, default 6); tests are for the machine: a regression row linked to one requirement by its goal column,
+described as one `Given ..., when ..., then ...` scenario, rendered under its requirement with its last result.
 
-Criteria are for the owner, and tests are for the machine. A test is a regression row, linked to one criterion by its
-goal or id, and a criterion can have many. A page has up to `criteria_max` criteria (default 6). Each feature page counts its tests in a `Tests:` line above the criteria.
-Criteria land with no approval, marked Unreviewed, and the page shows a banner while any is.
+### Page states
 
-| Stage | Means |
-|---|---|
-| Unreviewed | Landed, and the owner hasn't reviewed it. New or changed criteria start here, whatever their tests |
-| Reviewed | The owner reviewed it, and it has no test yet |
-| Enforced | The owner reviewed it, and it has a test not yet seen failing |
-| Proven | The owner reviewed it, and every test has been seen failing once |
+| State | Cause | `check` exit | `audit` | Release | `publish` | Who acts |
+|---|---|---|---|---|---|---|
+| Unreviewed | `Review: **Unreviewed**` | 0 | clean | goes ahead | publishes | the owner reviews the PRD when ready |
+| Reviewed | the owner ran `review PAGE --user` | 0 | lists requirements with no passing test as `UNTESTED` (not a failure) | goes ahead | publishes | the loop writes the tests |
+| `LOCKED` | Problem, Requirements, Non-goals or Success metrics changed after the review | 1 | fails | blocked | refused | an agent restores the text (`git log -p`), or the owner un-reviews |
+| `CHANGED` | Usage edited, added or removed after the review | 1 (board lists it) | ignored | goes ahead | publishes | only the owner: `review PAGE --user` again |
+| `UNWRITTEN` | a placeholder line is still on the page | 1 | fails | blocked | refused | an agent writes the drafts |
+| `SCENARIO` | a row on the page is not Given/When/Then | 0 | fails | blocked | publishes | an agent rewrites the row's description |
 
-`check` prints `CAP`, `STAGE`, `TESTS` or `LINK` when a page breaks these rules.
-
-No check blocks a change to a criterion. A reviewed line carries a hidden hash of its text, set by `review`. If the text
-changes, `sync` returns the line to Unreviewed, marked `(changed after review)`, and puts the banner back. `report` in
-Monitoring names it, even before `sync` runs. The repo's checks run `sync --commit`, so a goal's own checks do this.
-
-The same setting holds every page, Home too, to two more rules. `SCRIPT` fails a page that names a script file: pages
-describe commands and behaviour only. `CHART` fails a command listed under Commands, in a text block or a bullet that
-starts with it, that has no heading with the command in backticks holding a Mermaid block and a `Status:` line with all
-three labels. Only the charts' presence is checked, not whether they are true.
-
-`--base REF` counts only changes since `REF`. `publish` has no `--base`, so it counts every commit, and it refuses while
-`check` finds problems. It never deletes a page. It refuses a page in the repo that lost the marker
-`<!-- workflow-docs -->`, and won't replace a wiki page without that marker unless you name it with `--adopt`. `restore`
-refuses if the wiki changed since.
-
-### Example
+### Examples
 
 ```text
-/workflow-docs add Delivery --paths "skills/workflow-delivery"
-/workflow-docs check
-/workflow-docs publish --dry-run
+/workflow-docs prd Billing "charge cards once a month" --paths src/billing
+/workflow-docs review Billing                 # only on the owner's own words
+/workflow-docs review BIL-1 --date 2026-11-08 # one requirement, on the owner's words
+/workflow-docs unreview Billing               # the owner lifts the PRD lock
+/workflow-docs convert                        # after an upgrade: old pages to PRD pages
+/workflow-docs render
 ```
+
+`--base REF` counts only changes since `REF`. `publish` has no `--base`, so it counts every commit, and it refuses while
+`check` finds problems other than `CHANGED`. It never deletes a page. It refuses a page in the repo that lost the marker
+`<!-- workflow-docs -->`, and won't replace a wiki page without that marker unless you name it with `--adopt`. `restore`
+refuses if the wiki changed since.
 
 ### Stage charts
 
@@ -174,37 +170,18 @@ Proof: toy tests.
 
 ```mermaid
 flowchart LR
-  o{{"Owner says these criteria are reviewed"}}
-  a["Refuse without --user or with an unknown id"]
-  b["Set the stage its tests earn, and seal the text"]
-  c["Clear the note and fix the banner"]
+  o{{"Owner says this PRD or requirement is reviewed"}}
+  a["Check every argument; refuse without --user, a bad id, page or date"]
+  b["Stamp the date and the fingerprints or the line's hash"]
   o --> a
   a --> b
-  b --> c
   classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
   class o owner
 ```
 
-Status: built and proven: Refuse without --user or with an unknown id; Set the stage its tests earn, and seal the text; Clear the note and fix the banner. Built only: Owner says these criteria are reviewed. Planned: none.
-Stops for the owner: Owner says these criteria are reviewed.
-Proof: toy tests. No real review is on record. Nothing enforces that `--user` is true: that is an instruction to the agent.
-
-#### `sync`
-
-```mermaid
-flowchart LR
-  a["Compare each reviewed line with its seal"]
-  b["Return changed lines to Unreviewed"]
-  c["Fix the banner"]
-  d["Commit the pages, with --commit"]
-  a --> b
-  b --> c
-  c --> d
-```
-
-Status: built and proven: Compare each reviewed line with its seal; Return changed lines to Unreviewed; Fix the banner; Commit the pages, with --commit. Built only: none. Planned: none.
-Stops for the owner: none.
-Proof: toy tests. It has not returned a real criterion, since none is reviewed yet.
+Status: built and proven: Check every argument; refuse without --user, a bad id, page or date; Stamp the date and the fingerprints or the line's hash. Built only: Owner says this PRD or requirement is reviewed. Planned: none.
+Stops for the owner: Owner says this PRD or requirement is reviewed.
+Proof: toy tests. Nothing enforces that `--user` is true: that is an instruction to the agent.
 
 #### `publish`
 
