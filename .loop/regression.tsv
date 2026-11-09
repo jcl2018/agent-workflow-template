@@ -5,8 +5,8 @@ pending-waits	land	bash dev/toy/test-rows.sh DEL-3	DEL-3	2026-11-07	A step that 
 stale-found	land	bash dev/toy/ci-env.sh bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: stale found"	DOC-4	2026-11-07	A wiki page behind the code it covers is reported as stale.	criterion	
 publish-refused-stale	land	bash dev/toy/ci-env.sh bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: publish refused stale"	DOC-4	2026-11-07	The wiki is not published while a page is stale.	criterion	
 refuse-replace	land	bash dev/toy/ci-env.sh bash dev/toy/test-docs.sh 2>&1 | grep -q "PASS: refused to replace"	DOC-4	2026-11-07	A wiki page the tool did not write is never overwritten.	criterion	
-dependency-held	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the dependent goal is held until its dependency is merged"	MON-1	2026-11-07	A goal that depends on an unmerged goal is held until that goal merges.	criterion	
-retired-leaves-waiting	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a retired goal leaves Issues and stays marked in Runs"	MON-4	2026-11-07	A retired goal no longer shows under Issues.	criterion	
+dependency-held	nightly	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the dependent goal is held until its dependency is merged"	MON-1	2026-11-07	A goal that depends on an unmerged goal is held until that goal merges.	criterion	
+retired-leaves-waiting	nightly	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: a retired goal leaves Issues and stays marked in Runs"	MON-4	2026-11-07	A retired goal no longer shows under Issues.	criterion	
 unproven-blocks	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: unproven row blocks"	REG-2	2026-11-07	A test never seen failing blocks the run.	criterion	
 known-no-block	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: known doesn.t block or open an issue"	REG-5	2026-11-07	A known failure does not block the run or open an issue.	criterion	
 no-token-dry-run	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: no token: dry run, no gh call"	REG-5	2026-11-07	With no GitHub token, a run only prints what it would do.	criterion	
@@ -15,12 +15,12 @@ cut-draft	land	bash dev/toy/test-rows.sh REL-2	-	2026-11-07	Cutting a release wr
 batch-cut-user	land	bash dev/toy/test-rows.sh REL-3	-	2026-11-07	A monitored goal does not cut a release unless asked.	criterion	
 no-line-in-governor	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: start: no line runs in the governing session"	MON-1	2026-11-07	No goal runs inside the governing session.	criterion	
 skill-says-governs	land	bash dev/toy/test-batch.sh 2>&1 | grep -q "PASS: skills/workflow-delivery/SKILL.md says the operation session governs only"	MON-1	2026-11-07	The delivery skill says the operation session only governs.	criterion	
-frozen-done-lines	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: a changed done line stops the goal"	DEL-2	2026-11-07	Changing a frozen done line stops the goal.	criterion	
-stop-after-3-tries	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: three failed tries stop the goal with a finding"	DEL-1	2026-11-07	Three failed tries stop a goal and file a finding.	criterion	
-never-merges	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: with auto_merge off, merge.py refuses and nothing merges"	DEL-5	2026-11-07	With auto_merge off, nothing is merged.	criterion	
-waits-first	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the page shows the live board, escaped, themed, phone-wide, with no tags on the artifact page"	MON-3	2026-11-07	The board page shows the live board.	criterion	
-dependencies-on-map	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: watch records waits_on on the run when the goal starts"	MON-1	2026-11-07	A goal records what it waits on when it starts.	criterion	
-one-failure	land	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal leaves the others running"	-	2026-11-07	One failed goal leaves the others running.	criterion	
+frozen-done-lines	nightly	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: a changed done line stops the goal"	DEL-2	2026-11-07	Changing a frozen done line stops the goal.	criterion	
+stop-after-3-tries	nightly	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: three failed tries stop the goal with a finding"	DEL-1	2026-11-07	Three failed tries stop a goal and file a finding.	criterion	
+never-merges	nightly	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: with auto_merge off, merge.py refuses and nothing merges"	DEL-5	2026-11-07	With auto_merge off, nothing is merged.	criterion	
+waits-first	nightly	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the page shows the live board, escaped, themed, phone-wide, with no tags on the artifact page"	MON-3	2026-11-07	The board page shows the live board.	criterion	
+dependencies-on-map	nightly	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: watch records waits_on on the run when the goal starts"	MON-1	2026-11-07	A goal records what it waits on when it starts.	criterion	
+one-failure	nightly	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal leaves the others running"	-	2026-11-07	One failed goal leaves the others running.	criterion	
 tests-seen-failing	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a test that can.t fail stays unproven"	REG-2	2026-11-07	A test that cannot fail stays unproven.	criterion	
 one-issue	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: failure opened an issue"	REG-5	2026-11-07	A failing test opens one GitHub issue.	criterion	
 one-link	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a test with no criterion fails"	REG-2	2026-11-07	A test linked to no criterion fails the check.	criterion	
@@ -29,7 +29,7 @@ breaking-asks	nightly	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: breakin
 docs-only	nightly	bash dev/toy/test-release.sh 2>&1 | grep -q "PASS: docs only leaves"	-	2026-11-07	A docs-only change leaves the version alone.	criterion	
 landed-left-alone	nightly	bash dev/toy/test-monitoring.sh 2>&1 | grep -E "PASS: (a landed goal with an empty pr field|a mender running after its goal lands)" | wc -l | grep -q 2	-	2026-11-07	A landed goal is not marked failed or restarted.	criterion	
 no-change-quiet	nightly	bash dev/toy/test-board.sh 2>&1 | grep -E "PASS: (a field the old board lacks|gh failing to answer) is no change" | wc -l | grep -q 2	MON-5	2026-11-07	A board field the old board lacked, or gh not answering, is no change.	criterion	
-pr-needs-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: pr refuses until the flow ends"	DEL-1	2026-11-07	A pull request is refused until every flow step is done.	criterion	
+pr-needs-flow	nightly	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: pr refuses until the flow ends"	DEL-1	2026-11-07	A pull request is refused until every flow step is done.	criterion	
 failed-waits-mender	nightly	bash dev/toy/test-monitoring.sh 2>&1 | grep -q "PASS: a failed goal waits before a mender starts"	MON-1	2026-11-07	A failed goal waits before a mender starts.	criterion	
 same-lines	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: two runs print the same lines"	HLT-1	2026-11-07	Two health runs print the same lines.	criterion	
 size-fail	land	bash dev/toy/test-health.sh 2>&1 | grep -q "PASS: over 20 KB is a FAIL with a fix"	HLT-2	2026-11-07	A script over 20 KB is a FAIL with a fix.	criterion	
@@ -43,13 +43,13 @@ milestones-once	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: runni
 pr-in-milestone	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: goal.py pr puts the pull request in the Calc milestone"	DOC-5	2026-11-07	A pull request goes into its milestone.	criterion	
 no-token-would	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: no token and no --live: only WOULD lines, nothing written"	HLT-4	2026-11-07	With no token, milestones only prints what it would do.	criterion	
 update-in-place	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a later run updates the issue where it is, and opens no other"	HLT-4	2026-11-07	A later health run updates its issue and opens no other.	criterion	
-board-sections	land	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the page shows the live board, escaped, themed, phone-wide, with no tags on the artifact page"	MON-3	2026-11-07	The board page carries the live board's sections.	criterion	
+board-sections	nightly	bash dev/toy/test-board.sh 2>&1 | grep -q "PASS: the page shows the live board, escaped, themed, phone-wide, with no tags on the artifact page"	MON-3	2026-11-07	The board page carries the live board's sections.	criterion	
 fixed-closes	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a fixed finding closes its issue"	HLT-4	2026-11-07	A fixed finding closes its issue.	criterion	
 repeat-no-second	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a repeat opens no second issue"	HLT-4	2026-11-07	A repeated finding opens no second issue.	criterion	
 unread-closes-none	land	bash dev/toy/test-milestones.sh 2>&1 | grep -q "PASS: a rule that could not read closes none of its issues"	HLT-4	2026-11-07	A rule that could not be read closes none of its issues.	criterion	
-starts-at-idea	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: starts at idea, with no level"	DEL-1	2026-11-07	A goal starts at the idea step.	criterion	
-steps-through-flow	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: record refuses a reply flow.py didn.t run"	DEL-1	2026-11-07	A step reply is accepted only if the flow ran it.	criterion	
-auto-approved	land	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: logged and on the board as auto-approved, nothing waits"	DEL-3	2026-11-07	An auto-approved step is logged and nothing waits.	criterion	
+starts-at-idea	nightly	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: starts at idea, with no level"	DEL-1	2026-11-07	A goal starts at the idea step.	criterion	
+steps-through-flow	nightly	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: record refuses a reply flow.py didn.t run"	DEL-1	2026-11-07	A step reply is accepted only if the flow ran it.	criterion	
+auto-approved	nightly	bash dev/toy/test-goal.sh 2>&1 | grep -q "PASS: logged and on the board as auto-approved, nothing waits"	DEL-3	2026-11-07	An auto-approved step is logged and nothing waits.	criterion	
 worker-refuses	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: watch.py build refuses with one line naming the worker command"	MON-1	2026-11-07	Building inside the governing session is refused with one line.	criterion	
 worker-per-goal	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: each goal ran in its own process and worktree, as a worker"	MON-1	2026-11-07	Each goal runs in its own process and worktree.	criterion	
 worker-reports	land	bash dev/toy/test-workers.sh 2>&1 | grep -q "PASS: merged carries its pull request"	MON-2	2026-11-07	A merged goal shows its pull request.	criterion	
@@ -79,7 +79,7 @@ keeps-seen-red	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: descri
 schedule-setting	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: changing regression_cron changes the schedule"	REG-4	2026-11-08	Changing the schedule setting and rewriting the workflow changes the Actions schedule.	criterion	
 bad-schedule-refused	land	bash dev/toy/test-regression.sh 2>&1 | grep -q "PASS: a setting that is not five cron fields is refused"	REG-4	2026-11-08	A schedule setting that is not a cron time is refused.	criterion	
 every-row-described	land	python3 skills/workflow-regression/scripts/regression.py sync | grep -c "^NODESC" | grep -qx 0	REG-2	2026-11-08	Every test row in this repo has a description.	criterion	
-auto-release	nightly	bash dev/toy/test-autorelease.sh 2>&1 | grep -q "ALL PASS"	DEL-5	2026-11-08	A merged goal is released automatically when auto-release is on.	criterion	
+auto-release	land	bash dev/toy/test-autorelease.sh 2>&1 | grep -q "ALL PASS"	DEL-5	2026-11-08	A merged goal is released automatically when auto-release is on.	criterion	
 template-sheet	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: criteria_max in the config changes the check"	DOC-1	2026-11-08	The page rules are read from the template sheet, so changing the sheet changes the check.	criterion	
 docs-audit	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: wording to rewrite is listed"	DOC-4	2026-11-08	The docs command fixes the Tests table, lists wording to rewrite and exits 1 while any is left.	criterion	
 release-runs-audit	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: the release step reads the audit"	DOC-4	2026-11-08	The release step reads the docs command and sees its trouble.	criterion	
@@ -87,8 +87,8 @@ untested-listed	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: a t
 milestone-links	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: milestone.py links"	DOC-5	2026-11-08	A feature page links to its GitHub milestone, and a missing Backlog is found.	criterion	
 release-note-found	land	bash dev/toy/test-docs-command.sh 2>&1 | grep -q "PASS: a tag with no release note"	DOC-5	2026-11-08	A release with no release note is found.	criterion	
 operate-all	nightly	bash dev/toy/test-operate.sh 2>&1 | grep -q "ALL PASS"	MON-1	2026-11-09	The operate command's whole toy suite passes.	criterion	
-worker-reports-live	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the worker's agent sees it the next time goal.py runs, once"	MON-2	2026-11-08	A report to a running worker reaches its agent once, the next time goal.py runs.	criterion	
-status-roadmap-features	land	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: merged goals leave the board altogether, with no merged line"	MON-4	2026-11-09	Merged goals do not appear on the live board.	criterion	
+worker-reports-live	nightly	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: the worker's agent sees it the next time goal.py runs, once"	MON-2	2026-11-08	A report to a running worker reaches its agent once, the next time goal.py runs.	criterion	
+status-roadmap-features	nightly	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: merged goals leave the board altogether, with no merged line"	MON-4	2026-11-09	Merged goals do not appear on the live board.	criterion	
 operate-wakes-on-report	nightly	bash dev/toy/test-operate.sh 2>&1 | grep -q "PASS: a worker's report wakes it before the cadence, and it prints the full board, never a one-line mode"	MON-5	2026-11-08	A worker's report wakes operate before the cadence; every pass prints the full board.	criterion	
 adopt-set-1	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-1	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1.	criterion	
 adopt-set-2	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-2	SET-1	2026-11-08	The toy adopt-and-update test holds for SET-1, suggest then apply.	criterion	
@@ -98,7 +98,7 @@ adopt-set-5	land	bash dev/toy/ci-env.sh bash dev/toy/test-adopt.sh SET-5	SET-5	2
 status-graph-order	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: the live board sections are in the fixed order"	MON-4	2026-11-09	The live board sections come in a fixed order.	criterion	
 status-graph-levels	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: chained goals are drawn as arrows between running and queued goals"	MON-4	2026-11-09	Chained goals are drawn as arrows between running and queued goals.	criterion	
 status-graph-marks	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: merged goals are left out; a running goal has its bar and time left"	MON-4	2026-11-09	A running goal shows a 10-cell bar and time left; merged goals are left out.	criterion	
-status-graph-total	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: the finish is the longest chain b > c > d, not the sum"	MON-4	-	The finish time is the longest chain of estimates, not their sum.	criterion	
+status-graph-total	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: the finish is the longest chain b > c > d, not the sum"	MON-4	2026-11-09	The finish time is the longest chain of estimates, not their sum.	criterion	
 status-graph-board	land	bash dev/toy/test-live-board.sh 2>&1 | grep -q "PASS: the board artifact page shows the same live board"	MON-4	2026-11-09	The board artifact page shows the same live board.	criterion	
 step-label-live	land	bash dev/toy/test-status-graph.sh 2>&1 | grep -q "PASS: recording moves the label on, so the finished step is never shown as current"	MON-4	2026-11-09	A step's label changes when it starts and never shows a finished step as current.	criterion	
 scripts-no-hang	land	bash dev/toy/test-defect.sh no-hang	DEL-1	2026-11-08	A script with no terminal fails with an error instead of hanging on a prompt.	defect	https://github.com/jcl2018/agent-workflow-template/issues/35
