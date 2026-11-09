@@ -120,6 +120,7 @@ usage-section-allowed	PASS	2026-11-09
 waits-first	PASS	2026-11-09
 wiki-release	PASS	2026-11-09
 wiki-release-pycache	PASS	2026-11-09
+wiki-unmapped-stale	PASS	2026-11-09
 worker-per-goal	PASS	2026-11-09
 worker-refuses	PASS	2026-11-09
 worker-reports	PASS	2026-11-09

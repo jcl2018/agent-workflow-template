@@ -13,4 +13,9 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: it prints `DOCS OK`.
+2. Run `python3 skills/workflow-release/scripts/wiki.py prepare wiki-sync`.
+   Expect: it prints `WIKI CURRENT`, the same verdict as step 1.
+3. Run `bash dev/toy/test-wiki.sh`.
+   Expect: every line is PASS, including `prepare lists the unmapped stale page` and `merge publishes the refreshed page`.
