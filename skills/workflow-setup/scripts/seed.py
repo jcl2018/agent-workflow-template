@@ -62,11 +62,21 @@ def mapping(found):
     return rows
 
 
+def stored(config, old):
+    """The config as written: surveyed checks become regression rows, not a setting; a checks key already set is kept."""
+    return {k: v for k, v in config.items() if k != "checks" or k in old}
+
+
+def check_command(config):
+    """One command that runs every check, so no configured check is left out of the row."""
+    return " && ".join(config["checks"])
+
+
 def decide(repo, config, found):
     """The plan: a list of (verb, path, note, action) with action None for skip and no fit."""
     acts, wiki = [], found["wiki"]
     old = survey.read(repo, ".loop/config.json")
-    if old is None or json.loads(old) != {k: v for k, v in config.items() if k != "checks"}:
+    if old is None or json.loads(old) != stored(config, json.loads(old)):
         acts.append(("add" if old is None else "convert", ".loop/config.json", "keys added; yours kept", "config"))
     for name in ("queue.md", "findings.md"):
         if survey.read(repo, ".loop/" + name) is None:
@@ -149,7 +159,7 @@ def apply(repo, config, found, acts):
     if config["checks"]:
         for tag, name in rows:
             tool(repo, "workflow-regression", "regression.py", "add", "%s-checks" % tag.lower(), "--level", "land", "--command",
-                 config["checks"][0], "--goal", "%s-1" % tag, "--describe", "The repo's checks pass.")
+                 check_command(config), "--goal", "%s-1" % tag, "--describe", "The repo's checks pass.")
         touched.append(".loop/regression.tsv")
         if any(a[3] == "workflow" for a in acts):
             tool(repo, "workflow-regression", "regression.py", "workflow")

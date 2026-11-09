@@ -6,7 +6,7 @@ The workflow skills share this contract. `design-guide.md` beside it explains ho
 
 | File | Holds |
 |---|---|
-| `.loop/config.json` | Base branch, check commands, agent commands, risky paths |
+| `.loop/config.json` | Base branch, agent commands, risky paths and the other repo settings |
 | `.loop/queue.md` | Goals to run, one line each |
 | `.loop/goals/<slug>.md` | One goal: done lines, plan, log |
 | `.loop/findings.md` | Open findings, one line each |
@@ -39,6 +39,8 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
   flow file, and keeps any value already set. Every script reads these files fresh on each run, so a change applies at once.
 - `parallel`: workers at once; `0` means unlimited, and it is the default.
 - `cadence`, `step_limit`, `token_budget`, `max_tries`, `routines` and `regression_cron` are optional repo settings; see the reference.
+- `checks` is not a setting: the repo's checks run as `.loop/regression.tsv` rows. `setup.py` seeds those rows from the
+  test commands it finds, or, when the config already lists `checks`, from every one of those, and keeps that key as it is.
 - `agent_command` runs a goal in the background; the prompt is its last argument.
 - `auto_approve` (default `false`): `true` approves what a flow step leaves for the owner, logged as auto-approved.
 - `auto_merge` (default `false`): `true` lets the release step's `merge.py` merge a goal's pull request.

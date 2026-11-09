@@ -39,7 +39,7 @@ Keep to these rules:
 
 | Path | Holds |
 |---|---|
-| `.loop/config.json` | Every repo setting with its default (`parallel` 0 is unlimited): base branch, checks, agent command, budgets, switches, risky paths, wiki folder |
+| `.loop/config.json` | Every repo setting with its default (`parallel` 0 is unlimited): base branch, agent command, budgets, switches, risky paths, wiki folder. A `checks` list already there is kept and seeds the regression rows; otherwise the surveyed test commands do |
 | `~/.workflow-loop/flow.json`, `health.json`, `repos` | The private settings, outside the repo and never committed, each with a one-line explanation (`_help`); mode 0600 |
 | `.loop/queue.md` | An empty goal queue |
 | `.loop/findings.md` | An empty findings list |

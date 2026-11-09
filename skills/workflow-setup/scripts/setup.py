@@ -75,7 +75,7 @@ def bare_agent(command):
 
 
 def merged(repo, old):
-    """The config: values already there win, the survey fills the rest."""
+    """The config: values already there win (checks too), the survey fills the rest."""
     agent = survey_agent()
     config = settings.repo_defaults()
     files = git(repo, "ls-files").splitlines()
@@ -156,7 +156,7 @@ def main():
             git(repo, "checkout", "-q", "-b", args.branch)
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
     with open(config_path, "w") as handle:
-        handle.write(json.dumps({k: v for k, v in config.items() if k != "checks"}, indent=2) + "\n")
+        handle.write(json.dumps(seed.stored(config, old), indent=2) + "\n")
     seed.apply(repo, config, found, acts)
     paths = [p for p in (".loop", found["wiki"], ".github/workflows/regression.yml") if os.path.exists(os.path.join(repo, p))]
     git(repo, "add", "-A", "--", *paths)
