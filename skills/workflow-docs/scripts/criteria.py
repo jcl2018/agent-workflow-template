@@ -183,21 +183,20 @@ def criteria_of(lines):
     return [(line, LINE.match(line)) for line in lines if line.strip()]
 
 
-def unknown_commands(root, lines):
-    """Backticked `script.py verb` commands of a Usage block whose script name no skill file under skills/ mentions."""
-    known, base = "", os.path.join(root, "skills")
-    for here, _, files in os.walk(base):
-        for name in files:
-            if name == "SKILL.md" or name == "commands.md":
-                with open(os.path.join(here, name)) as handle:
-                    known += handle.read()
-    if not known:
-        return []
-    out = []
+def usage_trouble(root, lines):
+    """Problems in a Usage block: a script file or python/bash command named, or a `/skill verb` missing from that skill's Command map."""
+    out, base = [], os.path.join(root, "skills")
     for command in re.findall(r"`([^`]+)`", "\n".join(lines)):
-        script = re.search(r"\b([\w-]+\.py)\b", command)
-        if script and script.group(1) not in known and script.group(1) not in out:
-            out.append(script.group(1))
+        script = re.search(r"\b([\w-]+\.(?:py|sh))\b", command)
+        if script or re.match(r"(python3?|bash|sh)\s", command):
+            out.append("`%s` names a script. Fix: write it as an agent request or a /skill verb" % command)
+            continue
+        ask = re.match(r"/([\w-]+)\s+([\w-]+)", command)
+        path = os.path.join(base, ask.group(1) if ask else "", "SKILL.md")
+        if ask and os.path.isfile(path):
+            with open(path) as handle:
+                if not re.search(r"^\| `/%s %s[ `]" % (re.escape(ask.group(1)), re.escape(ask.group(2))), handle.read(), re.M):
+                    out.append("`%s` is not in the Command map of skills/%s/SKILL.md. Fix: use a mapped verb" % (command, ask.group(1)))
     return out
 
 
@@ -223,8 +222,8 @@ def contract(root, names, seen):
         if rule["usage"] in body:
             if not [x for x in body[rule["usage"]] if x.strip()]:
                 found.append(("USAGE", page, "has an empty %s section. Fix: list its commands, or remove the section" % rule["usage"]))
-            for command in unknown_commands(root, body[rule["usage"]]):
-                found.append(("USAGE", page, "`%s` is in no skill file. Fix: use a real command" % command))
+            for trouble in usage_trouble(root, body[rule["usage"]]):
+                found.append(("USAGE", page, trouble))
         for line, match in criteria_of(body["Criteria"]):
             if not match:
                 found.append(("CRITERION", page, "not one line '- ID: **Unreviewed** text': " + line.strip()[:60]))

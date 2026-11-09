@@ -13,10 +13,10 @@ A failed release is recorded as `release_error` and lists under Issues beside `w
 
 ## Usage
 
-- `operate.py run` is the operation session: it plans queued goals, starts a worker for each ready one and prints the live board; `operate.py send SLUG "..."` gives a worker an answer.
-- `watch.py go "..." --done "..."` queues and starts a goal; `watch.py watch` keeps goals moving; `watch.py resume SLUG` restarts one.
-- `monitor.py report` and `monitor.py dashboard` show where every goal stands.
-- `worker.py met SLUG N` marks a done line met; `worker.py cleanup` deletes merged `loop/*` branches (`--dry-run` lists them).
+- `/workflow-monitoring operate` is the operation session: it plans queued goals, starts a worker for each ready one and prints the live board; `/workflow-monitoring send SLUG "text"` gives a worker an answer.
+- `/workflow-monitoring go "goal" --done "line"` queues and starts a goal; `/workflow-monitoring watch` keeps goals moving; `/workflow-monitoring resume SLUG` restarts one.
+- `/workflow-monitoring report` and `/workflow-monitoring dashboard` show where every goal stands.
+- `/workflow-monitoring met SLUG N` marks a done line met; `/workflow-monitoring cleanup` deletes merged `loop/*` branches ("list them first" previews).
 
 ## Criteria
 

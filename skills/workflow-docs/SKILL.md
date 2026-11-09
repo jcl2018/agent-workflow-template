@@ -139,3 +139,18 @@ This reverts the last publish. It refuses if the wiki has changed since.
 - Never turn permissions off.
 
 `loop-files.md` (`../` here, `shared/` in a pack) describes every file.
+
+## Command map
+
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+
+| Ask | Runs |
+|---|---|
+| `/workflow-docs audit` | `python3 scripts/docs.py audit` |
+| `/workflow-docs check` | `python3 scripts/docs.py check` |
+| `/workflow-docs criteria PAGE` | `python3 scripts/docs.py criteria PAGE` |
+| `/workflow-docs review ID` | `python3 scripts/criteria.py review ID --user` |
+| `/workflow-docs render` | `python3 scripts/criteria.py render` |
+| `/workflow-docs publish` | `python3 scripts/docs.py publish` |
+| `/workflow-docs restore` | `python3 scripts/docs.py restore` |
+| `/workflow-docs milestones` | `python3 scripts/milestone.py new --all` |

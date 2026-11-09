@@ -136,3 +136,14 @@ Then stop. In a monitored run, `report` shows it. After the answer, run `goal.py
 - Keep skill instructions out of the repo. `.loop/` holds only the repo's own data.
 
 `loop-files.md` (`../` here, `shared/` in a pack) describes every file.
+
+## Command map
+
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+
+| Ask | Runs |
+|---|---|
+| `/workflow-delivery go "goal" --done "line"` | `python3 scripts/goal.py new SLUG --goal "goal" --done "line"` (from the operation session, `/workflow-monitoring go` hands it to a worker) |
+| `/workflow-delivery step SLUG STEP` | `python3 scripts/flow.py SLUG STEP`, repeated until it stops printing `RUNNING` |
+| `/workflow-delivery record SLUG STEP` | `python3 scripts/goal.py record SLUG STEP --file FILE` |
+| `/workflow-delivery pr SLUG` | `python3 scripts/goal.py pr SLUG` |

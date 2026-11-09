@@ -147,3 +147,19 @@ finish time. Merged work, history and totals are left out. The loop is in `refer
 - Keep skill instructions out of the repo. `.loop/` holds only the repo's own data.
 
 `loop-files.md` (`../` here, `shared/` in a pack) describes every file.
+
+## Command map
+
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+
+| Ask | Runs |
+|---|---|
+| `/workflow-monitoring operate` | `python3 scripts/operate.py run` |
+| `/workflow-monitoring send SLUG "text"` | `python3 scripts/operate.py send SLUG "text"` |
+| `/workflow-monitoring go "goal" --done "line"` | `python3 scripts/watch.py go "goal" --done "line"` |
+| `/workflow-monitoring watch` | `python3 scripts/watch.py watch` |
+| `/workflow-monitoring resume SLUG` | `python3 scripts/watch.py resume SLUG` |
+| `/workflow-monitoring report` | `python3 scripts/monitor.py report` |
+| `/workflow-monitoring dashboard` | `python3 scripts/monitor.py dashboard` |
+| `/workflow-monitoring met SLUG N` | `python3 scripts/worker.py met SLUG N` |
+| `/workflow-monitoring cleanup` | `python3 scripts/worker.py cleanup` |

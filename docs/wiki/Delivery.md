@@ -18,11 +18,11 @@ template keeps every gate until its owner turns one off.
 
 ## Usage
 
-- `goal.py new SLUG --goal "..." --done "..."` freezes a goal and its done lines; from the operation session, `watch.py go` hands it to a background worker instead.
-- `flow.py SLUG STEP` runs the idea, plan, review, qa or ship step unattended; run it again until it stops printing `RUNNING`, then `goal.py record SLUG STEP --file FILE` records it.
+- "start a goal to add caching", or `/workflow-delivery go "goal" --done "line"`, freezes a goal and its done lines; from the operation session, `/workflow-monitoring go "goal" --done "line"` hands it to a background worker instead.
+- `/workflow-delivery step SLUG STEP` runs the idea, plan, review, qa or ship step unattended until it stops printing `RUNNING`; `/workflow-delivery record SLUG STEP` then records it.
 - A decision a step leaves for the owner shows under Issues on the live board until it is answered.
-- `goal.py pr SLUG` merges the latest base branch, pushes and opens the pull request; it never merges.
-- `merge.py SLUG` is the release step: it brings the docs up to date, merges where `auto_merge` is on, bumps the version and writes the release note. `release.py ask|cut|leave SLUG` is the manual path.
+- `/workflow-delivery pr SLUG` merges the latest base branch, pushes and opens the pull request; it never merges.
+- `/workflow-release merge SLUG` is the release step: it brings the docs up to date, merges where `auto_merge` is on, bumps the version and writes the release note. `/workflow-release ask SLUG`, `/workflow-release cut SLUG` and `/workflow-release leave SLUG` are the manual path.
 
 ## Criteria
 

@@ -147,3 +147,14 @@ Each refusal says `REFUSED:` and a fix. Common ones:
 - Keep skill instructions out of the repo. `.loop/` holds only the repo's own data.
 
 `loop-files.md` (`../` here, `shared/` in a pack) describes every file.
+
+## Command map
+
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+
+| Ask | Runs |
+|---|---|
+| `/workflow-release merge SLUG` | `python3 scripts/merge.py SLUG` |
+| `/workflow-release ask SLUG` | `python3 scripts/release.py ask SLUG` |
+| `/workflow-release cut SLUG` | `python3 scripts/release.py cut SLUG` |
+| `/workflow-release leave SLUG` | `python3 scripts/release.py leave SLUG` |

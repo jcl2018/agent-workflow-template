@@ -72,24 +72,24 @@ at most `parallel` workers at once, no waiting for shared files), starts every g
 the workers, updates the board and prints the full live board on the cadence (30 minutes by default), or at once when a worker reports:
 
 ```text
-python3 skills/workflow-monitoring/scripts/operate.py run
-python3 skills/workflow-monitoring/scripts/operate.py send <slug> "<answer or follow-up>"
+/workflow-monitoring operate
+/workflow-monitoring send <slug> "<answer or follow-up>"
 ```
 
 A goal merges the latest base branch before its pull request and reruns its checks if that changed anything; only a real
 conflict costs it a try. Goal steps refuse outside a worker.
 
-The pieces it runs, if you want them by hand (see `skills/workflow-monitoring/references/operation.md`):
+The pieces it runs, if you want them by hand, are asked in plain words (see `skills/workflow-monitoring/references/operation.md`):
 
 ```text
-python3 skills/workflow-monitoring/scripts/board.py board
-python3 skills/workflow-monitoring/scripts/board_page.py
-python3 skills/workflow-monitoring/scripts/board.py cadence 30
-python3 skills/workflow-monitoring/scripts/board.py repos add ../other-repo
-python3 skills/workflow-monitoring/scripts/watch.py go "<goal>" --done "<line>"
+"update the board and print what changed"
+"draw the board page"
+"set the check-in cadence to 30 minutes"
+"follow the goals in ../other-repo"
+/workflow-monitoring go "<goal>" --done "<line>"
 ```
 
-`board.py board` writes `board.json` and prints what changed. `board_page.py` then draws `board.html` and
+Updating the board writes `board.json` and prints what changed; drawing the page then makes `board.html` and
 `board-artifact.html` from it.
 
 An operation session only assigns, watches and reports. It puts goals in a named batch, `start` begins one worker for
@@ -98,9 +98,9 @@ request) back as a prompt message that the board shows. A check-in prints the li
 Queued goals, Dependencies, Finish:
 
 ```text
-python3 skills/workflow-monitoring/scripts/batch.py add nightly --goal "<goal>" --done "<line>"
-python3 skills/workflow-monitoring/scripts/batch.py start nightly
-python3 skills/workflow-monitoring/scripts/batch.py status nightly
+"add a goal to the nightly batch: <goal>, done when <line>"
+"start the nightly batch"
+"show the nightly batch status"
 ```
 
 Keep tests visible and enforced:
@@ -151,7 +151,7 @@ From install to one finished goal.
    `$CLAUDE_SKILLS_DIR`) and prints `LINKED <name>`. It skips a name that is already a real folder. For another agent,
    copy the `skills/` folders into its skills folder.
 2. **Set up your repo.** Run `/workflow-setup`. It writes `.loop/config.json`, `.loop/queue.md` and `.loop/findings.md`
-   on a branch called `workflow-setup`. Preview with `python3 scripts/setup.py --dry-run`, using the path to the skill's
+   on a branch called `workflow-setup`. Preview with `/workflow-setup setup --dry-run`, using the path to the skill's
    folder. Then allow the
    tools a background agent needs in `agent_command` (for example
    `["claude", "-p", "--allowedTools=Bash,Read,Write,Edit"]`; you choose the list), and review and merge the branch

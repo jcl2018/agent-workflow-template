@@ -9,8 +9,8 @@ Skill: `workflow-setup`. Adopts a repo into this template's format: loop config,
 
 ## Usage
 
-- `setup.py --dry-run` shows what it found and would add, then `setup.py` writes it on a branch; `--bare` writes only the config, queue and findings.
-- `settings.py reference` prints every setting with its default and one-line explanation; `settings.py fill-repo` adds any missing repo setting to `.loop/config.json`. Every setting is in `skills/workflow-setup/references/settings.md`; `cadence`, the minutes between live-board check-ins, defaults to 30.
+- `/workflow-setup setup` shows what it found and would add (`--dry-run`), then writes it on a branch; `--bare` writes only the config, queue and findings.
+- `/workflow-setup settings` prints every setting with its default and one-line explanation; `/workflow-setup fill-repo` adds any missing repo setting to `.loop/config.json`. Every setting is in `skills/workflow-setup/references/settings.md`; `cadence`, the minutes between live-board check-ins, defaults to 30.
 
 ## Criteria
 

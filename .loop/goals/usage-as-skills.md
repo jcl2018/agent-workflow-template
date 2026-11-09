@@ -13,4 +13,9 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Open `docs/wiki/Monitoring.md`.
+   Expect: every Usage line is a `/workflow-monitoring ...` command or a plain request, and no line names a `.py` file.
+2. Open `skills/workflow-monitoring/SKILL.md` and find `## Command map`.
+   Expect: a row `/workflow-monitoring operate` mapped to `python3 scripts/operate.py run`.
+3. Put a `.py` file name in any wiki Usage line and run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: a `USAGE` line saying it names a script, with the fix.
