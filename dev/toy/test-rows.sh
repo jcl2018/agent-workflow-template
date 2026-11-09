@@ -6,8 +6,9 @@ unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a rea
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 unset LOOP_BATCH
 here=$(cd "$(dirname "$0")/../.." && pwd); id=${1:?usage: test-rows.sh ID}
+. "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
-d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
+d=$(mktemp -d); toy_on_exit 'rm -rf "$d"'
 "$here/dev/toy/make.sh" "$d/toy" >/dev/null || exit 1
 export LOOP_FLOW="$d/toy/flow.json"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
