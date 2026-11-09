@@ -17,8 +17,8 @@ The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a releas
 
 - `/workflow-docs audit` checks every page against the template, fixes the mechanical and lists the wording to rewrite; it exits 1 while any is left.
 - `/workflow-docs check` lists missing, stale, unmapped and unwritten pages, counts the repo doesn't match (code, quoted code, comments and limits such as "up to 6" are skipped, and a wrapped sentence is read whole; mark a line (the mark covers only that line) `<!-- not-a-count -->` when its number isn't one), and broken criteria; `/workflow-docs criteria PAGE` prints the format and the next free id.
-- `/workflow-docs review PAGE` marks the whole PRD Reviewed, and `/workflow-docs review ID` one requirement, only on the owner's words; `/workflow-docs unreview PAGE` lifts the lock; `/workflow-docs render` rewrites the Tests.
-- `/workflow-docs prd NAME "<idea>" --paths A,B` drafts a new feature's PRD, Unreviewed; `/workflow-docs convert` turns old Summary/Criteria pages into PRD pages.
+- `/workflow-docs review PAGE` marks the whole PRD Reviewed, and `/workflow-docs review ID` one requirement, only on the owner's words; `/workflow-docs unreview PAGE` lifts the lock; PAGE is the exact feature page name, such as Delivery (a wrong case or a path is refused); `/workflow-docs render` rewrites the Tests.
+- `/workflow-docs prd NAME "<idea>" --paths A,B` drafts a new feature's PRD, Unreviewed; `/workflow-docs convert` turns old Summary/Criteria pages into PRD pages, keeps a page's first heading when it has no title, and adds a missing Non-goals before Success metrics.
 - `/workflow-docs publish` copies the pages to the GitHub wiki, and `/workflow-docs restore` undoes the last publish.
 - `/workflow-docs milestones` makes each feature's milestone and the Backlog; running it again creates nothing.
 
