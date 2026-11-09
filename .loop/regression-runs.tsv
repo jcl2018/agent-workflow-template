@@ -19,7 +19,7 @@ criteria-max-setting	PASS	2026-11-09
 criteria-no-scripts	PASS	2026-11-09
 cut-draft	PASS	2026-11-09
 cut-needs-verify	PASS	2026-11-09
-defect-categories	PASS	2026-11-09
+defect-categories	FAIL	2026-11-09
 defect-flow-steps	PASS	2026-11-09
 defect-health	PASS	2026-11-09
 defect-known	PASS	2026-11-09
@@ -76,6 +76,7 @@ pr-body-no-checks	PASS	2026-11-09
 pr-in-milestone	PASS	2026-11-09
 pr-needs-flow	PASS	2026-11-09
 publish-refused-stale	PASS	2026-11-09
+record-in-session	PASS	2026-11-09
 refuse-replace	PASS	2026-11-09
 refused-unmet	PASS	2026-11-09
 release-note-found	PASS	2026-11-09
@@ -89,12 +90,18 @@ run-ledger	PASS	2026-11-09
 same-lines	PASS	2026-11-09
 schedule-setting	PASS	2026-11-09
 scripts-no-hang	PASS	2026-11-09
+session-answer	PASS	2026-11-09
 session-assign	PASS	2026-11-09
 session-board-issue98	PASS	2026-11-09
+session-ended-waiting	PASS	2026-11-09
 session-fallback	PASS	2026-11-09
+session-holds-slot	PASS	2026-11-09
+session-quiet	PASS	2026-11-09
 session-rename	PASS	2026-11-09
 session-reports	PASS	2026-11-09
 session-reuse	PASS	2026-11-09
+session-tool-helper	PASS	2026-11-09
+session-tool-timeout	PASS	2026-11-09
 settings-read-fresh	PASS	2026-11-09
 settings-reference	PASS	2026-11-09
 setup-both-halves	PASS	2026-11-09
