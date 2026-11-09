@@ -9,10 +9,10 @@ Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.l
 
 ## Usage
 
-- `regression.py add ID --level land --command "..." --goal DEL-1` adds a test row; `--category defect --link URL` makes it a defect test.
-- `regression.py red ID --break "..."` records that the test fails on broken code.
-- `regression.py run land` runs the rows and opens, updates or closes one issue per failing row.
-- `regression.py sync` lists criteria with no row and rows never seen failing; `regression.py workflow` writes the GitHub Actions workflow.
+- `/workflow-regression add ID --level land --command "cmd" --goal DEL-1` adds a test row; `--category defect --link URL` makes it a defect test.
+- `/workflow-regression red ID --break "cmd"` records that the test fails on broken code.
+- `/workflow-regression run land` runs the rows and opens, updates or closes one issue per failing row.
+- `/workflow-regression sync` lists criteria with no row and rows never seen failing; `/workflow-regression workflow` writes the GitHub Actions workflow.
 
 ## Criteria
 
