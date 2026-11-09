@@ -67,7 +67,7 @@ one-failure	PASS	2026-11-09
 one-issue	PASS	2026-11-09
 one-link	PASS	2026-11-09
 one-way-to-run	PASS	2026-11-09
-operate-all	PASS	2026-11-09
+operate-all	FAIL	2026-11-09
 operate-wakes-on-report	PASS	2026-11-09
 page-shape	PASS	2026-11-09
 parallel-unlimited	PASS	2026-11-09
@@ -98,6 +98,7 @@ setup-both-halves	PASS	2026-11-09
 size-fail	PASS	2026-11-09
 skill-says-governs	PASS	2026-11-09
 stale-found	PASS	2026-11-09
+stale-groups-defect	PASS	2026-11-09
 stale-merge-order	PASS	2026-11-09
 stale-page-row	PASS	2026-11-09
 starts-at-idea	PASS	2026-11-09
