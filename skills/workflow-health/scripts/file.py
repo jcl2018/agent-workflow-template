@@ -12,6 +12,12 @@ import json
 import os
 import re
 import subprocess
+import sys
+
+# No terminal, no waiting: a prompt from gh or the judge must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 MARK = "<!-- loop-health %s -->"
 BACKLOG = "Backlog"
@@ -48,7 +54,6 @@ def run(args, root):
 
 def saves(root, here, rows):
     """(items, read): the judge's savings as rows, and whether the judge answered. Calls a model, so only on request."""
-    import sys
     sys.path.insert(0, here)
     try:
         import judge
