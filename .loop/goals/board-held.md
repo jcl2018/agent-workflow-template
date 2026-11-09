@@ -41,4 +41,15 @@ red` on each defect row.
 
 ## Verify by hand
 
-<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. In the main checkout after the merge, start a session with the app's own tools for a goal that isn't frozen yet, run
+   `python3 skills/workflow-monitoring/scripts/sessions.py bind <new-slug> <session-id>`, then print the live board
+   (`python3 skills/workflow-monitoring/scripts/board_status.py`).
+   Expect: the bind prints `ASSIGNED ... not frozen yet`, and the board shows `<new-slug>` under Running goals at once,
+   with `[freezing]` and `worker: session worker · <new-slug>`.
+2. Look at a goal you put on hold (its session reassigned, its worktree kept) on the same board.
+   Expect: it is listed under Queued goals ending in `held`, with `worker: none (held, ...)` and a `sessions.py bind`
+   line naming it. It is not under Running goals and not called background.
+3. Look at a session goal that failed once and was bound again, after its worker sent a new report.
+   Expect: its next line is the newest report, not the old failure, and its bar line ends `try 2 of 3`.
+4. After a goal's pull request opens, send `python3 skills/workflow-monitoring/scripts/sessions.py report <slug> --status running`.
+   Expect: it prints `KEPT done for <slug>: ...`, and the goal still reads `next: merge the pull request` (or its merged report).
