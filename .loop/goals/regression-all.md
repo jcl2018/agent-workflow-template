@@ -15,3 +15,10 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+
+1. Open `docs/wiki/Regression.md` and `docs/wiki/Documentation.md` and read the Tests tables.
+   Expect: every row shows its level (`both` or `nightly`) and a last result of `PASS` with a date, and no row says `not enforced`.
+2. Open `.loop/regression.tsv`.
+   Expect: the slow rows that run whole toy suites (for example `operate-all`, `auto-release`, `no-pid-left-alone`) are at level `nightly`, and none was removed.
+3. On GitHub, open Actions, then the `regression` workflow, and run it on this branch with "Run workflow".
+   Expect: the run finishes green and its summary table lists every row as PASS.

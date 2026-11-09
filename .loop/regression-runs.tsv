@@ -41,6 +41,13 @@ judge-verdict-unchanged	PASS	2026-11-09
 keeps-seen-red	PASS	2026-11-09
 known-no-block	PASS	2026-11-09
 landed-left-alone	PASS	2026-11-09
+live-board-arrows	PASS	2026-11-09
+live-board-cadence	PASS	2026-11-09
+live-board-flow	PASS	2026-11-09
+live-board-header	PASS	2026-11-09
+live-board-issues	PASS	2026-11-09
+live-board-leftouts	PASS	2026-11-09
+live-board-no-oneline	PASS	2026-11-09
 lock-in-report	PASS	2026-11-09
 milestone-links	PASS	2026-11-09
 milestones-once	PASS	2026-11-09
