@@ -97,7 +97,7 @@ import judge; l, s = judge.suggestions('.', [{'state': 'FAIL', 'family': 'x', 's
 print('\n'.join(l + s))"; }
 a=$(hints); b=$(hints); echo "$a"
 grep -q "^conflict: REL-2 and REL-3 " <<<"$a" && ok "conflicting criteria are found" || bad "conflict"
-grep -q "^missing: feature Empty has no criterion" <<<"$a" && ok "a feature with no criterion is found" || bad "missing criterion"
+grep -q "^missing: feature Empty has no requirement" <<<"$a" && ok "a feature with no criterion is found" || bad "missing criterion"
 grep -q "^next 1: FAIL " <<<"$a" && ok "next steps are ranked, failures first" || bad "ranked"
 [ "$a" = "$b" ] && ok "hints repeat exactly" || bad "hints differ"
 c=$($health check); e=$($health check); [ "$c" = "$e" ] && ! grep -q "JUDGE" <<<"$c" && ok "check stays apart from the judge and repeats" || bad "check same"
