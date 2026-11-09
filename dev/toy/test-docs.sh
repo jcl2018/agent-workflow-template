@@ -134,6 +134,18 @@ git checkout -q -- docs/wiki/Using-the-toy.md
 echo 'This line is marked `<!-- not-a-count -->` and says nine skills. <!-- not-a-count -->' >> docs/wiki/Using-the-toy.md
 $docs check | grep -q "^COUNT" && bad "the marker was ignored" || ok "a marked line is skipped"
 git checkout -q -- docs/wiki/Using-the-toy.md
+echo 'Mark a line `<!-- not-a-count -->` here; the toy has nine skills.' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: says nine skills" && ok "a marker inside inline code does not hide a count" || bad "in-code marker hid a count"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\nThe suite runs 1,200 tests, and 7 \xc5\xbfkills is not a word.\nA ``nine skills`` span is code.\n> ```\n> eight skills\n> ```\nUse `<!--` in prose, and the toy has three skills.\n' >> docs/wiki/Using-the-toy.md
+out=$($docs check 2>&1 || true)
+grep -q "Traceback" <<<"$out" && bad "a non-ASCII letter crashed the check" || ok "a non-ASCII letter does not crash the check"
+grep -q "says 200 tests\|says nine skills\|says eight skills" <<<"$out" && bad "a separator, double-backtick span or quoted fence counted: $out" || ok "separators, double-backtick spans and quoted fences are not counts"
+grep -q "says three skills" <<<"$out" && ok "a comment opener in code doesn't swallow later text" || bad "comment opener swallowed text"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\n<!-- an unclosed comment\nnine skills hidden\n' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "says nine skills" && bad "an unclosed comment was read" || ok "an unclosed comment hides what follows, as Markdown does"
+git checkout -q -- docs/wiki/Using-the-toy.md
 echo "The guide covers three skills." > skills/guide.md
 $docs check | grep -q "^COUNT skills/guide.md: says three skills, the repo has 2$" && ok "a top-level doc in skills is checked" || bad "skills doc count"
 git checkout -q -- docs/wiki/Using-the-toy.md README.md; rm -rf skills

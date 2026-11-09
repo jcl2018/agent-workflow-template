@@ -203,27 +203,37 @@ def problems(root, base):
 
 
 WORDS = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split()
-CLAIM = re.compile(r"(?<![-\w.])(\d+|%s) (?:workflow )?(skills?|feature pages?|criteri(?:on|a)|tests?)\b" % "|".join(WORDS), re.I)
-FENCE = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
+NOUNS = {"skill": "skill", "skills": "skill", "feature page": "page", "feature pages": "page", "criterion": "criteria",
+         "criteria": "criteria", "test": "test", "tests": "test"}
+CLAIM = re.compile(r"(?<![-\w.,/#])(\d+|%s) (?:workflow )?(skills?|feature pages?|criteri(?:on|a)|tests?)\b" % "|".join(WORDS),
+                   re.I | re.ASCII)
+FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+QUOTE = re.compile(r"^(?: {0,3}> ?)+")
 NOT_A_COUNT = "<!-- not-a-count -->"
-CRITERION_ID = re.compile(r"\b(?:%s)-\d+\b" % "|".join(sorted(set(PREFIXES.values()))))
 
 
 def prose(text):
-    """The lines a reader sees as prose: no fenced blocks, comments or inline code; None if a fence never closes."""
-    lines, fence = [], None
-    text = re.sub(r"<!--(?!\s*not-a-count\s*-->).*?-->", "", text, flags=re.S)
-    for line in text.splitlines():
+    """The lines a reader sees as prose: no fenced blocks, comments or code spans; None if a fence never closes."""
+    lines, fence, comment = [], None, False
+    for raw in text.splitlines():
+        line = QUOTE.sub("", raw)
         opener = FENCE.match(line)
-        if fence is None and opener:
-            fence = opener.group(1)
-        elif fence is not None:
+        if fence is not None:
             if opener and opener.group(1)[0] == fence[0] and len(opener.group(1)) >= len(fence) and not opener.group(2).strip():
                 fence = None
-        else:
-            marked = NOT_A_COUNT in line
-            line = re.sub(r"`[^`]*`", "", line)
-            lines.append(line + (" " + NOT_A_COUNT if marked else ""))
+            continue
+        if opener and not comment:
+            fence = opener.group(1)
+            continue
+        line = re.sub(r"(`+)(?!`).*?(?<!`)\1(?!`)", "", line)  # code spans of any backtick length
+        marked = NOT_A_COUNT in line
+        if comment:
+            end = line.find("-->")
+            comment, line = (True, "") if end < 0 else (False, line[end + 3:])
+        line = re.sub(r"<!--.*?-->", "", line)
+        if "<!--" in line:
+            comment, line = True, line[:line.index("<!--")]
+        lines.append(line + (" " + NOT_A_COUNT if marked else ""))
     return lines if fence is None else None
 
 
@@ -240,24 +250,30 @@ def counts(root):
     if os.path.isdir(wiki):
         names += ["%s/%s" % (folder, n) for n in sorted(os.listdir(wiki)) if n.endswith(".md")]
     names += sorted(os.path.relpath(n, root) for n in glob.glob(os.path.join(root, "skills", "*.md")))
-    found = []
+    texts, ids = {}, {}
     for rel in names:
         full = os.path.realpath(os.path.join(root, rel))
-        if not full.startswith(real_root + os.sep) or not os.path.isfile(full):
-            continue  # only regular files inside the repo
-        with open(full, encoding="utf-8", errors="replace") as handle:
-            lines = prose(handle.read())
+        if full.startswith(real_root + os.sep) and os.path.isfile(full):  # only regular files inside the repo
+            with open(full, encoding="utf-8", errors="replace") as handle:
+                texts[rel] = handle.read()
+            page = os.path.basename(rel)[:-3] if rel.startswith(folder + "/") else ""
+            if on and page in pages:
+                part = prose("\n".join(dict(criteria.sections(texts[rel])).get("Criteria", []))) or []
+                ids[rel] = [m.group(1) for _, m in criteria.criteria_of(part) if m]
+    known = set(i for found in ids.values() for i in found)
+    found = []
+    for rel, text in texts.items():
+        lines = prose(text)
         if lines is None:
             found.append(("COUNT", rel, "a code fence never closes, so its counts can't be read"))
             continue
-        page = os.path.basename(rel)[:-3] if rel.startswith(folder + "/") else ""
-        mine = on and page in pages
-        ids = [m.group(1) for _, m in criteria.criteria_of(lines) if m] if mine else []
-        real = {"skill": skills or None, "feature page": len(pages) if on else None,
-                "criteri": len(ids) if mine else None, "test": sum(len(linked.get(i, [])) for i in ids) if mine else None}
+        mine = ids.get(rel)
+        real = {"skill": skills or None, "page": len(pages) if on else None,
+                "criteria": len(mine) if mine is not None else None,
+                "test": sum(len(linked.get(i, [])) for i in mine) if mine is not None else None}
         for line in lines:
-            if NOT_A_COUNT in line or CRITERION_ID.search(line):  # marked, or about one criterion
-                continue
+            if NOT_A_COUNT in line or known.intersection(re.findall(r"\b[A-Z]{2,5}-\d+\b", line)):
+                continue  # marked, or about one criterion
             for match in CLAIM.finditer(line):
                 said, noun = match.group(1).lower(), match.group(2).lower()
                 if said == "one":  # "one test" is nearly always "a single test", not a count
@@ -265,8 +281,7 @@ def counts(root):
                 said = int(said) if said.isdigit() else WORDS.index(said) + 1
                 if said != 1 and noun in ("skill", "feature page", "test", "criterion"):
                     continue  # a singular noun after a number above one is a compound, as in "two test doubles"
-                thing = noun.rstrip("s").replace("criteria", "criteri").replace("criterion", "criteri")
-                want = real[thing]
+                want = real[NOUNS[noun]]
                 if want is not None and said != want:
                     found.append(("COUNT", rel, "says %s, the repo has %d" % (match.group(0), want)))
     return found

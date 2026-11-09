@@ -89,6 +89,8 @@ echo "This page has 3 tests." >> docs/wiki/Delivery.md
 $docs check | grep -q "^COUNT docs/wiki/Delivery.md: says 3 tests, the repo has 2$" && ok "a nonzero test count is checked, defect rows left out" || bad "nonzero tests count"
 sed -i.bak 's/This page has 3 tests\./This page has 2 tests./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
 $docs check | grep -q "^COUNT" && bad "the right test count failed" || ok "the right test count passes"
+good; sed -i.bak 's/^The Delivery page of the toy calculator, written for this test\./- DEL-7: **Unreviewed** An example line, not a criterion. This page has 1 criterion./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+$docs check | grep -q "^COUNT" && bad "a criterion-like line outside Criteria counted" || ok "only the Criteria section is counted"
 good; echo "DEL-1 alone has 3 tests." >> docs/wiki/Delivery.md
 $docs check | grep -q "^COUNT" && bad "a line about one criterion counted" || ok "a line naming a criterion is not a page count"
 NORENDER=1 page Delivery ""; echo "This page has 2 criteria." >> docs/wiki/Delivery.md
