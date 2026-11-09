@@ -35,7 +35,6 @@ docs-only	PASS	2026-11-09
 estimates-shown	PASS	2026-11-09
 every-row-described	FAIL	2026-11-09
 failed-waits-mender	PASS	2026-11-09
-file-one-group	PASS	2026-11-09
 fixed-closes	PASS	2026-11-09
 frozen-done-lines	PASS	2026-11-09
 judge-needs-you	PASS	2026-11-09
@@ -78,7 +77,19 @@ pr-body-criterion	PASS	2026-11-09
 pr-body-no-checks	PASS	2026-11-09
 pr-in-milestone	PASS	2026-11-09
 pr-needs-flow	PASS	2026-11-09
-preview-writes-nothing	PASS	2026-11-09
+prd-audit-ignores-changed	PASS	2026-11-09
+prd-convert	PASS	2026-11-09
+prd-lock-four	PASS	2026-11-09
+prd-new	PASS	2026-11-09
+prd-nongoals-metrics	PASS	2026-11-09
+prd-readers	PASS	2026-11-09
+prd-repo-green	FAIL	2026-11-09
+prd-review-args	PASS	2026-11-09
+prd-scenarios	PASS	2026-11-09
+prd-section-order	PASS	2026-11-09
+prd-stamps-free	PASS	2026-11-09
+prd-untested	PASS	2026-11-09
+prd-usage-changed	PASS	2026-11-09
 publish-refused-stale	PASS	2026-11-09
 record-in-session	PASS	2026-11-09
 refuse-replace	PASS	2026-11-09
@@ -86,7 +97,6 @@ refused-unmet	PASS	2026-11-09
 release-note-found	PASS	2026-11-09
 release-runs-audit	PASS	2026-11-09
 repeat-no-second	PASS	2026-11-09
-report-header	PASS	2026-11-09
 retired-leaves-waiting	PASS	2026-11-09
 review-dated	PASS	2026-11-09
 review-owner-only	PASS	2026-11-09

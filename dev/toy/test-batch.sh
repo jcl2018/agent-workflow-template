@@ -74,6 +74,6 @@ check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -s
 check "the test runs as a regression row" 'grep -q "test-batch.sh" "$here/.loop/regression.tsv"'
 page="$here/docs/wiki/Monitoring.md"
 for id in no-line-in-governor skill-says-governs; do
-  check "$id is a test named in the Tests table" 'sed -n "/^## Tests/,\$p" "$page" | grep -q "| \[$id\]("'
+  check "$id is a test named in the Tests" 'sed -n "/^## Tests/,\$p" "$page" | grep -q " — \[$id\]("'
 done
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
