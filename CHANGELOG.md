@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.9.3 - 2026-11-09
+
+- stale-groups: remove leftovers of removed groups, add defect test
+- stale-groups: render Delivery tests
+- Merge origin/main into loop/stale-groups
+- chore: bump version and changelog (v0.9.2)
+
+### How to verify
+
+1. Run `bash dev/toy/test-stale-groups.sh`.
+   Expect: it prints `PASS: no removed feature group comes back`.
+2. Run `python3 skills/workflow-health/scripts/milestone.py features`.
+   Expect: only Delivery, Documentation, Health, Monitoring, Regression and Setup are listed.
+3. Open the repo's Milestones page on GitHub.
+   Expect: Release and Milestones are closed; Delivery, Documentation, Health, Monitoring, Regression, Setup and Backlog are open.
+4. Run `grep -n "Criteria and tests" skills/design-guide.md`.
+   Expect: no output.
+
 ## v0.9.2 - 2026-11-09
 
 - Remove every leftover of the removed feature groups (Release, Milestones, Criteria and tests) from the wiki and skill files
