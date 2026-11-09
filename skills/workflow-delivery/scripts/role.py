@@ -101,3 +101,50 @@ def begin(record, step):
     with open(temp, "w") as handle:
         json.dump(state, handle, indent=2)
     os.replace(temp, record)
+
+
+DEPTH = re.compile(r"^\W*DEPTH:\s*(full|condensed)\b", re.M | re.I)
+STEP = re.compile(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", re.M | re.I)
+
+
+def depth_of(cfg):
+    """review_depth from .loop/config.json: condensed only when it says so, full otherwise (the default)."""
+    return "condensed" if (cfg or {}).get("review_depth") == "condensed" else "full"
+
+
+def markers(step):
+    """The private evidence strings a full plan or review reply must carry: full_markers in the flow file, or none."""
+    try:
+        with open(os.path.expanduser(os.environ.get("LOOP_FLOW") or "~/.workflow-loop/flow.json")) as handle:
+            spec = json.load(handle)
+    except (OSError, ValueError):
+        return []
+    found = spec.get("full_markers") if isinstance(spec, dict) else None
+    items = found.get(step) if isinstance(found, dict) else None
+    if items is None:
+        return []
+    if not isinstance(items, list) or not all(isinstance(m, str) and m.strip() for m in items):
+        print("NOTE: full_markers for %s is not a list of non-empty strings; ignored" % step)
+        return []
+    return items
+
+
+def record_depth(state, step, text, cfg, result):
+    """(stamp, error) for a step that advances. Every step states its depth on a DEPTH: line before its STEP line; under
+    review_depth full, plan and review may not run condensed, and a full one carries every private marker."""
+    setting = depth_of(cfg)
+    ends = list(STEP.finditer(text))
+    body = text[:ends[-1].start()] if ends else text
+    found = DEPTH.findall(body)
+    if not found:
+        return "", "no DEPTH line. Fix: end the reply with 'DEPTH: full' or 'DEPTH: condensed' just before the STEP line (review_depth is %s)" % setting
+    depth = found[-1].lower()
+    if step in ("plan", "review") and depth == "condensed" and setting == "full":
+        return "", ("the %s step ran condensed while review_depth is full in .loop/config.json. Fix: rerun it at full depth, "
+                    "or set review_depth to condensed" % step)
+    if step in ("plan", "review") and depth == "full":
+        rest = "\n".join(line for line in body.splitlines() if not DEPTH.match(line)).lower()
+        if any(m.lower() not in rest for m in markers(step)):
+            return "", "a configured full_markers evidence string for %s is missing from the reply. Fix: rerun the %s step at full depth" % (step, step)
+    state.setdefault("depth", {})[step] = depth
+    return " (depth %s%s)" % (depth, ", skipped" if result == "skipped" else ""), ""

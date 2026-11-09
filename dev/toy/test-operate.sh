@@ -149,7 +149,7 @@ git switch -q main
 flowall() { for s in idea plan review qa ship; do step "$1" $s >/dev/null; $goal check "$1" >/dev/null; done; }
 step() { $F "$1" "$2" --wait 5 >/dev/null; $F "$1" "$2" --wait 10 >/dev/null; $goal record "$1" "$2" --file "$C/loop/runs/$1.$2.txt"; }
 $goal new s1 --here --goal "S1" --done "s1" >/dev/null; echo s1 > s1.txt; git add s1.txt; git commit -qm s1
-FAKE_SKILL_OUT='used 4,200 tokens\nSTEP: done' step s1 idea >/dev/null
+FAKE_SKILL_OUT='used 4,200 tokens\nDEPTH: full\nSTEP: done' step s1 idea >/dev/null
 check "a flow step records the tokens its agent reported" 'python3 -c "import json,sys;assert json.load(open(sys.argv[1]))[\"tokens\"][\"idea\"]==4200" "$C/loop/runs/s1.json"'
 flowall s1; git switch -q main
 $goal new s2 --here --goal "S2" --done "s2" >/dev/null; printf '# from s2\n' >> calc.py; git commit -qam s2; flowall s2; git switch -q main

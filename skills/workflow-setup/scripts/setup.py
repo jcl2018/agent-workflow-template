@@ -84,6 +84,7 @@ def merged(repo, old):
     if version and "version_file" not in old:
         config["version_file"] = version
     config.update(old)
+    config["_help"] = settings.repo_help(old)
     return config
 
 

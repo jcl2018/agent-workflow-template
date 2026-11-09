@@ -307,9 +307,15 @@ def cmd_record(args):
     result, why = (found[-1][0].lower(), found[-1][1].strip()) if found else ("", "")
     pending = [" ".join(item.split()) for item in re.findall(r"^\W*PENDING:\s*(.+)$", text, re.M)]
     os.remove(ran)
-    if (pending or result == "pending") and config().get("auto_approve") is True:
+    stamp, cfg = "", config()
+    if result in ("done", "skipped") or ((pending or result == "pending") and cfg.get("auto_approve") is True):
+        stamp, bad = role.record_depth(state, args.step, text, cfg, result)
+        if bad:
+            failed_try(state, "%s failed: %s" % (args.step, bad), args.step, "run flow.py %s %s again" % (args.slug, args.step))
+            return 1
+    if (pending or result == "pending") and cfg.get("auto_approve") is True:
         took = "; ".join(pending) or why or "the step's pending gate"
-        state["flow"][args.step] = "done: auto-approved: " + took[:200]
+        state["flow"][args.step] = "done: auto-approved: " + took[:200] + stamp
         state["step"] = role.after(args.step)
         state["note"] = {"text": "auto-approved at %s: %s" % (args.step, took[:240]), "at": now()}
         save(state, "%s auto-approved: %s" % (args.step, took[:300]))
@@ -325,7 +331,7 @@ def cmd_record(args):
         print("WAITING %s: %s" % (args.slug, ask))
         return 0
     if result in ("done", "skipped"):
-        state["flow"][args.step] = result + (" in session" if args.in_session else "") + (": " + why[:120] if why else "")
+        state["flow"][args.step] = result + (" in session" if args.in_session else "") + (": " + why[:120] if why else "") + stamp
         state["step"] = role.after(args.step)
         save(state, "%s %s" % (args.step, state["flow"][args.step]))
         print("RECORDED %s %s" % (args.step, state["flow"][args.step]))

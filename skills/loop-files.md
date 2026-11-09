@@ -42,6 +42,10 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 - `cadence`, `step_limit`, `token_budget`, `max_tries`, `routines` and `regression_cron` are optional repo settings; see the reference.
 - `agent_command` runs a goal in the background; the prompt is its last argument.
 - `auto_approve` (default `false`): `true` approves what a flow step leaves for the owner, logged as auto-approved.
+- `review_depth` (default `full`): `full` makes the plan and review steps run their skill's whole pipeline and refuses a
+  condensed reply; `condensed` allows a shorter run. Every step's reply states `DEPTH: full|condensed`, record stamps it
+  on the step, and the board and the pull request body show it. The flow file's private `full_markers` (per step, strings)
+  must appear in a full plan or review reply. `config.json` carries its one-line explanation under `_help`.
 - `auto_merge` (default `false`): `true` lets the release step's `merge.py` merge a goal's pull request.
 - `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
 - `mend` and `resume_on_limit` let `watch` restart a goal. `limit_wait`, `mend_wait` and `watch_interval` are optional, in seconds.
