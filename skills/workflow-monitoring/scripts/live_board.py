@@ -16,6 +16,7 @@ import os
 import re
 import subprocess
 import sys
+import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import board_status as bs  # noqa: E402
@@ -26,6 +27,7 @@ import status_graph  # noqa: E402
 os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")
 
 FLOW = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
+WIDTH = 60   # a phone screen
 HEALTH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-health", "scripts", "health.py")
 
 
@@ -73,9 +75,31 @@ def current(run):
     return FLOW.index(run["step"]) if run.get("step") in FLOW else 0
 
 
-def flow_line(run):
+def flow_lines(run, over=0):
+    """The step flow, indented four, packed into lines of at most WIDTH that break at the " > " joints (steps stay whole).
+    The current step reads "[build over by 12m]" when it ran a minute or more past its usual time."""
     here = current(run)
-    return " > ".join("[%s]" % step if i == here else step + "✓" if i < here else step for i, step in enumerate(FLOW))
+    steps = ["[%s%s]" % (step, " over by " + status_graph.span(over) if over >= 60 else "") if i == here
+             else step + "✓" if i < here else step for i, step in enumerate(FLOW)]
+    lines, line = [], "    "
+    for i, step in enumerate(steps):
+        piece = step + (" >" if i < len(steps) - 1 else "")
+        if line.strip() and len(line) + 1 + len(piece) > WIDTH:
+            lines.append(line)
+            line = "    "
+        line += piece if line == "    " else " " + piece
+    return lines + [line]
+
+
+def fit(lines, width=WIDTH):
+    """Wrap every line to width at word boundaries, continuations indented two past the line's own indent; a word longer than
+    the width is cut. Runs on the text model before it becomes HTML, so markup is never split."""
+    out = []
+    for line in lines:
+        indent = line[:len(line) - len(line.lstrip())]
+        out += textwrap.wrap(line, width, subsequent_indent=indent + "  ", drop_whitespace=True, break_long_words=True,
+                             break_on_hyphens=False) or [""] if len(line) > width else [line]
+    return out
 
 
 def next_line(run):
@@ -126,7 +150,12 @@ def render(root=None, at=None):
     items += [dict(slug=g["slug"], mark="queued", depends=waits(g["depends"]), stage=0,
                    left=bs.left_time({"slug": g["slug"], "status": "queued"}, runs, at)) for g in queue]
     names = {item["slug"] for item in items}
-    out = ["LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root)), "", "Issues"]
+    head = "LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root))
+    if len(head) > WIDTH:
+        head, tail = head.rsplit("  ", 2)[0], "  ".join(head.rsplit("  ", 2)[1:])
+        out = [head, tail, "", "Issues"]
+    else:
+        out = [head, "", "Issues"]
     out += issues([r for r in runs if r["slug"] not in shut], gone, root) + ["", "Running goals"]
     for run in running:
         done = current(run)
@@ -134,7 +163,7 @@ def render(root=None, at=None):
         left = next(i["left"] for i in items if i["slug"] == run["slug"])
         out += ["- %s  [%s%s] %d%%  %s" % (run["slug"], "#" * full, "-" * (10 - full), round(100 * done / len(FLOW)),
                                          "no estimate yet" if left is None else "%s left" % status_graph.span(left)),
-                "    " + flow_line(run), "    next: " + next_line(run)]
+                *flow_lines(run, bs.overrun(run, runs, at)), "    next: " + next_line(run)]
     out += ([] if running else ["- (none)"]) + ["", "Queued goals"]
     for goal in queue:
         left = next(i["left"] for i in items if i["slug"] == goal["slug"])
@@ -147,7 +176,7 @@ def render(root=None, at=None):
     missing = status_graph.unknown(items)
     finish = "nothing left" if not items else "no estimate yet" if not seconds else "%sfinish about %s" % (
         "at least " if missing else "", graph.clock(at + datetime.timedelta(seconds=seconds)))
-    return out + ["", "Finish", finish]
+    return fit(out + ["", "Finish", finish])
 
 
 def fragment(lines):

@@ -74,17 +74,32 @@ def usual(runs, mine, step, pick):
     return statistics.median(values) if values else None
 
 
+def step_left(est, spent):
+    """(seconds the current step still needs, seconds it is over its usual time). Past the usual time, re-estimate from
+    how long it has already run: half of that, never under a minute, so it keeps growing while the step does."""
+    return (est - spent, 0) if spent <= est else (max(60, spent / 2), spent - est)
+
+
 def left_time(run, runs, at):
     """Seconds a goal still needs, from other runs' step medians: 0 when finished, None when no step has an estimate.
-    A goal that has not started needs every step."""
+    A goal that has not started needs every step; a current step past its estimate is re-estimated (step_left)."""
     if run.get("status") == "done":
         return 0
     spent = seconds_by_step(run, at)
     here = -1 if run.get("status") == "queued" else STEPS.index(run["step"]) if run.get("step") in STEPS else 0
-    left = [max(0, est - spent.get(step, 0)) if index == here else est
+    left = [step_left(est, spent.get(step, 0))[0] if index == here else est
             for index, step in enumerate(STEPS) if index >= here
             for est in [usual(runs, run, step, lambda r: seconds_by_step(r, at))] if est]
     return sum(left) if left else None
+
+
+def overrun(run, runs, at):
+    """Seconds the current step has run past its usual time; 0 when on time, finished or with no estimate."""
+    step = run.get("step")
+    if run.get("status") != "running" or step not in STEPS:
+        return 0
+    est = usual(runs, run, step, lambda r: seconds_by_step(r, at))
+    return step_left(est, seconds_by_step(run, at).get(step, 0))[1] if est else 0
 
 
 def queued(root, runs):

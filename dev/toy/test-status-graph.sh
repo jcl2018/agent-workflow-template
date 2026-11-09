@@ -61,7 +61,7 @@ check "the finish is the longest chain b > c > d, not the sum" 'grep -q "^finish
 import re,sys
 t=open(\"$T/block\").read()
 sys.exit(0 if re.search(r\"finish about \\d\\d:\\d\\d\", t) else 1)"'
-check "a running goal shows its step flow with the current step in brackets" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr > release" "$T/block"'
+check "a running goal shows its step flow with the current step in brackets" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr >" "$T/block"'
 
 echo "== the pure graph"
 python3 - "$M" <<'PY' && ok "no estimate gives at least, a cycle is cut, an empty queue is empty" || bad "pure graph"
