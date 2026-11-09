@@ -14,7 +14,7 @@ The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a releas
 ## Usage
 
 - `/workflow-docs audit` checks every page against the template, fixes the mechanical and lists the wording to rewrite; it exits 1 while any is left.
-- `/workflow-docs check` lists missing, stale, unmapped and unwritten pages, counts the repo doesn't match (mark a line `<!-- not-a-count -->` when its number isn't one), and broken criteria; `/workflow-docs criteria PAGE` prints the format and the next free id.
+- `/workflow-docs check` lists missing, stale, unmapped and unwritten pages, counts the repo doesn't match (code and comments are skipped; mark a line `<!-- not-a-count -->` when its number isn't one), and broken criteria; `/workflow-docs criteria PAGE` prints the format and the next free id.
 - `/workflow-docs review ID` marks a criterion Reviewed on the owner's words; `/workflow-docs render` rewrites the Tests tables.
 - `/workflow-docs publish` copies the pages to the GitHub wiki, and `/workflow-docs restore` undoes the last publish.
 - `/workflow-docs milestones` makes each feature's milestone and the Backlog; running it again creates nothing.

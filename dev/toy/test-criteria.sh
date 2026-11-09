@@ -84,6 +84,11 @@ grep -q "^COUNT docs/wiki/Delivery.md: says 3 criteria, the repo has 1$" <<<"$ou
 grep -q "^COUNT docs/wiki/Delivery.md: says 2 tests, the repo has 0$" <<<"$out" && ok "a wrong number of tests fails" || bad "tests count"
 n=$(grep -c . <(grep -v '^Home' .loop/docs.tsv | grep -v '^#'))
 grep -q "^COUNT docs/wiki/Delivery.md: says 4 feature pages, the repo has $n$" <<<"$out" && ok "a wrong number of feature pages fails" || bad "feature pages count ($n)"
+good; printf '# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\ndel-1a\tland\ttrue\tDEL-1\t\tFirst test.\tcriterion\t\ndel-1b\tland\ttrue\tDEL-1\t\tSecond test.\tcriterion\t\nbug-1\tland\ttrue\tDEL-1\t\tA defect test.\tdefect\thttps://example.test/1\n' > .loop/regression.tsv
+echo "This page has 3 tests." >> docs/wiki/Delivery.md
+$docs check | grep -q "^COUNT docs/wiki/Delivery.md: says 3 tests, the repo has 2$" && ok "a nonzero test count is checked, defect rows left out" || bad "nonzero tests count"
+sed -i.bak 's/This page has 3 tests\./This page has 2 tests./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+$docs check | grep -q "^COUNT" && bad "the right test count failed" || ok "the right test count passes"
 good; echo "DEL-1 alone has 3 tests." >> docs/wiki/Delivery.md
 $docs check | grep -q "^COUNT" && bad "a line about one criterion counted" || ok "a line naming a criterion is not a page count"
 NORENDER=1 page Delivery ""; echo "This page has 2 criteria." >> docs/wiki/Delivery.md

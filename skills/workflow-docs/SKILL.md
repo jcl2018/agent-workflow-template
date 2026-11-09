@@ -47,7 +47,7 @@ python3 scripts/docs.py check [--base <ref>]
 | `MISSING` | A mapped page has no file | Write it, or remove its row |
 | `UNWRITTEN` | The page still has its placeholder, or almost no text | Write it |
 | `UNMAPPED` | A page has no row in `.loop/docs.tsv` | Run `add` |
-| `COUNT` | The README, a wiki page or a top-level doc in `skills/` states a count of skills, feature pages, or a feature page's criteria or tests that the repo doesn't match; all but skills need `"criteria": true`. Skipped: the word "one", code, a line naming a criterion id, and a line marked `<!-- not-a-count -->` | Correct the number |
+| `COUNT` | The README, a wiki page or a top-level doc in `skills/` states a count of skills, feature pages, or a feature page's criteria or tests that the repo doesn't match; all but skills need `"criteria": true`. Skipped: the word "one", code, comments, a line naming a criterion id, and a line marked `<!-- not-a-count -->`; a code fence that never closes is itself a `COUNT` line | Correct the number |
 
 Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to
 count only changes since that point. `cut` counts from the goal's base the same way. `publish` has no `--base`: it

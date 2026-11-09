@@ -118,6 +118,24 @@ grep -q "says two skills" <<<"$out" && bad "twenty-two read as two" || ok "a hyp
 grep -q "^COUNT docs/wiki/Using-the-toy.md: says 1 skill, the repo has 2$" <<<"$out" && ok "the digit 1 is still a count" || bad "digit 1"
 echo "The README says four skills." >> README.md
 $docs check | grep -q "^COUNT README.md: says four skills, the repo has 2$" && ok "the README is checked too" || bad "readme count"
+git checkout -q -- docs/wiki/Using-the-toy.md README.md
+echo "There are three skills, all UTF-8." >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: says three skills" && ok "an id-like word (UTF-8) does not hide a count" || bad "UTF-8 hid a count"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\n````text\n```\nfour skills\n```\n````\nAfter the block the toy has three skills.\n' >> docs/wiki/Using-the-toy.md
+out=$($docs check || true); grep -q "says four skills" <<<"$out" && bad "a nested fence leaked" || ok "a longer fence holds a shorter one"
+grep -q "says three skills" <<<"$out" && ok "a count after a long fence is still read" || bad "count after long fence"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\n<!-- nine skills -->\nUse 2.9 skills of effort and two test doubles.\n' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT" && bad "a comment, decimal or compound counted" || ok "comments, decimals and compound nouns are not counts"
+printf '\n```text\nnever closed\nnine skills later\n' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: a code fence never closes" && ok "an unclosed fence is reported, not silently skipped" || bad "unclosed fence"
+git checkout -q -- docs/wiki/Using-the-toy.md
+echo 'This line is marked `<!-- not-a-count -->` and says nine skills. <!-- not-a-count -->' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT" && bad "the marker was ignored" || ok "a marked line is skipped"
+git checkout -q -- docs/wiki/Using-the-toy.md
+echo "The guide covers three skills." > skills/guide.md
+$docs check | grep -q "^COUNT skills/guide.md: says three skills, the repo has 2$" && ok "a top-level doc in skills is checked" || bad "skills doc count"
 git checkout -q -- docs/wiki/Using-the-toy.md README.md; rm -rf skills
 $docs check | grep -q "^COUNT" && bad "a repo with no skills folder checked skills" || ok "no skills folder, no skills check"
 
