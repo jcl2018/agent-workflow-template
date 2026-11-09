@@ -58,10 +58,10 @@ PRD template. One template defines every feature page as a short PRD: Problem (w
 - Given criteria_max in the config, when a page has more criteria than it allows, then the check fails. — [criteria-max-config](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a Usage section between Problem and Requirements, when the check runs, then it passes. — [usage-section-allowed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a page with no commands and no Usage section, when the check runs, then it passes. — [usage-optional](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a PRD page with swapped sections, an unknown section or stray text before the first one, when the docs check runs, then it fails with SECTIONS. — [prd-section-order](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
-- Given a PRD page with empty Non-goals or four Success metrics lines, when the docs check runs, then it fails naming the section. — [prd-nongoals-metrics](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
-- Given a one-line idea, when prd new runs with --paths, then it drafts a mapped, Unreviewed PRD page that stays UNWRITTEN until its drafts are written. — [prd-new](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
-- Given old Summary and Criteria pages, when convert runs, then they become PRD pages with the same IDs and stamps, a half-converted page is completed, and a second run changes nothing. — [prd-convert](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
+- Given a PRD page with swapped sections, an unknown section or stray text before the first one, when the docs check runs, then it fails with SECTIONS. — [prd-section-order](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a PRD page with empty Non-goals or four Success metrics lines, when the docs check runs, then it fails naming the section. — [prd-nongoals-metrics](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a one-line idea, when prd new runs with --paths, then it drafts a mapped, Unreviewed PRD page that stays UNWRITTEN until its drafts are written. — [prd-new](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given old Summary and Criteria pages, when convert runs, then they become PRD pages with the same IDs and stamps, a half-converted page is completed, and a second run changes nothing. — [prd-convert](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 
 #### DOC-2
 
@@ -72,18 +72,18 @@ The PRD is mine. I review the PRD as a whole (Problem, Usage, Requirements, Non-
 - Given a reviewed criterion, when it is changed, then the check fails. — [reviewed-lock](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a reviewed criterion, when it is unreviewed, then its lock is lifted. — [unreview-lifts](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a reviewed criterion that changed, when the report is printed, then it names that criterion. — [lock-in-report](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a PRD the owner reviewed, when Problem, Requirements, Non-goals or Success metrics changes, then the docs check fails with LOCKED naming each changed section. — [prd-lock-four](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
-- Given a PRD the owner reviewed, when only its Usage is edited, added or removed, then the docs check fails with CHANGED and the board lists the page. — [prd-usage-changed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
-- Given review or unreview with no --user, a bad ID, a bad page or a bad date, when it runs, then it refuses and changes nothing. — [prd-review-args](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
-- Given a PRD the owner reviewed, when a requirement is reviewed or unreviewed, or the owner un-reviews and reviews the PRD again, then no lock trips. — [prd-stamps-free](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
+- Given a PRD the owner reviewed, when Problem, Requirements, Non-goals or Success metrics changes, then the docs check fails with LOCKED naming each changed section. — [prd-lock-four](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a PRD the owner reviewed, when only its Usage is edited, added or removed, then the docs check fails with CHANGED and the board lists the page. — [prd-usage-changed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given review or unreview with no --user, a bad ID, a bad page or a bad date, when it runs, then it refuses and changes nothing. — [prd-review-args](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a PRD the owner reviewed, when a requirement is reviewed or unreviewed, or the owner un-reviews and reviews the PRD again, then no lock trips. — [prd-stamps-free](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 
 #### DOC-3
 
 Tests follow on their own. Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes; I never write or manage tests.
 
 - Given a Reviewed criterion with no test or a test that no longer matches, when the check runs, then it is listed. — [untested-listed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given regression rows linked to a requirement, when the Tests are rendered, then each row is a Given/When/Then scenario with its test, result and date, and a plain description is flagged. — [prd-scenarios](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
-- Given a PRD the owner reviewed whose requirement has no test, when the docs audit runs, then it lists that requirement as UNTESTED. — [prd-untested](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
+- Given regression rows linked to a requirement, when the Tests are rendered, then each row is a Given/When/Then scenario with its test, result and date, and a plain description is flagged. — [prd-scenarios](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a PRD the owner reviewed whose requirement has no test, when the docs audit runs, then it lists that requirement as UNTESTED. — [prd-untested](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 
 #### DOC-4
 
@@ -96,8 +96,8 @@ One command enforces it: checks all required docs against the template, code and
 - Given rewording left in the docs, when the docs command runs, then it fixes the Tests table, lists wording to rewrite and exits 1 while any is left. — [docs-audit](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given trouble in the docs, when the release step runs, then it reads the docs command and sees the trouble. — [release-runs-audit](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a page stating the wrong number of skills, when the docs check runs, then it fails naming the file, the stated number and the real one. — [docs-count-mismatch](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a page whose Usage changed since the owner's review, when the docs audit, the release fixes or publish run, then none of them stops on it or changes Usage. — [prd-audit-ignores-changed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
-- Given this repo, when its docs check and health run, then nothing fails but a page whose Usage changed since the owner's review. — [prd-repo-green](../../.loop/regression.tsv), both, FAIL 2026-11-09, seen failing no
+- Given a page whose Usage changed since the owner's review, when the docs audit, the release fixes or publish run, then none of them stops on it or changes Usage. — [prd-audit-ignores-changed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given this repo, when its docs check and health run, then nothing fails but a page whose Usage changed since the owner's review. — [prd-repo-green](../../.loop/regression.tsv), both, FAIL 2026-11-09, seen failing 2026-11-09
 
 #### DOC-5
 

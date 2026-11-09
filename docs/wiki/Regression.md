@@ -47,7 +47,7 @@ Two kinds of tests. The suite has two categories: criteria tests, which prove ea
 - Given a criterion with no test, when a release is cut, then it is refused. — [refused-unmet](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a goal that fixes an issue, when it opens its pull request without a defect test seen failing, then it is refused. — [defect-owed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given issues 35 and 58 and the two worker defects, when the tests are listed, then defect tests exist for each. — [defect-known](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given pages under the Requirements heading or the old Criteria heading, when the release, regression, health and docs readers run, then they all find the same requirement IDs and the release refuses an unmet one. — [prd-readers](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
+- Given pages under the Requirements heading or the old Criteria heading, when the release, regression, health and docs readers run, then they all find the same requirement IDs and the release refuses an unmet one. — [prd-readers](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 
 #### REG-2
 
@@ -57,8 +57,8 @@ Test format. Every test is listed in one fixed format: its category (criterion o
 - Given a test that cannot fail, when it is checked, then it stays unproven. — [tests-seen-failing](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a test linked to no criterion, when the check runs, then the check fails. — [one-link](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a test run, when it ends, then each test's result and date are recorded. — [run-ledger](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a requirement with a test row, when the Tests are rendered, then the row's line carries the test, when it runs, its last result and when it was seen failing. — [tests-table-columns](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
-- Given a test row with a description, when the Tests are rendered, then it appears under its requirement's heading and words as a Given/When/Then scenario with its result and seen-failing date. — [tests-row-shape](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing no
+- Given a requirement with a test row, when the Tests are rendered, then the row's line carries the test, when it runs, its last result and when it was seen failing. — [tests-table-columns](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a test row with a description, when the Tests are rendered, then it appears under its requirement's heading and words as a Given/When/Then scenario with its result and seen-failing date. — [tests-row-shape](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a test row with no description, when the check runs, then it is flagged. — [describe-needed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a row with a seen-failing date, when a description is added, then the date is kept. — [keeps-seen-red](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given this repo's test rows, when they are checked, then every row has a description. — [every-row-described](../../.loop/regression.tsv), both, FAIL 2026-11-09, seen failing 2026-11-08
