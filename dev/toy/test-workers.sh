@@ -110,8 +110,10 @@ def stamp(m): return "2026-01-01T%02d:%02dZ" % divmod(m, 60) if False else "2026
 past = {"slug": "past", "goal": "Past", "status": "done", "step": "release", "pr": "", "tries": 0, "updated": stamp(40), "log": [
     stamp(0) + " queued", stamp(10) + " idea auto-approved: x", stamp(30) + " plan auto-approved: x", stamp(40) + " build"]}
 json.dump(past, open(os.path.join(d, "past.json"), "w"))
-now = {"slug": "cur", "goal": "Cur", "status": "running", "step": "idea", "pid": int(sys.argv[2]), "pr": "", "tries": 0, "updated": "2026-01-01T10:00:00Z",
-       "log": [stamp(0) + " queued"]}
+import datetime
+fresh = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+now = {"slug": "cur", "goal": "Cur", "status": "running", "step": "idea", "pid": int(sys.argv[2]), "pr": "", "tries": 0, "updated": fresh,
+       "log": [fresh + " queued"]}
 json.dump(now, open(os.path.join(d, "cur.json"), "w"))
 PY
 $M report > "$T/report2"
