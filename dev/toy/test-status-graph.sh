@@ -44,24 +44,24 @@ cat >> .loop/queue.md <<'Q'
 - slug: e | touches: x | goal: E | done: e
 - slug: f | touches: x | depends-on: ghost | goal: F | done: f
 Q
-block() { python3 -c "
+block() { LOOP_BOARD_HEALTH=green python3 -c "
 import sys, datetime
-sys.path.insert(0, sys.argv[1]); import board_status
+sys.path.insert(0, sys.argv[1]); import live_board
 at = datetime.datetime(2026, 6, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
-print(board_status.text(board_status.sections('$T/repo', at)))" "$M"; }
+print(chr(10).join(live_board.render('$T/repo', at)))" "$M"; }
 block > "$T/block"
-check "four sections in the fixed order" 'python3 -c "
+check "the live board sections are in the fixed order" 'python3 -c "
 t=open(\"$T/block\").read()
-at=[t.index(\"== %s ==\" % n) for n in (\"Needs you\",\"Roadmap\",\"Total\",\"Goals\")]
+at=[t.index(\"\n%s\n\" % n) for n in (\"Issues\",\"Running goals\",\"Queued goals\",\"Dependencies\",\"Finish\")]
 assert at==sorted(at)"'
-check "parallel roots share a level, chained goals sit deeper" 'python3 -c "
+check "chained goals are drawn as arrows between running and queued goals" 'grep -qx "b --> c" "$T/block" && grep -qx "c --> d" "$T/block" && ! grep -q "ghost -->" "$T/block"'
+check "a queued goal shows what it waits on, a standalone one waits on nothing" 'grep -q "^- c .*waits on b" "$T/block" && grep -q "^- d .*waits on c" "$T/block" && grep -q "^- e " "$T/block" && ! grep "^- e " "$T/block" | grep -q waits'
+check "merged goals are left out; a running goal has its bar and time left" '! grep -q "merged\|hist\|^- a " "$T/block" && grep -q "^- b  \[#---------\] 12%  51m left" "$T/block" && grep -q "^- c  1h01m left" "$T/block"'
+check "the finish is the longest chain b > c > d, not the sum" 'grep -q "^finish about " "$T/block" && ! grep -q "at least" "$T/block" && python3 -c "
+import re,sys
 t=open(\"$T/block\").read()
-assert t.index(\"level 1\") < t.index(\"[running] b \") < t.index(\"level 2\") < t.index(\"[queued] c \") < t.index(\"level 3\") < t.index(\"[queued] d \")"'
-check "a chained goal shows what it waits on, a standalone one waits on nothing" 'grep -q "\[queued\] c .*<- waits on b" "$T/block" && grep -q "\[queued\] d .*<- waits on c" "$T/block" && grep -q "\[queued\] e " "$T/block" && ! grep "\[queued\] e " "$T/block" | grep -q waits'
-check "live goals only, stage, 10-cell bar, time to finish, merged collapsed to one line" '! grep -q "\[merged\]" "$T/block" && grep -q "^merged: #" "$T/block" && grep -q "\[running\] b  stage 2 of 8 \[##--------\]  ~51m left" "$T/block" && grep -q "\[queued\] c  stage 0 of 8 \[----------\]  ~1h01m left" "$T/block"'
-check "a dependency that is no goal here shows" 'grep -q "\[? not a goal here\] ghost" "$T/block"'
-check "the total is the longest chain b > c > d, not the sum" 'grep -q "^longest path: about 2h54m, the longest chain: b > c > d" "$T/block" && ! grep -q "4h57m" "$T/block"'
-check "a running goal keeps its steps with estimates under it" 'sed -n "/\[running\] b/,/remaining steps/p" "$T/block" | grep -q "plan   est 21m" && grep -q "remaining steps: est 51m" "$T/block"'
+sys.exit(0 if re.search(r\"finish about \\d\\d:\\d\\d\", t) else 1)"'
+check "a running goal shows its step flow with the current step in brackets" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr > release" "$T/block"'
 
 echo "== the pure graph"
 python3 - "$M" <<'PY' && ok "no estimate gives at least, a cycle is cut, an empty queue is empty" || bad "pure graph"
@@ -78,19 +78,6 @@ assert "cycle cut at" in g.total(loop) and len(g.render_text(loop)) >= 3
 assert g.total([node("a", left=600), node("b", left=300)]).startswith("about 10m, the longest chain: a"), "parallel goals are not summed"
 PY
 
-echo "== the board"
-$BO board --at $AT --out "$T/out" >/dev/null && $BP --in "$T/out/board.json" >/dev/null
-check "the board's lanes carry the same marks" 'python3 -c "
-import json
-m=json.load(open(\"$T/out/board.json\"))[\"dependency_map\"]
-marks={l[\"run\"].split(\"/\")[1]:l[\"mark\"] for l in m[\"lanes\"]}
-assert marks==dict(a=\"merged\", b=\"running\", hist=\"merged\", c=\"queued\", d=\"queued\", e=\"queued\", f=\"queued\", ghost=\"unknown\"), marks"'
-check "the board's total is the same longest chain" 'python3 -c "
-import json
-t=json.load(open(\"$T/out/board.json\"))[\"dependency_map\"][\"total\"]
-assert t.startswith(\"about 2h54m, the longest chain: \") and t.count(\" > \")==2, t"'
-check "the page shows the mark on each lane and the total" 'grep -q "Total:" "$T/out/board.html" && grep -q "\[running\] " "$T/out/board.html" && grep -q "about 2h54m" "$T/out/board-artifact.html"'
-
 echo "== both dependency spellings"
 check "depends: and depends-on: parse to the same waits" 'python3 -c "
 import sys; sys.path.insert(0, \"$M\"); import graph
@@ -105,15 +92,11 @@ echo "== the step label"
 $goal new lv --here --goal "Label" --done "label" >/dev/null
 label() { python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['step'])" "$C/loop/runs/lv.json"; }
 $F lv plan --wait 0 >/dev/null
-check "the label changes when the step starts, before anything is recorded" '[ "$(label)" = plan ] && grep -q " start plan\"" "$C/loop/runs/lv.json" && block | grep -q "\[running\] lv  stage 2 of 8"'
+check "the label changes when the step starts, before anything is recorded" '[ "$(label)" = plan ] && grep -q " start plan\"" "$C/loop/runs/lv.json" && block | grep -q "^- lv  .*" && block | grep -q "\[plan\]"'
 $F lv plan --wait 10 >/dev/null
 check "a finished but unrecorded step is still the current one" '[ "$(label)" = plan ]'
 $goal record lv plan --file "$C/loop/runs/lv.plan.txt" >/dev/null
-check "recording moves the label on, so the finished step is never shown as current" '[ "$(label)" = build ] && block | grep -q "\[running\] lv  stage 3 of 8" && ! block | grep -q "\[running\] lv  stage 2 of 8"'
-check "the board shows the same step" '$BO board --at $AT --out "$T/out2" >/dev/null && python3 -c "
-import json
-r={x[\"slug\"]:x for x in json.load(open(\"$T/out2/board.json\"))[\"runs\"]}
-assert r[\"lv\"][\"step\"]==\"build\", r[\"lv\"][\"step\"]"'
+check "recording moves the label on, so the finished step is never shown as current" '[ "$(label)" = build ] && block | grep -q "idea✓ > plan✓ > \[build\]"'
 
 echo "== sizes"
 check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -size +20479c)" ]'

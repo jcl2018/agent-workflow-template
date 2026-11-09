@@ -185,7 +185,7 @@ def returned():
 
 
 def status_block(fragment=False):
-    """The one status block, from board_status.py beside this file: the same content in report, board and dashboard."""
+    """The live board, from board_status.py beside this file: the same content in report, board and dashboard."""
     helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "board_status.py")
     if not os.path.exists(helper):
         return ""

@@ -17,7 +17,7 @@ show SLUG
 - `wiki prepare` lists the mapped pages that are stale (see `.loop/docs.tsv`). The agent rewrites them, then `--commit`
   commits them on the goal's branch and pushes it. `merge` runs the same check and refuses while a page is stale.
 - `wiki publish` runs after the merge, from a clean checkout of `origin/main`. If publish refuses, the merge stands, the
-  goal records `wiki_error` (which page and why) in its report, and it shows under Needs you.
+  goal records `wiki_error` (which page and why) in its report, and it shows under Issues.
 - `ask` shows the changed docs, the wiki link and the verify steps, then prints `cut <slug>` and `leave <slug>`. A
   monitored batch goal without `release: ask` answers `leave` by itself.
 - `leave` keeps the work unreleased and changes nothing versioned.
@@ -129,7 +129,7 @@ flowchart LR
 
 Status: built and proven: Refuse with auto_merge off, or no open pull request; Merge the pull request into main; Record it on the goal. Built only: none. Planned: none.
 Stops for the owner: none.
-Proof: toy tests with a stand-in for GitHub, including a goal that changes a mapped path and ends with its page updated, the wiki published, and a refused publish shown under Needs you. No real merge by it is on record yet.
+Proof: toy tests with a stand-in for GitHub, including a goal that changes a mapped path and ends with its page updated, the wiki published, and a refused publish shown under Issues. No real merge by it is on record yet.
 
 #### `wiki`
 
@@ -140,7 +140,7 @@ flowchart LR
   c["merge refuses while a page is stale"]
   d["publish after the merge, from origin/main"]
   e["Refused: wiki_error names page and reason"]
-  f{{"Needs you"}}
+  f{{"Issues"}}
   a --> b
   b --> c
   c --> d
@@ -151,7 +151,7 @@ flowchart LR
 ```
 
 Status: built and proven: prepare: list stale pages the goal's paths map to; Agent rewrites them; commit on the goal's branch and push; merge refuses while a page is stale; publish after the merge, from origin/main; Refused: wiki_error names page and reason; Needs you. Built only: none. Planned: none.
-Stops for the owner: Needs you, only when a publish is refused.
+Stops for the owner: Issues, only when a publish is refused.
 Proof: toy tests with a stand-in for GitHub and a bare wiki. No real merge has published through it yet.
 
 #### `show`

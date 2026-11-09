@@ -83,13 +83,12 @@ until_status d done
 
 echo "== the status block"
 python3 "$M/board_status.py" > "$T/block"
-nxt=$(sed -n '/== Roadmap ==/,/== Total ==/p' "$T/block")
-check "Roadmap holds queued goals with what they wait on, and goals waiting to merge" 'grep -q "\[queued\] b .*<- waits on a" <<<"$nxt" && grep -q "\[awaiting merge\] a " <<<"$nxt" && grep -q "waiting to merge" <<<"$nxt"'
-check "Roadmap marks a running goal" 'grep -q "\[running\] c " <<<"$nxt"'
+queuedpart=$(sed -n '/^Queued goals/,/^Dependencies/p' "$T/block")
+check "Queued goals hold the goal with what it waits on; a goal waiting to merge sits at release" 'grep -q "^- b .*waits on a" <<<"$queuedpart" && grep -q "^- a " "$T/block" && grep -q "^    next: .*waits for review and merge" "$T/block"'
+check "Running goals show a running goal with its flow" 'grep -q "^- c " "$T/block" && sed -n "/^Running goals/,/^Queued/p" "$T/block" | grep -q "\[build\]"'
 sets a 'release="merged"'; sets d 'release="merged"'
 python3 "$M/board_status.py" > "$T/block2"
-check "Roadmap collapses merged goals to one line of pull request numbers" '[ "$(sed -n "/== Roadmap ==/,/== Total ==/p" "$T/block2" | grep -c "^merged: ")" = 1 ]'
-check "merged goals leave the waiting-to-merge list and the drawn graph" '! grep -q "\[merged\] a " "$T/block2" && ! grep -q "waiting to merge" "$T/block2"'
+check "merged goals leave the board altogether, with no merged line" '! grep -q "^- a \|^- d \|^merged:" "$T/block2" && ! grep -q "waits for review and merge" "$T/block2"'
 
 echo "== workers report as they go"
 check "each change of step is reported as it happens" 'python3 -c "import json,sys;r=json.load(open(sys.argv[1]))[\"reports\"];assert [x[\"step\"] for x in r][-2:]==[\"plan\",\"build\"] and \"worker c: step build\" in r[-1][\"text\"] and r[-1][\"at\"],r" "$C/loop/runs/c.json"'
@@ -97,7 +96,7 @@ check "each change of step is reported as it happens" 'python3 -c "import json,s
 check "a change of status is reported too" 'python3 -c "import json,sys;r=json.load(open(sys.argv[1]))[\"reports\"];assert r[-1][\"status\"]==\"waiting\",r" "$C/loop/runs/c.json"'
 (cd "$C/loop/worktrees/c" && $goal answer c >/dev/null)
 check "and the answer" 'python3 -c "import json,sys;r=json.load(open(sys.argv[1]))[\"reports\"];assert r[-1][\"status\"]==\"running\",r" "$C/loop/runs/c.json"'
-check "the agent's tokens are recorded against its step" 'python3 -c "import json,sys;assert json.load(open(sys.argv[1]))[\"tokens\"][\"build\"]==1500" "$C/loop/runs/c.json" && python3 "$M/board_status.py" | grep -Eq "build .*\| actual .*, 2k tokens"'
+check "the agent's tokens are recorded against its step, and kept off the board" 'python3 -c "import json,sys;assert json.load(open(sys.argv[1]))[\"tokens\"][\"build\"]==1500" "$C/loop/runs/c.json" && ! python3 "$M/board_status.py" | grep -qi "tokens"'
 
 echo "== the operation session sends a worker a follow-up"
 $OP send c "use sqlite, then add the index" > "$T/send"
@@ -122,18 +121,18 @@ $BO cadence 2 >/dev/null
 $BA add night --goal "Add g" --done "g works" --slug g >/dev/null
 $W go "Add f" --done "f works" --depends-on c --slug f >/dev/null
 $OP run --poll 0.1 > "$T/op.out" 2>&1 & oppid=$!
-until_text "$T/op.out" "== Needs you =="
+until_text "$T/op.out" "^LIVE BOARD"
 check "it starts a batch line by itself" 'until_file "$C/loop/runs/g.json"'
-check "the first pass prints the status block, on the cadence from board.py cadence" 'grep -q "== Total ==" "$T/op.out" && grep -q "^NEXT_DELAY 120$" "$T/op.out"'
+check "the first pass prints the live board, on the cadence from board.py cadence" 'grep -q "^Finish" "$T/op.out" && grep -q "^NEXT_DELAY 120$" "$T/op.out"'
 sleep 4  # the pass's own starts are seen once more, then it is quiet
-lines=$(wc -l < "$T/op.out"); quiet=$(grep -c "^Nothing changed" "$T/op.out"); blocks=$(grep -c "== Needs you ==" "$T/op.out"); sleep 1.5
+lines=$(wc -l < "$T/op.out"); blocks=$(grep -c "^LIVE BOARD" "$T/op.out"); sleep 1.5
 check "nothing is printed while nothing changes" '[ "$(wc -l < "$T/op.out")" = "$lines" ]'
 touch "$C/loop/runs/c.json"
-for _ in $(seq 50); do [ "$(grep -c "^Nothing changed" "$T/op.out")" -gt "$quiet" ] && break; sleep 0.1; done
-check "a worker's report wakes it before the cadence, and one line says nothing changed" '[ "$(grep -c "^Nothing changed" "$T/op.out")" = $((quiet + 1)) ] && [ "$(grep -c "== Needs you ==" "$T/op.out")" = "$blocks" ]'
+for _ in $(seq 50); do [ "$(grep -c "^LIVE BOARD" "$T/op.out")" -gt "$blocks" ] && break; sleep 0.1; done
+check "a worker's report wakes it before the cadence, and it prints the full board, never a one-line mode" '[ "$(grep -c "^LIVE BOARD" "$T/op.out")" -gt "$blocks" ] && ! grep -q "Nothing changed\|NO_CHANGE" "$T/op.out"'
 (cd "$C/loop/worktrees/c" && $goal step c review >/dev/null)
 until_text "$T/op.out" "step: build -> review"
-check "a change prints the status block and the CHANGE line" 'grep -q "^CHANGE .*c step: build -> review" "$T/op.out" && [ "$(grep -c "== Needs you ==" "$T/op.out")" -ge 2 ]'
+check "a change prints the live board and the CHANGE line" 'grep -q "^CHANGE .*c step: build -> review" "$T/op.out" && [ "$(grep -c "^LIVE BOARD" "$T/op.out")" -ge 2 ]'
 rm "$FAKE_AGENT/hold-c"; until_status c done
 sets c 'release="merged"'
 for _ in $(seq 200); do kill -0 $oppid 2>/dev/null || break; sleep 0.1; done

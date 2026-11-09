@@ -113,24 +113,20 @@ sets doomed 'status="stopped"' 'tries=3'
 $W resume doomed >/dev/null
 check "resume puts a stopped goal's tries back to 0" 'until_status doomed done && [ "$(field doomed tries)" = 0 ]'
 
-echo "== a quiet check-in still says when the next one is"
+echo "== a quiet check-in still prints the full live board"
 touch "$FAKE_AGENT/hold-quiet"
 $W go "Add quiet" --done "quiet" --slug quiet >/dev/null
 AT=2026-01-01T12:00:00Z
 $B cadence 10 >/dev/null
 $B board --at $AT --out "$T/b" >/dev/null
 $B board --at $AT --since "$T/b/board.json" --out "$T/b" > "$T/b1"
-check "no change while a goal is open prints the next time" 'grep -qx "NO_CHANGE Nothing changed. Next check-in 12:10 UTC. .*1 running.*" "$T/b1"'
+check "no change while a goal is open still prints the live board and CHANGED no, never NO_CHANGE" 'grep -q "^LIVE BOARD" "$T/b1" && grep -qx "CHANGED no" "$T/b1" && ! grep -q "NO_CHANGE\|Nothing changed" "$T/b1"'
 $P --in "$T/b/board.json" >/dev/null
-check "the page shows it too" 'grep -q "Next check-in 12:10 UTC." "$T/b/board.html"'
-$B board --at $AT --since "$T/b/board.json" --out "$T/b" | grep -q "^NO_CHANGE" && ok "and again on the next quiet check-in" || bad "repeat"
-$B cadence off >/dev/null
-$B board --at $AT --since "$T/b/board.json" --out "$T/b" | grep -q "^NO_CHANGE" && bad "off prints no next time" || ok "off prints no next time"
-$B cadence 10 >/dev/null
+check "the page shows the next check-in too" 'grep -q "Next check-in 12:10 UTC." "$T/b/board.html"'
+$B board --at $AT --since "$T/b/board.json" --out "$T/b" | grep -q "^LIVE BOARD" && ok "and again on the next quiet check-in" || bad "repeat"
 rm "$FAKE_AGENT/hold-quiet"; until_status quiet done || bad "quiet finished"
 $B board --at $AT --out "$T/b" >/dev/null
-$B board --at $AT --since "$T/b/board.json" --out "$T/b" | grep -q "^NO_CHANGE" && bad "nothing open prints no NO_CHANGE" || ok "nothing open prints no NO_CHANGE"
-$B board --at $AT --since "$T/nofile" --out "$T/b" | grep -q "^NO_CHANGE" && bad "a change prints no NO_CHANGE" || ok "a change prints no NO_CHANGE"
+$B board --at $AT --since "$T/nofile" --out "$T/b" | grep -q "NO_CHANGE" && bad "no one-line mode" || ok "no one-line mode"
 
 echo "== the mender leaves landed goals alone"
 # A gh that answers MERGED for any branch or pull request named in $FAKE_AGENT/merged.

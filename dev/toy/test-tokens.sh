@@ -37,9 +37,5 @@ echo "$out"
 check "the step prints the agent's own STEP and PENDING lines" 'grep -q "^STEP: done" <<<"$out" && grep -q "^PENDING: a choice" <<<"$out"'
 check "tokens are input + output + cache-creation, never cache reads" '[ "$(python3 -c "import json; print(json.load(open(\"$C/loop/runs/tok.json\"))[\"tokens\"][\"idea\"])")" = 175 ]'
 check "the reply file holds the result text, the raw JSON is kept beside it" 'grep -q "^STEP: done" "$C/loop/runs/tok.idea.txt" && grep -q usage "$C/loop/runs/tok.idea.txt.raw"'
-check "the status block shows tokens for the step" 'python3 -c "
-import json, sys
-sys.path.insert(0, \"$M\")
-import board_status
-print(board_status.tokens_by_step(json.load(open(\"$C/loop/runs/tok.json\"))))" | grep -q "idea.: 175"'
+check "the live board leaves tokens off" '! python3 "$M/board_status.py" | grep -qi "token"'
 [ $fails = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

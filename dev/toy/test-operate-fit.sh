@@ -50,57 +50,42 @@ write("newer", status="done", step="pr", release="merged", pr="https://example.t
 json.dump({"at": "2026-06-15T00:00:00Z"}, open(os.path.join(os.path.dirname(folder), "checkin.json"), "w"))
 PY
 echo '- slug: q | touches: x | depends-on: run, gh | goal: Q | done: q' >> .loop/queue.md
-block() { python3 -c "
-import sys; sys.path.insert(0, sys.argv[1]); import board_status
-print(board_status.text(board_status.sections('$T/repo')))" "$M"; }
+block() { LOOP_BOARD_HEALTH=green python3 -c "
+import sys; sys.path.insert(0, sys.argv[1]); import live_board
+print(chr(10).join(live_board.render('$T/repo')))" "$M"; }
 
 echo "== GitHub says the pull requests are open"
 FAKE_GH_PR_STATE=OPEN block > "$T/open"
-check "a goal merged on GitHub but not yet in GitHub's answer reads awaiting merge" 'grep -q "\[awaiting merge\] gh " "$T/open"'
+check "a goal whose pull request is open waits at release" 'grep -q "^- gh " "$T/open"'
 echo "== GitHub says merged"
 FAKE_GH_PR_STATE=MERGED block > "$T/block"
-needs() { sed -n '/== Needs you ==/,/== Roadmap ==/p' "$T/block"; }
-road() { sed -n '/== Roadmap ==/,/== Total ==/p' "$T/block"; }
-check "line 1: a merged goal's old wiki_error and release_error are gone from Needs you" '! needs | grep -q "rec \|gh \|fresh\|boom" && [ "$(needs | grep -c "^- wiki")" = 1 ] && needs | grep -q "^- wiki (docs check): saved: page Home is stale"'
-check "line 1: errors and asks that are still open stay" 'needs | grep -q "wait (waiting): Which one" && needs | grep -q "answer: pick a"'
-FAKE_GH_PR_STATE=OPEN block > "$T/open"
-check "line 1: with GitHub saying open, the unmerged goal keeps its error" 'sed -n "/== Needs you ==/,/== Roadmap ==/p" "$T/open" | grep -q "^- wiki (docs check):.*saved: page Home is stale"'
-check "line 2: a pull request merged on GitHub shows merged, never awaiting merge" '! grep -q "awaiting merge\] gh\|waiting to merge: .*72" "$T/block" && road | grep -q "^merged: .*#72"'
-check "line 2: its dependant no longer waits on it" 'road | grep "\[queued\] q " | grep -q "waits on run" && ! road | grep "\[queued\] q " | grep -q "gh"'
-check "line 3: only live goals are drawn, with the stage, a 10-cell bar and an arrow" '! road | grep -q "\[merged\]" && road | grep -q "\[running\] run  stage 3 of 8 \[####------\]" && road | grep -q "\[waiting\] wait " && road | grep -q "\[awaiting merge\] stale "'
-check "line 3: merged goals collapse to one line of pull request numbers" '[ "$(road | grep -c "^merged:")" = 1 ] && road | grep -q "^merged: #71 #72 #73 #74 #75 #76 #77 #80 #81$"'
-check "line 3: the total names the longest path, then a finish time" 'grep -q "^no estimate yet\|the longest chain:.*, finish about [0-9][0-9]:[0-9][0-9]" "$T/block" || python3 - "$M" <<PY
-import sys, datetime
-sys.path.insert(0, sys.argv[1]); import status_graph as g
-t = g.total([dict(slug="a", mark="running", depends=[], stage=1, left=600), dict(slug="b", mark="queued", depends=["a"], stage=0, left=600)], datetime.datetime(2026, 6, 1, 12, 0, tzinfo=datetime.timezone.utc))
-import re; assert re.search(r"about 20m, the longest chain: a > b, finish about \d\d:\d\d$", t), t
-PY'
+issues() { sed -n '/^Issues/,/^Running goals/p' "$1"; }
+check "a merged goal's old wiki_error and release_error are gone from Issues, in one wiki line" '! issues "$T/block" | grep -q "rec \|gh \|fresh\|boom" && [ "$(issues "$T/block" | grep -c "^- wiki")" = 1 ] && issues "$T/block" | grep -q "^- wiki pages are out of date: saved: page Home is stale"'
+check "errors and asks that are still open stay, with the exact words" 'issues "$T/block" | grep -q "^- wait is waiting: Which one" && issues "$T/block" | grep -q "fix: answer by typing \"pick a\" or \"pick b\""'
+check "with GitHub saying open, the unmerged goal keeps its error" 'issues "$T/open" | grep -q "^- wiki pages are out of date:.*saved: page Home is stale"'
+check "a pull request merged on GitHub leaves the board, and its dependant no longer waits on it" '! grep -q "^- gh \|^- rec \|^merged" "$T/block" && grep "^- q " "$T/block" | grep -q "waits on run" && ! grep "^- q " "$T/block" | grep -q "gh"'
+check "only live goals are drawn, with a 10-cell bar, and an arrow to the dependant" '! grep -q "^- old1\|^- newer" "$T/block" && grep -q "^- run  \[##--------\] 25%" "$T/block" && grep -q "^- wait " "$T/block" && grep -q "^- stale " "$T/block" && grep -qx "run --> q" "$T/block"'
+check "the board ends with one finish line" 'tail -2 "$T/block" | head -1 | grep -qx Finish && tail -1 "$T/block" | grep -q "finish about\|no estimate yet\|nothing left"'
 
 echo "== closed, healed and old goals"
 FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_STATE_81=CLOSED block > "$T/closed"
-cneeds() { sed -n '/== Needs you ==/,/== Roadmap ==/p' "$T/closed"; }
-croad() { sed -n '/== Roadmap ==/,/== Total ==/p' "$T/closed"; }
-cgoals() { sed -n '/== Goals ==/,$p' "$T/closed"; }
-check "line 1: a later publish clears the wiki_error of an unmerged goal" '! cneeds | grep -q "healed" && cneeds | grep -q "saved: page Docs is stale"'
-check "line 2: a pull request closed without merging reads closed, never awaiting merge" 'croad | grep -q "^closed without merging: #81" && ! croad | grep -q "shut" && ! grep -q "waiting to merge: .*81" "$T/closed"'
-check "line 2: an open pull request still reads awaiting merge" 'croad | grep -q "\[awaiting merge\] healed "'
-check "line 3: Goals lists running, waiting, queued and newly merged goals only" 'cgoals | grep -q "^- run:" && cgoals | grep -q "^- wait:" && cgoals | grep -q "^- q:" && cgoals | grep -q "^- newer:"'
-check "line 3: old merged goals appear only in the merged line" '! cgoals | grep -q "^- old1\|^- old2\|^- rec:\|^- shut" && croad | grep -q "^merged: .*#75 #76"'
+check "a later publish clears the wiki_error of an unmerged goal" '! issues "$T/closed" | grep -q "healed" && issues "$T/closed" | grep -q "saved: page Docs is stale"'
+check "a pull request closed without merging leaves the board; an open one stays" '! grep -q "^- shut" "$T/closed" && grep -q "^- healed " "$T/closed"'
+check "running, waiting and queued goals are listed; merged ones never are" 'grep -q "^- run " "$T/closed" && grep -q "^- wait " "$T/closed" && grep -q "^- q " "$T/closed" && ! grep -q "^- newer\|^- old1\|^- old2\|^- rec " "$T/closed"'
 
 echo "== operate"
 sed -i.bak '/depends-on: run, gh/d' .loop/queue.md; rm -f .loop/queue.md.bak
 FAKE_GH_PR_STATE=MERGED $OP run --once > "$T/first" 2>&1
 FAKE_GH_PR_STATE=MERGED $OP run --once > "$T/second" 2>&1
-check "line 4: the first pass prints the block" 'grep -q "== Needs you ==" "$T/first"'
-check "line 4: a pass with nothing changed prints exactly one line" '[ "$(wc -l < "$T/second" | tr -d " ")" = 1 ] && grep -q "^Nothing changed" "$T/second"'
+check "the first pass prints the live board" 'grep -q "^LIVE BOARD" "$T/first"'
+check "a pass with nothing changed prints the full board again, never one line" 'grep -q "^LIVE BOARD" "$T/second" && grep -q "^Finish" "$T/second" && ! grep -q "Nothing changed\|NO_CHANGE" "$T/second"'
 python3 - "$C/loop/runs/stale.json" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1])); s.pop("wiki_error"); json.dump(s, open(sys.argv[1], "w"))
 PY
 FAKE_GH_PR_STATE=MERGED $OP run --once > "$T/third" 2>&1
-check "line 1: clearing an error counts as a change and reprints the block" 'grep -q "wiki_error" "$T/third" && grep -q "== Needs you ==" "$T/third"'
-
-check "line 4: a full block writes the check-in and a quiet pass leaves it alone" '[ -f "$C/loop/checkin.json" ] && sum1=$(cksum < "$C/loop/checkin.json") && sleep 1 && FAKE_GH_PR_STATE=MERGED $OP run --once > "$T/fourth" 2>&1 && grep -q "^Nothing changed" "$T/fourth" && [ "$sum1" = "$(cksum < "$C/loop/checkin.json")" ]'
+check "clearing an error counts as a change and reprints the board" 'grep -q "wiki_error" "$T/third" && grep -q "^LIVE BOARD" "$T/third"'
+check "every pass writes the check-in" '[ -f "$C/loop/checkin.json" ]'
 
 echo "== sizes"
 check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -size +20479c)" ]'

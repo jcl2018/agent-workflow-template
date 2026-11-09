@@ -17,7 +17,7 @@ resume SLUG
 `go`, `watch` and `resume` also take `--skill-dir DIR`, the skills folder to name in a prompt.
 
 - `operate run` is the one command that runs the operation session: each pass it runs `watch --once`, `board.py board` and
-  `board_page.py`, prints the status block when something changed and one line (`NO_CHANGE`) when not, then waits the
+  `board_page.py`, prints the full live board every pass, even when nothing changed, then waits the
   gap from `board.py cadence`, or less when a worker reports. It stops when nothing is queued, running or waiting, or when
   the cadence is off. `operate send SLUG TEXT` leaves a worker an answer or follow-up, which `goal.py` and `flow.py`
   print to its agent the next time they run. An LLM asked to run the operation session runs this command and nothing else.
@@ -48,8 +48,8 @@ flowchart LR
   b["start: one worker per goal"]
   c["worker loop: idea to pull request"]
   d["report back: merged, failed or waiting, with the pull request"]
-  e["board and dashboard: one status block"]
-  f{{"Needs you: exact words to answer"}}
+  e["board and dashboard: the live board"]
+  f{{"Issues: exact words to answer"}}
   a --> b
   b --> c
   c --> d
@@ -70,7 +70,7 @@ Any command that would build, plan or run a goal step from the operation session
 `qa`, `ship`, `step`, `check`, `pr`, `record`, `run`) refuses with one line naming `start NAME`. A worker runs
 with `LOOP_ROLE=worker`. When its agent ends, the worker writes `merged`, `failed` or `waiting`, with the pull request,
 into its run record as a `report`, and the board shows it. `met SLUG N` marks done line N met. A worker that
-fails, waits on the owner or stops goes to the top of Needs you on the next check-in and on the dashboard, and stays there
+fails, waits on the owner or stops goes to the top of Issues on the next check-in and on the dashboard, and stays there
 until it is answered.
 
 A batch heading groups lines; it doesn't hold them, so any `watch` pass starts a queued goal line, batch started or not.
@@ -78,33 +78,26 @@ A batch heading groups lines; it doesn't hold them, so any `watch` pass starts a
 One session follows the workers in a loop (`skills/workflow-monitoring/references/operation.md`). These commands support it:
 
 ```text
-board [--at TIME] [--since FILE] [--out DIR]   write board.json; print the status block, DIGEST, CHANGED, one CHANGE line per
-                                               change, NO_CHANGE if nothing changed while goals are open, NEXT_DELAY, its path
-cadence [N|off]                                minutes between check-ins, 1-60 (default 10), or off
+board [--at TIME] [--since FILE] [--out DIR]   write board.json; print the live board, DIGEST, CHANGED, one CHANGE line per
+                                               change, NEXT_DELAY, its path
+cadence [N|off]                                minutes between check-ins, 1-60 (default 30), or off
 repos add PATH | repos list                    follow another repo (~/.workflow-loop/repos), or list them
 note SLUG TEXT                                 record a worker's latest message on its run
-retire SLUG --reason TEXT                      mark a superseded goal retired, so it leaves Needs you
+retire SLUG --reason TEXT                      mark a superseded goal retired, so it leaves Issues
 handoff [--at TIME] [--out FILE]               write a file a new operation session can take over from
 ```
 
-Every check-in prints one status block, and `report`, `board` and `dashboard` carry the same content, in this order:
-Needs you (every stuck, waiting or failed worker, with the exact words to answer, always first and never hidden),
-Roadmap (a dependency graph of every goal, merged, running and queued, each with its stage, progress bar and time to
-finish and an arrow to what it waits on; a running goal keeps each step's estimated and actual time and tokens under
-it; then merged goals per feature and a progress bar per milestone), Total (the time for the whole graph: the longest
-chain of estimates, not their sum) and Goals (each goal's done lines met so far). The board draws the same marks and the
-same total. Estimates are the median of other finished runs' steps, read
-from their logs, and read `no estimate yet` without one; tokens read `unknown` until a run records them.
+Every check-in prints the live board, and `report`, `board`, `dashboard` and `board-artifact.html` carry the same content, always
+in this format: a `LIVE BOARD` header (repo, local time, version, health); Issues (only what is open now, a stuck worker first,
+each with its fix in plain words and the exact words to answer, no local file paths); Running goals (a 10-cell bar with percent
+and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current step in
+brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows (`a --> b`); and one
+finish time (the longest chain of estimates, not their sum). Merged and closed work, history, milestones, duplicate totals, token
+tables and done-line lists are left out. Estimates are the median of other finished runs' steps, read from their logs, and read
+`no estimate yet` without one.
 
-The board's last section, Milestones, lists each GitHub milestone's open and closed counts and the age of the Backlog's
-oldest open issue, read from up to 500 issues. It shows nothing when `gh` gives no answer.
-
-A page step (`--in FILE`, `--out DIR`) reads `board.json`, adds `dependency_map` (`{lanes: [{run, boxes}], arrows:
-[{from, to, on}]}`) and writes `board.html` and `board-artifact.html`. In the map each lane is a run and each box a step,
-coloured by status, with its expected finish. Solid arrows run inside a run, and thick dashed arrows cross runs and say
-why one waits, such as a goal or a shared file. `watch` records `waits_on` on a goal while holding it, so the arrow stays
-through running and today's finished goals. Hover a box for what it is, what's done, what's next and what it unblocks, or
-tap it to open the same text in the list below. The pages have no scripts and load nothing from the network.
+The page step (`--in FILE`, `--out DIR`) reads `board.json` and writes `board.html` and `board-artifact.html`, each with a
+header line and the same live board. The pages have no scripts and load nothing from the network.
 
 The check-in loop, repeated every `cadence` minutes, or every hour when nothing runs or waits:
 
@@ -113,9 +106,8 @@ The check-in loop, repeated every `cadence` minutes, or every hour when nothing 
 3. Run `board --since <the last board.json>`, then the page step.
 4. With an Artifact tool, publish `board-artifact.html` unedited to the same URL each time; otherwise give the owner the
    `board.html` path.
-5. Write one chat line only when `CHANGED` is yes. A field the last board didn't have, or `gh` failing to answer, is not a
-   change. When the board prints `NO_CHANGE`, write that line instead: it gives
-   the time of the next check-in, so a quiet loop doesn't look stalled.
+5. Print the full live board every time, then one chat line: what changed, if anything. A field the last board didn't have,
+   or `gh` failing to answer, is not a change.
 6. Report at most 6 lines to the owner, with anything waiting on them first.
 7. Wait `NEXT_DELAY` seconds and repeat; `none` means the owner turned the loop off, so stop.
 
@@ -375,30 +367,30 @@ flowchart LR
   a["Run the goal's agent to the end"]
   b["Read the run record"]
   c["Write merged, failed or waiting, with the pull request"]
-  d["Board shows it; stuck ones go to Needs you"]
+  d["Board shows it; stuck ones go to Issues"]
   a --> b
   b --> c
   c --> d
 ```
 
-Status: built and proven: Run the goal's agent to the end; Read the run record; Write merged, failed or waiting, with the pull request; Board shows it; stuck ones go to Needs you. Built only: none. Planned: none.
+Status: built and proven: Run the goal's agent to the end; Read the run record; Write merged, failed or waiting, with the pull request; Board shows it; stuck ones go to Issues. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests with a stand-in agent. It hasn't run on a real batch yet.
 
-#### `status block`
+#### `live board`
 
 ```mermaid
 flowchart LR
-  a["Needs you: stuck, waiting and failed workers"]
-  b["Roadmap: the goals as a dependency graph"]
-  c["Total: the longest chain of estimates"]
-  d["Goals: done lines met"]
+  a["Issues: stuck, waiting and failed workers, with the fix"]
+  b["Running goals: bar, step flow, next step"]
+  c["Queued goals and dependencies as arrows"]
+  d["Finish: one time"]
   a --> b
   b --> c
   c --> d
 ```
 
-Status: built and proven: Needs you: stuck, waiting and failed workers; Roadmap: the goals as a dependency graph with stage, bar and time to finish; Total: the longest chain of estimates; Goals: done lines met. Built only: none. Planned: none.
+Status: built and proven: Issues: stuck, waiting and failed workers, with the fix; Running goals: bar, step flow, next step; Queued goals and dependencies as arrows; Finish: one time. Built only: none. Planned: none.
 Stops for the owner: none.
-Proof: toy tests. Tokens read unknown until a run records them.
+Proof: toy tests (dev/toy/test-live-board.sh).
 

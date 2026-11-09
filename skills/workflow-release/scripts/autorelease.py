@@ -2,7 +2,7 @@
 """The automatic release, called by merge.py: run the owner's routines, then after the merge bump the version once,
 write the CHANGELOG entry, push that commit to the base branch and create a published GitHub release.
 
-No draft, no question. Every failure is recorded on the goal as `release_error`, which shows under Needs you.
+No draft, no question. Every failure is recorded on the goal as `release_error`, which shows under Issues.
 """
 import datetime
 import json
