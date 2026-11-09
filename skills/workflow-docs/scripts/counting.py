@@ -16,11 +16,12 @@ NOUNS = {"skill": "skill", "skills": "skill", "feature page": "page", "feature p
 # One word may sit between the number and the noun, but only a word meaning "all of them" ("eight workflow-ready
 # skills"); any other word ("two delivery skills", "3 regression tests") is a part or a label, so nothing is read.
 # "defect" is the one part read: "2 defect tests" is checked against the page's defect tests.
-ALL = r"workflow(?:-[a-z]+)*|installed|available|bundled|shipped|listed|defect"
+ALL = r"workflow(?:-ready)?|installed|available|bundled|shipped|listed|defect"
 CLAIM = re.compile(r"(?<![-\w.,/#])(\d+|%s)[ \t]+(?:(%s)[ \t]+)?(skills?|feature pages?|criteri(?:on|a)|tests?)\b"
                    % ("|".join(WORDS), ALL), re.I | re.ASCII)
 FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})(.*)$")
 QUOTE = re.compile(r"^(?: {0,3}> ?)+")
+BREAK = re.compile(r"^ {0,3}([-*_])(?: *\1){2,} *$")  # a thematic break, not a list item
 ITEM = re.compile(r"^( *)([-*+]|\d{1,9}[.)])( +(?=\S)|\s*$)")
 NOT_A_COUNT = "<!-- not-a-count -->"
 BOUND = re.compile(r"\b(up to|at most|at least|no more than|more than|fewer than|over|under)\s*$", re.I)
@@ -38,7 +39,7 @@ def prose(text):
         opener = FENCE.match(line)
         if fence is not None:
             if opener and opener.group(1)[0] == fence[0] and len(opener.group(1)) >= len(fence) and not opener.group(2).strip():
-                fence = None
+                fence, blank = None, True  # indented code may follow a closing fence
             continue
         flat = line.expandtabs(4)
         indent = len(flat) - len(flat.lstrip(" "))
@@ -47,8 +48,10 @@ def prose(text):
             if code:
                 lines.append("")
                 continue
-            item = ITEM.match(flat)
-            if item and indent < (column or 0) + 4:
+            item = None if BREAK.match(flat) else ITEM.match(flat)
+            if BREAK.match(flat) and indent < 4:
+                column = None
+            elif item and indent < (column or 0) + 4:
                 gap = len(item.group(3)) if flat[item.end():].strip() else 0  # marker, then 1-4 spaces to the text
                 column = len(item.group(1) + item.group(2)) + (gap if 0 < gap <= 4 else 1)
             elif indent == 0 and (was_blank or opener or re.match(r"[#|]", flat)):
@@ -65,6 +68,7 @@ def prose(text):
         if "<!--" in line:
             comment, line = True, line[:line.index("<!--")]
         lines.append(line + (" " + NOT_A_COUNT if marked else ""))
+        blank = blank or bool(re.match(r" {0,3}#{1,6}(\s|$)", flat))  # indented code may follow a heading
     return lines if fence is None else None
 
 

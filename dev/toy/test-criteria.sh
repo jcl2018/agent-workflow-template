@@ -120,7 +120,8 @@ out=$($docs check 2>&1 || true)
   && ok "an indented code block is not read as prose (105)" || bad "an indented code block was read, or list text lost (105): $out"
 good; printf '# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\ndel-1a\tland\ttrue\tDEL-1\t\tA test.\tcriterion\t\nbug-1\tland\ttrue\tDEL-1\t\tA defect test.\tdefect\thttps://example.test/1\n' > .loop/regression.tsv
 echo "This page has 2 tests, and 1 defect test." >> docs/wiki/Delivery.md
-nocount && ok "a page's tests count includes its defect tests (106)" || bad "defect tests left out of the tests count (106): $($docs check 2>&1 | grep COUNT)"
+nocount && echo "It has 2 defect tests." >> docs/wiki/Delivery.md && $docs check 2>&1 | grep -q "^COUNT docs/wiki/Delivery.md: says 2 defect tests, the repo has 1$" \
+  && ok "a page's tests count includes its defect tests (106)" || bad "defect tests left out of the tests count, or a wrong defect count passed (106): $($docs check 2>&1 | grep COUNT)"
 $docs add Extras --paths calc.py >/dev/null; page Extras "- EXT-1: **Unreviewed** x"
 good; printf '\nUnlike EXT-1, the toy has twenty skills.\n\nEXT-1 alone has 3 tests.\n\nDEL-1 needs nineteen skills.\n' >> docs/wiki/Delivery.md
 out=$($docs check 2>&1 || true)
