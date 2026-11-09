@@ -8,7 +8,9 @@ names a default suite under "suite" and, under "steps", a skill for any one step
 the skill for each step, the command that runs them, the environment that makes them run unattended, and a probe that proves it.
 The repo never names those skills. Each call waits a short while and prints RUNNING (run the same command again) or
 NEXT (the goal.py line that records the step). Nothing here approves, merges or pushes. It refuses outside a worker (LOOP_ROLE=worker), and prints what the operation
-session sent the worker. The tokens an agent used are read from its JSON output (input + output + cache-creation, no cache reads) and recorded against the step.
+session sent the worker. In a worker session (the run's worker is "session") it starts no agent:
+it prints IN SESSION with the skill to invoke in that session and the reply path, and once the reply is there, NEXT.
+The tokens an agent used are read from its JSON output (input + output + cache-creation, no cache reads) and recorded against the step.
 """
 import argparse
 import json
@@ -30,6 +32,9 @@ if not sys.stdin or not sys.stdin.isatty():
 STEPS = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
 NEEDED = ("idea", "plan", "review", "qa", "ship")  # the others may stay unmapped: delivery runs them itself
 FLOW_FILE = "~/.workflow-loop/flow.json"
+LANE = ("The regression lane (label regression, command `{lane}`) already passed on this content: reuse that run "
+        "through your own check of recorded test runs instead of running the suite again; if your own test step runs "
+        "that exact command, it reuses the record and returns at once.")
 PURPOSE = {
     "idea": "Shape this goal into a design. Read .loop/goals/{slug}.md first: its done lines are frozen, so the design "
             "must meet them, not change them.",
@@ -37,8 +42,8 @@ PURPOSE = {
     "build": "Make the change the plan describes, add a test for each done line, and commit.",
     "review": "Review this branch's change against the base branch before it lands.",
     "qa": "Test the change the way a user would. If this step needs a browser or a tool this machine doesn't have, "
-          "don't fake it: end with STEP: skipped and say what was missing.",
-    "ship": "Prepare this branch for a pull request. Don't push and don't open the pull request: delivery does that.",
+          "don't fake it: end with STEP: skipped and say what was missing. " + LANE,
+    "ship": "Prepare this branch for a pull request. Don't push and don't open the pull request: delivery does that. " + LANE,
     "pr": "Open this goal's pull request with goal.py pr {slug}. Never merge it.",
     "release": "Run the release step for this goal with workflow-release, as its skill says.",
 }
@@ -137,7 +142,7 @@ def start(args, runs, reply, job):
         sys.exit("REFUSED: the flow's command %s isn't on this machine." % command[0])
     top = git("rev-parse", "--show-toplevel")
     prompt = PROMPT.format(skill=((spec.get("overrides") or {}).get(args.step) or {}).get("skill") or spec["steps"][args.step], step=args.step, slug=args.slug,
-                           branch=git("branch", "--show-current"), purpose=PURPOSE[args.step].format(slug=args.slug),
+                           branch=git("branch", "--show-current"), purpose=PURPOSE[args.step].format(slug=args.slug, lane=role.lane_text()),
                            note="The owner said: " + args.note + "\n" if args.note else "")
     if os.path.exists(reply):
         os.replace(reply, reply + ".last")
@@ -151,6 +156,38 @@ def start(args, runs, reply, job):
         json.dump({"pid": child.pid, "started": time.time(), "limit": spec.get("limit") or int(cfg.get("step_limit") or 0) or args.limit}, handle)
     print("FLOW %s: running your %s skill unattended" % (args.step, args.step))
     print("RUNNING: run this same command again")
+
+
+def in_session(args, runs, reply, base):
+    """A worker session runs the step's skill itself; flow.py only names it, then hands the reply to goal.py record."""
+    try:
+        state = json.loads(read(os.path.join(runs, args.slug + ".json")))
+    except (OSError, ValueError):
+        state = {}
+    if state.get("worker") != "session":
+        return False
+    asked = base + ".asked"  # a reply counts only if written after this step was asked for, never one left by a try before
+    fresh = os.path.exists(asked) and os.path.exists(reply) and os.path.getmtime(reply) >= os.path.getmtime(asked)
+    text = read(reply) if fresh else ""
+    if not re.search(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I):
+        if not os.path.exists(asked):  # first ask: the step starts now, and a reply from before is moved aside
+            if os.path.exists(reply):
+                os.replace(reply, reply + ".last")
+            role.begin(os.path.join(runs, args.slug + ".json"), args.step)
+        open(asked, "a").close()
+        spec = flow()
+        skill = ((spec.get("overrides") or {}).get(args.step) or {}).get("skill") or spec["steps"][args.step]
+        print("IN SESSION %s: no headless agent; run the %s skill yourself in this session." % (args.step, skill))
+        print(PROMPT.format(skill=skill, step=args.step, slug=args.slug, branch=git("branch", "--show-current"),
+                            purpose=PURPOSE[args.step].format(slug=args.slug, lane=role.lane_text()),
+                            note="The owner said: " + args.note + "\n" if args.note else "").rstrip())
+        print("Write its reply, ending with the STEP line, to %s, then run this same command again." % reply)
+        return True
+    os.remove(asked)
+    open(base + ".ran", "w").close()
+    print("\n".join(re.findall(r"^\W*(?:PENDING|STEP): .*", text, re.M)))
+    print("NEXT: goal.py record %s %s --file %s" % (args.slug, args.step, reply))
+    return True
 
 
 def main():
@@ -171,6 +208,21 @@ def main():
     role.inbox(os.path.dirname(os.path.dirname(runs)), args.slug)
     base = os.path.join(runs, "%s.%s" % (args.slug, args.step))
     reply, job = base + ".txt", base + ".job"
+    if args.step in ("qa", "ship") and not os.path.exists(job) and not os.path.exists(base + ".asked"):
+        status, line, ids = role.lane(runs, args.slug, args.step, flow(), repo_config(), args.wait)
+        print(line)
+        if status == "running":
+            return 0
+        if status == "fail":  # the skill never starts on a red lane: record counts it as a failed try
+            if os.path.exists(reply):
+                os.replace(reply, reply + ".last")
+            with open(reply, "w") as out:
+                out.write("%s\nSTEP: failed regression lane: %s\n" % (line, ", ".join(ids) or line.splitlines()[-1][:200]))
+            open(base + ".ran", "w").close()
+            print("NEXT: goal.py record %s %s --file %s" % (args.slug, args.step, reply))
+            return 0
+    if not os.path.exists(job) and in_session(args, runs, reply, base):
+        return 0
     if not os.path.exists(job):
         start(args, runs, reply, job)
         return 0

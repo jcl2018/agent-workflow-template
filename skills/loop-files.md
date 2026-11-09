@@ -11,6 +11,7 @@ The workflow skills share this contract. `design-guide.md` beside it explains ho
 | `.loop/goals/<slug>.md` | One goal: done lines, plan, log |
 | `.loop/findings.md` | Open findings, one line each |
 | `.loop/docs.tsv` | Each wiki page and the paths it describes |
+| `.loop/config.json` key `session_command` | The session tool, as a list: called `start NAME` (prints the new session's id), `rename ID NAME` and `send ID TEXT`; a non-zero exit or 30 seconds means no session, so the goal falls back to a background process. `$LOOP_SESSION_TOOL` replaces it. The pool is `loop/session-pool.json` under the git common dir |
 | `.loop/config.json` key `criteria` | `true` makes `docs.py check` enforce the criteria contract on the wiki pages; each regression row links to one criterion by its goal or id; a reviewed line ends with a hash of its text, and `docs.py check` fails if the text changes; `criteria.py render` makes each page's Tests table |
 | `.loop/regression.tsv` | Each test row: id, level, command, goal, date seen failing |
 | `.loop/regression-runs.tsv` | Each row's last run: id, PASS or FAIL, date; written by `regression.py run`, shown in the wiki Tests tables |
@@ -99,6 +100,9 @@ and the wiki pages on the `workflow-setup` branch and leaves existing values and
 - `suite` is your default skill for each step, and `steps` replaces the skill for any one step. The steps are `idea`,
   `plan`, `build`, `review`, `qa`, `ship`, `pr` and `release`; the first five must be mapped, and delivery runs `build`,
   `pr` and `release` itself unless you map them. `limit` stops a step after that many seconds.
+- `test_record` (optional) is an argv prefix the regression lane runs through, for example a receipt recorder's
+  `["<recorder>", "run", "--label", "regression", "--"]`, so your ship skill can find the run in its own records. It must
+  pass the lane's exit status through. Without it the lane runs directly.
 
 ## Outside the repo: run state
 
@@ -114,6 +118,8 @@ loop/waits/<slug>         the goals that held a queued goal, one a line
 loop/cadence              minutes between check-ins (1 to 60), or off
 loop/handoff.md           the last handoff file
 loop/wiki.json            the last wiki publish, for restore
+loop/tests/<branch>-<sha8>.json   a branch's last regression run: each row's result and commit (regression.py --reuse); deleted when its rows leave uncommitted files
+loop/runs/<slug>.qa-lane.*, ship-lane.*, pr-lane.*   a goal's regression lanes: job, exit status, output; qa-lane.ok
 ```
 
 ### `runs/<slug>.json`

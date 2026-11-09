@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test workflow-health on a throwaway toy repo. usage: test-health.sh [DIR]
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"

@@ -2,6 +2,7 @@
 # Proves a flow step records the tokens its agent used, read from the agent's JSON output. A fake `claude` prints the JSON;
 # no model is called. usage: test-tokens.sh [DIR]
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"

@@ -2,6 +2,7 @@
 # One small test for each Delivery criterion, so a regression row doesn't run a whole toy script.
 # usage: test-rows.sh ID   exits non-zero if the criterion doesn't hold. No model is called.
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 unset LOOP_BATCH
 here=$(cd "$(dirname "$0")/../.." && pwd); id=${1:?usage: test-rows.sh ID}

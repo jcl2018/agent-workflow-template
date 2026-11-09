@@ -2,6 +2,7 @@
 # Prove the defect-tests goal's done lines, and guard the known defects. usage: test-defect.sh [CASE]
 # With a CASE it exits non-zero if that case fails (regression rows call it so); with none it prints one PASS per case.
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_BATCH
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
@@ -16,7 +17,7 @@ if [ $# = 0 ]; then
 fi
 case=$1
 no() { echo "$case: $1"; exit 1; }
-d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
+d=${TOY_KEEP:-$(mktemp -d)}; [ -n "${TOY_KEEP:-}" ] || trap 'rm -rf "$d"' EXIT
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 flow="python3 $here/skills/workflow-delivery/scripts/flow.py"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"
@@ -26,7 +27,10 @@ toy() { # a toy repo with the loop set up, the stand-in flow and the fake gh
   export LOOP_FLOW="$d/toy/flow.json" PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
   cd "$d/toy/repo" || exit 1
   python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null || true  # a bare agent_command exits 1 after writing
-  git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
+  git switch -q main; git merge -q --no-edit workflow-setup
+  # setup's seeded rows count as seen failing here, so the qa lane (which fails unproven rows) passes for the toy goals
+  awk -F'\t' 'BEGIN {OFS = FS} !/^#/ && NF > 4 && $5 == "" {$5 = "2026-01-01"} {print}' .loop/regression.tsv > "$d/rows" \
+    && cat "$d/rows" > .loop/regression.tsv && git commit -qam "Seen red" 2>/dev/null; git push -q origin main
 }
 finish() { # finish SLUG TEXT: a goal whose flow is done, with a change committed
   $goal new "$1" --here --goal "Add $1" --done "$2" >/dev/null || no "new"
