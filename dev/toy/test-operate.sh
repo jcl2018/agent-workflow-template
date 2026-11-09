@@ -16,6 +16,7 @@ bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 "$here/dev/toy/make.sh" "$T" >/dev/null || exit 1
 export LOOP_FLOW="$T/flow.json" PATH="$here/dev/toy/fakegh:$PATH"
+export LOOP_BOARD_HEALTH=green  # the board header names the health verdict; a real health check each pass would slow the timed passes, as in the other board tests
 cd "$T/repo" || exit 1
 python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
