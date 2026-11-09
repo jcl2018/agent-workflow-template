@@ -368,8 +368,10 @@ def cmd_run(args):
         print("NOT RECORDED: detached HEAD")
     elif unclean:
         print("NOT RECORDED: uncommitted changes")
-    elif left:  # a row that leaves files behind must not be reused as a pass once someone tidies them away
-        print("NOT RECORDED: the rows left uncommitted files: %s" % ", ".join(left[:10]))
+    elif left:  # a row that leaves files must not pass by reuse once they're tidied: drop the record, next run is full
+        print("NOT RECORDED: the rows left uncommitted files: %s; record dropped" % ", ".join(left[:10]))
+        if os.path.exists(record):
+            os.remove(record)
     elif results:
         lanes.save(record, root, "regression.py run %s%s" % (args.target, " --reuse" if args.reuse else ""), results,
                    head, datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),

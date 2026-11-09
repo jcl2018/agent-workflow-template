@@ -183,11 +183,11 @@ $goal new lg --here --goal "Lane goal" --done "lanes work" >/dev/null
 for s in idea plan review; do step lg $s >/dev/null; done
 out=$($goal record lg qa --file "$d/flow.json" 2>&1)
 check "record refuses qa before the qa lane passed on HEAD" 'grep -q "the qa lane has not passed on .* (LANE_MISSING)" <<<"$out"'
-# Value: protects=only the reply's last STEP line can skip the qa lane; fails_when=need_lane matches any STEP: failed line;
-# why_new=the refusal above has no STEP line at all; seam=none; no_claim=a real skill's reply (written by hand)
-printf 'quoted: STEP: failed earlier\nSTEP: failed old try\nSTEP: done\n' > "$d/quoted.txt"
-out=$($goal record lg qa --file "$d/quoted.txt" 2>&1)
-check "a quoted STEP: failed line before a final STEP: done never skips the qa lane" 'grep -q "(LANE_MISSING)" <<<"$out"'
+# Value: protects=only a reply record counts as a failed try skips the qa lane; fails_when=need_lane skips on any failed
+# line or ignores PENDING; why_new=the refusal above has no STEP line; seam=none; no_claim=a real skill's reply
+printf 'STEP: failed old\nSTEP: done\n' > "$d/q1"; printf 'PENDING: x\nSTEP: failed\n' > "$d/q2"
+out=$($goal record lg qa --file "$d/q1" 2>&1; $goal record lg qa --file "$d/q2" 2>&1)
+check "an earlier STEP: failed or a PENDING line never skips the qa lane" '[ "$(grep -c "(LANE_MISSING)" <<<"$out")" = 2 ]'
 check "the lane command resolves from the installed package, not the repo (no skills/ here)" '[ ! -e skills ] && grep -q "^python3 $here/skills/workflow-regression/scripts/regression.py run land --reuse$" <<<"$lane"'
 out=$(step lg qa); echo "$out"
 check "qa runs the lane first: a full run on a branch with no record" 'grep -q "^LANE qa FULL \([0-9]*\)/\1 " <<<"$out" && grep -q "^FULL: no record" "$common/loop/runs/lg.qa-lane.txt"'
@@ -225,7 +225,7 @@ git commit -qam "A littering row"; out=$(python3 "$here/skills/workflow-delivery
 check "a row that leaves a file fails the lane (LANE_DIRTY at end)" 'grep -q "^LANE_DIRTY at end: a row left litter.txt" <<<"$out"'
 # Value: protects=a littering row is never saved as a pass for later reuse; fails_when=regression.py records without
 # rechecking the tree after the rows; why_new=the lane check above reads only the lane line; seam=none; no_claim=none beyond protects
-check "the littering run is not recorded" 'grep -q "^NOT RECORDED: the rows left uncommitted files: litter.txt" "$common/loop/runs/lf.pr-lane.txt"'
+check "the littering run is not recorded and its old record is dropped" 'grep -q "^NOT RECORDED: the rows left uncommitted files: litter.txt; record dropped" "$common/loop/runs/lf.pr-lane.txt" && ! ls "$common"/loop/tests/*lf-*.json'
 rm -f litter.txt; grep -v "^litter	" .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv
 
 echo "== a lane's recorder, time limit and a moved HEAD"
