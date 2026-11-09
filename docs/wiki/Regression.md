@@ -21,7 +21,7 @@ Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.l
 - REG-3: **Reviewed 2026-11-08** One command runs it, the same way for me, the loop and GitHub. <!-- reviewed fccc7d92 -->
 - REG-4: **Reviewed 2026-11-08** Runs in GitHub Actions: the routine run lives in GitHub Actions, not a session, on every push and nightly, with the schedule as a setting I can change (e.g. hourly). <!-- reviewed 9fce961f -->
 - REG-5: **Reviewed 2026-11-08** Failures go to GitHub: one issue per failing test, updated, closed on pass; known failures don't block; no token = preview only. <!-- reviewed 8074710d -->
-- REG-6: **Unreviewed** Temporary, until the PRD format replaces the criteria pages: a goal runs the full suite once, in qa; ship and release reuse qa's recorded run when no code changed since it, and otherwise run only the rows for the files changed after it.
+- REG-6: **Reviewed 2026-11-09** Temporary, until the PRD format replaces the criteria pages: a goal runs the full suite once, in qa; ship and release reuse qa's recorded run when no code changed since it, and otherwise run only the rows for the files changed after it. <!-- reviewed 8a250f7d -->
 
 ## Tests
 
