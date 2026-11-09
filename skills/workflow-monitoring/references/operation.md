@@ -76,13 +76,16 @@ To pass the loop to a new session, run `board.py handoff` and give it the path.
 
 Every check-in prints one block, and the dashboard and `board-artifact.html` carry the same content, in this order:
 
-1. **Needs you**: every stuck, waiting or failed worker, with the exact words to answer. Always first, never hidden.
+1. **Needs you**: every stuck, waiting or failed worker, with the exact words to answer, and at most one wiki line built on each pass from the current `docs.py check` (the stale or
+   failing pages and the fix). A saved wiki error naming a page the check no longer reports is dropped, with no publish needed. Always first, never hidden.
 2. **Roadmap**: a dependency graph of every goal, grouped in levels (goals that wait on nothing first), each line marked
    `merged`, `awaiting merge`, `running`, `waiting`, `failed` or `queued`, with its stage, progress bar, time left and
    `<- waits on` what it waits on. A running goal keeps every step under it with its estimated time and tokens, the
-   actual so far, and the estimate for the remaining steps. Merged goals per feature and a bar per milestone follow.
+   actual so far, and the estimate for the remaining steps. When goals have `depends-on` links, a flow chart follows with an arrow from
+   each goal to the goals that wait on it. Merged goals per feature and a bar per milestone follow. The Roadmap always ends with the `longest path:` line.
 3. **Total**: the time for the whole graph, the longest chain of what is left (goals that don't wait on each other run
-   side by side), never the sum. It reads `at least` when a goal has no estimate yet.
+   side by side), never the sum, with its finish time. It reads `at least` when a goal has no estimate yet. Every time `operate.py`
+   prints is in the local time zone with its name (`17:30 IST`), never UTC.
 4. **Goals**: each goal's done lines met so far. A worker marks one with `worker.py met SLUG N`. Only running, waiting and queued goals, and goals merged since the last check-in (`board_runs.py checkin`, written after each full block), list their lines; older merged goals show only in the merged line. A pull request closed without merging shows as `closed without merging: #N` in the Roadmap.
 
 Estimates are the median of other finished runs' steps, read from their logs; a step with none reads `no estimate yet`.

@@ -5,6 +5,7 @@ A queue line may carry `depends: a, b` or `depends-on: a, b` (both spellings mea
 sharing files is never a reason to wait (the later goal merges the base before its pull request). The only other limit
 is `parallel` in .loop/config.json (0 or unset: unlimited). Imported, not run.
 """
+import datetime
 import re
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
@@ -76,3 +77,34 @@ def ready(goals, records, limit):
             used += 1
     return start, held
 
+
+
+def clock(at):
+    """HH:MM in the local time zone with its name; a platform with no zone name gets UTC+hhmm."""
+    local = at.astimezone()
+    return local.strftime("%H:%M %Z") if local.strftime("%Z") else local.strftime("%H:%M UTC%z")
+
+
+def localize(text):
+    """Rewrite 'HH:MM UTC' (today, UTC) and 'YYYY-MM-DDTHH:MM:SSZ' stamps in printed text as local time with the zone name."""
+    today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+
+    def clock_of(day, hour, minute):
+        return clock(datetime.datetime.fromisoformat("%sT%s:%s:00+00:00" % (day, hour, minute)))
+
+    text = re.sub(r"(\d{4}-\d\d-\d\d)T(\d\d):(\d\d):\d\dZ", lambda m: m.group(1) + " " + clock_of(m.group(1), m.group(2), m.group(3)), text)
+    return re.sub(r"\b(\d\d):(\d\d) UTC\b", lambda m: clock_of(today, m.group(1), m.group(2)), text)
+
+
+def flow(nodes):
+    """The dependency flow chart as lines: one per goal others wait on, `[mark] a --> [mark] b, [mark] c`. Empty with no dependencies.
+    A dependency that is no goal here reads [? not a goal here]; a cycle is drawn once, never followed."""
+    by = {node["slug"]: node for node in nodes}
+    label = lambda slug: "[%s] %s" % (by[slug]["mark"], slug) if slug in by else "[? not a goal here] " + slug
+    waiting = {}
+    for node in nodes:
+        for dep in node["depends"]:
+            waiting.setdefault(dep, []).append(node["slug"])
+    if not waiting:
+        return []
+    return ["flow (arrow = must finish before):"] + ["%s --> %s" % (label(dep), ", ".join(label(s) for s in waiting[dep])) for dep in sorted(waiting)]

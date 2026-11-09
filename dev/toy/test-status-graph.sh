@@ -60,7 +60,7 @@ assert t.index(\"level 1\") < t.index(\"[running] b \") < t.index(\"level 2\") <
 check "a chained goal shows what it waits on, a standalone one waits on nothing" 'grep -q "\[queued\] c .*<- waits on b" "$T/block" && grep -q "\[queued\] d .*<- waits on c" "$T/block" && grep -q "\[queued\] e " "$T/block" && ! grep "\[queued\] e " "$T/block" | grep -q waits'
 check "live goals only, stage, 10-cell bar, time to finish, merged collapsed to one line" '! grep -q "\[merged\]" "$T/block" && grep -q "^merged: #" "$T/block" && grep -q "\[running\] b  stage 2 of 8 \[##--------\]  ~51m left" "$T/block" && grep -q "\[queued\] c  stage 0 of 8 \[----------\]  ~1h01m left" "$T/block"'
 check "a dependency that is no goal here shows" 'grep -q "\[? not a goal here\] ghost" "$T/block"'
-check "the total is the longest chain b > c > d, not the sum" 'grep -q "^about 2h54m, the longest chain: b > c > d" "$T/block" && ! grep -q "4h57m" "$T/block"'
+check "the total is the longest chain b > c > d, not the sum" 'grep -q "^longest path: about 2h54m, the longest chain: b > c > d" "$T/block" && ! grep -q "4h57m" "$T/block"'
 check "a running goal keeps its steps with estimates under it" 'sed -n "/\[running\] b/,/remaining steps/p" "$T/block" | grep -q "plan   est 21m" && grep -q "remaining steps: est 51m" "$T/block"'
 
 echo "== the pure graph"

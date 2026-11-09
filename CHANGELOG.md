@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.8.8 - 2026-11-09
+
+- operate-fit-3: current wiki line, flow chart, local times
+- Merge remote-tracking branch 'origin/main' into loop/operate-fit-3
+
+### How to verify
+
+1. Run `python3 skills/workflow-monitoring/scripts/board_status.py` in a repo with queued goals that have `depends-on` links.
+   Expect: under Roadmap an arrow chart (`[queued] a --> [queued] b`), and the last Roadmap line starts `longest path:`.
+2. Run `python3 skills/workflow-monitoring/scripts/operate.py run --once`.
+   Expect: Needs you has at most one `wiki (docs check)` line, and every time it prints shows your local zone name, never UTC.
+
 ## v0.8.7 - 2026-11-09
 
 - doc-usage: criteria_max, Usage section, pages, tests

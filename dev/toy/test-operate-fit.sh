@@ -61,10 +61,10 @@ echo "== GitHub says merged"
 FAKE_GH_PR_STATE=MERGED block > "$T/block"
 needs() { sed -n '/== Needs you ==/,/== Roadmap ==/p' "$T/block"; }
 road() { sed -n '/== Roadmap ==/,/== Total ==/p' "$T/block"; }
-check "line 1: a merged goal's old wiki_error and release_error are gone from Needs you" '! needs | grep -q "rec\|gh\|fresh" && needs | grep -q "late (wiki not published)"'
+check "line 1: a merged goal's old wiki_error and release_error are gone from Needs you" '! needs | grep -q "rec \|gh \|fresh\|boom" && [ "$(needs | grep -c "^- wiki")" = 1 ] && needs | grep -q "^- wiki (docs check): saved: page Home is stale"'
 check "line 1: errors and asks that are still open stay" 'needs | grep -q "wait (waiting): Which one" && needs | grep -q "answer: pick a"'
 FAKE_GH_PR_STATE=OPEN block > "$T/open"
-check "line 1: with GitHub saying open, the unmerged goal keeps its error" 'sed -n "/== Needs you ==/,/== Roadmap ==/p" "$T/open" | grep -q "gh (wiki not published)"'
+check "line 1: with GitHub saying open, the unmerged goal keeps its error" 'sed -n "/== Needs you ==/,/== Roadmap ==/p" "$T/open" | grep -q "^- wiki (docs check):.*saved: page Home is stale"'
 check "line 2: a pull request merged on GitHub shows merged, never awaiting merge" '! grep -q "awaiting merge\] gh\|waiting to merge: .*72" "$T/block" && road | grep -q "^merged: .*#72"'
 check "line 2: its dependant no longer waits on it" 'road | grep "\[queued\] q " | grep -q "waits on run" && ! road | grep "\[queued\] q " | grep -q "gh"'
 check "line 3: only live goals are drawn, with the stage, a 10-cell bar and an arrow" '! road | grep -q "\[merged\]" && road | grep -q "\[running\] run  stage 3 of 8 \[####------\]" && road | grep -q "\[waiting\] wait " && road | grep -q "\[awaiting merge\] stale "'
@@ -81,7 +81,7 @@ FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_STATE_81=CLOSED block > "$T/closed"
 cneeds() { sed -n '/== Needs you ==/,/== Roadmap ==/p' "$T/closed"; }
 croad() { sed -n '/== Roadmap ==/,/== Total ==/p' "$T/closed"; }
 cgoals() { sed -n '/== Goals ==/,$p' "$T/closed"; }
-check "line 1: a later publish clears the wiki_error of an unmerged goal" '! cneeds | grep -q "healed" && cneeds | grep -q "stale (wiki not published)"'
+check "line 1: a later publish clears the wiki_error of an unmerged goal" '! cneeds | grep -q "healed" && cneeds | grep -q "saved: page Docs is stale"'
 check "line 2: a pull request closed without merging reads closed, never awaiting merge" 'croad | grep -q "^closed without merging: #81" && ! croad | grep -q "shut" && ! grep -q "waiting to merge: .*81" "$T/closed"'
 check "line 2: an open pull request still reads awaiting merge" 'croad | grep -q "\[awaiting merge\] healed "'
 check "line 3: Goals lists running, waiting, queued and newly merged goals only" 'cgoals | grep -q "^- run:" && cgoals | grep -q "^- wait:" && cgoals | grep -q "^- q:" && cgoals | grep -q "^- newer:"'
