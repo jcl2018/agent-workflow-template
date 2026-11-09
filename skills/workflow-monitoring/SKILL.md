@@ -111,8 +111,9 @@ open now, a stuck worker first, each with its fix in plain words and the exact w
 with percent and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current
 step in brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows; and one
 finish time. Merged work, history and totals are left out. The loop is in `references/operation.md`.
-Every operation-session reply ends with one `Decisions:` line and then the full live board; `scripts/reply_hook.py`, a Stop
-hook that `workflow-setup` installs with `setup.py --reply-hook`, blocks one that doesn't (never a worker's).
+Every operation-session check-in reply has one layout: a headline, All sessions, Dependencies, Needs you and, last, Coming
+up (`references/operation.md`); `scripts/reply_hook.py`, a Stop hook that `workflow-setup` installs with
+`setup.py --reply-hook`, blocks one that doesn't (never a worker's).
 
 ## Statuses
 

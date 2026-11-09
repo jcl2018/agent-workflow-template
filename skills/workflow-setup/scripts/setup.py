@@ -118,6 +118,9 @@ def reply_hook(repo, remove):
         if script.startswith(os.path.join(common, "loop", "worktrees") + os.sep):
             return refuse("%s is inside a goal's worktree, which goes away when the goal ends" % script,
                           "run setup.py from the main checkout or an installed copy of the skills")
+    if git(repo, "ls-files", ".claude/settings.local.json", check=False):
+        return refuse(".claude/settings.local.json is committed, so the hook's local path would be committed too",
+                      "git rm --cached .claude/settings.local.json, commit that, then run again")
     try:
         with open(path) as handle:
             data = json.load(handle)
@@ -148,16 +151,19 @@ def reply_hook(repo, remove):
     if not subprocess.run(["git", "-C", repo, "check-ignore", "-q", ".claude/settings.local.json"]).returncode == 0:
         exclude = os.path.join(repo, git(repo, "rev-parse", "--git-path", "info/exclude"))
         os.makedirs(os.path.dirname(exclude), exist_ok=True)
-        with open(exclude, "a") as handle:
-            handle.write("/.claude/settings.local.json\n")
+        held = open(exclude).read() if os.path.exists(exclude) else ""
+        if "/.claude/settings.local.json" not in held.splitlines():
+            with open(exclude, "a") as handle:
+                handle.write(("" if not held or held.endswith("\n") else "\n") + "/.claude/settings.local.json\n")
     data = data if isinstance(data, dict) else {}
     data.setdefault("hooks", {})["Stop"] = kept
     if not kept:
         del data["hooks"]["Stop"]
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path + ".tmp", "w") as handle:
+    tmp = "%s.%d.tmp" % (path, os.getpid())
+    with open(tmp, "w") as handle:
         handle.write(json.dumps(data, indent=2) + "\n")
-    os.replace(path + ".tmp", path)
+    os.replace(tmp, path)
     print("HOOK: %s" % ("removed" if remove else "updated" if had else "added"))
     if not remove:
         print("NOTE: start a new Claude Code session (or open /hooks) to load it; it checks only the operation session")

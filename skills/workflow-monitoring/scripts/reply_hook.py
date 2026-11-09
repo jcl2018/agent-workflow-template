@@ -5,13 +5,15 @@ usage: reply_hook.py              the Stop hook: reads the hook's JSON on stdin
        reply_hook.py check FILE|-  print what a reply is missing (exit 0 clean, 1 with problems, 2 unreadable)
        reply_hook.py status        say whether the hook is installed and on in this repo, and its recent let-throughs
 
-A reply passes when it ends with one 'Decisions:' line (or 'Decisions: none') and then the full live board, exactly as
-live_board.py prints it: the LIVE BOARD header, the sections Issues, Running goals, Queued goals, Dependencies and Finish
-in that order, and one finish line, last. A code fence around the board is fine.
+A check-in reply passes when it has this layout (issue 123): one headline line; then the sections All sessions (a table of
+every session across repos), Dependencies (a drawn graph), Needs you (numbered questions with options and a recommended
+answer, or "Nothing needs you") and, last, Coming up (the next expected events and what the owner will need to do), each
+heading on its own line (Markdown marks and a trailing colon are fine) with something under it.
 
-The hook checks only the operation session: a session whose transcript ran 'operate.py run' or 'board.py board' without
-a refusal. A worker is never checked: a session whose cwd is in <git common dir>/loop/worktrees/, or that ran a flow step
-('flow.py', 'goal.py step|record|pr'). A session in another repo, or in a repo with no .loop/config.json, is never checked.
+The hook checks only the operation session: a session whose transcript ran 'operate.py run' without a refusal, as its
+latest signal. A worker is never checked: a session that ran a flow step ('flow.py', 'goal.py step|record|pr') after that,
+or whose cwd is in <git common dir>/loop/worktrees/ before any signal. A session in another repo, or in a repo with no
+.loop/config.json, is never checked. Each stop reads only the transcript bytes added since the last one.
 "reply_hook": false in .loop/config.json, or LOOP_REPLY_HOOK=0, turns it off. A failing reply is blocked with a reason
 naming what is missing; the third block in a row is let through and logged in <git common dir>/loop/reply-hook/log.
 Any error lets the reply through (fail open) and logs one line. setup.py --reply-hook installs it. It runs git only.
@@ -24,22 +26,23 @@ import subprocess
 import sys
 import time
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
-try:
-    from live_board import SECTIONS  # noqa: E402
-except Exception:  # the board's own module is the source; this copy keeps the hook alive without it
-    SECTIONS = ("Issues", "Running goals", "Queued goals", "Dependencies", "Finish")
+SECTIONS = ("All sessions", "Dependencies", "Needs you", "Coming up")  # the reply's sections, in order; Coming up last
+NOTHING = "Nothing needs you"
 
 TRIES = 3  # the third block in a row is let through
 KEEP = 200  # log lines kept
-TAIL = 4 << 20  # bytes of the transcript read for the final reply once the session is known
+TAIL = 4 << 20  # bytes of the transcript read for the final reply
+STALE = 14 * 86400  # seconds before a finished session's state files are removed
+OPERATORS = {"&&", "||", ";", "|", "&", ";;", "(", ")"}
+WORKER = {"flow.py": None, "goal.py": {"step", "record", "pr"}}
 SESSION = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 FENCE = re.compile(r"^\s*(```|~~~)")
+NUMBERED = re.compile(r"^\s*\**\d+[.)]")
 MARKS = re.compile(r"[*#`_]")
-TEMPLATE = ("End the reply like this: at most 6 report lines (anything waiting on the owner first), then one line "
-            "'Decisions: <what the owner must decide>' (or 'Decisions: none'), then the full live board exactly as "
-            "live_board.py prints it, in a code fence, last, with nothing after its finish line.")
+TEMPLATE = ("Write the check-in reply in this layout: one headline line; All sessions (one table: session, repo, what it "
+            "is for, status, progress, time left, tokens left, latest); Dependencies (the drawn graph); Needs you (each "
+            "question numbered with its options and a recommended answer, or 'Nothing needs you'); and last, Coming up "
+            "(the next expected events and what the owner will need to do).")
 
 
 def git(cwd, *args):
@@ -52,9 +55,10 @@ def repo_of(cwd):
     if not cwd or not os.path.isdir(cwd):
         return None
     top = git(cwd, "rev-parse", "--show-toplevel")
-    common = git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    common = git(cwd, "rev-parse", "--git-common-dir")
     if not top or not common:
         return None
+    common = os.path.join(cwd, common)  # a relative answer is relative to cwd; an absolute one stays as it is
     try:
         with open(os.path.join(top, ".loop", "config.json")) as handle:
             config = json.load(handle)
@@ -83,26 +87,41 @@ def log(common, text):
 
 
 def write(path, text):
-    with open(path + ".tmp", "w") as handle:
+    tmp = "%s.%d.tmp" % (path, os.getpid())  # one per process, so two sessions never share it
+    with open(tmp, "w") as handle:
         handle.write(text)
-    os.replace(path + ".tmp", path)
+    os.replace(tmp, path)
 
 
-def entries(path, tail=0):
-    """The transcript's main-chain entries (subagent sidechains left out); with tail, only its last tail bytes."""
+def off(config):
+    return str(config.get("reply_hook", True)).strip().lower() in ("false", "0", "off", "no")
+
+
+def entries(path, tail=0, start=0):
+    """(main-chain entries, end offset) of the transcript: from byte start, or only its last tail bytes. Subagent
+    sidechains are left out; a last line still being written is left for the next read."""
     found = []
     with open(path, "rb") as handle:
-        if tail and os.path.getsize(path) > tail:
+        size = os.path.getsize(path)
+        if tail and size - start > tail:
             handle.seek(-tail, os.SEEK_END)
             handle.readline()  # a partial first line
-        for raw in handle.read().decode("utf-8", "replace").splitlines():
+        else:
+            handle.seek(min(start, size))
+        data = handle.read()
+        end = handle.tell()
+        if data and not data.endswith(b"\n"):
+            cut = data.rfind(b"\n") + 1
+            end -= len(data) - cut
+            data = data[:cut]
+        for raw in data.decode("utf-8", "replace").splitlines():
             try:
                 entry = json.loads(raw)
             except ValueError:
                 continue
             if isinstance(entry, dict) and not entry.get("isSidechain"):
                 found.append(entry)
-    return found
+    return found, end
 
 
 def blocks(entry):
@@ -140,46 +159,59 @@ def runs(found):
 
 
 def calls(command):
-    """(script basename, subcommand) for each python script the command runs."""
+    """(script basename, its words after it) for each python script a shell command runs."""
     found = []
-    for part in re.split(r"&&|\|\||;|\||\n", command):
+    for line in command.splitlines():
         try:
-            words = shlex.split(part)
+            lex = shlex.shlex(line, posix=True, punctuation_chars=True)
+            lex.whitespace_split = True
+            words = list(lex)
         except ValueError:
             continue
-        for i, word in enumerate(words):
-            if word.endswith(".py") and i and os.path.basename(words[i - 1]).startswith("python"):
-                rest = [w for w in words[i + 1:] if not w.startswith("-")]
-                found.append((os.path.basename(word), rest[0] if rest else ""))
+        part = []
+        for word in words + [";"]:
+            if word not in OPERATORS:
+                part.append(word)
+                continue
+            for i, item in enumerate(part):
+                if item.endswith(".py") and (any(os.path.basename(w).startswith("python") for w in part[:i])
+                                             or i == 0 or item.startswith("./")):
+                    found.append((os.path.basename(item), [w for w in part[i + 1:] if not w.startswith("-")]))
+                    break
+            part = []
     return found
 
 
-def kind(found, cwd, common):
-    """'worker', 'operation' or '' for a session, from its cwd and the commands it ran (the later signal wins)."""
-    if os.path.realpath(cwd).startswith(os.path.join(common, "loop", "worktrees") + os.sep):
+def signal(script, rest):
+    """'worker', 'operation' or '' for one script run."""
+    if script in WORKER and (WORKER[script] is None or WORKER[script] & set(rest[:3])):
         return "worker"
-    seen = ""
+    return "operation" if script == "operate.py" and "run" in rest[:3] else ""
+
+
+def kind(found, known=""):
+    """The session's kind after these entries: the latest signal among its non-refused commands, else known."""
     for command, refused in runs(found):
-        if refused:
-            continue
-        for script, sub in calls(command):
-            if script == "flow.py" or (script == "goal.py" and sub in ("step", "record", "pr")):
-                seen = "worker"
-            elif (script, sub) in (("operate.py", "run"), ("board.py", "board")):
-                seen = "operation"
-    return seen
+        if not refused:
+            for script, rest in calls(command):
+                known = signal(script, rest) or known
+    return known
 
 
 def final_reply(payload, found):
     """The final assistant message's text, or None when it can't be confirmed (then the hook passes)."""
     if isinstance(payload.get("last_assistant_message"), str):
-        return payload["last_assistant_message"]
+        return payload["last_assistant_message"] or None
     chat = [e for e in found if e.get("type") in ("user", "assistant")]
     if not chat or chat[-1].get("type") != "assistant":
         return None
-    last = (chat[-1].get("message") or {}).get("id")
-    texts = [b.get("text", "") for e in chat if e.get("type") == "assistant" and (e.get("message") or {}).get("id") == last
-             for b in blocks(e) if b.get("type") == "text"]
+    last = chat[-1]
+    if last.get("isApiErrorMessage") or (last.get("message") or {}).get("model") == "<synthetic>":
+        return None  # an API error or usage-limit notice, not a reply
+    mine = [e for e in chat if e.get("type") == "assistant" and (e.get("message") or {}).get("id") == (last.get("message") or {}).get("id")]
+    if any(b.get("type") == "tool_use" for e in mine for b in blocks(e)):
+        return None  # the turn's last message still calls a tool: the reply is not written yet
+    texts = [b.get("text", "") for e in mine for b in blocks(e) if b.get("type") == "text"]
     return "\n".join(texts) if texts else None
 
 
@@ -187,30 +219,34 @@ def bare(line):
     return MARKS.sub("", line).strip()
 
 
+def heading(line):
+    return bare(line).rstrip(":").strip()
+
+
 def problems(text):
-    """What a reply is missing, one plain line each; an empty list means it passes."""
-    lines = str(text or "").splitlines()
-    heads = [i for i, line in enumerate(lines) if bare(line).startswith("LIVE BOARD")]
-    if not heads:
-        return ["it does not end with the live board (no LIVE BOARD header)"]
-    head, found, at = heads[-1], [], heads[-1]
+    """What a check-in reply is missing, one plain line each; an empty list means it passes."""
+    lines = [line for line in str(text or "").splitlines() if line.strip() and not FENCE.match(line)]
+    spots, at = {}, -1
     for name in SECTIONS:
-        spot = next((i for i in range(at + 1, len(lines)) if bare(lines[i]) == name), None)
-        if spot is None:
-            found.append("missing section %s" % name)
-        else:
-            at = spot
-    if not found:
-        tail = [line for line in lines[at + 1:] if line.strip() and not FENCE.match(line)]
-        if not tail:
-            found.append("no finish line after Finish")
-        elif len(tail) > 1:
-            found.append("text after the board's finish line")
-    above = [line for line in lines[:head] if line.strip() and not FENCE.match(line)]
-    if not above or not bare(above[-1]).startswith("Decisions:"):
-        found.append("no 'Decisions:' line right above the board")
-    if sum(1 for line in above if bare(line).startswith("Decisions:")) > 1:
-        found.append("more than one 'Decisions:' line")
+        spot = next((i for i in range(at + 1, len(lines)) if heading(lines[i]) == name), None)
+        if spot is not None:
+            spots[name] = at = spot
+    if not spots:
+        return ["it is not in the check-in layout (no All sessions, Dependencies, Needs you or Coming up section)"]
+    found = ["missing section %s%s" % (name, " (or it is out of order)" if any(heading(l) == name for l in lines) else "")
+             for name in SECTIONS if name not in spots]
+    first = min(spots.values())
+    if first == 0:
+        found.append("no headline line before the first section")
+    elif first > 1:
+        found.append("more than one line before the first section; the headline is one line")
+    names = [n for n in SECTIONS if n in spots]
+    for name, after in zip(names, names[1:] + [None]):
+        body = lines[spots[name] + 1:spots[after] if after else len(lines)]
+        if not body:
+            found.append("section %s is empty" % name)
+        elif name == "Needs you" and not any(NUMBERED.match(l) or NOTHING.lower() in l.lower() for l in body):
+            found.append("Needs you has no numbered question and does not say '%s'" % NOTHING)
     return found
 
 
@@ -220,7 +256,7 @@ def hook(payload):
     if os.environ.get("LOOP_REPLY_HOOK") == "0" or not SESSION.match(session):
         return None
     where = repo_of(str(payload.get("cwd") or ""))
-    if not where or where[2].get("reply_hook") is False:
+    if not where or off(where[2]):
         return None
     _, common, _ = where
     try:
@@ -230,23 +266,40 @@ def hook(payload):
         return None
 
 
-def decide(payload, session, common):
-    base = os.path.join(folder(common), session)
+def state(base):
     try:
         with open(base + ".kind") as handle:
-            known = handle.read().strip()
-    except OSError:
-        known = ""
-    found = None
-    if not known:  # decided once per session, then kept: the transcript is read whole only until then
-        found = entries(payload["transcript_path"]) if payload.get("transcript_path") else []
-        known = kind(found, str(payload.get("cwd")), common)
-        if known:
-            write(base + ".kind", known)
+            held = json.load(handle)
+        return str(held.get("kind", "")), int(held.get("offset", 0))
+    except (OSError, ValueError, AttributeError, TypeError):
+        return "", 0
+
+
+def prune(where):
+    """Remove state files of sessions not seen for STALE seconds."""
+    now = time.time()
+    for name in os.listdir(where):
+        path = os.path.join(where, name)
+        if name.endswith((".kind", ".count", ".tmp")) and now - os.path.getmtime(path) > STALE:
+            os.remove(path)
+
+
+def decide(payload, session, common):
+    base = os.path.join(folder(common), session)
+    known, offset = state(base)
+    if not os.path.exists(base + ".kind"):
+        prune(folder(common))
+    path = payload.get("transcript_path")
+    new, end = entries(path, start=offset) if path and os.path.exists(path) else ([], offset)
+    if end < offset:  # a transcript that shrank was replaced: read it again from the start
+        new, end = entries(path)
+    if not known and os.path.realpath(str(payload.get("cwd"))).startswith(os.path.join(common, "loop", "worktrees") + os.sep):
+        known = "worker"
+    known = kind(new, known)
+    write(base + ".kind", json.dumps({"kind": known, "offset": end}))
     if known != "operation":
         return None
-    if found is None and not isinstance(payload.get("last_assistant_message"), str):
-        found = entries(payload["transcript_path"], TAIL) if payload.get("transcript_path") else []
+    found = None if isinstance(payload.get("last_assistant_message"), str) else entries(path, TAIL)[0] if path else []
     text = final_reply(payload, found or [])
     wrong = problems(text) if text is not None else []
     count = 0
@@ -286,7 +339,7 @@ def status(cwd):
     except OSError:
         lets = 0
     print("REPLY HOOK: %s, setting %s, script %s, let-throughs logged %d" % (
-        "installed" if mine else "not installed (setup.py --reply-hook)", "off" if config.get("reply_hook") is False else "on",
+        "installed" if mine else "not installed (setup.py --reply-hook)", "off" if off(config) else "on",
         "found" if path and os.path.exists(path) else "missing" if mine else "-", lets))
     return 0
 

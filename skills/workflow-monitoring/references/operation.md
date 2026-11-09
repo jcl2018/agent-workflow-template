@@ -78,10 +78,14 @@ gap between check-ins, or an hour when nothing runs or waits:
 4. If you have an Artifact tool, publish `board-artifact.html` as it is, with no hand edits (it has no doctype, html, head
    or body tags): the same artifact URL each time, never a new one. Both pages follow the viewer's light or dark setting,
    and a manual `data-theme` of `dark` or `light` on the root wins. Otherwise give the owner the `board.html` path.
-5. Reply to the owner in this order, every time: at most 6 report lines (what changed, anything waiting on them first),
-   then one `Decisions:` line (what only the owner can decide, or `Decisions: none`), then the full live board exactly as
-   `live_board.py` prints it, in a code fence, last, with nothing after its finish line. Where setup installed the reply
-   hook (`setup.py --reply-hook`), a reply that ends any other way is blocked and told what is missing (below).
+5. Reply to the owner in one layout, every time (issue 123): one headline line; **All sessions**, one table of every
+   running, paused, holding and queued goal's session across the repos it governs (session, repo, what it is for, status,
+   progress, time left, tokens left, latest); **Dependencies**, the drawn top-to-bottom graph, marking each goal `[>]`
+   running, `[=]` holding or paused, `[ ]` queued or `[!]` stuck; **Needs you**, each open question numbered with what it is
+   about, its options and a recommended answer, or `Nothing needs you`; and last, **Coming up**, the next expected events
+   with rough times and `you:` heads-ups on what the owner will need to do. There is no separate Issues list: those
+   belong in Needs you. Where setup installed the reply hook (`setup.py --reply-hook`), a reply in any other layout is
+   blocked and told what is missing (below).
 6. Wait `NEXT_DELAY` seconds, then go to step 1. `none` means the owner turned the loop off: stop and say so.
    Keep the previous `board.json` for the next `--since`.
 
@@ -91,36 +95,37 @@ To pass the loop to a new session, run `board.py handoff` and give it the path.
 
 `scripts/reply_hook.py` is a Claude Code Stop hook that keeps step 5's reply format (MON-5). `setup.py --reply-hook`
 installs it into the repo's machine-local `.claude/settings.local.json` (git ignores it); `--remove` takes it out; a new
-session loads it. It checks only the operation session, a session that ran `operate.py run` or `board.py board` without a
-refusal, and never a worker (a session in a goal worktree, or one that ran a flow step) or a session in another repo.
-`"reply_hook": false` in `.loop/config.json`, or `LOOP_REPLY_HOOK=0`, turns it off. A reply that passes:
+session loads it. It checks only the operation session, a session whose latest signal is an `operate.py run` without a refusal, and never a worker (a session in a goal worktree, or one that ran a flow step) or a session in another repo.
+`"reply_hook": false` in `.loop/config.json`, or `LOOP_REPLY_HOOK=0`, turns it off. It checks the layout (the headline,
+then the four section headings in order, each with something under it, Needs you numbered or `Nothing needs you`), not
+whether the numbers are true. A reply that passes:
 
 ````text
-Two goals moved; nothing is stuck.
-Decisions: none
+Two goals moved; one needs you.
+
+## All sessions
+| session | repo | for | status | progress | ETA | tokens left | latest |
+|---|---|---|---|---|---|---|---|
+| worker · median | my-repo | the median command | running | build | 20m | 1.2M | built, testing |
+
+## Dependencies
 ```
-LIVE BOARD  my-repo  17:30 PST  v1.2.0  health: green
-
-Issues
-- (none)
-
-Running goals
-- (none)
-
-Queued goals
-- (none)
-
-Dependencies
-- (none)
-
-Finish
-nothing left
+[>] median
+ |
+[ ] stats-page
 ```
+
+## Needs you
+1. Release median when it lands? Options: cut, leave. Recommended: leave.
+
+## Coming up
+- about 18:10: median opens its pull request
+- you: answer question 1 when it lands
 ````
 
-A reply with no board gets: `REPLY FORMAT (MON-5): it does not end with the live board (no LIVE BOARD header). End the
-reply like this: ...`, and the session writes the reply again. The third block in a row lets the reply through and logs
-it in `<git common dir>/loop/reply-hook/log`; any error in the hook lets the reply through and logs one line.
+A reply in another layout gets: `REPLY FORMAT (MON-5): missing section Coming up; ... Write the check-in reply in this
+layout: ...`, and the session writes the reply again. The third block in a row lets the reply through and logs it in
+`<git common dir>/loop/reply-hook/log`; any error in the hook lets the reply through and logs one line.
 `reply_hook.py check FILE` prints what a reply is missing; `reply_hook.py status` says whether the hook is installed and on.
 
 ## The live board

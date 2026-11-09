@@ -26,8 +26,6 @@ import status_graph  # noqa: E402
 os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")
 
 FLOW = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
-# The board's section lines, in order; reply_hook.py checks a reply against them.
-SECTIONS = ("Issues", "Running goals", "Queued goals", "Dependencies", "Finish")
 QUIET = int(os.environ.get("LOOP_SESSION_QUIET", "3600"))  # seconds a worker session may stay silent before Issues names it
 HEALTH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-health", "scripts", "health.py")
 
@@ -145,8 +143,8 @@ def render(root=None, at=None):
     items += [dict(slug=g["slug"], mark="queued", depends=waits(g["depends"]), stage=0,
                    left=bs.left_time({"slug": g["slug"], "status": "queued"}, runs, at)) for g in queue]
     names = {item["slug"] for item in items}
-    out = ["LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root)), "", SECTIONS[0]]
-    out += issues([r for r in runs if r["slug"] not in shut], gone, root, at) + ["", SECTIONS[1]]
+    out = ["LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root)), "", "Issues"]
+    out += issues([r for r in runs if r["slug"] not in shut], gone, root, at) + ["", "Running goals"]
     for run in running:
         done = current(run)
         full = round(10 * done / len(FLOW))
@@ -154,19 +152,19 @@ def render(root=None, at=None):
         out += ["- %s  [%s%s] %d%%  %s" % (run["slug"], "#" * full, "-" * (10 - full), round(100 * done / len(FLOW)),
                                          "no estimate yet" if left is None else "%s left" % status_graph.span(left)),
                 "    " + flow_line(run), "    worker: " + worker_of(run), "    next: " + next_line(run)]
-    out += ([] if running else ["- (none)"]) + ["", SECTIONS[2]]
+    out += ([] if running else ["- (none)"]) + ["", "Queued goals"]
     for goal in queue:
         left = next(i["left"] for i in items if i["slug"] == goal["slug"])
         out.append("- %s  %s%s" % (goal["slug"], "no estimate yet" if left is None else "%s left" % status_graph.span(left),
                                    "  waits on " + ", ".join(waits(goal["depends"])) if waits(goal["depends"]) else ""))
-    out += ([] if queue else ["- (none)"]) + ["", SECTIONS[3]]
+    out += ([] if queue else ["- (none)"]) + ["", "Dependencies"]
     edges = ["%s --> %s" % (dep, item["slug"]) for item in items for dep in item["depends"] if dep in names]
     out += edges or ["- (none)"]
     seconds, _, _ = status_graph.chain(items)
     missing = status_graph.unknown(items)
     finish = "nothing left" if not items else "no estimate yet" if not seconds else "%sfinish about %s" % (
         "at least " if missing else "", graph.clock(at + datetime.timedelta(seconds=seconds)))
-    return out + ["", SECTIONS[4], finish]
+    return out + ["", "Finish", finish]
 
 
 def fragment(lines):

@@ -20,21 +20,42 @@ mkdir -p .loop && echo '{"base": "main"}' > .loop/config.json
 C=$(cd "$(git rev-parse --git-common-dir)" && pwd -P)
 mkdir -p "$C/loop/worktrees/wt" "$T/other"
 F="$T/fx"; mkdir -p "$F"
-# A real board from live_board.py on this toy repo, then replies and transcripts built around it.
-python3 "$here/skills/workflow-monitoring/scripts/live_board.py" > "$F/board.txt"
+# Check-in replies in the owner's layout (issue 123) and broken ones, then transcripts built around them.
 python3 - "$F" <<'PY'
 import json, os, sys
 F = sys.argv[1]
-board = open(os.path.join(F, "board.txt")).read().rstrip("\n")
-good = "Two goals moved; nothing is stuck.\nDecisions: none\n```\n" + board + "\n```\n"
+good = """Two goals moved; one needs you.
+
+## All sessions
+| session | repo | for | status | progress | ETA | tokens left | latest |
+|---|---|---|---|---|---|---|---|
+| worker · alpha | toy | median command | running | build | 20m | 1.2M | built, testing |
+
+## Dependencies
+```
+[>] alpha
+ |
+[ ] beta
+```
+
+## Needs you
+1. Release alpha? Options: cut, leave. Recommended: leave.
+
+## Coming up
+- about 18:10: alpha opens its pull request
+- you: answer question 1 when it lands
+"""
 replies = {
     "good": good,
     "noboard": "Two goals moved. I'll check again in 30 minutes.",
-    "nosection": good.replace("\nDependencies\n", "\n"),
-    "after": good + "Anything else?\n",
-    "nodecision": good.replace("Decisions: none\n", ""),
-    "twodecisions": "Decisions: merge #12\n" + good,
-    "bold": good.replace("LIVE BOARD", "**LIVE BOARD**", 1),
+    "nosection": good.replace("## Dependencies\n", ""),
+    "order": good.replace("## Needs you\n1. Release alpha? Options: cut, leave. Recommended: leave.\n\n", "") +
+             "\n## Needs you\n1. Release alpha?\n",
+    "noheadline": good.replace("Two goals moved; one needs you.\n\n", ""),
+    "twoheadlines": "Status report.\n" + good,
+    "emptyneeds": good.replace("1. Release alpha? Options: cut, leave. Recommended: leave.\n", "We will see.\n"),
+    "nothing": good.replace("1. Release alpha? Options: cut, leave. Recommended: leave.\n", "Nothing needs you.\n"),
+    "bold": good.replace("## All sessions", "**All sessions:**", 1),
 }
 for name, text in replies.items():
     open(os.path.join(F, name + ".txt"), "w").write(text)
@@ -46,7 +67,7 @@ def tool(i, command, out, error=False):
            {"type": "tool_result", "tool_use_id": "t%d" % i, "content": text, "is_error": error}]}}
     return [use, res]
 def final(text, split=False):
-    cut = text.find("\nDecisions:")  # text blocks of one message split at block boundaries, here a line end
+    cut = text.find("\n## Needs you")  # text blocks of one message split at block boundaries, here a line end
     parts = [text[:cut], text[cut + 1:]] if split else [text]
     out = [{"type": "assistant", "isSidechain": False, "message": {"id": "mfinal", "role": "assistant",
             "content": [{"type": "thinking", "thinking": ""}]}}]
@@ -76,6 +97,18 @@ save("worker-refused-operate", prompt + tool(1, "python3 skills/workflow-monitor
 save("mention", prompt + tool(1, "grep -n 'operate.py run' skills/workflow-monitoring/SKILL.md", "12: operate.py run") +
      final(replies["noboard"]))
 save("plain", prompt + final(replies["noboard"]))
+save("board-only", prompt + tool(1, "python3 skills/workflow-monitoring/scripts/board.py board", "LIVE BOARD") + final(replies["noboard"]))
+save("op-flags", prompt + tool(1, "cd /r; python3 -u skills/workflow-monitoring/scripts/operate.py --repo . run | tail -3", "x") +
+     final(replies["noboard"]))
+pending = [{"type": "assistant", "isSidechain": False, "message": {"id": "mlast", "role": "assistant", "content": [
+           {"type": "text", "text": "Let me check."}, {"type": "tool_use", "id": "t9", "name": "Bash", "input": {"command": "ls"}}]}}]
+save("op-pending", prompt + operate + pending)
+synthetic = [{"type": "assistant", "isSidechain": False, "isApiErrorMessage": True, "message": {"id": "merr", "model": "<synthetic>",
+              "role": "assistant", "content": [{"type": "text", "text": "API Error: rate limited"}]}}]
+save("op-synthetic", prompt + operate + synthetic)
+save("grow-1", prompt + operate + final(replies["noboard"]))
+save("grow-2", prompt + operate + final(replies["noboard"]) +
+     tool(5, "LOOP_ROLE=worker python3 skills/workflow-delivery/scripts/flow.py g qa", "IN SESSION") + final(replies["noboard"]))
 PY
 hook() {  # hook NAME TRANSCRIPT CWD [ACTIVE] [extra json]: run the Stop hook, output in $F/NAME.out
     printf '{"session_id": "%s", "transcript_path": "%s", "cwd": "%s", "hook_event_name": "Stop", "stop_hook_active": %s%s}' \
@@ -86,26 +119,29 @@ passed() { [ ! -s "$F/$1.out" ] && [ "$(cat "$F/$1.code")" = 0 ]; }
 
 R="$T/repo"
 python3 "$H" check "$F/good.txt" > "$F/check-good.out"; cg=$?
-check "check passes the full board with one Decisions line above it" '[ $cg = 0 ] && [ ! -s "$F/check-good.out" ]'
-for name in noboard nosection after nodecision twodecisions; do
+check "check passes a reply in the check-in layout" '[ $cg = 0 ] && [ ! -s "$F/check-good.out" ]'
+for name in noboard nosection order noheadline twoheadlines emptyneeds; do
     python3 "$H" check "$F/$name.txt" > "$F/check-$name.out"; eval "c_$name=\$?"
 done
-check "check finds a reply with no board" '[ $c_noboard = 1 ] && grep -q "no LIVE BOARD header" "$F/check-noboard.out"'
+check "check finds a reply not in the layout" '[ $c_noboard = 1 ] && grep -q "not in the check-in layout" "$F/check-noboard.out"'
 check "check names a missing section" 'grep -q "missing section Dependencies" "$F/check-nosection.out"'
-check "check finds text after the finish line" 'grep -q "text after the board" "$F/check-after.out"'
-check "check finds no Decisions line" 'grep -q "no .Decisions:. line" "$F/check-nodecision.out"'
-check "check finds two Decisions lines" 'grep -q "more than one .Decisions:. line" "$F/check-twodecisions.out"'
+check "check finds Coming up not last" 'grep -q "missing section Coming up (or it is out of order)" "$F/check-order.out"'
+check "check finds no headline line" 'grep -q "no headline line" "$F/check-noheadline.out"'
+check "check finds more than one headline line" 'grep -q "more than one line before the first section" "$F/check-twoheadlines.out"'
+check "check finds Needs you with no numbered question" 'grep -q "Needs you has no numbered question" "$F/check-emptyneeds.out"'
+python3 "$H" check "$F/nothing.txt" >/dev/null; cno=$?
+check "Nothing needs you passes" '[ $cno = 0 ]'
 python3 "$H" check "$F/bold.txt" >/dev/null; cb=$?
-check "a Markdown-bold LIVE BOARD header still counts" '[ $cb = 0 ]'
+check "a Markdown-bold heading with a colon still counts" '[ $cb = 0 ]'
 python3 "$H" check "$T/none.txt" > "$F/check-none.out"; cn=$?
 check "check refuses an unreadable file with exit 2" '[ $cn = 2 ] && grep -q "^REFUSED: cannot read" "$F/check-none.out"'
 
 hook s-bad op-bad "$R"
-check "an operation reply without the board is blocked" 'blocked s-bad'
-check "the block says what is missing and how the reply must end" 'grep -q "REPLY FORMAT (MON-5): it does not end with the live board" "$F/s-bad.out" && grep -q "Decisions: none" "$F/s-bad.out"'
+check "an operation reply not in the layout is blocked" 'blocked s-bad'
+check "the block says what is missing and the layout to use" 'grep -q "REPLY FORMAT (MON-5): it is not in the check-in layout" "$F/s-bad.out" && grep -q "and last, Coming up" "$F/s-bad.out"'
 hook s-good op-good "$R"
-check "an operation reply with Decisions and the full board passes" 'passed s-good'
-hook s-msg plain "$R" false ', "last_assistant_message": "Decisions: none"'
+check "an operation reply in the check-in layout passes" 'passed s-good'
+hook s-msg op-bad "$R" false ", \"last_assistant_message\": $(python3 -c 'import json,sys;print(json.dumps(open(sys.argv[1]).read()))' "$F/good.txt")"
 check "last_assistant_message is checked when the hook gets it" 'passed s-msg'
 hook s-msg2 op-good "$R" false ', "last_assistant_message": "no board here"'
 check "last_assistant_message wins over the transcript" 'blocked s-msg2'
@@ -128,7 +164,18 @@ check "a session that never ran operate is not checked" 'passed s-plain'
 hook s-other op-bad "$T/other"
 check "a session outside this repo is never checked" 'passed s-other'
 hook s-bad2 op-bad "$R"
-check "the session kind is kept once decided" '[ "$(cat "$C/loop/reply-hook/s-bad2.kind")" = operation ] && [ "$(cat "$C/loop/reply-hook/w-main.kind")" = worker ]'
+check "the session kind is kept with how far the transcript was read" 'grep -q "\"kind\": \"operation\"" "$C/loop/reply-hook/s-bad2.kind" && grep -q "\"kind\": \"worker\"" "$C/loop/reply-hook/w-main.kind" && grep -q "\"offset\": [1-9]" "$C/loop/reply-hook/s-bad2.kind"'
+hook s-board board-only "$R"
+check "running board.py board alone does not make an operation session" 'passed s-board'
+hook s-flags op-flags "$R"
+check "operate run with flags before the script or the subcommand still counts" 'blocked s-flags'
+hook s-pending op-pending "$R"
+check "a last message that still calls a tool is not checked as the reply" 'passed s-pending'
+hook s-synth op-synthetic "$R"
+check "an API error notice is not checked as a reply" 'passed s-synth'
+cp "$F/grow-1.jsonl" "$F/grow.jsonl"; hook s-grow grow "$R"; g1=$(cat "$F/s-grow.out")
+cp "$F/grow-2.jsonl" "$F/grow.jsonl"; hook s-grow grow "$R"
+check "a later flow step turns an operation session into a worker, reading only the new lines" '[ -n "$g1" ] && passed s-grow && grep -q "\"kind\": \"worker\"" "$C/loop/reply-hook/s-grow.kind"'
 printf 'garbage' | (cd "$T" && python3 "$H") > "$F/garbage.out"; gc=$?
 check "malformed input lets the stop through silently" '[ $gc = 0 ] && [ ! -s "$F/garbage.out" ]'
 hook s-badtx plain "$R" false ', "transcript_path": 5'
@@ -144,6 +191,9 @@ check "LOOP_REPLY_HOOK=0 turns the hook off for one session" 'passed e1'
 echo '{"base": "main", "reply_hook": false}' > .loop/config.json
 hook off1 op-bad "$R"
 check "reply_hook false in the config turns the hook off" 'passed off1'
+echo '{"base": "main", "reply_hook": "false"}' > .loop/config.json
+hook off2 op-bad "$R"
+check "reply_hook written as the string false also turns it off" 'passed off2'
 echo '{"base": "main"}' > .loop/config.json
 
 # The installer: merges into the machine-local settings, keeps what is there, ignores the file, and runs again safely.
@@ -178,6 +228,13 @@ check "invalid settings JSON is refused and left as it was" '[ $i4 = 1 ] && grep
 echo '{"hooks": {"Stop": "x"}}' > .claude/settings.local.json
 python3 "$SETUP" --reply-hook > "$F/i5.out" 2>&1; i5=$?
 check "a hooks shape it can't edit is refused" '[ $i5 = 1 ] && grep -q "^REFUSED: .*shape" "$F/i5.out"'
+rm -rf .claude
+mkdir -p .claude && echo '{}' > .claude/settings.local.json && git add -f .claude/settings.local.json && git commit -qm tracked
+python3 "$SETUP" --reply-hook > "$F/i7.out" 2>&1; i7=$?
+check "a committed settings.local.json is refused" '[ $i7 = 1 ] && grep -q "^REFUSED: .*is committed" "$F/i7.out" && [ "$(cat .claude/settings.local.json)" = "{}" ]'
+git rm -q --cached .claude/settings.local.json && git commit -qm untrack && rm -rf .claude
+python3 "$SETUP" --reply-hook >/dev/null 2>&1; python3 "$SETUP" --reply-hook --remove >/dev/null 2>&1; python3 "$SETUP" --reply-hook >/dev/null 2>&1
+check "the ignore line is written once" '[ "$(grep -c "^/.claude/settings.local.json$" "$(git rev-parse --git-path info/exclude)")" = 1 ]'
 rm -rf .claude
 WT="$C/loop/worktrees/copy"; rm -rf "$WT"; mkdir -p "$WT"; cp -R "$here/skills" "$WT/skills"
 python3 "$WT/skills/workflow-setup/scripts/setup.py" --reply-hook > "$F/i6.out" 2>&1; i6=$?

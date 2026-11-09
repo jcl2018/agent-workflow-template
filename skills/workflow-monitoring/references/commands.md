@@ -106,9 +106,9 @@ The check-in loop, repeated every `cadence` minutes, or every hour when nothing 
 3. Run `board --since <the last board.json>`, then the page step.
 4. With an Artifact tool, publish `board-artifact.html` unedited to the same URL each time; otherwise give the owner the
    `board.html` path.
-5. Reply with at most 6 report lines (what changed, anything waiting on the owner first; a field the last board didn't
-   have, or `gh` failing to answer, is not a change), then one `Decisions:` line (or `Decisions: none`), then the full live
-   board, last. The reply hook (`setup.py --reply-hook`) blocks a reply that ends any other way; see `operation.md`.
+5. Reply in the check-in layout: a headline, All sessions, Dependencies, Needs you and, last, Coming up (a field the last
+   board didn't have, or `gh` failing to answer, is not a change). The reply hook (`setup.py --reply-hook`) blocks a reply
+   in any other layout; see `operation.md`.
 6. Wait `NEXT_DELAY` seconds and repeat; `none` means the owner turned the loop off, so stop.
 
 Rules: never answer a gate (`cut` or `leave` stays the owner's), give the exact words and where to type them, treat other
