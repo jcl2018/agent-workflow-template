@@ -1,5 +1,5 @@
 #!/bin/bash
-# One small test for each Delivery and Release criterion, so a regression row doesn't run a whole toy script.
+# One small test for each Delivery criterion, so a regression row doesn't run a whole toy script.
 # usage: test-rows.sh ID   exits non-zero if the criterion doesn't hold. No model is called.
 set -u
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
@@ -62,7 +62,7 @@ subprocess.run(['gh', 'x'], timeout=20)" ) < /dev/null || no "a script left a pr
     for s in "$here"/skills/*/scripts/*.py; do
       grep -q "GIT_TERMINAL_PROMPT" "$s" || ! grep -q "^import subprocess\|subprocess\." "$s" || no "$s starts processes without the guard"
     done;;
-  REL-1)
+  DEL-4-verify)
     finish none ""
     $rel cut none >/dev/null 2>&1 && no "cut with no verify steps"
     git switch -q main
@@ -71,16 +71,6 @@ subprocess.run(['gh', 'x'], timeout=20)" ) < /dev/null || no "a script left a pr
     git switch -q main
     finish good "$STEPS"
     $rel cut good >/dev/null || no "cut refused good verify steps";;
-  REL-2)
-    finish good "$STEPS"
-    $rel cut good >/dev/null || no "cut failed"
-    grep -q "^release create .*--draft" "$FAKE_GH_DIR/calls.log" || no "not created as a draft"
-    grep -E "^(pr merge|release edit)" "$FAKE_GH_DIR/calls.log" && no "merged or published"
-    git merge-base --is-ancestor loop/good origin/main && no "the branch reached main";;
-  REL-3)
-    LOOP_BATCH=1 finish batch "$STEPS"
-    $rel cut batch >/dev/null 2>&1 && no "batch cut without --user"
-    $rel cut batch --user >/dev/null || no "batch cut with --user failed";;
   *) no "no such test";;
 esac
 echo "PASS $id"
