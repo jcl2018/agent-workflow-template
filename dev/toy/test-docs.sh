@@ -1,4 +1,5 @@
 #!/bin/bash
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Test workflow-docs on a throwaway toy repo with a bare wiki. usage: test-docs.sh [DIR]
 unset LOOP_BATCH
 set -e
@@ -15,6 +16,7 @@ git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin ma
 fails=0
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
+nocount() { local out; out=$($docs check 2>&1); ! grep -q "Traceback" <<<"$out" && ! grep -q "^COUNT" <<<"$out"; }  # no COUNT line, and the check finished
 wikifile() { git --git-dir="$d/origin.wiki.git" show "main:$1" 2>/dev/null; }
 
 echo "== survey sees the other page"
@@ -100,5 +102,95 @@ $rel ask stale | grep -q "STALE" && ok "ask warns about stale" || bad "ask stale
 $rel cut stale 2>&1 | grep -q "docs audit found trouble" && ok "cut refused stale" || bad "cut stale"
 echo "Covers that change too, with a sentence about it." >> docs/wiki/Using-the-toy.md; git add -A; git commit -qm "Update docs"
 $rel cut stale | grep -q "^DRAFT" && ok "cut after the docs update" || bad "cut after update"
+
+echo "== docs check: a stated count must match the repo"
+mkdir -p skills/a skills/b; touch skills/a/SKILL.md skills/b/SKILL.md
+echo "The toy has three skills." >> docs/wiki/Using-the-toy.md
+out=$($docs check || true); echo "$out" | grep COUNT
+grep -q "^COUNT docs/wiki/Using-the-toy.md: says three skills, the repo has 2$" <<<"$out" && ok "a page with the wrong number of skills fails, naming the file and both numbers" || bad "wrong skill count"
+out=$($docs publish --dry-run 2>&1) && bad "published a wrong count" || { grep -q "^COUNT docs/wiki/Using-the-toy.md: says three skills" <<<"$out" && ok "publish refuses a wrong count" || bad "publish refused for another reason"; }
+$docs audit --dry-run 2>&1 | grep -q "^COUNT docs/wiki/Using-the-toy.md: says three skills" && ok "audit reports a wrong count" || bad "audit count"
+sed -i.bak 's/The toy has three skills\./The toy has 2 skills./' docs/wiki/Using-the-toy.md; rm docs/wiki/Using-the-toy.md.bak
+nocount && ok "the right number of skills passes" || bad "the right number failed"
+printf '\n```text\nthree skills\n```\n~~~\nfour skills\n~~~\n   ```\nfive skills\n   ```\nInline `six skills` is code. A single page can say one skill.\nThese nine skills are an example. <!-- not-a-count -->\n\nThere are 9 feature pages.\n' >> docs/wiki/Using-the-toy.md
+out=$($docs check || true); grep -q "^COUNT" <<<"$out" && bad "a skipped number counted: $out" || ok "code blocks, inline code, 'one', marked lines and feature pages with criteria off are not counted"
+printf '\nThe toy has twenty-two skills, and 1 skill more.\n' >> docs/wiki/Using-the-toy.md  # its own paragraph
+out=$($docs check || true)
+grep -q "says two skills" <<<"$out" && bad "twenty-two read as two" || ok "a hyphenated number is not read as its last word"
+grep -q "^COUNT docs/wiki/Using-the-toy.md: says 1 skill, the repo has 2$" <<<"$out" && ok "the digit 1 is still a count" || bad "digit 1"
+echo "The README says four skills." >> README.md
+$docs check | grep -q "^COUNT README.md: says four skills, the repo has 2$" && ok "the README is checked too" || bad "readme count"
+git checkout -q -- docs/wiki/Using-the-toy.md README.md
+echo "There are three skills, all UTF-8." >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: says three skills" && ok "an id-like word (UTF-8) does not hide a count" || bad "UTF-8 hid a count"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\n````text\n```\nfour skills\n```\n````\nAfter the block the toy has three skills.\n' >> docs/wiki/Using-the-toy.md
+out=$($docs check || true); grep -q "says four skills" <<<"$out" && bad "a nested fence leaked" || ok "a longer fence holds a shorter one"
+grep -q "says three skills" <<<"$out" && ok "a count after a long fence is still read" || bad "count after long fence"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\n<!-- nine skills -->\nUse 2.9 skills of effort and two test doubles.\n' >> docs/wiki/Using-the-toy.md
+nocount && ok "comments, decimals and compound nouns are not counts" || bad "a comment, decimal or compound counted"
+printf '\n```text\nnever closed\nnine skills later\n' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: a code fence never closes" && ok "an unclosed fence is reported, not silently skipped" || bad "unclosed fence"
+git checkout -q -- docs/wiki/Using-the-toy.md
+echo 'This line is marked `<!-- not-a-count -->` and says nine skills. <!-- not-a-count -->' >> docs/wiki/Using-the-toy.md
+nocount && ok "a marked line is skipped" || bad "the marker was ignored"
+git checkout -q -- docs/wiki/Using-the-toy.md
+echo 'Mark a line `<!-- not-a-count -->` here; the toy has nine skills.' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: says nine skills" && ok "a marker inside inline code does not hide a count" || bad "in-code marker hid a count"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\nThe suite runs 1,200 tests, and 7 \xc5\xbfkills is not a word.\nA ``nine skills`` span is code.\n> ```\n> eight skills\n> ```\nUse `<!--` in prose, and the toy has three skills.\n' >> docs/wiki/Using-the-toy.md
+out=$($docs check 2>&1 || true)
+grep -q "Traceback" <<<"$out" && bad "a non-ASCII letter crashed the check" || ok "a non-ASCII letter does not crash the check"
+grep -q "says 200 tests\|says nine skills\|says eight skills" <<<"$out" && bad "a separator, double-backtick span or quoted fence counted: $out" || ok "separators, double-backtick spans and quoted fences are not counts"
+grep -q "says three skills" <<<"$out" && ok "a comment opener in code doesn't swallow later text" || bad "comment opener swallowed text"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\n<!-- an unclosed comment\nnine skills hidden\n' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "says nine skills" && bad "an unclosed comment was read" || ok "an unclosed comment hides what follows, as Markdown does"
+git checkout -q -- docs/wiki/Using-the-toy.md
+# Generated by /ship coverage audit.
+# Value: protects=a comment closed on a later line hides only its inside, and a fence inside it opens nothing; fails_when=the
+#   comment state never resets, or a fence opens inside a comment; why_new=only one-line and unclosed comments were tested;
+#   seam=none; no_claim=none beyond protects
+printf '\n<!-- a comment\nnine skills inside\n```\nstill the comment -->After it the toy has three skills.\n' >> docs/wiki/Using-the-toy.md
+out=$($docs check 2>&1 || true)
+grep -q "says nine skills" <<<"$out" && bad "text inside a closed comment counted" || ok "a comment closed on a later line hides its inside"
+grep -q "says three skills" <<<"$out" && ok "text after a comment closes on a later line is read" || bad "text after a closed comment lost"
+grep -q "never closes" <<<"$out" && bad "a fence inside a comment opened a block" || ok "a fence inside a comment opens no block"
+git checkout -q -- docs/wiki/Using-the-toy.md
+# Generated by /ship coverage audit.
+# Value: protects=counts() reads only regular files inside the repo; fails_when=the realpath/isfile guard is dropped, so a
+#   symlink out of the repo is read or a folder named *.md crashes; why_new=no test used a symlink or folder; seam=none;
+#   no_claim=only a skills/ top-level link is tried, not a wiki-page link
+echo "The outside file says nine skills." > "$d/outside.md"; ln -s "$d/outside.md" skills/link.md; mkdir skills/folder.md
+out=$($docs check 2>&1 || true)
+grep -q "Traceback" <<<"$out" && bad "a folder named .md crashed the check" || ok "a folder named .md is not read"
+grep -q "says nine skills" <<<"$out" && bad "a symlink out of the repo was read" || ok "a symlink out of the repo is not read"
+rm -rf skills/link.md skills/folder.md "$d/outside.md"
+# Generated by /ship coverage audit.
+# Value: protects="N workflow skills" is a skill count; fails_when=the optional "workflow" word is dropped from the pattern;
+#   why_new=every test said "N skills"; seam=none; no_claim=none beyond protects
+echo "The toy ships three workflow skills." >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: says three workflow skills, the repo has 2$" && ok "'N workflow skills' is a count" || bad "workflow skills count"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\nA page holds up to 9 skills, and at most 8 skills run at once.\n```python``` opens no block here.\n' >> docs/wiki/Using-the-toy.md
+nocount && ok "limits and a backtick line with a backtick after it are not counts" || bad "a limit or inline backticks counted"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\nThe toy ships the nine\nskills listed below.\n' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "says nine skills" || bad "wrapped claim"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\nThis line is marked. <!-- not-a-count -->\nThe next line says nine skills.\n' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: says nine skills" && ok "a marker covers only its own line, not the paragraph" || bad "a marker hid the next line"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\nThe toy ships the nine\nskills listed below.\n' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: says nine skills, the repo has 2$" && ok "a claim wrapped across a line break is read" || bad "wrapped claim missed"
+git checkout -q -- docs/wiki/Using-the-toy.md
+echo "The README says four skills." >> README.md  # uncommitted, so no page goes stale
+out=$($docs publish --dry-run --adopt Home 2>&1 || true); grep -q "^COUNT\|REFUSED" <<<"$out" && bad "README drift blocked publish: $out" || ok "a wrong count outside the wiki doesn't block publish"
+git checkout -q -- README.md
+echo "The guide covers three skills." > skills/guide.md
+$docs check | grep -q "^COUNT skills/guide.md: says three skills, the repo has 2$" && ok "a top-level doc in skills is checked" || bad "skills doc count"
+git checkout -q -- docs/wiki/Using-the-toy.md README.md; rm -rf skills
+nocount && ok "no skills folder, no skills check" || bad "a repo with no skills folder checked skills"
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

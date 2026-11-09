@@ -18,9 +18,10 @@ The first line is `<!-- workflow-docs -->`, then `# <Feature>`, then one `Milest
 in the order of `sections`, and nothing else. The optional `usage_section` goes between the first section and Criteria.
 
 - **Summary**: at most `summary_lines` lines (a line is a paragraph, however it wraps), saying what the feature is for.
-- **Usage** (optional): when the feature has commands, the commands and how to use each one, in a line or two, each
-  command in backticks, e.g. ``- `goal.py new SLUG` freezes a goal.``. Left out when nothing applies; never empty.
-  Each `script.py` named must appear in a skill's `SKILL.md` or `commands.md`.
+- **Usage** (optional): when the feature has commands, what the owner asks the agent, in a line or two: a
+  skill command in backticks, e.g. ``- `/workflow-delivery go "goal" --done "line"` starts a goal.``, or a plain request
+  in quotes. Left out when nothing applies; never empty. A line never names a `.py` or `.sh` file or a python/bash
+  command; each `/skill verb` must be in that skill's `## Command map`, which maps it to the routine it runs.
 - **Criteria**: up to the repo's criteria limit (`criteria_max` in `.loop/config.json`, default 6), one line each, each `- ID: **Unreviewed** text` or `- ID: **Reviewed DATE** text`.
   The owner marks them Reviewed, and a Reviewed line's wording is locked. No script names.
 - **Tests**: a table made by `criteria.py render`, never by hand, with the `tests_columns`. Defect tests (regression rows

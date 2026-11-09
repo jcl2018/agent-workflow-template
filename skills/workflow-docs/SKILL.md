@@ -47,6 +47,7 @@ python3 scripts/docs.py check [--base <ref>]
 | `MISSING` | A mapped page has no file | Write it, or remove its row |
 | `UNWRITTEN` | The page still has its placeholder, or almost no text | Write it |
 | `UNMAPPED` | A page has no row in `.loop/docs.tsv` | Run `add` |
+| `COUNT` | The README, a wiki page or a top-level doc in `skills/` states a count of skills, feature pages, or a feature page's criteria or tests that the repo doesn't match; all but skills need `"criteria": true`. Skipped: the word "one", a limit ("up to 6"), code and comments as Markdown renders them, a line naming a criterion on a page, and a line marked `<!-- not-a-count -->`; a code fence that never closes is itself a `COUNT` line. Wrapped lines are read as one paragraph. `publish` refuses only on wiki pages | Correct the number |
 
 Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to
 count only changes since that point. `cut` counts from the goal's base the same way. `publish` has no `--base`: it
@@ -72,10 +73,6 @@ With `"criteria": true` in `.loop/config.json`, feature pages are a contract and
 Delivery, Documentation, Health, Milestones, Monitoring, Regression and Release exist, plus Home, which is free-form.
 Each feature page has exactly these sections, in this order: `Summary`, `Criteria`, `Tests`. Command detail and charts
 live in the owning skill's `SKILL.md` and `references/`, not on the page.
-
-```bash
-python3 scripts/docs.py criteria <Page>
-```
 
 It prints the format and the next free id for the page (`DEL`, `DOC`, `HLT`, `MON`, `REG`, `SET`).
 
@@ -126,10 +123,6 @@ Tell the user the `PUBLISHED` link and the pages it changed.
 
 ## `restore`
 
-```bash
-python3 scripts/docs.py restore
-```
-
 This reverts the last publish. It refuses if the wiki has changed since.
 
 ## Rules
@@ -139,3 +132,18 @@ This reverts the last publish. It refuses if the wiki has changed since.
 - Never turn permissions off.
 
 `loop-files.md` (`../` here, `shared/` in a pack) describes every file.
+
+## Command map
+
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+
+| Ask | Runs |
+|---|---|
+| `/workflow-docs audit` | `python3 scripts/docs.py audit` |
+| `/workflow-docs check` | `python3 scripts/docs.py check` |
+| `/workflow-docs criteria PAGE` | `python3 scripts/docs.py criteria PAGE` |
+| `/workflow-docs review ID` | `python3 scripts/criteria.py review ID --user` |
+| `/workflow-docs render` | `python3 scripts/criteria.py render` |
+| `/workflow-docs publish` | `python3 scripts/docs.py publish` |
+| `/workflow-docs restore` | `python3 scripts/docs.py restore` |
+| `/workflow-docs milestones` | `python3 scripts/milestone.py new --all` |

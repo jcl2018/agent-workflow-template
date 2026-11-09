@@ -1,13 +1,13 @@
 ---
 name: workflow-monitoring
-description: One session governs and the others build. `go` starts a goal as a background agent in its own worktree; `watch` keeps goals moving, mends failures if allowed, and says what waits on you; `report`, `dashboard` and `resume` show and restart them. Use for every goal, and to run the queue or check on running goals.
+description: One session governs and the others build. `go` starts a goal in its own worker session and worktree; `watch` keeps goals moving, mends failures if allowed, and says what waits on you; `report`, `dashboard` and `resume` show and restart them. Use for every goal, and to run the queue or check on running goals.
 ---
 
 # workflow-monitoring
 
-**One session governs, and the others build.** The session you talk to starts goals and watches them. It never writes
-the code. Each goal runs in its own worktree, in its own worker with its own loop, through the one skill flow. A worker
-reports its result back to the session by prompt message, and the board shows it.
+**One session governs, and the others build.** It starts goals and watches them, and never writes the code. Each goal
+runs in its own worktree and its own app session, `worker · <goal>`, which reports each step and its result by session
+message; a background process only when no session can be started or reached (the board says `background`).
 
 **To run the operation session, run `python3 scripts/operate.py run` and nothing else.** It drives the whole process the
 same way every time (below). Other commands: `go`, `watch`, `report`, `dashboard` and `resume`. `go`, `watch` and
@@ -22,19 +22,11 @@ or `--add-dir` in claude), write that flag as `--flag=value` or move it earlier.
 
 ## `go "<goal>" --done "<line>" ... [--touches A,B] [--depends-on A,B] [--slug S] [--release ask]`
 
-```bash
-python3 scripts/watch.py go "<goal>" --done "<line>" --touches "<file,file>"
-```
-
 It adds the goal to `.loop/queue.md` and starts it if a slot is free. It refuses with no skill flow set (see
 `workflow-delivery`). Then run `watch`. Don't build the goal here, and don't commit the queue. `go`, `watch` and `resume` also take `--skill-dir DIR`, the skills folder to
 name in a prompt.
 
 ## `watch [--max N] [--once] [--interval S]`
-
-```bash
-python3 scripts/watch.py watch
-```
 
 Before the first run in a repo, show the user the queue and the `agent_command`. Each pass, it:
 
@@ -68,10 +60,6 @@ A limit doesn't use up the mend. Neither merges, edits done lines, changes permi
 
 ## `report`
 
-```bash
-python3 scripts/monitor.py report
-```
-
 It first marks a `running` background goal whose agent has gone as `failed`, with the end of its log as the finding.
 Then it prints:
 
@@ -87,19 +75,11 @@ Give the user the waiting section first, with the words exactly as printed. When
 
 ## `dashboard [--out FILE]`
 
-```bash
-python3 scripts/monitor.py dashboard
-```
-
 It writes one self-contained HTML page, by default `<git common dir>/loop/dashboard.html`, and prints its path. It
 shows the same facts as `report`, with what waits on the user at the top. It has no scripts, loads nothing from the
 network and follows the system's light or dark setting. Publish it as an Artifact if you can; otherwise give the path.
 
 ## `resume SLUG`
-
-```bash
-python3 scripts/watch.py resume <slug>
-```
 
 It takes only a `failed` or `stopped` goal and refuses anything else with a one-line reason. It keeps the branch and
 worktree, makes the worktree again from the branch if it's gone, sets the goal back to `running` (a stopped goal's tries
@@ -114,6 +94,10 @@ nothing is left. `operate.py send SLUG "<text>"` gives a worker an answer or fol
 `scripts/board_page.py` draws `board.html` and `board-artifact.html` from `board.json`, both carrying the live board.
 Any command that would build, plan or run a goal step from this session (`build`, `plan`, `idea`, `review`, `qa`,
 `ship`, `step`, `pr`, `record`, `run`) refuses with one line naming `batch.py start NAME`.
+
+`scripts/sessions.py`: `assign SLUG` (watch.py runs it: a free or new session from `session_command`, renamed
+`worker · <goal>`, sent the goal; it holds a `parallel` slot), `bind SLUG ID` (a session started with the app's tools),
+`list`, `send` (operate.py send uses it) and `report SLUG --step S | --status merged|failed|waiting [--pr URL | --ask Q]`.
 
 Batches of goals go through `scripts/batch.py` (`add`, `start`, `status`). `start` begins one worker for each goal:
 `scripts/worker.py loop SLUG` runs the goal's agent in its own worktree, with `LOOP_ROLE=worker`, to the end. When the
@@ -147,3 +131,19 @@ finish time. Merged work, history and totals are left out. The loop is in `refer
 - Keep skill instructions out of the repo. `.loop/` holds only the repo's own data.
 
 `loop-files.md` (`../` here, `shared/` in a pack) describes every file.
+
+## Command map
+
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+
+| Ask | Runs |
+|---|---|
+| `/workflow-monitoring operate` | `python3 scripts/operate.py run` |
+| `/workflow-monitoring send SLUG "text"` | `python3 scripts/operate.py send SLUG "text"` |
+| `/workflow-monitoring go "goal" --done "line"` | `python3 scripts/watch.py go "goal" --done "line"` |
+| `/workflow-monitoring watch` | `python3 scripts/watch.py watch` |
+| `/workflow-monitoring resume SLUG` | `python3 scripts/watch.py resume SLUG` |
+| `/workflow-monitoring report` | `python3 scripts/monitor.py report` |
+| `/workflow-monitoring dashboard` | `python3 scripts/monitor.py dashboard` |
+| `/workflow-monitoring met SLUG N` | `python3 scripts/worker.py met SLUG N` |
+| `/workflow-monitoring cleanup` | `python3 scripts/worker.py cleanup` |

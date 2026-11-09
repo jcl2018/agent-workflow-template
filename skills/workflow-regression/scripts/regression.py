@@ -11,7 +11,7 @@ usage: regression.py <command> [options]
                                 failing; --write drafts rows (a criterion's row has its id as id or goal)
   criteria                      run each wiki criterion's row; print one UNMET line for each missing, draft or failing
   red ID --break CMD            copy HEAD, run CMD to break it, and record that the test fails there
-  run [land|nightly|ID] [--timeout S] [--live]
+  run [land|nightly|ID] [--timeout S] [--live] [--reuse]
                                 run the rows, then open, update or close one issue per failing row
   workflow                      write .github/workflows/regression.yml, on the schedule in regression_cron
 
@@ -30,6 +30,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
+import lanes  # noqa: E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -302,18 +307,42 @@ def sync_issues(results, live):
                     print("CLOSED issue %s" % issue["number"])
 
 
+def lines_of(root, name):
+    return {line.split("\t")[0]: line.rstrip("\n") for line in open(path_of(root, name)) if line.strip() and line[0] != "#"} \
+        if os.path.exists(path_of(root, name)) else {}
+
+
 def cmd_run(args):
     root = top()
     rows = read_rows(root)
     if not rows:
-        print("NO ROWS: run add first")
-        return 1
-    expected = known(root)
-    results = []
+        print("NO ROWS: nothing to run" if args.reuse else "NO ROWS: run add first")
+        return 0 if args.reuse else 1
+    expected, picked = known(root), []
     for row in chosen(rows, args.target):
         if row["level"] in ("draft", "covered"):
             print("SKIP %s: %s" % (row["id"], row["level"]))
-            continue
+        else:
+            picked.append(row)
+    head, record, unclean = git("rev-parse", "HEAD"), lanes.record_path(root), lanes.dirty(root)
+    todo, reused, why = [row["id"] for row in picked], [], ""
+    if args.reuse and picked:
+        old, why = lanes.load(record, root)
+        if old:
+            todo, reused, notes, why = lanes.plan(root, picked, old, lines_of(root, "regression.tsv"),
+                                                  lines_of(root, "regression-known.tsv"))
+            print("\n".join(notes)) if notes else None
+        if why:
+            print("FULL: " + why)
+        elif not todo:
+            print("REUSED %d rows from %s (%s)" % (len(reused), old["commit"][:12], old["at"]))
+        else:
+            ids = ", ".join(todo[:10]) + (", +%d more" % (len(todo) - 10) if len(todo) > 10 else "")
+            print("AFFECTED %d of %d rows (%s): %s" % (len(todo), len(picked), ids,
+                                                       " ".join(lanes.changed(root, old["commit"]) or [])[:400]))
+    results = []
+    for row in [r for r in picked if r["id"] in todo]:
+        began = time.time()
         try:
             done = subprocess.run(row["command"], shell=True, cwd=root, capture_output=True, text=True,
                                   timeout=args.timeout)
@@ -325,22 +354,42 @@ def cmd_run(args):
             print("FIXED %s: remove it from the known list" % row["id"])
         reason = " (%s)" % expected[row["id"]] if state == "KNOWN" else ""
         print("%s %s%s" % (state, row["id"], reason), flush=True)
-        results.append({"id": row["id"], "state": state, "tail": text[-1500:]})
-    ran = {cells[0]: cells[:3] for cells in cells_of(root, "regression-runs.tsv")}
-    for item in results:
-        ran[item["id"]] = [item["id"], "PASS" if item["state"] == "PASS" else "FAIL", today()]
-    if results:
-        with open(path_of(root, "regression-runs.tsv"), "w") as handle:
-            handle.write("# id\tstatus\tdate\n" + "".join("\t".join(ran[key]) + "\n" for key in sorted(ran)))
-    never = [item["id"] for item in results if not SEEN.match(rows[item["id"]]["seen_red"])]
+        if state == "FAIL" and args.reuse:
+            print("\n".join("    " + line for line in text.rstrip().splitlines()[-20:]), file=sys.stderr)
+        results.append({"id": row["id"], "state": state, "tail": text[-1500:], "seconds": round(time.time() - began, 1)})
+    if not args.reuse:  # a reusing run writes nothing in the worktree and opens no issue: CI's plain run owns both
+        ran = {cells[0]: cells[:3] for cells in cells_of(root, "regression-runs.tsv")}
+        for item in results:
+            ran[item["id"]] = [item["id"], "PASS" if item["state"] == "PASS" else "FAIL", today()]
+        if results:
+            with open(path_of(root, "regression-runs.tsv"), "w") as handle:
+                handle.write("# id\tstatus\tdate\n" + "".join("\t".join(ran[key]) + "\n" for key in sorted(ran)))
+    left = sorted(set(lanes.dirty(root)) - set(unclean)) if record and not unclean else []
+    if not record:
+        print("NOT RECORDED: detached HEAD")
+    elif unclean:
+        print("NOT RECORDED: uncommitted changes")
+    elif left:  # a row that leaves files must not pass by reuse once they're tidied: drop the record, next run is full
+        print("NOT RECORDED: the rows left uncommitted files: %s; record dropped" % ", ".join(left[:10]))
+        if os.path.exists(record):
+            os.remove(record)
+    elif results:
+        lanes.save(record, root, "regression.py run %s%s" % (args.target, " --reuse" if args.reuse else ""), results,
+                   head, datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                   fresh=bool(args.reuse and why))
+    never = [row["id"] for row in picked if not SEEN.match(row["seen_red"])]
     for key in never:
-        print("UNPROVEN %s: never seen failing. Run red." % key)
-    live = args.live or bool(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
-    sync_issues(results, live)
+        print("UNPROVEN %s: never seen failing. Fix: python3 %s red %s --break \"<a command that breaks it>\"" % (
+            key, os.path.abspath(__file__), key))
+    if not args.reuse:
+        live = args.live or bool(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
+        sync_issues(results, live)
     failed = [item["id"] for item in results if item["state"] == "FAIL"]
-    print("RESULT %d passed, %d known, %d failed, %d unproven" % (
-        sum(item["state"] == "PASS" for item in results), sum(item["state"] == "KNOWN" for item in results),
-        len(failed), len(never)))
+    kept = [old["rows"][key]["status"] for key in reused]  # a reused known failure still counts as known
+    passed = sum(item["state"] == "PASS" for item in results) + kept.count("PASS")
+    print("RESULT %d passed%s, %d known, %d failed, %d unproven" % (
+        passed, " (%d reused)" % len(reused) if args.reuse else "",
+        sum(item["state"] == "KNOWN" for item in results) + kept.count("KNOWN"), len(failed), len(never)))
     return 1 if failed or never else 0
 
 
@@ -374,6 +423,7 @@ def main():
     item = sub.add_parser("run")
     item.add_argument("target", nargs="?", default="land")
     item.add_argument("--timeout", type=int, default=900)
+    item.add_argument("--reuse", action="store_true", help="reuse this branch's last run; run only the rows a change can affect")
     item.add_argument("--live", action="store_true")
     item.set_defaults(func=cmd_run)
     sub.add_parser("workflow").set_defaults(func=cmd_workflow)

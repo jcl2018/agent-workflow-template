@@ -88,3 +88,13 @@ names, and `goal.py pr` runs it. `move` puts an issue in a feature's milestone. 
 - Never turn permissions off.
 
 `loop-files.md` (`../` here, `shared/` in a pack) describes every file.
+
+## Command map
+
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+
+| Ask | Runs |
+|---|---|
+| `/workflow-health check` | `python3 scripts/health.py check` |
+| `/workflow-health judge` | `python3 scripts/health.py judge` |
+| `/workflow-health run` | `python3 scripts/health.py run` |
