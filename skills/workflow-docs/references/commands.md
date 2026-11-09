@@ -220,3 +220,46 @@ Status: built and proven: Revert the last publish; Push. Built only: Refuse if t
 Stops for the owner: none.
 Proof: toy tests only: it has never run on a real wiki, and the refusal has no test.
 
+## Moved from SKILL.md
+
+Detail the skill's SKILL.md points to, kept word for word so no instruction is lost.
+
+### The PRD page
+
+1. the title, a `Milestone:` line once the milestone exists, then `Review: **Unreviewed**` (or the owner's Reviewed line);
+2. `## Problem`: who it's for and what it solves, at most `problem_lines` lines;
+3. `## Usage` (optional): the commands, as `/skill verb` asks or plain requests;
+4. `## Requirements`: up to `criteria_max` (default 6) lines `- DEL-3: **Unreviewed** what must hold`, short and plain,
+   no script names; ids are stable: take the next free id (`criteria PAGE` prints it), never reuse or renumber one;
+5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
+6. `## Tests`: written by `criteria.py render`, never by hand: under each requirement, one Given/When/Then scenario per
+   regression row with its test, when it runs, its last result and date and when it was seen failing; **not enforced**
+   when no row passes; defect tests under `### Defect tests`.
+
+Lines: `SECTIONS` (wrong, extra or out-of-order sections, or text before the first one), `REVIEW`, `PROBLEM`,
+`NONGOALS`, `METRICS`, `CRITERION`, `CAP`, `SCRIPT`, `USAGE`, `TESTS` (run `render`), `LOCKED`, `CHANGED`.
+
+### Review locks
+
+`review PAGE` stamps the Review line with a fingerprint each of Problem, Requirements, Non-goals, Success metrics and
+Usage. After it, a change to any of the first four is `LOCKED` (check, audit and release fail); a change to Usage alone
+is `CHANGED`: check exits 1 and the board lists it, the audit, release and publish ignore it, and only the owner's next
+`review PAGE` clears it. A reviewed requirement line is locked on its own as well. To edit a reviewed requirement the
+owner un-reviews that requirement and the PRD, then reviews both again.
+
+### Tests follow on their own
+
+**Tests follow on their own.** Write each new regression row's description as one scenario,
+`Given <context>, when <action>, then <outcome>.`; `audit` lists any other as `SCENARIO` and the release step blocks on
+it. Once a PRD is Reviewed, `audit` lists every requirement with no passing test as `UNTESTED` for the loop to queue.
+`regression.py sync` reports an id with no row, and `release.py cut` refuses while any of its rows is missing, a draft
+or failing.
+
+### New and old pages
+
+**New and old pages.** `python3 scripts/prd.py new NAME "<idea>" --paths A,B` drafts a new feature's PRD, Unreviewed,
+maps it in `.loop/docs.tsv` and prints what is left: replace the Non-goals and Success metrics placeholders (the page
+is `UNWRITTEN` until then) and add its requirement's regression row in the same pull request (it needs one before the
+next release). `python3 scripts/prd.py convert` previews turning old Summary/Criteria pages into PRD pages, and
+`convert --write` does it (Summary becomes Problem, Criteria Requirements, every stamp kept, placeholder Non-goals and
+Success metrics added); then write the drafts, rewrite row descriptions as scenarios and run `render`.
