@@ -32,6 +32,9 @@ if not sys.stdin or not sys.stdin.isatty():
 STEPS = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
 NEEDED = ("idea", "plan", "review", "qa", "ship")  # the others may stay unmapped: delivery runs them itself
 FLOW_FILE = "~/.workflow-loop/flow.json"
+LANE = ("The regression lane (label regression, command `{lane}`) already passed on this content: reuse that run "
+        "through your own check of recorded test runs instead of running the suite again; if your own test step runs "
+        "that exact command, it reuses the record and returns at once.")
 PURPOSE = {
     "idea": "Shape this goal into a design. Read .loop/goals/{slug}.md first: its done lines are frozen, so the design "
             "must meet them, not change them.",
@@ -39,8 +42,8 @@ PURPOSE = {
     "build": "Make the change the plan describes, add a test for each done line, and commit.",
     "review": "Review this branch's change against the base branch before it lands.",
     "qa": "Test the change the way a user would. If this step needs a browser or a tool this machine doesn't have, "
-          "don't fake it: end with STEP: skipped and say what was missing.",
-    "ship": "Prepare this branch for a pull request. Don't push and don't open the pull request: delivery does that.",
+          "don't fake it: end with STEP: skipped and say what was missing. " + LANE,
+    "ship": "Prepare this branch for a pull request. Don't push and don't open the pull request: delivery does that. " + LANE,
     "pr": "Open this goal's pull request with goal.py pr {slug}. Never merge it.",
     "release": "Run the release step for this goal with workflow-release, as its skill says.",
 }
@@ -151,7 +154,7 @@ def start(args, runs, reply, job):
         sys.exit("REFUSED: the flow's command %s isn't on this machine." % command[0])
     top = git("rev-parse", "--show-toplevel")
     prompt = PROMPT.format(skill=((spec.get("overrides") or {}).get(args.step) or {}).get("skill") or spec["steps"][args.step], step=args.step, slug=args.slug,
-                           branch=git("branch", "--show-current"), purpose=PURPOSE[args.step].format(slug=args.slug),
+                           branch=git("branch", "--show-current"), purpose=PURPOSE[args.step].format(slug=args.slug, lane=role.lane_text()),
                            note="The owner said: " + args.note + "\n" if args.note else "", depth=depth_rule(args.step))
     if os.path.exists(reply):
         os.replace(reply, reply + ".last")
@@ -188,7 +191,7 @@ def in_session(args, runs, reply, base):
         skill = ((spec.get("overrides") or {}).get(args.step) or {}).get("skill") or spec["steps"][args.step]
         print("IN SESSION %s: no headless agent; run the %s skill yourself in this session." % (args.step, skill))
         print(PROMPT.format(skill=skill, step=args.step, slug=args.slug, branch=git("branch", "--show-current"),
-                            purpose=PURPOSE[args.step].format(slug=args.slug),
+                            purpose=PURPOSE[args.step].format(slug=args.slug, lane=role.lane_text()),
                             note="The owner said: " + args.note + "\n" if args.note else "", depth=depth_rule(args.step)).rstrip())
         print("Write its reply, ending with the DEPTH line and then the STEP line, to %s, then run this same command again." % reply)
         return True
@@ -217,6 +220,19 @@ def main():
     role.inbox(os.path.dirname(os.path.dirname(runs)), args.slug)
     base = os.path.join(runs, "%s.%s" % (args.slug, args.step))
     reply, job = base + ".txt", base + ".job"
+    if args.step in ("qa", "ship") and not os.path.exists(job) and not os.path.exists(base + ".asked"):
+        status, line, ids = role.lane(runs, args.slug, args.step, flow(), repo_config(), args.wait)
+        print(line)
+        if status == "running":
+            return 0
+        if status == "fail":  # the skill never starts on a red lane: record counts it as a failed try
+            if os.path.exists(reply):
+                os.replace(reply, reply + ".last")
+            with open(reply, "w") as out:
+                out.write("%s\nSTEP: failed regression lane: %s\n" % (line, ", ".join(ids) or line.splitlines()[-1][:200]))
+            open(base + ".ran", "w").close()
+            print("NEXT: goal.py record %s %s --file %s" % (args.slug, args.step, reply))
+            return 0
     if not os.path.exists(job) and in_session(args, runs, reply, base):
         return 0
     if not os.path.exists(job):

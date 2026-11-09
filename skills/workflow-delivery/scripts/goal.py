@@ -6,10 +6,9 @@ usage: goal.py <command> <slug> [options]
   new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
   queue SLUG --goal TEXT --done LINE [--touches A,B] [--depends-on A,B]
   step SLUG NAME [--note TEXT] [--tokens N]
-  record SLUG STEP --file REPLY [--in-session]  record a flow step: idea, plan, review, qa or ship, run by flow.py,
-                                 or with --in-session by the goal's own worker session (its run names the session)
-  pr SLUG  merge the latest base (pull in the base if it moved), push, open the PR, join its milestone
-Goal steps (step, record, pr) refuse outside a worker; a worker also sees what the operation session sent it.
+  record SLUG STEP --file REPLY [--in-session]  record a flow step flow.py or the goal's worker session ran
+  pr SLUG  merge the latest base, push, open the PR, join its milestone
+Goal steps (step, record, pr) refuse outside a worker, which also sees what the operation session sent it.
   wait SLUG --ask TEXT --words W [--words W]
   answer SLUG
   finding SLUG TEXT
@@ -21,7 +20,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import time
@@ -285,20 +283,11 @@ def next_step(state):
 def cmd_record(args):
     """Apply what a flow step left: done or skipped moves on, pending waits on the owner, anything else is a try."""
     state = held(args.slug)
+    if args.step == "qa":
+        role.need_lane(state_dir(), args.slug, args.file)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
     if args.in_session:  # the worker session ran the skill itself; its run record must name that session
-        if state.get("worker") != "session" or not (state.get("session") or {}).get("id"):
-            no("%s names no worker session. Fix: sessions.py bind %s ID, or run the step with flow.py." % (args.slug, args.slug))
-        early = [s for s in FLOW[:FLOW.index(args.step)] if not str((state.get("flow") or {}).get(s, "")).startswith(("done", "skipped"))]
-        if early:
-            no("%s comes before %s: record %s first." % (", ".join(early), args.step, early[0]))
-        if os.path.exists(ran[:-4] + ".asked"):
-            os.remove(ran[:-4] + ".asked")
-        into = os.path.join(state_dir(), "%s.%s.txt" % (args.slug, args.step))
-        if os.path.realpath(args.file) != os.path.realpath(into):
-            shutil.copyfile(args.file, into)
-        args.file = into
-        open(ran, "w").close()
+        args.file = role.session_reply(state, args.slug, args.step, args.file, state_dir(), FLOW)
     reply = os.path.realpath(args.file)
     if reply != os.path.realpath(os.path.join(state_dir(), "%s.%s.txt" % (args.slug, args.step))) or not os.path.exists(ran):
         no("%s wasn't run by flow.py. Fix: run flow.py %s %s until it prints NEXT." % (args.step, args.slug, args.step))
@@ -311,7 +300,7 @@ def cmd_record(args):
     if result in ("done", "skipped") or ((pending or result == "pending") and cfg.get("auto_approve") is True):
         stamp, bad = role.record_depth(state, args.step, text, cfg, result)
         if bad:
-            failed_try(state, "%s failed: %s" % (args.step, bad), args.step, "run flow.py %s %s again" % (args.slug, args.step))
+            failed_try(state, "%s failed: %s" % (args.step, bad), args.step, "rerun flow.py %s %s" % (args.slug, args.step))
             return 1
     if (pending or result == "pending") and cfg.get("auto_approve") is True:
         took = "; ".join(pending) or why or "the step's pending gate"
@@ -386,6 +375,14 @@ def cmd_pr(args):
     if git("status", "--porcelain", "--", "."):
         print("NOTE: uncommitted files stay out of the PR")
     head = bump_version(state, head)
+    gate, line, ids = role.lane(state_dir(), args.slug, "pr", role.flow_spec(), config())
+    print(line)
+    if gate == "running":
+        return 0
+    if gate == "fail":
+        failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
+                   "fix the failing rows, commit, then run pr again")
+        return 1
     state["step"] = "pr"
     save(state, "pr")
     for wait in (2, 5, 0):

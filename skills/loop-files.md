@@ -104,6 +104,9 @@ and the wiki pages on the `workflow-setup` branch and leaves existing values and
 - `suite` is your default skill for each step, and `steps` replaces the skill for any one step. The steps are `idea`,
   `plan`, `build`, `review`, `qa`, `ship`, `pr` and `release`; the first five must be mapped, and delivery runs `build`,
   `pr` and `release` itself unless you map them. `limit` stops a step after that many seconds.
+- `test_record` (optional) is an argv prefix the regression lane runs through, for example a receipt recorder's
+  `["<recorder>", "run", "--label", "regression", "--"]`, so your ship skill can find the run in its own records. It must
+  pass the lane's exit status through. Without it the lane runs directly.
 
 ## Outside the repo: run state
 
@@ -119,6 +122,8 @@ loop/waits/<slug>         the goals that held a queued goal, one a line
 loop/cadence              minutes between check-ins (1 to 60), or off
 loop/handoff.md           the last handoff file
 loop/wiki.json            the last wiki publish, for restore
+loop/tests/<branch>-<sha8>.json   a branch's last regression run: each row's result and commit (regression.py --reuse); deleted when its rows leave uncommitted files
+loop/runs/<slug>.qa-lane.*, ship-lane.*, pr-lane.*   a goal's regression lanes: job, exit status, output; qa-lane.ok
 ```
 
 ### `runs/<slug>.json`
