@@ -79,6 +79,8 @@ git rm -q skills/x/scripts/near.py; git commit -qm "Fixed"
 $health file --group size | grep -q "^DONE close #2" && ok "a fix closes it" || bad "close"
 mkdir -p skills/x/scripts; python3 -c "print('# pad\n' * 3600)" > skills/x/scripts/near.py; git add -A; git commit -qm "Back"
 $health file --group size | grep -q "^DONE reopen #2" && [ "$(count health:size OPEN)" = 1 ] && ok "a return reopens it" || bad "reopen"
+$health file --group hygiene >/dev/null; git branch -q -d loop/old
+$health file --group hygiene | grep -q "^DONE close .* \[health:hygiene\]" && [ "$(count health:hygiene CLOSED)" = 1 ] && ok "a fixed hygiene finding closes its issue" || bad "hygiene close"
 $health preview --group mine | grep -q "^PREVIEW:" && ok "mine can be previewed when named" || bad "mine"
 [ "$(cd "$here/skills/workflow-health/scripts" && python3 -c "import file; print(file.tag_of('cost'))")" = health:performance ] && ok "the Cost group is tagged health:performance" || bad "performance tag"
 for f in health report file; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 18432 ] && ok "$f.py under the size warning" || bad "$f.py size"; done

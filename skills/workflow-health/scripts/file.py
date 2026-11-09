@@ -89,7 +89,7 @@ def plan(rows, issues, groups, extra=(), judged=False):
     """Actions for the named groups: dicts with kind (open, update, reopen, close, same), group, key, title, body, number."""
     found = [item for item in list(rows) + list(extra) if item["state"] in BAD and item["family"] in groups]
     unread = {item["family"] for item in rows if item["state"] == "UNREAD"}
-    ran = (set(item["family"] for item in rows) - unread) & set(groups)
+    ran = set(groups) - unread  # a clean group gives no rows, so it ran unless a rule in it could not read
     out, current = [], set()
     for item in found:
         key, group = key_of(item), item["family"]
