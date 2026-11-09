@@ -212,6 +212,14 @@ import json,sys,os;sys.path.insert(0,\"$S\");os.chdir(\"$T/repo\");import graph,
 d=json.load(open(\"$R/dn.json\"));assert graph.merged(d) and d[\"report\"][\"text\"]==\"dn merged as v1\" and not d.get(\"finding\") and not d.get(\"waiting\")
 assert \"dep\" in [g[\"slug\"] for g in watch.plan(0)[0]]"'
 
+mkdir -p "$T/nogh"; printf '#!/bin/bash\necho "gh: no answer" >&2; exit 1\n' > "$T/nogh/gh"; chmod +x "$T/nogh/gh"
+PATH="$T/nogh:$PATH" $SE report dn --status waiting --pr https://x/pull/1 > "$T/o4" 2>&1
+PATH="$T/nogh:$PATH" $SE report dn --status merged --pr https://x/pull/1 > "$T/o5" 2>&1
+check "a late merged or waiting report on a merged goal, with gh unreachable, keeps the merge evidence" 'grep -q "^KEPT" "$T/o4" && grep -q "^KEPT" "$T/o5" && python3 -c "
+import json,sys,os;sys.path.insert(0,\"$S\");os.chdir(\"$T/repo\");import graph,watch
+d=json.load(open(\"$R/dn.json\"));assert graph.merged(d) and d[\"report\"][\"status\"]==\"merged\"
+assert \"dep\" in [g[\"slug\"] for g in watch.plan(0)[0]]"'
+
 echo "== an unreadable pool is never written"
 printf '{bad' > "$POOL"; cp "$POOL" "$T/bad.copy"
 $SE bind zz s50 > "$T/o1" 2>&1; r1=$?
@@ -252,6 +260,15 @@ import json,sys;sys.path.insert(0,\"$S\");import graph
 d=json.load(open(\"$R/dn.json\"));assert d[\"status\"]==\"done\" and graph.merged(d)"'
 $SE bind fz s93 >/dev/null 2>&1; $SE free fz > "$T/o" 2>&1
 check "free on a freezing goal says its slot was released" 'grep -q "^FREED 1 session(s) for fz; slot released" "$T/o"'
+
+python3 - "$R/hb.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1])); d["status"] = "failed"; json.dump(d, open(sys.argv[1], "w"))
+PY
+$SE bind hb s91 > "$T/o" 2>&1
+check "binding a failed goal to the session it already has brings it back to running" 'grep -q "^BOUND hb" "$T/o" && [ "$(python3 -c "import json;print(json.load(open(\"$R/hb.json\"))[\"status\"])")" = running ]'
+echo '{"slug": "badrep", "status": "running", "step": "plan", "pid": 1, "reports": {"x": 1}, "log": []}' > "$R/badrep.json"
+check "a malformed reports field never crashes the board" 'board > "$T/board5" 2>&1 && grep -q "^- badrep " "$T/board5"'
 
 echo "== sizes"
 check "watch.py and sessions.py stay under the health rule's 20 KB" '[ $(wc -c < "$S/watch.py") -le 20480 ] && [ $(wc -c < "$S/sessions.py") -le 20480 ]'

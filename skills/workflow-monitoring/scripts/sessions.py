@@ -181,9 +181,13 @@ def assign(state, prompt, cfg):
             break
     if not sid:
         return False
-    state.update(worker="session", worker_why="", session={"id": sid, "name": name_of(slug)}, pid=None, status="running",
-                 bound_at=now())
-    save(state, "assigned to session %s (%s)%s" % (sid, name_of(slug), ", reused" if reused else ""))
+    with locked():  # an operator's bind during the send wins: never overwrite it
+        if (pool().get(sid) or {}).get("slug") != slug or (load(slug).get("session") or {}).get("id") not in (None, sid):
+            print("HANDED %s elsewhere during the send; session %s keeps no claim" % (slug, sid))
+            return True
+        state.update(worker="session", worker_why="", session={"id": sid, "name": name_of(slug)}, pid=None,
+                     status="running", bound_at=now())
+        save(state, "assigned to session %s (%s)%s" % (sid, name_of(slug), ", reused" if reused else ""))
     return True
 
 
@@ -231,7 +235,7 @@ def cmd_bind(args):
     name = args.name or name_of(args.slug)
     with locked():
         found, state = pool(), load(args.slug)
-        if state.get("pid") and state.get("status") == "running":
+        if state.get("pid") and state.get("status") == "running" and alive(state["pid"]):
             sys.exit("REFUSED: %s is running as background pid %s; let it end first." % (args.slug, state["pid"]))
         other = found.get(args.id) or {}
         if other.get("state") == "busy" and other.get("slug") != args.slug:
@@ -240,7 +244,7 @@ def cmd_bind(args):
             sys.exit("REFUSED: session %s was freed from %s at %s. Fix: if you've confirmed no other worker has %s, run "
                      "sessions.py bind %s %s --force." % (args.id, args.slug, other.get("freed_at"), args.slug, args.slug, args.id))
         same = other.get("state") == "busy" and other.get("slug") == args.slug
-        if state and same and (state.get("session") or {}).get("id") == args.id:
+        if state and same and (state.get("session") or {}).get("id") == args.id and state.get("status") in ("running", "waiting", "done"):
             print("BOUND %s to session %s (%s)" % (args.slug, args.id, other.get("name") or name))
             return 0  # both records already agree: nothing changes, bound_at stays
         if not same:
@@ -304,7 +308,7 @@ def release_step(state):
 def cmd_report(args):
     state = held(args.slug)
     said = args.status
-    if state.get("status") == "done" and (said in ("", "running", "failed") or (said == "waiting" and args.ask)):
+    if state.get("status") == "done" and (said in ("", "running", "failed") or (said == "waiting" and args.ask) or graph.merged(state)):
         # done is final (issue 108): record the report only; status, step, report (the merge evidence), finding stay
         text = args.text or "%s: %s" % ((state.get("session") or {}).get("name") or args.slug, said or "report")
         state.setdefault("reports", []).append({"at": now(), "step": args.step or state.get("step") or "-", "status": said or "-", "text": text})
@@ -344,7 +348,11 @@ def cmd_report(args):
         state["report"] = {"status": said, "pr": pr, "text": text, "at": now()}
     save(state, "session report: " + text)  # saved first: a pool that breaks now can't lose a merged result
     if ended:
-        release(args.slug)
+        try:
+            release(args.slug)
+        except PoolUnreadable as error:
+            sys.exit("SAVED %s as %s, but its session wasn't freed: the session pool can't be read (%s). Fix: repair "
+                     "the pool, then run sessions.py free %s." % (args.slug, state.get("status"), error, args.slug))
     return 0
 
 

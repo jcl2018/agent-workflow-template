@@ -105,7 +105,7 @@ def current(run):
         return FLOW.index("release")
     if run.get("step") in FLOW:
         return FLOW.index(run["step"])
-    for item in reversed(run.get("reports") or []):
+    for item in reversed(run.get("reports") if isinstance(run.get("reports"), list) else []):
         if isinstance(item, dict) and item.get("step") in FLOW:
             return FLOW.index(item["step"])
     known = [FLOW.index(step) for step in (run.get("flow") or {}) if step in FLOW]
@@ -123,7 +123,7 @@ def latest_report(run):
     """The newer of the run's report and its last session report (a tie or a missing time: the last report), unless it
     is older than the run's bound_at, when a new worker took the goal."""
     report = run.get("report") if isinstance(run.get("report"), dict) else {}
-    last = (run.get("reports") or [{}])[-1]
+    last = run.get("reports")[-1] if isinstance(run.get("reports"), list) and run.get("reports") else {}
     last = last if isinstance(last, dict) else {}
     when, then = parse_at(report.get("at")), parse_at(last.get("at"))
     pick = report if report.get("text") and (not last.get("text") or (when and then and when > then)) else last
