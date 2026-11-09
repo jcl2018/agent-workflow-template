@@ -85,12 +85,13 @@ git fetch -q origin; [ "$(git rev-parse origin/main)" = "$before" ] && ok "nothi
 state rtn release_error | grep -q "routine false" && ok "failure recorded on the goal" || bad "release_error"
 (cd "$here" && python3 - "$d/repo" <<'PY'
 import sys; sys.path.insert(0, "skills/workflow-monitoring/scripts")
-import board_status
-title, lines = board_status.sections(sys.argv[1])[0]
-text = title + "\n".join(lines)
-assert title == "Needs you" and "rtn (release failed)" in text, text
+import os
+os.environ["LOOP_BOARD_HEALTH"] = "green"
+import live_board
+text = "\n".join(live_board.render(sys.argv[1]))
+assert "Issues" in text and "rtn: the release failed" in text, text
 PY
-) && ok "shows under Needs you" || bad "needs you"
+) && ok "shows under Issues" || bad "needs you"
 
 echo "== 4. a failed merge is recorded and shown"
 python3 - <<'PY'

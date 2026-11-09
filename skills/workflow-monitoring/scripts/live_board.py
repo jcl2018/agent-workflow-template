@@ -22,6 +22,9 @@ import board_status as bs  # noqa: E402
 import graph  # noqa: E402
 import status_graph  # noqa: E402
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block (board_status sets the rest).
+os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")
+
 FLOW = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
 HEALTH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-health", "scripts", "health.py")
 
