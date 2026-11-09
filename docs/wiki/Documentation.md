@@ -11,7 +11,7 @@ Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull reque
 
 One command, `/workflow-docs audit` (the `docs.py audit` routine), checks every page against the template sheet (`skills/workflow-docs/references/template.md`), fixes the mechanical (the Tests tables, with defect tests in their own part), lists wording to rewrite (a defect test's link is shown with its issue number) and Reviewed criteria with no test, and the release step runs it on every goal and refreshes every page `docs.py check` calls stale, not only those mapped to the goal's paths. A Usage line is written as what the owner asks the agent and the check fails one that names a `.py` or `.sh` file. Commands, flows and how-tos: `skills/workflow-docs/references/commands.md` and `skills/workflow-health/references/milestones.md`.
 
-The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a release, for the release tests, and keeps each issue's labels, for the health filing tests. Publishing to the wiki commits with a fallback author when git has none, as on a GitHub runner; `dev/toy/ci-env.sh` runs the toy tests that way.
+The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a release, for the release tests, and keeps the labels an issue is created or edited with, for the health filing tests. Publishing to the wiki commits with a fallback author when git has none, as on a GitHub runner; `dev/toy/ci-env.sh` runs the toy tests that way.
 
 ## Usage
 
