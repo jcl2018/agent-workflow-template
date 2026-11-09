@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.8.6 - 2026-11-09
+
+- operate-fit-2: clear stale wiki errors, know closed PRs, live-only Goals
+- operate-fit-2: disclose the checkin command in listing.json
+- Wiki: update pages for operate-fit-2
+- Wiki: update pages for operate-fit-2
+- Wiki: update pages for operate-fit-2
+
+### How to verify
+
+1. Run `bash dev/toy/test-operate-fit.sh`.
+   Expect: it ends with ALL PASS, including the closed, healed and old goals section.
+2. Run `python3 skills/workflow-monitoring/scripts/operate.py run --once` twice in a repo with goals.
+   Expect: the first prints the block and Goals lists no old merged goals; the second prints one "Nothing changed" line.
+
 ## v0.8.5 - 2026-11-08
 
 - operate: live status block, GitHub-merged goals, one quiet line
