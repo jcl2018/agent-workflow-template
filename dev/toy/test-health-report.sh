@@ -122,6 +122,14 @@ $health file --group size | grep -q "^DONE reopen #2" && [ "$(count health:size 
 $health file --group hygiene >/dev/null; git branch -q -d loop/old
 $health file --group hygiene | grep -q "^DONE close .* \[health:hygiene\]" && [ "$(count health:hygiene CLOSED)" = 1 ] && ok "a fixed hygiene finding closes its issue" || bad "hygiene close"
 $health preview --group mine | grep -q "^PREVIEW:" && ok "mine can be previewed when named" || bad "mine"
+# Value: protects=a mine issue stays open when the private rules are missing, and never carries private output;
+#   fails_when=plan() counts an all-INFO mine group as ran, or body_of files the rule's detail; why_new=mine was only
+#   previewed; seam=none; no_claim=real private rules (a stand-in rule printing a marker)
+printf '{"rules": [{"name": "secretcheck", "command": ["sh", "-c", "echo PRIVATE-OUTPUT; exit 2"]}]}' > "$d/mine.json"
+LOOP_HEALTH="$d/mine.json" $health file --group mine >/dev/null
+grep -q "PRIVATE-OUTPUT" "$FAKE_GH_DIR/issues.json" && bad "mine output filed" || ok "a filed mine issue carries no private output"
+[ "$(count health:mine OPEN)" = 1 ] && LOOP_HEALTH="$d/none.json" $health file --group mine >/dev/null \
+  && [ "$(count health:mine OPEN)" = 1 ] && ok "missing private rules close no mine issue" || bad "mine closed on missing rules"
 # Value: protects=when gh cannot list the health issues, preview and file refuse and write nothing; fails_when=held() falls
 #   back to an empty list, so every finding reopens as a duplicate; why_new=the fake gh always answers; seam=none;
 #   no_claim=real gh error text (a stand-in gh that prints no JSON)

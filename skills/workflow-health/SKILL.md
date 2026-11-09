@@ -6,7 +6,7 @@ description: Checks a repo's health with fixed rules that give the same answer e
 # workflow-health
 
 Four commands, `check`, `preview`, `file` and `judge`, and `milestone.py` for milestones. Run `scripts/health.py` with `python3` from the repo. If the skill's files aren't on disk, write
-every file of `scripts/` to one new private temporary folder, run `health.py` there, and delete the folder: `check`
+every file of `scripts/` to one new private temporary folder (made with `mktemp -d`), run `health.py` there, and delete the folder: `check`
 works from `health.py` alone, but `preview` and `file` need `file.py` beside it, and the report needs `report.py`. It composes `workflow-docs` and `workflow-regression`, so
 install them beside it. If one is missing, its rule prints `UNREAD`.
 

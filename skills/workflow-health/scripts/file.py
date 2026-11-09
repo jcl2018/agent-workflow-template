@@ -41,7 +41,10 @@ def line_of(item):
 
 
 def body_of(item):
-    return "%s\n\n%s\n\n%s\n" % (MARK % key_of(item), line_of(item),
+    # A mine rule's output, fix and settings path are private: the issue names the rule and its state only.
+    line = line_of(item) if item["family"] != "mine" else "%s mine %s %s: details stay local; run health.py check --group mine" % (
+        item["state"], item["subject"], item["rule"])
+    return "%s\n\n%s\n\n%s\n" % (MARK % key_of(item), line,
                                     "Filed by health.py file. Move it to a feature with milestone.py move.")
 
 
@@ -89,7 +92,9 @@ def plan(rows, issues, groups, extra=(), judged=False):
     """Actions for the named groups: dicts with kind (open, update, reopen, close, same), group, key, title, body, number."""
     found = [item for item in list(rows) + list(extra) if item["state"] in BAD and item["family"] in groups]
     unread = {item["family"] for item in rows if item["state"] == "UNREAD"}
-    ran = set(groups) - unread  # a clean group gives no rows, so it ran unless a rule in it could not read
+    # A group whose only rows are INFO (mine with no private rules) did not run, as the report says.
+    idle = {g for g in groups if any(i["family"] == g for i in rows) and all(i["state"] == "INFO" for i in rows if i["family"] == g)}
+    ran = set(groups) - unread - idle  # a clean group gives no rows, so it ran unless a rule in it could not read
     out, current = [], set()
     for item in found:
         key, group = key_of(item), item["family"]

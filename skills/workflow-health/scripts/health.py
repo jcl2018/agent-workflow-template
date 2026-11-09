@@ -322,9 +322,8 @@ def cmd_preview(args):
     """What file would do. Writes nothing; calls the judge only when performance is named."""
     root = repo_root()
     asked = groups_of(args.group)
-    if args.live or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"):
-        print("NOTE: run and preview never write; --live and a token are ignored. To write, run: health.py file --group NAME",
-              file=sys.stderr)
+    if args.live:
+        print("NOTE: run and preview never write, even with --live. To write, run: health.py file --group NAME", file=sys.stderr)
     filing, acts, _ = plan_for(root, asked, bool(asked))
     count = filing.preview(acts)
     print("PREVIEW: %d to write, nothing written. To write, run: health.py file --group %s" % (count, args.group or "NAME"))
