@@ -14,4 +14,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `bash dev/toy/test-operate-fit.sh`.
+   Expect: it ends with ALL PASS, including the closed, healed and old goals section.
+2. Run `python3 skills/workflow-monitoring/scripts/operate.py run --once` twice in a repo with goals.
+   Expect: the first prints the block and Goals lists no old merged goals; the second prints one "Nothing changed" line.

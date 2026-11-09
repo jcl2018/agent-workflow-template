@@ -75,6 +75,7 @@ def one_pass(top, common, args, first):
     else:
         print(out.rstrip())
         print(script("board_page.py", cwd=top)[1].rstrip())
+        script("board_runs.py", "checkin", cwd=top)
     try:
         with open(board) as handle:
             busy = bool(json.load(handle).get("open"))

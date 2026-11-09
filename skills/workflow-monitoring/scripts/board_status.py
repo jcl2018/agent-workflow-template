@@ -134,27 +134,47 @@ def queued(root, runs):
         return []
 
 
-def github_merged(url, cwd):
-    """True only when gh says the pull request is MERGED; any doubt (no gh, no answer, open, closed) is False."""
+def github_state(url, cwd):
+    """MERGED, CLOSED or OPEN as gh says it; any doubt (no gh, no answer) is an empty string."""
     try:
         done = subprocess.run(["gh", "pr", "view", url, "--json", "state"], cwd=cwd, capture_output=True, text=True, timeout=20)
-        return done.returncode == 0 and json.loads(done.stdout).get("state", "").upper() == "MERGED"
+        state = str(json.loads(done.stdout).get("state", "")).upper() if done.returncode == 0 else ""
+        return state if state in ("MERGED", "CLOSED", "OPEN") else ""
     except (OSError, ValueError, AttributeError, subprocess.SubprocessError):
+        return ""
+
+
+def pr_states(runs, root):
+    """GitHub's state of each done run's pull request, asked once per run."""
+    return {run["slug"]: github_state(run["pr"], root) for run in runs if run.get("status") == "done" and run.get("pr") and not graph.merged(run)}
+
+
+def merged_at(run):
+    """When the record says the goal merged: the stamp on its merged log entry, else the last update."""
+    for entry in reversed(run.get("log") or []):
+        parts = str(entry).split(" ", 2)
+        if len(parts) > 1 and parts[1] == "merged":
+            return stamp(entry)
+    return stamp(run.get("updated"))
+
+
+def new_merge(run, since, merged):
+    """Merged after the last check-in; with no check-in on record, every merged goal is new once."""
+    if run["slug"] not in merged:
         return False
-
-
-def merged_now(run, root):
-    """Merged by the record, or done with a pull request that GitHub says is merged."""
-    return graph.merged(run) or (run.get("status") == "done" and bool(run.get("pr")) and github_merged(run["pr"], root))
+    when = merged_at(run)
+    return since is None or when is None or when > since
 
 
 def error_open(run, gone, marker):
     """An error stays under Needs you unless its goal merged. A record-merged goal's error stays when it was logged after the merge
     (the wiki publishes after it); one merged only on GitHub never merged through here, so what it logged came before."""
-    if run["slug"] not in gone:
-        return True
     log = [str(entry).split(" ", 2)[1:] or [""] for entry in run.get("log") or []]
     last = lambda test: max([n for n, parts in enumerate(log) if test(parts)] + [-1])
+    if marker == "wiki not published" and last(lambda parts: " ".join(parts).startswith(("wiki published", "wiki unchanged"))) > last(lambda parts: " ".join(parts).startswith(marker)):
+        return False   # a later publish went through or found nothing to change
+    if run["slug"] not in gone:
+        return True
     return graph.merged(run) and last(lambda parts: " ".join(parts).startswith(marker)) > last(lambda parts: parts[0] == "merged")
 
 
@@ -190,7 +210,10 @@ def sections(root=None, at=None):
     runs = [read_json(os.path.join(folder, name)) for name in sorted(os.listdir(folder)) if name.endswith(".json")] if os.path.isdir(folder) else []
     runs = [run for run in runs if isinstance(run, dict) and run.get("slug") and run.get("status") != "retired"]
     needs, under = [], {}
-    gone = {run["slug"] for run in runs if merged_now(run, root)}
+    states = pr_states(runs, root)
+    gone = {run["slug"] for run in runs if graph.merged(run) or states.get(run["slug"]) == "MERGED"}
+    closed = {run["slug"] for run in runs if run["slug"] not in gone and states.get(run["slug"]) == "CLOSED"}
+    since = stamp((read_json(os.path.join(os.path.dirname(folder), "checkin.json")) or {}).get("at"))
     for run in runs:
         report = (run.get("report") or {}).get("text", "") or ((run.get("reports") or [{}])[-1].get("text", "") if run.get("status") == "running" else "")
         if run.get("wiki_error") and error_open(run, gone, "wiki not published"):
@@ -204,16 +227,18 @@ def sections(root=None, at=None):
             needs += ["    answer: " + w for w in words]
         elif run.get("status") == "running":
             under[run["slug"]] = ["    step %s%s" % (run.get("step") or "-", (" - " + report) if report else "")] + step_lines(run, runs, at)
-        elif run.get("status") == "done" and run["slug"] not in gone:
+        elif run.get("status") == "done" and run["slug"] not in gone and run["slug"] not in closed:
             under[run["slug"]] = ["    waiting to merge: %s" % (report or "pull request %s" % (run.get("pr") or "open"))]
     items = [dict(slug=run["slug"], mark=status_graph.mark(run.get("status"), run["slug"] in gone), depends=[d for d in run.get("waits_on") or [] if d not in gone],
                   stage=STEPS.index(run["step"]) + 1 if run.get("step") in STEPS else 0, left=left_time(run, runs, at)) for run in runs]
     items += [dict(slug=goal["slug"], mark="queued", depends=[d for d in goal["depends"] if d not in gone], stage=0,
                    left=left_time({"slug": goal["slug"], "status": "queued"}, runs, at)) for goal in queued(root, runs)]
-    live = [item for item in items if item["mark"] != "merged"]
+    live = [item for item in items if item["mark"] != "merged" and item["slug"] not in closed]
     prs = sorted((pr_number(run) for run in runs if run["slug"] in gone), key=lambda n: (len(n), n))
-    road = status_graph.render_text(live, under) + [status_graph.merged_line(prs)] + milestones(root)
-    goals = [line for run in runs for line in goal_lines(run, root)]
+    shut = sorted((pr_number(run) for run in runs if run["slug"] in closed), key=lambda n: (len(n), n))
+    road = status_graph.render_text(live, under) + [status_graph.merged_line(prs)] + (["closed without merging: " + " ".join(shut)] if shut else []) + milestones(root)
+    shown = [run for run in runs if run.get("status") in ("running", *ASKING) or new_merge(run, since, gone)]
+    goals = [line for run in shown for line in goal_lines(run, root)] + [line for goal in queued(root, runs) for line in goal_lines(dict(goal, status="queued"), root)]
     return list(zip(TITLES, [needs or ["(nothing needs you)"], road,
                              [status_graph.total(live, at)], goals or ["(no goals)"]]))
 
