@@ -29,6 +29,8 @@ dependencies-on-map	PASS	2026-11-09
 dependency-held	PASS	2026-11-09
 describe-needed	PASS	2026-11-09
 docs-audit	PASS	2026-11-09
+docs-count-mismatch	PASS	2026-11-09
+docs-counts-issue-39	PASS	2026-11-09
 docs-only	PASS	2026-11-09
 estimates-shown	PASS	2026-11-09
 every-row-described	FAIL	2026-11-09

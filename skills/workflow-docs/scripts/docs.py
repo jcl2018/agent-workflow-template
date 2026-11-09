@@ -5,7 +5,8 @@ usage: docs.py <command> [options]
 
   survey                       show the wiki's pages and this repo's page map
   add PAGE --paths A,B         add a page and the paths it describes
-  check [--base REF]           list missing, stale, unmapped and unwritten pages, and broken criteria; exit 1 if any
+  check [--base REF]           list missing, stale, unmapped and unwritten pages, counts the repo doesn't match, and
+                               broken criteria; exit 1 if any
   audit [--base REF] [--dry-run]
                                the one command: check every required doc, fix what is mechanical, list wording to rewrite
   criteria PAGE                print the criterion format and the next free id for a page
@@ -20,6 +21,7 @@ Publish never deletes a page, and refuses to replace a page without this tool's 
 It runs git and nothing else.
 """
 import argparse
+import glob
 import json
 import os
 import re
@@ -200,6 +202,102 @@ def problems(root, base):
     return found
 
 
+WORDS = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split()
+NOUNS = {"skill": "skill", "skills": "skill", "feature page": "page", "feature pages": "page", "criterion": "criteria",
+         "criteria": "criteria", "test": "test", "tests": "test"}
+CLAIM = re.compile(r"(?<![-\w.,/#])(\d+|%s) (?:workflow )?(skills?|feature pages?|criteri(?:on|a)|tests?)\b" % "|".join(WORDS),
+                   re.I | re.ASCII)
+FENCE = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})(.*)$")
+QUOTE = re.compile(r"^(?: {0,3}> ?)+")
+NOT_A_COUNT = "<!-- not-a-count -->"
+BOUND = re.compile(r"\b(up to|at most|at least|no more than|more than|fewer than|over|under)\s*$", re.I)
+
+
+def prose(text):
+    """The lines a reader sees as prose: no fenced blocks, comments or code spans; None if a fence never closes."""
+    lines, fence, comment = [], None, False
+    for raw in text.splitlines():
+        line = QUOTE.sub("", raw)
+        opener = FENCE.match(line)
+        if fence is not None:
+            if opener and opener.group(1)[0] == fence[0] and len(opener.group(1)) >= len(fence) and not opener.group(2).strip():
+                fence = None
+            continue
+        if opener and not comment:
+            fence = opener.group(1)
+            continue
+        line = re.sub(r"(`+)(?!`).*?(?<!`)\1(?!`)", "", line)  # code spans of any backtick length
+        marked = NOT_A_COUNT in line
+        if comment:
+            end = line.find("-->")
+            comment, line = (True, "") if end < 0 else (False, line[end + 3:])
+        line = re.sub(r"<!--.*?-->", "", line)
+        if "<!--" in line:
+            comment, line = True, line[:line.index("<!--")]
+        lines.append(line + (" " + NOT_A_COUNT if marked else ""))
+    return lines if fence is None else None
+
+
+def counts(root):
+    """Numbers the docs state that the repo can check, as (COUNT, file, detail) rows."""
+    real_root = os.path.realpath(root)
+    skills = len(glob.glob(os.path.join(root, "skills", "*", "SKILL.md")))
+    folder, rows = wiki_dir(root), read_map(root)
+    on = config(root).get("criteria")
+    pages = [p for p in rows if p != "Home" and os.path.exists(os.path.join(root, folder, p + ".md"))]
+    linked = criteria.test_rows(root)[0] if on else {}
+    names = ["README.md"]
+    wiki = os.path.join(root, folder)
+    if os.path.isdir(wiki):
+        names += ["%s/%s" % (folder, n) for n in sorted(os.listdir(wiki)) if n.endswith(".md")]
+    names += sorted(os.path.relpath(n, root) for n in glob.glob(os.path.join(root, "skills", "*.md")))
+    texts, ids = {}, {}
+    for rel in names:
+        full = os.path.realpath(os.path.join(root, rel))
+        if full.startswith(real_root + os.sep) and os.path.isfile(full):  # only regular files inside the repo
+            with open(full, encoding="utf-8", errors="replace") as handle:
+                texts[rel] = handle.read()
+            page = os.path.basename(rel)[:-3] if rel.startswith(folder + "/") else ""
+            if on and page in pages:
+                part, keep = [], False  # the Criteria section, read with prose()'s fence rules
+                for line in prose(texts[rel]) or []:
+                    keep = bool(re.match(r"##\s+Criteria\s*$", line)) or (keep and not line.startswith("## "))
+                    part += [line] if keep else []
+                ids[rel] = [m.group(1) for _, m in criteria.criteria_of(part) if m]
+    known = set(i for found in ids.values() for i in found)
+    found = []
+    for rel, text in texts.items():
+        lines = prose(text)
+        if lines is None:
+            found.append(("COUNT", rel, "a code fence never closes, so its counts can't be read"))
+            continue
+        mine = ids.get(rel)
+        real = {"skill": skills or None, "page": len(pages) if on else None,
+                "criteria": len(mine) if mine is not None else None,
+                "test": sum(len(linked.get(i, [])) for i in mine) if mine is not None else None}
+        paras, alone = [], lambda s: NOT_A_COUNT in s or known.intersection(re.findall(r"\b[A-Z]{2,5}-\d+\b", s))
+        for line in lines:  # soft-wrapped lines joined; a skipped line stays alone, so its skip covers only itself
+            new = not paras or not line.strip() or re.match(r"\s*([|#]|$)", paras[-1]) or re.match(r"\s*([-*+|#>]|\d+\.)", line)
+            new = new or alone(line) or alone(paras[-1])
+            paras.append(line) if new else paras.__setitem__(-1, paras[-1] + " " + line.strip())
+        for line in paras:
+            if alone(line):
+                continue  # marked, or about one criterion
+            for match in CLAIM.finditer(line):
+                said, noun = match.group(1).lower(), match.group(2).lower()
+                if BOUND.search(line[:match.start()]):  # "up to 6 criteria" is a limit, not a count
+                    continue
+                if said == "one":  # "one test" is nearly always "a single test", not a count
+                    continue
+                said = int(said) if said.isdigit() else WORDS.index(said) + 1
+                if said != 1 and noun in ("skill", "feature page", "test", "criterion"):
+                    continue  # a singular noun after a number above one is a compound, as in "two test doubles"
+                want = real[NOUNS[noun]]
+                if want is not None and said != want:
+                    found.append(("COUNT", rel, "says %s, the repo has %d" % (match.group(0), want)))
+    return found
+
+
 def contract(root):
     """Criteria contract trouble, as (kind, page, detail). Off unless config sets "criteria": true."""
     if not config(root).get("criteria"):
@@ -240,7 +338,7 @@ def cmd_check(args):
     if not read_map(root):
         print("NO PAGES: run add first")
         return 1
-    found = problems(root, args.base) + contract(root)
+    found = problems(root, args.base) + contract(root) + counts(root)
     for kind, page, detail in found:
         print("%s %s: %s" % (kind, page, detail))
     if found:
@@ -259,7 +357,7 @@ def cmd_publish(args):
     rows = read_map(root)
     if not rows:
         sys.exit("REFUSED: no pages. Fix: run add first.")
-    found = problems(root, None) + contract(root)
+    found = problems(root, None) + contract(root) + [c for c in counts(root) if c[1].startswith(wiki_dir(root) + "/")]
     if found:
         for kind, page, detail in found:
             print("%s %s: %s" % (kind, page, detail))
