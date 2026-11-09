@@ -115,10 +115,11 @@ def reply_hook(repo, remove):
             return refuse("%s is missing" % script, "install the workflow-monitoring skill beside workflow-setup")
         if "'" in script:
             return refuse("the hook's path %s holds a single quote" % script, "move the skills to a folder without one")
-        if script.startswith(os.path.join(common, "loop", "worktrees") + os.sep):
-            return refuse("%s is inside a goal's worktree, which goes away when the goal ends" % script,
+        if (script + os.sep).startswith(os.path.join(common, "loop", "worktrees") + os.sep) or \
+                os.path.realpath(repo).startswith(os.path.join(common, "loop", "worktrees") + os.sep):
+            return refuse("the hook (%s) or the repo is inside a goal's worktree, which goes away when the goal ends" % script,
                           "run setup.py from the main checkout or an installed copy of the skills")
-    if git(repo, "ls-files", ".claude/settings.local.json", check=False):
+    if not remove and git(repo, "ls-files", ".claude/settings.local.json", check=False):
         return refuse(".claude/settings.local.json is committed, so the hook's local path would be committed too",
                       "git rm --cached .claude/settings.local.json, commit that, then run again")
     try:
@@ -133,7 +134,7 @@ def reply_hook(repo, remove):
         return refuse("%s has hooks in a shape this can't edit safely; nothing was written" % path,
                       'make "hooks" an object whose "Stop" is a list of {"hooks": [...]} groups')
     command = "if [ -f '%s' ]; then python3 '%s'; fi" % (script, script)
-    mine = lambda h: isinstance(h, dict) and "reply_hook.py" in str(h.get("command", ""))
+    mine = lambda h: isinstance(h, dict) and "/reply_hook.py'" in str(h.get("command", ""))
     had = [h for g in stops for h in g.get("hooks", []) if mine(h)]
     if remove and not had:
         print("HOOK: not installed")

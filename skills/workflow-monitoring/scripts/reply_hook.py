@@ -34,10 +34,12 @@ KEEP = 200  # log lines kept
 TAIL = 4 << 20  # bytes of the transcript read for the final reply
 STALE = 14 * 86400  # seconds before a finished session's state files are removed
 OPERATORS = {"&&", "||", ";", "|", "&", ";;", "(", ")"}
-WORKER = {"flow.py": None, "goal.py": {"step", "record", "pr"}}
+KNOWN = {"goal.py": {"new", "queue", "step", "record", "wait", "finding", "pr", "answer", "show"}, "operate.py": {"run", "send"}}
+FIRST = 16 << 20  # bytes read on a session's first stop: its recent history is enough to find its kind
 SESSION = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 FENCE = re.compile(r"^\s*(```|~~~)")
-NUMBERED = re.compile(r"^\s*\**\d+[.)]")
+NUMBERED = re.compile(r"^\s*(?:[-*+]\s+)?\**(?:q)?\d+[.):]", re.I)
+COUNT = re.compile(r"\s*\(\s*\d+\s*\)$")
 MARKS = re.compile(r"[*#`_]")
 TEMPLATE = ("Write the check-in reply in this layout: one headline line; All sessions (one table: session, repo, what it "
             "is for, status, progress, time left, tokens left, latest); Dependencies (the drawn graph); Needs you (each "
@@ -107,19 +109,19 @@ def entries(path, tail=0, start=0):
             handle.seek(-tail, os.SEEK_END)
             handle.readline()  # a partial first line
         else:
-            handle.seek(min(start, size))
+                handle.seek(min(start, size))
+        at = handle.tell()
         data = handle.read()
-        end = handle.tell()
-        if data and not data.endswith(b"\n"):
-            cut = data.rfind(b"\n") + 1
-            end -= len(data) - cut
-            data = data[:cut]
-        for raw in data.decode("utf-8", "replace").splitlines():
+        cut = data.rfind(b"\n") + 1  # a last line still being written is left for the next read
+        end = at + cut
+        for raw in data[:cut].split(b"\n"):
+            here, at = at, at + len(raw) + 1
             try:
-                entry = json.loads(raw)
+                entry = json.loads(raw.decode("utf-8", "replace"))
             except ValueError:
                 continue
             if isinstance(entry, dict) and not entry.get("isSidechain"):
+                entry["_at"] = here
                 found.append(entry)
     return found, end
 
@@ -137,35 +139,62 @@ def flat(content):
     return "\n".join(b.get("text", "") for b in content or [] if isinstance(b, dict) and b.get("type") == "text")
 
 
+def refused(text):
+    """A refusal: the command's first output line (after an 'Exit code N' line) starts REFUSED. A command that ran and
+    failed, timed out or was stopped is not a refusal."""
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if lines and re.match(r"^Exit code -?\d+$", lines[0]):
+        lines = lines[1:]
+    return bool(lines) and lines[0].startswith("REFUSED")
+
+
 def runs(found):
-    """Each Bash command with whether its result was a refusal: (argv, refused)."""
+    """([(command, refused)] for each Bash call with its result here, byte offset of the first call still waiting)."""
     results = {}
     for entry in found:
         if entry.get("type") == "user":
             for b in blocks(entry):
                 if b.get("type") == "tool_result":
-                    text = flat(b.get("content"))
-                    results[b.get("tool_use_id")] = bool(b.get("is_error")) or text.lstrip().startswith("Exit code ") \
-                        or any(line.lstrip().startswith("REFUSED") for line in text.splitlines())
-    out = []
+                    results[b.get("tool_use_id")] = refused(flat(b.get("content")))
+    out, waiting = [], None
     for entry in found:
         if entry.get("type") != "assistant":
             continue
         for b in blocks(entry):
-            if b.get("type") == "tool_use" and b.get("name") == "Bash" and b.get("id") in results:
-                command = str((b.get("input") or {}).get("command") or "")
-                out.append((command, results[b["id"]]))
-    return out
+            if b.get("type") == "tool_use" and b.get("name") == "Bash":
+                if b.get("id") in results:
+                    out.append((str((b.get("input") or {}).get("command") or ""), results[b["id"]]))
+                elif waiting is None:
+                    waiting = entry.get("_at")
+    return out, waiting
 
 
-def calls(command):
-    """(script basename, its words after it) for each python script a shell command runs."""
+def words_of(line):
+    lex = shlex.shlex(line, posix=True, punctuation_chars=True)
+    lex.whitespace_split = True
+    return list(lex)
+
+
+def runner(part, i):
+    """Whether part[i], a .py word, is run as a script: by python (only its own flags between), by uv run, or as ./x.py."""
+    if i == 0 and (part[i].startswith("./") or "/" in part[i]):
+        return True
+    before = part[:i]
+    for j in range(len(before) - 1, -1, -1):
+        if os.path.basename(before[j]).startswith("python"):
+            between = before[j + 1:]
+            return all(w.startswith("-") and w not in ("-m", "-c") for w in between)
+        if not before[j].startswith("-"):
+            break
+    return before[-2:] == ["uv", "run"]
+
+
+def calls(command, depth=0):
+    """(script basename, subcommand) for each python script a shell command runs; sh -c / bash -c strings are opened."""
     found = []
     for line in command.splitlines():
         try:
-            lex = shlex.shlex(line, posix=True, punctuation_chars=True)
-            lex.whitespace_split = True
-            words = list(lex)
+            words = words_of(line)
         except ValueError:
             continue
         part = []
@@ -174,28 +203,46 @@ def calls(command):
                 part.append(word)
                 continue
             for i, item in enumerate(part):
-                if item.endswith(".py") and (any(os.path.basename(w).startswith("python") for w in part[:i])
-                                             or i == 0 or item.startswith("./")):
-                    found.append((os.path.basename(item), [w for w in part[i + 1:] if not w.startswith("-")]))
+                if item in ("-c",) and i and os.path.basename(part[i - 1]) in ("sh", "bash", "zsh") and i + 1 < len(part) and depth < 2:
+                    found += calls(part[i + 1], depth + 1)
+                    break
+                if item.endswith(".py") and runner(part, i):
+                    found.append((os.path.basename(item), subcommand(part[i + 1:], KNOWN.get(os.path.basename(item), set()))))
                     break
             part = []
     return found
 
 
-def signal(script, rest):
+def subcommand(rest, known):
+    """The first word after the script that isn't a flag or a flag's value."""
+    skip = False
+    for word in rest:
+        if word.startswith("-"):
+            skip = "=" not in word
+            continue
+        if skip and word not in known:
+            skip = False
+            continue
+        return word
+    return ""
+
+
+def signal(script, sub):
     """'worker', 'operation' or '' for one script run."""
-    if script in WORKER and (WORKER[script] is None or WORKER[script] & set(rest[:3])):
+    if script == "flow.py" or (script == "goal.py" and sub in ("step", "record", "pr")):
         return "worker"
-    return "operation" if script == "operate.py" and "run" in rest[:3] else ""
+    return "operation" if (script, sub) == ("operate.py", "run") else ""
 
 
 def kind(found, known=""):
-    """The session's kind after these entries: the latest signal among its non-refused commands, else known."""
-    for command, refused in runs(found):
-        if not refused:
-            for script, rest in calls(command):
-                known = signal(script, rest) or known
-    return known
+    """(the session's kind after these entries: its latest signal among non-refused commands, else known;
+    the byte offset of the first Bash call still waiting for its result, if any)."""
+    done, waiting = runs(found)
+    for command, no in done:
+        if not no:
+            for script, sub in calls(command):
+                known = signal(script, sub) or known
+    return known, waiting
 
 
 def final_reply(payload, found):
@@ -220,20 +267,27 @@ def bare(line):
 
 
 def heading(line):
-    return bare(line).rstrip(":").strip()
+    """A line as a heading: Markdown marks, a trailing colon and a trailing count like (2) dropped, case ignored."""
+    return COUNT.sub("", bare(line).rstrip(":").strip()).rstrip(":").strip().lower()
 
 
 def problems(text):
     """What a check-in reply is missing, one plain line each; an empty list means it passes."""
-    lines = [line for line in str(text or "").splitlines() if line.strip() and not FENCE.match(line)]
+    lines, fenced, inside = [], [], False
+    for line in str(text or "").splitlines():
+        if FENCE.match(line):
+            inside = not inside
+        elif line.strip():
+            lines.append(line)
+            fenced.append(inside)  # a line inside a code fence is never a heading
     spots, at = {}, -1
     for name in SECTIONS:
-        spot = next((i for i in range(at + 1, len(lines)) if heading(lines[i]) == name), None)
+        spot = next((i for i in range(at + 1, len(lines)) if not fenced[i] and heading(lines[i]) == name.lower()), None)
         if spot is not None:
             spots[name] = at = spot
     if not spots:
         return ["it is not in the check-in layout (no All sessions, Dependencies, Needs you or Coming up section)"]
-    found = ["missing section %s%s" % (name, " (or it is out of order)" if any(heading(l) == name for l in lines) else "")
+    found = ["missing section %s%s" % (name, " (or it is out of order)" if any(heading(l) == name.lower() for l in lines) else "")
              for name in SECTIONS if name not in spots]
     first = min(spots.values())
     if first == 0:
@@ -287,23 +341,25 @@ def prune(where):
 def decide(payload, session, common):
     base = os.path.join(folder(common), session)
     known, offset = state(base)
-    if not os.path.exists(base + ".kind"):
+    first = not os.path.exists(base + ".kind")
+    if first:
         prune(folder(common))
     path = payload.get("transcript_path")
-    new, end = entries(path, start=offset) if path and os.path.exists(path) else ([], offset)
-    if end < offset:  # a transcript that shrank was replaced: read it again from the start
-        new, end = entries(path)
+    new, end = entries(path, FIRST if first else 0, offset) if path and os.path.exists(path) else ([], offset)
+    if end < offset:  # a transcript that shrank was replaced: read it again
+        new, end = entries(path, FIRST)
     if not known and os.path.realpath(str(payload.get("cwd"))).startswith(os.path.join(common, "loop", "worktrees") + os.sep):
         known = "worker"
-    known = kind(new, known)
-    write(base + ".kind", json.dumps({"kind": known, "offset": end}))
+    known, waiting = kind(new, known)
+    keep = end if waiting is None or end - waiting > FIRST else waiting  # a call that never got its result stops holding
+    write(base + ".kind", json.dumps({"kind": known, "offset": keep}))
     if known != "operation":
         return None
     found = None if isinstance(payload.get("last_assistant_message"), str) else entries(path, TAIL)[0] if path else []
     text = final_reply(payload, found or [])
     wrong = problems(text) if text is not None else []
     count = 0
-    if payload.get("stop_hook_active"):
+    if payload.get("stop_hook_active") and os.path.exists(base + ".count") and time.time() - os.path.getmtime(base + ".count") < 900:
         try:
             with open(base + ".count") as handle:
                 count = int(handle.read().strip() or 0)

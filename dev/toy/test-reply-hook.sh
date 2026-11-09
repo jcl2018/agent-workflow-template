@@ -56,6 +56,9 @@ replies = {
     "emptyneeds": good.replace("1. Release alpha? Options: cut, leave. Recommended: leave.\n", "We will see.\n"),
     "nothing": good.replace("1. Release alpha? Options: cut, leave. Recommended: leave.\n", "Nothing needs you.\n"),
     "bold": good.replace("## All sessions", "**All sessions:**", 1),
+    "cased": good.replace("## All sessions", "## All Sessions").replace("## Needs you", "## Needs you (1)").replace(
+        "1. Release alpha?", "- Q1. Release alpha?"),
+    "fenced": good.replace("## Coming up\n", "```\nComing up\n```\n"),
 }
 for name, text in replies.items():
     open(os.path.join(F, name + ".txt"), "w").write(text)
@@ -106,6 +109,17 @@ save("op-pending", prompt + operate + pending)
 synthetic = [{"type": "assistant", "isSidechain": False, "isApiErrorMessage": True, "message": {"id": "merr", "model": "<synthetic>",
               "role": "assistant", "content": [{"type": "text", "text": "API Error: rate limited"}]}}]
 save("op-synthetic", prompt + operate + synthetic)
+save("op-quoted", prompt + tool(1, "python3 skills/workflow-monitoring/scripts/operate.py run",
+     "watch: REFUSED: git fetch: network\nLIVE BOARD  toy") + final(replies["noboard"]))
+save("op-timeout", prompt + tool(1, "python3 skills/workflow-monitoring/scripts/operate.py run", "Exit code 143\nTerminated", True) +
+     final(replies["noboard"]))
+save("not-op", prompt + tool(1, "python3 skills/workflow-monitoring/scripts/operate.py send g1 run", "SENT") +
+     tool(2, "python3 -m py_compile skills/workflow-delivery/scripts/flow.py", "") + final(replies["noboard"]))
+save("op-bashc", prompt + tool(1, "bash -c 'cd /r && python3 skills/workflow-monitoring/scripts/operate.py run'", "x") +
+     final(replies["noboard"]))
+split_use, split_res = tool(1, "python3 skills/workflow-monitoring/scripts/operate.py run", "LIVE BOARD")
+save("split-1", prompt + [split_use])
+save("split-2", prompt + [split_use, split_res] + final(replies["noboard"]))
 save("grow-1", prompt + operate + final(replies["noboard"]))
 save("grow-2", prompt + operate + final(replies["noboard"]) +
      tool(5, "LOOP_ROLE=worker python3 skills/workflow-delivery/scripts/flow.py g qa", "IN SESSION") + final(replies["noboard"]))
@@ -131,6 +145,10 @@ check "check finds more than one headline line" 'grep -q "more than one line bef
 check "check finds Needs you with no numbered question" 'grep -q "Needs you has no numbered question" "$F/check-emptyneeds.out"'
 python3 "$H" check "$F/nothing.txt" >/dev/null; cno=$?
 check "Nothing needs you passes" '[ $cno = 0 ]'
+python3 "$H" check "$F/cased.txt" >/dev/null; cc=$?
+check "headings ignore case and a count, and Q1. numbers a question" '[ $cc = 0 ]'
+python3 "$H" check "$F/fenced.txt" > "$F/check-fenced.out"
+check "a heading inside a code fence does not count" 'grep -q "missing section Coming up" "$F/check-fenced.out"'
 python3 "$H" check "$F/bold.txt" >/dev/null; cb=$?
 check "a Markdown-bold heading with a colon still counts" '[ $cb = 0 ]'
 python3 "$H" check "$T/none.txt" > "$F/check-none.out"; cn=$?
@@ -169,6 +187,17 @@ hook s-board board-only "$R"
 check "running board.py board alone does not make an operation session" 'passed s-board'
 hook s-flags op-flags "$R"
 check "operate run with flags before the script or the subcommand still counts" 'blocked s-flags'
+hook s-quoted op-quoted "$R"
+check "a refusal quoted inside operate's output still marks the operation session" 'blocked s-quoted'
+hook s-timeout op-timeout "$R"
+check "an operate run that timed out still marks the operation session" 'blocked s-timeout'
+hook s-notop not-op "$R"
+check "operate send and compiling flow.py are no signal" 'passed s-notop && grep -q "\"kind\": \"\"" "$C/loop/reply-hook/s-notop.kind"'
+hook s-bashc op-bashc "$R"
+check "operate run inside bash -c counts" 'blocked s-bashc'
+cp "$F/split-1.jsonl" "$F/split.jsonl"; hook s-split split "$R"
+cp "$F/split-2.jsonl" "$F/split.jsonl"; hook s-split split "$R"
+check "a call whose result lands after a stop is still read at the next stop" 'blocked s-split'
 hook s-pending op-pending "$R"
 check "a last message that still calls a tool is not checked as the reply" 'passed s-pending'
 hook s-synth op-synthetic "$R"
@@ -232,6 +261,8 @@ rm -rf .claude
 mkdir -p .claude && echo '{}' > .claude/settings.local.json && git add -f .claude/settings.local.json && git commit -qm tracked
 python3 "$SETUP" --reply-hook > "$F/i7.out" 2>&1; i7=$?
 check "a committed settings.local.json is refused" '[ $i7 = 1 ] && grep -q "^REFUSED: .*is committed" "$F/i7.out" && [ "$(cat .claude/settings.local.json)" = "{}" ]'
+python3 "$SETUP" --reply-hook --remove > "$F/i8.out" 2>&1; i8=$?
+check "--remove still works on a committed settings file" '[ $i8 = 0 ] && grep -q "^HOOK: not installed" "$F/i8.out"'
 git rm -q --cached .claude/settings.local.json && git commit -qm untrack && rm -rf .claude
 python3 "$SETUP" --reply-hook >/dev/null 2>&1; python3 "$SETUP" --reply-hook --remove >/dev/null 2>&1; python3 "$SETUP" --reply-hook >/dev/null 2>&1
 check "the ignore line is written once" '[ "$(grep -c "^/.claude/settings.local.json$" "$(git rev-parse --git-path info/exclude)")" = 1 ]'
