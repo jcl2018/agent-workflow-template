@@ -28,6 +28,8 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import graph  # noqa: E402
 DONE = "NOTHING LEFT TO OPERATE: no goal is queued, running or waiting. Nothing was merged."
 
 
@@ -57,7 +59,7 @@ def one_pass(top, common, args, first):
     flags = (["--max", str(args.max)] if args.max else []) + (["--skill-dir", args.skill_dir] if args.skill_dir else [])
     code, said = script("watch.py", "watch", "--once", *flags, cwd=top)
     if code:
-        print(said.strip())
+        print(graph.localize(said.strip()))
     folder = os.path.join(common, "loop")
     board, before = os.path.join(folder, "board.json"), os.path.join(folder, "board.before.json")
     since = []
@@ -71,10 +73,10 @@ def one_pass(top, common, args, first):
     quiet = [line for line in lines if line.startswith("NO_CHANGE")]
     digest = next((line[7:] for line in lines if line.startswith("DIGEST ")), "")
     if "CHANGED no" in lines and not first:
-        print(quiet[0].split(" ", 1)[1] if quiet else "Nothing changed. %s." % digest)
+        print(graph.localize(quiet[0].split(" ", 1)[1] if quiet else "Nothing changed. %s." % digest))
     else:
-        print(out.rstrip())
-        print(script("board_page.py", cwd=top)[1].rstrip())
+        print(graph.localize(out.rstrip()))
+        print(graph.localize(script("board_page.py", cwd=top)[1].rstrip()))
         script("board_runs.py", "checkin", cwd=top)
     try:
         with open(board) as handle:
@@ -107,7 +109,7 @@ def cmd_run(args):
 
 def cmd_send(args):
     code, said = script("worker.py", "send", args.slug, args.text)
-    print(said.strip())
+    print(graph.localize(said.strip()))
     return code
 
 
