@@ -382,7 +382,7 @@ def cmd_pr(args):
     if git("status", "--porcelain", "--", "."):
         print("NOTE: uncommitted files stay out of the PR")
     head = bump_version(state, head)
-    gate, line, ids = role.lane(state_dir(), args.slug, "pr", {}, config())
+    gate, line, ids = role.lane(state_dir(), args.slug, "pr", role.flow_spec(), config())
     print(line)
     if gate == "running":
         return 0

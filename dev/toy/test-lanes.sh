@@ -8,6 +8,7 @@ unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION GH_TOKEN GITHUB_TOKEN
 here=$(cd "$(dirname "$0")/../.." && pwd)
 export HOME=$(mktemp -d)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
+[ -n "${1:-}" ] || trap 'rm -rf "$d" "$HOME"' EXIT
 part=${2:-all}
 "$here/dev/toy/make.sh" "$d" >/dev/null || exit 1
 export LOOP_FLOW="$d/flow.json" PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh" TOY_LOG="$d/ran.log"
@@ -159,6 +160,30 @@ out=$(python3 "$here/skills/workflow-delivery/scripts/role.py" lane lf qa 2>&1)
 check "the lane refuses an unclean tree" 'grep -q "LANE_DIRTY at start: stray.txt" <<<"$out"'
 rm -f stray.txt
 
+echo "== a lane's recorder, time limit and a moved HEAD"
+R="python3 $here/skills/workflow-delivery/scripts/role.py"
+setflow() { python3 - "$d/flow.json" "$1" <<'PY2'
+import json, sys
+spec = json.load(open(sys.argv[1])); spec.update(json.loads(sys.argv[2])); json.dump(spec, open(sys.argv[1], "w"))
+PY2
+}
+slow() { pgrep -f '^sleep 23$' | wc -l | tr -d ' '; }
+printf 'ok\n' > src/a.txt
+printf 'slow\tland\tsleep 23; echo slow >> "$TOY_LOG"\tX-1\t2026-01-01\tSlow.\tcriterion\t\n' >> .loop/regression.tsv
+git commit -qam "A slow row"
+setflow '{"test_record": ["/nonexistent/recorder"]}'
+out=$($R lane lf pr 2>&1)
+check "a test_record command that isn't on this machine fails the lane before it starts" 'grep -q "^LANE_RECORDER" <<<"$out" && [ ! -e "$common/loop/runs/lf.pr-lane.job" ]'
+setflow "{\"test_record\": [\"bash\", \"$d/recorder.sh\"], \"limit\": 2}"
+out=$($R lane lf pr 2>&1); sleep 1
+check "a lane past its limit fails as LANE_TIMEOUT and its whole run is stopped" 'grep -q "^LANE_TIMEOUT" <<<"$out" && [ "$(slow)" = 0 ]'
+setflow '{"limit": 600}'
+out=$($F lf qa --wait 1 2>&1); sleep 2
+check "a slow qa lane runs in the background" 'grep -q "^RUNNING" <<<"$out" && [ "$(slow)" = 1 ]'
+git commit -q --allow-empty -m "Move HEAD"
+out=$($F lf qa --wait 1 2>&1); sleep 2
+check "a moved HEAD stops the old lane's whole run and starts one new lane" 'grep -q "^RUNNING" <<<"$out" && [ "$(slow)" = 1 ]'
+kill -TERM -- "-$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['pid'])" "$common/loop/runs/lf.qa-lane.job")" 2>/dev/null; sleep 1
 fi
 
 [ $fails = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

@@ -124,15 +124,36 @@ def lane_text():
 
 def unclean():
     out = git("status", "--porcelain", "--no-renames", "--untracked-files=all").stdout
-    return [line[3:] for line in out.splitlines()  # the loop's own bookkeeping files are no row's input
-            if not line[3:].startswith((".loop/regression-runs.tsv", ".loop/goals/", ".loop/queue.md", ".loop/findings.md"))]
+    return [line[3:].strip('"') for line in out.splitlines()  # the loop's own bookkeeping files are no row's input
+            if not line[3:].strip('"').startswith((".loop/regression-runs.tsv", ".loop/goals/", ".loop/queue.md", ".loop/findings.md"))]
 
 
 def kill(pid):
     try:
         os.killpg(pid, signal.SIGTERM)
-    except OSError:
+    except OSError:  # already gone
         pass
+
+
+def drop(path):
+    try:
+        os.remove(path)
+    except FileNotFoundError:  # another poller took it first
+        pass
+
+
+def live(held):
+    """A lane job still ours and running: no exit status yet, inside its limit (else the pid may be another's)."""
+    return not os.path.exists(held["rc"]) and time.time() - held["started"] < held["limit"] + 60 and alive(held["pid"])
+
+
+def flow_spec():
+    path = os.path.expanduser(os.environ.get("LOOP_FLOW") or "~/.workflow-loop/flow.json")
+    try:
+        spec = json.load(open(path))
+    except (OSError, ValueError):
+        spec = {}
+    return spec if isinstance(spec, dict) else {}
 
 
 def lane(runs, slug, name, spec, cfg, wait=90):
@@ -144,9 +165,12 @@ def lane(runs, slug, name, spec, cfg, wait=90):
         held = json.load(open(job))
     except (OSError, ValueError):
         held = None
+        if os.path.exists(job) and time.time() - os.path.getmtime(job) > 30:  # its starter died before filling it
+            drop(job)
     if held and held.get("head") != head:  # HEAD moved: that lane tested other content
-        kill(held["pid"])
-        os.remove(job)
+        if live(held):
+            kill(held["pid"])
+        drop(job)
         held = None
     if not held:
         dirt = unclean()
@@ -171,16 +195,16 @@ def lane(runs, slug, name, spec, cfg, wait=90):
         os.write(handle, json.dumps(held).encode())
         os.close(handle)
     stop = time.time() + wait
-    while not os.path.exists(held["rc"]) and alive(held["pid"]) and time.time() < stop:
+    while live(held) and time.time() < stop:
         time.sleep(0.2)
-    if not os.path.exists(held["rc"]) and alive(held["pid"]):
+    if live(held):
         return "running", "RUNNING: the regression lane is running; run this same command again", []
-    os.remove(job)
+    drop(job)
     text = open(out).read() if os.path.exists(out) else ""
     if not os.path.exists(held["rc"]):
         return "fail", "LANE_DIED: the lane ended with no exit status (log %s); the next call starts a new lane; %s." % (out, NOTHING), []
     rc = int(open(held["rc"]).read().strip() or 1)
-    os.remove(held["rc"])
+    drop(held["rc"])
     ids = re.findall(r"^(?:FAIL|UNPROVEN) ([^\s:]+)", text, re.M)
     kind = (re.findall(r"^(REUSED|AFFECTED|FULL)", text, re.M) or ["FULL"])[0]
     ran, reused = len(re.findall(r"^(?:PASS|FAIL|KNOWN) ", text, re.M)), re.findall(r"\((\d+) reused\)", text)
@@ -213,12 +237,18 @@ def need_lane(runs, slug, reply):
 
 
 def lane_exec(rc, limit, argv):
-    """A lane's child: run the lane in its own group, enforce the limit, write the exit status atomically."""
-    child = subprocess.Popen(argv, start_new_session=True)
+    """A lane's child: run the lane in this process's own group, so killing the group stops the whole run; enforce the
+    limit by killing the group (this process outlives it to write the status); write the exit status atomically."""
+    child = subprocess.Popen(argv)
     try:
         code = child.wait(timeout=limit)
     except subprocess.TimeoutExpired:
-        kill(child.pid)
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        kill(os.getpgrp())
+        try:
+            child.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            child.kill()
         code = 124
     with open(rc + ".tmp", "w") as handle:
         handle.write(str(code))
@@ -240,9 +270,7 @@ if __name__ == "__main__":
         guard("role.py lane")
         top = os.path.abspath(git("rev-parse", "--git-common-dir").stdout.strip())
         cfg = json.load(open(os.path.join(git("rev-parse", "--show-toplevel").stdout.strip(), ".loop", "config.json")))
-        flow_file = os.path.expanduser(os.environ.get("LOOP_FLOW") or "~/.workflow-loop/flow.json")
-        spec = json.load(open(flow_file)) if os.path.exists(flow_file) else {}
-        status, line, _ = lane(os.path.join(top, "loop", "runs"), sys.argv[2], sys.argv[3], spec, cfg)
+        status, line, _ = lane(os.path.join(top, "loop", "runs"), sys.argv[2], sys.argv[3], flow_spec(), cfg)
         print(line)
         sys.exit(0 if status != "fail" else 1)
     else:
