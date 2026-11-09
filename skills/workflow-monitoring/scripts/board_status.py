@@ -63,6 +63,11 @@ def seconds_by_step(run, at):
     return found
 
 
+def tokens_by_step(run):
+    value = run.get("tokens")
+    return {step: n for step, n in value.items() if step in STEPS and isinstance(n, int)} if isinstance(value, dict) else {}
+
+
 def usual(runs, mine, step, pick):
     values = [pick(run).get(step) for run in runs if run["slug"] != mine["slug"] and run.get("status") == "done"]
     values = [v for v in values if v]

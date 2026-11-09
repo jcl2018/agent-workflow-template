@@ -186,7 +186,7 @@ $B retire nosuch --reason x 2>&1 | grep -q REFUSED && ok "retire of an unknown r
 $B retire fresh --reason x 2>&1 | grep -q "is running" && ok "retire refuses a running agent" || bad "retire running"
 $B retire stale --reason "Superseded by goal fresh" | grep -q "RETIRED stale" && ok "retire" || bad "retire"
 map
-python3 - "$T/m/board.json" <<'PY' && ok "a retired goal leaves Issues and and stays marked in Runs" || bad "retired"
+python3 - "$T/m/board.json" <<'PY' && ok "a retired goal leaves Issues and stays marked in Runs" || bad "retired"
 import json, sys
 d = json.load(open(sys.argv[1]))
 assert "stale" not in [x["slug"] for x in d["waiting"]]
