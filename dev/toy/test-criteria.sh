@@ -1,4 +1,5 @@
 #!/bin/bash
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Test the criteria contract across workflow-docs, workflow-regression and workflow-release. usage: test-criteria.sh [DIR]
 unset LOOP_BATCH
 set -e

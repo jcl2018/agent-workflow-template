@@ -192,6 +192,13 @@ def relaunch(state, prompt, cfg, note):
     path = os.path.join(loop_dir("logs"), state["slug"] + ".log")
     state["log_mark"] = os.path.getsize(path) if os.path.exists(path) else 0
     state["finding"], state["waiting"], state["status"], state["report"] = "", None, "running", None
+    if state.get("worker") == "session":  # it restarts as a background process; its session goes back to the pool
+        try:
+            import sessions
+            sessions.release(state["slug"])
+        except ImportError:
+            pass
+        state.update(worker="background", worker_why="restarted as a background process", session=None)
     save(state, note)
     launch(state, prompt, cfg)
 

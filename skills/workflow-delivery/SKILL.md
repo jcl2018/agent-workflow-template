@@ -32,9 +32,9 @@ is a tool that can't run a background agent: tell the user, then freeze with `go
 If the user gave no done lines, write them and show them before you start. Each must be provable before the pull
 request, by a test or by what a person can see.
 
-**Never run the suite's skills yourself.** Run each one through `flow.py`, which starts it in its own unattended mode
-and refuses if the probe says otherwise. Run interactively, a ship skill could push. The skills take their recommended
-answers; nothing is approved for the owner.
+**Run each step through `flow.py`.** In a worker session (the default) it prints `IN SESSION`, the skill and a reply path:
+run the skill yourself, unattended (recommended answers, approve nothing, never push), write its reply ending in `STEP:`
+there, run `flow.py` again for `NEXT` (or `goal.py record --in-session` with any reply file), and message the operation session at each change. No session: a headless agent.
 
 ```text
 freeze -> idea -> plan -> build -> review -> qa -> ship -> pr -> release

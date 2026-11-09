@@ -8,7 +8,9 @@ names a default suite under "suite" and, under "steps", a skill for any one step
 the skill for each step, the command that runs them, the environment that makes them run unattended, and a probe that proves it.
 The repo never names those skills. Each call waits a short while and prints RUNNING (run the same command again) or
 NEXT (the goal.py line that records the step). Nothing here approves, merges or pushes. It refuses outside a worker (LOOP_ROLE=worker), and prints what the operation
-session sent the worker. The tokens an agent used are read from its JSON output (input + output + cache-creation, no cache reads) and recorded against the step.
+session sent the worker. In a worker session (the run's worker is "session") it starts no agent:
+it prints IN SESSION with the skill to invoke in that session and the reply path, and once the reply is there, NEXT.
+The tokens an agent used are read from its JSON output (input + output + cache-creation, no cache reads) and recorded against the step.
 """
 import argparse
 import json
@@ -153,6 +155,38 @@ def start(args, runs, reply, job):
     print("RUNNING: run this same command again")
 
 
+def in_session(args, runs, reply, base):
+    """A worker session runs the step's skill itself; flow.py only names it, then hands the reply to goal.py record."""
+    try:
+        state = json.loads(read(os.path.join(runs, args.slug + ".json")))
+    except (OSError, ValueError):
+        state = {}
+    if state.get("worker") != "session":
+        return False
+    asked = base + ".asked"  # a reply counts only if written after this step was asked for, never one left by a try before
+    fresh = os.path.exists(asked) and os.path.exists(reply) and os.path.getmtime(reply) >= os.path.getmtime(asked)
+    text = read(reply) if fresh else ""
+    if not re.search(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I):
+        if not os.path.exists(asked):  # first ask: the step starts now, and a reply from before is moved aside
+            if os.path.exists(reply):
+                os.replace(reply, reply + ".last")
+            role.begin(os.path.join(runs, args.slug + ".json"), args.step)
+        open(asked, "a").close()
+        spec = flow()
+        skill = ((spec.get("overrides") or {}).get(args.step) or {}).get("skill") or spec["steps"][args.step]
+        print("IN SESSION %s: no headless agent; run the %s skill yourself in this session." % (args.step, skill))
+        print(PROMPT.format(skill=skill, step=args.step, slug=args.slug, branch=git("branch", "--show-current"),
+                            purpose=PURPOSE[args.step].format(slug=args.slug),
+                            note="The owner said: " + args.note + "\n" if args.note else "").rstrip())
+        print("Write its reply, ending with the STEP line, to %s, then run this same command again." % reply)
+        return True
+    os.remove(asked)
+    open(base + ".ran", "w").close()
+    print("\n".join(re.findall(r"^\W*(?:PENDING|STEP): .*", text, re.M)))
+    print("NEXT: goal.py record %s %s --file %s" % (args.slug, args.step, reply))
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("slug")
@@ -171,6 +205,8 @@ def main():
     role.inbox(os.path.dirname(os.path.dirname(runs)), args.slug)
     base = os.path.join(runs, "%s.%s" % (args.slug, args.step))
     reply, job = base + ".txt", base + ".job"
+    if not os.path.exists(job) and in_session(args, runs, reply, base):
+        return 0
     if not os.path.exists(job):
         start(args, runs, reply, job)
         return 0
