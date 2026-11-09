@@ -19,7 +19,7 @@ criteria-max-setting	PASS	2026-11-09
 criteria-no-scripts	PASS	2026-11-09
 cut-draft	PASS	2026-11-09
 cut-needs-verify	PASS	2026-11-09
-defect-categories	PASS	2026-11-09
+defect-categories	FAIL	2026-11-09
 defect-flow-steps	PASS	2026-11-09
 defect-health	PASS	2026-11-09
 defect-known	PASS	2026-11-09
@@ -31,8 +31,9 @@ describe-needed	PASS	2026-11-09
 docs-audit	PASS	2026-11-09
 docs-only	PASS	2026-11-09
 estimates-shown	PASS	2026-11-09
-every-row-described	PASS	2026-11-09
+every-row-described	FAIL	2026-11-09
 failed-waits-mender	PASS	2026-11-09
+file-one-group	PASS	2026-11-09
 fixed-closes	PASS	2026-11-09
 frozen-done-lines	PASS	2026-11-09
 judge-needs-you	PASS	2026-11-09
@@ -41,6 +42,13 @@ judge-verdict-unchanged	PASS	2026-11-09
 keeps-seen-red	PASS	2026-11-09
 known-no-block	PASS	2026-11-09
 landed-left-alone	PASS	2026-11-09
+live-board-arrows	PASS	2026-11-09
+live-board-cadence	PASS	2026-11-09
+live-board-flow	PASS	2026-11-09
+live-board-header	PASS	2026-11-09
+live-board-issues	PASS	2026-11-09
+live-board-leftouts	PASS	2026-11-09
+live-board-no-oneline	PASS	2026-11-09
 lock-in-report	PASS	2026-11-09
 milestone-links	PASS	2026-11-09
 milestones-once	PASS	2026-11-09
@@ -68,12 +76,14 @@ pr-body-criterion	PASS	2026-11-09
 pr-body-no-checks	PASS	2026-11-09
 pr-in-milestone	PASS	2026-11-09
 pr-needs-flow	PASS	2026-11-09
+preview-writes-nothing	PASS	2026-11-09
 publish-refused-stale	PASS	2026-11-09
 refuse-replace	PASS	2026-11-09
 refused-unmet	PASS	2026-11-09
 release-note-found	PASS	2026-11-09
 release-runs-audit	PASS	2026-11-09
 repeat-no-second	PASS	2026-11-09
+report-header	PASS	2026-11-09
 retired-leaves-waiting	PASS	2026-11-09
 review-dated	PASS	2026-11-09
 review-owner-only	PASS	2026-11-09
@@ -115,6 +125,8 @@ unread-not-green	PASS	2026-11-09
 unreview-lifts	PASS	2026-11-09
 untested-listed	PASS	2026-11-09
 update-in-place	PASS	2026-11-09
+usage-agent-requests	PASS	2026-11-09
+usage-no-script	PASS	2026-11-09
 usage-optional	PASS	2026-11-09
 usage-section-allowed	PASS	2026-11-09
 waits-first	PASS	2026-11-09
