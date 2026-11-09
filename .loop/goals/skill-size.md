@@ -13,4 +13,9 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. Run `wc -l skills/workflow-delivery/SKILL.md skills/workflow-docs/SKILL.md`.
+   Expect: each is under 150 lines.
+2. Run `bash dev/toy/test-board.sh | tail -1`.
+   Expect: it prints ALL PASS, with no "over 150 lines" line above it.
+3. Open `skills/workflow-docs/references/commands.md` and go to "Moved from SKILL.md".
+   Expect: the six-item PRD page list, Review locks, Tests follow on their own and New and old pages, each in full.
