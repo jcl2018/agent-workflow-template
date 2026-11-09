@@ -16,7 +16,7 @@ template keeps every gate until its owner turns one off.
 
 ## Features
 
-Each feature page is a Summary, its Usage (what you ask the agent), its Criteria, and a Tests table of the regression rows that enforce them with their last
+Each feature page is a Summary, its Usage (what you ask the agent), its Criteria (up to 6), and a Tests table of the regression rows that enforce them with their last
 result and date. A criterion is Unreviewed or Reviewed with a date, and a Reviewed one's wording is locked. Command
 detail and charts are in each skill's `references/` folder.
 

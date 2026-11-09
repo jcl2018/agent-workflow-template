@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.10.1 - 2026-11-09
+
+- The docs check fails on counts that drift from the code
+- Rows for the count check and issue 39
+- Both rows seen failing on the old check
+- Review: glob at the top; say which counts need criteria on
+- Review fixes: the count check reads only prose, and says why it skipped
+- Mark DOC-6 Reviewed, on the owner's words
+- Review pass 2 fixes: read prose the way a reader does
+- Review pass 3 fixes: no crash, any repo's ids, code as Markdown renders it
+- Home: a feature page has up to 6 criteria, as the README now says
+- fix(qa): ISSUE-001 — describe DOC-6's two tests
+- fix: pre-landing review fixes, and the coverage audit's tests
+- fix: a skip covers only its own line, and the Criteria heading allows spaces
+- Merge remote-tracking branch 'origin/main' into loop/docs-counts
+
+### How to verify
+
+1. Run `python3 skills/workflow-docs/scripts/docs.py check` in the repo.
+   Expect: `DOCS OK`, because the README and design guide say seven skills and there are seven.
+2. Change "the seven skills" to "the eight skills" in `skills/design-guide.md` and run the check again.
+   Expect: `COUNT skills/design-guide.md: says eight skills, the repo has 7`, and exit code 1. Undo the change.
+
 ## v0.10.0 - 2026-11-09
 
 - session-workers: plan step, in-session flow steps, sessions.py

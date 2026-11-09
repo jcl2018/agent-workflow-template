@@ -126,8 +126,8 @@ Keep the wiki in step with the code. Pages live in `docs/wiki/`, so they're revi
 `publish` only adds or updates pages it wrote, unless you name one with `--adopt`, and never deletes one. `restore`
 undoes the last publish.
 
-With `"criteria": true` in the config, `check` also holds the wiki to a contract: the feature pages plus Home: each feature page is a Summary, up to 5 plain
-criteria marked Unreviewed or Reviewed with a date, and a Tests table of the regression rows that enforce them with their
+With `"criteria": true` in the config, `check` also holds the wiki to a contract: the feature pages plus Home: each feature page is a Summary, up to 6 plain
+criteria (`criteria_max`) marked Unreviewed or Reviewed with a date, and a Tests table of the regression rows that enforce them with their
 last result. A Reviewed criterion's wording is locked until the owner marks it Unreviewed.
 
 Release the work, or leave it unreleased for now:
