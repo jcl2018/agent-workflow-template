@@ -130,6 +130,10 @@ check "a worker session silent for an hour is named under Issues" 'grep -q "^- b
 (cd "$C/loop/worktrees/e" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/goal.py" record e ship --file "$T/plan-reply.txt" --in-session > "$T/f7" 2>&1)
 check "goal.py record --in-session refuses a step out of order" 'grep -q "^REFUSED: idea, plan, review, qa comes before ship" "$T/f7"'
 
+printf '#!/bin/bash\nsleep 20\n' > "$T/slowtool.sh"; chmod +x "$T/slowtool.sh"
+start=$(date +%s); LOOP_SESSION_TIMEOUT=2 LOOP_SESSION_TOOL="$T/slowtool.sh" go h; took=$(( $(date +%s) - start ))
+check "a hung session tool is cut off at its timeout, with its children, and the goal falls back at once" '[ "$took" -lt 10 ] && [ "$(field h worker)" = background ] && grep -q "timed out" "$C/loop/runs/h.json"'
+
 echo "== issue 98: a goal moved into a session"
 python3 - "$R/d.json" <<'PY'
 import json, sys

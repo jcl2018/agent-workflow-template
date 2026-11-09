@@ -24,6 +24,7 @@ import json
 import os
 import re
 import shlex
+import signal
 import subprocess
 import sys
 
@@ -113,14 +114,31 @@ def tool(cfg):
     return [os.path.expanduser(str(part)) for part in found] if isinstance(found, list) and found else []
 
 
+HUNG = []  # set when a call times out: the tool is given up for the rest of this run
+
+
 def call(command, *args):
-    """One session tool call: its last output line, or None when it can't start or reach a session."""
-    try:
-        done = subprocess.run(command + list(args), capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
-    except (OSError, subprocess.SubprocessError):
+    """One session tool call: its last output line, or None when it can't start or reach a session. A call past the
+    timeout (LOOP_SESSION_TIMEOUT, default 30 s) is killed with all its children, so a hung tool can't hold the loop."""
+    if HUNG:
         return None
-    lines = done.stdout.strip().splitlines()
-    return (lines[-1].strip() if lines else "") if done.returncode == 0 else None
+    try:
+        child = subprocess.Popen(command + list(args), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                 stdin=subprocess.DEVNULL, text=True, start_new_session=True)
+    except OSError:
+        return None
+    try:
+        out, _ = child.communicate(timeout=float(os.environ.get("LOOP_SESSION_TIMEOUT") or 30))
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(child.pid, signal.SIGKILL)
+        except OSError:
+            pass
+        child.communicate()
+        HUNG.append(" ".join(args[:1]))
+        return None
+    lines = out.strip().splitlines()
+    return (lines[-1].strip() if lines else "") if child.returncode == 0 else None
 
 
 def assign(state, prompt, cfg):
@@ -138,14 +156,16 @@ def assign(state, prompt, cfg):
         reused = sid is not None
         sid = sid or call(command, "start", name_of(slug))
         if not sid:
-            state["worker_why"] = "the session tool could not start a session"
+            state["worker_why"] = "the session tool timed out" if HUNG else "the session tool could not start a session"
             break
         if call(command, "rename", sid, name_of(slug)) is not None and call(command, "send", sid, text) is not None:
             break
-        state["worker_why"] = "the session tool could not reach session %s" % sid
+        state["worker_why"] = ("the session tool timed out on session %s" if HUNG else "the session tool could not reach session %s") % sid
         found.setdefault(sid, {"name": name_of(slug), "slug": slug})["state"] = "unreachable"
         save_pool(found)
         sid = None
+        if HUNG:
+            break
     if not sid:
         return False
     found[sid] = {"name": name_of(slug), "slug": slug, "state": "busy", "since": now()}
