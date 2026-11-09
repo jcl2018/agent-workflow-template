@@ -29,7 +29,7 @@ PATH = re.compile(r"(?<![\w.@+/-])(?:\$\{?here\}?/|\./)?((?:\.?[A-Za-z0-9_@+-][A
 BARE = re.compile(r"\$\{?here\}?/skills\b(?!/)")
 ROOT = re.compile(r"\$\{?here\}?/?(?=[\s\"')]|$)")
 RUNNER = "skills/workflow-regression/scripts/regression.py"  # rows that reach it read .loop/regression.tsv
-TOKEN = re.compile(r"\bworkflow-[a-z]+\b")
+SKILL_NAME = re.compile(r"\bworkflow-[a-z]+\b")
 IMPORT = re.compile(r"^\s*(?:import|from)\s+([A-Za-z_]\w*)", re.M)
 
 
@@ -120,7 +120,7 @@ def references(root, text, folder):
     found, whole = set(), bool(ROOT.search(text))
     if BARE.search(text):
         found.add("skills/")
-    for name in TOKEN.findall(text):
+    for name in SKILL_NAME.findall(text):
         found.add("skills/%s/" % name)
     for raw in PATH.findall(text):
         raw = raw.rstrip(".")
