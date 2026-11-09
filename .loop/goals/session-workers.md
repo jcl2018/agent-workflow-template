@@ -16,4 +16,11 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. From the main checkout, run `python3 skills/workflow-monitoring/scripts/live_board.py`.
+   Expect: each running goal has a `worker:` line under its step flow, `session worker · <goal>` for a goal in a worker
+   session and `background (<why>)` for one in a background process. No goal that moved into a session shows as failed.
+2. Run `python3 skills/workflow-monitoring/scripts/sessions.py list`.
+   Expect: each worker session with its state (busy or free), its name `worker · <goal>` and its goal.
+3. In a worker session, run `LOOP_ROLE=worker python3 skills/workflow-delivery/scripts/flow.py <slug> review` in the
+   goal's worktree.
+   Expect: it prints `IN SESSION review: no headless agent`, the skill to run and the reply path, and starts no process.
