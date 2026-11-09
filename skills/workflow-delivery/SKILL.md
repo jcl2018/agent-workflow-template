@@ -75,6 +75,16 @@ tokens, no cache reads); report a step it didn't run with `goal.py step <slug> <
 The idea step writes the design and the plan step reviews it into a plan, both in your skills' own files. Commit
 anything they put in the worktree.
 
+**The regression lane.** The full suite runs once per goal, in qa. Before your qa skill starts, `flow.py qa` runs the
+lane, `python3 <workflow-regression>/scripts/regression.py run land --reuse`, in the background (`RUNNING` until it
+ends). It runs through your flow file's `test_record` prefix when you set one (a receipt recorder, so your ship skill's
+own check of recorded test runs can reuse it), and tests the committed HEAD only: an unclean tree fails it (`LANE_DIRTY`).
+A failing or never-seen-failing row fails the qa step before your skill runs, and `goal.py record <slug> qa` refuses
+until a qa lane passed on HEAD (`LANE_MISSING`; start one with `role.py lane <slug> qa`). `flow.py ship` and `goal.py pr`
+run the same lane: on unchanged content it prints `REUSED` and runs nothing, and after a commit or a base merge it reruns
+only the rows the change can affect. The release step itself (merge.py) doesn't rerun it; GitHub Actions still runs the
+full suite.
+
 ### 3. Build
 
 Run `goal.py step <slug> build`. Make the change the plan describes, add tests for each done line, and commit.

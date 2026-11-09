@@ -72,6 +72,30 @@ Then it keeps one issue per failing row, labelled `regression`. A new failure op
 adds one comment a day, and a pass closes it. With no `GH_TOKEN` or `GITHUB_TOKEN` it prints `WOULD` lines and changes
 nothing. `--live` uses your `gh` login.
 
+## `run [land|nightly|<id>] --reuse`
+
+```bash
+python3 scripts/regression.py run land --reuse
+```
+
+Reuses this branch's last run, kept outside the worktree in `<git common dir>/loop/tests/<branch>-<sha8>.json` (each
+row's result and the commit it ran on). A row is reused only when it passed, or is a known failure, on HEAD or an
+ancestor, and no file it reads changed since. What a row reads is every repo path its command names, followed through
+the files they name (a skill folder counts as a whole). It prints one of:
+
+| Line | Means |
+|---|---|
+| `REUSED <n> rows from <commit> (<time>)` | Nothing changed: no test ran |
+| `AFFECTED <n> of <m> rows (<ids>): <files>` | Only the rows the changed files can affect ran |
+| `FULL: <reason>` | Every row ran: no record, an unreadable one, one with a failing row, or a moved base |
+| `UNMAPPED <file>: full run` | A changed file no row reads, outside the docs and release files: every row ran |
+| `NOT RECORDED: <reason>` | Uncommitted changes or a detached HEAD: tested, but the record is unchanged |
+
+A row whose command names no repo path always runs. `RESULT` counts reused rows (`3 passed (2 reused)`). A reusing run
+writes nothing in the worktree and opens no issue: a failure shows in its exit status and output (the last 20 lines of
+each failing row), and the plain `run` in GitHub Actions keeps the issues. A plain `run` forces every row and rewrites
+the record. Try it on a toy repo: `bash dev/toy/test-lanes.sh "" regression` (in this repo) walks every case.
+
 ## `workflow`
 
 ```bash

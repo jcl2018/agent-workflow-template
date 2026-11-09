@@ -86,7 +86,8 @@ def save(path, root, command, results, head, at, fresh):
 def dirty(root):
     """Paths git status lists, the run log aside."""
     out = git(root, "status", "--porcelain", "--no-renames", "--untracked-files=all") or ""
-    return [line[3:].strip('"') for line in out.splitlines() if line[3:].strip('"') != RUNS_FILE]
+    paths = [line[3:].strip('"') for line in out.splitlines()]
+    return [p for p in paths if p != RUNS_FILE and not p.startswith(".loop/goals/")]  # no row reads either
 
 
 def changed(root, commit):

@@ -96,7 +96,55 @@ check "a changed known-list entry reruns that row" '[ "$(ran)" = "b " ]'
 printf 'e\tland\tbash dev/a.sh\tX-1\t\tE works.\tcriterion\t\n' >> .loop/regression.tsv; git commit -qam "Row e"
 $reg run land --reuse >/dev/null; fresh; out=$($reg run land --reuse); rc=$?; echo "$out"
 check "a row never seen failing fails the run even when reused" '[ $rc = 1 ] && grep -q "^UNPROVEN e: never seen failing. Fix: python3 .* red e --break" <<<"$out"'
-git revert -q --no-edit HEAD
+grep -v "^e	" .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv && git commit -qam "Drop row e"
+fi
+
+if [ "$part" != regression ]; then
+echo "== delivery: qa runs the lane before the qa skill, through the flow file's test_record"
+export LOOP_ROLE=worker TOY_RECEIPTS="$d/receipts"
+goal="python3 $here/skills/workflow-delivery/scripts/goal.py"; F="python3 $here/skills/workflow-delivery/scripts/flow.py"
+lane=$(python3 -c "import sys; sys.path.insert(0, sys.argv[1]); import role; print(role.lane_text())" "$here/skills/workflow-delivery/scripts")
+cat > "$d/recorder.sh" <<'A'
+#!/bin/bash
+# A stand-in receipt recorder: it notes the label, the commit and the exact command, then runs it and passes its status.
+printf 'label=regression\tcommit=%s\tcommand=%s\n' "$(git rev-parse HEAD)" "$*" >> "$TOY_RECEIPTS"
+"$@"
+A
+python3 - "$d/flow.json" "$d/recorder.sh" <<'PY'
+import json, sys
+spec = json.load(open(sys.argv[1])); spec["test_record"] = ["bash", sys.argv[2]]; json.dump(spec, open(sys.argv[1], "w"))
+PY
+git switch -q main; git push -q origin main
+step() { all=""; for _ in $(seq 20); do out=$($F "$1" "$2" --wait 10 2>&1); all="$all$out"$'\n'; grep -q "^NEXT:" <<<"$out" && break; done
+         echo "$all"; $goal record "$1" "$2" --file "$common/loop/runs/$1.$2.txt" 2>&1; }
+$goal new lg --here --goal "Lane goal" --done "lanes work" >/dev/null
+for s in idea plan review; do step lg $s >/dev/null; done
+out=$($goal record lg qa --file "$d/flow.json" 2>&1)
+check "record refuses qa before the qa lane passed on HEAD" 'grep -q "the qa lane has not passed on .* (LANE_MISSING)" <<<"$out"'
+check "the lane command resolves from the installed package, not the repo (no skills/ here)" '[ ! -e skills ] && grep -q "^python3 $here/skills/workflow-regression/scripts/regression.py run land --reuse$" <<<"$lane"'
+out=$(step lg qa); echo "$out"
+check "qa runs the lane first: a full run on a branch with no record" 'grep -q "^LANE qa FULL \([0-9]*\)/\1 " <<<"$out" && grep -q "^FULL: no record" "$common/loop/runs/lg.qa-lane.txt"'
+check "the recorder got the exact lane command on the tested commit" 'grep -qF "commit=$(git rev-parse HEAD)	command=$lane" "$TOY_RECEIPTS"'
+check "qa is recorded once its lane passed" 'grep -q "^RECORDED qa" <<<"$out"'
+out=$(step lg ship); echo "$out"
+check "ship reuses qa's run on unchanged content and runs no row" 'grep -q "^LANE ship REUSED 0/" <<<"$out" && grep -q "^REUSED [0-9]* rows" "$common/loop/runs/lg.ship-lane.txt"'
+
+echo "== pr: a base merge reruns only the rows it affected"
+git clone -q "$d/origin.git" "$d/other"; (cd "$d/other" && git config user.email t@example.test && git config user.name Toy \
+  && printf 'ok from base\n' > src/b.txt && git commit -qam "Base changes b" && git push -q origin main)
+out=$($goal pr lg 2>&1); echo "$out"
+check "pr merges the base and reruns only the row the merge affected" 'grep -q "^MERGED" <<<"$out" && grep -q "^AFFECTED 1 of [0-9]* rows (b)" "$common/loop/runs/lg.pr-lane.txt" && grep -q "^PR " <<<"$out"'
+
+echo "== a red lane never starts the skill and costs a try"
+git switch -q main; $goal new lf --here --goal "Red goal" --done "red" >/dev/null
+printf 'bad\n' > src/a.txt; git commit -qam "Break a"
+for s in idea plan review; do step lf $s >/dev/null; done
+out=$(step lf qa); echo "$out"
+check "a failing qa lane fails the step with its row ids, before any skill ran" 'grep -q "LANE_FAIL a" <<<"$out" && grep -q "TRY 1 OF 3 FAILED: qa failed: regression lane: a" <<<"$out" && grep -q "^STEP: failed regression lane: a" "$common/loop/runs/lf.qa.txt"'
+touch stray.txt
+out=$(python3 "$here/skills/workflow-delivery/scripts/role.py" lane lf qa 2>&1)
+check "the lane refuses an unclean tree" 'grep -q "LANE_DIRTY at start: stray.txt" <<<"$out"'
+rm -f stray.txt
 fi
 
 [ $fails = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
