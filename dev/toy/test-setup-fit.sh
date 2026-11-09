@@ -67,6 +67,12 @@ grep -q "no changelog" "$d/run.txt" && no "existing changelog missed"
 grep -qP '^(Billing|Search)\t' .loop/docs.tsv 2>/dev/null || grep -q '^Billing' .loop/docs.tsv || no "docs.tsv lacks the features"
 python3 "$here/skills/workflow-docs/scripts/docs.py" check 2>&1 | grep -q "not allowed" && no "docs check rejects the feature list"
 grep -q 'BIL-1' docs/wiki/Billing.md || no "feature page has no criterion"
+grep -q '^## Problem$' docs/wiki/Billing.md && grep -q '^Review: \*\*Unreviewed\*\*$' docs/wiki/Billing.md || no "seeded page is not a PRD"
+python3 -c "import json; c = json.load(open('.loop/config.json')); c['criteria'] = True; json.dump(c, open('.loop/config.json', 'w'))"
+out=$(python3 "$here/skills/workflow-docs/scripts/docs.py" audit --dry-run 2>&1)
+grep -q "SECTIONS" <<<"$out" && no "seeded pages fail the PRD sections: $(grep SECTIONS <<<"$out" | head -1)"
+grep -q "SCENARIO" <<<"$out" && no "seed rows are not Given/When/Then: $(grep SCENARIO <<<"$out" | head -1)"
+git checkout -q -- .loop/config.json 2>/dev/null || true
 
 # Line 1 (regression row): the row runs the real test command.
 grep -q 'bash scripts/run-tests.sh' .loop/regression.tsv || no "regression row lacks the real command"

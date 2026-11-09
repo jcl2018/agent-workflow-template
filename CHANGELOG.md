@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.12.0 - 2026-11-09
+
+- workflow-docs: PRD page contract, review lock and prd command
+- docs/wiki: every feature page is a PRD; rows are Given/When/Then scenarios
+- dev/toy: test-prd.sh, PRD fixtures in the existing toy tests, new rows
+- docs: PRD page, review PAGE|ID, prd and convert in the skill, commands and README
+- Rows seen failing once; Tests and Home re-rendered for the PRD pages
+- dev/toy: test-batch reads a row from the scenario Tests
+- criteria.py: review/unreview PAGE takes only an exact feature page name
+- prd.py convert: keep a title-less page's first heading; a missing Non-goals goes before Success metrics
+- docs/wiki: Documentation Usage says review/unreview PAGE takes the exact page name; convert's fixes
+- prd-format: DOC-1, DOC-2 and DOC-3 Reviewed 2026-11-08 by the owner ("Approve")
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.11.0 - 2026-11-09
 
 - test-lanes: regression.py run --reuse reuses a branch's last run and reruns only affected rows

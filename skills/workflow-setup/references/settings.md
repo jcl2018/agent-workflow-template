@@ -18,7 +18,7 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `version_file` | `VERSION` | The file that holds the version; a release bumps it and writes the changelog. |
 | `routines` | `[]` | Commands the release step runs on the base branch before it merges. |
 | `regression_cron` | `17 9 * * *` | Five cron fields: when the nightly regression runs in GitHub Actions. |
-| `criteria` | `true` | true makes docs check enforce the Summary, Criteria and Tests page contract. |
+| `criteria` | `true` | true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests). |
 | `criteria_max` | `6` | Most criteria a wiki page may hold, 1 to 50; docs check and health fail a page over it. |
 | `wiki_dir` | `docs/wiki` | The folder of wiki pages. |
 | `risky_paths` | `["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]` | Regexes for paths whose goals need extra care. |
