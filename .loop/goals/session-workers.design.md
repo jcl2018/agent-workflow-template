@@ -1,6 +1,6 @@
 # Design: session-workers
 
-Status: shaped by office-hours in an app worker session, with the recommended answer at every question. Nothing was
+Status: shaped by the idea skill in an app worker session, with the recommended answer at every question. Nothing was
 approved, merged or pushed. The goal's done lines are frozen, and this design meets them as written.
 
 ## Problem
