@@ -1,6 +1,7 @@
 #!/bin/bash
 # Adopt a fake repo with CI tests, a bare agent command, its own feature list and a blocking .gitignore. No model is called.
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
 d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
 export HOME="$d/home"; mkdir -p "$HOME"

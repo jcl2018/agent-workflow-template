@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test feature milestones and health run on a throwaway toy repo with a fake gh. usage: test-milestones.sh [DIR]
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME

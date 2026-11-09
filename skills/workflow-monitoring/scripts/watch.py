@@ -4,7 +4,8 @@
 usage: watch.py <command> [options]
 
   go "GOAL" --done LINE [--done LINE] [--touches A,B] [--depends-on A,B] [--slug S] [--release ask]
-      queue a goal and start a worker in its own worktree; the worker runs its own loop and reports back
+      queue a goal and give it a worker session in its own worktree (sessions.py), or a background process when no
+      session can be started or reached; the worker runs its own loop and reports back
   watch [--max N] [--once] [--interval S]
       start every queued goal whose dependencies are merged (up to parallel), mend and resume if allowed, print what waits
   resume SLUG
@@ -25,6 +26,10 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
+try:
+    import sessions  # noqa: E402  worker sessions in the app; without it every goal runs as a background process
+except ImportError:
+    sessions = None
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -298,6 +303,8 @@ def limit_of(args, cfg):
 
 
 def start_round(args, cfg):
+    if sessions:
+        sessions.HUNG.clear()  # a session tool that hung last round gets another chance
     begun, held = plan(limit_of(args, cfg))
     for goal in begun:
         try:
@@ -308,7 +315,9 @@ def start_round(args, cfg):
             state["finding"] = str(error)
             save(state, "failed to start: %s" % error)
             continue
-        launch(state, go_prompt(state, goal, args.skill_dir), cfg)
+        prompt = go_prompt(state, goal, args.skill_dir)
+        if not (sessions and sessions.assign(state, prompt, cfg)):
+            launch(state, prompt, cfg)  # the fallback: no session could be started or reached; the board says background
     return begun, held
 
 
@@ -408,7 +417,7 @@ def cmd_watch(args):
         pending = keep_moving(cfg, args.skill_dir)
         begun, _ = start_round(args, cfg)
         tell(seen, told)
-        if args.once or not (begun or pending or any(state.get("status") == "running" and state.get("pid") for state in runs())):
+        if args.once or not (begun or pending or any(state.get("status") == "running" and (state.get("pid") or state.get("worker") == "session") for state in runs())):
             break
         time.sleep(interval)
     _, held = plan(limit_of(args, cfg))

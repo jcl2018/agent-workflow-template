@@ -1,6 +1,7 @@
 #!/bin/bash
 # Adopt a fresh toy repo, then update its skills. usage: test-adopt.sh [SET-1..SET-5]   no ID runs every part. No model is called.
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd); only=${1:-}
 d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
 no() { echo "FAIL ${only:-adopt}: $1"; exit 1; }
