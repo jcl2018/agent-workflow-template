@@ -40,8 +40,19 @@ one merges the latest base before its pull request. A dependency on a failed or 
 the board says why.
 
 Put goals in a named batch with `scripts/batch.py` (`add NAME --goal G --done L`, `start NAME`, `status NAME`). `start`
-begins one worker for each goal line, up to `parallel`. Each worker runs `scripts/worker.py loop SLUG` around the agent,
-so it carries its own loop to the end without this session. When the agent ends, the worker writes its result into the
+begins one worker for each goal line, up to `parallel`.
+
+**Worker sessions are the default.** `watch` hands each ready goal to `scripts/sessions.py assign`: it takes a free worker
+session from the pool, or asks the session tool (`session_command`) for a new one, renames it `worker · <goal>`, sends it
+the goal, its worktree and the report rules, and records `worker: session` and the session on the run record. The worker
+session runs every flow step inside itself (`flow.py` prints `IN SESSION` and starts no agent) and sends this session a
+message at each change of step or status and at the end. For each such message, run
+`sessions.py report SLUG --step S` or `--status merged|failed|waiting --pr URL`; a merged or failed goal frees its session,
+and the next ready goal gets it, renamed again. A session you start yourself with the app's tools is recorded with
+`sessions.py bind SLUG ID`, which also brings back a goal the board showed as a failed background worker.
+
+Only when no session can be started or reached does the goal fall back to a background process: `scripts/worker.py loop
+SLUG` runs the agent around its own loop, and the board marks the goal `background` with the reason. When the agent ends, the worker writes its result into the
 run record as a prompt message: `merged`, `failed` or `waiting`, with the pull request. The board shows that message.
 A batch heading groups lines and doesn't hold them, so step 1 below starts a queued goal line even before `start`.
 

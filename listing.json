@@ -102,6 +102,7 @@
     ".loop/regression.tsv, .loop/regression-known.tsv and .github/workflows/regression.yml",
     "a version bump commit on a goal's branch, only with pr_bumps_version on",
     "loop/board.json, cadence and handoff.md under the git common dir, and a run record's note, retired mark, report or met lines, and loop/checkin.json (the last check-in time), when you run board.py, worker.py or operate.py",
+    "loop/sessions.json (the worker session pool) and a run record's worker, session and reports, when you run sessions.py or watch.py; and the session tool named in session_command, called as start, rename and send",
     "loop/board.html, board-artifact.html and the finished sections of board.json, when you run board_page.py",
     "loop/waits/<slug> under the git common dir, when a goal is held by another",
     "~/.workflow-loop/repos in the home folder, when you run board.py repos add",
