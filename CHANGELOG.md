@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.9.0 - 2026-11-09
+
+- live-board: replace the status block with the live board (MON-4, MON-5)
+- live-board: regression rows
+- live-board: review fixes
+- Wiki: update pages for live-board
+
+### How to verify
+
+1. Run `python3 skills/workflow-monitoring/scripts/board_status.py`.
+   Expect: it prints a `LIVE BOARD` header (repo, local time, version, health), then Issues, Running goals (each with a 10-cell bar, percent, time left, a step flow with the current step in brackets, and a `next:` line), Queued goals, Dependencies (arrows like `a --> b`) and a single Finish line, with no merged list, milestones, token tables or done-line lists.
+2. Run `bash dev/toy/test-live-board.sh`.
+   Expect: it ends with `ALL PASS`, after checking the board line by line.
+3. Run `python3 skills/workflow-monitoring/scripts/board.py cadence`.
+   Expect: it prints `CADENCE 30`.
+
 ## v0.8.9 - 2026-11-09
 
 - wiki-sync: release step refreshes every stale page, toy test, pages
