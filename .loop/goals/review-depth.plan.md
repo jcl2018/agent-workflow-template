@@ -57,10 +57,9 @@ every phase: the configured outside model is not supported for the account. Find
 3. **Stamp position (DX, Eng).** `(depth X)` goes at the end of the flow entry, after the existing truncation, so the
    `startswith("done")` checks still hold.
 4. **DEPTH line (DX F4, CEO F5).** Format: the same forms the STEP check accepts (`^\W*DEPTH:\s*(full|condensed)\b`,
-   any case).
-   - Plan and review: required, and a missing line is a failed try whose reason says exactly what line to add.
-   - Idea, qa and ship: a missing line is stamped `(depth not stated)` instead of costing a try. Done line 2 still
-     holds, because the record says it was not stated.
+   any case). It is required in every step that advances: frozen done line 2 needs every recorded result to say which
+   depth ran. A missing line is a failed try whose reason gives the exact line to add, so the re-run costs one step.
+   The reviewers' softer "(depth not stated)" for idea, qa and ship is not taken, because it would break done line 2.
 5. **Marker hygiene (DX F1, Eng).**
    - The missing-marker error never prints the marker; it says "a configured full_markers evidence string for review
      is missing".
