@@ -152,8 +152,7 @@ def closure(root, command, cache):
                 text = handle.read(400000)
         except OSError:
             continue
-        more, big = references(root, text, os.path.dirname(rel))
-        always = always or big
+        more, _ = references(root, text, os.path.dirname(rel))  # a script's own `cd "$here"` reads nothing by itself
         if rel.endswith(".py"):
             more |= {os.path.join(os.path.dirname(rel), m + ".py") for m in IMPORT.findall(text)
                      if os.path.isfile(os.path.join(root, os.path.dirname(rel), m + ".py"))}
