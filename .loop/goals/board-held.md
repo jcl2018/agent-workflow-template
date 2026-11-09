@@ -12,6 +12,15 @@ Frozen. A wrong done line needs a new goal.
 3. A goal assigned to a worker session shows at once as assigned to that session with step freezing, before it is frozen
 4. Defect tests linked to issue 102, each seen failing once, prove all three
 
+## Design
+
+Approach A, from the idea step: the live board works out each state from the run records, the session pool and whether
+a pid is alive. No new run status. The latest session report wins the next line. A running goal with no busy pool entry
+and no live pid shows under Held goals. A busy pool entry with no run file shows as freezing, under its session's name.
+`sessions.py bind` records that handoff before the goal is frozen, `free` drops it, and `watch.py` leaves it alone. A
+running goal at release reads "finish release", and a goal that has failed tries shows "try N of M". It also folds in
+issue 108: a session report never moves a `done` goal back to `running`.
+
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
