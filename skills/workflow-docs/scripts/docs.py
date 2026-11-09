@@ -15,7 +15,7 @@ usage: docs.py <command> [options]
   restore                      revert the last publish, if nothing came after it
 
 With "criteria": true in .loop/config.json, check also enforces the PRD page contract (references/template.md).
-criteria.py reviews requirements and PRDs and renders Tests; prd.py drafts and converts pages.
+criteria.py reviews requirements and PRDs and renders Tests; prd.py drafts and converts pages; counting.py reads counts.
 
 Publish never deletes a page, and refuses to replace a page without this tool's marker unless you name it with --adopt.
 It runs git and nothing else.
