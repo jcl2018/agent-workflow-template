@@ -182,12 +182,14 @@ def assign(state, prompt, cfg):
     if not sid:
         return False
     with locked():  # an operator's bind during the send wins: never overwrite it
-        if (pool().get(sid) or {}).get("slug") != slug or (load(slug).get("session") or {}).get("id") not in (None, sid):
+        entry, current = pool().get(sid) or {}, load(slug) or state
+        if entry.get("slug") != slug or entry.get("state") != "busy" or (current.get("session") or {}).get("id") not in (None, sid):
             print("HANDED %s elsewhere during the send; session %s keeps no claim" % (slug, sid))
             return True
-        state.update(worker="session", worker_why="", session={"id": sid, "name": name_of(slug)}, pid=None,
-                     status="running", bound_at=now())
-        save(state, "assigned to session %s (%s)%s" % (sid, name_of(slug), ", reused" if reused else ""))
+        current.update(worker="session", worker_why="", session={"id": sid, "name": name_of(slug)}, pid=None,
+                       status="running", bound_at=now())
+        save(current, "assigned to session %s (%s)%s" % (sid, name_of(slug), ", reused" if reused else ""))
+        state.update(current)
     return True
 
 

@@ -115,8 +115,8 @@ The board reads the run records and the session pool (`<git common dir>/loop/ses
 | done | The pull request is open; a later session report is only recorded (issue 108) | the release step merges it | it leaves the board |
 | tries used up | A stopped goal was brought back by a bind or mend | look at its finding | the next try counts from there |
 
-Handing a goal over before it is frozen (for a session started with the app's own tools; `watch.py go --session` freezes
-first, so its goals never show as freezing):
+Handing a goal over before it is frozen (for a session the operation session started with the app's own tools; a goal
+`watch.py` starts is frozen before its session gets it, so it never shows as freezing):
 
 ```text
 operation session: git worktree add -b loop/<slug> <common>/loop/worktrees/<slug> origin/main
