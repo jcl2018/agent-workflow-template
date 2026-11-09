@@ -232,7 +232,7 @@ def groups_of(text):
     bad = [n for n in names if n not in FAMILY]
     if bad:
         sys.exit("REFUSED: unknown group %s. Groups: %s." % (", ".join(bad), ", ".join(NAMES)))
-    return names or None
+    return list(dict.fromkeys(names)) or None  # a repeated name (cost,performance) runs once
 
 
 def report(rows, asked=None):
@@ -240,7 +240,8 @@ def report(rows, asked=None):
     sys.path.insert(0, HERE)
     try:
         import report as formal
-        return formal.build(rows, asked)[:4] + (rows,)
+        built = formal.build(rows, asked)
+        return built[:4] + (built[6],)  # the rows the report shows, so --json rows agree with its counts
     except ImportError:
         pass
     finally:
@@ -321,6 +322,9 @@ def cmd_preview(args):
     """What file would do. Writes nothing; calls the judge only when performance is named."""
     root = repo_root()
     asked = groups_of(args.group)
+    if args.live or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"):
+        print("NOTE: run and preview never write; --live and a token are ignored. To write, run: health.py file --group NAME",
+              file=sys.stderr)
     filing, acts, _ = plan_for(root, asked, bool(asked))
     count = filing.preview(acts)
     print("PREVIEW: %d to write, nothing written. To write, run: health.py file --group %s" % (count, args.group or "NAME"))

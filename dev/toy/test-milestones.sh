@@ -98,7 +98,12 @@ $health file --group size >/dev/null
 still=$(python3 -c "import json,os;print(sorted(i['number'] for i in json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json')) if i['state']=='OPEN' and 'size:' not in i['body']))")
 [ "$still" = "$open_other" ] && grep -q '"number": 1, .*"state": "CLOSED"' "$FAKE_GH_DIR/issues.json" && ok "file --group size closed only the size issue" || bad "family close: $still"
 lone=$(mktemp -d); cp "$here/skills/workflow-health/scripts/health.py" "$lone/"
-python3 "$lone/health.py" file --group size,criteria,docs >/dev/null 2>&1
+python3 "$lone/health.py" file --group size,criteria,docs 2>&1 | grep -q "^REFUSED: file.py is not installed" && ok "a lone health.py refuses to file" || bad "lone file"
+# Value: protects=a group whose rule cannot read its data closes none of its issues on file; fails_when=plan() stops
+#   taking unread groups out of the ones that ran; why_new=the lone health.py above now refuses before plan(), so it no
+#   longer reaches the guard; seam=none; no_claim=real GitHub issue state (fake gh; toy repo)
+lone="$lone/skills/workflow-health"; mkdir -p "$lone"; cp -R "$here/skills/workflow-health/scripts" "$lone/"  # no sibling skills: criteria and docs cannot read
+python3 "$lone/scripts/health.py" file --group size,criteria,docs >/dev/null 2>&1
 still=$(python3 -c "import json,os;print(sorted(i['number'] for i in json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json')) if i['state']=='OPEN' and 'size:' not in i['body'] and i['number'] in $open_other))")
 [ "$still" = "$open_other" ] && ok "a rule that could not read closes none of its issues" || bad "unread close: $still"
 

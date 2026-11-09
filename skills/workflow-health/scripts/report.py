@@ -20,7 +20,12 @@ def shown(name):
     return SHOWN.get(name, name)
 
 
+SHARED = {("criteria", "rows"): ("done-lines",)}  # rules read from the same source: an unread source reads none of them
+
+
 def rule_of(item):
+    if item["family"] in ("docs", "size"):  # one rule each: every row of the group speaks for it
+        return RULES[item["family"]][0]
     if item["family"] == "criteria" and item["subject"] == "done-lines":
         return "done-lines"
     return RULE_OF.get(item["rule"], item["rule"])
@@ -32,12 +37,19 @@ def line_of(item):
 
 
 def complete(rows, ran):
-    """Rows plus a PASS row for each rule of a group that ran and gave none."""
+    """Rows plus a row for each rule of a group that ran and gave none: PASS, or UNREAD when its source could not be read."""
     out = list(rows)
     for name in ran:
         seen = {rule_of(item) for item in rows if item["family"] == name}
+        unread = {r for item in rows if item["family"] == name and item["state"] == "UNREAD"
+                  for r in SHARED.get((name, rule_of(item)), ())}
         for rule in RULES[name]:
-            if rule not in seen:
+            if rule in seen:
+                continue
+            if rule in unread:
+                out.append({"state": "UNREAD", "family": name, "subject": rule, "rule": rule,
+                            "detail": "its source could not be read", "fix": "see the UNREAD line above"})
+            else:
                 out.append({"state": "PASS", "family": name, "subject": rule, "rule": rule, "detail": "no problem found", "fix": ""})
     return out
 
