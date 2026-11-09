@@ -15,4 +15,11 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-health/scripts/health.py check`.
+   Expect: line 2 reads `groups run: ...; skipped: ...`, then each group with every rule and a state, the Cost group titled `performance`, and one `HEALTH:` line last.
+2. Run `python3 skills/workflow-health/scripts/health.py preview`.
+   Expect: `WOULD open/update/close/reopen ... [health:<group>]` lines and a `PREVIEW:` line; no issue changes on GitHub.
+3. Run `python3 skills/workflow-health/scripts/health.py file`.
+   Expect: `REFUSED: file needs --group ...` and nothing written.
+4. Open `docs/wiki/Health.md`.
+   Expect: HLT-3 and HLT-4 carry the new wording marked `Reviewed 2026-11-08`, and Usage lists the four agent requests.
