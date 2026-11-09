@@ -2,6 +2,7 @@
 # Proves batch.py with a stand-in agent. No model is called. usage: test-batch.sh [DIR]
 # The governing session only adds and starts; every goal runs in its own process, in its own worktree.
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE  # these tests act as the operation session
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"

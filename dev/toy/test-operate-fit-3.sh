@@ -3,6 +3,7 @@
 # check (old saved wiki errors for a page the check no longer reports are gone), the roadmap draws chained goals as a flow chart and ends
 # with the longest path and a local finish time, and nothing operate prints says UTC. No model is called. usage: test-operate-fit-3.sh [DIR]
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"

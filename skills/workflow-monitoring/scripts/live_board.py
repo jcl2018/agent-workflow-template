@@ -5,7 +5,7 @@ usage: live_board.py [--html]
 
 LIVE BOARD header (repo, local time, version, health), then Issues (only what is open now, a stuck worker first, each with its
 fix in plain words), Running goals (10-cell bar with percent and time left, the step flow with done steps ticked and the current
-step in brackets, one next step), Queued goals, Dependencies (arrows between running and queued goals) and one Finish time.
+step in brackets, the worker: its session name or background, one next step), Queued goals, Dependencies (arrows between running and queued goals) and one Finish time.
 Merged work, history and totals are left out. Estimates and the finish come from board_status.py and status_graph.py.
 Health is workflow-health's verdict, or "unknown"; LOOP_BOARD_HEALTH replaces it (tests). Imported by board_status.py.
 """
@@ -28,6 +28,7 @@ os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")
 
 FLOW = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
 WIDTH = 60   # a phone screen
+QUIET = int(os.environ.get("LOOP_SESSION_QUIET", "3600"))  # seconds a worker session may stay silent before Issues names it
 HEALTH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-health", "scripts", "health.py")
 
 
@@ -112,7 +113,14 @@ def next_line(run):
     return "merge the pull request" if run.get("status") == "done" else "finish %s, then %s" % (FLOW[here], FLOW[min(here + 1, len(FLOW) - 1)])
 
 
-def issues(runs, gone, root):
+def worker_of(run):
+    """Which worker has the goal: its app session by name, or a background process (the fallback) and why."""
+    if run.get("worker") == "session" or run.get("session"):
+        return "session %s" % ((run.get("session") or {}).get("name") or "worker · " + run["slug"])
+    return "background" + (" (%s)" % plain(run["worker_why"], 80) if run.get("worker_why") else "")
+
+
+def issues(runs, gone, root, at=None):
     stuck, other = [], []
     for run in runs:
         slug, report = run["slug"], (run.get("report") or {}).get("text", "")
@@ -123,6 +131,15 @@ def issues(runs, gone, root):
             stuck.append("    fix: answer by typing %s" % " or ".join('"%s"' % w for w in words))
         if run.get("release_error") and bs.error_open(run, gone, "release failed"):
             other += ["- %s: the release failed: %s" % (slug, plain(run["release_error"])), '    fix: look at the problem, then type "resume %s"' % slug]
+    for run in runs:
+        try:
+            last = datetime.datetime.fromisoformat(str(run.get("updated")).replace("Z", "+00:00"))
+        except ValueError:
+            last = None
+        if at and run.get("worker") == "session" and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET:
+            name = (run.get("session") or {}).get("name") or "worker · " + run["slug"]
+            other += ["- %s: its session %s has sent nothing for %dm" % (run["slug"], name, (at - last).total_seconds() // 60),
+                      '    fix: look at the session %s; when it answers, record it with sessions.py report %s' % (name, run["slug"])]
     found = bs.wiki_check(root)
     parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]
     for run in runs:
@@ -156,14 +173,14 @@ def render(root=None, at=None):
         out = [head, tail, "", "Issues"]
     else:
         out = [head, "", "Issues"]
-    out += issues([r for r in runs if r["slug"] not in shut], gone, root) + ["", "Running goals"]
+    out += issues([r for r in runs if r["slug"] not in shut], gone, root, at) + ["", "Running goals"]
     for run in running:
         done = current(run)
         full = round(10 * done / len(FLOW))
         left = next(i["left"] for i in items if i["slug"] == run["slug"])
         out += ["- %s  [%s%s] %d%%  %s" % (run["slug"], "#" * full, "-" * (10 - full), round(100 * done / len(FLOW)),
                                          "no estimate yet" if left is None else "%s left" % status_graph.span(left)),
-                *flow_lines(run, bs.overrun(run, runs, at)), "    next: " + next_line(run)]
+                *flow_lines(run, bs.overrun(run, runs, at)), "    worker: " + worker_of(run), "    next: " + next_line(run)]
     out += ([] if running else ["- (none)"]) + ["", "Queued goals"]
     for goal in queue:
         left = next(i["left"] for i in items if i["slug"] == goal["slug"])

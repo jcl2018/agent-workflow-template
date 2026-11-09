@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.10.0 - 2026-11-09
+
+- session-workers: plan step, in-session flow steps, sessions.py
+- MON-1 and MON-2: the owner's new wording, reviewed
+- Worker sessions: assign, rename, report, reuse, background fallback; steps run in the session; board shows the session
+- Docs: worker sessions are the default worker
+- Delivery page: steps run inside the worker session
+- Delivery page: steps run inside the worker session
+- Review fixes: never re-record a stale in-session reply; try a new session before falling back
+- QA fixes: pool file renamed session-pool.json, MON-1 test follows the new wording, SKILL.md files under 150 lines
+- sessions.py no-terminal guard; wiki pages follow the review fixes
+- goal.py record --in-session: record a step the worker session ran
+- record-in-session row seen red; Tests tables
+- Review (full) fixes: session goals hold a slot and keep watch alive, answers reach the session, results checked and wrapped up, worktree in the goal message, quiet sessions under Issues, resume resets the worker
+- listing.json discloses the sessions.py commands
+- fix(qa): a hung session tool is cut off with its children at the timeout, then given up for the run
+- Session tool calls: output to a file, interrupts kill the tool, the timeout is checked, a hang lasts one round
+- Tests tables after the land run; Monitoring page names the session tool timeout
+
+### How to verify
+
+1. From the main checkout, run `python3 skills/workflow-monitoring/scripts/live_board.py`.
+   Expect: each running goal has a `worker:` line under its step flow, `session worker · <goal>` for a goal in a worker
+   session and `background (<why>)` for one in a background process. No goal that moved into a session shows as failed.
+2. Run `python3 skills/workflow-monitoring/scripts/sessions.py list`.
+   Expect: each worker session with its state (busy or free), its name `worker · <goal>` and its goal.
+3. In a worker session, run `LOOP_ROLE=worker python3 skills/workflow-delivery/scripts/flow.py <slug> review` in the
+   goal's worktree.
+   Expect: it prints `IN SESSION review: no headless agent`, the skill to run and the reply path, and starts no process.
+
 ## v0.9.3 - 2026-11-09
 
 - stale-groups: remove leftovers of removed groups, add defect test

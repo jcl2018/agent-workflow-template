@@ -2,6 +2,7 @@
 # Proves the settings: one table, both halves written by setup, parallel 0 unlimited, settings read fresh each run.
 # No model is called. usage: test-settings.sh [DIR]
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"

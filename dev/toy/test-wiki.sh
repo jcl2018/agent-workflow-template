@@ -1,4 +1,5 @@
 #!/bin/bash
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Test the release step's wiki half on a throwaway toy repo with a bare wiki. usage: test-wiki.sh [DIR]
 unset LOOP_BATCH
 set -e
