@@ -13,4 +13,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `bash dev/toy/test-board-estimates.sh` and read the printed board.
+   Expect: the running goal shows `[build over by 30m]`, `30m left`, a finish time later than the on-time board, and no line wider than 60 characters.
+2. Run `python3 skills/workflow-monitoring/scripts/board_status.py` in this repo.
+   Expect: the step flow wraps at the `>` joints and no line runs past 60 characters.

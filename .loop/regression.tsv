@@ -136,3 +136,4 @@ live-board-no-oneline	land	bash dev/toy/test-live-board.sh 2>&1 | grep -q "PASS:
 live-board-cadence	land	bash dev/toy/test-live-board.sh 2>&1 | grep -q "PASS: the default cadence is 30 minutes"	MON-5	2026-11-09	The check-in cadence is 30 minutes by default.	criterion	
 usage-no-script	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a Usage naming a .py file fails"	DOC-6	2026-11-09		criterion	
 usage-agent-requests	land	bash dev/toy/test-criteria.sh 2>&1 | grep -q "PASS: a Usage of agent requests passes"	DOC-6	2026-11-09		criterion	
+board-estimates-overrun	land	bash dev/toy/test-board-estimates.sh	board-estimates:3	2026-11-09	An overrunning step grows time left and the finish time, and no live board line passes 60 characters.	defect	https://github.com/jcl2018/agent-workflow-template/issues/93
