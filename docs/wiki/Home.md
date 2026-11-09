@@ -2,7 +2,7 @@
 # agent-workflow-template
 
 A small agentic workflow for any repo: you state a goal and the checks that prove it, and a background agent takes it
-through your own skill suite's flow, unattended, to a pull request you review. One session governs and the others build: `operate.py run` plans queued goals as a dependency graph and starts the workers. To install it
+through your own skill suite's flow, unattended, to a pull request you review. One session governs and the others build: `operate.py run` plans queued goals as a dependency graph and starts the workers and prints the live board (issues, running goals, queued goals, dependencies and one finish time) every 30 minutes by default. To install it
 and run a first goal, or to see where every file lives, read the
 [README](https://github.com/jcl2018/agent-workflow-template#readme). It's released under the MIT license. The last step of every goal, the release step (see [Delivery](Delivery)), also brings the wiki up to date and publishes it.
 
