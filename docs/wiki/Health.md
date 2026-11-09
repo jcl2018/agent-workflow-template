@@ -9,9 +9,9 @@ Skill: `workflow-health`. A check of the repo's health with fixed rules, so the 
 
 ## Usage
 
-- `health.py check` prints the one fixed report ending in a `HEALTH:` line; `--family NAME` limits it to one group.
-- `health.py judge` adds the judge section of suggestions and ranked next steps; it never changes the verdict.
-- `health.py run` files each finding as an issue on the Backlog milestone; without a token it only previews.
+- `/workflow-health check` prints the one fixed report ending in a `HEALTH:` line; "check only the docs health" limits it to one group.
+- `/workflow-health judge` adds the judge section of suggestions and ranked next steps; it never changes the verdict.
+- `/workflow-health run` files each finding as an issue on the Backlog milestone; without a token it only previews.
 
 ## Criteria
 

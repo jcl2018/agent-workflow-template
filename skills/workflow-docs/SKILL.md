@@ -73,10 +73,6 @@ Delivery, Documentation, Health, Milestones, Monitoring, Regression and Release 
 Each feature page has exactly these sections, in this order: `Summary`, `Criteria`, `Tests`. Command detail and charts
 live in the owning skill's `SKILL.md` and `references/`, not on the page.
 
-```bash
-python3 scripts/docs.py criteria <Page>
-```
-
 It prints the format and the next free id for the page (`DEL`, `DOC`, `HLT`, `MON`, `REG`, `SET`).
 
 Two levels: criteria are for the owner, tests are for the machine.
@@ -126,10 +122,6 @@ Tell the user the `PUBLISHED` link and the pages it changed.
 
 ## `restore`
 
-```bash
-python3 scripts/docs.py restore
-```
-
 This reverts the last publish. It refuses if the wiki has changed since.
 
 ## Rules
@@ -139,3 +131,18 @@ This reverts the last publish. It refuses if the wiki has changed since.
 - Never turn permissions off.
 
 `loop-files.md` (`../` here, `shared/` in a pack) describes every file.
+
+## Command map
+
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+
+| Ask | Runs |
+|---|---|
+| `/workflow-docs audit` | `python3 scripts/docs.py audit` |
+| `/workflow-docs check` | `python3 scripts/docs.py check` |
+| `/workflow-docs criteria PAGE` | `python3 scripts/docs.py criteria PAGE` |
+| `/workflow-docs review ID` | `python3 scripts/criteria.py review ID --user` |
+| `/workflow-docs render` | `python3 scripts/criteria.py render` |
+| `/workflow-docs publish` | `python3 scripts/docs.py publish` |
+| `/workflow-docs restore` | `python3 scripts/docs.py restore` |
+| `/workflow-docs milestones` | `python3 scripts/milestone.py new --all` |

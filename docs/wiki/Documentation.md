@@ -7,17 +7,17 @@ Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
 Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests; `wiki_dir` in `.loop/config.json` changes the folder) and finds stale ones. Each feature has a GitHub milestone named for its page, plus a Backlog, made by `skills/workflow-health/scripts/milestone.py`; a goal's pull request goes in its feature's milestone. The docs check accepts any page listed in `.loop/docs.tsv`; the six built-in names keep their prefixes and any other page takes its own.
 
-One command, `docs.py audit`, checks every page against the template sheet (`skills/workflow-docs/references/template.md`), fixes the mechanical (the Tests tables, with defect tests in their own part), lists wording to rewrite (a defect test's link is shown with its issue number) and Reviewed criteria with no test, and the release step runs it on every goal and refreshes every page `docs.py check` calls stale, not only those mapped to the goal's paths. Commands, flows and how-tos: `skills/workflow-docs/references/commands.md` and `skills/workflow-health/references/milestones.md`.
+One command, `/workflow-docs audit` (the `docs.py audit` routine), checks every page against the template sheet (`skills/workflow-docs/references/template.md`), fixes the mechanical (the Tests tables, with defect tests in their own part), lists wording to rewrite (a defect test's link is shown with its issue number) and Reviewed criteria with no test, and the release step runs it on every goal and refreshes every page `docs.py check` calls stale, not only those mapped to the goal's paths. A Usage line is written as what the owner asks the agent and the check fails one that names a `.py` or `.sh` file. Commands, flows and how-tos: `skills/workflow-docs/references/commands.md` and `skills/workflow-health/references/milestones.md`.
 
 The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a release, for the release tests. Publishing to the wiki commits with a fallback author when git has none, as on a GitHub runner; `dev/toy/ci-env.sh` runs the toy tests that way.
 
 ## Usage
 
-- `docs.py audit` checks every page against the template, fixes the mechanical and lists the wording to rewrite; it exits 1 while any is left.
-- `docs.py check` lists missing, stale, unmapped and unwritten pages and broken criteria; `docs.py criteria PAGE` prints the format and the next free id.
-- `criteria.py review ID --user` marks a criterion Reviewed on the owner's words; `criteria.py render` rewrites the Tests tables.
-- `docs.py publish` copies the pages to the GitHub wiki, and `docs.py restore` undoes the last publish.
-- `milestone.py new --all` makes each feature's milestone and the Backlog; running it again creates nothing.
+- `/workflow-docs audit` checks every page against the template, fixes the mechanical and lists the wording to rewrite; it exits 1 while any is left.
+- `/workflow-docs check` lists missing, stale, unmapped and unwritten pages and broken criteria; `/workflow-docs criteria PAGE` prints the format and the next free id.
+- `/workflow-docs review ID` marks a criterion Reviewed on the owner's words; `/workflow-docs render` rewrites the Tests tables.
+- `/workflow-docs publish` copies the pages to the GitHub wiki, and `/workflow-docs restore` undoes the last publish.
+- `/workflow-docs milestones` makes each feature's milestone and the Backlog; running it again creates nothing.
 
 ## Criteria
 
@@ -26,6 +26,7 @@ The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a releas
 - DOC-3: **Reviewed 2026-11-08** Tests follow on their own: once I review a criterion, the loop writes the tests that prove it, links each to a regression row, adds it to the tests table; I never write or manage tests; a changed criterion gets its tests updated. <!-- reviewed e7ad710b -->
 - DOC-4: **Reviewed 2026-11-08** One command enforces it: checks all required docs against the template, code and tests, fixes what's mechanical, lists wording to rewrite; the release step runs it on every goal before merging; I can run it myself. It never deletes a page, never overwrites a page it didn't write unless I name it, and the last publish can be undone. <!-- reviewed 72374942 -->
 - DOC-5: **Reviewed 2026-11-08** Required docs: every repo keeps up to date one wiki page per feature, one GitHub milestone per feature linked from its page plus a Backlog milestone, and a release note for every release; each goal's pull request lands in its feature's milestone. <!-- reviewed f4c8ca82 -->
+- DOC-6: **Unreviewed** A feature page's Usage is written as what the owner asks the agent, a skill command or a plain request, and names no script file.
 
 ## Tests
 
@@ -56,3 +57,6 @@ The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a releas
 | **DOC-5** Required docs: every repo keeps up to date one wiki page per feature, one GitHub milestone per feature linked from its page plus a Backlog milestone, and a release note for every release; each goal's pull request lands in its feature's milestone. | [pr-in-milestone](../../.loop/regression.tsv) | A pull request goes into its milestone. | both | PASS 2026-11-09 | 2026-11-07 |
 | **DOC-5** Required docs: every repo keeps up to date one wiki page per feature, one GitHub milestone per feature linked from its page plus a Backlog milestone, and a release note for every release; each goal's pull request lands in its feature's milestone. | [milestone-links](../../.loop/regression.tsv) | A feature page links to its GitHub milestone, and a missing Backlog is found. | both | PASS 2026-11-09 | 2026-11-08 |
 | **DOC-5** Required docs: every repo keeps up to date one wiki page per feature, one GitHub milestone per feature linked from its page plus a Backlog milestone, and a release note for every release; each goal's pull request lands in its feature's milestone. | [release-note-found](../../.loop/regression.tsv) | A release with no release note is found. | both | PASS 2026-11-09 | 2026-11-08 |
+| **DOC-6** A feature page's Usage is written as what the owner asks the agent, a skill command or a plain request, and names no script file. | [usage-no-script](../../.loop/regression.tsv) | - | both | not run | 2026-11-09 |
+| **DOC-6** A feature page's Usage is written as what the owner asks the agent, a skill command or a plain request, and names no script file. | [usage-agent-requests](../../.loop/regression.tsv) | - | both | not run | 2026-11-09 |
+| **DOC-6** A feature page's Usage is written as what the owner asks the agent, a skill command or a plain request, and names no script file. | **not enforced** | | | | |

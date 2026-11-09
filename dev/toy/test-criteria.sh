@@ -193,11 +193,18 @@ $docs check 2>&1 | grep -q "REFUSED: criteria_max is 'six'" && ok "a bad criteri
 setmax true
 $docs check 2>&1 | grep -q "REFUSED: criteria_max is True" && ok "a true criteria_max refuses" || bad "bool cap"
 setmax unset; good
-mkdir -p skills/toy; printf '`calc.py median 1 2 3`\n' > skills/toy/SKILL.md
-usage_page '- `calc.py median` prints the median of the numbers given.'
-$docs check | grep -q "DOCS OK" && ok "a Usage section between Summary and Criteria passes" || bad "usage passes"
-usage_page '- `ghost.py run` runs it.'
-$docs check | grep -q "^USAGE Delivery: .ghost.py. is in no skill file" && ok "a command in no skill file is found" || bad "usage truth"
+mkdir -p skills/toy; printf '## Command map\n\n| Ask | Runs |\n|---|---|\n| `/toy median` | `python3 scripts/calc.py median` |\n' > skills/toy/SKILL.md
+usage_page '- `/toy median 1 2 3` prints the median of the numbers given.
+- "print the median of 1 2 3" does the same in plain words.'
+$docs check | grep -q "DOCS OK" && ok "a Usage of agent requests passes" || bad "usage passes"
+usage_page '- `calc.py median` prints the median.'
+$docs check | grep -q "^USAGE Delivery: .calc.py median. names a script" && ok "a Usage naming a .py file fails" || bad "usage py"
+usage_page '- `run.sh` runs it.'
+$docs check | grep -q "^USAGE Delivery: .run.sh. names a script" && ok "a Usage naming a .sh file fails" || bad "usage sh"
+usage_page '- `python3 calc.py median` prints the median.'
+$docs check | grep -q "^USAGE Delivery: .python3 calc.py median. names a script" && ok "a python command in Usage fails" || bad "usage python"
+usage_page '- `/toy nosuch` does nothing.'
+$docs check | grep -q "^USAGE Delivery: .*/toy nosuch. is not in the Command map" && ok "a verb missing from the Command map fails" || bad "usage verb"
 usage_page ''
 $docs check | grep -q "^USAGE Delivery: has an empty Usage" && ok "an empty Usage section fails" || bad "empty usage"
 good; sed -i.bak 's/^## Summary/## Commands/' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
