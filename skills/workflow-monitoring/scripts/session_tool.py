@@ -8,6 +8,9 @@ import signal
 import subprocess
 import tempfile
 
+# No terminal, no waiting: a prompt from git or gh in the tool must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
 
 def tool(cfg):
     if os.environ.get("LOOP_SESSION_TOOL"):
