@@ -23,6 +23,10 @@ check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 ran() { sort "$TOY_LOG" 2>/dev/null | tr '\n' ' '; }
 fresh() { : > "$TOY_LOG"; }
 common=$(cd "$(git rev-parse --git-common-dir)" && pwd)
+# Value: protects=a lane on a repo with no rows passes; fails_when=--reuse with no rows exits non-zero like a plain run;
+# why_new=every other run has rows; seam=none; no_claim=none beyond protects
+out=$($reg run land --reuse); rc=$?
+check "a reusing run with no rows passes (NO ROWS, exit 0)" '[ $rc = 0 ] && grep -q "^NO ROWS: nothing to run" <<<"$out"'
 
 # Three rows: a reads src/a.txt, b sources dev/lib.sh which reads src/b.txt, c names no repo path (always runs).
 mkdir -p dev src
@@ -78,6 +82,11 @@ check "an unreadable record means a full run" 'grep -q "^FULL: record unreadable
 python3 -c "import json,sys;p=sys.argv[1];r=json.load(open(p));r['worktree']='/elsewhere';json.dump(r,open(p,'w'))" "$(ls "$common"/loop/tests/main-*.json)"
 fresh; out=$($reg run land --reuse); echo "$out"
 check "a record from another worktree means a full run" 'grep -q "^FULL: record from another worktree" <<<"$out" && [ "$(ran)" = "a b " ]'
+# Value: protects=a record made by another regression.py/lanes.py is never reused; fails_when=the runner hash check is
+# dropped; why_new=no check edits the runner field; seam=none; no_claim=a real code change to the runner (field edited)
+python3 -c "import json,sys;p=sys.argv[1];r=json.load(open(p));r['runner']='older';json.dump(r,open(p,'w'))" "$(ls "$common"/loop/tests/main-*.json)"
+fresh; out=$($reg run land --reuse); echo "$out"
+check "a record from another runner version means a full run" 'grep -q "^FULL: record schema/runner changed" <<<"$out" && [ "$(ran)" = "a b " ]'
 
 echo "== uncommitted work is tested but never recorded"
 rec=$(ls "$common"/loop/tests/main-*.json); sum=$(cksum < "$rec")
@@ -97,6 +106,31 @@ check "a row absent from the record runs; the others are reused" '[ "$(ran)" = "
 printf 'b\tbeing fixed\n' > .loop/regression-known.tsv; git add -A; git commit -qm "Known b"
 fresh; out=$($reg run land --reuse); echo "$out"
 check "a changed known-list entry reruns that row" '[ "$(ran)" = "b " ]'
+# Value: protects=editing an existing row's line reruns that row only; fails_when=regression.tsv is diffed by id only or
+# treated as no change; why_new=only an added row is tested; seam=none; no_claim=rows that reach regression.py itself
+awk -F'\t' 'BEGIN {OFS = FS} $1 == "b" {$6 = "B still works."} {print}' .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv
+git commit -qam "Edit row b"
+fresh; out=$($reg run land --reuse); echo "$out"
+check "an edited row reruns only that row" '[ "$(ran)" = "b " ]'
+# Value: protects=any regression.tsv edit reruns rows that reach regression.py; fails_when=the RUNNER clause is dropped
+# from the regression.tsv rule; why_new=no toy row reached the runner; seam=none; no_claim=the real runner (toy stand-in)
+mkdir -p skills/workflow-regression/scripts; echo 'print(1)' > skills/workflow-regression/scripts/regression.py
+printf 'f\tland\tpython3 skills/workflow-regression/scripts/regression.py; echo f >> "$TOY_LOG"\tX-1\t2026-01-01\tF.\tcriterion\t\n' >> .loop/regression.tsv
+git add -A; git commit -qm "Row f"; $reg run land --reuse >/dev/null
+awk -F'\t' 'BEGIN {OFS = FS} $1 == "b" {$6 = "B again."} {print}' .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv
+git commit -qam "Edit row b again"
+fresh; out=$($reg run land --reuse); echo "$out"
+check "a regression.tsv edit also reruns a row that reaches regression.py" '[ "$(ran)" = "b f " ]'
+grep -v "^f	" .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv && git rm -rqf skills && git commit -qam "Drop row f"
+# Value: protects=a python row reruns when a module it imports changes, not everything; fails_when=scan stops following
+# imports; why_new=only shell sourcing is tested; seam=none; no_claim=packages or relative imports (same-folder module only)
+printf 'X = 1\n' > dev/helper.py; printf 'import helper\nimport os\nopen(os.environ["TOY_LOG"], "a").write("p\\n")\n' > dev/p.py
+printf 'p\tland\tpython3 -B dev/p.py\tX-1\t2026-01-01\tP.\tcriterion\t\n' >> .loop/regression.tsv
+git add -A; git commit -qm "Row p"; $reg run land --reuse >/dev/null
+printf 'X = 2\n' > dev/helper.py; git commit -qam "Change helper"
+fresh; out=$($reg run land --reuse); echo "$out"
+check "a change to an imported python module reruns only the row importing it" '[ "$(ran)" = "p " ]'
+grep -v "^p	" .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv && git commit -qam "Drop row p"
 printf 'e\tland\tbash dev/a.sh\tX-1\t\tE works.\tcriterion\t\n' >> .loop/regression.tsv; git commit -qam "Row e"
 $reg run land --reuse >/dev/null; fresh; out=$($reg run land --reuse); rc=$?; echo "$out"
 check "a row never seen failing fails the run even when reused" '[ $rc = 1 ] && grep -q "^UNPROVEN e: never seen failing. Fix: python3 .* red e --break" <<<"$out"'
@@ -111,6 +145,20 @@ printf 'cat CHANGELOG.md >/dev/null\necho a >> "$TOY_LOG"; grep -q ok src/a.txt\
 $reg run land --reuse >/dev/null; printf 'v3\n' > CHANGELOG.md; git commit -qam "Changelog again"
 fresh; out=$($reg run land --reuse); echo "$out"
 check "a row whose own script names a release file reruns when it changes" '[ "$(ran)" = "a d " ]'
+
+echo "== rewritten history: a recorded commit that is no longer an ancestor of HEAD is never reused"
+# Value: protects=results from a commit dropped by reset/rebase are rerun; fails_when=the ancestor check is removed or
+# inverted; why_new=every other case moves HEAD forward; seam=none; no_claim=a real rebase (reset + new commit instead)
+rm -f "$common"/loop/tests/main-*.json; $reg run land --reuse >/dev/null
+git reset -q --hard HEAD~1; printf 'v4\n' > CHANGELOG.md; git commit -qam "Changelog, rewritten"
+fresh; out=$($reg run land --reuse); echo "$out"
+check "rows recorded on a commit no longer in HEAD's history rerun" '[ "$(ran)" = "a b d " ]'
+# Value: protects=a detached HEAD runs every row and writes no record; fails_when=record_path stops returning None with no
+# branch; why_new=every other run is on a branch; seam=none; no_claim=none beyond protects
+n=$(ls "$common"/loop/tests | wc -l); git switch -q --detach
+fresh; out=$($reg run land --reuse); echo "$out"
+check "a detached HEAD is a full run and is not recorded" 'grep -q "^NOT RECORDED: detached HEAD" <<<"$out" && [ "$(ran)" = "a b d " ] && [ "$(ls "$common"/loop/tests | wc -l)" = "$n" ]'
+git switch -q main
 fi
 
 if [ "$part" != regression ]; then
@@ -135,6 +183,11 @@ $goal new lg --here --goal "Lane goal" --done "lanes work" >/dev/null
 for s in idea plan review; do step lg $s >/dev/null; done
 out=$($goal record lg qa --file "$d/flow.json" 2>&1)
 check "record refuses qa before the qa lane passed on HEAD" 'grep -q "the qa lane has not passed on .* (LANE_MISSING)" <<<"$out"'
+# Value: protects=only the reply's last STEP line can skip the qa lane; fails_when=need_lane matches any STEP: failed line;
+# why_new=the refusal above has no STEP line at all; seam=none; no_claim=a real skill's reply (written by hand)
+printf 'quoted: STEP: failed earlier\nSTEP: failed old try\nSTEP: done\n' > "$d/quoted.txt"
+out=$($goal record lg qa --file "$d/quoted.txt" 2>&1)
+check "a quoted STEP: failed line before a final STEP: done never skips the qa lane" 'grep -q "(LANE_MISSING)" <<<"$out"'
 check "the lane command resolves from the installed package, not the repo (no skills/ here)" '[ ! -e skills ] && grep -q "^python3 $here/skills/workflow-regression/scripts/regression.py run land --reuse$" <<<"$lane"'
 out=$(step lg qa); echo "$out"
 check "qa runs the lane first: a full run on a branch with no record" 'grep -q "^LANE qa FULL \([0-9]*\)/\1 " <<<"$out" && grep -q "^FULL: no record" "$common/loop/runs/lg.qa-lane.txt"'
@@ -148,6 +201,12 @@ git clone -q "$d/origin.git" "$d/other"; (cd "$d/other" && git config user.email
   && printf 'ok from base\n' > src/b.txt && git commit -qam "Base changes b" && git push -q origin main)
 out=$($goal pr lg 2>&1); echo "$out"
 check "pr merges the base and reruns only the row the merge affected" 'grep -q "^MERGED" <<<"$out" && grep -q "^AFFECTED 1 of [0-9]* rows (b)" "$common/loop/runs/lg.pr-lane.txt" && grep -q "^PR " <<<"$out"'
+# Value: protects=a red pr lane counts a try and pushes nothing; fails_when=goal.py pr ignores or inverts the lane's fail
+# status; why_new=only a green pr lane is tested; seam=none; no_claim=a real GitHub remote (fake gh, local origin)
+printf 'bad\n' > src/a.txt; git commit -qam "Break a after the PR"
+out=$($goal pr lg 2>&1); rc=$?; echo "$out"
+check "a red pr lane fails pr with its row ids and pushes nothing" '[ $rc = 1 ] && grep -q "LANE_FAIL a" <<<"$out" && grep -q "FAILED: regression lane failed: a" <<<"$out" && [ "$(git ls-remote origin "refs/heads/$(git branch --show-current)" | cut -f1)" != "$(git rev-parse HEAD)" ]'
+printf 'ok\n' > src/a.txt; git commit -qam "Fix a after the PR"
 
 echo "== a red lane never starts the skill and costs a try"
 git switch -q main; $goal new lf --here --goal "Red goal" --done "red" >/dev/null
@@ -159,6 +218,15 @@ touch stray.txt
 out=$(python3 "$here/skills/workflow-delivery/scripts/role.py" lane lf qa 2>&1)
 check "the lane refuses an unclean tree" 'grep -q "LANE_DIRTY at start: stray.txt" <<<"$out"'
 rm -f stray.txt
+# Value: protects=a row that leaves files fails its lane; fails_when=the end-of-run unclean check is dropped; why_new=only
+# the start check is tested; seam=none; no_claim=files a row writes outside the worktree
+printf 'ok\n' > src/a.txt; printf 'litter\tland\ttouch litter.txt\tX-1\t2026-01-01\tL.\tcriterion\t\n' >> .loop/regression.tsv
+git commit -qam "A littering row"; out=$(python3 "$here/skills/workflow-delivery/scripts/role.py" lane lf pr 2>&1)
+check "a row that leaves a file fails the lane (LANE_DIRTY at end)" 'grep -q "^LANE_DIRTY at end: a row left litter.txt" <<<"$out"'
+# Value: protects=a littering row is never saved as a pass for later reuse; fails_when=regression.py records without
+# rechecking the tree after the rows; why_new=the lane check above reads only the lane line; seam=none; no_claim=none beyond protects
+check "the littering run is not recorded" 'grep -q "^NOT RECORDED: the rows left uncommitted files: litter.txt" "$common/loop/runs/lf.pr-lane.txt"'
+rm -f litter.txt; grep -v "^litter	" .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv
 
 echo "== a lane's recorder, time limit and a moved HEAD"
 R="python3 $here/skills/workflow-delivery/scripts/role.py"

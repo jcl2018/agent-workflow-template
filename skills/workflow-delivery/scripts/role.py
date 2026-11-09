@@ -223,8 +223,11 @@ def lane(runs, slug, name, spec, cfg, wait=90):
 
 
 def need_lane(runs, slug, reply):
-    """record qa refuses unless the qa lane passed on this HEAD; a failed step's reply is recorded as a try."""
-    if re.search(r"^\W*STEP:\s*failed\b", open(reply).read() if os.path.isfile(reply) else "", re.M | re.I):
+    """record qa refuses unless the qa lane passed on this HEAD; a failed step's reply is recorded as a try. Like
+    goal.py record, only the reply's last STEP line counts: an earlier quoted 'STEP: failed' never skips the lane."""
+    found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", open(reply).read() if os.path.isfile(reply) else "",
+                       re.M | re.I)
+    if found and found[-1].lower() == "failed":
         return
     head = git("rev-parse", "HEAD").stdout.strip()
     try:

@@ -363,10 +363,13 @@ def cmd_run(args):
         if results:
             with open(path_of(root, "regression-runs.tsv"), "w") as handle:
                 handle.write("# id\tstatus\tdate\n" + "".join("\t".join(ran[key]) + "\n" for key in sorted(ran)))
+    left = sorted(set(lanes.dirty(root)) - set(unclean)) if record and not unclean else []
     if not record:
         print("NOT RECORDED: detached HEAD")
     elif unclean:
         print("NOT RECORDED: uncommitted changes")
+    elif left:  # a row that leaves files behind must not be reused as a pass once someone tidies them away
+        print("NOT RECORDED: the rows left uncommitted files: %s" % ", ".join(left[:10]))
     elif results:
         lanes.save(record, root, "regression.py run %s%s" % (args.target, " --reuse" if args.reuse else ""), results,
                    head, datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -379,10 +382,11 @@ def cmd_run(args):
         live = args.live or bool(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
         sync_issues(results, live)
     failed = [item["id"] for item in results if item["state"] == "FAIL"]
-    passed = sum(item["state"] == "PASS" for item in results) + len(reused)
+    kept = [old["rows"][key]["status"] for key in reused]  # a reused known failure still counts as known
+    passed = sum(item["state"] == "PASS" for item in results) + kept.count("PASS")
     print("RESULT %d passed%s, %d known, %d failed, %d unproven" % (
-        passed, " (%d reused)" % len(reused) if args.reuse else "", sum(item["state"] == "KNOWN" for item in results),
-        len(failed), len(never)))
+        passed, " (%d reused)" % len(reused) if args.reuse else "",
+        sum(item["state"] == "KNOWN" for item in results) + kept.count("KNOWN"), len(failed), len(never)))
     return 1 if failed or never else 0
 
 
