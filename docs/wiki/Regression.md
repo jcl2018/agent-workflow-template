@@ -61,8 +61,8 @@ Test format. Every test is listed in one fixed format: its category (criterion o
 - Given a test row with a description, when the Tests are rendered, then it appears under its requirement's heading and words as a Given/When/Then scenario with its result and seen-failing date. — [tests-row-shape](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a test row with no description, when the check runs, then it is flagged. — [describe-needed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a row with a seen-failing date, when a description is added, then the date is kept. — [keeps-seen-red](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given this repo's test rows, when they are checked, then every row has a description. — [every-row-described](../../.loop/regression.tsv), both, FAIL 2026-11-09, seen failing 2026-11-08
-- Given the test rows, when they are checked, then every row has a category, defect rows link their issue, and the page shows defect tests apart. — [defect-categories](../../.loop/regression.tsv), both, FAIL 2026-11-09, seen failing 2026-11-08
+- Given this repo's test rows, when they are checked, then every row has a description. — [every-row-described](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given the test rows, when they are checked, then every row has a category, defect rows link their issue, and the page shows defect tests apart. — [defect-categories](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 
 #### REG-3
 
@@ -90,11 +90,10 @@ Failures go to GitHub: one issue per failing test, updated, closed on pass; know
 
 Temporary, until the PRD format replaces the criteria pages: a goal runs the full suite once, in qa; ship and release reuse qa's recorded run when no code changed since it, and otherwise run only the rows for the files changed after it.
 
-- Given a first run on unchanged content, when a second run happens, then it reuses the first and runs no test. — [lanes-reuse](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given a change, when tests run again, then only the tests that read the changed files run. — [lanes-affected](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given a run with a failing test, when a later run happens, then it is never reused. — [lanes-failing](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given no recorded run, when tests run, then every test runs. — [lanes-missing](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given nothing changed since the qa run, when ship runs, then it reuses the qa run. — [lanes-ship-reuses](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given the qa step, when it runs the tests, then it records the run with the exact command ship checks. — [lanes-qa-record](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given the base merged before the pull request, when tests run, then only the affected tests rerun. — [lanes-pr-affected](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- **not enforced**: no passing test
+- Given a first run on unchanged content, when a second run happens, then it reuses the first and runs no test. — [lanes-reuse](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a change, when tests run again, then only the tests that read the changed files run. — [lanes-affected](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a run with a failing test, when a later run happens, then it is never reused. — [lanes-failing](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given no recorded run, when tests run, then every test runs. — [lanes-missing](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given nothing changed since the qa run, when ship runs, then it reuses the qa run. — [lanes-ship-reuses](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given the qa step, when it runs the tests, then it records the run with the exact command ship checks. — [lanes-qa-record](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given the base merged before the pull request, when tests run, then only the affected tests rerun. — [lanes-pr-affected](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
