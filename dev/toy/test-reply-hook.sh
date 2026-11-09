@@ -59,13 +59,15 @@ replies = {
     "cased": good.replace("## All sessions", "## All Sessions").replace("## Needs you", "## Needs you (1)").replace(
         "1. Release alpha?", "- Q1. Release alpha?"),
     "fenced": good.replace("## Coming up\n", "```\nComing up\n```\n"),
+    "onefence": good.replace("[ ] beta\n```\n", "[ ] beta\n```\n```a -> b```\n"),
+    "clock": good.replace("1. Release alpha? Options: cut, leave. Recommended: leave.\n", "- 10:30 standup\n"),
 }
 for name, text in replies.items():
     open(os.path.join(F, name + ".txt"), "w").write(text)
-def tool(i, command, out, error=False):
+def tool(i, command, out, error=False, code=True):
     use = {"type": "assistant", "isSidechain": False, "message": {"id": "m%d" % i, "role": "assistant",
            "content": [{"type": "tool_use", "id": "t%d" % i, "name": "Bash", "input": {"command": command}}]}}
-    text = ("Exit code 1\n" + out) if error else out
+    text = ("Exit code 1\n" + out) if error and code else out  # a denied call has no exit code
     res = {"type": "user", "isSidechain": False, "message": {"role": "user", "content": [
            {"type": "tool_result", "tool_use_id": "t%d" % i, "content": text, "is_error": error}]}}
     return [use, res]
@@ -120,6 +122,8 @@ save("op-bashc", prompt + tool(1, "bash -c 'cd /r && python3 skills/workflow-mon
 split_use, split_res = tool(1, "python3 skills/workflow-monitoring/scripts/operate.py run", "LIVE BOARD")
 save("split-1", prompt + [split_use])
 save("split-2", prompt + [split_use, split_res] + final(replies["noboard"]))
+save("denied", prompt + operate + tool(2, "python3 skills/workflow-delivery/scripts/goal.py step g build",
+     "The user doesn't want to proceed with this tool use. The tool use was rejected.", True, False) + final(replies["noboard"]))
 save("grow-1", prompt + operate + final(replies["noboard"]))
 save("grow-2", prompt + operate + final(replies["noboard"]) +
      tool(5, "LOOP_ROLE=worker python3 skills/workflow-delivery/scripts/flow.py g qa", "IN SESSION") + final(replies["noboard"]))
@@ -149,6 +153,10 @@ python3 "$H" check "$F/cased.txt" >/dev/null; cc=$?
 check "headings ignore case and a count, and Q1. numbers a question" '[ $cc = 0 ]'
 python3 "$H" check "$F/fenced.txt" > "$F/check-fenced.out"
 check "a heading inside a code fence does not count" 'grep -q "missing section Coming up" "$F/check-fenced.out"'
+python3 "$H" check "$F/onefence.txt" >/dev/null; c1=$?
+check "a one-line fence does not hide the sections after it" '[ $c1 = 0 ]'
+python3 "$H" check "$F/clock.txt" > "$F/check-clock.out"
+check "a clock time is not a numbered question" 'grep -q "Needs you has no numbered question" "$F/check-clock.out"'
 python3 "$H" check "$F/bold.txt" >/dev/null; cb=$?
 check "a Markdown-bold heading with a colon still counts" '[ $cb = 0 ]'
 python3 "$H" check "$T/none.txt" > "$F/check-none.out"; cn=$?
@@ -198,6 +206,8 @@ check "operate run inside bash -c counts" 'blocked s-bashc'
 cp "$F/split-1.jsonl" "$F/split.jsonl"; hook s-split split "$R"
 cp "$F/split-2.jsonl" "$F/split.jsonl"; hook s-split split "$R"
 check "a call whose result lands after a stop is still read at the next stop" 'blocked s-split'
+hook s-denied denied "$R"
+check "a goal step the user denied does not make a worker" 'blocked s-denied'
 hook s-pending op-pending "$R"
 check "a last message that still calls a tool is not checked as the reply" 'passed s-pending'
 hook s-synth op-synthetic "$R"

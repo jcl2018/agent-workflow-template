@@ -38,7 +38,8 @@ KNOWN = {"goal.py": {"new", "queue", "step", "record", "wait", "finding", "pr", 
 FIRST = 16 << 20  # bytes read on a session's first stop: its recent history is enough to find its kind
 SESSION = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 FENCE = re.compile(r"^\s*(```|~~~)")
-NUMBERED = re.compile(r"^\s*(?:[-*+]\s+)?\**(?:q)?\d+[.):]", re.I)
+FENCE_ALONE = re.compile(r"^\s*(```|~~~)[\w+.-]*\s*$")  # a line that opens or closes a fence, not a one-line fence
+NUMBERED = re.compile(r"^\s*(?:[-*+]\s+)?\**(?:q\d+[.):]|\d+[.)])(?!\d)", re.I)
 COUNT = re.compile(r"\s*\(\s*\d+\s*\)$")
 MARKS = re.compile(r"[*#`_]")
 TEMPLATE = ("Write the check-in reply in this layout: one headline line; All sessions (one table: session, repo, what it "
@@ -139,12 +140,14 @@ def flat(content):
     return "\n".join(b.get("text", "") for b in content or [] if isinstance(b, dict) and b.get("type") == "text")
 
 
-def refused(text):
-    """A refusal: the command's first output line (after an 'Exit code N' line) starts REFUSED. A command that ran and
-    failed, timed out or was stopped is not a refusal."""
+def refused(text, error=False):
+    """Whether a command did not run: its first output line (after an 'Exit code N' line) starts REFUSED, or it is an
+    error with no exit code (the user or a rule denied it). One that ran and failed, timed out or was stopped did run."""
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     if lines and re.match(r"^Exit code -?\d+$", lines[0]):
         lines = lines[1:]
+    elif error:
+        return True
     return bool(lines) and lines[0].startswith("REFUSED")
 
 
@@ -155,7 +158,7 @@ def runs(found):
         if entry.get("type") == "user":
             for b in blocks(entry):
                 if b.get("type") == "tool_result":
-                    results[b.get("tool_use_id")] = refused(flat(b.get("content")))
+                    results[b.get("tool_use_id")] = refused(flat(b.get("content")), bool(b.get("is_error")))
     out, waiting = [], None
     for entry in found:
         if entry.get("type") != "assistant":
@@ -275,8 +278,10 @@ def problems(text):
     """What a check-in reply is missing, one plain line each; an empty list means it passes."""
     lines, fenced, inside = [], [], False
     for line in str(text or "").splitlines():
-        if FENCE.match(line):
+        if FENCE_ALONE.match(line):
             inside = not inside
+        elif FENCE.match(line):
+            continue
         elif line.strip():
             lines.append(line)
             fenced.append(inside)  # a line inside a code fence is never a heading
