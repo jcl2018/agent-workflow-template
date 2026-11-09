@@ -20,6 +20,7 @@ Publish never deletes a page, and refuses to replace a page without this tool's 
 It runs git and nothing else.
 """
 import argparse
+import glob
 import json
 import os
 import re
@@ -206,7 +207,6 @@ CLAIM = re.compile(r"\b(\d+|%s) (?:workflow )?(skills?|feature pages?|criteri(?:
 
 def counts(root):
     """Numbers the docs state that the repo can check, as (COUNT, file, detail) rows."""
-    import glob
     skills = len(glob.glob(os.path.join(root, "skills", "*", "SKILL.md")))
     folder, rows = wiki_dir(root), read_map(root)
     on = config(root).get("criteria")
