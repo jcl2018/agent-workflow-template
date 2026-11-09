@@ -59,7 +59,8 @@ def main():
         if wiki.top_of():
             stale = wiki.pending(top, cfg)
             if stale:
-                autorelease.fail(state, "stale wiki pages: %s. Fix: update them, then run wiki.py prepare %s --commit." % (", ".join(stale), args.slug))
+                autorelease.fail(state, "stale wiki pages: %s. Fix: update %s, then run wiki.py prepare %s --commit." % (
+                    ", ".join(stale), ", ".join(sorted({l.split(":")[0].split()[1] for l in stale if l.startswith("REWRITE ")})) or "them", args.slug))
             if run(["git", "branch", "-r", "--contains", "HEAD", "--list", "origin/*"], cwd=top).stdout.strip() == "":
                 sys.exit("REFUSED: this branch's latest commit is not on origin. Fix: run wiki.py prepare %s --commit." % args.slug)
         if known != "OPEN":
