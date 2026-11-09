@@ -82,13 +82,13 @@ def decide(repo, config, found):
         rel = "%s/%s.md" % (wiki, name)
         text = survey.read(repo, rel)
         if text is None:
-            acts.append(("add", rel, "page with a criterion and a Tests table", ("page", name)))
+            acts.append(("add", rel, "PRD page with a requirement and Tests", ("page", name)))
         elif text.startswith(survey.MARKER):
             acts.append(("skip", rel, "already ours", None))
         elif "\n## " in text:
             acts.append(("no fit", rel, "has its own sections; add the marker and the contract sections by hand", None))
         else:
-            acts.append(("convert", rel, "marker, Summary heading and the missing sections added; words kept", ("convert", name)))
+            acts.append(("convert", rel, "marker and the PRD sections added; words kept as its Problem", ("convert", name)))
     for name in sorted(set(found["pages"]) - set(mapping(found))):
         acts.append(("no fit", found["pages"][name], "not a feature of this repo's top-level folders; left alone", None))
     if config["checks"]:
@@ -131,16 +131,15 @@ def apply(repo, config, found, acts):
             tag = pick(name, used)
             criterion = "- %s-1: **Unreviewed** The repo checks pass with the %s change in." % (tag, name)
             rows.append((tag, name))
-            if action[0] == "page":
-                body = "%s\n# %s\n\n## Summary\n\n%s\n\n## Criteria\n\n%s\n\n## Tests\n\n" % (survey.MARKER, name, summary_of(found, name), criterion)
-            else:
+            title, problem = "# " + name, summary_of(found, name)
+            if action[0] == "convert":
                 text = survey.read(repo, path).rstrip("\n")
-                title, _, rest = text.partition("\n")
+                title, _, problem = text.partition("\n")
                 if not title.startswith("# "):
-                    title, rest = "# " + name, text
-                body = "%s\n%s\n\n## Summary\n\n%s\n\n## Criteria\n\n%s\n\n## Tests\n\n" % (survey.MARKER, title, rest.strip(), criterion)
-            with open(full, "w") as handle:
-                handle.write(body)
+                    title, problem = "# " + name, text
+            # one PRD page writer, owned by workflow-docs
+            tool(repo, "workflow-docs", "prd.py", "skeleton", path, "--title", title, "--problem", problem.strip() or PLACEHOLDER,
+                 "--requirement", criterion)
         touched.append(path)
     if any(a[3] == "map" for a in acts):
         for name, paths in mapping(found).items():
@@ -149,7 +148,8 @@ def apply(repo, config, found, acts):
     if config["checks"]:
         for tag, name in rows:
             tool(repo, "workflow-regression", "regression.py", "add", "%s-checks" % tag.lower(), "--level", "land", "--command",
-                 config["checks"][0], "--goal", "%s-1" % tag, "--describe", "The repo's checks pass.")
+                 config["checks"][0], "--goal", "%s-1" % tag, "--describe",
+                 "Given the %s change, when the repo's checks run, then they pass." % name)
         touched.append(".loop/regression.tsv")
         if any(a[3] == "workflow" for a in acts):
             tool(repo, "workflow-regression", "regression.py", "workflow")
