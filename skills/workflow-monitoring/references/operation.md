@@ -83,7 +83,7 @@ Every check-in prints one block, and the dashboard and `board-artifact.html` car
    actual so far, and the estimate for the remaining steps. Merged goals per feature and a bar per milestone follow.
 3. **Total**: the time for the whole graph, the longest chain of what is left (goals that don't wait on each other run
    side by side), never the sum. It reads `at least` when a goal has no estimate yet.
-4. **Goals**: each goal's done lines met so far. A worker marks one with `worker.py met SLUG N`.
+4. **Goals**: each goal's done lines met so far. A worker marks one with `worker.py met SLUG N`. Only running, waiting and queued goals, and goals merged since the last check-in (`board_runs.py checkin`, written after each full block), list their lines; older merged goals show only in the merged line. A pull request closed without merging shows as `closed without merging: #N` in the Roadmap.
 
 Estimates are the median of other finished runs' steps, read from their logs; a step with none reads `no estimate yet`.
 Tokens read `unknown` until a run records them: `goal.py step SLUG NAME --tokens N` and `flow.py` record what the agent reports.

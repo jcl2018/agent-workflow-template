@@ -9,7 +9,7 @@ Skill: `workflow-monitoring`. The operation session never does work: `operate.py
 
 Commands, flows and how-tos: `skills/workflow-monitoring/references/commands.md`.
 
-A failed release is recorded as `release_error` and lists under Needs you beside `wiki_error`.
+A failed release is recorded as `release_error` and lists under Needs you beside `wiki_error`, which leaves Needs you once a later publish succeeds or the goal is merged. A pull request closed without merging reads `closed without merging` in the Roadmap, never awaiting merge. Goals lists done lines only for running, waiting and queued goals and goals merged since the last check-in (`board_runs.py checkin`, written after each full block).
 
 ## Criteria
 
