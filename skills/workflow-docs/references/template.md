@@ -6,7 +6,7 @@ rule here changes the check; nothing else holds these numbers. A missing or brok
 ```rules
 sections: Summary, Criteria, Tests
 summary_lines: 3
-max_criteria: 5
+usage_section: Usage
 tests_columns: Criterion, Test, What it checks, Runs, Last result, Seen failing
 defect_columns: Defect, Test, What it checks, Runs, Last result, Seen failing
 milestone_line: Milestone
@@ -15,10 +15,13 @@ milestone_line: Milestone
 ## Layout
 
 The first line is `<!-- workflow-docs -->`, then `# <Feature>`, then one `Milestone: <url>` line, then the sections
-in the order of `sections`, and nothing else.
+in the order of `sections`, and nothing else. The optional `usage_section` goes between the first section and Criteria.
 
 - **Summary**: at most `summary_lines` lines (a line is a paragraph, however it wraps), saying what the feature is for.
-- **Criteria**: at most `max_criteria` lines, each `- ID: **Unreviewed** text` or `- ID: **Reviewed DATE** text`.
+- **Usage** (optional): when the feature has commands, the commands and how to use each one, in a line or two, each
+  command in backticks, e.g. ``- `goal.py new SLUG` freezes a goal.``. Left out when nothing applies; never empty.
+  Each `script.py` named must appear in a skill's `SKILL.md` or `commands.md`.
+- **Criteria**: up to the repo's criteria limit (`criteria_max` in `.loop/config.json`, default 6), one line each, each `- ID: **Unreviewed** text` or `- ID: **Reviewed DATE** text`.
   The owner marks them Reviewed, and a Reviewed line's wording is locked. No script names.
 - **Tests**: a table made by `criteria.py render`, never by hand, with the `tests_columns`. Defect tests (regression rows
   with category defect) follow it under a `### Defect tests` heading, with the `defect_columns`, on the page whose code they guard.

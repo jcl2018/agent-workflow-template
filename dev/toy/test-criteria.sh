@@ -64,10 +64,10 @@ $docs check | grep -q "^CRITERION Delivery" && ok "a criterion with no mark fail
 good; sub 's/\*\*Unreviewed\*\*/**Reviewed**/'
 $docs check | grep -q "^CRITERION Delivery" && ok "Reviewed with no date fails" || bad "no date"
 $docs criteria Delivery | grep -q "NEXT DEL-2" && ok "criteria prints the next free id" || bad "criteria"
-six=$(for n in 1 2 3 4 5; do echo "- DEL-$n: **Unreviewed** Point $n."; done)
-page Delivery "$six"; $docs check | grep -q "^CAP" && bad "five criteria over the cap" || ok "five criteria pass"
+six=$(for n in 1 2 3 4 5 6; do echo "- DEL-$n: **Unreviewed** Point $n."; done)
+page Delivery "$six"; $docs check | grep -q "^CAP" && bad "six criteria over the limit" || ok "six criteria pass"
 page Delivery "$six
-- DEL-6: **Unreviewed** Point 6."; $docs check | grep -q "^CAP Delivery: has 6 criteria" && ok "a sixth criterion fails" || bad "cap"
+- DEL-7: **Unreviewed** Point 7."; $docs check | grep -q "^CAP Delivery: has 7 criteria" && ok "a seventh criterion fails" || bad "cap"
 for name in calc.py run.sh skills/x/scripts/tool.py app.js; do
   page Delivery "- DEL-1: **Unreviewed** Runs $name for more."
   $docs check | grep -q "^SCRIPT Delivery: DEL-1 names $name" && ok "script name fails: $name" || bad "script name: $name"
@@ -163,5 +163,46 @@ printf 'del-1c\tnightly\ttrue\tDEL-1\t2026-01-02\tChecks the median of a short l
 $reg run del-1c >/dev/null || true; $cri render >/dev/null
 grep -q "^| Criterion | Test | What it checks | Runs | Last result | Seen failing |" docs/wiki/Delivery.md && ok "table has the six columns" || bad "columns"
 grep -q "^| \*\*DEL-1\*\* The calculator prints a median. | \[del-1c\](.*) | Checks the median of a short list. | nightly | PASS $day | 2026-01-02 |" docs/wiki/Delivery.md && ok "a row shows the criterion words, description, schedule, result and seen-failing date" || bad "row shape"
+
+
+echo "== criteria_max and the Usage section"
+setmax() { python3 - "$1" <<'PY'
+import json, sys
+c = json.load(open(".loop/config.json"))
+if sys.argv[1] == "unset":
+    c.pop("criteria_max", None)
+else:
+    c["criteria_max"] = json.loads(sys.argv[1])
+json.dump(c, open(".loop/config.json", "w"), indent=2)
+PY
+}
+usage_page() { # USAGE-BODY: Delivery with a Usage section between Summary and Criteria
+  printf '<!-- workflow-docs -->\n# Delivery\n\n## Summary\n\nThe Delivery page of the toy calculator, written for this test.\n\n## Usage\n\n%s\n\n## Criteria\n\n%s\n\n## Tests\n\n' "$1" "$one" > docs/wiki/Delivery.md
+  $cri render >/dev/null
+}
+good; setmax unset
+$docs check | grep -q "DOCS OK" && ok "a page with no commands passes without a Usage section" || bad "no usage passes"
+page Delivery "$one
+- DEL-2: **Unreviewed** The calculator prints a mean."
+$docs check | grep -q "^CAP" && bad "default limit rejects two criteria" || ok "no criteria_max means 6"
+setmax 1
+$docs check | grep -q "^CAP Delivery: has 2 criteria, over the limit of 1 (criteria_max in .loop/config.json)" && ok "criteria_max 1 fails a page of two" || bad "cap 1"
+python3 "$here/skills/workflow-health/scripts/health.py" check 2>&1 | grep -q "FAIL.*cap" && ok "health fails the same page" || bad "health cap"
+setmax '"six"'
+$docs check 2>&1 | grep -q "REFUSED: criteria_max is 'six'" && ok "a bad criteria_max refuses, naming the key" || bad "bad cap"
+setmax true
+$docs check 2>&1 | grep -q "REFUSED: criteria_max is True" && ok "a true criteria_max refuses" || bad "bool cap"
+setmax unset; good
+mkdir -p skills/toy; printf '`calc.py median 1 2 3`\n' > skills/toy/SKILL.md
+usage_page '- `calc.py median` prints the median of the numbers given.'
+$docs check | grep -q "DOCS OK" && ok "a Usage section between Summary and Criteria passes" || bad "usage passes"
+usage_page '- `ghost.py run` runs it.'
+$docs check | grep -q "^USAGE Delivery: .ghost.py. is in no skill file" && ok "a command in no skill file is found" || bad "usage truth"
+usage_page ''
+$docs check | grep -q "^USAGE Delivery: has an empty Usage" && ok "an empty Usage section fails" || bad "empty usage"
+good; sed -i.bak 's/^## Summary/## Commands/' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+$docs check | grep -q "rename Commands to Usage and place it between Summary and Criteria" && ok "a Commands section fails with the fix" || bad "commands fails"
+good; rm -rf skills/toy
+
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

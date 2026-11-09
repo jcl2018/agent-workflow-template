@@ -7,9 +7,14 @@ Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
 Skill: `workflow-monitoring`. The operation session never does work: `operate.py run` is its one command; it plans queued goals as a dependency graph (`depends:` or `depends-on:`, the same key, capped by `parallel`, where 0 is unlimited and the default), starts one worker per ready goal, watches and reports, and each worker runs its own loop and reports each change of step as it happens, and the session can send it an answer with `operate.py send`. Run the commands from the main checkout, on the base branch. Needs you lists only what is still open: a wiki publish refused after the merge shows with the page and the reason, but an error recorded before a goal merged (on GitHub too: the status asks `gh pr view`) is dropped. The Roadmap draws only live goals (running, queued, waiting) with arrows, stage, a 10-cell bar and time left, then the longest-path total with its finish time; merged goals collapse to one `merged: #N` line. A pass where nothing changed prints one line. A worker ends by running the release step itself where `auto_merge` is on, so a goal is never left with its pull request waiting. `worker.py cleanup` deletes merged `loop/*` branches that no worktree has checked out (`git branch -d`, local only; `--dry-run` lists them). Codex has run as a monitored background agent on a toy repo; it needs `-s workspace-write`, with the git folder and the remote as writable roots.
 
-Commands, flows and how-tos: `skills/workflow-monitoring/references/commands.md`.
-
 A failed release is recorded as `release_error` and lists under Needs you beside `wiki_error`.
+
+## Usage
+
+- `operate.py run` is the operation session: it plans queued goals, starts a worker for each ready one and prints the status block; `operate.py send SLUG "..."` gives a worker an answer.
+- `watch.py go "..." --done "..."` queues and starts a goal; `watch.py watch` keeps goals moving; `watch.py resume SLUG` restarts one.
+- `monitor.py report` and `monitor.py dashboard` show where every goal stands.
+- `worker.py met SLUG N` marks a done line met; `worker.py cleanup` deletes merged `loop/*` branches (`--dry-run` lists them).
 
 ## Criteria
 

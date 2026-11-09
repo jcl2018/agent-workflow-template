@@ -48,7 +48,7 @@ Criteria and Enforced by, in that order; a criterion is one line `- DEL-1: **Sta
 `- DEL-1: <regression row ids>` line in Enforced by.
 
 Criteria are for the owner, and tests are for the machine. A test is a regression row, linked to one criterion by its
-goal or id, and a criterion can have many. A page has 5 or 6 criteria, capped at 6. Each feature page counts its tests in a `Tests:` line above the criteria.
+goal or id, and a criterion can have many. A page has up to `criteria_max` criteria (default 6). Each feature page counts its tests in a `Tests:` line above the criteria.
 Criteria land with no approval, marked Unreviewed, and the page shows a banner while any is.
 
 | Stage | Means |

@@ -16,6 +16,13 @@ scan still guards every commit. The risk is plain: a broken or wrong change can 
 the only check left is the regression workflow on GitHub, which reports and never blocks. A repo set up from this
 template keeps every gate until its owner turns one off.
 
+## Usage
+
+- `goal.py new SLUG --goal "..." --done "..."` freezes a goal and its done lines; from the operation session, `watch.py go` hands it to a background worker instead.
+- `flow.py SLUG STEP` runs the idea, plan, review, qa or ship step unattended; run it again until it stops printing `RUNNING`, then `goal.py record SLUG STEP --file FILE` records it.
+- `goal.py pr SLUG` merges the latest base branch, pushes and opens the pull request; it never merges.
+- `merge.py SLUG` is the release step: it brings the docs up to date, merges where `auto_merge` is on, bumps the version and writes the release note. `release.py ask|cut|leave SLUG` is the manual path.
+
 ## Criteria
 
 - DEL-1: **Reviewed 2026-11-08** The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries. <!-- reviewed 46d7806a -->

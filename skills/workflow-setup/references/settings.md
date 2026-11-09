@@ -19,6 +19,7 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `routines` | `[]` | Commands the release step runs on the base branch before it merges. |
 | `regression_cron` | `17 9 * * *` | Five cron fields: when the nightly regression runs in GitHub Actions. |
 | `criteria` | `true` | true makes docs check enforce the Summary, Criteria and Tests page contract. |
+| `criteria_max` | `6` | Most criteria a wiki page may hold, 1 to 50; docs check and health fail a page over it. |
 | `wiki_dir` | `docs/wiki` | The folder of wiki pages. |
 | `risky_paths` | `["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]` | Regexes for paths whose goals need extra care. |
 | `step_limit` | `0` | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. |

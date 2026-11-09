@@ -7,7 +7,12 @@ Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/7
 
 Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.loop/regression.tsv`: a row tests code, not a delivery level, and is a criterion test or a defect test (`category`, with a `link` to the issue or finding for a defect). The `goal` column names the one criterion a row proves, and `-` marks a row that proves none yet.
 
-Commands, flows and how-tos: `skills/workflow-regression/references/commands.md`.
+## Usage
+
+- `regression.py add ID --level land --command "..." --goal DEL-1` adds a test row; `--category defect --link URL` makes it a defect test.
+- `regression.py red ID --break "..."` records that the test fails on broken code.
+- `regression.py run land` runs the rows and opens, updates or closes one issue per failing row.
+- `regression.py sync` lists criteria with no row and rows never seen failing; `regression.py workflow` writes the GitHub Actions workflow.
 
 ## Criteria
 
