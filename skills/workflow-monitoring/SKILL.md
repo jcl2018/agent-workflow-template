@@ -108,11 +108,10 @@ go back to 0), and launches a new worker told to continue from the goal file and
 ## Operation session
 
 **The operation session is for governance only: it assigns, watches and reports, and never runs `go` itself; workers
-build.** `operate.py run` loops `watch --once`, `board.py board` and `board_page.py`, prints the status block when
-something changed and one line when not, waits the `board.py cadence` gap (less when a worker reports), and stops when
+build.** `operate.py run` loops `watch --once`, `board.py board` and `board_page.py`, prints the full live board every pass, waits the `board.py cadence` gap (less when a worker reports), and stops when
 nothing is left. `operate.py send SLUG "<text>"` gives a worker an answer or follow-up. `scripts/board.py` builds the progress board (`board`), keeps the check-in `cadence`, follows other repos
 (`repos add`), records a worker's latest message (`note SLUG TEXT`), retires a superseded goal (`retire SLUG --reason TEXT`) and writes a `handoff` file.
-`scripts/board_page.py` then has `board_map.py` finish `board.json` and draws `board.html` and `board-artifact.html`.
+`scripts/board_page.py` draws `board.html` and `board-artifact.html` from `board.json`, both carrying the live board.
 Any command that would build, plan or run a goal step from this session (`build`, `plan`, `idea`, `review`, `qa`,
 `ship`, `step`, `pr`, `record`, `run`) refuses with one line naming `batch.py start NAME`.
 
@@ -122,11 +121,12 @@ agent ends, the worker sends its result back as a prompt message in the run reco
 `waiting`, with the pull request), which the board shows; each change of step or status is in `reports` as it happens.
 `worker.py met SLUG N` marks a done line met; `worker.py send SLUG TEXT` leaves a message its agent sees next; `worker.py cleanup [--dry-run]` deletes merged `loop/*` branches no worktree has checked out (`git branch -d`, local only).
 
-Each check-in prints one status block (`scripts/board_status.py`), and `dashboard` and `board-artifact.html` carry the
-same content: Needs you (every stuck, waiting or failed worker, with the exact words to answer, always first), Roadmap (a
-dependency graph of every goal marked merged, running or queued, each with its stage, progress bar and time to finish,
-a running goal keeping each step's estimated and actual time and tokens under it, then merged goals per feature and a
-bar per milestone), Total (the longest chain of estimates, or `no estimate yet`) and Goals (done lines met so far). The loop is in `references/operation.md`.
+Each check-in prints the live board (`scripts/live_board.py`, run by `board_status.py`), and `dashboard` and `board-artifact.html`
+carry the same content, always in this format: a `LIVE BOARD` header (repo, local time, version, health); Issues (only what is
+open now, a stuck worker first, each with its fix in plain words and the exact words to answer); Running goals (a 10-cell bar
+with percent and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current
+step in brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows; and one
+finish time. Merged work, history and totals are left out. The loop is in `references/operation.md`.
 
 ## Statuses
 

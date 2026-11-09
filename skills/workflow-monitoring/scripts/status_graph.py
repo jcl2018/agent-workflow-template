@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The roadmap as a dependency graph, and the time the whole graph still needs. Shared by the status block and the board.
+"""The roadmap as a dependency graph, and the time the whole graph still needs. Shared by the live board.
 
 A node is a dict: slug, mark, depends (slugs it waits on), stage (0 to 8, steps begun), left (seconds still needed, 0 when
 nothing is, None when there is no estimate yet). Marks: merged, awaiting merge, running, waiting, failed, queued, and

@@ -41,14 +41,13 @@ write("nopage", status="done", step="pr", pr="https://example.test/pull/92", wik
 PY
 printf '%s\n' '- slug: a | touches: x | goal: A | done: a' '- slug: b | touches: x | depends-on: a | goal: B | done: b' \
   '- slug: c | touches: x | depends-on: b | goal: C | done: c' '- slug: d | touches: x | depends: a | goal: D | done: d' >> .loop/queue.md
-needs() { sed -n '/== Needs you ==/,/== Roadmap ==/p' "$1"; }
-road() { sed -n '/== Roadmap ==/,/== Total ==/p' "$1"; }
+needs() { sed -n '/^Issues/,/^Running goals/p' "$1"; }
 
 echo "== a clean docs check"
 $DOCS check | grep -q "DOCS OK" || bad "setup: docs check should be clean"
 $OP run --once > "$T/clean" 2>&1
 check "line 1: old saved errors for pages the check does not report are gone" '! needs "$T/clean" | grep -q "Using-the-toy\|Vanished\|oldclean\|oldgone"'
-check "line 1: a saved error naming no page is kept, in the one wiki line" '[ "$(needs "$T/clean" | grep -c "wiki")" = 1 ] && needs "$T/clean" | grep -q "saved: push rejected"'
+check "line 1: a saved error naming no page is kept, in the one wiki line" '[ "$(needs "$T/clean" | grep -c "^- wiki")" = 1 ] && needs "$T/clean" | grep -q "saved: push rejected"'
 
 echo "== one page goes stale"
 printf '\n# changed\n' >> calc.py; git commit -qam "Change calc"
@@ -57,19 +56,19 @@ import json, sys
 s = json.load(open(sys.argv[1])); s.pop("wiki_error"); json.dump(s, open(sys.argv[1], "w"))
 PY
 $OP run --once > "$T/stale" 2>&1
-check "line 1: exactly one wiki line names today's stale page and the fix" '[ "$(needs "$T/stale" | grep -c "wiki")" = 1 ] && needs "$T/stale" | grep "wiki" | grep -q "stale Using-the-toy.*Fix: python3 .*docs.py audit"'
+check "line 1: exactly one wiki line names today's stale page and the fix" '[ "$(needs "$T/stale" | grep -c "^- wiki")" = 1 ] && needs "$T/stale" | grep "wiki" | head -1 | grep -q "out of date: stale Using-the-toy" && needs "$T/stale" | grep -q "fix: bring those wiki pages up to date" && ! needs "$T/stale" | grep -q "docs.py"'
 check "line 1: the old goal's error is folded in, not repeated per goal" '! needs "$T/stale" | grep -q "oldclean\|oldgone\|Vanished"'
 $OP run --once > "$T/again" 2>&1
-check "line 1: two passes with an unchanged check print one line" '[ "$(wc -l < "$T/again" | tr -d " ")" = 1 ]'
+check "line 1: two passes with an unchanged check print the same full board" 'grep -q "^LIVE BOARD" "$T/again" && [ "$(needs "$T/again")" = "$(needs "$T/stale")" ]'
 
-echo "== the flow chart"
-check "line 2: chained goals are drawn with arrows" 'road "$T/stale" | grep -q "^flow" && road "$T/stale" | grep -q "\] a --> \[queued\] b, \[queued\] d" && road "$T/stale" | grep -q "\[queued\] b --> \[queued\] c"'
-last=$(road "$T/stale" | awk '/^== Total/ {next} NF {line = $0} END {print line}')
-check "line 2: the roadmap ends with the longest path and a local finish time" 'echo "$last" | grep -q "^longest path: about .*the longest chain: .*, finish about [0-9][0-9]:[0-9][0-9] IST"'
+echo "== the dependencies"
+check "line 2: chained goals are drawn with arrows" 'grep -qx "a --> b" "$T/stale" && grep -qx "a --> d" "$T/stale" && grep -qx "b --> c" "$T/stale"'
+last=$(grep -A1 "^Finish" "$T/stale" | tail -1)
+check "line 2: the board ends with one finish time in the local zone" 'echo "$last" | grep -q "^finish about [0-9][0-9]:[0-9][0-9] IST"'
 
 echo "== local time"
 check "line 3: nothing operate prints says UTC" '! grep -q "UTC" "$T/clean" "$T/stale" "$T/again"'
-check "line 3: the quiet pass names the local zone" 'grep -q "IST" "$T/again"'
+check "line 3: the board names the local zone" 'grep -q "IST" "$T/again"'
 python3 - "$M" <<'PY' && ok "line 3: clock and localize" || bad "line 3: clock and localize"
 import sys, datetime
 sys.path.insert(0, sys.argv[1]); import graph
@@ -89,9 +88,11 @@ assert graph.flow([node("a"), node("b")]) == []
 assert any("? not a goal here] zzz" in l for l in graph.flow([node("a", ["zzz"])]))
 cyc = graph.flow([node("a", ["b"]), node("b", ["a"])]); assert len(cyc) == 3, cyc
 b.DOCS = "/nonexistent/docs.py"; assert b.wiki_check(sys.argv[2]) is None
+import live_board as lb
 run = dict(slug="r", status="done", wiki_error="page Home is stale", log=["2026-06-01T11:00:00Z queued"])
-assert "saved: page Home" in b.wiki_line([run], set(), None)[0]
-assert b.wiki_line([run], set(), []) == []
+assert any("saved: page Home" in l for l in lb.issues([run], set(), sys.argv[2]))
+b.DOCS = os.path.join(sys.argv[2], "none"); assert lb.issues([], set(), sys.argv[2]) == ["- (none)"]
+assert lb.plain("see /srv/me/x/y.md and ~/z.txt but https://a.test/p/1") == "see y.md and z.txt but https://a.test/p/1"
 PY
 
 echo "== sizes"

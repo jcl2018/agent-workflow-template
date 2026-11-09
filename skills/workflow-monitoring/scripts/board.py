@@ -4,9 +4,9 @@
 usage: board.py <command> [options]
 
   board [--at TIME] [--since FILE] [--out DIR]
-                        write board.json, for board_page.py to finish and draw; print DIGEST, CHANGED, CHANGE lines, NO_CHANGE,
+                        write board.json, for board_page.py to finish and draw; print the live board, DIGEST, CHANGED, CHANGE lines,
                         NEXT_DELAY and its path
-  cadence [N|off]       minutes between check-ins, 1-60 (default 10), or off
+  cadence [N|off]       minutes between check-ins, 1-60 (default 30), or off
   repos add PATH|list   follow another repo (~/.workflow-loop/repos), or list them
   note SLUG TEXT        record a worker's latest message on its run (this and retire run in board_runs.py)
   retire SLUG --reason TEXT
@@ -36,7 +36,6 @@ if not sys.stdin or not sys.stdin.isatty():
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 QUIET = 1800
 RUN_COMMANDS = ("note", "retire")
-SECTIONS = ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step", "Milestones"]
 FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on", "report", "wiki_error", "release_error")
 
 
@@ -52,26 +51,6 @@ def pr_state(url, cwd):
         return "unknown"
     state = done.stdout.strip().lower()
     return state if done.returncode == 0 and state in ("open", "merged", "closed") else "unknown"
-
-
-def milestones(name, path, at):
-    """One row per milestone of a repo: open and closed counts, and the Backlog's oldest open issue in days. [] when gh gives no answer."""
-    def ask(*args):
-        try:
-            done = subprocess.run(["gh", *args], cwd=path, capture_output=True, text=True, timeout=20)
-            return json.loads(done.stdout) if done.returncode == 0 else None
-        except (OSError, ValueError, subprocess.SubprocessError):
-            return None
-    found = ask("api", "repos/{owner}/{repo}/milestones?state=all&per_page=100")
-    rows = []
-    for item in found if isinstance(found, list) else []:
-        row = {"repo": name, "title": clean(item.get("title")), "open": item.get("open_issues", 0), "closed": item.get("closed_issues", 0), "age": "-"}
-        if row["title"] == "Backlog" and row["open"]:
-            held = ask("issue", "list", "--milestone", "Backlog", "--state", "open", "--limit", "500", "--json", "createdAt") or []
-            oldest = min([x for x in (stamp(i.get("createdAt")) for i in held) if x], default=None)
-            row["age"] = "%d days" % (at - oldest).days if oldest else "-"
-        rows.append(row)
-    return rows
 
 
 def clean(value, size=300):
@@ -145,10 +124,10 @@ def write(path, text):
     os.replace(temp, path)
 
 
-def cadence_of(base, fallback="10"):
-    """The owner's cadence command wins; else the repo config's `cadence`; else 10. Read fresh each run."""
+def cadence_of(base, fallback="30"):
+    """The owner's cadence command wins; else the repo config's `cadence`; else 30. Read fresh each run."""
     fallback = str(fallback)
-    fallback = fallback if fallback == "off" or fallback.isdigit() else "10"
+    fallback = fallback if fallback == "off" or fallback.isdigit() else "30"
     try:
         with open(os.path.join(base, "loop", "cadence")) as handle:
             value = handle.read().strip()
@@ -244,10 +223,9 @@ def kind(run):
 
 
 def build(at, since):
-    rows, deps, names, miles = [], [], [], []
+    rows, deps, names = [], [], []
     for name, path, base in followed():
         names.append(name)
-        miles += milestones(name, path, at)
         more, wait = collect(name, path, base, at)
         rows, deps = rows + more, deps + wait
     live = [r for r in rows if r["status"] in ("running", "waiting")]
@@ -267,12 +245,12 @@ def build(at, since):
         flat.setdefault("%s/%s" % (d["repo"], d["slug"]), {"status": "queued"})
     count = lambda *kinds: sum(r["status"] in kinds for r in rows)
     held = (read_json(os.path.join(os.path.dirname(common()), ".loop", "config.json")) or {}) if common() else {}
-    cadence = cadence_of(common(), held.get("cadence", "10")) if common() else "10"
+    cadence = cadence_of(common(), held.get("cadence", "30")) if common() else "30"
     digest = "%d runs: %d running, %d waiting on you, %d done, %d failed or stopped, %d queued, %d retired" % (
         len(rows), count("running"), len(waiting), count("done"), count("failed", "stopped"), len(deps), count("retired"))
     delay = delay_of(cadence, bool(live))
     doc = {"generated": iso(at), "repos": names, "cadence": cadence, "digest": digest,
-           "next_delay": delay, "next_at": "" if delay == "none" else (at + datetime.timedelta(seconds=int(delay))).strftime("%H:%M UTC"), "open": bool(live or waiting or deps), "sections": SECTIONS, "waiting": waiting, "dependencies": deps, "runs": rows, "milestones": miles, "state": flat}
+           "next_delay": delay, "next_at": "" if delay == "none" else (at + datetime.timedelta(seconds=int(delay))).strftime("%H:%M UTC"), "open": bool(live or waiting or deps), "waiting": waiting, "dependencies": deps, "runs": rows, "state": flat}
     old = (read_json(since) or {}).get("state") if since else {}
     old = old if isinstance(old, dict) else {}
     for key, item in flat.items():  # gh failing to answer says nothing about the pull request
@@ -297,15 +275,13 @@ def cmd_board(args):
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, "board.json")
     write(path, json.dumps(doc, indent=2, sort_keys=True) + "\n")
-    helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "board_status.py")
+    helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "live_board.py")
     if os.path.exists(helper):
         print(subprocess.run([sys.executable, helper], capture_output=True, text=True, cwd=git("rev-parse", "--show-toplevel")).stdout)
     print("DIGEST " + doc["digest"])
     print("CHANGED " + ("yes" if lines else "no"))
     for line in lines:
         print(line)
-    if not lines and doc["open"] and doc["next_at"]:
-        print("NO_CHANGE Nothing changed. Next check-in %s. %s." % (doc["next_at"], doc["digest"]))
     print("NEXT_DELAY " + doc["next_delay"])
     print("JSON", path)
     return 0
@@ -348,7 +324,7 @@ def cmd_handoff(args):
     lines += ["", "## Waiting on the owner"]
     lines += ["- %s/%s: %s Type in %s: %s" % (w["repo"], w["slug"], w["ask"], w["where"], " or ".join(w["words"])) for w in doc["waiting"]]
     lines += ["", "## Next check-in steps", "1. Run watch.py watch --once.", "2. Read each worker's latest report.",
-              "3. Run board.py board --since <last board.json>, then board_page.py.", "4. Publish board-artifact.html, report changes or NO_CHANGE.",
+              "3. Run board.py board --since <last board.json>, then board_page.py.", "4. Publish board-artifact.html and print the full live board.",
               "5. Wait NEXT_DELAY (%s). Never answer a gate, merge unless told,." % doc["next_delay"]]
     path = os.path.abspath(args.out) if args.out else os.path.join(loop_dir(common()), "handoff.md")
     write(path, "\n".join(lines) + "\n")

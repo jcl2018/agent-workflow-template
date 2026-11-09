@@ -5,7 +5,7 @@ usage: board_runs.py <command> [options]
 
   note SLUG TEXT        record a worker's latest message on its run
   retire SLUG --reason TEXT
-  checkin               mark now as the last check-in; the status block lists only goals merged after it
+  checkin               mark now as the last check-in; marks the last check-in
 """
 import argparse
 import datetime

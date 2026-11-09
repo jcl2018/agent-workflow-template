@@ -6,14 +6,14 @@ usage: worker.py <command> [options]
   loop SLUG -- COMMAND...   run the goal's agent command; when it ends, send the result back (watch.py and mend.py start this)
   report SLUG STATUS [--pr URL] [--words TEXT]
                             send a result back by hand: STATUS is merged, failed or waiting
-  met SLUG N [N...]         record that done lines N are met, for the status block's Goals section
+  met SLUG N [N...]         record that done lines N are met, (kept off the live board)
   cleanup [--dry-run]       delete the loop/* branches already merged into main that no worktree has checked out
                             (git branch -d, never a remote); health.py check names this as the fix
   send SLUG TEXT            the operation session sends a worker an answer or follow-up; goal.py and flow.py print it
                             to the worker's agent the next time they run, then file it away
 
 A report is a prompt message in the run record's `report`: {"status", "pr", "text", "at"}. The board shows it, and a
-failed or waiting one stays at the top of Needs you until the goal moves on. It never merges.
+failed or waiting one stays at the top of Issues until the goal moves on. It never merges.
 """
 import argparse
 import datetime

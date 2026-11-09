@@ -69,8 +69,7 @@ usage limit. Both are off until you turn them on. Background agents need the too
 
 Run the operation session with one command. It plans queued goals as a dependency graph (`depends-on` on a queue line,
 at most `parallel` workers at once, no waiting for shared files), starts every goal whose dependencies are merged, watches
-the workers, updates the board and prints the status block on the cadence, or at once when a worker reports, and prints one
-line when nothing changed:
+the workers, updates the board and prints the full live board on the cadence (30 minutes by default), or at once when a worker reports:
 
 ```text
 python3 skills/workflow-monitoring/scripts/operate.py run
@@ -85,7 +84,7 @@ The pieces it runs, if you want them by hand (see `skills/workflow-monitoring/re
 ```text
 python3 skills/workflow-monitoring/scripts/board.py board
 python3 skills/workflow-monitoring/scripts/board_page.py
-python3 skills/workflow-monitoring/scripts/board.py cadence 10
+python3 skills/workflow-monitoring/scripts/board.py cadence 30
 python3 skills/workflow-monitoring/scripts/board.py repos add ../other-repo
 python3 skills/workflow-monitoring/scripts/watch.py go "<goal>" --done "<line>"
 ```
@@ -95,8 +94,8 @@ python3 skills/workflow-monitoring/scripts/watch.py go "<goal>" --done "<line>"
 
 An operation session only assigns, watches and reports. It puts goals in a named batch, `start` begins one worker for
 each goal, each worker runs its own loop to the end, and each sends its result (merged, failed or waiting, with the pull
-request) back as a prompt message that the board shows. A check-in prints one status block: Needs you, Roadmap (a
-dependency graph of the live goals), Total, Goals:
+request) back as a prompt message that the board shows. A check-in prints the live board: Issues, Running goals,
+Queued goals, Dependencies, Finish:
 
 ```text
 python3 skills/workflow-monitoring/scripts/batch.py add nightly --goal "<goal>" --done "<line>"

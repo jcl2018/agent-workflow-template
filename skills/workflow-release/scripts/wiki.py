@@ -7,7 +7,7 @@ usage: wiki.py <command> SLUG
                             with --commit, first commit edited pages in the wiki folder on the goal's branch, and when
                             nothing is stale push the branch. The agent rewrites the pages; this only checks.
   publish SLUG              after the merge: run docs.py publish from a clean checkout of origin/<base>; on a refusal
-                            record `wiki_error` (page and reason) on the goal, which shows under Needs you.
+                            record `wiki_error` (page and reason) on the goal, which shows under Issues.
 
 A repo without .loop/docs.tsv has no wiki: both commands do nothing. It runs git and docs.py, and nothing else.
 """

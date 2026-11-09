@@ -13,8 +13,8 @@ flowchart LR
   c["One worker per goal, in its own worktree"]
   d["Worker loop: idea to pull request, alone"]
   e["Report back: merged, failed or waiting, with the pull request"]
-  f["Board and dashboard: one status block"]
-  g{{"Needs you: exact words to answer"}}
+  f["Board and dashboard: the live board"]
+  g{{"Issues: exact words to answer"}}
   a --> b
   b --> c
   c --> d
@@ -28,7 +28,7 @@ flowchart LR
 
 **The one command is `python3 scripts/operate.py run`.** It runs the loop below the same way every time, with no model in
 it: each pass is `watch.py watch --once`, `board.py board --since <the last board.json>` and `board_page.py`. It prints
-the status block and the changes when something changed, and one `NO_CHANGE` line when nothing did. It waits the gap from
+the full live board and the changes every pass, even when nothing changed. It waits the gap from
 `board.py cadence`, or less: a run record changing (a worker reported) or a new queue line starts the next pass at once.
 It stops when nothing is queued, running or waiting, or when the cadence is `off`. `operate.py send SLUG "<text>"` gives a
 worker an answer or follow-up. When the owner asks an LLM to run the operation session, the LLM runs this command and
@@ -45,12 +45,12 @@ so it carries its own loop to the end without this session. When the agent ends,
 run record as a prompt message: `merged`, `failed` or `waiting`, with the pull request. The board shows that message.
 A batch heading groups lines and doesn't hold them, so step 1 below starts a queued goal line even before `start`.
 
-A worker that stops, waits on the owner or fails goes to the top of Needs you on the next check-in and on the dashboard,
+A worker that stops, waits on the owner or fails goes to the top of Issues on the next check-in and on the dashboard,
 and stays there until it is answered. A worker whose process vanishes is marked `failed` by the next `watch` pass.
 
 ## The loop
 
-Run `scripts/board.py cadence` to see the check-in gap in minutes (default 10, or `off`). Then repeat, waiting the
+Run `scripts/board.py cadence` to see the check-in gap in minutes (default 30, or `off`). Then repeat, waiting the
 gap between check-ins, or an hour when nothing runs or waits:
 
 1. Run `python3 scripts/watch.py watch --once` once. It starts queued goals whose dependencies are merged, mends or
@@ -58,40 +58,39 @@ gap between check-ins, or an hour when nothing runs or waits:
 2. Read each worker's latest report: its run record, its log tail, and the message it sent back. A worker may also leave
    a note with `board.py note SLUG "<text>"`; the board shows the report or note as the last message.
 3. Run `python3 scripts/board.py board --since <the last board.json>`. It prints `DIGEST`, `CHANGED`, one `CHANGE` line
-   per really changed field, `NO_CHANGE` if nothing changed while goals are open, `NEXT_DELAY`, and the path of `board.json`.
-   It first prints the status block (below). Then run `python3 scripts/board_page.py`, which has `board_map.py` finish `board.json` and prints the paths of
+   per really changed field, `NEXT_DELAY`, and the path of `board.json`.
+   It first prints the live board (below). Then run `python3 scripts/board_page.py`, which prints the paths of
    `board.html` and `board-artifact.html`.
 4. If you have an Artifact tool, publish `board-artifact.html` as it is, with no hand edits (it has no doctype, html, head
    or body tags): the same artifact URL each time, never a new one. Both pages follow the viewer's light or dark setting,
    and a manual `data-theme` of `dark` or `light` on the root wins. Otherwise give the owner the `board.html` path.
-5. Write one chat line only when `CHANGED` is yes. Say what changed, and what waits on the owner. When the board prints
-   `NO_CHANGE`, write that line instead: it gives the time of the next check-in, so a quiet loop doesn't look stalled.
+5. Print the full live board every time, then one chat line: what changed, if anything, and what waits on the owner.
 6. Report at most 6 lines to the owner, with anything waiting on them first.
 7. Wait `NEXT_DELAY` seconds, then go to step 1. `none` means the owner turned the loop off: stop and say so.
    Keep the previous `board.json` for the next `--since`.
 
 To pass the loop to a new session, run `board.py handoff` and give it the path.
 
-## The status block
+## The live board
 
-Every check-in prints one block, and the dashboard and `board-artifact.html` carry the same content, in this order:
+Every check-in prints the live board, and the dashboard and `board-artifact.html` carry the same content, always in this format:
 
-1. **Needs you**: every stuck, waiting or failed worker, with the exact words to answer, and at most one wiki line built on each pass from the current `docs.py check` (the stale or
-   failing pages and the fix). A saved wiki error naming a page the check no longer reports is dropped, with no publish needed. Always first, never hidden.
-2. **Roadmap**: a dependency graph of every goal, grouped in levels (goals that wait on nothing first), each line marked
-   `merged`, `awaiting merge`, `running`, `waiting`, `failed` or `queued`, with its stage, progress bar, time left and
-   `<- waits on` what it waits on. A running goal keeps every step under it with its estimated time and tokens, the
-   actual so far, and the estimate for the remaining steps. When goals have `depends-on` links, a flow chart follows with an arrow from
-   each goal to the goals that wait on it. Merged goals per feature and a bar per milestone follow. The Roadmap always ends with the `longest path:` line.
-3. **Total**: the time for the whole graph, the longest chain of what is left (goals that don't wait on each other run
-   side by side), never the sum, with its finish time. It reads `at least` when a goal has no estimate yet. Every time `operate.py`
-   prints is in the local time zone with its name (`17:30 IST`), never UTC.
-4. **Goals**: each goal's done lines met so far. A worker marks one with `worker.py met SLUG N`. Only running, waiting and queued goals, and goals merged since the last check-in (`board_runs.py checkin`, written after each full block), list their lines; older merged goals show only in the merged line. A pull request closed without merging shows as `closed without merging: #N` in the Roadmap.
+1. **Header**: `LIVE BOARD`, the repo, the local time (`17:30 IST`, never UTC), the version and the health verdict.
+2. **Issues**: only what is open now, each with its fix in plain words and no local file paths. A stuck, waiting or failed
+   worker comes first, with the exact words to answer, and stays at the top until it is answered. A failed release and at most
+   one wiki line (built on each pass from the current `docs.py check`; a saved wiki error naming a page the check no longer
+   reports is dropped) follow.
+3. **Running goals**: each with a 10-cell progress bar, percent, time left, its step flow `idea > plan > build > review > qa >
+   ship > pr > release` with done steps ticked and the current step in brackets, and a one-line next step.
+4. **Queued goals**: each with its time left and what it waits on.
+5. **Dependencies**: arrows (`a --> b`) between running and queued goals.
+6. **Finish**: one time, the longest chain of what is left (goals that don't wait on each other run side by side), never the
+   sum. It reads `at least` when a goal has no estimate yet.
 
-Estimates are the median of other finished runs' steps, read from their logs; a step with none reads `no estimate yet`.
-Tokens read `unknown` until a run records them: `goal.py step SLUG NAME --tokens N` and `flow.py` record what the agent reports.
-A goal's step label changes when `flow.py` starts the step, and moves on when `goal.py record` records it, so the block, the
-graph and the board never show a finished step as current.
+Merged and closed work, history, milestones, duplicate totals, token tables and done-line lists are left out. A worker still
+marks a done line met with `worker.py met SLUG N`. Estimates are the median of other finished runs' steps, read from their logs;
+a step with none reads `no estimate yet`. A goal's step label changes when `flow.py` starts the step, and moves on when
+`goal.py record` records it, so the board never shows a finished step as current.
 
 ## Retiring goals
 

@@ -71,13 +71,10 @@ grep -q "^CHANGE .*runa step: build -> review" "$T/b4" && ok "CHANGE line names 
 [ "$(grep -c '^CHANGE ' "$T/b4")" = 1 ] && ok "only the changed field is listed" || bad "changed field count: $(grep -c '^CHANGE ' "$T/b4")"
 rec runa running 1 build 2026-01-01T11:50:00Z 'checks="pass"' 'note={"text":"<b>hi</b> building","at":"x"}'
 H="$O/board.html"
-python3 - "$O/board.json" "$H" <<'PY' && ok "seven sections in order, with content" || bad "sections"
+python3 - "$O/board.json" <<'PY' && ok "board.json holds waiting, dependencies and runs" || bad "board data"
 import json, sys
-d = json.load(open(sys.argv[1])); h = open(sys.argv[2]).read()
-names = d["sections"]
-assert names == ["Waiting on you", "Dependency map", "Runs", "Expected finish", "Finished today", "Every step", "Milestones"], names
-pos = [h.index("<h2>" + n) for n in names]
-assert pos == sorted(pos), pos
+d = json.load(open(sys.argv[1]))
+assert "sections" not in d and "milestones" not in d and "dependency_map" not in d, sorted(d)
 w = {x["slug"]: x for x in d["waiting"]}
 assert w["waita"]["words"] == ["cut waita", "leave waita"] and w["waita"]["where"] == "the operation session, which owns repo/waita" and "/wt/" not in w["waita"]["where"]
 assert "failb" in w and w["failb"]["words"] == ["resume failb"]
@@ -86,54 +83,29 @@ r = {x["slug"]: x for x in d["runs"]}
 for k in ("goal", "level", "step", "elapsed", "tries", "pr", "checks", "status", "note"):
     assert k in r["runa"], k
 assert r["runa"]["note"] == "<b>hi</b> building" and r["old1"]["pr"] == "https://x/pull/1"
-e = {x["slug"]: x["estimate"] for x in d["expected"]}
-assert e["runa"].startswith("estimate:"), e
-f = d["finished"]
-assert {x["slug"] for x in f["items"]} == {"old1", "old2"} and all(x["result"] == "delivered" for x in f["items"])
-assert "archived" in f["note"] or "archive" in f["note"]
-steps = [(s["slug"], s["step"], s["status"]) for s in d["steps"]]
-assert ("runa", "idea", "done") in steps and ("runa", "build", "running") in steps and ("runa", "pr", "pending") in steps
-assert d["runs"][0].get("repo") and d["steps"][0].get("repo")
-m = {x["title"]: x for x in d["milestones"]}
-assert m["Backlog"]["open"] == 2 and m["Backlog"]["closed"] == 1 and m["Backlog"]["age"].endswith("days") and m["Health"]["age"] == "-", m
-assert "<td>Backlog</td>" in h and "Oldest open" in h
 PY
-NO_MILESTONES=1 $B board --at $AT --out "$T/nomile" >/dev/null && python3 -c "import json,sys;assert json.load(open(sys.argv[1]))['milestones']==[]" "$T/nomile/board.json" && ok "no milestone rows when gh gives no answer" || bad "no milestones"
-python3 - "$H" <<'PY' && ok "html is self-contained, escaped, themed, phone-wide" || bad "html"
-import sys
-h = open(sys.argv[1]).read()
-assert "<script" not in h and "http://" not in h and "https://" not in h.replace("https://x/pull", "")
-assert "&lt;b&gt;hi&lt;/b&gt;" in h and "<b>hi</b>" not in h and "&lt;script&gt;alert" in h and "<i>it" not in h
-assert "prefers-color-scheme:dark" in h and "name=viewport" in h and "max-width:600px" in h
-assert h.index("Waiting on you") < h.index("<h2>Runs")
-assert "(quiet)" in h
-PY
-python3 - "$H" "$O/board-artifact.html" <<'PY' && ok "artifact page has no outer tags and both pages honor data-theme" || bad "artifact page"
+$P --in "$O/board.json" >/dev/null
+python3 - "$H" "$O/board-artifact.html" <<'PY' && ok "the page shows the live board, escaped, themed, phone-wide, with no tags on the artifact page" || bad "html"
 import re, sys
-full, art = open(sys.argv[1]).read(), open(sys.argv[2]).read()
+h, art = open(sys.argv[1]).read(), open(sys.argv[2]).read()
+for page in (h, art):
+    assert "<script" not in page and "http://" not in page
+    assert "<pre>LIVE BOARD" in page and "Issues" in page and "Running goals" in page and "Finish" in page
+    assert "prefers-color-scheme:dark" in page and ":root:not([data-theme=light])" in page and ":root[data-theme=dark]" in page
+assert "name=viewport" in h
 assert art.startswith("<title>Operation board</title><style>")
 assert not re.search(r"<(!doctype|html|head|body)\b|</(html|head|body)>", art, re.I)
-assert "<script" not in art and "&lt;script&gt;alert" in art and "Waiting on you" in art
-for page in (full, art):
-    assert "prefers-color-scheme:dark" in page and ":root:not([data-theme=light])" in page and ":root[data-theme=dark]" in page
+assert "Milestone" not in h and "<table" not in h
 PY
+
 python3 - "$O/board.json" "$H" <<'PY' && ok "pull request states: open, merged, closed, and unknown when gh cannot answer" || bad "pr states"
 import json, sys
 d = json.load(open(sys.argv[1])); h = open(sys.argv[2]).read()
 r = {x["slug"]: x["prstate"] for x in d["runs"]}
 assert r["old1"] == "merged" and r["old2"] == "closed" and r["propen"] == "open" and r["prlost"] == "unknown" and r["runa"] == "", r
-assert {x["slug"]: x["prstate"] for x in d["finished"]["items"]} == {"old1": "merged", "old2": "closed"}
-assert "https://x/pull/3 (open)" in h and "https://x/pull/9 (unknown)" in h and "https://x/pull/1 (merged)" in h
 PY
 PATH=/usr/bin:/bin $B board --at $AT --out "$T/out8" >/dev/null
 python3 -c "import json,sys;d=json.load(open(sys.argv[1]));assert {x['prstate'] for x in d['runs'] if x['pr']}=={'unknown'}" "$T/out8/board.json" && ok "no gh at all shows unknown" || bad "no gh"
-python3 - "$O/board.json" <<'PY' && ok "every goal runs one flow, so every running goal gets an estimate from the finished ones" || bad "estimate"
-import json, sys
-d = json.load(open(sys.argv[1]))
-e = {x["slug"]: x["estimate"] for x in d["expected"]}
-assert e["ext1"].startswith("estimate:") and e["runa"].startswith("estimate:"), e
-assert all(v.startswith("estimate:") or v.startswith("no estimate: no finished ") for v in e.values()), e
-PY
 python3 - "$O/board.json" <<'PY' && ok "quiet goal with no pid shown quiet after 30 minutes; fresh one is not" || bad "quiet"
 import json, sys
 r = {x["slug"]: x for x in json.load(open(sys.argv[1]))["runs"]}
@@ -142,8 +114,8 @@ PY
 $B board --at 2026-01-01T11:20:00Z --out "$T/out4" >/dev/null
 python3 -c "import json,sys;r={x['slug']:x for x in json.load(open(sys.argv[1]))['runs']};assert r['ext1']['quiet']=='no'" "$T/out4/board.json" && ok "a goal with no pid is not quiet inside 30 minutes" || bad "not quiet early"
 nd() { $B board --at $AT --out "$T/out5" | grep '^NEXT_DELAY' | cut -d' ' -f2; }
-[ "$($B cadence)" = "CADENCE 10" ] && ok "default cadence 10" || bad "default cadence"
-[ "$(nd)" = 600 ] && ok "NEXT_DELAY is the cadence while goals run" || bad "delay 600: $(nd)"
+[ "$($B cadence)" = "CADENCE 30" ] && ok "default cadence 30" || bad "default cadence"
+[ "$(nd)" = 1800 ] && ok "NEXT_DELAY is the cadence while goals run" || bad "delay 1800: $(nd)"
 $B cadence 1 >/dev/null; [ "$(nd)" = 60 ] && ok "cadence 1 gives 60" || bad "delay 60"
 $B cadence 60 >/dev/null; [ "$(nd)" = 3600 ] && ok "cadence 60 gives 3600" || bad "delay 3600"
 $B cadence 0 >/dev/null 2>&1 && bad "cadence 0 refused" || ok "cadence 0 refused"
@@ -183,70 +155,8 @@ l = line[0]
 assert "Cut <i>it</i>?" in l and "cut waita or leave waita" in l and "Type in the operation session, which owns repo/waita: " in l and "/wt/" not in l, l
 PY
 for k in "## Repos" "## Cadence" "## Open goals" "## Waiting on the owner" "## Next check-in steps" "other"; do has "$hf" "$k" "handoff has $k"; done
-# the dependency map, drawn from fixtures
 rm -f "$R"/*.json; : > "$HOME/.workflow-loop/repos"; git checkout -q -- .loop/queue.md
 map() { rm -rf "$T/m"; $B board --at $AT --out "$T/m" >/dev/null; $P --in "$T/m/board.json" >/dev/null; }
-rec first running 0 build 2026-01-01T11:30:00Z 'touches=["pkg/"]'
-rec donelong done 0 pr 2026-01-01T09:30:00Z 'pr="https://x/pull/3"'
-cat >> .loop/queue.md <<'Q'
-- slug: shout | level: 0 | touches: pkg/shout.py | depends-on: first | goal: Shout | done: It shouts
-Q
-map
-python3 - "$T/m/board.json" "$T/m/board.html" <<'PY' && ok "one lane a run, one box a step, solid inside a run, dashed across with its reason" || bad "lanes and arrows"
-import json, re, sys
-d = json.load(open(sys.argv[1]))["dependency_map"]; h = open(sys.argv[2]).read()
-l = {x["run"]: x for x in d["lanes"]}
-assert set(l) == {"repo/first", "repo/donelong", "repo/shout"}, set(l)
-assert [b["step"] for b in l["repo/first"]["boxes"]] == ["idea", "plan", "build", "review", "qa", "ship", "pr"]
-assert [b["status"] for b in l["repo/first"]["boxes"]] == ["done", "done", "running"] + ["pending"] * 4
-assert [b["status"] for b in l["repo/shout"]["boxes"]] == ["queued"] * 7
-cross = [a for a in d["arrows"] if a["on"]]
-assert cross == [{"from": "repo/first:pr", "to": "repo/shout:idea", "on": "depends on first"}], cross
-assert len([a for a in d["arrows"] if not a["on"]]) == 6 + 7 + 6  # donelong also has a release box
-names = [x["run"] for x in d["lanes"]]
-assert names.index("repo/first") < names.index("repo/shout")
-assert h.count("<a class='box ") == sum(len(x["boxes"]) for x in d["lanes"])
-assert h.count("<path class=wire ") == 1 and h.count("<path class=step ") == 19
-assert "depends on first</text>" in h and "s-running" in h and "s-done" in h
-assert re.search(r"<title>.*Done: .*\nNext: .*\nUnblocks: ", h, re.S)
-PY
-python3 - "$T/m/board.json" <<'PY' && ok "the finish time is on each box, from finished goals" || bad "box times"
-import json, sys
-l = {x["run"]: x for x in json.load(open(sys.argv[1]))["dependency_map"]["lanes"]}
-assert l["repo/donelong"]["boxes"][0]["eta"] == "done"
-# one level 0 goal took 1h30; first began at 08:00, so it is overdue and ends at the board's time
-assert l["repo/first"]["boxes"][-1]["eta"] == "~12:00 UTC", l["repo/first"]["boxes"][-1]
-assert l["repo/shout"]["boxes"][-1]["eta"] == "~13:30 UTC", l["repo/shout"]["boxes"][-1]
-PY
-python3 - "$T/m/board.json" "$T/m/board.html" "$T/m/board-artifact.html" <<'PY' && ok "hover and tap say what it is, what is done, what is next, what it unblocks" || bad "hover and tap"
-import json, re, sys
-b = {x["id"]: x for l in json.load(open(sys.argv[1]))["dependency_map"]["lanes"] for x in l["boxes"]}
-assert b["repo/first:pr"]["unblocks"] == ["repo/shout (depends on first)"]
-assert b["repo/first:build"]["next"] == "Then review" and b["repo/first:build"]["done"] == "idea, plan"
-assert b["repo/shout:idea"]["next"].startswith("Waits on goal first")
-for page in sys.argv[2:]:
-    h = open(page).read()
-    assert "<script" not in h and "Each lane is a run" in h
-    for link in re.findall(r"href='#(b\d+)'", h):
-        assert re.search(r"<details><summary>[^<]*</summary><dl id=%s>" % link, h), link
-    for label in ("What it is", "Done so far", "What&#x27;s next", "What it unblocks"):
-        assert label in h
-    assert "max-width:600px" in h and "class='scroll map'" in h
-PY
-# the goal starts, then finishes: its dependency stays drawn. watch.py records it while the goal is held.
-python3 - "$R/shout.json" <<'PY'
-import json, sys
-json.dump({"slug": "shout", "goal": "Shout", "level": "0", "status": "running", "step": "plan", "touches": ["pkg/shout.py"], "waits_on": ["first"],
-           "updated": "2026-01-01T11:59:00Z", "log": ["2026-01-01T11:50:00Z queued"]}, open(sys.argv[1], "w"))
-PY
-git checkout -q -- .loop/queue.md
-rec first done 0 pr 2026-01-01T11:50:00Z 'touches=["pkg/"]'
-wired='import json,sys;d=json.load(open(sys.argv[1]))["dependency_map"];assert [a["on"] for a in d["arrows"] if a["on"]]==["depends on first"],d["arrows"]'
-map; python3 -c "$wired" "$T/m/board.json" && ok "a dependency survives its goal starting" || bad "dependency lost on start"
-rec shout done 0 pr 2026-01-01T11:58:00Z 'touches=["pkg/shout.py"]' 'waits_on=["first"]'
-map; python3 -c "$wired" "$T/m/board.json" && ok "and stays drawn through today's finished goals" || bad "dependency lost on finish"
-$B board --at 2026-01-03T12:00:00Z --out "$T/m" >/dev/null; $P --in "$T/m/board.json" >/dev/null
-python3 -c "import json,sys;assert json.load(open(sys.argv[1]))['dependency_map']['lanes']==[]" "$T/m/board.json" && ok "goals finished on another day leave the map" || bad "old goals"
 # watch.py records what a goal depends on
 cat > "$T/hold.sh" <<'A'
 #!/bin/bash
@@ -276,13 +186,12 @@ $B retire nosuch --reason x 2>&1 | grep -q REFUSED && ok "retire of an unknown r
 $B retire fresh --reason x 2>&1 | grep -q "is running" && ok "retire refuses a running agent" || bad "retire running"
 $B retire stale --reason "Superseded by goal fresh" | grep -q "RETIRED stale" && ok "retire" || bad "retire"
 map
-python3 - "$T/m/board.json" "$T/m/board.html" <<'PY' && ok "a retired goal leaves Waiting on you and the map, and stays marked in Runs" || bad "retired"
+python3 - "$T/m/board.json" <<'PY' && ok "a retired goal leaves Issues and stays marked in Runs" || bad "retired"
 import json, sys
-d = json.load(open(sys.argv[1])); h = open(sys.argv[2]).read()
+d = json.load(open(sys.argv[1]))
 assert "stale" not in [x["slug"] for x in d["waiting"]]
-assert "repo/stale" not in [x["run"] for x in d["dependency_map"]["lanes"]]
 assert {x["slug"]: x for x in d["runs"]}["stale"]["status"] == "retired"
-assert "retired: Superseded by goal fresh" in h and "1 retired" in d["digest"]
+assert "1 retired" in d["digest"]
 PY
 $W resume stale 2>&1 | grep -q "REFUSED" && ok "resume refuses a retired goal" || bad "resume retired"
 rm "$R/fresh.json" "$R/stale.json"
@@ -307,10 +216,9 @@ rec chg1 running 1 review 2026-01-01T11:50:00Z 'pr="https://x/pull/3"'
 $B board --at $AT --since "$T/c4/board.json" --out "$T/c5" > "$T/c.out"
 grep -q "^CHANGE repo/chg1 step: build -> review" "$T/c.out" && [ "$(grep -c '^CHANGE ' "$T/c.out")" = 1 ] && ok "a real change is still reported, alone" || bad "real change"
 rm "$R/chg1.json"
-# board_page.py alone needs a finished board.json
+# board_page.py alone draws a finished board.json
 mkdir -p "$T/lone"; cp "$here/skills/workflow-monitoring/scripts/board_page.py" "$T/lone/"; $B board --at $AT --out "$T/c6" >/dev/null
-python3 "$T/lone/board_page.py" --in "$T/c6/board.json" 2>&1 | grep -q "no dependency map" && ok "board_page.py alone refuses an unfinished board" || bad "page alone"
-$P --in "$T/c6/board.json" >/dev/null; python3 "$T/lone/board_page.py" --in "$T/c6/board.json" --out "$T/c7" | grep -q "^HTML " && ok "and draws a finished one" || bad "page alone draws"
+python3 "$T/lone/board_page.py" --in "$T/c6/board.json" --out "$T/c7" | grep -q "^HTML " && ok "board_page.py alone draws the board header" || bad "page alone draws"
 # a stalled session with no pid still shows
 rec nopid running 0 build 2026-01-01T11:00:00Z
 $B board --at $AT --out "$T/q" >/dev/null

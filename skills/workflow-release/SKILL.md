@@ -23,7 +23,7 @@ It lists every page `docs.py check` calls stale, mapped to a touched path or not
 after `goal.py pr`. It asks nothing and drafts nothing:
 
 1. It refuses while any page `docs.py check` calls stale, naming each; there is no bypass, so a page that cannot be
-   cleared stays under Needs you until the owner rewrites it.
+   cleared stays under Issues until the owner rewrites it.
 2. It runs each `routines` entry of `.loop/config.json` as read from `origin/<base>` (a pull request cannot add one), and
    refuses the merge if one exits non-zero.
 3. It merges the goal's open pull request, then bumps the version once on the base branch (patch; minor for a new file or
@@ -31,7 +31,7 @@ after `goal.py pr`. It asks nothing and drafts nothing:
    published GitHub release (`autorelease.py`). A retry never bumps twice: the pushed version is recorded.
 4. It publishes the wiki from `origin/<base>` (`wiki.py publish <slug>`). A refused publish is `wiki_error`.
 
-Any release failure, a failed merge included, is recorded on the goal as `release_error` and shows under Needs you.
+Any release failure, a failed merge included, is recorded on the goal as `release_error` and shows under Issues.
 Without the switch it refuses, and the owner merges. `ask`, `cut` and `leave` below are the manual path.
 
 ## `merge <slug>`

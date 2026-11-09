@@ -77,32 +77,30 @@ import json,sys
 r={x[\"slug\"]:x for x in json.load(open(sys.argv[1]))[\"runs\"]}
 assert \"reports merged\" in r[\"g1\"][\"report\"] and \"reports failed\" in r[\"h1\"][\"report\"] and \"reports waiting\" in r[\"w1\"][\"report\"]" "$T/b/board.json"'
 
-echo "== the status block"
+echo "== the live board"
 $M report > "$T/report"
-check "four sections in the fixed order" 'python3 -c "import sys,json
+check "the live board sections are in the fixed order" 'python3 -c "import sys,json
 t=open(sys.argv[1]).read()
-at=[t.index(\"== %s ==\" % n) for n in (\"Needs you\",\"Roadmap\",\"Total\",\"Goals\")]
-assert at==sorted(at) and at[0] < t.index(\"SLUG\")" "$T/report"'
-needs=$(sed -n '/== Needs you ==/,/== Roadmap ==/p' "$T/report")
-check "Needs you holds the failed and the waiting worker, with the exact words" 'grep -q "h1 (failed)" <<<"$needs" && grep -q "answer: resume h1" <<<"$needs" && grep -q "w1 (waiting): Which database?" <<<"$needs" && grep -q "answer: use sqlite" <<<"$needs" && grep -q "answer: use postgres" <<<"$needs" && ! grep -q "g1" <<<"$needs"'
-check "board prints the same block" 'grep -q "== Needs you ==" "$T/board.out" && grep -q "answer: use sqlite" "$T/board.out"'
+at=[t.index(\"\n%s\n\" % n) for n in (\"Issues\",\"Running goals\",\"Queued goals\",\"Dependencies\",\"Finish\")]
+assert at==sorted(at) and t.index(\"LIVE BOARD\") < at[0] < t.index(\"SLUG\")" "$T/report"'
+needs=$(sed -n '/^Issues/,/^Running goals/p' "$T/report")
+check "Issues holds the failed and the waiting worker, with the exact words" 'grep -q "h1 is failed" <<<"$needs" && grep -q "fix: answer by typing \"resume h1\"" <<<"$needs" && grep -q "w1 is waiting: Which database?" <<<"$needs" && grep -q "\"use sqlite\" or \"use postgres\"" <<<"$needs" && ! grep -q "g1" <<<"$needs"'
+check "board prints the same board" 'grep -q "^LIVE BOARD" "$T/board.out" && grep -q "\"use sqlite\"" "$T/board.out"'
 $M dashboard > "$T/dash.path"; dash=$(cat "$T/dash.path")
-check "the dashboard carries the same block, Needs you first" 'python3 -c "import sys,json
+check "the dashboard carries the same board, Issues first" 'python3 -c "import sys,json
 h=open(sys.argv[1]).read()
-at=[h.index(\"<h2>%s</h2>\" % n) for n in (\"Needs you\",\"Roadmap\",\"Total\",\"Goals\")]
-assert at==sorted(at) and \"answer: use sqlite\" in h and \"h1 (failed)\" in h" "$dash"'
-check "a stuck worker stays at the top until it is answered" '$M report | sed -n "/== Needs you ==/,/== Roadmap ==/p" | grep -q "w1 (waiting)"'
+assert h.index(\"LIVE BOARD\") < h.index(\"Issues\") < h.index(\"Running goals\") and \"use sqlite\" in h and \"h1 is failed\" in h" "$dash"'
+check "a stuck worker stays at the top until it is answered" '$M report | sed -n "/^Issues/,/^Running goals/p" | sed -n 2p | grep -q "is waiting\|is failed"'
 python3 - "$C/loop/runs/w1.json" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1])); s["status"], s["waiting"], s["pid"] = "running", None, None
 json.dump(s, open(sys.argv[1], "w"))
 PY
-after=$($M report | sed -n '/== Needs you ==/,/== Roadmap ==/p')
-check "answered, it leaves Needs you; the failed one stays" '! grep -q "w1" <<<"$after" && grep -q "h1 (failed)" <<<"$after"'
-check "Roadmap has a bar for each milestone and overall" 'grep -q "Alpha \[########--\] 3 of 4" "$T/report" && grep -q "Beta \[##--------\] 1 of 4" "$T/report" && grep -q "overall \[#####-----\] 4 of 8" "$T/report"'
-check "Goals lists the done lines met so far" 'grep -q "g1: 1 of 1 done lines met" "$T/report" && grep -q "h1: 0 of 1 done lines met" "$T/report"'
+after=$($M report | sed -n '/^Issues/,/^Running goals/p')
+check "answered, it leaves Issues; the failed one stays" '! grep -q "w1" <<<"$after" && grep -q "h1 is failed" <<<"$after"'
+check "no milestone rows or done-line lists appear" '! grep -qi "milestone\|Alpha \[\|overall \[\|done lines met" "$T/report"'
 python3 "$S/worker.py" met h1 1 >/dev/null
-check "a worker marks a done line met" '$M report | grep -q "h1: 1 of 1 done lines met"'
+check "a worker still marks a done line met, kept off the board" '$M report > "$T/report1"; python3 -c "import json,sys;assert 1 in json.load(open(sys.argv[1]))[\"met\"]" "$C/loop/runs/h1.json" && ! grep -q "done lines met" "$T/report1"'
 
 echo "== estimates"
 python3 - "$C/loop/runs" $$ <<'PY'
@@ -117,13 +115,10 @@ now = {"slug": "cur", "goal": "Cur", "status": "running", "step": "idea", "pid":
 json.dump(now, open(os.path.join(d, "cur.json"), "w"))
 PY
 $M report > "$T/report2"
-cur=$(sed -n '/\[running\] cur/,/== Total ==/p' "$T/report2")
-check "a running goal shows each step with an estimate from past runs" 'grep -q "idea   est 10m, no estimate yet tokens" <<<"$cur" && grep -q "plan   est 20m" <<<"$cur"'
-check "a step nobody has finished says no estimate yet" 'grep -q "review est no estimate yet" <<<"$cur"'
-check "actual time and tokens so far are shown, unknown when unrecorded" 'grep -Eq "idea .*\| actual [0-9<].*, unknown tokens" <<<"$cur"'
-check "the remaining steps have an estimate" 'grep -q "remaining steps: est" <<<"$cur"'
+cur=$(grep -A2 "^- cur " "$T/report2")
+check "a running goal shows its time left from past runs, and its flow" 'grep -Eq "^- cur  \[----------\] 0%  [0-9]+m left" <<<"$cur" && grep -q "\[idea\] > plan" <<<"$cur"'
 rm "$C/loop/runs/past.json"
-check "with no past runs the remaining estimate reads no estimate yet" '$M report | grep -q "remaining steps: no estimate yet"'
+check "with no past runs the time left reads no estimate yet" '$M report | grep "^- cur " | grep -q "no estimate yet"'
 rm "$C/loop/runs/cur.json"
 
 echo "== one way to run"
