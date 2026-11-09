@@ -14,4 +14,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-monitoring/scripts/board_status.py` in a repo with queued goals that have `depends-on` links.
+   Expect: under Roadmap an arrow chart (`[queued] a --> [queued] b`), and the last Roadmap line starts `longest path:`.
+2. Run `python3 skills/workflow-monitoring/scripts/operate.py run --once`.
+   Expect: Needs you has at most one `wiki (docs check)` line, and every time it prints shows your local zone name, never UTC.
