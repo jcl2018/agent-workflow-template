@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.11.0 - 2026-11-09
+
+- test-lanes: regression.py run --reuse reuses a branch's last run and reruns only affected rows
+- test-lanes: delivery runs the regression lane once in qa and reuses it in ship and pr; REG-6 Unreviewed
+- test-lanes: lanes ignore the loop's own bookkeeping files; toy fixtures start goals clean and proven; Tests table rendered
+- test-lanes: a script's own cd to the repo root doesn't make its row always run
+- test-lanes: REG-6 Reviewed by the owner ("REG-6 reviewed, approved")
+- test-lanes: release and loop files no row's own scripts name no longer rerun every row
+- test-lanes: stopping a lane stops its whole run; stale lane jobs never hang
+- test-lanes: rename lanes.py's skill-name regex so the secrets scan stops reading it as a credential
+- test-lanes: only the last STEP line can skip the qa lane; a run whose rows leave files is never recorded; reused known rows count as known
+- test-lanes: a PENDING qa reply never skips the lane; a run whose rows leave files drops the old record
+- docs: test-lanes docs name the last-STEP qa rule, the dropped record and the --reuse usage line
+- docs: Delivery page describes the regression lane (qa runs it once, ship and pr reuse it)
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.10.1 - 2026-11-09
 
 - The docs check fails on counts that drift from the code

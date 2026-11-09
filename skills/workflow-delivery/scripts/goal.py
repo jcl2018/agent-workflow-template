@@ -285,6 +285,8 @@ def next_step(state):
 def cmd_record(args):
     """Apply what a flow step left: done or skipped moves on, pending waits on the owner, anything else is a try."""
     state = held(args.slug)
+    if args.step == "qa":
+        role.need_lane(state_dir(), args.slug, args.file)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
     if args.in_session:  # the worker session ran the skill itself; its run record must name that session
         if state.get("worker") != "session" or not (state.get("session") or {}).get("id"):
@@ -380,6 +382,14 @@ def cmd_pr(args):
     if git("status", "--porcelain", "--", "."):
         print("NOTE: uncommitted files stay out of the PR")
     head = bump_version(state, head)
+    gate, line, ids = role.lane(state_dir(), args.slug, "pr", role.flow_spec(), config())
+    print(line)
+    if gate == "running":
+        return 0
+    if gate == "fail":
+        failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
+                   "fix the failing rows, commit, then run pr again")
+        return 1
     state["step"] = "pr"
     save(state, "pr")
     for wait in (2, 5, 0):
