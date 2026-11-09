@@ -125,7 +125,7 @@ def cmd_ask(args):
     base = base_of(top, cfg)
     for line in docs_lines(top, cfg, base):
         print(line)
-    for line in docs_trouble(top, base):
+    for line in docs_trouble(top, base, whole=True):
         print("DOCS, which cut will refuse: " + line)
     print("How to verify:\n%s" % (verify_steps(top, args.slug) or "NONE YET, which cut will refuse."))
     print("Type exactly one of:")
@@ -213,11 +213,11 @@ def doc_rows(top):
     return {page: [i.strip() for i in paths.split(",") if i.strip()] for page, _, paths in lines}
 
 
-def docs_trouble(top, base, fix=False):
-    """The docs audit's findings; [] when the docs are in step."""
+def docs_trouble(top, base, fix=False, whole=False):
+    """The docs audit's findings; [] when the docs are in step. whole: every page docs.py check calls stale, list only."""
     if not doc_rows(top):
         return []
-    done = run([sys.executable, DOCS, "audit", "--base", base] + ([] if fix else ["--dry-run"]), top)
+    done = run([sys.executable, DOCS, "audit", "--base", "" if whole else base] + ([] if fix and not whole else ["--dry-run"]), top)
     lines = [l for l in done.stdout.splitlines() if not l.startswith(("UNTESTED", "SKIP", "MILESTONE", "DOCS"))]
     if done.returncode and not done.stdout.strip():
         return ["the docs audit failed: " + (done.stderr.strip().splitlines() or ["no output"])[-1]]
@@ -318,7 +318,7 @@ def cmd_cut(args):
     if not steps:
         sys.exit("REFUSED: %s has no complete steps under ## Verify by hand. Fix: give every numbered step an Expect: "
                  "line in .loop/goals/%s.md, and commit it." % (slug, slug))
-    trouble = docs_trouble(cwd, base)
+    trouble = docs_trouble(cwd, base, whole=True)
     if trouble:
         sys.exit("REFUSED: the docs audit found trouble:\n%s\nFix: run docs.py audit (workflow-docs), commit, and run "
                  "the release again." % "\n".join(trouble))

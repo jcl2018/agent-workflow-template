@@ -18,11 +18,12 @@ first bring the goal's wiki pages up to date:
 python3 scripts/wiki.py prepare <slug>
 ```
 
-It lists each stale mapped page. Rewrite those pages from what the goal changed, then run
+It lists every page `docs.py check` calls stale, mapped to a touched path or not. Rewrite those pages from what the goal changed, then run
 `wiki.py prepare <slug> --commit`: it commits them on the goal's branch and pushes it. Then run `scripts/merge.py <slug>`
 after `goal.py pr`. It asks nothing and drafts nothing:
 
-1. It refuses while a mapped page is stale.
+1. It refuses while any page `docs.py check` calls stale, naming each; there is no bypass, so a page that cannot be
+   cleared stays under Needs you until the owner rewrites it.
 2. It runs each `routines` entry of `.loop/config.json` as read from `origin/<base>` (a pull request cannot add one), and
    refuses the merge if one exits non-zero.
 3. It merges the goal's open pull request, then bumps the version once on the base branch (patch; minor for a new file or
@@ -99,8 +100,8 @@ python3 scripts/release.py cut <slug> [--bump patch|minor|major] [--user]
 On the goal's branch `loop/<slug>` it:
 
 1. Refuses if `## Verify by hand` in the goal file has no numbered steps, if any step has no `Expect:` line, or if a
-   page mapped in `.loop/docs.tsv` is stale or missing. Stale here means `docs.py check --base <base>`: only changes
-   since the goal's base count.
+   page in `.loop/docs.tsv` is stale or missing. Stale here means what `docs.py check` says, the whole repo and not
+   only changes since the goal's base.
 2. Reads the version from `version_file` in `.loop/config.json` (default `VERSION`, `X.Y.Z` or `W.X.Y.Z`). `patch` moves
    the last number. With no file, the first release is `0.1.0` and the file is created.
 3. Adds an entry to `CHANGELOG.md` above the last release: the new version, today's date (UTC), one line per commit since

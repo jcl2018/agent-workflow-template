@@ -3,7 +3,7 @@
 
 usage: wiki.py <command> SLUG
 
-  prepare SLUG [--commit]   list the wiki pages the goal's changed paths map to that are stale or missing (exit 1);
+  prepare SLUG [--commit]   list every wiki page docs.py check calls stale or missing, mapped to a touched path or not (exit 1);
                             with --commit, first commit edited pages in the wiki folder on the goal's branch, and when
                             nothing is stale push the branch. The agent rewrites the pages; this only checks.
   publish SLUG              after the merge: run docs.py publish from a clean checkout of origin/<base>; on a refusal
@@ -32,7 +32,10 @@ def top_of():
 
 def pending(top, cfg, fix=False):
     """What the docs audit still finds for the goal, one line each. fix lets it mend the mechanical trouble first."""
-    return release.docs_trouble(top, base_of(top, cfg), fix)
+    base = base_of(top, cfg)
+    if fix:
+        release.docs_trouble(top, base, True)  # mend the goal's own mechanical trouble, scoped to its commits
+    return release.docs_trouble(top, base, whole=True)
 
 
 def commit(top, cfg, slug):
@@ -57,7 +60,8 @@ def cmd_prepare(args):
     for line in stale:
         print(line)
     if stale:
-        print("NEXT: update the pages above, then wiki.py prepare %s --commit" % args.slug)
+        names = sorted({l.split(":")[0].split()[1] for l in stale if l.startswith("REWRITE ")})
+        print("NEXT: update %s, then wiki.py prepare %s --commit" % (", ".join(names) or "the pages above", args.slug))
         return 1
     if args.commit and load(args.slug).get("pr"):
         branch = git("branch", "--show-current", cwd=top)
