@@ -96,8 +96,8 @@ Any command that would build, plan or run a goal step from this session (`build`
 `ship`, `step`, `pr`, `record`, `run`) refuses with one line naming `batch.py start NAME`.
 
 `scripts/sessions.py`: `assign SLUG` (watch.py runs it: a free or new session from `session_command`, renamed
-`worker · <goal>`, sent the goal), `bind SLUG ID` (a session started with the app's tools), `list`, and `report SLUG
---step S | --status merged|failed|waiting [--pr URL]` for each worker message (merged or failed frees the session).
+`worker · <goal>`, sent the goal; it holds a `parallel` slot), `bind SLUG ID` (a session started with the app's tools),
+`list`, `send` (operate.py send uses it) and `report SLUG --step S | --status merged|failed|waiting [--pr URL | --ask Q]`.
 
 Batches of goals go through `scripts/batch.py` (`add`, `start`, `status`). `start` begins one worker for each goal:
 `scripts/worker.py loop SLUG` runs the goal's agent in its own worktree, with `LOOP_ROLE=worker`, to the end. When the

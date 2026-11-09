@@ -26,6 +26,7 @@ import status_graph  # noqa: E402
 os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")
 
 FLOW = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
+QUIET = int(os.environ.get("LOOP_SESSION_QUIET", "3600"))  # seconds a worker session may stay silent before Issues names it
 HEALTH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-health", "scripts", "health.py")
 
 
@@ -95,7 +96,7 @@ def worker_of(run):
     return "background" + (" (%s)" % plain(run["worker_why"], 80) if run.get("worker_why") else "")
 
 
-def issues(runs, gone, root):
+def issues(runs, gone, root, at=None):
     stuck, other = [], []
     for run in runs:
         slug, report = run["slug"], (run.get("report") or {}).get("text", "")
@@ -106,6 +107,15 @@ def issues(runs, gone, root):
             stuck.append("    fix: answer by typing %s" % " or ".join('"%s"' % w for w in words))
         if run.get("release_error") and bs.error_open(run, gone, "release failed"):
             other += ["- %s: the release failed: %s" % (slug, plain(run["release_error"])), '    fix: look at the problem, then type "resume %s"' % slug]
+    for run in runs:
+        try:
+            last = datetime.datetime.fromisoformat(str(run.get("updated")).replace("Z", "+00:00"))
+        except ValueError:
+            last = None
+        if at and run.get("worker") == "session" and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET:
+            name = (run.get("session") or {}).get("name") or "worker · " + run["slug"]
+            other += ["- %s: its session %s has sent nothing for %dm" % (run["slug"], name, (at - last).total_seconds() // 60),
+                      '    fix: look at the session %s; when it answers, record it with sessions.py report %s' % (name, run["slug"])]
     found = bs.wiki_check(root)
     parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]
     for run in runs:
@@ -134,7 +144,7 @@ def render(root=None, at=None):
                    left=bs.left_time({"slug": g["slug"], "status": "queued"}, runs, at)) for g in queue]
     names = {item["slug"] for item in items}
     out = ["LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root)), "", "Issues"]
-    out += issues([r for r in runs if r["slug"] not in shut], gone, root) + ["", "Running goals"]
+    out += issues([r for r in runs if r["slug"] not in shut], gone, root, at) + ["", "Running goals"]
     for run in running:
         done = current(run)
         full = round(10 * done / len(FLOW))

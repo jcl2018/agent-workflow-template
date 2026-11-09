@@ -289,6 +289,11 @@ def cmd_record(args):
     if args.in_session:  # the worker session ran the skill itself; its run record must name that session
         if state.get("worker") != "session" or not (state.get("session") or {}).get("id"):
             no("%s names no worker session. Fix: sessions.py bind %s ID, or run the step with flow.py." % (args.slug, args.slug))
+        early = [s for s in FLOW[:FLOW.index(args.step)] if not str((state.get("flow") or {}).get(s, "")).startswith(("done", "skipped"))]
+        if early:
+            no("%s comes before %s: record %s first." % (", ".join(early), args.step, early[0]))
+        if os.path.exists(ran[:-4] + ".asked"):
+            os.remove(ran[:-4] + ".asked")
         into = os.path.join(state_dir(), "%s.%s.txt" % (args.slug, args.step))
         if os.path.realpath(args.file) != os.path.realpath(into):
             shutil.copyfile(args.file, into)

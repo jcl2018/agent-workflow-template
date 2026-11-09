@@ -16,7 +16,7 @@ bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 "$here/dev/toy/make.sh" "$T" >/dev/null || exit 1
 export LOOP_FLOW="$T/flow.json"
-mkdir -p "$T/bin"; printf '#!/bin/bash\necho "gh: no answer" >&2; exit 1\n' > "$T/bin/gh"; chmod +x "$T/bin/gh"; export PATH="$T/bin:$PATH"
+mkdir -p "$T/bin"; printf '#!/bin/bash\ncase "$*" in *pull/1*) echo MERGED;; *pull/2*) echo OPEN;; *) echo "gh: no answer" >&2; exit 1;; esac\n' > "$T/bin/gh"; chmod +x "$T/bin/gh"; export PATH="$T/bin:$PATH"
 cd "$T/repo" || exit 1
 python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
@@ -28,12 +28,13 @@ cat > "$T/tool.sh" <<'TOOL'
 #!/bin/bash
 echo "$1 $2 ${3:+$(head -c 60 <<<"$3" | tr '\n' ' ')}" >> "$TOOL_LOG"
 [ -n "${TOOL_FAIL:-}" ] && exit 1
+[ "$1" = send ] && printf '%s\n' "$3" > "$TOOL_LOG.sent.$2"
 if [ "$1" = start ]; then n=$(( $(cat "$TOOL_LOG.n" 2>/dev/null || echo 0) + 1 )); echo $n > "$TOOL_LOG.n"; echo "s$n"; fi
 TOOL
 chmod +x "$T/tool.sh"; export TOOL_LOG="$T/tool.log"
 python3 - "$T/agent.sh" <<'PY'
 import json, sys
-c = json.load(open(".loop/config.json")); c["agent_command"] = ["bash", sys.argv[1]]; c["parallel"] = 0; c["mend"] = False
+c = json.load(open(".loop/config.json")); c["agent_command"] = ["bash", sys.argv[1]]; c["parallel"] = 0; c["mend"] = False; c["auto_merge"] = False
 json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
 git commit -qam "Agent"; git push -q origin main
@@ -44,6 +45,7 @@ LOOP_SESSION_TOOL="$T/tool.sh" go a
 check "a ready goal gets a new worker session from the session tool" 'grep -q "^start worker · a" "$TOOL_LOG" && [ "$(field a session.id)" = s1 ]'
 check "the session is renamed worker · <goal>" 'grep -q "^rename s1 worker · a" "$TOOL_LOG" && [ "$(field a session.name)" = "worker · a" ]'
 check "the session is sent the goal, its worktree and the report rules" 'grep -q "^send s1 You are the worker session for goal a" "$TOOL_LOG" && $SE list | grep -q "^s1  busy  worker · a  a$"'
+check "the session is told to cd to the goal's worktree and set LOOP_ROLE=worker" 'grep -q "cd .*/loop/worktrees/a first, and run every goal.py and flow.py command there with LOOP_ROLE=worker" "$TOOL_LOG.sent.s1"'
 check "the run record says session, running, with no pid and no background agent" '[ "$(field a worker)" = session ] && [ "$(field a status)" = running ] && [ "$(field a pid)" = None ] && [ ! -e "$FAKE_AGENT/agent-a" ]'
 
 echo "== the report path"
@@ -94,6 +96,40 @@ printf '#!/bin/bash\n[ "$2" = dead ] && exit 1\nexec "%s" "$@"\n' "$T/tool.sh" >
 LOOP_SESSION_TOOL="$T/tool2.sh" go e
 check "a free session that can't be reached is skipped for a new one before any fallback" '[ "$(field e worker)" = session ] && [ "$(field e session.id)" = s2 ] && $SE list | grep -q "^dead  unreachable"'
 
+echo "== slots, results and answers"
+python3 - .loop/config.json <<'PY'
+import json, sys
+c = json.load(open(sys.argv[1])); c["parallel"] = 1; json.dump(c, open(sys.argv[1], "w"), indent=2)
+PY
+$W go "Goal f" --done "Line f" --slug f > "$T/go-f" 2>&1
+check "a goal in a worker session holds a parallel slot, so the next goal waits for it" 'grep -q "^QUEUED f" "$T/go-f" && [ ! -e "$C/loop/runs/f.json" ]'
+python3 - .loop/config.json <<'PY'
+import json, sys
+c = json.load(open(sys.argv[1])); c["parallel"] = 0; json.dump(c, open(sys.argv[1], "w"), indent=2)
+PY
+printf '#!/bin/bash\n[ "$1" = rename ] && exit 1\nexec "%s" "$@"\n' "$T/tool.sh" > "$T/tool3.sh"; chmod +x "$T/tool3.sh"
+LOOP_SESSION_TOOL="$T/tool3.sh" $W watch --once >/dev/null 2>&1
+check "a new session that can't be renamed is marked unreachable and the goal falls back" '[ "$(field f worker)" = background ] && grep -q "could not reach session s3" "$C/loop/runs/f.json" && $SE list | grep -q "^s3  unreachable"'
+$SE report e --status waiting --ask "Which database?" --words "use sqlite" >/dev/null
+check "a question for the owner makes the goal wait and keeps its session busy" '[ "$(field e status)" = waiting ] && [ "$(field e waiting.ask)" = "Which database?" ] && $SE list | grep -q "^s2  busy"'
+LOOP_SESSION_TOOL="$T/tool.sh" python3 "$S/operate.py" send e "use sqlite" > "$T/send-e" 2>&1
+check "the owner's answer reaches the worker session by session message, and the inbox" 'grep -q "^SENT to session s2" "$T/send-e" && grep -qx "use sqlite" "$TOOL_LOG.sent.s2" && [ -e "$C/loop/inbox/e.txt" ]'
+$SE report e --status waiting --pr https://x/pull/2 >/dev/null
+check "a goal that ends with its pull request open stays done, reports waiting and frees its session" '[ "$(field e status)" = done ] && [ "$(field e report.status)" = waiting ] && $SE list | grep -q "^s2  free"'
+LOOP_SESSION_TOOL="$T/tool.sh" go g
+$SE report g --status failed --text "tests broke" >/dev/null
+check "a failed result frees the session and shows the finding" '[ "$(field g status)" = failed ] && [ "$(field g finding)" = "tests broke" ] && $SE list | grep -q "^s2  free"'
+$SE report b --status merged --pr https://x/pull/2 >/dev/null
+check "a merged report is checked with gh: an open pull request is recorded as waiting, never merged" '[ "$(field b report.status)" = waiting ]'
+python3 - "$C/loop/runs/b.json" <<'PY'
+import json, sys
+s = json.load(open(sys.argv[1])); s.update(status="running", updated="2026-01-01T00:00:00Z"); json.dump(s, open(sys.argv[1], "w"))
+PY
+$LB > "$T/board4"
+check "a worker session silent for an hour is named under Issues" 'grep -q "^- b: its session worker · b has sent nothing for" "$T/board4"'
+(cd "$C/loop/worktrees/e" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/goal.py" record e ship --file "$T/plan-reply.txt" --in-session > "$T/f7" 2>&1)
+check "goal.py record --in-session refuses a step out of order" 'grep -q "^REFUSED: idea, plan, review, qa comes before ship" "$T/f7"'
+
 echo "== issue 98: a goal moved into a session"
 python3 - "$R/d.json" <<'PY'
 import json, sys
@@ -112,6 +148,7 @@ python3 - "$R/c.json" "$$" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1])); s.update(status="running", pid=int(sys.argv[2])); json.dump(s, open(sys.argv[1], "w"))
 PY
+check "bind refuses a session busy with another goal" '$SE bind g local_123 2>&1 | grep -q "^REFUSED: session local_123 is busy with goal d"'
 check "bind refuses a goal still running as a background process" '$SE bind c x 2>&1 | grep -q "^REFUSED: c is running as background pid"'
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

@@ -2,6 +2,7 @@
 # Test the skill flow, the queue command, version bumps and the governing watch with a fake agent. No model is called.
 # usage: test-goal.sh [DIR]
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME

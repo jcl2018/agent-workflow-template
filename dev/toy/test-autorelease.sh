@@ -1,4 +1,5 @@
 #!/bin/bash
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Proves the automatic release on a throwaway toy repo with a fake gh. usage: test-autorelease.sh [DIR]
 unset LOOP_BATCH
 set -e

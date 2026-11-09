@@ -99,8 +99,11 @@ def cmd_run(args):
 
 
 def cmd_send(args):
+    """The inbox always carries it; a goal in a worker session is also sent it by session message, which wakes it."""
     code, said = script("worker.py", "send", args.slug, args.text)
     print(graph.localize(said.strip()))
+    if not code and os.path.exists(os.path.join(HERE, "sessions.py")):
+        print(graph.localize(script("sessions.py", "send", args.slug, args.text)[1].strip()))
     return code
 
 
