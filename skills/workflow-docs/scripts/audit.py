@@ -141,7 +141,7 @@ def audit(root, base, dry):
     would += moved
     for line in would:
         print("%s %s" % ("WOULD FIX" if dry else "FIXED", line))
-    found += docs.problems(root, base) + docs.contract(root) + release_trouble(root)
+    found += docs.problems(root, base) + docs.contract(root) + docs.counts(root) + release_trouble(root)
     if dry:
         found = [item for item in found if item[0] != "TESTS"]
     for kind, page, detail in found:
