@@ -16,9 +16,11 @@ template keeps every gate until its owner turns one off.
 
 ## Features
 
-Each feature page is a Summary, its Usage (what you ask the agent), its Criteria, and a Tests table of the regression rows that enforce them with their last
-result and date. A criterion is Unreviewed or Reviewed with a date, and a Reviewed one's wording is locked. Command
-detail and charts are in each skill's `references/` folder.
+Each feature page is a short PRD: Problem, its Usage (what you ask the agent), its Requirements (up to 6), Non-goals,
+Success metrics, and Tests: each requirement's regression rows as Given/When/Then scenarios with their last result and
+date. The owner reviews the PRD as a whole, and a reviewed PRD's Problem, Requirements, Non-goals and Success metrics
+are locked; a requirement line can also be reviewed on its own. Command detail and charts are in each skill's
+`references/` folder.
 
 | Feature | Skill | Page |
 |---|---|---|

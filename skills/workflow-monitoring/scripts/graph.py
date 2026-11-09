@@ -47,8 +47,8 @@ def unmet(goal, records, queued):
 
 
 def holds_slot(run):
-    """A running goal with no pid uses no worker slot."""
-    return run.get("status") != "running" or bool(run.get("pid"))
+    """A running goal uses a worker slot when a process or a worker session has it; one with neither uses none."""
+    return run.get("status") != "running" or bool(run.get("pid")) or run.get("worker") == "session"
 
 
 def parallel_of(cfg):

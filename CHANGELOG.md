@@ -1,5 +1,94 @@
 # Changelog
 
+## v0.12.0 - 2026-11-09
+
+- workflow-docs: PRD page contract, review lock and prd command
+- docs/wiki: every feature page is a PRD; rows are Given/When/Then scenarios
+- dev/toy: test-prd.sh, PRD fixtures in the existing toy tests, new rows
+- docs: PRD page, review PAGE|ID, prd and convert in the skill, commands and README
+- Rows seen failing once; Tests and Home re-rendered for the PRD pages
+- dev/toy: test-batch reads a row from the scenario Tests
+- criteria.py: review/unreview PAGE takes only an exact feature page name
+- prd.py convert: keep a title-less page's first heading; a missing Non-goals goes before Success metrics
+- docs/wiki: Documentation Usage says review/unreview PAGE takes the exact page name; convert's fixes
+- prd-format: DOC-1, DOC-2 and DOC-3 Reviewed 2026-11-08 by the owner ("Approve")
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.11.0 - 2026-11-09
+
+- test-lanes: regression.py run --reuse reuses a branch's last run and reruns only affected rows
+- test-lanes: delivery runs the regression lane once in qa and reuses it in ship and pr; REG-6 Unreviewed
+- test-lanes: lanes ignore the loop's own bookkeeping files; toy fixtures start goals clean and proven; Tests table rendered
+- test-lanes: a script's own cd to the repo root doesn't make its row always run
+- test-lanes: REG-6 Reviewed by the owner ("REG-6 reviewed, approved")
+- test-lanes: release and loop files no row's own scripts name no longer rerun every row
+- test-lanes: stopping a lane stops its whole run; stale lane jobs never hang
+- test-lanes: rename lanes.py's skill-name regex so the secrets scan stops reading it as a credential
+- test-lanes: only the last STEP line can skip the qa lane; a run whose rows leave files is never recorded; reused known rows count as known
+- test-lanes: a PENDING qa reply never skips the lane; a run whose rows leave files drops the old record
+- docs: test-lanes docs name the last-STEP qa rule, the dropped record and the --reuse usage line
+- docs: Delivery page describes the regression lane (qa runs it once, ship and pr reuse it)
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.10.1 - 2026-11-09
+
+- The docs check fails on counts that drift from the code
+- Rows for the count check and issue 39
+- Both rows seen failing on the old check
+- Review: glob at the top; say which counts need criteria on
+- Review fixes: the count check reads only prose, and says why it skipped
+- Mark DOC-6 Reviewed, on the owner's words
+- Review pass 2 fixes: read prose the way a reader does
+- Review pass 3 fixes: no crash, any repo's ids, code as Markdown renders it
+- Home: a feature page has up to 6 criteria, as the README now says
+- fix(qa): ISSUE-001 — describe DOC-6's two tests
+- fix: pre-landing review fixes, and the coverage audit's tests
+- fix: a skip covers only its own line, and the Criteria heading allows spaces
+- Merge remote-tracking branch 'origin/main' into loop/docs-counts
+
+### How to verify
+
+1. Run `python3 skills/workflow-docs/scripts/docs.py check` in the repo.
+   Expect: `DOCS OK`, because the README and design guide say seven skills and there are seven.
+2. Change "the seven skills" to "the eight skills" in `skills/design-guide.md` and run the check again.
+   Expect: `COUNT skills/design-guide.md: says eight skills, the repo has 7`, and exit code 1. Undo the change.
+
+## v0.10.0 - 2026-11-09
+
+- session-workers: plan step, in-session flow steps, sessions.py
+- MON-1 and MON-2: the owner's new wording, reviewed
+- Worker sessions: assign, rename, report, reuse, background fallback; steps run in the session; board shows the session
+- Docs: worker sessions are the default worker
+- Delivery page: steps run inside the worker session
+- Delivery page: steps run inside the worker session
+- Review fixes: never re-record a stale in-session reply; try a new session before falling back
+- QA fixes: pool file renamed session-pool.json, MON-1 test follows the new wording, SKILL.md files under 150 lines
+- sessions.py no-terminal guard; wiki pages follow the review fixes
+- goal.py record --in-session: record a step the worker session ran
+- record-in-session row seen red; Tests tables
+- Review (full) fixes: session goals hold a slot and keep watch alive, answers reach the session, results checked and wrapped up, worktree in the goal message, quiet sessions under Issues, resume resets the worker
+- listing.json discloses the sessions.py commands
+- fix(qa): a hung session tool is cut off with its children at the timeout, then given up for the run
+- Session tool calls: output to a file, interrupts kill the tool, the timeout is checked, a hang lasts one round
+- Tests tables after the land run; Monitoring page names the session tool timeout
+
+### How to verify
+
+1. From the main checkout, run `python3 skills/workflow-monitoring/scripts/live_board.py`.
+   Expect: each running goal has a `worker:` line under its step flow, `session worker · <goal>` for a goal in a worker
+   session and `background (<why>)` for one in a background process. No goal that moved into a session shows as failed.
+2. Run `python3 skills/workflow-monitoring/scripts/sessions.py list`.
+   Expect: each worker session with its state (busy or free), its name `worker · <goal>` and its goal.
+3. In a worker session, run `LOOP_ROLE=worker python3 skills/workflow-delivery/scripts/flow.py <slug> review` in the
+   goal's worktree.
+   Expect: it prints `IN SESSION review: no headless agent`, the skill to run and the reply path, and starts no process.
+
 ## v0.9.3 - 2026-11-09
 
 - stale-groups: remove leftovers of removed groups, add defect test

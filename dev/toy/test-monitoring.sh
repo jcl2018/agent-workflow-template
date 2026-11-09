@@ -4,6 +4,7 @@
 # test-goal.sh covers go, watch, mend and usage limits. This covers what it doesn't: a killed agent, overlapping goals,
 # what report and dashboard show, and resume.
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"

@@ -126,9 +126,25 @@ Keep the wiki in step with the code. Pages live in `docs/wiki/`, so they're revi
 `publish` only adds or updates pages it wrote, unless you name one with `--adopt`, and never deletes one. `restore`
 undoes the last publish.
 
-With `"criteria": true` in the config, `check` also holds the wiki to a contract: the feature pages plus Home: each feature page is a Summary, up to 5 plain
-criteria marked Unreviewed or Reviewed with a date, and a Tests table of the regression rows that enforce them with their
-last result. A Reviewed criterion's wording is locked until the owner marks it Unreviewed.
+With `"criteria": true` in the config, `check` also holds the wiki to a contract: Home is free-form and each feature page
+is a short PRD: Problem, an optional Usage, up to 6 requirements (`criteria_max`) marked Unreviewed or Reviewed with a
+date, Non-goals, Success metrics, and Tests: each requirement's regression rows as Given/When/Then scenarios with their
+last result. Only the owner reviews a PRD (`/workflow-docs review PAGE`); after that Problem, Requirements, Non-goals and
+Success metrics are locked until the owner un-reviews it, and a Usage change shows as changed until the owner reviews it
+again. `/workflow-docs prd NAME "<idea>" --paths A,B` drafts a new feature's PRD.
+
+Upgrading a repo whose pages still have Summary and Criteria:
+
+1. Preview: `python3 prd.py convert` (in `skills/workflow-docs/scripts`) prints one line per page and writes nothing.
+2. Convert: `python3 prd.py convert --write`: Summary becomes Problem, Criteria Requirements (ids and Reviewed stamps
+   kept), and each page gets `Review: **Unreviewed**` and placeholder Non-goals and Success metrics.
+3. Write the drafts: replace each placeholder with what the feature deliberately won't do and one to three measurable
+   lines on how you know it works.
+4. Rewrite each regression row's description (column 6 of `.loop/regression.tsv`) as `Given ..., when ..., then ...`.
+5. Render: `python3 criteria.py render`.
+6. Check: `python3 docs.py check` prints `DOCS OK`.
+
+Rollback is reverting that commit.
 
 Release the work, or leave it unreleased for now:
 
@@ -138,7 +154,7 @@ Release the work, or leave it unreleased for now:
 ```
 
 Every goal has a `Verify by hand` section: steps you can follow to see the change work, each with what to expect. `cut`
-refuses without one, and refuses if a wiki page is stale or a criterion's regression row is missing or failing. It then
+refuses without one, and refuses if a wiki page is stale or a requirement's regression row is missing or failing. It then
 creates a draft GitHub release that carries those steps and the docs that changed, for you to publish. After a cut, the
 agent publishes the wiki. No release is published without you. Nothing merges without you, unless the repo turns on
 `auto_merge`, as this one does.

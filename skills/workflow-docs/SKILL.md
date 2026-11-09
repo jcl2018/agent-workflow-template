@@ -5,7 +5,7 @@ description: Keeps a repo's wiki pages in the repo, finds pages that have gone s
 
 # workflow-docs
 
-Six commands: `init`, `check`, `audit`, `criteria`, `publish` and `restore`, with `criteria.py` for review and the Tests table. `init` is the step list below, not a script command. The others
+Six commands: `init`, `check`, `audit`, `criteria`, `publish` and `restore`, with `criteria.py` for review and Tests and `prd.py` to draft and convert PRD pages. `init` is the step list below, not a script command. The others
 are `scripts/docs.py` commands, with `survey` and `add` for `init`. Run it with `python3`. If the skill's files aren't
 on disk, write the script to a temporary file, run it, and delete it. If `.loop/config.json` is missing, use
 `workflow-setup` first.
@@ -47,6 +47,7 @@ python3 scripts/docs.py check [--base <ref>]
 | `MISSING` | A mapped page has no file | Write it, or remove its row |
 | `UNWRITTEN` | The page still has its placeholder, or almost no text | Write it |
 | `UNMAPPED` | A page has no row in `.loop/docs.tsv` | Run `add` |
+| `COUNT` | The README, a wiki page or a top-level doc in `skills/` states a count of skills, feature pages, or a feature page's criteria or tests that the repo doesn't match; all but skills need `"criteria": true`. Skipped: the word "one", a limit ("up to 6"), code and comments as Markdown renders them, a line naming a criterion on a page, and a line marked `<!-- not-a-count -->`; a code fence that never closes is itself a `COUNT` line. Wrapped lines are read as one paragraph. `publish` refuses only on wiki pages | Correct the number |
 
 Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to
 count only changes since that point. `cut` counts from the goal's base the same way. `publish` has no `--base`: it
@@ -66,42 +67,52 @@ test, or whose tests no longer match, as `UNTESTED` (also saved to `untested.tsv
 queue goals from). Exit 0 only when nothing is left; `UNTESTED` and a `SKIP` for no `gh` answer don't fail it. The
 release step runs it on every goal. It never deletes a page or edits a criterion.
 
-## `criteria`
+## `criteria`: the PRD page
 
-With `"criteria": true` in `.loop/config.json`, feature pages are a contract and `check` enforces it. Only the pages
-Delivery, Documentation, Health, Milestones, Monitoring, Regression and Release exist, plus Home, which is free-form.
-Each feature page has exactly these sections, in this order: `Summary`, `Criteria`, `Tests`. Command detail and charts
-live in the owning skill's `SKILL.md` and `references/`, not on the page.
+With `"criteria": true` in `.loop/config.json`, every feature page (each page in `.loop/docs.tsv` but Home, which is
+free-form) is a short PRD and `check` enforces it, from the rules block of `references/template.md`:
 
-It prints the format and the next free id for the page (`DEL`, `DOC`, `HLT`, `MON`, `REG`, `SET`).
+1. the title, a `Milestone:` line once the milestone exists, then `Review: **Unreviewed**` (or the owner's Reviewed line);
+2. `## Problem`: who it's for and what it solves, at most `problem_lines` lines;
+3. `## Usage` (optional): the commands, as `/skill verb` asks or plain requests;
+4. `## Requirements`: up to `criteria_max` (default 6) lines `- DEL-3: **Unreviewed** what must hold`, short and plain,
+   no script names; ids are stable: take the next free id (`criteria PAGE` prints it), never reuse or renumber one;
+5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
+6. `## Tests`: written by `criteria.py render`, never by hand: under each requirement, one Given/When/Then scenario per
+   regression row with its test, when it runs, its last result and date and when it was seen failing; **not enforced**
+   when no row passes; defect tests under `### Defect tests`.
 
-Two levels: criteria are for the owner, tests are for the machine.
+Lines: `SECTIONS` (wrong, extra or out-of-order sections, or text before the first one), `REVIEW`, `PROBLEM`,
+`NONGOALS`, `METRICS`, `CRITERION`, `CAP`, `SCRIPT`, `USAGE`, `TESTS` (run `render`), `LOCKED`, `CHANGED`.
 
-- A criterion is one line under `## Criteria`: `- DEL-3: **Unreviewed** what must hold`. It is a short, high-level,
-  PRD-style statement in plain words, with no script names (`SCRIPT` if one appears) and no sub-bullets. A page has at
-  most `criteria_max` (default 6, `CAP`). Ids are stable: take the next free id, and never reuse or renumber one.
-- A test is a row in `.loop/regression.tsv`, linked to one criterion by its `goal` column (or its id). A criterion has
-  at least one, and `LINK` flags a test with no criterion. Rows that enforce a criterion are `land` or `nightly`, so the
-  regression workflow on GitHub runs them and shows each run's result.
-- `## Tests` is a table made by `criteria.py render`, never written by hand: each criterion's rows, linked to
-  `.loop/regression.tsv`, with the last status and date from `.loop/regression-runs.tsv`. A criterion with no passing
-  row shows as **not enforced**. `check` prints `TESTS` while the table is stale: run `render` and commit it.
-
-A criterion is `Unreviewed` or `Reviewed <date>`. New criteria land Unreviewed, with no approval. **Only the owner
-reviews one**, and a Reviewed criterion is locked:
+**The PRD is the owner's.** Only the owner reviews it, and only when their own words say so (`--user`):
 
 ```bash
-python3 scripts/criteria.py review <ID> [<ID> ...] --user
-python3 scripts/criteria.py unreview <ID> [<ID> ...] --user
+python3 scripts/criteria.py review <PAGE|ID> [...] --user [--date YYYY-MM-DD]
+python3 scripts/criteria.py unreview <PAGE|ID> [...] --user
 python3 scripts/criteria.py render [--check]
 ```
 
-`review` writes today's date and a hash of the wording. If the wording of a Reviewed criterion changes, `check` prints
-`LOCKED` and fails. A goal must not change one: the owner marks it Unreviewed first (`unreview`), after which the
-wording may change and the owner reviews it again. Pass `--user` only when the owner's own words said so; never review
-or unreview on a goal's own initiative. `report` names any Reviewed criterion whose wording changed.
-`regression.py sync` reports an id with no row, and `release.py cut` refuses while any of its rows is missing, a draft or
-failing.
+An argument like `DEL-3` is a requirement; any other is a page. Every argument is checked before anything is written.
+`review PAGE` stamps the Review line with a fingerprint each of Problem, Requirements, Non-goals, Success metrics and
+Usage. After it, a change to any of the first four is `LOCKED` (check, audit and release fail); a change to Usage alone
+is `CHANGED`: check exits 1 and the board lists it, the audit, release and publish ignore it, and only the owner's next
+`review PAGE` clears it. A reviewed requirement line is locked on its own as well. To edit a reviewed requirement the
+owner un-reviews that requirement and the PRD, then reviews both again. Never review or unreview on a goal's own
+initiative.
+
+**Tests follow on their own.** Write each new regression row's description as one scenario,
+`Given <context>, when <action>, then <outcome>.`; `audit` lists any other as `SCENARIO` and the release step blocks on
+it. Once a PRD is Reviewed, `audit` lists every requirement with no passing test as `UNTESTED` for the loop to queue.
+`regression.py sync` reports an id with no row, and `release.py cut` refuses while any of its rows is missing, a draft
+or failing.
+
+**New and old pages.** `python3 scripts/prd.py new NAME "<idea>" --paths A,B` drafts a new feature's PRD, Unreviewed,
+maps it in `.loop/docs.tsv` and prints what is left: replace the Non-goals and Success metrics placeholders (the page
+is `UNWRITTEN` until then) and add its requirement's regression row in the same pull request (it needs one before the
+next release). `python3 scripts/prd.py convert` previews turning old Summary/Criteria pages into PRD pages, and
+`convert --write` does it (Summary becomes Problem, Criteria Requirements, every stamp kept, placeholder Non-goals and
+Success metrics added); then write the drafts, rewrite row descriptions as scenarios and run `render`.
 
 ## `publish`
 
@@ -141,7 +152,10 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-docs audit` | `python3 scripts/docs.py audit` |
 | `/workflow-docs check` | `python3 scripts/docs.py check` |
 | `/workflow-docs criteria PAGE` | `python3 scripts/docs.py criteria PAGE` |
-| `/workflow-docs review ID` | `python3 scripts/criteria.py review ID --user` |
+| `/workflow-docs review PAGE\|ID` | `python3 scripts/criteria.py review PAGE\|ID --user [--date D]` |
+| `/workflow-docs unreview PAGE\|ID` | `python3 scripts/criteria.py unreview PAGE\|ID --user` |
+| `/workflow-docs prd NAME "<idea>" --paths A,B` | `python3 scripts/prd.py new NAME "<idea>" --paths A,B` |
+| `/workflow-docs convert` | `python3 scripts/prd.py convert --write` |
 | `/workflow-docs render` | `python3 scripts/criteria.py render` |
 | `/workflow-docs publish` | `python3 scripts/docs.py publish` |
 | `/workflow-docs restore` | `python3 scripts/docs.py restore` |

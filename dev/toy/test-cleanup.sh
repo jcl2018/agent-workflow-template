@@ -2,6 +2,7 @@
 # Proves worker.py cleanup deletes merged loop/* branches (never an unmerged or checked-out one) and that the health check
 # names it and shows no merged-branch warning afterwards. No model is called. usage: test-cleanup.sh [DIR]
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"

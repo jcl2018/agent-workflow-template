@@ -2,6 +2,7 @@
 # Real proof of one governing process: two level 0 goals, started by one process, each built by a real headless agent in
 # its own worktree. WARNING: this calls the real claude CLI (haiku by default). gh is faked. usage: test-govern.sh [DIR]
 set -u
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE  # these tests act as the operation session
 here=$(cd "$(dirname "$0")/../.." && pwd)
 T=${1:-$(mktemp -d)}; rm -rf "$T"; mkdir -p "$T"; MODEL=${MODEL:-haiku}

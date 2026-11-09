@@ -4,7 +4,8 @@
 usage: docs.py audit [--base REF] [--dry-run]
 
 It checks the pages against the template sheet (references/template.md), the code (stale pages), the tests (the Tests
-tables, and which Reviewed criteria have no test or tests that no longer match), and the required docs (each feature
+Tests, rows not
+written as Given/When/Then, and which Reviewed requirements have no test or tests that no longer match), and the required docs (each feature
 page's Milestone line, the Backlog milestone, a release note per tag). It fixes the mechanical trouble itself (the
 Tests tables and a missing Milestone line) and prints the rest as REWRITE lines for a person or agent. It never
 deletes a page and never changes a criterion's wording. --dry-run only says what it would fix. Exit 0 only when
@@ -28,7 +29,7 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
-REWRITE = {"CAP", "SCRIPT", "STALE", "UNWRITTEN", "SUMMARY", "SECTIONS", "CRITERION"}
+REWRITE = {"CAP", "SCRIPT", "STALE", "UNWRITTEN", "PROBLEM", "SECTIONS", "CRITERION", "NONGOALS", "METRICS", "REVIEW", "SCENARIO"}
 TITLE = re.compile(r"^# .*$", re.M)
 
 
@@ -96,8 +97,17 @@ def release_trouble(root):
     return out
 
 
+def scenarios(root):
+    """A row shown on a page whose description is not one Given/When/Then scenario."""
+    shown = {name for names in list(criteria.test_rows(root)[0].values()) + list(criteria.defect_rows(root).values()) for name in names}
+    return [("SCENARIO", "regression", "row %s: '%s' is not 'Given ..., when ..., then ...'. Fix: rewrite its description "
+             "(column 6 of .loop/regression.tsv) as one scenario" % (row[0], row[5][:60])) for row in criteria.tsv(root, "regression.tsv")
+            if row[0] in shown and not criteria.SCENARIO.match(row[5])]
+
+
 def untested(root):
-    """(id, reason) for each Reviewed criterion with no test, or none that passed since its wording appeared."""
+    """(id, reason) for each Reviewed requirement (its own line, or its page's PRD) with no test, or none that passed
+    since its wording appeared."""
     linked, _ = criteria.test_rows(root)
     rows = {row[0]: row for row in criteria.tsv(root, "regression.tsv")}
     ran = {row[0]: row[2] for row in criteria.tsv(root, "regression-runs.tsv") if row[1] == "PASS"}
@@ -105,9 +115,10 @@ def untested(root):
     for rel in criteria.pages(root):
         with open(os.path.join(root, rel)) as handle:
             lines = handle.read().splitlines()
+        signed = any(line.startswith("Review: **Reviewed ") for line in lines)
         for match in filter(None, (criteria.LINE.match(line) for line in lines)):
             key, text = match.group(1), match.group(4)
-            if match.group(2) == "Unreviewed":
+            if match.group(2) == "Unreviewed" and not signed:
                 continue
             if not linked.get(key):
                 out.append((key, "no test"))
@@ -141,7 +152,9 @@ def audit(root, base, dry):
     would += moved
     for line in would:
         print("%s %s" % ("WOULD FIX" if dry else "FIXED", line))
-    found += docs.problems(root, base) + docs.contract(root) + release_trouble(root)
+    found += docs.problems(root, base) + docs.contract(root) + docs.counts(root) + release_trouble(root)
+    found = [item for item in found if item[0] != "CHANGED"]  # Usage drift waits on the owner, not on a goal
+    found += scenarios(root) if config_criteria(root) else []
     if dry:
         found = [item for item in found if item[0] != "TESTS"]
     for kind, page, detail in found:
