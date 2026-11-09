@@ -19,6 +19,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 VERB = r"\b(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+"
+UNSEEN = ("", "-")  # a seen_red that is not a date: never seen failing
 FIXES = re.compile(VERB + r"(?:issue\s+)?#(\d+)|" + VERB + r"finding:([a-z0-9][a-z0-9-]*)", re.I)
 
 
@@ -41,7 +42,7 @@ def owed(root, text):
     owe = []
     for number, finding in FIXES.findall(text):
         ref = number or finding.lower()
-        if not any(seen not in ("", "-") and has(link, ref) and subprocess.run(command, shell=True, cwd=root, capture_output=True).returncode == 0
+        if not any(seen not in UNSEEN and has(link, ref) and subprocess.run(command, shell=True, cwd=root, capture_output=True).returncode == 0
                    for _, command, seen, link in rows(root)):
             owe.append(("#" if number else "finding ") + ref)
     return owe

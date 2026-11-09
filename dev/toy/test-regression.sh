@@ -24,6 +24,9 @@ git add -A; git commit -qm "Rows"
 out=$($reg run land); rc=$?; echo "$out"
 [ $rc = 1 ] && grep -q "^UNPROVEN check-1" <<<"$out" && ok "unproven row blocks" || bad "unproven"
 grep -q "^WOULD" <<<"$out" && [ ! -e "$FAKE_GH_DIR/calls.log" ] && ok "no token: dry run, no gh call" || bad "dry run"
+printf 'dash-1\tland\ttrue\t-\t-\tA row dated with a dash.\tcriterion\t\n' >> .loop/regression.tsv
+$reg sync | grep -q "^UNPROVEN dash-1" && $reg run dash-1 | grep -q "^UNPROVEN dash-1" && ok "a seen-failing date of - is unproven" || bad "a - date counted as seen failing"
+sed -i.bak '/^dash-1	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak
 
 echo "== red proves a test can fail, on a copy"
 sum=$(git status --porcelain calc.py)
@@ -110,6 +113,11 @@ python3 -c 'import yaml; yaml.safe_load(open(".github/workflows/regression.yml")
 touch BROKEN; git add -A; git commit -qm "Break it" >/dev/null
 python3 ci-block.py; rc=$?
 [ $rc = 1 ] && [ "$(calls '^issue create')" = 1 ] && ok "CI block fails and opens an issue" || bad "CI block"
+printf 'hang\tland\tsleep 31.7 & sleep 31.7\t-\t2026-01-01\tA row that hangs.\tcriterion\t\n' >> .loop/regression.tsv
+began=$(date +%s); REGRESSION_ROW_SECONDS=2 GITHUB_STEP_SUMMARY="$d/summary.md" python3 ci-block.py >/dev/null 2>&1; took=$(( $(date +%s) - began ))
+[ "$took" -lt 25 ] && grep -q "^| hang | FAIL |" "$d/summary.md" && grep -q "timed out after 2 s" "$FAKE_GH_DIR/calls.log" && ok "a row that times out fails alone, and the run goes on" || bad "row timeout (took ${took}s)"
+sleep 0.5; ! pgrep -f "sleep 31.7" >/dev/null && ok "a timed-out row leaves no process behind" || { bad "a timed-out row left a process"; pkill -f "sleep 31.7"; }
+sed -i.bak '/^hang	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak
 rm -f BROKEN ci-block.py
 grep -q 'cron: "17 9 \* \* \*"' .github/workflows/regression.yml && ok "default schedule written" || bad "default cron"
 python3 - <<'PY'

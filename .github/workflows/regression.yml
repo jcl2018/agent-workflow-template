@@ -26,7 +26,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
-          import json, os, subprocess, sys
+          import json, os, subprocess, sys, time
           def rows(path):
               if not os.path.exists(path):
                   return []
@@ -34,27 +34,41 @@ jobs:
           known = {row[0] for row in rows(".loop/regression-known.tsv")}
           def gh(*args):
               return subprocess.run(("gh",) + args, capture_output=True, text=True)
-          def run(command):  # own process group: a timed-out row fails alone, and leaves no children behind
-              child = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                       start_new_session=True)
+          ROW_SECONDS = int(os.environ.get("REGRESSION_ROW_SECONDS") or 900)
+          def run(command):  # own process group: a row that times out fails alone and leaves no children behind
+              child = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                                       errors="replace", start_new_session=True)
               try:
-                  out, err = child.communicate(timeout=900)
+                  out, _ = child.communicate(timeout=ROW_SECONDS)
                   code = child.returncode
               except subprocess.TimeoutExpired:
-                  os.killpg(child.pid, 9)
-                  out, err = child.communicate()
-                  code, err = 124, err + "\ntimed out after 900 s"
+                  out, code = "", 124
               try:
                   os.killpg(child.pid, 9)
               except OSError:
                   pass
-              return code, out + err
+              if code == 124:
+                  try:  # bounded: a process outside the group may still hold the pipe
+                      out, _ = child.communicate(timeout=10)
+                  except subprocess.TimeoutExpired:
+                      child.stdout.close()
+                  out = (out or "") + "\ntimed out after %d s" % ROW_SECONDS
+              return code, out
+          def summary(text):  # written as each row ends, so a job that runs out of time keeps what finished
+              with open(os.environ.get("GITHUB_STEP_SUMMARY") or os.devnull, "a") as handle:
+                  handle.write(text + "\n")
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body")
           issues = json.loads(out.stdout or "[]")
-          red, lines = [], ["| Row | Result |", "|---|---|"]
+          red, start = [], time.time()
+          summary("## Regression rows\n\n| Row | Result |\n|---|---|")
           for row in rows(".loop/regression.tsv"):
               if len(row) < 3 or row[1] not in ("land", "nightly"):
+                  continue
+              if time.time() - start > 80 * 60:  # leave the 90-minute job time to finish; the rest is skipped and fails
+                  red.append(row[0])
+                  print("SKIP", row[0])
+                  summary("| %s | SKIPPED: out of job time |" % row[0])
                   continue
               code, said = run(row[2])
               mark = "<!-- loop-regression %s -->" % row[0]
@@ -62,7 +76,7 @@ jobs:
               hit = next((item for item in hits if item["state"] == "OPEN"), hits[0] if hits else None)
               state = "PASS" if code == 0 else "FAIL"
               print(state, row[0])
-              lines.append("| %s | %s |" % (row[0], state))
+              summary("| %s | %s |" % (row[0], state))
               if code == 0:
                   for item in hits:
                       if item["state"] == "OPEN":
@@ -76,7 +90,5 @@ jobs:
                       if hit["state"] != "OPEN":
                           gh("issue", "reopen", str(hit["number"]))
                       gh("issue", "comment", str(hit["number"]), "--body", "Still failing.")
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as out:
-              out.write("## Regression rows\n\n" + "\n".join(lines) + "\n")
           sys.exit(1 if red else 0)
           PY

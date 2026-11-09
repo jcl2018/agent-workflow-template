@@ -145,6 +145,7 @@ def issue_cell(link):
 
 
 RUNS = {"land": "both", "nightly": "nightly", "covered": "by a person"}
+UNSEEN = ("", "-")  # a seen_red that is not a date: never seen failing
 
 
 def table(root, ids, linked):
@@ -163,7 +164,7 @@ def table(root, ids, linked):
             passing = passing or status == "PASS"
             row = rows[name]
             out.append("| %s | [%s](%s) | %s | %s | %s | %s |" % (words, name, link, row[5].replace("|", "\\|") or "-",
-                       RUNS.get(row[1], row[1]), (status + " " + date).strip(), row[4] if row[4] not in ("", "-") else "no"))
+                       RUNS.get(row[1], row[1]), (status + " " + date).strip(), row[4] if row[4] not in UNSEEN else "no"))
         if not passing:
             out.append("| %s | **not enforced** | | | | |" % words)
     guards = defect_rows(root)
@@ -175,7 +176,7 @@ def table(root, ids, linked):
         row = rows[name]
         status, date = ran.get(name, ("not run", ""))
         out.append("| %s | [%s](%s) | %s | %s | %s | %s |" % (issue_cell(row[7]).replace("|", "\\|"), name, link,
-                   row[5].replace("|", "\\|") or "-", RUNS.get(row[1], row[1]), (status + " " + date).strip(), row[4] if row[4] not in ("", "-") else "no"))
+                   row[5].replace("|", "\\|") or "-", RUNS.get(row[1], row[1]), (status + " " + date).strip(), row[4] if row[4] not in UNSEEN else "no"))
     return out
 
 

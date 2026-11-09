@@ -100,6 +100,8 @@ PY
     $goal pr fixit 2>&1 | grep -q "no passing defect test, seen failing, for #77" || no "pr opened with no defect test"
     $reg add fixit-77 --level land --command 'test -f calc.py' --goal - --category defect --link https://github.com/o/r/issues/77 --describe "calc.py stays" >/dev/null
     $goal pr fixit 2>&1 | grep -q "no passing defect test, seen failing, for #77" || no "pr accepted a defect row never seen failing"
+    awk -F'\t' 'BEGIN{OFS="\t"} $1=="fixit-77"{$5="-"} {print}' .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv
+    $goal pr fixit 2>&1 | grep -q "no passing defect test, seen failing, for #77" || no "pr accepted a defect row dated -"
     git add -A; git commit -qm "Defect row"
     $reg red fixit-77 --break 'rm calc.py' | grep -q "SEEN RED" || no "red"
     git add -A; git commit -qm "Seen failing"

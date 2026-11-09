@@ -61,7 +61,7 @@ check "the finish is the longest chain b > c > d, not the sum" 'grep -q "^finish
 import re,sys
 t=open(\"$T/block\").read()
 mins=lambda s: sum(int(n)*(60 if u==\"h\" else 1) for n,u in re.findall(r\"(\\d+)([hm])\", s))
-left={g: mins(m) for g,m in re.findall(r\"^- (\\w+)  (?:\\[.*?\\] \\d+%  )?((?:\\d+h)?\\d+m) left\", t, re.M)}
+left={g: mins(m) for g,m in re.findall(r\"^- (\\w+)  (?:\\[.*?\\] \\d+%  )?(\\d+h\\d+m|\\d+h|\\d+m) left\", t, re.M)}
 h=re.search(r\"^LIVE BOARD  \\S+  (\\d\\d):(\\d\\d)\", t, re.M); f=re.search(r\"finish about (\\d\\d):(\\d\\d)\", t)
 gap=(int(f[1])*60+int(f[2])-int(h[1])*60-int(h[2]))%1440
 chain=left[\"b\"]+left[\"c\"]+left[\"d\"]
