@@ -124,10 +124,12 @@ $OP run --poll 0.1 > "$T/op.out" 2>&1 & oppid=$!
 until_text "$T/op.out" "^LIVE BOARD"
 check "it starts a batch line by itself" 'until_file "$C/loop/runs/g.json"'
 check "the first pass prints the live board, on the cadence from board.py cadence" 'grep -q "^Finish" "$T/op.out" && grep -q "^NEXT_DELAY 120$" "$T/op.out"'
-until_status g done  # on a busy machine g's stand-in finishes late, and its report wakes the loop once more
+until_status g done || bad "g never finished"  # on a busy machine g finishes late, and its report wakes the loop once more
+settled=
 for _ in $(seq 20); do  # so wait until the output settles; a loop that prints on every poll never does
-  lines=$(wc -l < "$T/op.out"); sleep 1.5; [ "$(wc -l < "$T/op.out")" = "$lines" ] && break
+  lines=$(wc -l < "$T/op.out"); sleep 1.5; [ "$(wc -l < "$T/op.out")" = "$lines" ] && settled=yes && break
 done
+[ -n "$settled" ] || bad "the output never settled within 30 seconds"
 lines=$(wc -l < "$T/op.out"); blocks=$(grep -c "^LIVE BOARD" "$T/op.out"); sleep 1.5
 check "nothing is printed while nothing changes" '[ "$(wc -l < "$T/op.out")" = "$lines" ]'
 touch "$C/loop/runs/c.json"
@@ -138,7 +140,7 @@ until_text "$T/op.out" "step: build -> review"
 check "a change prints the live board and the CHANGE line" 'grep -q "^CHANGE .*c step: build -> review" "$T/op.out" && [ "$(grep -c "^LIVE BOARD" "$T/op.out")" -ge 2 ]'
 rm "$FAKE_AGENT/hold-c"; until_status c done
 # the worker reloads and saves the record once more when its agent ends; wait for that report, or it overwrites release
-for _ in $(seq 100); do grep -q '"report"' "$C/loop/runs/c.json" && break; sleep 0.1; done
+check "c's worker saves its final report before release is set" 'for _ in $(seq 150); do field c report | grep -q "status" && break; sleep 0.1; done; field c report | grep -q "status"'
 sets c 'release="merged"'
 for _ in $(seq 200); do kill -0 $oppid 2>/dev/null || break; sleep 0.1; done
 check "a merged dependency starts the goal that waited, and it ends when nothing is left" '! kill -0 $oppid 2>/dev/null && [ -e "$C/loop/runs/f.json" ] && grep -q "^NOTHING LEFT TO OPERATE" "$T/op.out"'

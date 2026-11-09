@@ -163,7 +163,7 @@ def table(root, ids, linked):
             passing = passing or status == "PASS"
             row = rows[name]
             out.append("| %s | [%s](%s) | %s | %s | %s | %s |" % (words, name, link, row[5].replace("|", "\\|") or "-",
-                       RUNS.get(row[1], row[1]), (status + " " + date).strip(), row[4] or "no"))
+                       RUNS.get(row[1], row[1]), (status + " " + date).strip(), row[4] if row[4] not in ("", "-") else "no"))
         if not passing:
             out.append("| %s | **not enforced** | | | | |" % words)
     guards = defect_rows(root)
@@ -175,7 +175,7 @@ def table(root, ids, linked):
         row = rows[name]
         status, date = ran.get(name, ("not run", ""))
         out.append("| %s | [%s](%s) | %s | %s | %s | %s |" % (issue_cell(row[7]).replace("|", "\\|"), name, link,
-                   row[5].replace("|", "\\|") or "-", RUNS.get(row[1], row[1]), (status + " " + date).strip(), row[4] or "no"))
+                   row[5].replace("|", "\\|") or "-", RUNS.get(row[1], row[1]), (status + " " + date).strip(), row[4] if row[4] not in ("", "-") else "no"))
     return out
 
 

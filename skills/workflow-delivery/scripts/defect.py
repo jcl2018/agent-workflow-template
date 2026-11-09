@@ -41,7 +41,7 @@ def owed(root, text):
     owe = []
     for number, finding in FIXES.findall(text):
         ref = number or finding.lower()
-        if not any(seen and has(link, ref) and subprocess.run(command, shell=True, cwd=root, capture_output=True).returncode == 0
+        if not any(seen not in ("", "-") and has(link, ref) and subprocess.run(command, shell=True, cwd=root, capture_output=True).returncode == 0
                    for _, command, seen, link in rows(root)):
             owe.append(("#" if number else "finding ") + ref)
     return owe

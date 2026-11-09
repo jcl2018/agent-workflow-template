@@ -187,7 +187,7 @@ def cmd_sync(args):
     drafts = [row["id"] for row in rows.values() if row["level"] == "draft"]
     for key in drafts:
         print("DRAFT %s: not run until it has a command and level" % key)
-    never = [row["id"] for row in rows.values() if row["level"] in ("land", "nightly") and not row["seen_red"]]
+    never = [row["id"] for row in rows.values() if row["level"] in ("land", "nightly") and row["seen_red"] in ("", "-")]
     for key in never:
         print("UNPROVEN %s: never seen failing. Run red." % key)
     bare = [row["id"] for row in rows.values() if row["level"] != "covered" and not row["description"]]
@@ -331,7 +331,7 @@ def cmd_run(args):
     if results:
         with open(path_of(root, "regression-runs.tsv"), "w") as handle:
             handle.write("# id\tstatus\tdate\n" + "".join("\t".join(ran[key]) + "\n" for key in sorted(ran)))
-    never = [item["id"] for item in results if not rows[item["id"]]["seen_red"]]
+    never = [item["id"] for item in results if rows[item["id"]]["seen_red"] in ("", "-")]
     for key in never:
         print("UNPROVEN %s: never seen failing. Run red." % key)
     live = args.live or bool(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
