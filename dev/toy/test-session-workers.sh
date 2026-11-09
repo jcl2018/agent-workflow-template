@@ -81,6 +81,11 @@ check "the session's reply is recorded with goal.py record" 'grep -q "^NEXT: goa
 
 (cd "$C/loop/worktrees/b" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/flow.py" b idea > "$T/f4" 2>&1)
 check "a reply left by an earlier try is never recorded again: the step is asked for afresh" 'grep -q "^IN SESSION idea" "$T/f4" && [ -e "$R/b.idea.txt.last" ] && [ ! -e "$R/b.idea.ran" ]'
+printf 'Planned it.\nSTEP: done\n' > "$T/plan-reply.txt"
+(cd "$C/loop/worktrees/b" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/goal.py" record b plan --file "$T/plan-reply.txt" --in-session > "$T/f5" 2>&1)
+(cd "$C/loop/worktrees/d" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/goal.py" record d idea --file "$T/plan-reply.txt" --in-session > "$T/f6" 2>&1)
+check "goal.py record --in-session records a step the worker session ran and stamps it in session; a goal with no session is refused" \
+  'grep -q "^RECORDED plan done in session" "$T/f5" && [ "$(field b flow.plan)" = "done in session" ] && grep -q "^REFUSED: d names no worker session" "$T/f6"'
 python3 - "$C/loop/session-pool.json" <<'PY'
 import json, sys
 p = json.load(open(sys.argv[1])); p["dead"] = {"name": "worker · old", "slug": "old", "state": "free"}; json.dump(p, open(sys.argv[1], "w"))
