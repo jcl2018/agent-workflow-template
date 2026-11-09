@@ -15,8 +15,8 @@ judge   (alias: suggest)
   not green and the exit code 1; a `WARN` never does. `UNREAD` means a rule couldn't read its data, and is never a pass:
   that includes a sync with no result, an unreadable run record and a failing branch list. Every non-pass line ends with the command that fixes it. `--json` prints the same rows as records.
 
-- `check` prints a fixed template: `HEALTH REPORT`, then each group (`size`, `criteria`, `docs`, `hygiene`, `performance` (the Cost rule), `Mine`) with every rule it checked, a header naming the groups run and skipped,
-  lines, then the `HEALTH:` verdict. `Mine` runs the owner's own rules from `~/.workflow-loop/health.json` (or the file
+- `check` prints a fixed template: `HEALTH REPORT`, a header naming the groups run and skipped, then each group (`size`,
+  `criteria`, `docs`, `hygiene`, `performance` (the Cost rule), `Mine`) with every rule it checked, then the `HEALTH:` verdict. `Mine` runs the owner's own rules from `~/.workflow-loop/health.json` (or the file
   `LOOP_HEALTH` names), outside the repo: exit 0 is `PASS`, 1 `FAIL`, 2 `WARN`, and a rule that can't run is `UNREAD`.
   Mine runs the owner's commands, so it is outside the read-only and same-answer promises, and it is filed only when named.
 
