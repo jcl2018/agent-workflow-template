@@ -9,13 +9,13 @@ usage: docs.py <command> [options]
                                broken criteria; exit 1 if any
   audit [--base REF] [--dry-run]
                                the one command: check every required doc, fix what is mechanical, list wording to rewrite
-  criteria PAGE                print the criterion format and the next free id for a page
+  criteria PAGE                print the requirement format and the next free id for a page
   publish [--dry-run] [--adopt PAGE]
                                copy the pages to the wiki, commit and push
   restore                      revert the last publish, if nothing came after it
 
-With "criteria": true in .loop/config.json, check also enforces the page contract: Summary, Criteria, Tests, and a
-Reviewed criterion whose wording is locked. criteria.py reviews criteria and renders the Tests table.
+With "criteria": true in .loop/config.json, check also enforces the PRD page contract (references/template.md).
+criteria.py reviews requirements and PRDs and renders Tests; prd.py drafts and converts pages.
 
 Publish never deletes a page, and refuses to replace a page without this tool's marker unless you name it with --adopt.
 It runs git and nothing else.
@@ -259,9 +259,9 @@ def counts(root):
                 texts[rel] = handle.read()
             page = os.path.basename(rel)[:-3] if rel.startswith(folder + "/") else ""
             if on and page in pages:
-                part, keep = [], False  # the Criteria section, read with prose()'s fence rules
+                part, keep = [], False  # the Requirements section, read with prose()'s fence rules
                 for line in prose(texts[rel]) or []:
-                    keep = bool(re.match(r"##\s+Criteria\s*$", line)) or (keep and not line.startswith("## "))
+                    keep = bool(re.match(r"##\s+(Requirements|Criteria)\s*$", line)) or (keep and not line.startswith("## "))
                     part += [line] if keep else []
                 ids[rel] = [m.group(1) for _, m in criteria.criteria_of(part) if m]
     known = set(i for found in ids.values() for i in found)
@@ -327,7 +327,7 @@ def cmd_criteria(args):
         if name.endswith(".md"):
             with open(os.path.join(folder, name)) as handle:
                 used += [int(n) for n in re.findall(r"^- %s-(\d+): " % prefix, handle.read(), re.M)]
-    print("FORMAT one line under ## Criteria: '- %s-N: **Unreviewed** what must hold'. The Tests table is made by "
+    print("FORMAT one line under ## Requirements: '- %s-N: **Unreviewed** what must hold'. Tests are made by "
           "criteria.py render" % prefix)
     print("NEXT %s-%d" % (prefix, max(used) + 1))
     return 0
@@ -357,7 +357,8 @@ def cmd_publish(args):
     rows = read_map(root)
     if not rows:
         sys.exit("REFUSED: no pages. Fix: run add first.")
-    found = problems(root, None) + contract(root) + [c for c in counts(root) if c[1].startswith(wiki_dir(root) + "/")]
+    found = problems(root, None) + [c for c in contract(root) if c[0] != "CHANGED"]  # Usage drift waits on the owner
+    found += [c for c in counts(root) if c[1].startswith(wiki_dir(root) + "/")]
     if found:
         for kind, page, detail in found:
             print("%s %s: %s" % (kind, page, detail))

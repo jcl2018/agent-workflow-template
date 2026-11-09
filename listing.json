@@ -92,7 +92,9 @@
     "suggest",
     "judge",
     "update",
-    "owed"
+    "owed",
+    "convert",
+    "skeleton"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",

@@ -34,7 +34,7 @@ TABLE = [
     ("routines", REPO, [], "Commands the release step runs on the base branch before it merges."),
     ("regression_cron", REPO, "17 9 * * *", "Five cron fields: when the nightly regression runs in GitHub Actions."),
     ("review_depth", REPO, "full", "full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run."),
-    ("criteria", REPO, True, "true makes docs check enforce the Summary, Criteria and Tests page contract."),
+    ("criteria", REPO, True, "true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests)."),
     ("criteria_max", REPO, 6, "Most criteria a wiki page may hold, 1 to 50; docs check and health fail a page over it."),
     ("wiki_dir", REPO, "docs/wiki", "The folder of wiki pages."),
     ("risky_paths", REPO, RISKY, "Regexes for paths whose goals need extra care."),
