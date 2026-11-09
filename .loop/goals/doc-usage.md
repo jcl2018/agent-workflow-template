@@ -15,4 +15,9 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: it prints `DOCS OK: 7 pages`.
+2. Set `"criteria_max": 1` in `.loop/config.json`, run the same command, then put it back to 6.
+   Expect: it prints a `CAP` line for every page with more than one criterion, naming `criteria_max`.
+3. Open `docs/wiki/Health.md`.
+   Expect: a Usage section between Summary and Criteria listing `health.py check`, `judge` and `run`.
