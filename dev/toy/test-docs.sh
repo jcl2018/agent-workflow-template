@@ -106,11 +106,16 @@ mkdir -p skills/a skills/b; touch skills/a/SKILL.md skills/b/SKILL.md
 echo "The toy has three skills." >> docs/wiki/Using-the-toy.md
 out=$($docs check || true); echo "$out" | grep COUNT
 grep -q "^COUNT docs/wiki/Using-the-toy.md: says three skills, the repo has 2$" <<<"$out" && ok "a page with the wrong number of skills fails, naming the file and both numbers" || bad "wrong skill count"
-$docs publish --dry-run >/dev/null 2>&1 && bad "published a wrong count" || ok "publish refuses a wrong count"
+out=$($docs publish --dry-run 2>&1) && bad "published a wrong count" || { grep -q "^COUNT docs/wiki/Using-the-toy.md: says three skills" <<<"$out" && ok "publish refuses a wrong count" || bad "publish refused for another reason"; }
+$docs audit --dry-run 2>&1 | grep -q "^COUNT docs/wiki/Using-the-toy.md: says three skills" && ok "audit reports a wrong count" || bad "audit count"
 sed -i.bak 's/The toy has three skills\./The toy has 2 skills./' docs/wiki/Using-the-toy.md; rm docs/wiki/Using-the-toy.md.bak
 $docs check | grep -q "^COUNT" && bad "the right number failed" || ok "the right number of skills passes"
-printf '\n```text\nthree skills\n```\nA single page can say one skill.\n' >> docs/wiki/Using-the-toy.md
-$docs check | grep -q "^COUNT" && bad "a code block or 'one' counted" || ok "numbers in code blocks, and 'one', are not counts"
+printf '\n```text\nthree skills\n```\n~~~\nfour skills\n~~~\n   ```\nfive skills\n   ```\nInline `six skills` is code. A single page can say one skill.\nThese nine skills are an example. <!-- not-a-count -->\nThere are 9 feature pages.\n' >> docs/wiki/Using-the-toy.md
+out=$($docs check || true); grep -q "^COUNT" <<<"$out" && bad "a skipped number counted: $out" || ok "code blocks, inline code, 'one', marked lines and feature pages with criteria off are not counted"
+echo "The toy has twenty-two skills, and 1 skill more." >> docs/wiki/Using-the-toy.md
+out=$($docs check || true)
+grep -q "says two skills" <<<"$out" && bad "twenty-two read as two" || ok "a hyphenated number is not read as its last word"
+grep -q "^COUNT docs/wiki/Using-the-toy.md: says 1 skill, the repo has 2$" <<<"$out" && ok "the digit 1 is still a count" || bad "digit 1"
 echo "The README says four skills." >> README.md
 $docs check | grep -q "^COUNT README.md: says four skills, the repo has 2$" && ok "the README is checked too" || bad "readme count"
 git checkout -q -- docs/wiki/Using-the-toy.md README.md; rm -rf skills

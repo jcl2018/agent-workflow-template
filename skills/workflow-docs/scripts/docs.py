@@ -5,7 +5,8 @@ usage: docs.py <command> [options]
 
   survey                       show the wiki's pages and this repo's page map
   add PAGE --paths A,B         add a page and the paths it describes
-  check [--base REF]           list missing, stale, unmapped and unwritten pages, and broken criteria; exit 1 if any
+  check [--base REF]           list missing, stale, unmapped and unwritten pages, counts the repo doesn't match, and
+                               broken criteria; exit 1 if any
   audit [--base REF] [--dry-run]
                                the one command: check every required doc, fix what is mechanical, list wording to rewrite
   criteria PAGE                print the criterion format and the next free id for a page
@@ -202,7 +203,9 @@ def problems(root, base):
 
 
 WORDS = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split()
-CLAIM = re.compile(r"\b(\d+|%s) (?:workflow )?(skills?|feature pages?|criteri(?:on|a)|tests?)\b" % "|".join(WORDS), re.I)
+CLAIM = re.compile(r"(?<![-\w])(\d+|%s) (?:workflow )?(skills?|feature pages?|criteri(?:on|a)|tests?)\b" % "|".join(WORDS), re.I)
+FENCE = re.compile(r"^ {0,3}(```|~~~)")
+NOT_A_COUNT = "<!-- not-a-count -->"
 
 
 def counts(root):
@@ -218,23 +221,30 @@ def counts(root):
     found = []
     for rel in names:
         try:
-            with open(os.path.join(root, rel)) as handle:
+            with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
         except OSError:
             continue
-        page = os.path.basename(rel)[:-3] if rel.startswith(folder + "/") else ""
-        ids = [m.group(1) for _, m in criteria.criteria_of(text.splitlines()) if m] if on and page in pages else []
-        real = {"skill": skills or None, "feature page": len(pages) if on else None,
-                "criteri": len(ids) if ids else None, "test": sum(len(linked.get(i, [])) for i in ids) if ids else None}
-        fenced = False
+        lines, fence = [], None  # prose lines only: no fenced blocks, no inline code
         for line in text.splitlines():
-            if line.startswith("```"):
-                fenced = not fenced
-            for match in [] if fenced else CLAIM.finditer(line):
+            opener = FENCE.match(line)
+            if opener and (fence is None or opener.group(1) == fence):
+                fence = None if fence else opener.group(1)
+            elif fence is None:
+                lines.append(re.sub(r"`[^`]*`", "", line))
+        page = os.path.basename(rel)[:-3] if rel.startswith(folder + "/") else ""
+        mine = on and page in pages
+        ids = [m.group(1) for _, m in criteria.criteria_of(lines) if m] if mine else []
+        real = {"skill": skills or None, "feature page": len(pages) if on else None,
+                "criteri": len(ids) if mine else None, "test": sum(len(linked.get(i, [])) for i in ids) if mine else None}
+        for line in lines:
+            if NOT_A_COUNT in line or re.search(r"\b[A-Z]{2,5}-\d+\b", line):  # marked, or about one criterion
+                continue
+            for match in CLAIM.finditer(line):
                 said = match.group(1).lower()
-                said = int(said) if said.isdigit() else WORDS.index(said) + 1
-                if said == 1:  # "one test" is nearly always "a single test", not a count
+                if said == "one":  # "one test" is nearly always "a single test", not a count
                     continue
+                said = int(said) if said.isdigit() else WORDS.index(said) + 1
                 thing = match.group(2).lower().rstrip("s").replace("criteria", "criteri").replace("criterion", "criteri")
                 want = real[thing]
                 if want is not None and said != want:
