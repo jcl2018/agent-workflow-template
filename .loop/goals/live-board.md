@@ -15,4 +15,9 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `python3 skills/workflow-monitoring/scripts/board_status.py`.
+   Expect: it prints a `LIVE BOARD` header (repo, local time, version, health), then Issues, Running goals (each with a 10-cell bar, percent, time left, a step flow with the current step in brackets, and a `next:` line), Queued goals, Dependencies (arrows like `a --> b`) and a single Finish line, with no merged list, milestones, token tables or done-line lists.
+2. Run `bash dev/toy/test-live-board.sh`.
+   Expect: it ends with `ALL PASS`, after checking the board line by line.
+3. Run `python3 skills/workflow-monitoring/scripts/board.py cadence`.
+   Expect: it prints `CADENCE 30`.
