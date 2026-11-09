@@ -69,7 +69,7 @@ Run it again until it stops printing `RUNNING`: a step can take many minutes. Th
 
 Goal steps (`step`, `record`, `pr`, `flow.py`) refuse outside a worker (`LOOP_ROLE=worker`), naming
 `batch.py start NAME`. In a worker they print any message from the operation session once; treat it as the owner's answer
-or follow-up. Step tokens: `references/commands.md` (Step tokens).
+or follow-up. How steps report tokens (and how to report a step `flow.py` didn't run): `references/commands.md`.
 
 The idea step writes the design and the plan step reviews it into a plan, both in your skills' own files. Commit
 anything they put in the worktree.
