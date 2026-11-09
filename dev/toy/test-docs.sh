@@ -111,7 +111,7 @@ out=$($docs publish --dry-run 2>&1) && bad "published a wrong count" || { grep -
 $docs audit --dry-run 2>&1 | grep -q "^COUNT docs/wiki/Using-the-toy.md: says three skills" && ok "audit reports a wrong count" || bad "audit count"
 sed -i.bak 's/The toy has three skills\./The toy has 2 skills./' docs/wiki/Using-the-toy.md; rm docs/wiki/Using-the-toy.md.bak
 nocount && ok "the right number of skills passes" || bad "the right number failed"
-printf '\n```text\nthree skills\n```\n~~~\nfour skills\n~~~\n   ```\nfive skills\n   ```\nInline `six skills` is code. A single page can say one skill.\nThese nine skills are an example. <!-- not-a-count -->\nThere are 9 feature pages.\n' >> docs/wiki/Using-the-toy.md
+printf '\n```text\nthree skills\n```\n~~~\nfour skills\n~~~\n   ```\nfive skills\n   ```\nInline `six skills` is code. A single page can say one skill.\nThese nine skills are an example. <!-- not-a-count -->\n\nThere are 9 feature pages.\n' >> docs/wiki/Using-the-toy.md
 out=$($docs check || true); grep -q "^COUNT" <<<"$out" && bad "a skipped number counted: $out" || ok "code blocks, inline code, 'one', marked lines and feature pages with criteria off are not counted"
 printf '\nThe toy has twenty-two skills, and 1 skill more.\n' >> docs/wiki/Using-the-toy.md  # its own paragraph
 out=$($docs check || true)
@@ -174,6 +174,12 @@ $docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: says three workflow sk
 git checkout -q -- docs/wiki/Using-the-toy.md
 printf '\nA page holds up to 9 skills, and at most 8 skills run at once.\n```python``` opens no block here.\n' >> docs/wiki/Using-the-toy.md
 nocount && ok "limits and a backtick line with a backtick after it are not counts" || bad "a limit or inline backticks counted"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\nThe toy ships the nine\nskills listed below.\n' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "says nine skills" || bad "wrapped claim"
+git checkout -q -- docs/wiki/Using-the-toy.md
+printf '\nThis line is marked. <!-- not-a-count -->\nThe next line says nine skills.\n' >> docs/wiki/Using-the-toy.md
+$docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: says nine skills" && ok "a marker covers only its own line, not the paragraph" || bad "a marker hid the next line"
 git checkout -q -- docs/wiki/Using-the-toy.md
 printf '\nThe toy ships the nine\nskills listed below.\n' >> docs/wiki/Using-the-toy.md
 $docs check | grep -q "^COUNT docs/wiki/Using-the-toy.md: says nine skills, the repo has 2$" && ok "a claim wrapped across a line break is read" || bad "wrapped claim missed"

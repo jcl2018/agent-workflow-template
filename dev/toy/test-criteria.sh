@@ -94,6 +94,8 @@ good; sed -i.bak 's/^The Delivery page of the toy calculator, written for this t
 nocount && ok "only the Criteria section is counted" || bad "a criterion-like line outside Criteria counted"
 good; printf '\n~~~\n## Criteria\n- DEL-8: **Unreviewed** An example inside code.\n~~~\nThis page has 1 criterion and 2 criteria in its examples.\n' >> docs/wiki/Delivery.md
 $docs check | grep -q "says 2 criteria, the repo has 1" && ok "a Criteria heading inside a ~~~ block is not the section" || bad "fenced Criteria heading counted"
+good; printf '\nSee DEL-1 for details.\nThis page has 3 criteria.\n' >> docs/wiki/Delivery.md
+$docs check | grep -q "says 3 criteria, the repo has 1" && ok "a line naming a criterion doesn't hide the next line" || bad "an id line hid the next line"
 good; echo "DEL-1 alone has 3 tests." >> docs/wiki/Delivery.md
 nocount && ok "a line naming a criterion is not a page count" || bad "a line about one criterion counted"
 NORENDER=1 page Delivery ""; echo "This page has 2 criteria." >> docs/wiki/Delivery.md

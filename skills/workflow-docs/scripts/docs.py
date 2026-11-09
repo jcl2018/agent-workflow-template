@@ -261,7 +261,7 @@ def counts(root):
             if on and page in pages:
                 part, keep = [], False  # the Criteria section, read with prose()'s fence rules
                 for line in prose(texts[rel]) or []:
-                    keep = line.strip() == "## Criteria" or (keep and not line.startswith("## "))
+                    keep = bool(re.match(r"##\s+Criteria\s*$", line)) or (keep and not line.startswith("## "))
                     part += [line] if keep else []
                 ids[rel] = [m.group(1) for _, m in criteria.criteria_of(part) if m]
     known = set(i for found in ids.values() for i in found)
@@ -275,12 +275,13 @@ def counts(root):
         real = {"skill": skills or None, "page": len(pages) if on else None,
                 "criteria": len(mine) if mine is not None else None,
                 "test": sum(len(linked.get(i, [])) for i in mine) if mine is not None else None}
-        paras = []  # soft-wrapped lines joined, so a claim split across a line break is still read
-        for line in lines:
+        paras, alone = [], lambda s: NOT_A_COUNT in s or known.intersection(re.findall(r"\b[A-Z]{2,5}-\d+\b", s))
+        for line in lines:  # soft-wrapped lines joined; a skipped line stays alone, so its skip covers only itself
             new = not paras or not line.strip() or re.match(r"\s*([|#]|$)", paras[-1]) or re.match(r"\s*([-*+|#>]|\d+\.)", line)
+            new = new or alone(line) or alone(paras[-1])
             paras.append(line) if new else paras.__setitem__(-1, paras[-1] + " " + line.strip())
         for line in paras:
-            if NOT_A_COUNT in line or known.intersection(re.findall(r"\b[A-Z]{2,5}-\d+\b", line)):
+            if alone(line):
                 continue  # marked, or about one criterion
             for match in CLAIM.finditer(line):
                 said, noun = match.group(1).lower(), match.group(2).lower()
