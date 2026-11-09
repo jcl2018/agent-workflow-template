@@ -178,6 +178,33 @@ def error_open(run, gone, marker):
     return graph.merged(run) and last(lambda parts: " ".join(parts).startswith(marker)) > last(lambda parts: parts[0] == "merged")
 
 
+DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-docs", "scripts", "docs.py")
+
+
+def wiki_check(root):
+    """The pages docs.py check reports now, as sorted [(kind, page)]; None when the check could not judge."""
+    try:
+        done = subprocess.run([sys.executable, DOCS, "check"], cwd=root, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if done.returncode not in (0, 1) or "NO PAGES" in done.stdout:
+        return None
+    return sorted({m.groups() for m in re.finditer(r"^([A-Z]+) (\S+): ", done.stdout, re.M)}) if done.returncode else []
+
+
+def wiki_line(runs, gone, found):
+    """At most one wiki line, from today's check. A saved error naming a page is judged by that check (dropped or already in the line);
+    one naming no page, or any saved error when the check could not judge, is kept as `saved: ...`."""
+    parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]
+    for run in runs:
+        if run.get("wiki_error") and error_open(run, gone, "wiki not published"):
+            text = " ".join(str(run["wiki_error"]).split())
+            if found is None or not re.search(r"(?:^page |\b[A-Z]{3,} )[A-Z][\w-]*[: ]", text):
+                parts.append("saved: " + text[:120])
+    parts = list(dict.fromkeys(parts))
+    return ["- wiki (docs check): %s. Fix: python3 %s audit" % ("; ".join(parts), os.path.normpath(DOCS))] if parts else []
+
+
 def pr_number(run):
     found = re.search(r"/pull/(\d+)", str(run.get("pr") or "")) or re.search(r"(\d+)\s*$", str(run.get("pr") or ""))
     return "#" + found.group(1) if found else "#" + run["slug"]
@@ -203,6 +230,16 @@ def milestones(root):
             for item in found] + ["overall %s" % bar(closed, total)] if found else []
 
 
+def longest_path(live, at):
+    """The status_graph total with its finish time shown in the local zone, named."""
+    line = status_graph.total(live, at)
+    seconds = status_graph.chain(status_graph.completed(live))[0]
+    if seconds and ", finish about " in line:
+        head, _, tail = line.partition(", finish about ")
+        line = head + ", finish about " + graph.clock(at + datetime.timedelta(seconds=seconds)) + tail[5:]
+    return "longest path: " + line
+
+
 def sections(root=None, at=None):
     root = root or git("rev-parse", "--show-toplevel")
     at = at or datetime.datetime.now(datetime.timezone.utc)
@@ -214,10 +251,9 @@ def sections(root=None, at=None):
     gone = {run["slug"] for run in runs if graph.merged(run) or states.get(run["slug"]) == "MERGED"}
     closed = {run["slug"] for run in runs if run["slug"] not in gone and states.get(run["slug"]) == "CLOSED"}
     since = stamp((read_json(os.path.join(os.path.dirname(folder), "checkin.json")) or {}).get("at"))
+    needs += wiki_line(runs, gone, wiki_check(root))
     for run in runs:
         report = (run.get("report") or {}).get("text", "") or ((run.get("reports") or [{}])[-1].get("text", "") if run.get("status") == "running" else "")
-        if run.get("wiki_error") and error_open(run, gone, "wiki not published"):
-            needs.append("- %s (wiki not published): %s" % (run["slug"], " ".join(str(run["wiki_error"]).split())[:200]))
         if run.get("release_error") and error_open(run, gone, "release failed"):
             needs.append("- %s (release failed): %s" % (run["slug"], " ".join(str(run["release_error"]).split())[:200]))
         if run.get("status") in ASKING:
@@ -236,11 +272,14 @@ def sections(root=None, at=None):
     live = [item for item in items if item["mark"] != "merged" and item["slug"] not in closed]
     prs = sorted((pr_number(run) for run in runs if run["slug"] in gone), key=lambda n: (len(n), n))
     shut = sorted((pr_number(run) for run in runs if run["slug"] in closed), key=lambda n: (len(n), n))
-    road = status_graph.render_text(live, under) + [status_graph.merged_line(prs)] + (["closed without merging: " + " ".join(shut)] if shut else []) + milestones(root)
+    road = status_graph.render_text(live, under) + graph.flow(status_graph.completed(live)) + [status_graph.merged_line(prs)] + \
+        (["closed without merging: " + " ".join(shut)] if shut else []) + milestones(root)
+    longest = longest_path(live, at)
+    road.append(longest)
     shown = [run for run in runs if run.get("status") in ("running", *ASKING) or new_merge(run, since, gone)]
     goals = [line for run in shown for line in goal_lines(run, root)] + [line for goal in queued(root, runs) for line in goal_lines(dict(goal, status="queued"), root)]
     return list(zip(TITLES, [needs or ["(nothing needs you)"], road,
-                             [status_graph.total(live, at)], goals or ["(no goals)"]]))
+                             [longest], goals or ["(no goals)"]]))
 
 
 def text(parts):
