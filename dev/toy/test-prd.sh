@@ -280,6 +280,10 @@ sed -i.bak 's/^- Write this page from what is really in the repo\./- A real draf
 check | grep -q "DOCS OK" && ok "with real drafts the converted page passes" || bad "drafted: $(check)"
 printf '<!-- workflow-docs -->\n# Delivery\n\nReview: **Unreviewed**\n\n## Problem\n\nHalf done.\n\n## Criteria\n\n%s\n\n## Non-goals\n\n- None.\n\n## Tests\n\n' "$REQS" > $P
 $prd convert --write | grep -q "^Delivery completed$" && grep -q "^## Requirements$" $P && grep -q "^## Success metrics$" $P && [ "$(grep -c '^Review:' $P)" = 1 ] && ok "a half-converted page is completed" || bad "completed"
+printf '<!-- workflow-docs -->\n# Delivery\n\nReview: **Unreviewed**\n\n## Problem\n\nHalf done.\n\n## Requirements\n\n%s\n\n## Success metrics\n\n- m\n\n## Tests\n\n' "$REQS" > $P
+$prd convert --write >/dev/null; grep '^## ' $P | tr '\n' '~' | grep -q "^## Problem~## Requirements~## Non-goals~## Success metrics~## Tests~$" && ok "a missing Non-goals goes before Success metrics" || bad "non-goals order: $(grep '^## ' $P | tr '\n' ' ')"
+printf '## Summary\n\nNo title.\n\n## Criteria\n\n%s\n\n## Tests\n\n' "$REQS" > $P
+$prd convert --write >/dev/null; grep -q "^## Problem$" $P && grep -q "^No title.$" $P && [ "$(grep -c '^Review:' $P)" = 1 ] && ok "a page with no title keeps its first heading" || bad "no title: $(head -5 $P | tr '\n' ' ')"
 printf '<!-- workflow-docs -->\n# Delivery\n\n## Overview\n\nOdd.\n\n## Tests\n\n' > $P
 out=$($prd convert --write); rc=$?
 grep -q "^Delivery refused: sections are Overview, Tests" <<<"$out" && [ "$rc" = 1 ] && grep -q "Fix:" <<<"$out" && ok "an unrecognized page is refused with what is missing" || bad "refused: $out"

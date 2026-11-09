@@ -206,16 +206,19 @@ def convert_text(text, rule):
             raw = "## " + first
         elif not fenced and raw.strip() == "## Criteria":
             raw = "## " + second
-        elif not fenced and raw.strip() == "## Tests":
+        elif not fenced and raw.strip() in ("## " + fourth, "## Tests"):
             for name, there in ((third, plan[2]), (fourth, plan[3])):
-                if not there:
+                if not there and "## " + name not in out:
                     out += ["## " + name, "", "- " + PLACEHOLDER, ""]
+                if raw.strip() == "## " + fourth:
+                    break
         out.append(raw)
     fresh = "\n".join(out)
     if not line:
         pre = head(fresh)
         spot = max([n for n, item in enumerate(pre) if item.startswith(("# ", rule["milestone"] + ":"))] or [0])
-        fresh = "\n".join(pre[:spot + 1] + ["", "Review: **Unreviewed**"] + fresh.split("\n")[spot + 1:])
+        rest = fresh.split("\n")[spot + 1 if pre else 0:]
+        fresh = "\n".join(pre[:spot + 1] + ["", "Review: **Unreviewed**"] + ([""] if not pre else []) + rest)
     return ("converted" if "Summary" in have and "Criteria" in have else "completed"), fresh
 
 
