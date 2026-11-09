@@ -11,6 +11,8 @@ Commands, flows and how-tos: `skills/workflow-monitoring/references/commands.md`
 
 A failed release is recorded as `release_error` and lists under Needs you beside `wiki_error`.
 
+A `wiki_error` leaves Needs you once a later publish succeeds or the goal is merged. A pull request closed without merging reads `closed without merging` in the Roadmap, never awaiting merge. Goals lists done lines only for running, waiting and queued goals and goals merged since the last check-in (`board_runs.py checkin`, written after each full block).
+
 ## Criteria
 
 - MON-1: **Reviewed 2026-11-08** Roles, start and planning. One command starts the operation session and drives the whole process the same way every time. The operation session plans queued goals as a dependency graph and runs every goal whose dependencies are met in parallel, each in its own worker and worktree, and never builds. A goal waits only on goals it truly depends on; sharing files is not a reason to wait: the later goal brings in the earlier one's merged changes and runs its checks again, and only a real conflict sends it back to fix. <!-- reviewed 83a0d431 -->
