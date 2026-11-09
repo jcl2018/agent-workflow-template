@@ -36,20 +36,12 @@ Without the switch it refuses, and the owner merges. `ask`, `cut` and `leave` be
 
 ## `merge <slug>`
 
-```bash
-python3 scripts/merge.py <slug>
-```
-
 `MERGED <url> into main` means it merged. `REFUSED` means the switch is off, the goal has no finished pull request, or
 the pull request isn't open.
 
 ## 1. Ask
 
 When `workflow-delivery` ends with `NEXT: workflow-release asks cut or leave`, run:
-
-```bash
-python3 scripts/release.py ask <slug>
-```
 
 It refuses unless the goal is `done`.
 
@@ -76,10 +68,6 @@ release is always a draft. Without `release_auto`, nothing changes.
 ## 2. `leave <slug>`
 
 When the user's answer is `leave <slug>`, run:
-
-```bash
-python3 scripts/release.py leave <slug>
-```
 
 `leave` keeps the work unreleased. It records the answer in the run state, which lives in the git folder, and changes
 nothing versioned: no file in the repo, no commit, no tag, no branch. The pull request stays open for review.

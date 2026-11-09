@@ -22,19 +22,11 @@ or `--add-dir` in claude), write that flag as `--flag=value` or move it earlier.
 
 ## `go "<goal>" --done "<line>" ... [--touches A,B] [--depends-on A,B] [--slug S] [--release ask]`
 
-```bash
-python3 scripts/watch.py go "<goal>" --done "<line>" --touches "<file,file>"
-```
-
 It adds the goal to `.loop/queue.md` and starts it if a slot is free. It refuses with no skill flow set (see
 `workflow-delivery`). Then run `watch`. Don't build the goal here, and don't commit the queue. `go`, `watch` and `resume` also take `--skill-dir DIR`, the skills folder to
 name in a prompt.
 
 ## `watch [--max N] [--once] [--interval S]`
-
-```bash
-python3 scripts/watch.py watch
-```
 
 Before the first run in a repo, show the user the queue and the `agent_command`. Each pass, it:
 
@@ -68,10 +60,6 @@ A limit doesn't use up the mend. Neither merges, edits done lines, changes permi
 
 ## `report`
 
-```bash
-python3 scripts/monitor.py report
-```
-
 It first marks a `running` background goal whose agent has gone as `failed`, with the end of its log as the finding.
 Then it prints:
 
@@ -87,19 +75,11 @@ Give the user the waiting section first, with the words exactly as printed. When
 
 ## `dashboard [--out FILE]`
 
-```bash
-python3 scripts/monitor.py dashboard
-```
-
 It writes one self-contained HTML page, by default `<git common dir>/loop/dashboard.html`, and prints its path. It
 shows the same facts as `report`, with what waits on the user at the top. It has no scripts, loads nothing from the
 network and follows the system's light or dark setting. Publish it as an Artifact if you can; otherwise give the path.
 
 ## `resume SLUG`
-
-```bash
-python3 scripts/watch.py resume <slug>
-```
 
 It takes only a `failed` or `stopped` goal and refuses anything else with a one-line reason. It keeps the branch and
 worktree, makes the worktree again from the branch if it's gone, sets the goal back to `running` (a stopped goal's tries
