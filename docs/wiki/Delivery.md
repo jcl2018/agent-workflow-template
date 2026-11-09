@@ -21,7 +21,7 @@ template keeps every gate until its owner turns one off.
 - `goal.py new SLUG --goal "..." --done "..."` freezes a goal and its done lines; from the operation session, `watch.py go` hands it to a background worker instead.
 - `flow.py SLUG STEP` runs the idea, plan, review, qa or ship step unattended; run it again until it stops printing `RUNNING`, then `goal.py record SLUG STEP --file FILE` records it.
 - A decision a step leaves for the owner shows under Issues on the live board until it is answered.
-- `goal.py pr SLUG` merges the latest base branch, pushes and opens the pull request; it never merges. A goal that fixes an issue or finding needs a defect test with a real seen-failing date first; `-` does not count.
+- `goal.py pr SLUG` merges the latest base branch, pushes and opens the pull request; it never merges. A goal that fixes an issue or finding needs a defect test with a real seen-failing date first; `-` does not count, by the same rule as `regression.py sync`.
 - `merge.py SLUG` is the release step: it brings the docs up to date, merges where `auto_merge` is on, bumps the version and writes the release note. `release.py ask|cut|leave SLUG` is the manual path.
 
 ## Criteria

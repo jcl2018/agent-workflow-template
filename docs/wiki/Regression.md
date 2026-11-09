@@ -12,7 +12,7 @@ Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.l
 - `regression.py add ID --level land --command "..." --goal DEL-1` adds a test row; `--category defect --link URL` makes it a defect test.
 - `regression.py red ID --break "..."` records that the test fails on broken code. A seen-failing date of `-` counts as never seen failing.
 - `regression.py run land` runs the rows and opens, updates or closes one issue per failing row. A row whose suite takes 20 seconds or more is `nightly`, so it runs only in the nightly and full runs.
-- `regression.py sync` lists criteria with no row and rows never seen failing; `regression.py workflow` writes the GitHub Actions workflow. It runs each row in its own process group with a 15-minute limit, so a row that times out fails alone, inside a 90-minute job.
+- `regression.py sync` lists criteria with no row and rows never seen failing; `regression.py workflow` writes the GitHub Actions workflow. It runs each row in its own process group with a 15-minute limit, so a row that times out fails alone, inside a 90-minute job. Each row's result goes into the job summary as it ends, and rows still waiting after 80 minutes are marked skipped and fail the run.
 
 ## Criteria
 
