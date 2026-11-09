@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.8.9 - 2026-11-09
+
+- wiki-sync: release step refreshes every stale page, toy test, pages
+- wiki-sync: release step refreshes every stale page, toy test, pages
+- wiki-sync: verify steps, test row run
+- Merge remote-tracking branch 'origin/main' into loop/wiki-sync
+- wiki-sync: update the Needs you assertion to the current board line
+
+### How to verify
+
+1. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: it prints `DOCS OK`.
+2. Run `python3 skills/workflow-release/scripts/wiki.py prepare wiki-sync`.
+   Expect: it prints `WIKI CURRENT`, the same verdict as step 1.
+3. Run `bash dev/toy/test-wiki.sh`.
+   Expect: every line is PASS, including `prepare lists the unmapped stale page` and `merge publishes the refreshed page`.
+
 ## v0.8.8 - 2026-11-09
 
 - operate-fit-3: current wiki line, flow chart, local times
