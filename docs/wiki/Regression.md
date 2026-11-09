@@ -98,3 +98,7 @@ Temporary, until the PRD format replaces the criteria pages: a goal runs the ful
 - Given the qa step, when it runs the tests, then it records the run with the exact command ship checks. — [lanes-qa-record](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
 - Given the base merged before the pull request, when tests run, then only the affected tests rerun. — [lanes-pr-affected](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
 - **not enforced**: no passing test
+
+### Defect tests
+
+- Given a toy test that starts stand-in agents, when it passes, fails, is interrupted or its pipe closes, then no process it started is left running. — [#100](https://github.com/jcl2018/agent-workflow-template/issues/100), [toy-no-leftovers](../../.loop/regression.tsv), both, not run, seen failing no
