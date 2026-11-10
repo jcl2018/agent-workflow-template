@@ -10,6 +10,7 @@ usage: health.py check [--json] [--group NAME[,NAME]] [--skip NAME[,NAME]]
 check prints the formal report (report.py): the twelve groups of groups.py, each under a heading with its angle, every
 rule marked pass, warn, fail or unread with its fix, then one verdict, HEALTH: green or not green. Only FAIL and UNREAD
 turn it red (exit 1). Every rule has a negative control (controls.py); a rule with none makes health.py refuse (exit 2).
+docs-check also fails an open issue with no milestone (issues.py, DOC-10); its unread row never turns the verdict red.
 preview lists what file would do and writes nothing; file writes GitHub issues on each finding's feature milestone
 (file.py, feature.py); triage lists and closes them in batches (triage.py). Rules live here and in rules_trace.py,
 rules_fresh.py and rules_guard.py; --json prints the rows.
@@ -102,8 +103,7 @@ def criteria_rows(root):
         if gap and re.match(r"^[A-Za-z0-9-]+:\d+$", gap.group(1)):
             loose += 1
         elif gap and "criterion has no regression row" in gap.group(2):
-            rows.append(row("FAIL", "requirements", gap.group(1), "rows", "criterion has no regression row",
-                            "add a row with regression.py add"))
+            rows.append(sibling_module("enforce").row(root, gap.group(1), row))
         elif line.startswith(("DRAFT ", "UNPROVEN ")):
             word, key = line.split()[:2]
             rows.append(row("FAIL", "requirements", key.rstrip(":"), "proof", "a draft row: no command or level yet",
@@ -201,6 +201,17 @@ def sibling_module(name):
         sys.path.pop(0)
 
 
+def docs_check(root):
+    """docs.py's check plus issues.py's DOC-10 rows (an open issue with no milestone)."""
+    issues = sibling_module("issues")
+    return docs_rows(root) + (issues.rows(root) if issues else [])
+
+
+def hard_unread(item):
+    """An UNREAD row that means its function didn't run; the SOFT issue-list row (report.SOFT) doesn't."""
+    return item["state"] == "UNREAD" and not (item["family"] == "docs" and item["rule"] == "milestone")
+
+
 def rule_functions():
     """Each rule -> the function that checks it (and that its control calls)."""
     lean, extra = sibling_module("lean"), {}
@@ -208,7 +219,7 @@ def rule_functions():
         module = sibling_module(name)
         extra.update(module.FUNCTIONS if module else {})
     found = {"scripts": size_rows, "rows": criteria_rows, "proof": criteria_rows, "done": criteria_rows,
-             "seen-red": criteria_rows, "defect-tests": defect_rows, "docs-check": docs_rows, "findings": hygiene_rows,
+             "seen-red": criteria_rows, "defect-tests": defect_rows, "docs-check": docs_check, "findings": hygiene_rows,
              "waiting": hygiene_rows, "branches": hygiene_rows, "cost": cost_rows}
     if lean:
         found.update({"test-time": lean.test_rows, "worktrees": lean.worktree_rows, "local-branches": lean.branch_rows})
@@ -241,7 +252,7 @@ def mine_rows(root):
 
 def cost_rows(root):
     cost = sibling_module("cost")
-    return cost.cost_rows(root, HERE) if cost else [row("UNREAD", "cost", "cost.py", "cost", "cost.py is not installed beside health.py")]
+    return cost.cost_rows(root, HERE) if cost else [row("UNREAD", "cost", "cost.py", "cost", "cost.py is missing")]
 
 
 def gather(root, family, ran_rules=None):
@@ -270,7 +281,7 @@ def gather(root, family, ran_rules=None):
                     done[fn] = [placed(item) for item in fn(root)]
                 except Exception as error:  # a broken rule is unread, never a pass
                     done[fn] = [row("UNREAD", name, rule, rule, "%s: %s" % (type(error).__name__, str(error)[:100]))]
-            if ran_rules is not None and not any(i["state"] == "UNREAD" for i in done[fn]):  # a shared source unread: none ran
+            if ran_rules is not None and not any(hard_unread(i) for i in done[fn]):  # a shared source unread: none ran
                 ran_rules.add(rule)
     for got in done.values():
         rows += [item for item in got if item["family"] in asked]

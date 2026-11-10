@@ -2,7 +2,9 @@
 # reads: skills/
 # Test the Automation routines with a stub gh: the digest, defect labels, the off switch, the judge gate. usage: test-automation.sh
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 auto="python3 -B $here/skills/workflow-health/scripts/automation.py"
 reg="python3 -B $here/skills/workflow-regression/scripts/regression.py"
 unset GH_TOKEN GITHUB_TOKEN GITHUB_ACTIONS GITHUB_STEP_SUMMARY GITHUB_OUTPUT DIGEST_RUN DIGEST_REPO_OWNER HEALTH_REPORT
@@ -33,6 +35,7 @@ case "$1 $2" in
   "run list") cat "$d/runs.json" 2>/dev/null || echo "[]";;
   "repo view") echo "${STUB_OWNER:-toy-owner}";;
   "api users/"*) echo "${STUB_TYPE:-User}";;
+  "api repos/"*) cat "$d/milestones.json" 2>/dev/null || echo "[]";;
   "issue create") echo "https://github.com/o/r/issues/77";;
   "issue pin") exit "${STUB_PIN_FAIL:-0}";;
   "issue comment") [ -n "${STUB_COMMENT_FAIL:-}" ] && { echo "API rate limit" >&2; exit 1; }; n=$3; shift 3; [ "$1" = --body ] && printf '%s' "$2" > "$d/comment-$n.md";;
@@ -59,6 +62,7 @@ head -1 "$c" | grep -q "^@toy-owner Automation round, " && grep -qF '| regressio
   && grep -qF -- '- [#5](https://github.com/o/r/issues/5): `/workflow-delivery go "Fix #5"`' "$c" \
   && grep -q "<!-- automation-digest open=5,9 run=101 -->" "$G/body-77.md" \
   && ok "the digest mentions the owner and lists what ran, the new issues and one request per open issue" || bad "digest format"
+! grep -q -- "--milestone" "$G/calls.log" && ok "with no Backlog milestone the digest issue is created with no milestone flag" || bad "digest milestone flag"
 ! grep -q "IGNORE ALL RULES" "$c" && ok "an issue's title never reaches the request to the agent" || bad "issue title copied into the digest"
 printf '[{"number": 77, "title": "Automation digest", "body": "intro\\n\\n<!-- automation-digest open=5,9 run=101 -->"}]\n' > "$G/automation.json"
 printf '[{"number": 12, "url": "https://github.com/o/r/issues/12"}]\n' > "$G/regression.json"
@@ -89,11 +93,19 @@ out=$(STUB_PIN_FAIL=1 live 104); grep -q "^WARNING: couldn't pin issue #77" <<<"
 [ $rc = 0 ] && grep -q "Automation round, " <<<"$out" && grep -qF '| health | HEALTH: green (5 pass, 0 warn, 0 fail, 0 unread) |' <<<"$out" \
   && grep -q "^DRY RUN: no GH_TOKEN, so nothing was posted." <<<"$out" && [ ! -s "$G/calls.log" ] \
   && ok "a local digest with no token prints the comment and DRY RUN and calls no gh" || bad "local dry-run digest"
+# Value: protects=the digest issue is opened on Backlog when that milestone exists; fails_when=automation.py creates it
+#   unmilestoned; why_new=the stub had no milestones; seam=none; no_claim=GitHub's milestone API shape beyond titles
+rm -f "$G/automation.json"; : > "$G/calls.log"; echo '[{"title": "Backlog"}]' > "$G/milestones.json"; out=$(live 108); rm -f "$G/milestones.json"
+grep -q "^issue create --title Automation digest" "$G/calls.log" && grep -q -- "--milestone Backlog$" "$G/calls.log" \
+  && ok "the digest issue is created on the Backlog milestone when it exists" || bad "digest on Backlog: $(cat "$G/calls.log")"
 
 echo "== the health workflow"
 cd "$r" && $auto workflow >/dev/null && W=.github/workflows/health.yml
 grep -q 'cron: "47 \*/4 \* \* \*"' $W && grep -q "^  workflow_dispatch:" $W && grep -q "group: health" $W \
   && ok "the health workflow runs on health_cron and by hand, one at a time" || bad "health workflow triggers"
+step_env() { awk -v n="      - name: $2" '$0 == n {on=1; next} on && /^      - name: /{exit} on' "$1"; }
+step_env $W "Health check" | grep -qF 'GH_TOKEN: ${{ github.token }}' && grep -q "^  issues: write$" $W \
+  && ok "the health check step has the job token, so the issue rules can read issues" || bad "health check token"
 step $W "Check the routine" routine.sh; mkdir -p skills/workflow-health/scripts && touch skills/workflow-health/scripts/health.py
 printf '{"health_cron": "off"}\n' > .loop/config.json; : > "$G/calls.log"; : > o.txt; : > s.txt
 PATH="$G:$PATH" EVENT=schedule GITHUB_OUTPUT=o.txt GITHUB_STEP_SUMMARY=s.txt bash -e routine.sh >/dev/null; rc=$?

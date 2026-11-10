@@ -4,6 +4,7 @@
 # Test the formal health report and filing by group on a toy repo with a fake gh. usage: test-health-report.sh [DIR]
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1
@@ -16,7 +17,7 @@ python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 export LOOP_HEALTH="$d/none.json"  # after setup: no private rules
 mkdir -p docs/wiki skills/x/scripts; mkdir -p "$FAKE_GH_DIR"; : > "$FAKE_GH_DIR/calls.log"
-printf '<!-- workflow-docs -->\n# Calc\n\n## Summary\n\nCalc adds numbers.\n\n## Criteria\n\n- REL-1: **Unreviewed** calc adds.\n' > docs/wiki/Calc.md
+printf '<!-- workflow-docs -->\n# Calc\n\n## Summary\n\nCalc adds numbers.\n\n## Criteria\n\n- REL-1: **Reviewed 2026-01-01** calc adds.\n' > docs/wiki/Calc.md
 printf 'Calc\tcalc.py\nGhost\tghost.py\n' > .loop/docs.tsv
 python3 -c "print('# pad\n' * 3400)" > skills/x/scripts/near.py
 git add -A; git commit -qm "Findings in several groups"; git push -q origin main; git branch loop/old
@@ -71,6 +72,10 @@ $health check --json | python3 -c "import json,sys; d=json.load(sys.stdin); c=d[
 out=$($health check --group docs)
 sed -n 2p <<<"$out" | grep -q "^groups run: Docs; skipped: Requirements (not asked), Traceability (not asked), Consistency (not asked), Freshness (not asked), Tests (not asked), Performance (not asked), Security and privacy (not asked), Size (not asked), Hygiene (not asked), Adoption (not asked), Mine (not asked), Controls (not asked)$" \
   && ! grep -Eq "^PASS (requirements|traceability|consistency|freshness|tests|performance|security|size|hygiene|adoption) " <<<"$out" && ok "a named group run lists the rest as skipped, none shown passing" || bad "named group header"
+# Value: protects=an unread issue list (SOFT) never hides the passing docs check row; fails_when=complete() counts the
+#   SOFT milestone row as the docs group's check row; why_new=no test ran complete() with only a SOFT row; seam=none
+(cd "$here/skills/workflow-health/scripts" && python3 -B -c "import report; r = report.complete([{'state': 'UNREAD', 'family': 'docs', 'subject': 'issues', 'rule': 'milestone', 'detail': 'x', 'fix': ''}], ['docs']); exit(not any(x['state'] == 'PASS' and x['rule'] == 'docs-check' for x in r))") \
+  && ok "an UNREAD issue list still shows the PASS docs check row" || bad "soft row hid the docs check"
 
 echo "== preview writes nothing"
 before=$(writes)

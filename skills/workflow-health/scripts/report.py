@@ -3,7 +3,8 @@
 A header naming every group run and any skipped, then each group in the fixed order (groups.py) under a heading that
 states its angle, with every rule it checked (PASS, WARN, FAIL or UNREAD, a fix on each line that is not a pass), then
 one verdict. A rule that gave no row passes only when its function ran; a rule whose source could not be read, or whose
-function did not run, is UNREAD, never a pass (HLT-3).
+function did not run, is UNREAD, never a pass (HLT-3). A SOFT UNREAD row (the open
+issue list, issues.py) is shown but not counted, so it never turns the verdict red.
 """
 import groups as G
 
@@ -14,6 +15,13 @@ SOURCE = {"rows": "sync", "proof": "sync", "done": "sync", "seen-red": "sync"}  
 
 def shown(name):
     return G.TITLE.get(name, name)
+
+
+SOFT = {("docs", "milestone")}  # UNREAD rows shown but never counted: an unreadable issue list (issues.py) is not red
+
+
+def counted(item):
+    return item["state"] != "UNREAD" or (item["family"], item["rule"]) not in SOFT
 
 
 def rule_of(item):
@@ -31,7 +39,7 @@ def complete(rows, ran, ran_rules=None):
     out = list(rows)
     blind = {SOURCE[rule_of(item)] for item in rows if item["state"] == "UNREAD" and rule_of(item) in SOURCE}
     for name in ran:
-        seen = {rule_of(item) for item in rows if item["family"] == name}
+        seen = {rule_of(item) for item in rows if item["family"] == name and counted(item)}  # a soft UNREAD is never a pass
         for rule in RULES.get(name, ()):
             if rule in seen:
                 continue
@@ -64,7 +72,7 @@ def build(rows, asked=None, ran_rules=None):
     """(lines, counts, green, verdict, ran, skipped, rows) for the fixed template."""
     ran, skipped = groups(rows, asked)
     rows = complete(rows, [name for name in ran if name != "mine"], ran_rules)
-    counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
+    counts = {state: sum(1 for item in rows if item["state"] == state and counted(item)) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
     green = not counts["FAIL"] and not counts["UNREAD"]
     verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % (
         "green" if green else "not green", counts["PASS"], counts["WARN"], counts["FAIL"], counts["UNREAD"])

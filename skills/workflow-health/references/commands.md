@@ -29,12 +29,11 @@ unchanged repo print the same lines.
 | | `proof` | a row is a draft with no command or level (FAIL) |
 | | `done` | done lines have no regression row, as one WARN; goals frozen before `done_lines_since` owe none |
 | Traceability (can I follow any work end to end?) | `defect-tests` | closed work has no defect test (FAIL) |
-| | `issue-milestone` | an open issue has no milestone (WARN) |
 | | `row-requirement` | a row guards an id no page defines and isn't a done line `slug:N` (FAIL) |
 | Consistency (do the pages agree?) | `ids-unique` | a requirement id is defined on two pages (FAIL) |
 | | `refs` | a page names an id of a known prefix that no page defines (FAIL) |
 | | `usage-readme` | the README names a `/workflow-x verb` no page's Usage names (WARN) |
-| Docs (does each page match the template and the code?) | `docs-check` | `docs.py check`: a stale page WARNs, any other gap FAILs (its requirement count belongs to Size) |
+| Docs (does each page match the template and the code?) | `docs-check` | `docs.py check`: a stale page WARNs, any other gap FAILs (its requirement count belongs to Size); `issues.py` (DOC-10): an open issue with no milestone FAILs, and an unreadable issue list is shown as UNREAD but never turns the verdict red |
 | Freshness (is anything out of date?) | `nightly` | the newest nightly run is older than a day (WARN) |
 | | `unreleased` | commits after the newest `v*` tag, the oldest over 3 days old (WARN) |
 | | `finding-age` | an open health issue is older than 30 days (WARN) |

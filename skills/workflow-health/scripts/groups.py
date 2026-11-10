@@ -7,7 +7,7 @@ name; older labels map through LABELS. Exactly twelve groups: adding one means r
 GROUPS = (
     ("requirements", "Requirements", "my angle: is every promise I approved proven?", ("rows", "proof", "done")),
     ("traceability", "Traceability", "an auditor's angle: can I follow any work end to end?",
-     ("defect-tests", "issue-milestone", "row-requirement")),
+     ("defect-tests", "row-requirement")),
     ("consistency", "Consistency", "a reader's angle: do the pages agree?", ("ids-unique", "refs", "usage-readme")),
     ("docs", "Docs", "a newcomer's angle: does each page match the template and the code?", ("docs-check",)),
     ("freshness", "Freshness", "my angle when I come back: is anything out of date?", ("nightly", "unreleased", "finding-age")),

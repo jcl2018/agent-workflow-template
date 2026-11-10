@@ -6,6 +6,7 @@ set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 M="$here/skills/workflow-monitoring/scripts"; OP="python3 $M/operate.py"; DOCS="python3 $here/skills/workflow-docs/scripts/docs.py"
 export HOME="$T/home"; mkdir -p "$HOME"; export TZ=Asia/Kolkata

@@ -45,6 +45,8 @@ jobs:
           fi
       - name: Health check
         if: steps.routine.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}  # docs-check's issue milestones (DOC-10) and finding-age read the open issues
         run: |
           python3 skills/workflow-health/scripts/health.py check --group requirements,traceability,consistency,docs,freshness,tests,security,size,adoption > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
           { echo "## Health"; echo; echo '```'; cat "$RUNNER_TEMP/health-report.txt"; echo '```'; echo

@@ -38,7 +38,7 @@ DEFAULT = tuple(g for g in G.ORDER if g not in ("mine", "controls"))  # a previe
 BAD = ("WARN", "FAIL", "UNREAD")
 # Shown, never filed: local paths and machine state, the controls, and the check's own clock.
 REPORT_ONLY = ("test-time", "worktrees", "local-branches", "idle-sessions", "scan-hook", "check-time", "control",
-               "finding-age")  # finding-age is about health issues themselves: filing it would feed itself
+               "finding-age", "milestone")  # finding-age and milestone (DOC-10) are about issues themselves: filing them would feed itself
 OLD = {"requirements": "criteria", "performance": "cost", "traceability": "criteria", "tests": "criteria"}
 OLD_RULE = {"scripts": "limit", "seen-red": "proof", "done": "rows"}
 

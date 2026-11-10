@@ -2,7 +2,9 @@
 # reads: skills/
 # Test HLT-6 on a toy repo: negative controls, test time, stale worktrees and branches. usage: test-health-hygiene.sh [DIR]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1
@@ -24,7 +26,7 @@ field() { python3 -c "import json,sys;d=json.load(sys.stdin);print([r for r in d
 echo "== negative controls"
 out=$($health check --group controls); echo "$out"
 n=$(cd "$S" && python3 -c "import groups; print(len(groups.RULES))")
-[ "$n" -ge 35 ] && [ "$(grep -c '^PASS controls .* control: fires on its fixture' <<<"$out")" = "$n" ] && [ "$(grep -c '^[A-Z]* controls ' <<<"$out")" = "$n" ] && ok "every rule's control fires ($n)" || bad "controls fire"
+[ "$n" -ge 34 ] && [ "$(grep -c '^PASS controls .* control: fires on its fixture' <<<"$out")" = "$n" ] && [ "$(grep -c '^[A-Z]* controls ' <<<"$out")" = "$n" ] && ok "every rule's control fires ($n)" || bad "controls fire"
 grep -q "/tmp\|/var/\|health-control-" <<<"$out" && bad "a control row shows a temp path" || ok "control rows carry no temp path"
 [ "$($health check --group controls)" = "$out" ] && ok "controls print the same lines twice" || bad "controls differ"
 # Value: protects=a rule that silently stops matching is reported as unable to fire; fails_when=controls only check

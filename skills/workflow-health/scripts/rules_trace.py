@@ -1,6 +1,5 @@
 """Traceability and Consistency rules (groups.py), and the page reader the other rule modules share. Read-only.
 
-  issue-milestone  an open issue with no milestone (WARN; INFO when gh is not available here)
   row-requirement  a regression row whose goal names no requirement on any page and is not a done line slug:N (FAIL)
   ids-unique       a requirement id defined on two pages (FAIL)
   refs             a page naming an id of a known prefix (HLT-12 when HLT ids exist) that no page defines (FAIL)
@@ -12,7 +11,6 @@ import json
 import os
 import re
 
-import ghcache
 
 LINE = re.compile(r"^- ([A-Z]{2,5}-\d+[a-z]?): ", re.M)
 SLUG_N = re.compile(r"^[a-z0-9][a-z0-9-]*:\d+$")
@@ -67,15 +65,6 @@ def section(text, title):
     return part[1].split("\n## ", 1)[0] if len(part) > 1 else ""
 
 
-def issue_milestone(root):
-    found, why = ghcache.issues(root)
-    if found is None:
-        return [row("INFO", "traceability", "issues", "issue-milestone", why)]
-    return [row("WARN", "traceability", "#%d" % i["number"], "issue-milestone", "open issue with no milestone: %s" % (i["title"] or "")[:80],
-                "move it to its feature's milestone (milestone.py move)", "#%d" % i["number"])
-            for i in found if i.get("state") == "open" and not i.get("milestone")]
-
-
 def row_requirement(root):
     known = defined(root)
     out = []
@@ -117,20 +106,13 @@ def usage_readme(root):
             for command in sorted(set(COMMAND.findall(readme))) if command not in usage]
 
 
-FUNCTIONS = {"issue-milestone": issue_milestone, "row-requirement": row_requirement, "ids-unique": ids_unique,
+FUNCTIONS = {"row-requirement": row_requirement, "ids-unique": ids_unique,
              "refs": refs, "usage-readme": usage_readme}
 
 
 def _c():
     import controls
     return controls
-
-
-def f_issue_milestone(root):
-    c = _c(); c.repo(root)
-    c.write(root, ".gh.json", json.dumps([{"number": 7, "title": "loose", "state": "open", "labels": [], "milestone": None}]))
-    os.environ["LOOP_HEALTH_GH_FIXTURE"] = os.path.join(root, ".gh.json")
-    ghcache.CACHE.clear()
 
 
 def f_row_requirement(root):
@@ -155,7 +137,6 @@ def f_usage_readme(root):
     c.write(root, "docs/wiki/One.md", "# One\n\n## Usage\n\n- nothing here\n")
 
 
-CONTROLS = {"issue-milestone": ("traceability", "issue-milestone", f_issue_milestone),
-            "row-requirement": ("traceability", "row-requirement", f_row_requirement),
+CONTROLS = {"row-requirement": ("traceability", "row-requirement", f_row_requirement),
             "ids-unique": ("consistency", "ids-unique", f_ids_unique), "refs": ("consistency", "refs", f_refs),
             "usage-readme": ("consistency", "usage-readme", f_usage_readme)}

@@ -1,5 +1,72 @@
 # Changelog
 
+## v0.22.0 - 2026-11-10
+
+- docs-format: DOC-4, DOC-5 and DOC-6 back to Unreviewed for rewording
+- docs-format: enforce the documentation format (DOC-4..DOC-10), full Tests page, run links, issue milestones, cap default 10
+- docs-format: Documentation page as the owner approved it (DOC-1..DOC-13), Usage and sub-bullet checks fitted to it
+- docs-format: Tests rendered as tables, full Tests page generated; Documentation PRD Reviewed 2026-11-10
+- docs-format: Delivery page as the owner approved it (DEL-1..DEL-9), Reviewed 2026-11-10
+- docs-format: merged goals docs-count-gaps and prd-stamps into the plan; issues 104-107 rows run and passing
+- docs-format: Delivery's merge.py Usage entry says what it prints, re-reviewed
+- docs-format: Monitoring page as the owner approved it (MON-1..MON-11), Reviewed 2026-11-10
+- docs-format: Regression page as the owner approved it (REG-1..REG-9), Reviewed 2026-11-10
+- docs-format: Monitoring Problem in three bullets, as the owner approved
+- docs-format: Health page as the owner approved it (HLT-1..HLT-9), Reviewed 2026-11-10
+- docs-format: Setup page as the owner approved it (SET-1..SET-10), Reviewed 2026-11-10
+- docs-format: Home as one features table, README How to use, Setup Problem reworded, MON-12 Session pool
+- Merge origin/main (v0.20.0, automation) into loop/docs-format: approved pages kept, rows unioned, Automation on Home and README
+- docs-format: Automation page as the owner approved it (AUT-1..AUT-7), REG-4 on the Automation schedule
+- docs-format: fix issues 125, 130, 133 and 156 (guide pages, milestone line, LOCKED hint and owner words, merged-base staleness)
+- docs-format: full land run recorded (run links), Tests re-rendered; run-link rows grep fixed strings, reg2-wording follows the owner's 2026-11-10 REG-2, Tests page is not a feature group
+- Merge origin/main (v0.21.0, loop-guards) into loop/docs-format: approved pages kept, rows unioned, Tests re-rendered
+- health: a requirement with no test warns as not enforced, and fails only after 7 days Reviewed (HLT-2, REG-1, DOC-1); fixes #118
+- docs-format: review fixes (run cells, CI-safe tests, sealed sub-bullets, smaller fixes); stamps re-sealed
+- docs-format: Tests re-rendered
+- docs-format: review-fix rows seen failing (15 rows)
+- health: a malformed Reviewed date fails its row instead of crashing; files closed; only a soft UNREAD row is kept from counting as a pass
+- docs-format: results recorded for the 19 rows never run on this branch; Tests re-rendered
+- Merge origin/main (v0.21.1, toy-cleanup) into loop/docs-format: approved Regression page kept, Tests re-rendered
+- docs-format: new toy tests source reap.sh and register cleanup with toy_on_exit (toy-no-leftovers from main)
+
+### How to verify
+
+1. Open `docs/wiki/Home.md`.
+   Expect: the title, `## Features` and one table with Feature, What it does, How to use and Milestone; seven rows,
+   nothing else.
+2. Open the README on GitHub and click a Home row's "How to use" link.
+   Expect: it lands on that feature's "How to use" table of phrases you can say, with no command syntax.
+3. Open `docs/wiki/Delivery.md`.
+   Expect: Problem as "I ..." bullets, Usage as one `command — what it prints and refuses` bullet per command,
+   Requirements under Functional and Non-functional with sub-bullets, and Tests as a table whose test names link to
+   the Tests page.
+4. Follow one test link into `docs/wiki/Tests.md` (on the published wiki, after release).
+   Expect: it jumps to that test's row under its feature, with result, date, run link and seen-failing date.
+5. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: `DOCS OK: 8 pages`.
+6. In a scratch copy, change a word in any page's Problem to `script`, then run the same check.
+   Expect: `FORMAT <Page>:<line>: Problem: DOC-8 ...`, naming the page, line, section and rule.
+
+## v0.21.1 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- dev/toy: every toy test reaps the processes it started (issue 100)
+- dev/toy: defect test for issue 100, no toy test leaves a process running
+- regression: toy-no-leftovers seen red 2026-11-09 (reaper stubbed out)
+- dev/toy: reaper judges a hidden-env process by its nearest known ancestor
+- Merge origin/main (review-depth, v0.12.1) into loop/toy-cleanup: both regression rows kept, test-review-depth.sh sources reap.sh
+- fix(qa): sweep stops a dead test's system-binary child; reap.py rejects bad options
+- Merge origin/main (board-estimates and earlier) into loop/toy-cleanup: both rows kept, the 8 new toy tests source reap.sh, test-narrow uses toy_on_exit
+- test-no-leftovers.sh declares # reads: dev/toy/ (main's lanes header rule)
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- test-automation.sh (new on main) sources reap.sh
+- Merge origin/main (loop-guards, v0.21.0) into loop/toy-cleanup: both rows kept, test-guards.sh sources reap.sh
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.21.0 - 2026-11-10
 
 - loop-guards: guards.py (rules per step start, no-try refusals, resume, touches, finished findings), worker refusal text, bind worktree/--cwd, pool lock, toy test
