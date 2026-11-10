@@ -40,6 +40,8 @@ TABLE = [
     ("risky_paths", REPO, RISKY, "Regexes for paths whose goals need extra care."),
     ("step_limit", REPO, 0, "Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit."),
     ("token_budget", REPO, 0, "Tokens a goal may spend over all steps before no new step starts; 0 means no budget."),
+    ("test_budget_seconds", REPO, 600, "Seconds the land test lane may take before health warns and names its slowest rows."),
+    ("stale_branch_days", REPO, 14, "Days a local branch on no remote may sit before health lists it with its removal command."),
     ("mend", REPO, False, "true lets watch start a fresh agent for a failed goal."),
     ("mend_wait", REPO, 120, "Seconds a failed goal waits before a mender starts."),
     ("max_tries", REPO, 3, "Failed tries a goal gets before it stops and files a finding."),

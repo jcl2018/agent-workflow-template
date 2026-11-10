@@ -23,10 +23,11 @@ Skill: `workflow-health`. A check of the repo's health with fixed rules, so the 
 - HLT-3: **Reviewed 2026-11-08** Formal report. Health prints one formal report: a header listing every rule group it ran (and any skipped), then each group in a fixed order with every rule it checked, marked pass, warn, fail or unread, each non-pass line with its fix, then one verdict. A rule that can't read its data is never shown as passing. <!-- reviewed 8ac60064 -->
 - HLT-4: **Reviewed 2026-11-08** Findings become tagged issues, under my control. Each finding can be filed as one GitHub issue on the Backlog milestone, tagged with its group: health:size, health:criteria, health:docs, health:hygiene, health:performance (the Cost rule and the judge's savings), health:mine. A preview first lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups to file. A repeat updates its issue, a fix closes it, a return reopens it. <!-- reviewed f81a6284 -->
 - HLT-5: **Reviewed 2026-11-08** Judge and next steps. After the rules, a separate judge section, marked as suggestions and never part of the verdict, reviews three things: criteria quality (whether each criterion is clear, testable and high-level enough, whether any conflict or overlap, and whether a feature is missing one, suggesting better wording that only I can apply); test quality (whether each criterion's tests and each defect's test really prove what they claim, or are weak, miss cases or test the wrong thing, suggesting stronger or missing tests for both categories); and performance and tokens (where the framework's skill steps, prompts, scripts, waits and retries could cut delivery time or token use, ranked by the savings). It ends with ranked next steps from the judgments, the warnings and the failures. <!-- reviewed 52d7f085 -->
+- HLT-6: **Unreviewed** Health keeps itself honest and the repo lean. Every health rule has a negative control that proves it can fire; the check flags a land test run over its time budget and names the slowest rows to move to nightly; and it flags stale worktrees and branches that exist only on this machine.
 
 ## Non-goals
 
-- It changes nothing in the repo: check is read-only, preview writes nothing, and only file --group writes, as GitHub issues.
+- It changes nothing in the repo: check is read-only, preview writes nothing, and only file --group writes, as GitHub issues. It prints the commands that remove stale worktrees and branches and never runs them.
 - The judge's suggestions never change the verdict.
 - Its rules are fixed, not set per repo, apart from the owner's private Mine rules.
 
@@ -82,3 +83,9 @@ Judge and next steps. After the rules, a separate judge section, marked as sugge
 - Given the judge, when it runs, then it prints its three reviews in a section marked as suggestions. — [judge-section-format](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a failing or garbage judge, when health runs, then the verdict and exit code are unchanged. — [judge-verdict-unchanged](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given suggested criterion wording, when the board is printed, then it is listed under Needs you for the owner to apply. — [judge-needs-you](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+
+#### HLT-6
+
+Health keeps itself honest and the repo lean. Every health rule has a negative control that proves it can fire; the check flags a land test run over its time budget and names the slowest rows to move to nightly; and it flags stale worktrees and branches that exist only on this machine.
+
+- **not enforced**: no passing test

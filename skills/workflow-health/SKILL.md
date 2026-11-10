@@ -10,7 +10,7 @@ every file of `scripts/` to one new private temporary folder (made with `mktemp 
 works from `health.py` alone, but `preview` and `file` need `file.py` beside it, and the report needs `report.py`. It composes `workflow-docs` and `workflow-regression`, so
 install them beside it. If one is missing, its rule prints `UNREAD`.
 
-## `check [--json] [--group size|criteria|docs|hygiene|performance|mine]`
+## `check [--json] [--group size|criteria|docs|hygiene|performance|mine|controls] [--skip controls]`
 
 ```bash
 python3 scripts/health.py check
@@ -35,13 +35,17 @@ exit code is then 1. `--json` prints the same rows as records, with the verdict.
 | `size` | Each script under `skills/*/scripts` against 20 KB | 90% or more of it | Over it |
 | `criteria` | `regression.py sync` | Done lines with no regression row, as one row | A criterion with no row, a draft row, or a row never seen failing |
 | `docs` | `docs.py check` | A stale page | Any other gap: missing, unwritten, unmapped or a broken page |
-| `hygiene` | `.loop/findings.md`, the run records and local branches | Over 5 open findings, a run waiting over 24 hours, a `loop/` branch already merged | None |
+| `hygiene` | `.loop/findings.md`, the run records, local branches, the land lane record and the loop worktrees | Over 5 open findings, a run waiting over 24 hours, a `loop/` branch already merged; the land lane over `test_budget_seconds` (default 600), naming its slowest rows and scripts; loop worktrees no live goal names, and local branches on no remote older than `stale_branch_days` (default 14), one row per kind with the command that removes each | None |
 | `cost` (shown as `performance`) | The last 10 finished goals' run records against `time_budget_minutes` and `token_budget` in `.loop/config.json` | A goal over either, naming its three slowest or costliest steps | None; no tokens recorded in any of them is `UNREAD`, and no budget set is `INFO` |
 | `mine` | The owner's own rules from `~/.workflow-loop/health.json` | exit 2 | exit 1; any other exit or an unreadable setting is `UNREAD` |
 
+| `controls` | Each rule's negative control in `controls.py`: a throwaway repo made to break that rule | None | A control that stays green: the rule cannot fire; a fixture that cannot be built is `UNREAD` |
+
 `Mine` runs commands you name, outside the repo, so it is not covered by the read-only and same-answer promises, and it is filed only when named.
 
-There are at most nine fixed rules (the cap was raised from eight on purpose, for `cost`), and the script refuses to load with more. Retire one before adding another.
+The test-time, worktree and local-branch rows name local paths and branches, so they are shown, never filed, and health never runs the removal commands it prints. `check --skip controls` leaves the controls out; `controls.py run <rule> --keep` runs one control and keeps its fixture to look at.
+
+There are at most twelve fixed rules (the cap was raised on purpose, for `cost` and then for test time and stale worktrees and branches), and the script refuses to load with more. Every rule needs a negative control: a rule with none stops health.py with `REFUSED: rule <name> has no negative control` (exit 2) until `CONTROLS["<name>"]` is added in `controls.py`.
 
 ## `judge` (alias `suggest`)
 

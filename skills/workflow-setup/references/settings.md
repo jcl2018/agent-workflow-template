@@ -25,6 +25,8 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `risky_paths` | `["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]` | Regexes for paths whose goals need extra care. |
 | `step_limit` | `0` | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. |
 | `token_budget` | `0` | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
+| `test_budget_seconds` | `600` | Seconds the land test lane may take before health warns and names its slowest rows. |
+| `stale_branch_days` | `14` | Days a local branch on no remote may sit before health lists it with its removal command. |
 | `mend` | `false` | true lets watch start a fresh agent for a failed goal. |
 | `mend_wait` | `120` | Seconds a failed goal waits before a mender starts. |
 | `max_tries` | `3` | Failed tries a goal gets before it stops and files a finding. |

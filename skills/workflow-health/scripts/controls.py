@@ -8,7 +8,8 @@ the one file or record that breaks its rule, and calls the real rule on it. The 
 reports a WARN or FAIL row of its own group and rule (report.py's rule_of), never an UNREAD row or a sibling rule's.
 A rule whose control stays green is reported as a rule that cannot fire. Git runs with no inherited GIT_DIR, no global
 or system config and a fixed identity, so no hook, signing or setting applies and the real repo is never touched.
-Rows carry no temporary path and no time, so two runs print the same lines. It imports nothing from health.py.
+Rows carry no temporary path and no time, so two runs print the same lines. run() imports nothing from health.py;
+only the run command line loads it, for its rule functions.
 """
 import json
 import os
@@ -16,7 +17,7 @@ import subprocess
 import sys
 import tempfile
 
-HERE = os.path.dirname(os.path.abspath(sys.argv[0])) if __name__ == "__main__" else os.path.dirname(os.path.abspath(sys.argv[0]))
+HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 GIT_ENV = {"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1", "GIT_AUTHOR_NAME": "health-control",
            "GIT_AUTHOR_EMAIL": "health-control@example.invalid", "GIT_COMMITTER_NAME": "health-control",
            "GIT_COMMITTER_EMAIL": "health-control@example.invalid", "GIT_TERMINAL_PROMPT": "0"}
