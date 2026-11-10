@@ -181,8 +181,18 @@ def block():
 
 
 def held_block(text):
-    found = re.search(r"%s.*?%s\n?" % (re.escape(OPEN), re.escape(CLOSE)), text, re.S)
+    """The marked block, LF endings and no final newline (a file may end at the close marker), or None."""
+    found = re.search(r"%s.*?%s" % (re.escape(OPEN), re.escape(CLOSE)), text, re.S)
     return found.group(0).replace("\r\n", "\n") if found else None
+
+
+def raw_text(path):
+    """A file as written: line endings untouched (empty when missing or not UTF-8)."""
+    try:
+        with open(path, encoding="utf-8", newline="") as handle:
+            return handle.read()
+    except (OSError, ValueError):
+        return ""
 
 
 def agent_files(cfg):
@@ -191,7 +201,7 @@ def agent_files(cfg):
 
 
 def installed():
-    """The installed template version: workflow-package.json beside the skills, else a checkout's VERSION."""
+    """The installed template version from workflow-package.json beside the skills; empty for a checkout (never LAG)."""
     try:
         return str(json.loads(read(os.path.join(SKILLS, "workflow-package.json"), "{}")).get("version") or "")
     except ValueError:
@@ -226,11 +236,16 @@ def problems(root):
     if not skills():
         found.append(("SKIPPED", "agent block", "no installed skills beside workflow-docs"))
         return found
+    want_block = block().rstrip("\n")
     for name in agent_files(cfg):
-        held = held_block(read(os.path.join(root, name)))
-        if held is None and owed:
+        text = read(os.path.join(root, name))
+        held = held_block(text)
+        if (OPEN in text or CLOSE in text) and (text.count(OPEN) != 1 or text.count(CLOSE) != 1 or held is None):
+            found.append(("STALE", name, "stray workflow-loop markers (ENTRY_MARKER). Fix: remove the stray marker, then ask "
+                                         "for workflow-setup agents"))
+        elif held is None and owed:
             found.append(("MISSING", name, "no workflow-loop block (ENTRY_MISSING). Fix: ask for workflow-setup agents"))
-        elif held is not None and held != block():
+        elif held is not None and held != want_block:
             found.append(("LAG", name, note + " (ENTRY_LAG)") if lag else ("STALE", name, "its workflow-loop block differs (ENTRY_STALE). " + fix))
     return found
 
@@ -238,19 +253,21 @@ def problems(root):
 def write(root):
     path = os.path.join(root, ENTRY)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    changed = read(path, None) != render(root)
+    text = render(root)
+    changed = read(path, None) != text
     if changed:
         with open(path, "w", encoding="utf-8") as handle:
-            handle.write(render(root))
-    names = []
+            handle.write(text)
+    names, want = [], block().rstrip("\n")
     for name in agent_files(config(root)) if skills() else []:
         full = os.path.join(root, name)
-        raw = read(full)
-        held = held_block(raw)
-        if held is not None and held != block():
+        raw = raw_text(full)
+        span = re.search(r"%s.*?%s" % (re.escape(OPEN), re.escape(CLOSE)), raw, re.S)
+        if not span or raw.count(OPEN) != 1 or raw.count(CLOSE) != 1:
+            continue  # no block, or stray markers: agents.py wire refuses those with the fix (AGENTS_MARKER)
+        if span.group(0).replace("\r\n", "\n") != want:
             with open(full, "w", encoding="utf-8", newline="") as handle:
-                handle.write(raw.replace(raw[raw.index(OPEN):raw.index(CLOSE) + len(CLOSE)], block().rstrip("\n").replace(
-                    "\n", "\r\n" if "\r\n" in raw else "\n")))
+                handle.write(raw[:span.start()] + want.replace("\n", "\r\n" if "\r\n" in raw else "\n") + raw[span.end():])
             names.append(name)
     return (["FIXED " + ENTRY] if changed else []) + ["FIXED " + n for n in names]
 

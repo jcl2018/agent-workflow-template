@@ -152,8 +152,8 @@ def audit(root, base, dry):
     found, moved = milestone_trouble(root, fix)
     would += moved
     # The entry point and a stale agent block are generated: rewriting them is mechanical (a missing block needs agents.py).
-    stale = [path for kind, path, _ in entry.problems(root) if path == entry.ENTRY and kind in ("STALE", "MISSING") or
-             kind == "STALE" and path in entry.agent_files(docs.config(root))]
+    stale = [path for kind, path, why in entry.problems(root) if path == entry.ENTRY and kind in ("STALE", "MISSING") or
+             kind == "STALE" and path in entry.agent_files(docs.config(root)) and "ENTRY_MARKER" not in why]
     if stale and fix:
         entry.write(root)
     would += ["%s: regenerate it (entry.py write)" % path for path in stale]
