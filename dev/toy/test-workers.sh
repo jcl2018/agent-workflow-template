@@ -93,7 +93,7 @@ t=open(sys.argv[1]).read()
 at=[t.index(\"\n%s\n\" % n) for n in (\"Issues\",\"Running goals\",\"Queued goals\",\"Dependencies\",\"Finish\")]
 assert at==sorted(at) and t.index(\"LIVE BOARD\") < at[0] < t.index(\"SLUG\")" "$T/report"'
 needs=$(sed -n '/^Issues/,/^Running goals/p' "$T/report")
-check "Issues holds the failed and the waiting worker, with the exact words" 'grep -q "h1 is failed" <<<"$needs" && grep -q "fix: answer by typing \"resume h1\"" <<<"$needs" && grep -q "w1 is waiting: Which database?" <<<"$needs" && grep -q "\"use sqlite\" or \"use postgres\"" <<<"$needs" && ! grep -q "g1" <<<"$needs"'
+check "Issues holds the failed and the waiting worker, with the exact words" 'grep -q "h1 is failed" <<<"$needs" && grep -q "fix: look at the problem, then type \"resume h1\"" <<<"$needs" && grep -q "w1 is waiting: Which database?" <<<"$needs" && grep -q "\"use sqlite\" or \"use postgres\"" <<<"$needs" && ! grep -q "g1" <<<"$needs"'
 check "board prints the same board" 'grep -q "^LIVE BOARD" "$T/board.out" && grep -q "\"use sqlite\"" "$T/board.out"'
 $M dashboard > "$T/dash.path"; dash=$(cat "$T/dash.path")
 check "the dashboard carries the same board, Issues first" 'python3 -c "import sys,json

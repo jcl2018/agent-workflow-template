@@ -33,7 +33,9 @@ workflow
   `.loop/regression-known.tsv`. It keeps one issue per failing row; without a token it only prints `WOULD` lines.
 - `workflow` writes `.github/workflows/regression.yml` (on `regression_cron`, every 4 hours by default, or only by hand
   when it is `off`, which a scheduled run reads first and then writes nothing; on `v*` tags and by hand, which still run). A failing row's issue is
-  labelled `regression` and `defect` and names the feature and requirement the row guards. The job has 90 minutes; each
+  labelled `regression` and `defect`, names the feature and requirement the row guards, and goes on that feature's
+  milestone (`Backlog` when it guards no `.loop/docs.tsv` page, made when missing); an issue you moved stays where you put
+  it, and a failed issue write fails the step after the last row (`FILE_FAILED`). The job has 90 minutes; each
   row runs in its own process group with a 15-minute limit and starts only if that limit still fits an 88-minute
   budget (`REGRESSION_ROW_SECONDS` and `REGRESSION_JOB_SECONDS` in the step's environment override them). A row that
   doesn't fit is skipped (`SKIPPED`) and fails with an issue. Each result is saved as the row ends, and a last step

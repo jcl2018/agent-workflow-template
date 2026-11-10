@@ -91,7 +91,7 @@ check "the parallel limit in config.json holds the next goal" 'grep -q "QUEUED d
 check "queue lines carry depends-on" 'grep -q "^- slug: b | touches: shared.py | depends-on: a | goal: Add b" .loop/queue.md'
 $W go "Add x" --done "x" --depends-on nosuch --slug x 2>&1 | grep -q "depends-on nosuch is not a goal" && ok "an unknown dependency is refused" || bad "unknown dependency"
 rm "$FAKE_AGENT/hold-a"; until_status a done
-$OP run --once > "$T/op1" 2>&1
+$OP run --board --once > "$T/op1" 2>&1
 check "done is not merged: the dependent goal still waits" '[ ! -e "$C/loop/runs/b.json" ]'
 check "a free slot starts the goal that was waiting for one" 'until_status d done || [ -e "$C/loop/runs/d.json" ]'
 until_status d done
@@ -135,7 +135,7 @@ echo "== one operate command runs the loop"
 $BO cadence 2 >/dev/null
 $BA add night --goal "Add g" --done "g works" --slug g >/dev/null
 $W go "Add f" --done "f works" --depends-on c --slug f >/dev/null
-$OP run --poll 0.1 > "$T/op.out" 2>&1 & oppid=$!
+$OP run --board --poll 0.1 > "$T/op.out" 2>&1 & oppid=$!
 until_text "$T/op.out" "^LIVE BOARD"
 check "it starts a batch line by itself" 'until_file "$C/loop/runs/g.json"'
 check "the first pass prints the live board, on the cadence from board.py cadence" 'grep -q "^Finish" "$T/op.out" && grep -q "^NEXT_DELAY 120$" "$T/op.out"'
@@ -147,9 +147,9 @@ began=$(python3 -c "import time;print(time.time())"); python3 "$M/board_status.p
 quiet=$(python3 -c "import sys,time;t=time.time()-float(sys.argv[1]);print(max(3,min(20,round(2*t+2))))" "$began" 2>/dev/null || echo 20)
 echo "settle: quiet gap ${quiet}s"
 settled=
-for _ in $(seq $(( ${TOY_PATIENCE:-60} / quiet + 1 ))); do  # a loop that prints on every poll never settles
+for _ in $(seq $(( ${TOY_PATIENCE:-60} / quiet + 1 ))); do  # a loop that prints on every poll never settles; a pass ends with its check-in's last line
   lines=$(wc -l < "$T/op.out"); sleep "$quiet"
-  [ "$(wc -l < "$T/op.out")" = "$lines" ] && tail -n 1 "$T/op.out" | grep -q "^ARTIFACT " && settled=yes && break
+  [ "$(wc -l < "$T/op.out")" = "$lines" ] && tail -n 1 "$T/op.out" | grep -q "^- next check-in in\|^- paused until" && settled=yes && break
 done
 [ -n "$settled" ] || bad "the output never settled within TOY_PATIENCE (${TOY_PATIENCE:-60} s)"
 lines=$(wc -l < "$T/op.out"); blocks=$(grep -c "^LIVE BOARD" "$T/op.out"); sleep 1.5

@@ -3,26 +3,26 @@
 
 usage: live_board.py [--html]
 
-LIVE BOARD header (repo, local time, version, health), then Issues (only what is open now, a stuck worker first, each with its
-fix in plain words), Running goals (10-cell bar with percent, time left and the try count, the step flow with done steps ticked
-and the current step in brackets, the worker: its session name or background, each recorded step's depth, one next step; a goal a session was handed
-before it was frozen shows as [freezing]), Queued goals (held goals among them, marked held: running, but no worker has
-them), Dependencies (arrows between running and queued goals) and one Finish time. The session pool is read with
-graph.read_pool; when it can't be read, nothing is called held or freezing and Issues says so.
-Merged work, history and totals are left out. Estimates and the finish come from board_status.py and status_graph.py.
-Health is workflow-health's verdict, or "unknown"; LOOP_BOARD_HEALTH replaces it (tests). Imported by board_status.py.
+LIVE BOARD header (repo, local time, version, health), then Issues (only what is open now, a stuck worker first, each with
+its fix in plain words; stopped goals grouped by cause by board_lines.py), Running goals (10-cell bar, time left, tries, the
+step flow with the current step in brackets, worker, depth, next step; [freezing] for a goal handed over before it was
+frozen; then the session pool line), Queued goals (held goals marked held, with their held time), Dependencies (board_lines.py's
+top-to-bottom graph) and one Finish time ("paused until ..." while every goal waits out one usage limit). Goal state comes
+from graph.py, pull request states from board_lines.py. Merged work, history and totals are left out. Health is
+workflow-health's verdict, or "unknown"; LOOP_BOARD_HEALTH replaces it (tests). Printed by report, dashboard and the
+status question, never by a check-in (MON-4). Imported by board_status.py.
 """
 import argparse
 import datetime
 import html
 import os
 import re
-import subprocess
 import sys
 import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import board_lag  # noqa: E402
+import board_lines  # noqa: E402
 import board_status as bs  # noqa: E402
 import graph  # noqa: E402
 import status_graph  # noqa: E402
@@ -32,7 +32,6 @@ os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")
 
 FLOW = bs.FLOW
 WIDTH = 60   # a phone screen
-QUIET = int(os.environ.get("LOOP_SESSION_QUIET", "3600"))  # seconds a worker session may stay silent before Issues names it
 HEALTH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-health", "scripts", "health.py")
 
 
@@ -50,12 +49,7 @@ def plain(text, size=200):
 def health(root):
     if os.environ.get("LOOP_BOARD_HEALTH"):
         return os.environ["LOOP_BOARD_HEALTH"]
-    try:
-        done = subprocess.run([sys.executable, HEALTH, "check"], cwd=root, capture_output=True, text=True, timeout=30)
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
-    found = re.search(r"^HEALTH: (not green|green)", done.stdout, re.M)
-    return found.group(1) if found else "unknown"
+    return board_lines.health(root, HEALTH)  # the last verdict with its age; a stale one is refreshed in the background (MON-9)
 
 
 def version(root):
@@ -74,7 +68,8 @@ def loop_dir(root):
 def load(root):
     folder = os.path.join(loop_dir(root), "runs")
     runs = [bs.read_json(os.path.join(folder, name)) for name in sorted(os.listdir(folder)) if name.endswith(".json")] if os.path.isdir(folder) else []
-    return [run for run in runs if isinstance(run, dict) and run.get("slug") and run.get("status") != "retired"]
+    return graph.with_held([run for run in runs if isinstance(run, dict) and run.get("slug") and run.get("status") != "retired"],
+                                loop_dir(root))
 
 
 def run_files(root):
@@ -199,9 +194,12 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
         other += ["- the session pool can't be read (%s)" % plain(why, 120),
                   "    fix: check it with python3 -m json.tool <git common dir>/loop/session-pool.json, then repair it (moved aside, "
                   "every held goal is forgotten); nothing was started or changed, and the next pass retries"]
+    cfg = bs.read_json(os.path.join(root, ".loop", "config.json")) or {}
+    quiet_s = graph.silent_limit(cfg)
+    stuck += board_lines.stuck(runs, cfg.get("resume_on_limit") is True)  # failed and stopped goals by cause, never raw agent output (issue 97)
     for run in runs:
         slug, report = run["slug"], (run.get("report") or {}).get("text", "")
-        if run.get("status") in bs.ASKING:
+        if run.get("status") == "waiting":
             ask = run.get("waiting") or {}
             words = ask.get("words") or ["resume " + slug]
             stuck.append("- %s is %s: %s" % (slug, run["status"], plain(ask.get("ask") or report or run.get("finding") or "see its log")))
@@ -210,9 +208,10 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
             other += ["- %s: the release failed: %s" % (slug, plain(run["release_error"])), '    fix: look at the problem, then type "resume %s"' % slug]
     for run in runs:
         last = parse_at(run.get("updated"))
-        quiet = bool(at and last and (at - last).total_seconds() >= QUIET)
+        last = graph.last_spoke(run) or last
+        quiet = bool(at and last and (at - last).total_seconds() >= quiet_s)
         if quiet and is_held(run, taken) and graph.holds_slot(run):
-            other += ["- %s: held %s and holds a slot" % (run["slug"], age(run.get("updated"), at)),
+            other += ["- %s: held %s and holds a slot" % (run["slug"], age(run.get("held_at") or run.get("updated"), at)),
                       "    fix: give it a session with sessions.py bind %s ID, or, once its old session has stopped, "
                       "sessions.py free %s to give the slot back" % (run["slug"], run["slug"])]
         elif quiet and run.get("worker") == "session" and run.get("status") == "running" and not is_held(run, taken):
@@ -221,11 +220,13 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
                       '    fix: look at the session %s; when it answers, record it with sessions.py report %s' % (name, run["slug"])]
     for entry in freezing:
         since = parse_at(entry.get("since"))
-        if at and since and (at - since).total_seconds() >= QUIET:
+        if at and since and (at - since).total_seconds() >= quiet_s:
             name = entry.get("name") or entry["id"]
             other += ["- %s: assigned to session %s %s ago and still not frozen" % (entry["slug"], name, age(entry["since"], at)),
                       "    fix: look at the session %s; once it has stopped, drop the assignment with sessions.py free %s"
                       % (name, entry["slug"])]
+    for key in sorted(graph.LAST_BAD.get(os.path.join(loop_dir(root), "session-pool.json"), {})):
+        other += ["- pool entry %s is malformed and was set aside" % key, "    fix: look at session-pool.bad.json, then delete it"]
     other += board_lag.template_lag(root)
     other += bs.stall_lines(runs, at, root, {r["slug"] for r in runs if is_held(r, taken)})
     found = bs.wiki_check(root)
@@ -247,7 +248,7 @@ def render(root=None, at=None):
     taken = graph.assigned(pool)
     on_disk = run_files(root)
     freezing = [dict(entry, slug=slug) for slug, entry in sorted((taken or {}).items()) if slug not in on_disk]
-    states = bs.pr_states(runs, root)
+    states = board_lines.states(runs, root, graph.merged)
     gone = {r["slug"] for r in runs if graph.merged(r) or states.get(r["slug"]) == "MERGED"}
     shut = {r["slug"] for r in runs if r["slug"] not in gone and states.get(r["slug"]) == "CLOSED"}
     live = [r for r in runs if r["slug"] not in gone | shut]
@@ -257,7 +258,6 @@ def render(root=None, at=None):
     lines = {g["slug"]: g for g in bs.queued(root, runs)}
     queue = [g for g in lines.values() if g["slug"] not in {f["slug"] for f in freezing}]
     items = bs.board_items(live, queue, freezing, lines, runs, at, root, waits)
-    names = {item["slug"] for item in items}
     setting = "condensed" if (bs.read_json(os.path.join(root, ".loop", "config.json")) or {}).get("review_depth") == "condensed" else "full"
     head = "LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root))
     if len(head) > WIDTH:
@@ -279,11 +279,13 @@ def render(root=None, at=None):
         out += [bar(dict(entry, status="freezing"), 0), *flow_lines({"status": "freezing"}), "    worker: session " + name,
                 "    next: the worker freezes it (goal.py new %s --here in its worktree), binds again, then idea%s"
                 % (entry["slug"], " (assigned %s ago)" % ago if ago else "")]
-    out += ([] if running or freezing else ["- (none)"]) + ["", "Queued goals"]
+    out += ([] if running or freezing else ["- (none)"])
+    out += [pool_line(pool, root)] if pool else []  # a repo with no session pool shows no pool line
+    out += ["", "Queued goals"]
     for run in held:
         tree = run.get("worktree") and os.path.isdir(run["worktree"])
-        ago = age(run.get("updated"), at)
-        state = ", ".join(x for x in ("held", "last change %s ago" % ago if ago else "", "worktree kept" if tree else "worktree gone",
+        ago = age(run.get("held_at") or run.get("updated"), at)  # true held time once held_at is stamped (issue 115)
+        state = ", ".join(x for x in ("held %s" % ago if ago else "held", "worktree kept" if tree else "worktree gone",
                                        "holds a slot" if graph.holds_slot(run) else "") if x)
         fix = "" if tree else "; make its worktree again first (git worktree add <common>/loop/worktrees/%s loop/%s)" % (run["slug"], run["slug"])
         out += [bar(run, current(run), "  held"), *flow_lines(run), "    worker: none (%s)" % state, "    depth: " + depth_of(run, setting),
@@ -292,13 +294,17 @@ def render(root=None, at=None):
         out.append("- %s  %s%s" % (goal["slug"], bs.estimate_text(next(i["est"] for i in items if i["slug"] == goal["slug"])),
                                    "  waits on " + ", ".join(waits(goal["depends"])) if waits(goal["depends"]) else ""))
     out += ([] if queue or held else ["- (none)"]) + ["", "Dependencies"]
-    edges = ["%s --> %s" % (dep, item["slug"]) for item in items for dep in item["depends"] if dep in names]
-    out += edges or ["- (none)"]
+    out += board_lines.render([dict(i, mark="held" if i["slug"] in {r["slug"] for r in held} else i["mark"]) for i in items])
     seconds, _, _ = status_graph.chain(items)
     missing = status_graph.unknown(items) or any(i["partial"] for i in items) or held or freezing
     finish = "nothing left" if not items else "no estimate yet" if not seconds else "%sfinish about %s" % (
         "at least " if missing else "", graph.clock(at + datetime.timedelta(seconds=seconds)))
-    return fit(out + ["", "Finish", finish])
+    return fit(out + ["", "Finish", board_lines.paused(live) or finish])
+
+
+def pool_line(found, root):
+    import pool as pl  # pool.py imports sessions.py; only the board's pool line needs it
+    return "    " + pl.board_line(found, root)
 
 
 def fragment(lines):

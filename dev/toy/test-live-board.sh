@@ -65,7 +65,7 @@ check "its step flow ticks done steps and brackets the current one, wrapped at t
 check "the other running goal shows its own flow" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr >" "$T/board"'
 check "each running goal has a one-line next step" '[ "$(grep -c "^    next: " "$T/board")" = 2 ]'
 check "Queued goals list gamma, delta and eps with what they wait on" 'sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep -q "^- gamma .*waits on alpha$" && sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep -q "^- delta .*waits on gamma, beta$" && sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep -Eq "^- eps  [^ ].*$" && ! sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep eps | grep -q waits'
-check "Dependencies are arrows between running and queued goals" 'sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -qx "alpha --> gamma" && sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -qx "gamma --> delta" && sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -qx "beta --> delta"'
+check "Dependencies are a top-to-bottom graph between running and queued goals" 'sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -qx "\[ \] gamma <- alpha" && sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -Eqx "\[ \] delta <- (gamma, beta|beta, gamma)" && sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -qx "  v"'
 check "one finish time closes the board" 'tail -2 "$T/board" | head -1 | grep -qx Finish && tail -1 "$T/board" | grep -Eq "^(at least )?finish about [0-9]{2}:[0-9]{2} "'
 check "merged work, history, totals, milestones, tokens and done lines are left out" '! grep -Eiq "merged|hist|closed|milestone|tokens|total|done lines|longest|Roadmap|Needs you|level [0-9]" "$T/board"'
 
@@ -73,11 +73,11 @@ echo "== the same board everywhere"
 out=$(python3 "$M/board_status.py"); echo "$out" | head -1 | grep -q "^LIVE BOARD" && ok "board_status prints the live board" || bad "board_status prints the live board"
 check "the HTML fragment holds the same lines" 'python3 "$M/board_status.py" --html | grep -q "<pre>LIVE BOARD  repo"'
 python3 "$M/operate.py" run --once > "$T/op" 2>&1
-check "operate prints the full live board" 'grep -q "^LIVE BOARD  repo" "$T/op" && grep -q "^Finish" "$T/op"'
+check "operate prints the check-in, not the live board (MON-4)" 'grep -qx "All sessions" "$T/op" && grep -qx "Coming up" "$T/op" && ! grep -q "^LIVE BOARD" "$T/op"'
 python3 "$M/operate.py" run --once > "$T/op2" 2>&1
-check "an unchanged second pass prints the full board too, with no one-line mode" 'grep -q "^LIVE BOARD  repo" "$T/op2" && ! grep -q "NO_CHANGE\|Nothing changed" "$T/op2"'
+check "an unchanged second pass prints the full check-in too, with no one-line mode" 'grep -qx "All sessions" "$T/op2" && ! grep -q "NO_CHANGE\|Nothing changed" "$T/op2"'
 art=$(find "$C/loop" -name board-artifact.html)
-check "the board artifact page shows the same live board" '[ -n "$art" ] && grep -q "<pre>LIVE BOARD  repo" "$art" && grep -q "alpha --&gt; gamma" "$art" && ! grep -q "<html" "$art"'
+check "the board artifact page shows the same live board" '[ -n "$art" ] && grep -q "<pre>LIVE BOARD  repo" "$art" && grep -q "gamma &lt;- alpha" "$art" && ! grep -q "<html" "$art"'
 check "the default cadence is 30 minutes" 'python3 "$M/board.py" cadence | grep -qx "CADENCE 30"'
 
 echo

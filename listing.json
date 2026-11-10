@@ -101,7 +101,15 @@
     "skeleton",
     "summary",
     "issues",
-    "digest"
+    "digest",
+    "claim",
+    "pass",
+    "plan",
+    "since",
+    "return",
+    "need",
+    "decline",
+    "decide-text"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
@@ -128,7 +136,9 @@
   ],
   "network": [
     "github.com (git push, wiki push, gh pull request, issue, milestone and draft release calls, only when you run them)",
-    "the model host your own claude or codex command already uses"
+    "the model host your own claude or codex command already uses",
+    "api.cloudflare.com (Cloudflare Email Service send API, from the scheduled health workflow only, with your CLOUDFLARE_EMAIL_TOKEN secret)",
+    "your smtp_host (default smtp.gmail.com), from the scheduled health workflow only, when digest_mail is smtp"
   ],
   "requires": [
     "python3",

@@ -63,7 +63,7 @@ check "the live board sections are in the fixed order" 'python3 -c "
 t=open(\"$T/block\").read()
 at=[t.index(\"\n%s\n\" % n) for n in (\"Issues\",\"Running goals\",\"Queued goals\",\"Dependencies\",\"Finish\")]
 assert at==sorted(at)"'
-check "chained goals are drawn as arrows between running and queued goals" 'grep -qx "b --> c" "$T/block" && grep -qx "c --> d" "$T/block" && ! grep -q "ghost -->" "$T/block"'
+check "chained goals are drawn as a graph between running and queued goals" 'grep -Eqx "\[.\] c <- b" "$T/block" && grep -Eqx "\[.\] d <- c" "$T/block" && ! grep -Eq "<-.*ghost" "$T/block"'
 check "a queued goal shows what it waits on, a standalone one waits on nothing" 'grep -q "^- c .*waits on b" "$T/block" && grep -q "^- d .*waits on c" "$T/block" && grep -q "^- e " "$T/block" && ! grep "^- e " "$T/block" | grep -q waits'
 check "merged goals are left out; a running goal has its bar and time left" '! grep -q "merged\|hist\|^- a " "$T/block" && grep -q "^- b  \[#---------\] 12%  44m to 44m left" "$T/block" && grep -q "^- c  1h01m to 1h01m left" "$T/block"'
 check "the finish is the longest chain b > c > d, not the sum (at least: later steps have no history)" 'grep -q "^at least finish about " "$T/block" && python3 -c "

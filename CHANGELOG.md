@@ -1,5 +1,100 @@
 # Changelog
 
+## v0.25.0 - 2026-11-10
+
+- WIP: monitoring-prd new modules (goal_state, dep_graph, issue_lines, prs, pool, replan, auto, govern_hook, checkin)
+- Merge remote-tracking branch 'origin/main' into loop/monitoring-prd
+- WIP: monitoring-prd call sites (live_board, sessions, session_bind, operate, board, monitor, watch, graph, settings, setup)
+- monitoring-prd: toy suite, docs, review fixes (branch delete only when merged into base, quote-aware govern parse, PR prefetch)
+- monitoring-prd: reviewed plan (unattended, gate pending) and review fixes
+- monitoring-prd: regression rows for MON-4, MON-6..MON-12 and issues 94, 97, 111-115, 122, 175; old toy tests follow the new MON-4/MON-8 behaviour; operate.py run --board
+- monitoring-prd: Verify by hand, wiki Usage lines, setup command map
+- monitoring-prd: preview-auto verb
+- monitoring-prd: commands reference for check-in, re-plan, full auto, pool and govern hook
+- monitoring-prd: rows green; Monitoring Tests re-rendered
+- review: a failed report frees its session without blocking a rebind; MON-9 timing assertion annotated
+- review: cleanup runs git from the main checkout (a worker reporting from its own worktree kept the branch); only executing operate.py claims the operation session; wrappers no longer hide git writes; more risky words; malformed held.json tolerated
+- review: specialist fixes (dead code, board uses its parallel PR lookup, auto.log escapes |, git pull and -c alias blocked, wrappers by basename, worker exit before git, stale health lock, offline fetch, repeated question keeps its auto decision, stronger MON-11 checks)
+- review cycle 2: claim only when operate.py is executed (python flags, ./operate.py); wrapper flag values skipped; one merge check for freed_from and cleanup; repeated question matched by its words; MON-7 test checks real claims
+- review final: the govern hook skips only wrappers, their flags and values, so a command that names git is never refused
+- qa: no-prompt guard in the new scripts that start processes; SKILL.md back under 150 lines (new verbs as agent requests); narrow # reads: header; Setup and Documentation pages updated
+- qa: govern hook sees through shell keywords; a non-number --attempt is refused; an unreadable config shows under Needs you; a bad since time is refused; pool add counts each id once
+- Merge origin/main (docs-format, v0.22.0) into loop/monitoring-prd: both row sets kept, docs-format's pages kept with this goal's Usage lines added
+- monitoring-prd: rows re-recorded after the merge; Monitoring and Tests pages re-rendered (MON-6..MON-12 rows now listed)
+- monitoring-prd: MON-9's slow GitHub is a wrapper in its own test; the shared fake gh is back to main's
+- Documentation page reviewed against this branch's fake gh commits: the fake gh is unchanged from main, no wording change needed
+- Documentation page rendered (trailing blank line dropped)
+- Rows re-run after the render; Tests re-rendered
+- Issue 321: the reply hook checks the claimed operation session, so a one-line scheduled check-in reply is blocked and told the five missing parts
+- Issue 321 row seen failing then passing; Tests re-rendered
+- Merge origin/main (estimate-model, automation-email, v0.24.0) into loop/monitoring-prd: estimate ranges kept beside the graph, pool and check-in changes; both row sets kept; Tests re-rendered
+- monitoring-prd: dep_graph.py, issue_lines.py and prs.py merged into board_lines.py, behaviour unchanged, so the skill package fits its 99-file cap with room (98)
+- monitoring-prd: goal_state.py merged into graph.py (its state logic), behaviour unchanged; the skill package is at 99 files
+
+### How to verify
+
+1. In the main checkout, run `python3 skills/workflow-monitoring/scripts/operate.py run --once`.
+   Expect: one headline line, then All sessions, Dependencies, Needs you and Coming up; no `LIVE BOARD` block.
+2. Run `python3 skills/workflow-monitoring/scripts/monitor.py report`.
+   Expect: the live board, with Dependencies drawn top to bottom (`[>]`, `[ ]`, `<-`, a `|`/`v` between bands and a legend), no line wider than 60 characters, and a HELD OR FREEZING section.
+3. Run `python3 skills/workflow-monitoring/scripts/pool.py status`.
+   Expect: one line `pool: F free, B busy, T total (target 20)` with this repo's counts.
+4. Pipe a routine question into the full-auto check: `echo "Which helper name?" | python3 skills/workflow-monitoring/scripts/auto.py decide-text --kind routine --recommend a`, then the same with "Delete the cache?".
+   Expect: `AUTO` for the first, `WAITS: it mentions delete` for the second.
+5. Pipe two commands into the govern check: `echo "git -C . commit -m x" | python3 skills/workflow-monitoring/scripts/govern_hook.py check`, then `echo "git status" | ...`.
+   Expect: `BLOCK: git commit`, then `PASS`.
+6. Run `python3 skills/workflow-monitoring/scripts/replan.py plan` twice.
+   Expect: the first run lists each running goal's start with its reason (or REPLAN: no change); the second prints `REPLAN: no change`.
+
+## v0.24.0 - 2026-11-10
+
+- Mail one digest per round, file issues on feature milestones, show round cost
+- Rows for the round's mail, milestones and cost; Automation wiki; Verify by hand
+- Keep the milestone title when milestones can't be read; settings reference; test expectations for feature placement
+- Review fixes: verify SMTP TLS, find placed issues locally, keep placement on failed moves, no milestone POSTs on unreadable lists, stale reruns mail nothing
+- Review pass 2: mail in its own job, keep placement on failed sets, make Backlog when missing
+- Review pass 3: fix the spend's run listing, keep placement when milestones can't be read
+- Disclose the mail hosts: api.cloudflare.com and the smtp_host
+- QA lane: rounds.py turns prompts off; the mail test declares the files it reads
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- test-automation-email.sh sources reap.sh (main's toy-cleanup rule) instead of its own trap
+- test: name the held-issue key so the secret scan doesn't read it as a credential
+- Rename templates.py to workflows.py: it holds the workflow texts, and a temp* name reads as scratch
+- test: setup plans mail-test.yml beside health.yml (ship coverage audit)
+- fix: a secret with a trailing newline neither leaks nor sticks a round; health still files when milestones can't be read
+- fix: review pass 2 on the secret fixes; leave the Automation page for the owner to re-review
+- fix: fix-check findings: owner local part from the trimmed address, no retry after a timeout, DONE names a closed milestone
+- docs: feature milestones, the mail job and mail-test.yml across the health, regression and setup docs
+- test: the mail test declares seed.py, which its setup case runs
+- Merge origin/main (v0.22.0, docs-format) into loop/automation-email
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- docs: Documentation Tests re-rendered for the ci-issue-backlog row
+- docs: Tests re-rendered after the merges
+- docs: Tests render matches the recorded runs
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- Wiki: update pages for automation-email
+
+### How to verify
+
+1. Pick a sender and add its secrets in Settings, Secrets and variables, Actions: DIGEST_TO, DIGEST_FROM and either
+   CLOUDFLARE_ACCOUNT_ID with CLOUDFLARE_EMAIL_TOKEN (a domain onboarded to Cloudflare Email Sending), or
+   DIGEST_SMTP_USER with DIGEST_SMTP_PASSWORD plus `"digest_mail": "smtp"` in `.loop/config.json`. Time how long it takes.
+   Expect: under five minutes once the domain or app password exists.
+2. In the Actions tab, run the mail-test workflow.
+   Expect: its log ends `MAIL: test sent (MAIL_SENT)`, and a mail titled "Automation digest: test from <owner/repo>"
+   arrives within a minute.
+3. Run the health workflow by hand.
+   Expect: a new comment on the pinned Automation digest issue, grouped under milestone headings, with `round cost` and
+   `email` rows; the run summary has a `## Round` line; one mail arrives with the same text as the comment.
+4. Re-run that same health run (Re-run all jobs).
+   Expect: no second comment and no second mail; the Email the digest step says `already sent for run ... (MAIL_ALREADY)`.
+5. Open the health and regression issues on GitHub.
+   Expect: each sits on its feature's milestone (Backlog only when no feature fits). Move one to Backlog by hand, run the
+   health workflow again, and it stays on Backlog.
+6. Search the run logs, the digest comment and the issues for your address.
+   Expect: it appears nowhere.
+
 ## v0.23.0 - 2026-11-10
 
 - Merge remote-tracking branch 'origin/main' into loop/setup-sync

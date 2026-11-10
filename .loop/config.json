@@ -39,5 +39,10 @@
   "review_depth": "full",
   "_help": {
     "review_depth": "full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run."
-  }
+  },
+  "full_auto": true,
+  "pool_size": 20,
+  "silent_minutes": 30,
+  "govern_hook": true,
+  "digest_mail": "cloudflare"
 }
