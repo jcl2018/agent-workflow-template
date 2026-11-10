@@ -18,3 +18,15 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Run `printf 'notes\n' > /tmp/names; LOOP_PRIVATE_NAMES=/tmp/names python3 skills/workflow-delivery/scripts/private.py check`.
+   Expect: it prints `PRIVATE LIST: 1 pattern from $LOOP_PRIVATE_NAMES` and never prints the pattern itself.
+2. Run `python3 skills/workflow-monitoring/scripts/live_board.py` from the main checkout while a goal is running.
+   Expect: under the goal, a `budget:` line (minutes and tokens of its budget, or `budget: none set`) and a
+   `depth decided:` line naming the goal's depth and why.
+3. Run `bash dev/toy/test-delivery-prd.sh resume`.
+   Expect: it kills a goal's review mid-step, shows `idea is already recorded ... (ALREADY_RECORDED)` when idea is
+   rerun, and ends with `ALL PASS` after the review is resumed.
+4. Run `bash dev/toy/test-delivery-release.sh protected`.
+   Expect: every line is PASS, including the release landing through a `release/vX-<slug>` pull request with one
+   GitHub release.
