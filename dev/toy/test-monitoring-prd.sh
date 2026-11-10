@@ -90,6 +90,7 @@ case_mon7() {
   check "MON-7: the operation session's Edit is refused" 'hook "$e" | grep -q "\"deny\""'
   check "MON-7: git -C . commit is refused" 'hook "$(b op1 "$R" "git -C . commit -m x")" | grep -q deny'
   check "MON-7: merge.py X && git push is refused segment by segment" 'hook "$(b op1 "$R" "python3 merge.py x && git push origin main")" | grep -q deny'
+  check "MON-7: a command that only names git passes" '[ -z "$(hook "$(b op1 "$R" "echo git push")")" ] && [ -z "$(hook "$(b op1 "$R" "grep -rn git commit skills")")" ]'
   check "MON-7: git status and merge.py pass" '[ -z "$(hook "$(b op1 "$R" "git status")")" ] && [ -z "$(hook "$(b op1 "$R" "python3 skills/workflow-release/scripts/merge.py g")")" ]'
   check "MON-7: another session and a worker worktree are never checked" '[ -z "$(hook "$(b w9 "$R" "git commit -m x")")" ] && [ -z "$(hook "$(b op1 "$L/worktrees/x" "git commit -m x")")" ]'
   cfg govern_hook=false

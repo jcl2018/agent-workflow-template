@@ -39,19 +39,22 @@ WRAPPERS = ("env", "command", "exec", "sudo", "nohup", "time", "nice", "xargs", 
 
 
 def strip(words):
-    """A segment's words without leading VAR=x assignments and wrappers (timeout and nice take one argument)."""
-    i = 0
-    while i < len(words) and (re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", words[i]) or os.path.basename(words[i]) in WRAPPERS or words[i].startswith("-")
-                              or (i and words[i - 1] in ("timeout", "-n") and re.match(r"^[0-9.]+[smhd]?$", words[i]))):
+    """A segment's words without leading VAR=x assignments, wrappers, their flags and flag values (timeout -s KILL 60,
+    sudo -u root, nice -n 5): what is left starts with the command that runs."""
+    i, wrapped = 0, False
+    while i < len(words):
+        word, prev = words[i], words[i - 1] if i else ""
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", word) or os.path.basename(word) in WRAPPERS:
+            wrapped = wrapped or os.path.basename(word) in WRAPPERS
+        elif not wrapped or not (word.startswith("-") or re.match(r"^[0-9.]+[smhd]?$", word) or re.match(r"^-[a-zA-Z]$", prev)):
+            break
         i += 1
     return words[i:]
 
 
 def git_write(words):
     """The history-writing git subcommand in one segment's words, or ''."""
-    words = strip(words)
-    at = next((n for n, w in enumerate(words[:6]) if os.path.basename(w) in ("git", "bash", "sh", "zsh")), 0)
-    words, i = words[at:], 0  # a wrapper's flag values (timeout -s KILL 60, sudo -u root) come before the command
+    words, i = strip(words), 0
     if i < len(words) and os.path.basename(words[i]) in ("bash", "sh", "zsh") and i + 2 < len(words) and words[i + 1] == "-c":
         return verdict(words[i + 2], nested=True)
     if i >= len(words) or os.path.basename(words[i]) != "git":
