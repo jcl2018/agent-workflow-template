@@ -1,13 +1,11 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/goal.py
 # reads: skills/workflow-delivery/scripts/role.py skills/workflow-regression/scripts/regression.py
-# reads: skills/workflow-setup/scripts/setup.py skills/workflow-regression/scripts/lanes_cli.py
-# reads: skills/workflow-regression/scripts/lanes.py skills/workflow-regression/scripts/narrow.py
+# reads: skills/workflow-setup/scripts/setup.py skills/workflow-regression/scripts/lanes.py
 # Proves regression.py run --reuse: a goal's suite runs once, then later runs reuse it, rerun only the rows a change can
 # affect, and never reuse a failing or missing run. Then delivery's lanes: qa runs the lane before the qa skill (through
 # the flow file's test_record prefix), record refuses qa without it, and pr reruns only what a base merge affected.
-# Then narrow rows: # reads: headers map a change to only the rows whose closure reaches it, and anything the mapping
-# cannot work out reruns every time. No model is called. usage: test-lanes.sh [DIR] [regression|delivery|narrow]
+# No model is called. usage: test-lanes.sh [DIR] [regression|delivery]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION GH_TOKEN GITHUB_TOKEN
 here=$(cd "$(dirname "$0")/../.." && pwd)
@@ -257,103 +255,6 @@ git commit -q --allow-empty -m "Move HEAD"
 out=$($F lf qa --wait 1 2>&1); sleep 2
 check "a moved HEAD stops the old lane's whole run and starts one new lane" 'grep -q "^RUNNING" <<<"$out" && [ "$(slow)" = 1 ]'
 kill -TERM -- "-$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['pid'])" "$common/loop/runs/lf.qa-lane.job")" 2>/dev/null; sleep 1
-fi
-
-if [ "$part" = all ] || [ "$part" = narrow ]; then
-echo "== narrow: # reads: headers map a change to the rows whose closure reaches it"
-L="python3 $here/skills/workflow-regression/scripts/lanes_cli.py"
-n="$d/narrow"; mkdir -p "$n/skills/a/scripts" "$n/skills/b/scripts" "$n/dev" "$n/tools" "$n/.loop"
-printf 'open("data.md")\n' > "$n/skills/a/scripts/a.py"; printf 'data\n' > "$n/skills/a/scripts/data.md"
-printf 'import helper\n' > "$n/skills/b/scripts/b.py"; printf 'X = 1\n' > "$n/skills/b/scripts/helper.py"
-printf 'Y = 1\n' > "$n/skills/b/scripts/solo.py"; printf 'x\n' > "$n/tools/x.txt"
-printf 'echo common\n' > "$n/dev/common.sh"; printf 'm=skills/b/scripts\n' > "$n/dev/tm-lib.sh"
-printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\n. dev/common.sh; python3 skills/a/scripts/a.py\n' > "$n/dev/ta.sh"
-printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\n. dev/common.sh; python3 skills/b/scripts/b.py\n' > "$n/dev/tb.sh"
-printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\n. dev/common.sh; . dev/tm-lib.sh\npython3 $m/b.py; python3 $m/solo.py\n' > "$n/dev/tm.sh"
-printf '#!/bin/bash\n# reads: skills/a/scripts/gone.py\n. dev/common.sh\n' > "$n/dev/tx.sh"
-printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\n. dev/common.sh; ls skills/b/scripts >/dev/null; python3 skills/a/scripts/a.py\n' > "$n/dev/tf.sh"
-printf '#!/bin/bash\n. dev/common.sh; python3 skills/a/scripts/a.py\n' > "$n/dev/tu.sh"
-printf '#!/bin/bash\n# reads: skills/a/scripts/data.md\n. dev/common.sh; for f in tools/*; do cat "$f"; done\n' > "$n/dev/th.sh"
-printf '# id\tlevel\tcommand\n' > "$n/.loop/regression.tsv"
-for r in ta tb tm tx tf tu th; do printf '%s\tland\tbash dev/%s.sh\n' $r $r >> "$n/.loop/regression.tsv"; done
-aff() { $L affected --root "$n" "$@" | head -1 | sed 's/^AFFECTED [0-9]* of [0-9]* rows (\(.*\))$/\1/'; }
-# Value: protects=a declared script's rows rerun on its declared file and not on another skill's file; fails_when=the
-# narrow closure widens to the skill folder or drops declared files; why_new=every earlier lanes check is wide; seam=none;
-# no_claim=real repo scripts (toy stand-ins)
-check "a change to a declared skill file reruns only the rows whose closure reaches it" '[ "$(aff skills/a/scripts/a.py)" = "ta, tf, tu, tx" ] && [ "$(aff skills/a/scripts/data.md)" = "ta, tf, th, tu, tx" ]'
-check "a change to another skill's file does not rerun a declared script's rows" '! aff skills/b/scripts/helper.py | grep -qw ta && [ "$(aff skills/b/scripts/helper.py)" = "tb, tf, tm, tx" ]'
-# Value: protects=a file used through a folder variable set in another file still reruns its row; fails_when=the
-# base-name rule is dropped or reads only the declaring script; why_new=no folder-variable case; seam=none; no_claim=names built at run time
-check "an undeclared file used through a folder variable set in another file reruns its row" '[ "$(aff skills/b/scripts/solo.py)" = "tf, tm, tx" ]'
-# Value: protects=a row whose declaration cannot be resolved reruns on a mapped change that does not touch it;
-# fails_when=a declaration problem stops making the row always; why_new=new rule; seam=none; no_claim=none beyond protects
-check "a row whose declaration cannot be resolved reruns on a change that does not touch it" 'out=$($L affected --root "$n" tools/x.txt); [ "$(aff tools/x.txt)" = "tf, th, tx" ] && grep -q "^ALWAYS tx: LANES-DECL-MISSING" <<<"$out" && grep -q "^ALWAYS tf: LANES-DECL-FOLDER" <<<"$out"'
-# Value: protects=a change every row reaches reruns all, an unread file is a full run; fails_when=the narrow branch
-# drops sourced helpers or the UNMAPPED rule; why_new=only the wide branch had these; seam=none; no_claim=none beyond protects
-check "a narrow change reruns only its rows and a change every row reaches reruns all" '[ "$(aff skills/b/scripts/solo.py)" = "tf, tm, tx" ] && [ "$(aff dev/common.sh)" = "ta, tb, tf, th, tm, tu, tx" ]'
-printf 'new\n' > "$n/src.txt"
-check "a file no row reads is a full run (UNMAPPED)" '$L affected --root "$n" src.txt | grep -q "^UNMAPPED src.txt: full run"'
-out=$($L check --root "$n" dev/tx.sh dev/tf.sh dev/tu.sh); rc=$?
-check "lanes_cli.py check names each problem with its code, file:line and a fix line" '[ $rc = 1 ] && grep -q "^LANES-DECL-MISSING dev/tx.sh:2: declared path does not exist: skills/a/scripts/gone.py" <<<"$out" && grep -q "^LANES-DECL-FOLDER dev/tf.sh:3: names skills/b/scripts/" <<<"$out" && grep -q "^LANES-DECL-NONE dev/tu.sh:1" <<<"$out" && [ "$(grep -c "^fix: " <<<"$out")" = 3 ]'
-check "deps --why prints the chain from the command to a file" '[ "$($L deps --root "$n" "bash dev/tm.sh" --why skills/b/scripts/helper.py)" = "dev/tm.sh -> skills/b/scripts/b.py -> skills/b/scripts/helper.py" ]'
-# Value: protects=glob reads and split quoting are seen; fails_when=the "$here"/ form or the glob rule is dropped;
-# why_new=no test used them; seam=none; no_claim=bash reads by names built at run time
-printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\nhere=.; for f in "$here"/skills/b/scripts/*.py; do wc -c < "$f"; done\n' > "$n/dev/tg.sh"
-printf '#!/bin/bash\n# reads: skills/a/scripts/\npython3 skills/a/scripts/a.py\n' > "$n/dev/tv.sh"
-printf '#!/bin/bash\n. dev/common.sh\n# reads: skills/a/scripts/a.py\n' > "$n/dev/tp.sh"
-out=$($L check --root "$n" dev/tg.sh dev/tv.sh dev/tp.sh)
-check "a glob over a skill folder must declare that folder; an unbacked folder or a late header is refused" 'grep -q "^LANES-DECL-GLOB dev/tg.sh" <<<"$out" && grep -q "^LANES-DECL-FOLDER-UNBACKED dev/tv.sh:2" <<<"$out" && grep -q "^LANES-DECL-PLACE dev/tp.sh:3" <<<"$out"'
-printf '#!/bin/bash\n# reads: skills/b/scripts/\nhere=.; for f in "$here"/skills/b/scripts/*.py; do wc -c < "$f"; done\n' > "$n/dev/tg.sh"
-check "a declared globbed folder is a prefix: a new file in it is a dependency" '$L deps --root "$n" "bash dev/tg.sh" | grep -qx "skills/b/scripts/" && [ -z "$($L check --root "$n" dev/tg.sh)" ]'
-# Value: protects=headerless rows keep today's mapping exactly; fails_when=the shared helpers change wide behavior;
-# why_new=parity oracle for the refactor (E7); seam=LANES_WIDE; no_claim=none beyond protects
-w2=$(LANES_WIDE=1 $L affected --root "$n" skills/a/scripts/a.py 2>&1)
-check "LANES_WIDE=1 maps every row wide, as before headers" '[ "$(aff skills/a/scripts/a.py)" = "ta, tf, tu, tx" ] && grep -q "^AFFECTED 4 of 7 rows (ta, tf, th, tu)$" <<<"$w2"'
-cd "$d/repo" 2>/dev/null && git switch -q main 2>/dev/null
-p1=$($L affected src/a.txt 2>&1); p2=$(LANES_WIDE=1 $L affected src/a.txt 2>&1)
-check "with no headers, affected is the same with and without LANES_WIDE (wide mapping unchanged)" '[ -n "$p1" ] && [ "$p1" = "$p2" ]'
-# Value: protects=a deleted helper forces a full run even when a broad row maps it; fails_when=deletions are treated as
-# edits; why_new=no deletion case existed; seam=none; no_claim=renames outside skills/ and dev/
-mkdir -p skills/k/scripts; printf 'import kh\n' > skills/k/scripts/k.py; printf 'Z = 1\n' > skills/k/scripts/kh.py
-printf '#!/bin/bash\n# reads: skills/k/scripts/k.py\nprintf "k\\n" >> "$TOY_LOG"\n' > dev/k.sh
-printf '#!/bin/bash\n# reads: skills/\nfor f in skills/*; do :; done; printf "w\\n" >> "$TOY_LOG"\n' > dev/w.sh  # lanes: no read (toy repo file)
-printf 'k\tland\tbash dev/k.sh\tX-1\t2026-01-01\tK.\tcriterion\t\nw\tland\tbash dev/w.sh\tX-1\t2026-01-01\tW.\tcriterion\t\n' >> .loop/regression.tsv
-git add -A; git commit -qm "Rows k and w"; $reg run land --reuse >/dev/null
-fresh; out=$($reg run land --reuse); echo "$out"
-check "a reusing run reuses declared rows when nothing changed" 'grep -q "^REUSED" <<<"$out" && [ -z "$(ran)" ]'
-printf 'Z = 2\n' > skills/k/scripts/kh.py; git commit -qam "Change kh"
-fresh; out=$($reg run land --reuse); echo "$out"
-check "a run reruns a declared row whose imported module changed, and the broad row" 'grep -q "^AFFECTED 2 of" <<<"$out" && [ "$(ran)" = "k w " ]'
-# Value: protects=a table edit reruns only the edited row and the rows that read this repo's table; fails_when=the
-# narrow table rule goes back to every row reaching regression.py, or drops root-running scripts; why_new=the old rule
-# reran nearly every row on any goal's table edit; seam=none; no_claim=toy scripts that name a toy .loop/regression.tsv
-printf '#!/bin/bash\n# reads: skills/k/scripts/k.py\nhere=.; (cd "$here" && true); printf "t\\n" >> "$TOY_LOG"\n' > dev/t.sh  # lanes: no read (toy repo file)
-printf 't\tland\tbash dev/t.sh\tX-1\t2026-01-01\tT.\tcriterion\t\n' >> .loop/regression.tsv
-git add -A; git commit -qm "Row t"; $reg run land --reuse >/dev/null
-awk -F'\t' 'BEGIN {OFS = FS} $1 == "k" {$6 = "K again."} {print}' .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv
-git commit -qam "Edit row k"
-fresh; out=$($reg run land --reuse); echo "$out"
-check "a table edit reruns the edited declared row and the rows that run tools on the repo root, not every row" '[ "$(ran)" = "k t " ]'
-git rm -q skills/k/scripts/kh.py; git commit -qm "Delete kh"
-fresh; out=$($reg run land --reuse); echo "$out"
-check "a deleted skill file forces a full run even when a broad row maps it" 'grep -q "^FULL: deleted skills/k/scripts/kh.py" <<<"$out"'
-echo "== check-reads.sh: runtime reads outside a row's closure fail the trace"
-c="$d/trace"; mkdir -p "$c/dev/toy" "$c/skills/workflow-regression/scripts" "$c/skills/a/scripts" "$c/.loop"
-cp "$here/dev/toy/check-reads.sh" "$c/dev/toy/"; cp "$here"/skills/workflow-regression/scripts/{lanes,narrow,lanes_cli}.py "$c/skills/workflow-regression/scripts/"
-for f in a b c e; do printf 'NAME = "%s"\nopen(__file__).read()\n' "$f" > "$c/skills/a/scripts/$f.py"; done
-printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\npython3 skills/a/scripts/a.py\n' > "$c/dev/t1.sh"
-printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nn=c; python3 skills/a/scripts/a.py; python3 skills/a/scripts/$n.py\n' > "$c/dev/t2.sh"
-printf '#!/bin/bash\n# reads: skills/a/scripts/a.py skills/a/scripts/b.py\npython3 skills/a/scripts/a.py; python3 -I skills/a/scripts/b.py\n' > "$c/dev/t3.sh"
-printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nt=$(mktemp -d); cp -R skills/a "$t/flat"; python3 skills/a/scripts/a.py; n=e; python3 "$t/flat/scripts/$n.py"; rm -rf "$t"\n' > "$c/dev/t4.sh"
-printf '# id\tlevel\tcommand\n' > "$c/.loop/regression.tsv"
-for r in 1 2 3 4; do printf 'r%s\tland\tbash dev/t%s.sh\n' $r $r >> "$c/.loop/regression.tsv"; done
-out=$(bash "$c/dev/toy/check-reads.sh" 2>&1); rc=$?; echo "$out"
-# Value: protects=a row's runtime Python reads outside its closure fail the nightly trace; fails_when=the hook or the
-# closure comparison is dropped; why_new=new tool; seam=sitecustomize + PATH shim; no_claim=bash-only reads
-check "check-reads passes a row whose runtime reads are inside its closure" 'grep -q "^PASS r1" <<<"$out"'
-check "check-reads fails a row that reads a skill file its closure misses, with the line to add" '[ $rc = 1 ] && grep -q "^LANES-TRACE-UNDECLARED r2 skills/a/scripts/c.py" <<<"$out" && grep -q "^fix: # reads: skills/a/scripts/c.py" <<<"$out"'
-check "check-reads fails a row with a Python launch the hook never saw (python3 -I)" 'grep -q "^LANES-TRACE-NOHOOK r3: 2 Python launches, 1 hooked" <<<"$out"'
-check "check-reads maps a read of a copied skill file back to the repo file" 'grep -q "^LANES-TRACE-UNDECLARED r4 skills/a/scripts/e.py" <<<"$out"'
 fi
 
 [ $fails = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

@@ -35,10 +35,15 @@ ROOT = re.compile(r"\$\{?here\}?/?(?=[\s\"')]|$)")
 RUNNER = "skills/workflow-regression/scripts/regression.py"  # rows that reach it may read .loop/regression.tsv
 TABLE = ".loop/regression.tsv"
 SKILL_NAME = re.compile(r"\bworkflow-[a-z]+\b")
-IMPORT = re.compile(r"^\s*(?:import|from)\s+([A-Za-z_]\w*)", re.M)
-ROOT_RUN = re.compile(r'cd\s+"?\$\{?here\}?"?\s*(?:&&|;|\))')  # a script running tools on this repo's own files
+IMPORT = re.compile(r"^\s*(?:from\s+([A-Za-z_]\w*)|import\s+([\w, ]+))", re.M)
+ROOT_RUN = re.compile(r'(?:cd|pushd)\s+"?\$\{?here\}?/?"?(?=[\s;&|)]|$)|-C\s+"?\$\{?here\}?/?"?\s|--root[= ]"?\$\{?here\}?/?"?(?=[\s;&|)]|$)', re.M)
 HERE_FORMS = re.compile(r'"\$\{?here\}?"/|\$\{here\}/')  # "$here"/x, "${here}"/x and ${here}/x all mean $here/x
 CD_SKILLS = re.compile(r"cd\s+\"?\$\{?here\}?\"?\s*[;&|\n][^\n]*?(?<![\w./$-])skills(?:/\.)?(?=[\s\"')]|$)")
+
+
+def modules(text):
+    """Module names a Python text imports: `from x import ...`, and every name of `import a, b as c`."""
+    return {name.split()[0] for frm, imp in IMPORT.findall(text) for name in ([frm] if frm else imp.split(",")) if name.strip()}
 
 
 def git(root, *args):
@@ -163,7 +168,7 @@ def scan(root, rel, cache):
         text = read(root, rel, cache) or ""
         more, _ = references(root, text, os.path.dirname(rel))  # a script's own `cd "$here"` reads nothing by itself
         if rel.endswith(".py"):
-            more |= {os.path.join(os.path.dirname(rel), m + ".py") for m in IMPORT.findall(text)
+            more |= {os.path.join(os.path.dirname(rel), m + ".py") for m in modules(text)
                      if os.path.isfile(os.path.join(root, os.path.dirname(rel), m + ".py"))}
         files[rel] = more
     return files[rel]
@@ -210,9 +215,14 @@ def closure(root, command, cache):
         deps |= wide_closure(root, path, cache)[0] | {path}
     cache["why", command] = " ".join(map(str, problems[0][:1] + problems[0][3:])) if problems else ""
     cache["chain", command] = parent
-    cache["table", command] = hits(TABLE, deps) or RUNNER in found or any(
-        ROOT_RUN.search(read(root, p, cache) or "") for p in deps if p.endswith(".sh") or "." not in os.path.basename(p))
-    cache["closure", command] = (deps, whole or bool(problems))
+    shell = [p for p in deps if p.endswith(".sh") or "." not in os.path.basename(p)]
+    texts = ["\n".join(x for x in (read(root, p, cache) or "").split("\n") if narrow.NOREAD not in x) for p in shell]
+    root_run = any(ROOT_RUN.search(x) for x in texts)
+    if root_run and not problems:  # it runs tools on this repo's own files: any of them may matter
+        cache["why", command] = "runs tools on this repo's own files"
+    cache["table", command] = hits(TABLE, deps) or RUNNER in found or (hits(RUNNER, deps) and any(  # run from the root
+        not re.search(r"(?m)^[^#\n]*\bcd\s", x) for x in texts))
+    cache["closure", command] = (deps, whole or bool(problems) or root_run)
     return cache["closure", command]
 
 
@@ -246,11 +256,12 @@ def reads_table(root, command, cache):
 
 
 def deleted(root, commit):
-    """Deleted paths under skills/ or dev/ since commit or in the worktree: a vanished file drops edges, so run all."""
+    """Deleted paths (release and loop files aside) since commit or in the worktree: a vanished file drops edges."""
     out = (git(root, "diff", "--name-status", "--no-renames", "%s..HEAD" % commit) or "").splitlines()
     out += (git(root, "status", "--porcelain", "--no-renames") or "").splitlines()
-    gone = [line.split()[-1] for line in out if line[:2].strip() == "D" or line.startswith("D")]
-    return sorted({p for p in gone if p.startswith(("skills/", "dev/"))})
+    gone = [line.split("\t")[-1] if "\t" in line else line[3:].strip('"') for line in out
+            if line[:2].strip() == "D" or line.startswith("D")]
+    return sorted({p for p in gone if not any(p == n or (n.endswith("/") and p.startswith(n)) for n in NO_EFFECT)})
 
 
 def table(root, commit, name, memo):
@@ -286,7 +297,7 @@ def plan(root, selected, record, current_tsv, current_known):
             since[prior["commit"]] = changed(root, prior["commit"])
         stale = since[prior["commit"]] is None  # git couldn't say what changed: run it
         for path in since[prior["commit"]] or []:
-            if path == ".loop/regression.tsv":
+            if path == TABLE:
                 stale = table(root, prior["commit"], "regression.tsv", memo).get(rid) != current_tsv.get(rid) \
                     or reads_table(root, row["command"], cache)
             elif path == ".loop/regression-known.tsv":

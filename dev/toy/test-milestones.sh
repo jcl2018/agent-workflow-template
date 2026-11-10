@@ -1,6 +1,7 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-health/scripts/health.py
 # reads: skills/workflow-health/scripts/milestone.py skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-health/scripts/
 # Test feature milestones and health run on a throwaway toy repo with a fake gh. usage: test-milestones.sh [DIR]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool

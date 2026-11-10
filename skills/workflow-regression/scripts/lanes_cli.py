@@ -90,13 +90,15 @@ def affected(root, rows, paths, cache):
         if cache.get(("why", row["command"])):
             notes.append("ALWAYS %s: %s" % (row["id"], cache["why", row["command"]]))
     for path in paths:
-        if not os.path.exists(os.path.join(root, path)) and path.startswith(("skills/", "dev/")):
+        if not os.path.exists(os.path.join(root, path)) and not any(
+                path == n or (n.endswith("/") and path.startswith(n)) for n in lanes.NO_EFFECT):
             return every, notes + ["DELETED %s: full run" % path]
-        if path == ".loop/regression.tsv":
+        if path in (lanes.TABLE, ".loop/regression-known.tsv"):  # never unmapped; a record would add the edited rows
             hit = {r["id"] for r in rows if lanes.reads_table(root, r["command"], cache)}  # plus edited rows (needs a record)
         else:
             hit = {r["id"] for r in rows if lanes.touches(root, r["command"], path, cache)}
-        no_effect = any(path == n or (n.endswith("/") and path.startswith(n)) for n in lanes.NO_EFFECT)
+        no_effect = path in (lanes.TABLE, ".loop/regression-known.tsv") or any(
+            path == n or (n.endswith("/") and path.startswith(n)) for n in lanes.NO_EFFECT)
         if not hit and not no_effect and not any(lanes.hits(path, lanes.closure(root, r["command"], cache)[0])
                                                  for r in rows):
             return every, notes + ["UNMAPPED %s: full run; no row reads it (add it to a script's # reads: if one "

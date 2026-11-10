@@ -14,6 +14,7 @@ import lanes
 READS = re.compile(r"^#\s*reads:(.*)$")
 QUOTED = re.compile(r"""["']([\w./-]*\w)["']""")
 NOREAD = "# lanes: no read"
+RECURSIVE = re.compile(r"\b(?:grep\s+-\w*[rR]|find|cp\s+-\w*[rRa]|ls\s+-\w*R|tar|zip\s+-\w*r|rsync|du)\s")
 GLOB = re.compile(r"(?:\$here/)?((?:skills|dev|docs)/[\w./-]*?)/?\*")
 FILEISH = re.compile(r"\.(?:py|md|json|sh|tsv|txt|yml|yaml|toml)$")
 
@@ -74,7 +75,7 @@ def scan(root, rel, cache):
             for path in lanes.walk(root, "skills"):
                 index.setdefault(os.path.basename(path), set()).add(path)
         skill = "/".join(rel.split("/")[:2]) + "/" if rel.startswith("skills/") else None
-        files |= {os.path.join(base, m + ".py") for m in lanes.IMPORT.findall(text)
+        files |= {os.path.join(base, m + ".py") for m in lanes.modules(text)
                   if os.path.isfile(os.path.join(root, base, m + ".py"))}
         for lit in set(QUOTED.findall(text)):
             name = os.path.basename(lit)
@@ -82,6 +83,8 @@ def scan(root, rel, cache):
                 files |= index.get(name, set())
                 if os.path.isfile(os.path.join(root, base, name)):
                     files.add(os.path.join(base, name))
+            elif "/" in lit and os.path.isdir(os.path.join(root, os.path.normpath(lit))) and not lit.startswith(".."):
+                folders.add(os.path.normpath(lit) + "/")  # Path("skills/a/scripts").glob(...)
             elif skill and "/" not in lit:
                 for here in [os.path.join(skill, lit)] + [os.path.join(skill, d, lit) for d in ("scripts", "references")]:
                     if os.path.isdir(os.path.join(root, here)) and os.path.normpath(here) != base:
@@ -93,6 +96,9 @@ def scan(root, rel, cache):
         folders = {p for p in found if p.endswith("/")}
         globs = {m.rstrip("/") + "/" for m in GLOB.findall(lanes.HERE_FORMS.sub("$here/", text))
                  if os.path.isdir(os.path.join(root, m))}  # a glob needs its folder declared, not one file in it
+        for line in text.split("\n"):  # so does a recursive read (grep -r, find, cp -R, ls -R, tar, zip -r)
+            if RECURSIVE.search(line):
+                globs |= {p for p in lanes.references(root, line, base, wide=False)[0] if p.endswith("/")}
         cache["globs", rel] = {g for g in globs if g.startswith("skills/")}
     cache[key] = (files, folders)
     return cache[key]

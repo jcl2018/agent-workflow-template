@@ -31,8 +31,8 @@ if _log:
                 try:
                     real = os.path.realpath(path)
                     kind = "DIR" if event not in ("open", "cpython.run_file") else "FILE"
-                    if kind == "FILE" and not real.startswith(_root) and real.endswith((".py", ".md", ".json")) \
-                            and not _busy and os.path.isfile(real):
+                    if kind == "FILE" and not real.startswith(_root) and not _busy and os.path.isfile(real) \
+                            and os.path.getsize(real) < 2000000 and "/__pycache__/" not in real:
                         _busy.append(1)  # a copy outside the repo: hash it now, it may be gone by the verdict
                         try:
                             with open(real, "rb") as handle:
@@ -44,6 +44,13 @@ if _log:
                     pass
     sys.addaudithook(_hook)
 PY
+cat > "$tmp/run.pl" <<'PL'
+# Run a command in its own process group; after 600 s, or when stopped, kill the whole group.
+my $pid = fork() // die "fork: $!";
+if (!$pid) { setpgrp(0, 0); exec @ARGV or exit 127; }
+for my $sig (qw(ALRM TERM INT)) { $SIG{$sig} = sub { kill 'KILL', -$pid; exit 124; }; }
+alarm 600; waitpid($pid, 0); exit($? & 127 ? 128 + ($? & 127) : $? >> 8);
+PL
 real=$(python3 -c "import sys; print(sys.executable)")  # the interpreter itself, never an outer shim
 for name in python3 python; do
   printf '#!/bin/bash\necho "LAUNCH $$ $*" >> "$LANES_TRACE_LOG"\nexec "%s" "$@"\n' "$real" > "$tmp/bin/$name"
@@ -68,33 +75,37 @@ fails=0; n=0
 while IFS=$'\t' read -r ids command; do
   [ -n "$ids" ] || continue
   n=$((n + 1)); log="$tmp/trace.$n"; : > "$log"
-  ( cd "$here" && LANES_TRACE_LOG="$log" LANES_TRACE_ROOT="$(cd "$here" && pwd -P)" PYTHONPATH="$tmp/hook${PYTHONPATH:+:$PYTHONPATH}" PATH="$tmp/bin:$PATH" \
-      exec perl -e 'setpgrp(0,0); alarm 600; exec @ARGV' bash -c "$command" ) >"$tmp/out.$n" 2>&1
+  (
+    cd "$here" || exit 1  # lanes: no read (each row runs here; the rows are the readers)
+    LANES_TRACE_LOG="$log" LANES_TRACE_ROOT="$(pwd -P)" PYTHONPATH="$tmp/hook${PYTHONPATH:+:$PYTHONPATH}" \
+      PATH="$tmp/bin:$PATH" exec perl "$tmp/run.pl" bash -c "$command"
+  ) >"$tmp/out.$n" 2>&1
   rc=$?
   verdict=$(python3 - "$here" "$log" "$command" "$ids" "$rc" <<'PY'
 import hashlib, os, re, subprocess, sys
 here, log, command, ids, rc = sys.argv[1:]
 here = os.path.realpath(here)
-launches = marks = 0
-reads, dirs = set(), set()
+launches, marks = set(), set()
+reads, dirs, copies = set(), set(), []
 by_hash = {}
 for root, _, names in os.walk(os.path.join(here, "skills")):  # lanes: no read (the traced repo's skills)
     for n in names:
         p = os.path.join(root, n)
         if "__pycache__" not in p:
-            by_hash.setdefault(hashlib.sha1(open(p, "rb").read()).hexdigest(), os.path.relpath(p, here))
+            by_hash.setdefault(hashlib.sha1(open(p, "rb").read()).hexdigest(), []).append(os.path.relpath(p, here))
 for line in open(log, errors="replace"):
     kind, _, rest = line.rstrip("\n").partition(" ")
     if kind == "LAUNCH":
-        launches += 1
+        launches.add(rest.split()[0])
     elif kind == "MARK":
-        marks += 1
+        marks.add(rest.split()[0])
     elif kind in ("FILE", "DIR"):
         if rest.startswith(here + "/skills/"):  # lanes: no read (the traced repo's skills)
             (reads if kind == "FILE" else dirs).add(os.path.relpath(rest, here) + ("/" if kind == "DIR" else ""))
     elif kind == "HASH" and rest in by_hash:
-        reads.add(by_hash[rest])
-reads = {r for r in reads if "__pycache__" not in r and not r.endswith(".pyc")}
+        copies.append(by_hash[rest])
+pyc = re.compile(r"(.*)/__pycache__/([^/.]+)\.[^/]*\.pyc$")  # a module loaded from bytecode: its source counts
+reads = {pyc.sub(r"\1/\2.py", r) for r in reads}
 deps = subprocess.run([sys.executable, "-I", os.path.join(here, "skills/workflow-regression/scripts/lanes_cli.py"),
                        "deps", "--root", here, command], capture_output=True, text=True).stdout.splitlines()
 always = any(line.startswith("ALWAYS ") for line in deps)
@@ -104,10 +115,11 @@ def covered(p):
 out = []
 if rc != "0":
     out.append("FAIL %s: the row command exited %s" % (ids, rc))
-if launches > marks:
-    out.append("LANES-TRACE-NOHOOK %s: %d Python launches, %d hooked (PYTHONPATH reset, or -I/-S?)" % (ids, launches, marks))
+if launches - marks:
+    out.append("LANES-TRACE-NOHOOK %s: %d Python launches, %d hooked (PYTHONPATH reset, or -I/-S?)" % (
+        ids, len(launches), len(launches & marks)))
 if not always:
-    for p in sorted(reads | dirs):
+    for p in sorted(reads | dirs) + sorted(c[0] for c in copies if not any(covered(x) for x in c)):
         if not covered(p):
             out.append("LANES-TRACE-UNDECLARED %s %s\nfix: # reads: %s" % (ids, p, p))
 print("\n".join(out) if out else "PASS %s" % ids)

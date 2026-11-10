@@ -2,7 +2,7 @@
 # reads: skills/workflow-docs/references/template.md skills/workflow-docs/scripts/criteria.py
 # reads: skills/workflow-docs/scripts/docs.py skills/workflow-health/scripts/milestone.py
 # reads: skills/workflow-regression/scripts/regression.py skills/workflow-release/scripts/release.py
-# reads: skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-setup/scripts/setup.py skills/workflow-docs/
 # Test the one docs command (docs.py audit) on a throwaway toy repo with a fake gh. usage: test-docs-command.sh [DIR]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
