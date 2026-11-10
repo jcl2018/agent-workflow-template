@@ -107,6 +107,53 @@ t=$(awk '/^TESTS$/{t=1; next} t && /^$/{exit} t' <<<"$out")
 [ "$(grep '^FEATURE ' <<<"$t" | tr '\n' ,)" = "FEATURE Alpha,FEATURE Beta,FEATURE Other," ] \
   && grep -qxF 'a1 | requirement | AAA-1: Alpha words. | Given a, when b, then c. | both | PASS 2026-11-09 | seen failing 2026-11-01' <<<"$t" \
   && tail -1 <<<"$out" | grep -q '^HEALTH: ' && ok "the health report lists the tests grouped by feature, before its verdict" || bad "health test list"
+# Value: protects=list --tsv keeps a raw | and leads with the feature; fails_when=--tsv escapes | or drops the feature column;
+#   why_new=only --markdown escaping was checked; seam=none; no_claim=none beyond protects
+t=$($tests list --tsv)
+grep -qxF "$(printf 'Beta\tb1\trequirement\tBBB-1: Beta words.\tChecks a | pipe, a `tick`.\tboth\tnot run\tno')" <<<"$t" \
+  && [ "$(cut -f1 <<<"$t" | sort -u | tr '\n' ,)" = "Alpha,Beta,Other," ] && ok "list --tsv keeps a raw | and puts the feature first" || bad "list --tsv: $t"
+# Value: protects=a results id with no regression.tsv row is still shown, under Other; fails_when=unknown ids are dropped or
+#   crash the summary; why_new=summary was checked with known ids only; seam=none; no_claim=none beyond protects
+printf 'a1\tPASS\nzz-gone\tFAIL\n' > stray.tsv
+sum=$($tests summary --results stray.tsv --took 1)
+awk '/^### Other$/{o=1; next} /^### /{o=0} o' <<<"$sum" | grep -q '^| zz-gone | ' && printf '%s\n' "$sum" | head -1 | grep -q '1 failed' \
+  && ok "a result whose test is not in regression.tsv lands under Other" || bad "stray result: $sum"
+# Value: protects=health check prints tests.py's own error as a NOTE and keeps the verdict last; --group prints no TESTS;
+#   fails_when=a failing tests.py breaks the report or hides its stderr, or a group run lists tests; why_new=only a missing
+#   tests.py was checked; seam=none; no_claim=real tests.py failure modes (a stub script stands in)
+c=$(mktemp -d); cp -R "$here/skills" "$c/"
+printf '#!/usr/bin/env python3\nimport sys\nsys.stderr.write("STUB-BROKEN: cannot read regression.tsv\\n")\nsys.exit(3)\n' > "$c/skills/workflow-regression/scripts/tests.py"
+out=$(python3 -B "$c/skills/workflow-health/scripts/health.py" check 2>/dev/null)
+awk '/^TESTS$/{t=1; next} t && /^$/{exit} t' <<<"$out" | grep -qxF "NOTE: the test list is unavailable (STUB-BROKEN: cannot read regression.tsv)" \
+  && tail -1 <<<"$out" | grep -q '^HEALTH: ' && ok "when tests.py fails, health shows its error in the TESTS block and the verdict stays last" || bad "failing tests.py: $out"
+out=$(python3 -B "$c/skills/workflow-health/scripts/health.py" check --group size 2>/dev/null)
+! grep -qx 'TESTS' <<<"$out" && tail -1 <<<"$out" | grep -q '^HEALTH: ' && ok "a health check of one group prints no TESTS block" || bad "group TESTS: $out"
+rm -rf "$c"
+cd "$here"; rm -rf "$r" "$g"
+
+echo "== an empty repo, an empty regression.tsv, and a local run's environment"
+# Value: protects=list on a repo with no rows prints NO TESTS; fails_when=it prints nothing or crashes; why_new=no empty-repo
+#   check; seam=none; no_claim=none beyond protects
+r=$(mktemp -d); cd "$r" && git init -q
+[ "$($tests list)" = "NO TESTS" ] && [ "$($tests list --tsv)" = "NO TESTS" ] && ok "a repo with no tests lists NO TESTS" || bad "empty list"
+# Value: protects=issues --write with no rows keeps the recorded states byte for byte; fails_when=the "and rows" guard is
+#   removed and the file is wiped; why_new=only the gh-auth failure was checked; seam=none; no_claim=none beyond protects
+mkdir .loop; printf '# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\n' > .loop/regression.tsv
+printf '# link\tstate\tdate\nhttps://example.test/o/r/issues/7\topen\t2026-11-09\n' > .loop/regression-issues.tsv
+cp .loop/regression-issues.tsv keep.tsv
+g=$(mktemp -d); printf '#!/bin/bash\n[ "$1" = auth ] && exit 0\necho OPEN\n' > "$g/gh"; chmod +x "$g/gh"
+PATH="$g:$PATH" $tests issues --write >/dev/null 2>&1 && cmp -s keep.tsv .loop/regression-issues.tsv \
+  && ok "issues --write with no rows leaves the recorded issue states unchanged" || bad "empty issues write"
+# Value: protects=a local regression.py run hides runner files and GH_TOKEN from rows; fails_when=cmd_run drops env=row_env();
+#   why_new=only the CI block was checked; seam=none; no_claim=gh calls a live run makes (fake gh stands in)
+printf 'leak\tland\t[ -z "$GITHUB_STEP_SUMMARY" ] || echo FIXTURE-LEAK >> "$GITHUB_STEP_SUMMARY"\t-\t2026-01-01\tWrites to the summary.\tcriterion\t\n' >> .loop/regression.tsv
+printf 'token\tland\t[ -z "$GH_TOKEN" ]\t-\t2026-01-01\tSees no token.\tcriterion\t\n' >> .loop/regression.tsv
+git add -A && git -c user.name=t -c user.email=t@t commit -qm rows
+: > "$g/summary.md"
+GITHUB_STEP_SUMMARY="$g/summary.md" GH_TOKEN=fixture-token $reg run leak >/dev/null 2>&1
+GITHUB_STEP_SUMMARY="$g/summary.md" GH_TOKEN=fixture-token $reg run token > run.txt 2>&1; rc=$?
+[ ! -s "$g/summary.md" ] && [ $rc = 0 ] && ! grep -q "FAIL" run.txt \
+  && ok "a local run gives a row neither the run summary file nor GH_TOKEN" || bad "local run env (rc $rc): $(cat run.txt)"
 cd "$here"; rm -rf "$r" "$g"
 
 echo "== $pass passed, $fail failed"
