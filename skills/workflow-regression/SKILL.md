@@ -116,23 +116,10 @@ environment, so no row inherits the real summary (rows run as the same user, so 
 fixture tables, not a hostile row), and the checkout keeps no token in its git config.
 `regression.py run` gives its rows the same environment.
 
-## `list [--markdown|--tsv]`, `summary`, `issues [--write]` (scripts/tests.py)
+## Test listing
 
-```bash
-python3 scripts/tests.py list
-```
-
-Every test in one fixed format, grouped by feature: the wiki page that holds the requirement a row guards, in page
-order, then `Other` for rows that guard none. Each test shows its name, kind (`requirement` or `defect`), what it guards
-(the requirement's ID and words, or the issue or pull request link with its recorded state and date, or the finding),
-what it checks, when it runs (`both`, `nightly`, `by a person`), its last result and date, and when it was seen failing.
-Plain output has one `FEATURE <name>` line per group; `--markdown` gives one table per feature; `--tsv` gives one line
-per test for scripts. The wiki Tests lines, the health report and the GitHub run summary all use this format.
-
-`summary --results FILE --took S` writes the GitHub run summary from a run's results (`id<TAB>state` lines, states
-`PASS`, `FAIL`, `SKIPPED`, `KNOWN`); a malformed file or run time is refused with the line to fix. `issues --write`
-reads each defect test's issue or pull request state with `gh` into `.loop/regression-issues.tsv` (a live `run` does
-this too); if `gh` can't read them it says so and writes nothing.
+`scripts/tests.py` prints every test in one fixed format, grouped by feature (`list`, `summary`, `issues`); the
+wiki Tests lines, the health report and the GitHub run summary use it. See `references/commands.md`.
 
 ## Rules
 

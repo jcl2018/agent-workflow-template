@@ -153,3 +153,20 @@ Status: built and proven: Refuse to replace another workflow; Write the nightly 
 Stops for the owner: none.
 Proof: toy tests run its inline block. On this repo a manual run on GitHub passed all 64 rows; the first run failed 2 and opened 2 issues, and the passing run closed them. The nightly and tag triggers haven't fired yet.
 
+#### `tests.py`: `list [--markdown|--tsv]`, `summary`, `issues [--write]`
+
+```bash
+python3 scripts/tests.py list
+```
+
+Every test in one fixed format, grouped by feature: the wiki page that holds the requirement a row guards, in page
+order, then `Other` for rows that guard none. Each test shows its name, kind (`requirement` or `defect`), what it guards
+(the requirement's ID and words, or the issue or pull request link with its recorded state and date, or the finding),
+what it checks, when it runs (`both`, `nightly`, `by a person`), its last result and date, and when it was seen failing.
+Plain output has one `FEATURE <name>` line per group; `--markdown` gives one table per feature; `--tsv` gives one line
+per test for scripts. The wiki Tests lines, the health report and the GitHub run summary all use this format.
+
+`summary --results FILE --took S` writes the GitHub run summary from a run's results (`id<TAB>state` lines, states
+`PASS`, `FAIL`, `SKIPPED`, `KNOWN`); a malformed file or run time is refused with the line to fix. `issues --write`
+reads each defect test's issue or pull request state with `gh` into `.loop/regression-issues.tsv` (a live `run` does
+this too); if `gh` can't read them it says so and writes nothing.
