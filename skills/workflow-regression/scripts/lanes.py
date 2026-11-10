@@ -32,9 +32,11 @@ PATH = re.compile(r"(?<![\w.@+/-])(?:\$\{?here\}?/|\./)?((?:\.?[A-Za-z0-9_@+-][A
                   r"|[A-Za-z0-9_-]+\.[A-Za-z0-9]+)")
 BARE = re.compile(r"\$\{?here\}?/skills\b(?!/)")
 ROOT = re.compile(r"\$\{?here\}?/?(?=[\s\"')]|$)")
-RUNNER = "skills/workflow-regression/scripts/regression.py"  # rows that reach it read .loop/regression.tsv
+RUNNER = "skills/workflow-regression/scripts/regression.py"  # rows that reach it may read .loop/regression.tsv
+TABLE = ".loop/regression.tsv"
 SKILL_NAME = re.compile(r"\bworkflow-[a-z]+\b")
 IMPORT = re.compile(r"^\s*(?:import|from)\s+([A-Za-z_]\w*)", re.M)
+ROOT_RUN = re.compile(r'cd\s+"?\$\{?here\}?"?\s*(?:&&|;|\))')  # a script running tools on this repo's own files
 HERE_FORMS = re.compile(r'"\$\{?here\}?"/|\$\{here\}/')  # "$here"/x, "${here}"/x and ${here}/x all mean $here/x
 CD_SKILLS = re.compile(r"cd\s+\"?\$\{?here\}?\"?\s*[;&|\n][^\n]*?(?<![\w./$-])skills(?:/\.)?(?=[\s\"')]|$)")
 
@@ -208,6 +210,8 @@ def closure(root, command, cache):
         deps |= wide_closure(root, path, cache)[0] | {path}
     cache["why", command] = " ".join(map(str, problems[0][:1] + problems[0][3:])) if problems else ""
     cache["chain", command] = parent
+    cache["table", command] = hits(TABLE, deps) or RUNNER in found or any(
+        ROOT_RUN.search(read(root, p, cache) or "") for p in deps if p.endswith(".sh") or "." not in os.path.basename(p))
     cache["closure", command] = (deps, whole or bool(problems))
     return cache["closure", command]
 
@@ -231,6 +235,14 @@ def touches(root, command, path, cache):
     if any(path == n or (n.endswith("/") and path.startswith(n)) for n in NO_EFFECT):
         return hits(path, named(root, command, cache))  # release and loop files: only a row naming one
     return hits(path, deps)
+
+
+def reads_table(root, command, cache):
+    """Whether a row reads this repo's .loop/regression.tsv: a narrow row only when its closure names the table, its
+    command runs regression.py itself, or a script it reaches runs tools from the repo root; a wide row when it reaches
+    regression.py at all. Otherwise a table edit reruns only the rows whose own line changed."""
+    deps, _ = closure(root, command, cache)
+    return cache.get(("table", command), hits(RUNNER, deps))
 
 
 def deleted(root, commit):
@@ -276,7 +288,7 @@ def plan(root, selected, record, current_tsv, current_known):
         for path in since[prior["commit"]] or []:
             if path == ".loop/regression.tsv":
                 stale = table(root, prior["commit"], "regression.tsv", memo).get(rid) != current_tsv.get(rid) \
-                    or hits(RUNNER, deps)
+                    or reads_table(root, row["command"], cache)
             elif path == ".loop/regression-known.tsv":
                 stale = table(root, prior["commit"], "regression-known.tsv", memo).get(rid) != current_known.get(rid)
             elif touches(root, row["command"], path, cache):

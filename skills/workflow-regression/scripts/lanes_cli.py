@@ -93,7 +93,7 @@ def affected(root, rows, paths, cache):
         if not os.path.exists(os.path.join(root, path)) and path.startswith(("skills/", "dev/")):
             return every, notes + ["DELETED %s: full run" % path]
         if path == ".loop/regression.tsv":
-            hit = {r["id"] for r in rows if lanes.hits(lanes.RUNNER, lanes.closure(root, r["command"], cache)[0])}
+            hit = {r["id"] for r in rows if lanes.reads_table(root, r["command"], cache)}  # plus edited rows (needs a record)
         else:
             hit = {r["id"] for r in rows if lanes.touches(root, r["command"], path, cache)}
         no_effect = any(path == n or (n.endswith("/") and path.startswith(n)) for n in lanes.NO_EFFECT)

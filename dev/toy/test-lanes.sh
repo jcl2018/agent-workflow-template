@@ -324,6 +324,16 @@ check "a reusing run reuses declared rows when nothing changed" 'grep -q "^REUSE
 printf 'Z = 2\n' > skills/k/scripts/kh.py; git commit -qam "Change kh"
 fresh; out=$($reg run land --reuse); echo "$out"
 check "a run reruns a declared row whose imported module changed, and the broad row" 'grep -q "^AFFECTED 2 of" <<<"$out" && [ "$(ran)" = "k w " ]'
+# Value: protects=a table edit reruns only the edited row and the rows that read this repo's table; fails_when=the
+# narrow table rule goes back to every row reaching regression.py, or drops root-running scripts; why_new=the old rule
+# reran nearly every row on any goal's table edit; seam=none; no_claim=toy scripts that name a toy .loop/regression.tsv
+printf '#!/bin/bash\n# reads: skills/k/scripts/k.py\nhere=.; (cd "$here" && true); printf "t\\n" >> "$TOY_LOG"\n' > dev/t.sh  # lanes: no read (toy repo file)
+printf 't\tland\tbash dev/t.sh\tX-1\t2026-01-01\tT.\tcriterion\t\n' >> .loop/regression.tsv
+git add -A; git commit -qm "Row t"; $reg run land --reuse >/dev/null
+awk -F'\t' 'BEGIN {OFS = FS} $1 == "k" {$6 = "K again."} {print}' .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv
+git commit -qam "Edit row k"
+fresh; out=$($reg run land --reuse); echo "$out"
+check "a table edit reruns the edited declared row and the rows that run tools on the repo root, not every row" '[ "$(ran)" = "k t " ]'
 git rm -q skills/k/scripts/kh.py; git commit -qm "Delete kh"
 fresh; out=$($reg run land --reuse); echo "$out"
 check "a deleted skill file forces a full run even when a broad row maps it" 'grep -q "^FULL: deleted skills/k/scripts/kh.py" <<<"$out"'
