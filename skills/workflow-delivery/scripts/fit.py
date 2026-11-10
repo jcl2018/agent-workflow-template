@@ -18,6 +18,10 @@ Also here, so the package stays under its file cap: the operation's `set` and `q
 and `pr` keep (each takes goal.py's module as g, and imports guards, private and role lazily, since they import fit),
 and the pull request body: each step's result, depth, tokens and VERDICT lines (issue 38), the decided depth, the
 budget, the private-name scan, GitHub surfaces and scripts that may write back what the goal deletes (issue 117).
+
+And the defect-test check (was defect.py): `fit.py owed SLUG` prints the issues and findings the goal fixes ("fixes #N",
+closes, resolves, "fixes finding:ID") that still lack a regression row of category defect linked to them, seen failing
+on a date and passing now, and exits 1 if any; goal.py pr calls owed() and refuses on its answer.
 """
 import json
 import os
@@ -307,3 +311,46 @@ def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
     if warnings:
         body += "\n" + "\n".join("- " + w for w in warnings) + "\n"
     return body
+
+
+# ---- issues and findings a goal fixes that still lack a defect test (was defect.py)
+VERB = r"\b(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+"
+SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date
+FIXES = re.compile(VERB + r"(?:issue\s+)?#(\d+)|" + VERB + r"finding:([a-z0-9][a-z0-9-]*)", re.I)
+
+
+def rows(root):
+    """Defect rows as (id, command, seen_red, link)."""
+    try:
+        with open(os.path.join(root, ".loop", "regression.tsv")) as handle:
+            cells = [line.rstrip("\n").split("\t") + [""] * 8 for line in handle if line.strip() and line[0] != "#"]
+    except OSError:
+        return []
+    return [(c[0], c[2], c[4], c[7]) for c in cells if c[6] == "defect"]
+
+
+def has(link, ref):
+    return re.search(r"(?:issues/|#)%s\b" % re.escape(ref), link) if ref.isdigit() else re.search(r"finding:%s(?![\w-])" % re.escape(ref), link)
+
+
+def owed(root, text):
+    """The refs the text fixes with no defect row that was seen failing and passes now."""
+    owe = []
+    for number, finding in FIXES.findall(text):
+        ref = number or finding.lower()
+        if not any(SEEN.match(seen) and has(link, ref) and subprocess.run(command, shell=True, cwd=root, capture_output=True).returncode == 0
+                   for _, command, seen, link in rows(root)):
+            owe.append(("#" if number else "finding ") + ref)
+    return owe
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) == 3 and sys.argv[1] == "owed":
+        top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
+        with open(os.path.join(top, ".loop", "goals", sys.argv[2] + ".md")) as handle:
+            left = owed(top, handle.read())
+        print("\n".join("OWED %s: no defect test seen failing and passing" % ref for ref in left) or "NONE OWED")
+        sys.exit(1 if left else 0)
+    print("usage: fit.py owed SLUG   the issues and findings a goal fixes that still lack a defect test")
+    sys.exit(0 if sys.argv[1:] in ([], ["-h"], ["--help"]) else 2)

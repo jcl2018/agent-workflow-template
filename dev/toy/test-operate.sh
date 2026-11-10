@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-delivery/scripts/defect.py skills/workflow-delivery/scripts/flow.py
+# reads: skills/workflow-delivery/scripts/fit.py skills/workflow-delivery/scripts/flow.py
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/role.py
 # reads: skills/workflow-monitoring/scripts/batch.py skills/workflow-monitoring/scripts/board.py
 # reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-monitoring/scripts/board_runs.py

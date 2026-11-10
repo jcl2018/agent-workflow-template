@@ -29,7 +29,6 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import defect  # noqa: E402
 import guards  # noqa: E402
 import fit  # noqa: E402
 import role
@@ -352,7 +351,7 @@ def cmd_pr(args):
     left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
     if left:
         no("the flow hasn't finished: %s. Fix: run flow.py %s %s." % (", ".join(left), args.slug, left[0]))
-    owed = defect.owed(root(), read(goal_file(args.slug)))
+    owed = fit.owed(root(), read(goal_file(args.slug)))
     if owed:
         no("no passing defect test, seen failing, for %s. Fix: regression.py add --category defect --link ..., then red." % ", ".join(owed))
     if git("status", "--porcelain", "--", "."):
