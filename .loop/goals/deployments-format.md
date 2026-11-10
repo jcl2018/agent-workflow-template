@@ -15,3 +15,15 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Open `skills/workflow-docs/references/template.md` and read the rules block and the Deployments bullet.
+   Expect: `deployments_section`, `deployments_page`, `deployments_delivery`, `deployments_access` and `deployments` in `format`.
+2. Add this under a feature page's Success metrics (before `## Tests`) and run `/workflow-docs check`:
+   `## Deployments` then `| Page | Link | Access | Shows | Live build |`, `|---|---|---|---|---|`, `| Site | https://example.test | public | the guide | \`1a2b3c4\` |`.
+   Expect: `DOCS OK`. Change Access to `everyone` and run it again: a `Deployments: DOC-14 Page Access public or sign-in` line.
+3. Put an email address in a Delivery table's Recipients cell and run the check.
+   Expect: `Delivery Recipients a group, never an address`, and the address itself is not printed.
+4. Read DOC-14 on the Documentation wiki page.
+   Expect: Reviewed, with the pages and deliveries wording.
+5. Pipe `git pull --ff-only` and then `git pull` into `python3 skills/workflow-monitoring/scripts/govern_hook.py check`.
+   Expect: `PASS`, then `BLOCK: git pull`.
