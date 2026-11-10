@@ -31,5 +31,9 @@
   "regression_cron": "17 9 * * *",
   "routines": [],
   "time_budget_minutes": 120,
-  "token_budget": 3000000
+  "token_budget": 3000000,
+  "review_depth": "full",
+  "_help": {
+    "review_depth": "full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run."
+  }
 }

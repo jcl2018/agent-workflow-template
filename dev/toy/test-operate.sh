@@ -17,6 +17,7 @@ bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 "$here/dev/toy/make.sh" "$T" >/dev/null || exit 1
 export LOOP_FLOW="$T/flow.json" PATH="$here/dev/toy/fakegh:$PATH"
+export LOOP_BOARD_HEALTH=green  # the board header names the health verdict; a real health check each pass would slow the timed passes, as in the other board tests
 cd "$T/repo" || exit 1
 python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup; git push -q origin main
@@ -142,9 +143,9 @@ check "a worker's report wakes it before the cadence, and it prints the full boa
 until_text "$T/op.out" "step: build -> review"
 check "a change prints the live board and the CHANGE line" 'grep -q "^CHANGE .*c step: build -> review" "$T/op.out" && [ "$(grep -c "^LIVE BOARD" "$T/op.out")" -ge 2 ]'
 rm "$FAKE_AGENT/hold-c"; until_status c done
-# the worker reloads and saves the record once more when its agent ends; wait for that report, or it overwrites release
-check "c's worker saves its final report before release is set" 'for _ in $(seq 150); do field c report | grep -q "status" && break; sleep 0.1; done; field c report | grep -q "status"'
-sets c 'release="merged"'
+# The test plays the merge from outside while c's worker may still be saving its last record, which can write the
+# old release field back (in a real goal the worker itself merges, so nothing races). Set it until it holds.
+for _ in $(seq 50); do sets c 'release="merged"'; sleep 0.2; [ "$(field c release)" = merged ] && [ -e "$C/loop/runs/f.json" ] && break; done
 for _ in $(seq 200); do kill -0 $oppid 2>/dev/null || break; sleep 0.1; done
 check "a merged dependency starts the goal that waited, and it ends when nothing is left" '! kill -0 $oppid 2>/dev/null && [ -e "$C/loop/runs/f.json" ] && grep -q "^NOTHING LEFT TO OPERATE" "$T/op.out"'
 kill $oppid 2>/dev/null
@@ -158,7 +159,7 @@ git switch -q main
 flowall() { for s in idea plan review qa ship; do step "$1" $s >/dev/null; $goal check "$1" >/dev/null; done; }
 step() { $F "$1" "$2" --wait 5 >/dev/null; $F "$1" "$2" --wait 10 >/dev/null; $goal record "$1" "$2" --file "$C/loop/runs/$1.$2.txt"; }
 $goal new s1 --here --goal "S1" --done "s1" >/dev/null; echo s1 > s1.txt; git add s1.txt; git commit -qm s1
-FAKE_SKILL_OUT='used 4,200 tokens\nSTEP: done' step s1 idea >/dev/null
+FAKE_SKILL_OUT='used 4,200 tokens\nDEPTH: full\nSTEP: done' step s1 idea >/dev/null
 check "a flow step records the tokens its agent reported" 'python3 -c "import json,sys;assert json.load(open(sys.argv[1]))[\"tokens\"][\"idea\"]==4200" "$C/loop/runs/s1.json"'
 flowall s1; git switch -q main
 $goal new s2 --here --goal "S2" --done "s2" >/dev/null; printf '# from s2\n' >> calc.py; git commit -qam s2; flowall s2; git switch -q main

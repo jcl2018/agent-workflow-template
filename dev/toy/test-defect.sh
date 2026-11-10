@@ -65,7 +65,7 @@ import re; print(re.search(r'^STEPS = \((.*)\)', open('$here/skills/workflow-del
     for step in idea plan build review qa ship pr release; do
       grep -q "\"$step\"" <<<"$steps" || no "flow.py has no $step step"
     done
-    printf '#!/bin/bash\necho "$1" > "%s/prompt-$(date +%%s%%N)"\necho "STEP: done"\n' "$d" > "$d/say.sh"
+    printf '#!/bin/bash\necho "$1" > "%s/prompt-$(date +%%s%%N)"\necho "DEPTH: full"\necho "STEP: done"\n' "$d" > "$d/say.sh"
     python3 - "$d" <<'PY'
 import json, sys
 d = sys.argv[1]
@@ -125,7 +125,7 @@ PY
     $reg add old-78 --level land --command true --goal - --category defect --link https://github.com/o/r/issues/78 >/dev/null
     $reg add bar --level land --command true --goal - --category defect --link finding:bar >/dev/null
     out=$($health check --family criteria)
-    grep -q "defect-tests" <<<"$out" && no "a guarded issue is still flagged: $out"
+    grep -Eq "^(WARN|FAIL|UNREAD) .*defect-tests" <<<"$out" && no "a guarded issue is still flagged: $out"
     exit 0;;
   worker-release) # done line 7, and the release step that pull requests 61 and 62 skipped
     toy
