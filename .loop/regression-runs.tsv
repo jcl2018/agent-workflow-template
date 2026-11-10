@@ -21,15 +21,15 @@ aut-digest-org	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-digest-pin-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-digest-rerun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-digest-rounds	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-email-digest	PASS	2026-11-10
-aut-email-file	PASS	2026-11-10
-aut-email-mail	PASS	2026-11-10
-aut-email-regression	PASS	2026-11-10
-aut-email-retry	PASS	2026-11-10
-aut-email-rounds	PASS	2026-11-10
-aut-email-secrets	PASS	2026-11-10
-aut-email-test	PASS	2026-11-10
-aut-email-upgrade	PASS	2026-11-10
+aut-email-digest	PASS	2026-11-10	
+aut-email-file	PASS	2026-11-10	
+aut-email-mail	PASS	2026-11-10	
+aut-email-regression	PASS	2026-11-10	
+aut-email-retry	PASS	2026-11-10	
+aut-email-rounds	PASS	2026-11-10	
+aut-email-secrets	PASS	2026-11-10	
+aut-email-test	PASS	2026-11-10	
+aut-email-upgrade	PASS	2026-11-10	
 aut-foreign-workflow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-health-off	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-health-schedule	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -124,6 +124,7 @@ format-problem	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 format-tests-table	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 format-usage-api	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 frozen-done-lines	PASS	2026-11-09	
+full-goal-lane-timeout	PASS	2026-11-10	
 guards-extra	PASS	2026-11-10	
 guards-no-try	PASS	2026-11-10	
 guards-resume	PASS	2026-11-10	
@@ -286,6 +287,7 @@ retired-leaves-waiting	PASS	2026-11-09
 review-dated	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 review-owner-only	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reviewed-lock	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+run-kind-filter	PASS	2026-11-10	
 run-ledger	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 runs-keep	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 runs-partial	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -356,6 +358,11 @@ tests-row-shape	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-seen-failing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-table-columns	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-table-stale	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+tiers-deleted-qa-pr	PASS	2026-11-10	
+tiers-no-merge-base	PASS	2026-11-10	
+tiers-record-merge-base	PASS	2026-11-10	
+tiers-rows-summary	PASS	2026-11-10	
+tiers-unmapped-qa-pr	PASS	2026-11-10	
 two-lanes-toy-435	PASS	2026-11-10	
 unproven-blocks	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 unread-closes-none	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
