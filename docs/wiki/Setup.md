@@ -7,7 +7,7 @@ Review: **Unreviewed**
 
 ## Problem
 
-Skill: `workflow-setup`. Adopts a repo into this template's format: loop config, feature pages with criteria and tests, and the regression workflow, printing what it found and would add or convert before writing on a branch. `update.py` refreshes only the skills from a newer package, and `design-guide.md` explains how the parts fit. `--bare` writes only the config, queue and findings. Setup takes test commands from the repo's CI workflows and scripts (a command that would run zero tests is dropped and reported), proposes feature pages from milestone or track headings or folders with code, follows the repo's version and changelog habit, reports a `.gitignore` line that would block its files with the exact exception, and exits 1 after writing when `agent_command` grants no tools, printing the line to add. Getting started is in the README.
+Skill: `workflow-setup`. Adopts a repo into this template's format: loop config, feature pages with criteria and tests, and the regression workflow, printing what it found and would add or convert before writing on a branch. `update.py` refreshes only the skills from a newer package, and `design-guide.md` explains how the parts fit. `--bare` writes only the config, queue and findings. Setup takes test commands from the repo's CI workflows and scripts (a command that would run zero tests is dropped and reported), proposes feature pages from milestone or track headings or folders with code, follows the repo's version and changelog habit, reports a `.gitignore` line that would block its files with the exact exception, and exits 1 after writing when `agent_command` grants no tools, printing the line to add. Getting started is in the README. Setup writes `review_depth` (`full` by default) with its one-line explanation under `_help` in `.loop/config.json` and refuses an unknown value, and the settings reference lists it beside the private `full_markers`.
 
 ## Usage
 
@@ -52,6 +52,9 @@ Every setting in one place. Every setting lives in one of two places: repo setti
 - Given parallel is 0, when goals run, then it means unlimited, and it is the default. — [parallel-unlimited](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a changed setting, when the next run happens, then it takes effect. — [settings-read-fresh](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given the repo settings, when they are read, then criteria_max is a repo setting with default 6 and a one-line explanation. — [criteria-max-setting](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a new repo, when setup runs, then it writes review_depth full with a one-line explanation. — [depth-setup](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
+- Given the settings reference, when it is generated, then it lists review_depth with its default. — [depth-reference](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
+- Given a config that already has its _help explanations, when fill-repo runs, then it fills without error. — [depth-fill-repo-help](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
 
 #### SET-3
 

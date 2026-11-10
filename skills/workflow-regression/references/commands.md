@@ -27,10 +27,15 @@ workflow
 - `sync` lists done lines, and wiki criteria (a row whose id or `--goal` is the criterion id), with no row (`GAP`), `DRAFT` rows and `UNPROVEN` rows; `--write` adds drafts.
 - `criteria` runs the row of every wiki criterion and prints any that is missing, a draft or failing.
 - `red` copies `HEAD` to a temporary worktree, applies the break and records the date if the test fails. `STILL GREEN`
-  means the test proves nothing.
+  means the test proves nothing. Only a `YYYY-MM-DD` date counts as seen failing; an empty cell, `-` or other text
+  counts as never, in `sync`, `run`, the wiki Tests lines and delivery's defect-test check.
 - `run` prints `PASS`, `FAIL`, `KNOWN`, `FIXED` or `UNPROVEN` (blocks). Known failures sit in
   `.loop/regression-known.tsv`. It keeps one issue per failing row; without a token it only prints `WOULD` lines.
-- `workflow` writes `.github/workflows/regression.yml` (nightly, on `v*` tags, by hand).
+- `workflow` writes `.github/workflows/regression.yml` (nightly, on `v*` tags, by hand). The job has 90 minutes; each
+  row runs in its own process group with a 15-minute limit and starts only if that limit still fits an 88-minute
+  budget (`REGRESSION_ROW_SECONDS` and `REGRESSION_JOB_SECONDS` in the step's environment override them). A row that
+  doesn't fit is skipped (`SKIPPED`) and fails with an issue; each result reaches the run summary as the row ends; rows
+  run with no GitHub token in their environment, and the checkout uses `persist-credentials: false`.
 
 ### Example
 

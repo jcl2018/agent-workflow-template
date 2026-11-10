@@ -22,7 +22,7 @@ agent-workflow-template is a pack of seven focused skills, so an agent loads onl
 | `workflow-monitoring` | `go`, `watch`, `report`, `dashboard`, `resume`, `board`, `cadence`, `repos`, `note`, `session`, `retire`, `handoff`, and the batch commands `add`, `start`, `status` | Starts goals in the background and shows what waits on you |
 | `workflow-regression` | `seed`, `add`, `sync`, `criteria`, `red`, `run`, `workflow` | Keeps tests visible and enforced |
 | `workflow-docs` | `init`, `survey`, `add`, `check`, `criteria`, `publish`, `restore` | Keeps wiki pages in the repo, holds the criteria contract |
-| `workflow-health` | `check`, `run`, and milestones | Checks the repo's health with fixed rules |
+| `workflow-health` | `check`, `preview`, `file`, `judge`, and milestones | Checks the repo's health with fixed rules |
 | `workflow-release` | `ask`, `cut`, `leave`, `show` | Versions the repo and writes a draft GitHub release |
 
 The sections below record what earlier batches built, as history.
