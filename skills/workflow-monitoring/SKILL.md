@@ -164,6 +164,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-monitoring checkin` | `python3 scripts/checkin.py` |
 | `/workflow-monitoring replan` | `python3 scripts/replan.py plan` |
 | `/workflow-monitoring auto` | `python3 scripts/auto.py pass` |
+| `/workflow-monitoring preview-auto` | `python3 scripts/auto.py pass --dry-run` |
 | `/workflow-monitoring pool` | `python3 scripts/pool.py status` |
 | `/workflow-monitoring fill-pool ID...` | `python3 scripts/pool.py add ID...` |
 | `/workflow-monitoring claim` | `python3 scripts/operate.py claim` |
