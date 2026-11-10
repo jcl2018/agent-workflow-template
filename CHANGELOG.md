@@ -1,5 +1,42 @@
 # Changelog
 
+## v0.14.1 - 2026-11-10
+
+- skill-size: office-hours design
+- skill-size: plan after review
+- skill-size: move SKILL.md detail into references; tests for issue 116
+- skill-size: red dates, Setup Tests, verify steps
+- skill-size: Delivery and Documentation pages name the moved detail
+- skill-size: review: the tokens pointer says when to read it
+- Merge remote-tracking branch 'origin/main' into loop/skill-size
+- skill-size: Delivery page names the token rule SKILL.md points to
+
+### How to verify
+
+1. Run `wc -l skills/workflow-delivery/SKILL.md skills/workflow-docs/SKILL.md`.
+   Expect: each is under 150 lines.
+2. Run `bash dev/toy/test-board.sh | tail -1`.
+   Expect: it prints ALL PASS, with no "over 150 lines" line above it.
+3. Open `skills/workflow-docs/references/commands.md` and go to "Moved from SKILL.md".
+   Expect: the six-item PRD page list, Review locks, Tests follow on their own and New and old pages, each in full.
+
+## v0.14.0 - 2026-11-10
+
+- docs check: close the four count gaps (issues 104-107)
+- docs-count-gaps: record the four defect tests as seen failing
+- docs count review fixes: workflow-ready only, code after a heading or fence, thematic breaks, a wrong defect count fails
+- Merge remote-tracking branch 'origin/main' into loop/docs-count-gaps
+- Documentation: the check bullet says a stated defect tests count is checked
+
+### How to verify
+
+1. In a scratch copy of the repo, add the line `The repo has twenty workflow-ready skills.` to README.md and run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: a line `COUNT README.md: says twenty workflow-ready skills, the repo has 7` (the real number of skills).
+2. Replace that line with a blank line followed by `    The repo has twenty skills.` (four leading spaces) and run the check again.
+   Expect: no COUNT line for README.md.
+3. Run `bash dev/toy/test-criteria.sh | grep "(10[4-7])"`.
+   Expect: four PASS lines, one per issue 104 to 107.
+
 ## v0.13.1 - 2026-11-10
 
 - regression-all: record every row, move slow rows to nightly, fix two failing rows
