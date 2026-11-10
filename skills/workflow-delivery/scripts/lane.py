@@ -24,7 +24,7 @@ REG = os.path.normpath(os.path.join(HERE, "..", "..", "workflow-regression", "sc
 sys.path.insert(0, REG)
 import slots  # noqa: E402
 sys.path.insert(0, HERE)
-from tables import prep  # noqa: E402
+from tables import generated, prep  # noqa: E402
 
 NOTHING = "the lane committed and pushed nothing"
 NAMES = ("qa", "ship", "pr")
@@ -175,7 +175,13 @@ def finalize(base, held, name):
         line += "; " + ", ".join("%s killed by %s (pid %s)" % k for k in killed)
     if began and began - held["started"] >= 1:
         line += " (queued %ds)" % (began - held["started"])
-    status, after = "fail", dirty()
+    status = "fail"
+    try:  # rendered Tests tables a row left are the next prep commit's, not dirt (done line 5)
+        wiki = json.load(open(os.path.join(git("rev-parse", "--show-toplevel").stdout.strip(), ".loop", "config.json")))
+    except (OSError, ValueError):
+        wiki = {}
+    made = generated(wiki if isinstance(wiki, dict) else {})
+    after = [p for p in dirty() if p not in made]
     if rc == slots.EXIT_STALE:
         stop(base, held)
         set_last(base + ".last", held["attempt"], state="ended", rc=rc, note=notes, ended=now)

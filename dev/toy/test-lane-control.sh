@@ -26,7 +26,7 @@ RUNS="$(git rev-parse --git-common-dir)/loop/runs"; mkdir -p "$RUNS"; RUNS=$(cd 
 fails=0
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
-check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
+check() { if eval "$2" 2>/dev/null; then ok "$1"; else bad "$1"; [ -z "${out:-}" ] || head -3 <<<"$out" | sed "s/^/    out: /"; fi; }
 seen() { python3 - "$@" <<'PY'
 import sys
 path = ".loop/regression.tsv"
@@ -52,7 +52,7 @@ elif what == "status":
     print("\n".join(lane.lane_status(runs, slug, name)))
 PY
 poll() { python3 "$T/h.py" "$S" "$RUNS" "$1" "$2" poll; }
-until_done() { for _ in $(seq 600); do out=$(poll "$1" "$2"); case "$(head -1 <<<"$out")" in running) sleep 0.3 ;; *) echo "$out"; return 0 ;; esac; done; return 1; }
+until_done() { for _ in $(seq 600); do out=$(poll "$1" "$2"); case "$(grep -m1 -E '^(running|pass|fail)$' <<<"$out")" in running) sleep 0.3 ;; *) echo "$out"; return 0 ;; esac; done; return 1; }
 holder() { # SLOT-COUNT: hold one slot in the pool until killed; prints its pid
   python3 - "$R" "$1" >/dev/null 2>&1 <<'PY' &  # no stdout: $(holder) must not wait for its 600 s sleep
 import os, sys, time
@@ -124,8 +124,8 @@ $reg add p1 --level land --command "true" --describe one >/dev/null & $reg add p
 $reg add p1 --level nightly --command "true" --describe one-again >/dev/null
 check "two parallel adds keep both rows; adding an id again replaces only that row" 'grep -q "^p2	land" .loop/regression.tsv && grep -q "^p1	nightly	true	.*one-again" .loop/regression.tsv && [ "$(grep -c "^p1	" .loop/regression.tsv)" = 1 ]'
 check "no lock file ever lands in the worktree" 'git add -A >/dev/null; [ -z "$(git status --porcelain | grep -i lock)" ] && [ -f "$(git rev-parse --git-common-dir)/loop/locks/regression.tsv.lock" ]'
-git commit -qm "p rows" >/dev/null 2>&1
-chmod 500 "$(git rev-parse --git-common-dir)/loop/locks"; rm -f "$(git rev-parse --git-common-dir)/loop/locks/regression.tsv.lock" 2>/dev/null
+seen p1 p2; git add -A; git commit -qm "p rows" >/dev/null 2>&1
+rm -f "$(git rev-parse --git-common-dir)/loop/locks/regression.tsv.lock"; chmod 500 "$(git rev-parse --git-common-dir)/loop/locks"
 out=$($reg add p3 --level land --command true --describe three 2>&1); rc=$?
 chmod 700 "$(git rev-parse --git-common-dir)/loop/locks"
 check "a lock that can't be taken refuses with its fix and writes nothing" '[ $rc != 0 ] && grep -q "^REFUSED: cannot lock .loop/regression.tsv: .*nothing was written. Fix: make .* writable" <<<"$out" && ! grep -q "^p3	" .loop/regression.tsv'
@@ -185,11 +185,13 @@ $docs add Calc --paths calc.py >/dev/null 2>&1
 $reg add r1 --level land --command "sleep 3; test ! -e broken" --goal CAL-1 --describe "Given the calculator, when it adds, then it works." >/dev/null
 seen r1; $cri render >/dev/null; git add -A; git commit -qm "Calc page"
 # Value: protects=a by-id rerun never leaves the Tests tables stale for the next lane (151); fails_when=no prep commit, or it commits more than rendered paths; why_new=prep is new; seam=none; no_claim=none beyond protects
+sed -i.bak -E 's/^(r1\t[A-Z]+\t)[0-9-]+/\12000-01-01/' .loop/regression-runs.tsv; rm -f .loop/regression-runs.tsv.bak
+$cri render >/dev/null; git add -A; git commit -qm "an old run date" >/dev/null 2>&1  # runs.tsv keeps one date a day: start from an older one, rendered
 $reg run r1 >/dev/null 2>&1
 check "a by-id rerun leaves new run dates uncommitted" '[ -n "$(git status --porcelain -- .loop/regression-runs.tsv)" ]'
 echo staged > staged.txt; git add staged.txt
 out=$(poll pp qa)
-check "a staged unrelated file makes the lane refuse LANE_DIRTY before any render or commit" 'grep -q "^LANE_DIRTY at start: staged.txt" <<<"$out" && [ "$(git log -1 --format=%s)" = "Calc page" ]'
+check "a staged unrelated file makes the lane refuse LANE_DIRTY before any render or commit" 'grep -q "^LANE_DIRTY at start: staged.txt" <<<"$out" && [ "$(git log -1 --format=%s)" = "an old run date" ]'
 git rm -q --cached staged.txt; rm staged.txt
 printf '#!/bin/sh\necho hook says no >&2\nexit 1\n' > "$(git rev-parse --git-path hooks)/pre-commit"; chmod +x "$(git rev-parse --git-path hooks)/pre-commit"
 out=$(poll pp qa)
@@ -199,7 +201,7 @@ began=$(date +%s); out=$(poll pp qa); took=$(( $(date +%s) - began ))
 check "a hanging pre-commit hook times out to LANE_PREP_FAILED within about a minute" 'grep -q "^LANE_PREP_FAILED: git commit failed: timed out after 60s" <<<"$out" && [ $took -lt 90 ]'
 rm -f "$(git rev-parse --git-path hooks)/pre-commit"
 out=$(until_done pp qa)
-check "the next lane commits only the re-rendered page and run dates, says LANE_PREP, and passes" 'grep -q "^LANE_PREP: re-rendered the Tests tables (commit " "$RUNS/pp.qa-lane.txt" && [ "$(git log -1 --format=%s)" = "Lane: re-render the Tests tables" ] && [ "$(git show --name-only --format= HEAD | sort | tr "\n" " ")" = ".loop/regression-runs.tsv docs/wiki/Calc.md " ] && head -1 <<<"$out" | grep -q pass'
+check "the next lane commits only the re-rendered page and run dates, says LANE_PREP, and passes" 'grep -q "^LANE_PREP: re-rendered the Tests tables (commit " "$RUNS/pp.qa-lane.txt" && [ "$(git log -1 --format=%s)" = "Lane: re-render the Tests tables" ] && [ "$(git show --name-only --format= HEAD | sort | tr "\n" " ")" = ".loop/regression-runs.tsv docs/wiki/Calc.md docs/wiki/Tests.md " ] && grep -qx pass <<<"$out"'
 $cri render --check >/dev/null; rc=$?
 check "after the prep commit the docs check finds no stale Tests table" '[ $rc = 0 ]'
 sed -i.bak 's/The toy calculator, written/The calculator, rewritten/' docs/wiki/Calc.md; rm docs/wiki/Calc.md.bak
@@ -214,13 +216,13 @@ python3 - "$RUNS" "$sp" "$(git rev-parse HEAD)" <<'PY'
 import json, sys, time
 runs, pid, head = sys.argv[1:]
 base = runs + "/old.qa-lane"
-json.dump({"head": head, "attempt": "1-1", "started": time.time() - 3000, "limit": 2700, "rc": base + ".1-1.rc", "pid": int(pid)}, open(base + ".job", "w"))
+json.dump({"head": head, "attempt": "1-1", "started": time.time() - 2000, "limit": 2700, "rc": base + ".1-1.rc", "pid": int(pid)}, open(base + ".job", "w"))
 PY
 out=$(poll old qa)
 check "an old-format lane job (no markers) keeps the old rule and is not killed as planning" 'head -1 <<<"$out" | grep -q running && kill -0 $sp'
 printf 'FULL: no record\nPASS r1\nRESULT 1 passed, 0 known, 0 failed, 0 unproven\n' > "$RUNS/old.qa-lane.txt"; echo 0 > "$RUNS/old.qa-lane.1-1.rc"; kill $sp
 out=$(poll old qa)
-check "it finishes as a pass once its exit status lands" 'head -1 <<<"$out" | grep -q pass'
+check "it finishes as a pass once its exit status lands" 'grep -qx pass <<<"$out"'
 # Value: protects=two callers finishing one lane give one result (E-O28); fails_when=both read and delete the rc file; why_new=lane-wait adds a second finalizer; seam=none; no_claim=none beyond protects
 died=0
 for i in $(seq 20); do
