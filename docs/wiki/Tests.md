@@ -312,6 +312,7 @@
 | <a id="t-est-backtest-speed"></a>est-backtest-speed | requirement | MON-4 | not run | - | local | 2026-11-10 |
 | <a id="t-est-steps-monotone"></a>est-steps-monotone | requirement | MON-4 | not run | - | local | 2026-11-10 |
 | <a id="t-est-recompute"></a>est-recompute | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-pool-unread-stall"></a>est-pool-unread-stall | requirement | MON-4 | not run | - | local | 2026-11-10 |
 
 ## Regression
 
