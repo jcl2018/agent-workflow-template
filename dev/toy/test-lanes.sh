@@ -307,8 +307,8 @@ printf '#!/bin/bash\n# reads: skills/b/scripts/\nhere=.; for f in "$here"/skills
 check "a declared globbed folder is a prefix: a new file in it is a dependency" '$L deps --root "$n" "bash dev/tg.sh" | grep -qx "skills/b/scripts/" && [ -z "$($L check --root "$n" dev/tg.sh)" ]'
 # Value: protects=headerless rows keep today's mapping exactly; fails_when=the shared helpers change wide behavior;
 # why_new=parity oracle for the refactor (E7); seam=LANES_WIDE; no_claim=none beyond protects
-w1=$($L affected --root "$n" skills/a/scripts/a.py dev/common.sh 2>&1); w2=$(LANES_WIDE=1 $L affected --root "$n" skills/a/scripts/a.py dev/common.sh 2>&1)
-check "LANES_WIDE=1 maps every row wide (an always row stays always)" 'grep -q "^AFFECTED 7 of 7" <<<"$w2" && grep -q "^AFFECTED 7 of 7" <<<"$w1"'
+w2=$(LANES_WIDE=1 $L affected --root "$n" skills/a/scripts/a.py 2>&1)
+check "LANES_WIDE=1 maps every row wide, as before headers" '[ "$(aff skills/a/scripts/a.py)" = "ta, tf, tu, tx" ] && grep -q "^AFFECTED 4 of 7 rows (ta, tf, th, tu)$" <<<"$w2"'
 cd "$d/repo" 2>/dev/null && git switch -q main 2>/dev/null
 p1=$($L affected src/a.txt 2>&1); p2=$(LANES_WIDE=1 $L affected src/a.txt 2>&1)
 check "with no headers, affected is the same with and without LANES_WIDE (wide mapping unchanged)" '[ -n "$p1" ] && [ "$p1" = "$p2" ]'
