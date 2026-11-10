@@ -481,6 +481,20 @@ def held_log(*entries, status="done"):
     return {"slug": "x", "status": status, "step": "build", "log": [stamp(t) + " " + text for t, text in entries]}
 
 
+def check_pool_unread_stall():
+    repo = Repo()
+    history(repo, (3, 2), [{s: 10 for s in STEPS}] * 5, "h")
+    running(repo, "hx", (3, 2), {"idea": 10, "plan": 10}, "build", 7200)
+    record = [r for r in repo.records() if r["slug"] == "hx"][0]
+    record["log"].append(stamp(-7000) + " session report: held at build for t (owner)")
+    repo.write("hx", **{k: v for k, v in record.items() if k != "slug"})
+    bs.MODEL.clear()
+    runs = repo.records()
+    lines = live_board.issues(runs, set(), repo.root, AT, None)
+    need(not any("hx is stalled" in line for line in lines), "with the pool unreadable, a trailing hold entry stops the clock, so no stall: %s" % lines)
+    need(any("hx is stalled" in line for line in live_board.issues(runs, set(), repo.root, AT, {})), "with the pool readable and the goal not held, it stalls")
+
+
 def check_held_idle():
     repo = Repo()
     history(repo, (3, 2), [{s: 10 for s in STEPS}] * 5, "h")
