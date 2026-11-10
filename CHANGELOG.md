@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.22.1 - 2026-11-10
+
+- estimate-model: estimates from goal size and similar finished goals, ranges, pace, stalled goals under Issues
+- estimate-model: docs name the estimate model; MON-4 scenarios rendered; rows seen failing once
+- estimate-model: narrow test-estimates reads header so test-tree's one-file narrowing check passes
+- test: status-graph comment matches the new step-time rule
+- fix(qa): a goal at an off-flow step after a done entry sits at the next step
+- docs: Monitoring Tests list est-offflow-done
+- Merge remote-tracking branch 'origin/main' into loop/estimate-model
+- test: estimate checks for worktree goal files, unlogged similar steps and held goals
+- test: record the three new estimate rows seen failing; Monitoring Tests list
+- docs: estimate rules in the Monitoring summary and monitoring references match the code
+- fix: test-estimates.sh sources reap.sh like every toy test
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.22.0 - 2026-11-10
 
 - docs-format: DOC-4, DOC-5 and DOC-6 back to Unreviewed for rewording

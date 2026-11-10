@@ -288,9 +288,29 @@
 | <a id="t-depth-on-board"></a>depth-on-board | requirement | MON-4 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-09 |
 | <a id="t-held-all"></a>held-all | requirement | MON-4 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-reply-hook-checkin-123"></a>reply-hook-checkin-123 | defect | [#123](https://github.com/jcl2018/agent-workflow-template/issues/123) closed (2026-11-10) | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
+| <a id="t-est-area"></a>est-area | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-size"></a>est-size | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-similar"></a>est-similar | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-monotone"></a>est-monotone | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-lift-bound"></a>est-lift-bound | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-range-text"></a>est-range-text | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-pace"></a>est-pace | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-overrun-range"></a>est-overrun-range | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-offflow"></a>est-offflow | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-flow-seconds"></a>est-flow-seconds | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-stalled"></a>est-stalled | defect | [#37](https://github.com/jcl2018/agent-workflow-template/issues/37) state unknown | not run | - | local | 2026-11-10 |
+| <a id="t-est-issue-96"></a>est-issue-96 | defect | [#96](https://github.com/jcl2018/agent-workflow-template/issues/96) state unknown | not run | - | local | 2026-11-10 |
+| <a id="t-est-partial"></a>est-partial | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-unsafe-slug"></a>est-unsafe-slug | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-big-goal"></a>est-big-goal | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-cache"></a>est-cache | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-offflow-done"></a>est-offflow-done | defect | [#37](https://github.com/jcl2018/agent-workflow-template/issues/37) state unknown | not run | - | local | 2026-11-10 |
 | <a id="t-guards-resume"></a>guards-resume | defect | [#149](https://github.com/jcl2018/agent-workflow-template/issues/149) state unknown | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-guards-worker-role"></a>guards-worker-role | defect | [#121](https://github.com/jcl2018/agent-workflow-template/issues/121) state unknown | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-guards-worktree"></a>guards-worktree | defect | [#160](https://github.com/jcl2018/agent-workflow-template/issues/160) state unknown | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-est-worktree"></a>est-worktree | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-similar-step"></a>est-similar-step | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-stall-held"></a>est-stall-held | requirement | MON-4 | not run | - | local | 2026-11-10 |
 
 ## Regression
 
