@@ -6,6 +6,7 @@
 # usage: test-no-leftovers.sh [--all]
 #   (none)  static check, fixture endings, and the land set: the toy tests that start stand-in agents
 #   --all   every dev/toy/test-*.sh instead of the land set, judged on leftovers only (test-govern.sh is skipped)
+# reads: dev/toy/
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
