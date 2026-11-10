@@ -95,13 +95,30 @@ def save(path, root, command, results, head, at, fresh):
         old, _ = load(path, root)
         rows = {} if fresh or not old else old["rows"]
         for item in results:
-            rows[item["id"]] = {"status": item["state"], "seconds": item["seconds"], "commit": head}
+            rows[item["id"]] = {"status": item["state"], "seconds": item["seconds"], "commit": head,
+                                "pid": item.get("pid"), "rc": item.get("rc"), "signal": item.get("signal")}
         data = {"schema": SCHEMA, "runner": runner(), "worktree": root, "command": command, "at": at,
                 "commit": head, "rows": rows, "total_seconds": round(sum(r.get("seconds") or 0 for r in rows.values()), 1)}
         temp = "%s.%d.tmp" % (path, os.getpid())
         with open(temp, "w") as handle:
             json.dump(data, handle, indent=1, sort_keys=True)
         os.replace(temp, path)
+
+
+def run_row(command, cwd, env, timeout):
+    """(code, output, pid, signal) for one row's shell (issue 435): signal names what stopped it, from a negative
+    status or a shell's 128+N exit status; None when it exited on its own. A timeout kills it and returns 124."""
+    import signal as sig
+    proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True, errors="replace")
+    try:
+        out, code = proc.communicate(timeout=timeout)[0], proc.returncode
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        out, code = (proc.communicate()[0] or "") + "timed out after %s seconds" % timeout, 124
+    num = -code if code < 0 else (code - 128 if 128 < code < 160 else 0)
+    names = {s.value: s.name for s in sig.Signals}
+    return code, out or "", proc.pid, names.get(num)
 
 
 def dirty(root):

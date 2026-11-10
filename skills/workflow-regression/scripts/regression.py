@@ -299,20 +299,18 @@ def cmd_run(args):
     results = []
     for row in [r for r in picked if r["id"] in todo]:
         began = time.time()
-        try:
-            done = subprocess.run(row["command"], shell=True, cwd=root, capture_output=True, text=True, env=actions.row_env(),
-                                  timeout=args.timeout)
-            code, text = done.returncode, done.stdout + done.stderr
-        except subprocess.TimeoutExpired:
-            code, text = 124, "timed out after %s seconds" % args.timeout
+        code, text, pid, signal = lanes.run_row(row["command"], root, actions.row_env(), args.timeout)
         state = "PASS" if code == 0 else ("KNOWN" if row["id"] in expected else "FAIL")
         if code == 0 and row["id"] in expected:
             print("FIXED %s: remove it from the known list" % row["id"])
         reason = " (%s)" % expected[row["id"]] if state == "KNOWN" else ""
         print("%s %s%s" % (state, row["id"], reason), flush=True)
+        if signal and state != "PASS":  # docs: Regression#lane-messages
+            print("KILLED %s: signal %s (pid %d). Note: a signal stopped this row; see the lane log" % (row["id"], signal, pid))
         if state == "FAIL" and args.reuse:
             print("\n".join("    " + line for line in text.rstrip().splitlines()[-20:]), file=sys.stderr)
-        results.append({"id": row["id"], "state": state, "tail": text[-1500:], "seconds": round(time.time() - began, 1)})
+        results.append({"id": row["id"], "state": state, "tail": text[-1500:], "seconds": round(time.time() - began, 1),
+                        "pid": pid, "rc": code, "signal": signal})
     if not args.reuse and results:  # a reusing run writes nothing in the worktree and opens no issue: CI's plain run owns both
         slots.edit(root, "regression-runs.tsv", lambda: runs.write(root, results, today(), head))
     left = sorted(set(lanes.dirty(root)) - set(unclean)) if record and not unclean else []
