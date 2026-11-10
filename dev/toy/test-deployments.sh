@@ -89,6 +89,16 @@ $GOOD_PAGE" "at most one Page table"
   refuse "a Live build sha without backticks" "| Page | Link | Access | Shows | Live build |
 |---|---|---|---|---|
 | Site | https://x.test | public | home | 1a2b3c4 |" "Page Live build a 7 to 40 hex sha in backticks"
+  refuse "a Link with a user and password" "| Page | Link | Access | Shows | Live build |
+|---|---|---|---|---|
+| Site | https://bob:hunter2@x.test/app | public | home | \`1a2b3c4\` |" "Page Link a full https URL with no user, password or token"
+  check "the refused link is never printed" '! out | grep -q "hunter2"'
+  refuse "a Link with a token" "| Page | Link | Access | Shows | Live build |
+|---|---|---|---|---|
+| Site | https://x.test/app?token=abc123 | public | home | \`1a2b3c4\` |" "Page Link a full https URL with no user, password or token"
+  refuse "an email address in another Delivery cell" "| Delivery | Channel | Recipients | What's sent | Status |
+|---|---|---|---|---|
+| Newsletter | email from ops@example.test | subscribers | the PDF | live |" "Delivery Recipients a group, never an address"
   refuse "an email address in Recipients" "| Delivery | Channel | Recipients | What's sent | Status |
 |---|---|---|---|---|
 | Newsletter | email | someone@example.test | the PDF | live |" "Delivery Recipients a group, never an address"
@@ -101,6 +111,13 @@ case_locked() {
   check "the owner's review works on a page with Deployments" 'LOOP_OWNER_WORDS=toy python3 skills/workflow-docs/scripts/criteria.py review Setup --user 2>&1 | grep -q "REVIEWED PAGE Setup"'
   before=$(sed -n "/^## Deployments/,/^## Tests/p" "$P"); python3 skills/workflow-docs/scripts/criteria.py render >/dev/null 2>&1
   check "render keeps the Deployments section byte for byte" '[ "$(sed -n "/^## Deployments/,/^## Tests/p" "$P")" = "$before" ]'
+  python3 - "$P" <<'PY'
+import sys
+p = sys.argv[1]; s = open(p).read(); head, _, tests = s.partition("\n## Tests\n")
+open(p, "w").write(head + "\n## Tests\n" + tests.replace("| requirement |", "| stale |", 1))
+PY
+  python3 skills/workflow-docs/scripts/criteria.py render >/dev/null 2>&1
+  check "render rewrites a stale Tests table on a page with Deployments" '! grep -q "| stale |" "$P" && [ "$(out | tail -1)" = "DOCS OK: 8 pages" ]'
 }
 
 case_doc14() {
@@ -116,6 +133,8 @@ case_pull() {
   check "#495 negative control: plain git pull is still refused" '[ "$(pull "git pull")" = "BLOCK: git pull" ]'
   check "#495 negative control: -r, --rebase=merges, --no-ff and --ff-only --rebase are refused" \
     '[ "$(pull "git pull -r")$(pull "git pull --rebase=merges")$(pull "git pull --no-ff")$(pull "git pull --ff-only --rebase")" = "BLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pull" ]'
+  check "#495 negative control: --ff after --ff-only, a +refspec and -f are refused (git takes the last flag)" \
+    '[ "$(pull "git pull --ff-only --ff")$(pull "git pull --ff-only origin +main:main")$(pull "git pull --ff-only -f")" = "BLOCK: git pullBLOCK: git pullBLOCK: git pull" ]'
 }
 
 for c in "${cases[@]}"; do "case_$c"; done

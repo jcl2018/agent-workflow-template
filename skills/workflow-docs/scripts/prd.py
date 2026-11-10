@@ -213,7 +213,7 @@ def convert_text(text, rule):
             raw = "## " + first
         elif not fenced and raw.strip() == "## Criteria":
             raw = "## " + second
-        elif not fenced and raw.strip() in ("## " + fourth, "## Tests"):
+        elif not fenced and raw.strip() in ("## " + fourth, "## " + rule["deploy"], "## Tests"):  # Deployments stays last
             for name, there in ((third, plan[2]), (fourth, plan[3])):
                 if not there and "## " + name not in out:
                     out += ["## " + name, "", "- " + PLACEHOLDER, ""]

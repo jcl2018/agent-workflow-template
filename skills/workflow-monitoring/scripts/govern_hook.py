@@ -54,8 +54,11 @@ def strip(words):
 
 
 def safe_pull(args):
-    """`git pull --ff-only`, with no -r, --rebase, --rebase=<mode> or --no-ff anywhere among its words."""
-    return "--ff-only" in args and not any(a in ("-r", "--rebase", "--no-ff") or a.startswith("--rebase=") for a in args)
+    """`git pull --ff-only [-q|-v] [remote [branch ...]]` and nothing else: an allowlist, since git takes the last of
+    --ff/--ff-only and a `+src:dst` refspec or -f can force; anything else is refused."""
+    names = [a for a in args if not a.startswith("-")]
+    return ("--ff-only" in args and all(a in ("--ff-only", "-q", "--quiet", "-v", "--verbose") for a in args if a.startswith("-"))
+            and all(re.match(r"^[A-Za-z0-9._/-]+$", a) for a in names))
 
 
 def git_write(words):
