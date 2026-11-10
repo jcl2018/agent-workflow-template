@@ -175,6 +175,8 @@ def main():
     item.add_argument("--recommend", default="")
     item.add_argument("--words", action="append", default=[])
     args = parser.parse_args()
+    if getattr(args, "stamp", None) is not None and not re.match(r"^\d{4}(-\d\d(-\d\d(T\d\d(:\d\d(:\d\dZ?)?)?)?)?)?$", args.stamp):
+        sys.exit("REFUSED: %r is not a time. Fix: give it as YYYY-MM-DDTHH:MM:SSZ." % args.stamp)
     if args.cmd == "decide-text":
         reason = why_not({"ask": sys.stdin.read(), "kind": args.kind, "recommend": args.recommend,
                           "words": args.words or [args.recommend]}, config(top() or "."))

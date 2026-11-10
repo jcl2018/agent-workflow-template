@@ -29,13 +29,14 @@ import reply_hook  # noqa: E402
 
 WRITES = {"commit", "push", "merge", "rebase", "reset", "cherry-pick", "revert", "am", "pull"}
 EDITS = {"Edit", "Write", "NotebookEdit", "MultiEdit"}
-SPLIT = re.compile(r"&&|\|\||;|\||\n")
+SPLIT = re.compile(r"&&|\|\||;|\||\n|[{}()]")
 FIX = ("the operation session only governs (MON-7); a worker builds. Fix: hand the change to the goal's worker "
        "(operate.py send SLUG \"...\") or run the merge and post-merge steps (merge.py, release.py, wiki.py). "
        "Off switch: \"govern_hook\": false in .loop/config.json")
 
 
-WRAPPERS = ("env", "command", "exec", "sudo", "nohup", "time", "nice", "xargs", "stdbuf", "timeout", "caffeinate")
+WRAPPERS = ("env", "command", "exec", "sudo", "nohup", "time", "nice", "xargs", "stdbuf", "timeout", "caffeinate",
+            "{", "}", "!", "if", "then", "else", "elif", "while", "until", "do", "done", "fi")  # shell keywords run what follows
 
 
 def strip(words):

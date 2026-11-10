@@ -21,6 +21,7 @@ import argparse
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -158,6 +159,8 @@ def main():
     item = sub.add_parser("since")
     item.add_argument("stamp")
     args = parser.parse_args()
+    if getattr(args, "stamp", None) is not None and not re.match(r"^\d{4}(-\d\d(-\d\d(T\d\d(:\d\d(:\d\dZ?)?)?)?)?)?$", args.stamp):
+        sys.exit("REFUSED: %r is not a time. Fix: give it as YYYY-MM-DDTHH:MM:SSZ." % args.stamp)
     if args.cmd == "since":
         lines = since(root(), args.stamp)
     else:

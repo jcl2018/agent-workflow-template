@@ -19,6 +19,7 @@ usage: checkin.py [--since ISO]
 import argparse
 import datetime
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -113,6 +114,8 @@ def render(root=None, at=None, stamp=None):
                 old["slug"], item.get("name") or sid, old["slug"]))
     if os.path.exists(os.path.join(folder, "session-pool.bad.json")):
         needs.append("malformed session-pool entries were set aside in session-pool.bad.json; look and delete it")
+    if os.path.exists(os.path.join(root, ".loop", "config.json")) and bs.read_json(os.path.join(root, ".loop", "config.json")) is None:
+        needs.append(".loop/config.json can't be read, so every setting is at its default; fix the JSON (python3 -m json.tool)")
     _, fails, cause = govern_hook.health(os.path.dirname(folder))
     if fails:
         needs.append("the govern hook let %d call(s) through on an error (last: %s); fix it, then check govern-hook.log"
@@ -133,6 +136,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--since", default="")
     args = parser.parse_args()
+    if args.since and not re.match(r"^\d{4}(-\d\d(-\d\d(T\d\d(:\d\d(:\d\dZ?)?)?)?)?)?$", args.since):
+        sys.exit("REFUSED: --since %r is not a time. Fix: give it as YYYY-MM-DDTHH:MM:SSZ." % args.since)
     print("\n".join(render(stamp=args.since or None)))
     return 0
 

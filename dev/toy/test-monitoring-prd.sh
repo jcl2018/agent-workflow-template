@@ -104,6 +104,7 @@ case_mon7() {
   check "MON-7: the operation session's Edit is refused" 'hook "$e" | grep -q "\"deny\""'
   check "MON-7: git -C . commit is refused" 'hook "$(b op1 "$R" "git -C . commit -m x")" | grep -q deny'
   check "MON-7: merge.py X && git push is refused segment by segment" 'hook "$(b op1 "$R" "python3 merge.py x && git push origin main")" | grep -q deny'
+  check "MON-7: shell keywords don't hide a push" '[ "$(printf "%s" "{ git push; }" | python3 "$S/govern_hook.py" check)" = "BLOCK: git push" ] && [ "$(printf "%s" "if git push; then :; fi" | python3 "$S/govern_hook.py" check)" = "BLOCK: git push" ]'
   check "MON-7: a command that only names git passes" '[ -z "$(hook "$(b op1 "$R" "echo git push")")" ] && [ -z "$(hook "$(b op1 "$R" "grep -rn git commit skills")")" ]'
   check "MON-7: git status and merge.py pass" '[ -z "$(hook "$(b op1 "$R" "git status")")" ] && [ -z "$(hook "$(b op1 "$R" "python3 skills/workflow-release/scripts/merge.py g")")" ]'
   check "MON-7: another session and a worker worktree are never checked" '[ -z "$(hook "$(b w9 "$R" "git commit -m x")")" ] && [ -z "$(hook "$(b op1 "$L/worktrees/x" "git commit -m x")")" ]'
@@ -190,8 +191,10 @@ case_mon12() {
   check "MON-12: the pool shows free, busy and total" 'python3 "$S/pool.py" status | grep -q "pool: 1 free, 1 busy, 2 total (target 4)"'
   check "MON-12: when the pool runs low it asks for every missing session" 'python3 "$S/pool.py" need --ready 3 | grep -q "^NEED 2$"'
   check "MON-12: the check-in asks the owner with the one-step fix" 'python3 "$S/checkin.py" | grep -q "session pool is low: 1 free for 3 ready goals; create 2 sessions"'
+  check "MON-12: adding the same id twice counts it once" 'python3 "$S/pool.py" add s3 s3 | grep -q "^POOLED 1 session"'
   python3 "$S/pool.py" add s3 s4 >/dev/null
   check "MON-12: pool.py add registers the new sessions as free" 'python3 "$S/pool.py" status | grep -q "3 free, 1 busy, 4 total"'
+  check "MON-10/11: a bad since time is refused" '! python3 "$S/auto.py" since notadate 2>/dev/null && ! python3 "$S/replan.py" since notadate 2>/dev/null && ! python3 "$S/checkin.py" --since junk 2>/dev/null'
   pool '{"s1": {"slug": "busy1", "state": "busy"}}'
   python3 "$S/pool.py" decline --ready 3 >/dev/null
   check "MON-12: no pool hides the ask; a ready goal still waits with its fix" \
@@ -264,6 +267,7 @@ case_attempt114() {
   python3 "$S/sessions.py" bind att sB --force >/dev/null 2>&1
   python3 "$S/sessions.py" report att --step qa --attempt 1 >/dev/null 2>&1
   check "#114: a report from an older attempt is recorded, not applied" '[ "$(field att "d[\"step\"]")" = build ] && [ "$(field att "d[\"reports\"][-1][\"status\"]")" = stale ]'
+  check "#114: a non-number attempt is refused and changes nothing" '! python3 "$S/sessions.py" report att --step qa --attempt abc >/dev/null 2>&1 && [ "$(field att "d[\"step\"]")" = build ]'
   python3 "$S/sessions.py" report att --step qa --attempt 2 >/dev/null 2>&1
   check "#114: the current attempt's report is applied" '[ "$(field att "d[\"step\"]")" = qa ]'
   python3 "$S/pool.py" return att >/dev/null 2>&1

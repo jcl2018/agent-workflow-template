@@ -109,6 +109,8 @@ def attempt_ok(state, attempt):
 def stale(state, args):
     """sessions.py report's guards: refuse a --recommend that isn't one of --words; record, not apply, a report from an
     older attempt. True when the report is fully handled here."""
+    if args.attempt not in (None, "") and not str(args.attempt).isdigit():
+        sys.exit("REFUSED: --attempt %r is not a number. Fix: pass the attempt the WORKER line named; nothing was changed." % args.attempt)
     if args.recommend and args.recommend not in args.words:
         sys.exit("REFUSED: --recommend %r is not one of --words. Fix: pass it as a --words too; nothing was changed." % args.recommend)
     if attempt_ok(state, args.attempt):
@@ -205,10 +207,11 @@ def cmd_add(args):
         for sid in args.ids:
             if found.get(sid, {}).get("state") == "busy":
                 sys.exit("REFUSED: session %s is busy with %s; nothing was added." % (sid, found[sid].get("slug")))
-        for sid in args.ids:
+        new = [sid for sid in dict.fromkeys(args.ids) if (found.get(sid) or {}).get("state") != "free"]
+        for sid in new:
             found[sid] = dict(found.get(sid) or {}, name=found.get(sid, {}).get("name") or "worker · idle", state="free", since=se.now())
         se.save_pool(found)
-        print("POOLED %d session(s); %s" % (len(args.ids), status_line(found, config())))
+        print("POOLED %d session(s); %s" % (len(new), status_line(found, config())))
     return 0
 
 
