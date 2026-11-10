@@ -158,6 +158,8 @@ for line in open(log, errors="replace"):
         copies.append(by_hash[rest])
 pyc = re.compile(r"(.*)/__pycache__/([^/.]+)\.[^/]*\.pyc$")  # a module loaded from bytecode: its source counts
 reads = {pyc.sub(r"\1/\2.py", r) for r in reads}
+reads = {r for r in reads if os.path.exists(os.path.join(here, r))}  # opening a missing optional file (agents.py's
+# skills/workflow-package.json, present only in an installed package) reads nothing; once it exists, its quoted name maps it
 deps = subprocess.run([sys.executable, "-I", os.path.join(here, "skills/workflow-regression/scripts/lanes_cli.py"),
                        "deps", "--root", here, command], capture_output=True, text=True).stdout.splitlines()
 always = any(line.startswith("ALWAYS ") for line in deps)

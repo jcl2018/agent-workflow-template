@@ -3,8 +3,9 @@
 
 Imported by lanes.py, not run. A header is one or more `# reads: <path> [<path>...]` lines in the file's leading
 comment block: repo-relative paths, whitespace-separated, a trailing / for a folder. Narrow means no folder widening:
-shell files add the paths they name, Python files their same-folder imports and quoted file names, and anything this
-cannot resolve becomes a problem that makes the row run on every change.
+shell files add the paths they name, Python files their same-folder imports and quoted file names (and, in a file that
+imports by name with importlib.import_module, each quoted same-folder module name), and anything this cannot resolve
+becomes a problem that makes the row run on every change.
 """
 import os
 import re
@@ -82,8 +83,11 @@ def scan(root, rel, cache):
         skill = "/".join(rel.split("/")[:2]) + "/" if rel.startswith("skills/") else None
         files |= {os.path.join(base, m + ".py") for m in lanes.modules(text)
                   if os.path.isfile(os.path.join(root, base, m + ".py"))}
+        dynamic = "import_module(" in text  # importlib by name (health.py's sibling_module("enforce")): no import line
         for lit in set(QUOTED.findall(text)):
             name = os.path.basename(lit)
+            if dynamic and "/" not in lit and os.path.isfile(os.path.join(root, base, lit + ".py")):
+                files.add(os.path.join(base, lit + ".py"))  # each quoted same-folder module name is a module it may load
             if FILEISH.search(name):
                 files |= index.get(name, set())
                 if os.path.isfile(os.path.join(root, base, name)):

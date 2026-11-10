@@ -159,8 +159,12 @@ printf '#!/bin/bash\n# reads: skills/a/scripts/g.py\npython3 skills/a/scripts/g.
 printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\npython3 skills/a/scripts/a.py; python3 -I skills/a/scripts/g.py\n' > "$c/dev/t3.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nPYTHONPATH= python3 -S skills/a/scripts/g.py\n' > "$c/dev/t5.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/a/scripts/k.py\npython3 skills/a/scripts/k.py\n' > "$c/dev/t4.sh"  # lanes: no read (toy repo file)
+printf 'import importlib\nimportlib.import_module("b")\n' > "$c/skills/a/scripts/h.py"  # by name, as health.py's sibling_module
+printf 'import os\ntry:\n    open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "gone.json"))\nexcept OSError:\n    pass\n' > "$c/skills/a/scripts/m.py"
+printf '#!/bin/bash\n# reads: skills/a/scripts/h.py\npython3 skills/a/scripts/h.py\n' > "$c/dev/t6.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/a/scripts/m.py\npython3 skills/a/scripts/m.py\n' > "$c/dev/t7.sh"  # lanes: no read (toy repo file)
 printf '# id\tlevel\tcommand\n' > "$c/.loop/regression.tsv"
-for r in 1 2 3 4 5; do printf 'r%s\tland\tbash dev/t%s.sh\n' $r $r >> "$c/.loop/regression.tsv"; done
+for r in 1 2 3 4 5 6 7; do printf 'r%s\tland\tbash dev/t%s.sh\n' $r $r >> "$c/.loop/regression.tsv"; done
 git -C "$c" init -q; before=$(cd "$c" && $reg reads r2 2>&1); brc=$?
 out=$(bash "$c/dev/toy/check-reads.sh" 2>&1); rc=$?; echo "$out"
 after=$(cd "$c" && $reg reads r2 2>&1)
@@ -173,6 +177,11 @@ check "check-reads fails a row that reads a skill file its closure misses, with 
 # no_claim=interpreters started by absolute path
 check "check-reads hooks an isolated child (python3 -I) and fails its read outside the row's closure" 'grep -q "^LANES-TRACE-UNDECLARED r3 skills/a/scripts/c.py" <<<"$out" && grep -q "^LANES-TRACE-UNDECLARED r5 skills/a/scripts/c.py" <<<"$out" && ! grep -q "^LANES-TRACE-NOHOOK" <<<"$out"'
 check "check-reads maps a read of a copied skill file back to the repo file" 'grep -q "^LANES-TRACE-UNDECLARED r4 skills/a/scripts/e.py" <<<"$out"'
+# Value: protects=a module loaded by name (importlib.import_module("b"), health.py's sibling_module) is in the loader's
+# closure, and opening a missing optional file (agents.py's skills/workflow-package.json in a checkout) is no read (issue
+# 173); fails_when=narrow drops quoted module names of an importlib user, or check-reads counts a failed open;
+# why_new=lanes-trace failed on enforce.py, defects.py and workflow-package.json; seam=none; no_claim=__import__ or exec
+check "a module loaded by name is in the closure, and opening a missing file reads nothing" 'grep -q "^PASS r6" <<<"$out" && grep -q "^PASS r7" <<<"$out" && ! grep -q "UNDECLARED r[67] " <<<"$out"'
 # Value: protects=regression.py reads turns the newest trace into a header, and says how to get one (issue 172);
 # fails_when=check-reads stops keeping the trace or reads stops reading it; why_new=new command; seam=<git dir>/lanes-trace.tsv;
 # no_claim=bash reads (the trace sees Python only)
