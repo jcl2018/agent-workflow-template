@@ -30,7 +30,7 @@ AT=2026-06-01T12:00:00Z
 
 echo "== a made-up queue"
 # Finished goals took idea 10m, plan 21m and build 30m30s, so a goal that has not started needs 61m30s. b is running at plan,
-# which began at AT, so it needs the plan's 21m and the build's 30m30s: 51m30s. a is merged.
+# which began at AT; the 400s since its idea finished count toward plan, so it needs 21m - 6m40s + 30m30s: 44m50s. a is merged.
 mkdir -p "$C/loop/runs"
 python3 - "$C/loop/runs" <<'PY'
 import json, os, sys
