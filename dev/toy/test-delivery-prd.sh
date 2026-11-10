@@ -163,6 +163,12 @@ if on private; then
   prgoal priv2; git commit -q --allow-empty -m "mention secretword in a message"
   out=$(w $goal pr priv2 2>&1)
   check "a private name only in a commit message refuses" 'grep -q "commit:[0-9a-f]* message matches list line 2" <<<"$out"'
+  git push -q origin loop/priv2 2>/dev/null; git switch -q main
+  python3 - "$S" > "$d/headscan" <<'PY'
+import sys; sys.path.insert(0, sys.argv[1]); import private
+r = private.scan(".", "origin/main", None, "origin/loop/priv2"); print(r["state"], len(r["hits"]))
+PY
+  check "a scan from the main checkout reads the goal's pushed branch, as merge.py does" 'grep -q "^hit 1$" "$d/headscan"'
   prgoal priv7; mkdir -p secretworddir; echo x > secretworddir/a.txt; printf '++ secretword\n' > plus.txt
   python3 -c "print('y' * 5000 + 'secretword')" > long.txt; git add -A secretworddir plus.txt long.txt; git commit -qm "files"
   out=$(w $goal pr priv7 2>&1)

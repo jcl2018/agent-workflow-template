@@ -48,13 +48,13 @@ def sibling(name):
     return LOADED[name], None
 
 
-def private_check(top, base, texts, pushed=False):
+def private_check(top, base, texts, pushed=False, head="HEAD"):
     """None when the push may go on, else (why, fix, code). base None scans only the texts."""
     private, stop = sibling("private")
     if stop:
         return stop
     try:
-        result = private.scan(top, base, texts)
+        result = private.scan(top, base, texts, head)
         stop = private.refusal(result, base or "the base branch", pushed)
     except Exception as error:  # noqa: BLE001 - a scan that can't run refuses
         return ("the private-name scan failed (%s); nothing was pushed" % error, "run private.py check, then again",
@@ -64,9 +64,9 @@ def private_check(top, base, texts, pushed=False):
     return stop
 
 
-def check(state, top, base, texts, pushed=False):
+def check(state, top, base, texts, pushed=False, head="HEAD"):
     """Scan, and record a refusal on the goal and stop."""
-    stop = private_check(top, base, texts, pushed)
+    stop = private_check(top, base, texts, pushed, head)
     if stop:
         fail(state, "%s. Fix: %s (%s)" % stop)
 

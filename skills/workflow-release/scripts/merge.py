@@ -34,11 +34,11 @@ def run(args, cwd=None):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
 
 
-def missing_ids(top, cfg):
+def missing_ids(top, cfg, head="HEAD"):
     """(held, noted): requirement IDs of criterion rows this goal adds that no wiki page on origin/<base> names."""
     base = "origin/" + cfg.get("base", "main")
     folder = (cfg.get("wiki_dir") or "docs/wiki").strip("/")
-    added = run(["git", "diff", "-U0", base + "...HEAD", "--", ".loop/regression.tsv"], cwd=top).stdout
+    added = run(["git", "diff", "-U0", base + "..." + head, "--", ".loop/regression.tsv"], cwd=top).stdout
     ids = set()
     for line in added.splitlines():
         cells = line[1:].split("\t") if line.startswith("+") and not line.startswith("+++") else []
@@ -48,8 +48,8 @@ def missing_ids(top, cfg):
         return [], []
     names = run(["git", "ls-tree", "--name-only", base, folder + "/"], cwd=top).stdout.split()
     text = "\n".join(run(["git", "show", "%s:%s" % (base, name)], cwd=top).stdout for name in names if name.endswith(".md"))
-    mine = run(["git", "ls-tree", "--name-only", "HEAD", folder + "/"], cwd=top).stdout.split()  # a page this goal adds or edits counts too
-    own = "\n".join(run(["git", "show", "HEAD:" + name], cwd=top).stdout for name in mine if name.endswith(".md"))
+    mine = run(["git", "ls-tree", "--name-only", head, folder + "/"], cwd=top).stdout.split()  # a page this goal adds or edits counts too
+    own = "\n".join(run(["git", "show", head + ":" + name], cwd=top).stdout for name in mine if name.endswith(".md"))
     gone = sorted(i for i in ids if not re.search(r"\b%s\b" % re.escape(i), text + "\n" + own))
     held = [i for i in gone if names and re.search(r"\b%s\d+\b" % re.escape(i.split("-")[0] + "-"), text)]
     return held, [i for i in gone if i not in held]
@@ -92,8 +92,11 @@ def main():
             sys.exit("REFUSED: the pull request %s is %s, not open." % (state["pr"], known or "unknown"))
         autorelease.stage_notes(top, state, cfg)
         autorelease.stage_part(top, state)
-        autorelease.check(state, top, "origin/" + cfg.get("base", "main"), {"release notes": autorelease.notes_text(state)}, True)
-        held, noted = missing_ids(top, cfg)
+        head = "origin/" + state.get("branch", "")  # the pull request's own tip, wherever merge.py runs
+        if not state.get("branch") or run(["git", "fetch", "-q", "origin", state["branch"]], cwd=top).returncode:
+            autorelease.fail(state, "could not fetch the goal branch %s to scan it; nothing was merged (PRIVATE_LIST)" % state.get("branch"))
+        autorelease.check(state, top, "origin/" + cfg.get("base", "main"), {"release notes": autorelease.notes_text(state)}, True, head)
+        held, noted = missing_ids(top, cfg, head)
         if held:
             autorelease.fail(state, "criterion rows name %s, which no wiki page on origin/%s names; nothing was merged. Fix: "
                              "merge the goal that adds their text, then merge.py %s (REQUIREMENT_MISSING)" % (

@@ -67,14 +67,14 @@ def git(top, *args, stop=None):
     return done.stdout
 
 
-def places(top, base, stop=None):
-    """Yield (place, text) for everything a push from base to HEAD would publish."""
-    branch = git(top, "branch", "--show-current", stop=stop).strip()
+def places(top, base, stop=None, head="HEAD"):
+    """Yield (place, text) for everything a push from base to head would publish."""
+    branch = git(top, "branch", "--show-current", stop=stop).strip() if head == "HEAD" else head.split("/", 1)[-1]
     if branch:
         yield "branch", branch
-    for name in git(top, "diff", "--name-only", "--no-renames", base + "...HEAD", stop=stop).splitlines():
+    for name in git(top, "diff", "--name-only", "--no-renames", base + "..." + head, stop=stop).splitlines():
         yield "file name " + name, name
-    for sha in git(top, "rev-list", "--reverse", base + "..HEAD", stop=stop).split():
+    for sha in git(top, "rev-list", "--reverse", base + ".." + head, stop=stop).split():
         for line in git(top, "log", "-1", "--format=%B", sha, stop=stop).splitlines():
             yield "commit:%s message" % sha[:7], line
         path, line, header = "", 0, False
@@ -103,8 +103,9 @@ def shown_place(place, found):
     return place
 
 
-def scan(top, base, texts=None):
-    """{"state": clean|hit|none|off|broken, "hits": [...], "note": str}. base None scans only the texts."""
+def scan(top, base, texts=None, head="HEAD"):
+    """{"state": clean|hit|none|off|broken, "hits": [...], "note": str}. base None scans only the texts; head is the
+    branch tip to scan (merge.py passes the goal's pushed branch, so it scans the pull request wherever it runs)."""
     state, found, error = patterns()
     shown = source()[1]
     if state == "broken":
@@ -117,7 +118,7 @@ def scan(top, base, texts=None):
     items = []
     if base:
         try:
-            items = list(places(top, base, stop))
+            items = list(places(top, base, stop, head))
         except RuntimeError as failed:
             return {"state": "broken", "hits": [], "note": "the scan couldn't read the branch: %s" % failed}
     for name, text in (texts or {}).items():
