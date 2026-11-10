@@ -385,8 +385,6 @@ def cmd_run(args):
     if not args.reuse:
         live = args.live or bool(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
         sync_issues(results, live)
-        if live:  # the issue states the wiki and health show, each with its date
-            run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests.py"), "issues", "--write"], root)
     failed = [item["id"] for item in results if item["state"] == "FAIL"]
     kept = [old["rows"][key]["status"] for key in reused]  # a reused known failure still counts as known
     passed = sum(item["state"] == "PASS" for item in results) + kept.count("PASS")
