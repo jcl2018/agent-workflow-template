@@ -79,12 +79,19 @@ Test format. Every test is listed in one fixed format, grouped by feature, where
 - Given the rows never ran, when the summary step runs under the GitHub shell, then the run summary still says the grouped summary could not be written. — [summary-no-results](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given tests.py holds text GitHub Actions would evaluate, when the workflow is written, then it is refused. — [summary-render-guard](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given tests.py is not installed, when health and the wiki render run, then each says so and keeps working. — [tests-py-missing](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a description with a pipe, when tests are listed as TSV, then the pipe stays raw and the feature comes first. — [list-tsv-raw](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a repo with no test rows, when tests are listed, then it says NO TESTS. — [list-no-tests](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a run result for a test no longer in the rows, when the summary is written, then it shows under Other. — [summary-unknown-row](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given no test rows can be read, when issue states are refreshed, then the recorded states are kept. — [issues-no-rows](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given tests.py fails, when the health check runs, then its TESTS block shows the error and the verdict stays last. — [health-tests-error](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a health check of one group, when it runs, then no TESTS block is printed. — [health-group-no-tests](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### REG-3
 
 One command runs it, the same way for me, the loop and GitHub.
 
 - Given the same tests, when the workflow runs and regression.py runs locally, then both end the same way and open the same issues. — [workflow-same-as-run](../../.loop/regression.tsv), requirement, guards REG-3, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a local run with GH_TOKEN and a run summary file set, when a row runs, then it sees neither. — [local-row-env](../../.loop/regression.tsv), requirement, guards REG-3, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### REG-4
 

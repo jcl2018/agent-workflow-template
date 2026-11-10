@@ -61,7 +61,7 @@ Every setting in one place. Every setting lives in one of two places: repo setti
 Shipped as a versioned package of separate skills in the Agensi format, with a version number, working in Claude Code, Codex and other SKILL.md agents, every script self-contained and under 20 KB.
 
 - Given SET-3, when the toy adopt-and-update test runs, then it holds. — [adopt-set-3](../../.loop/regression.tsv), requirement, guards SET-3, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given detail moved out of the workflow-delivery and workflow-docs SKILL.md files, when their references are read, then every moved sentence is there word for word and SKILL.md points to it. — [skill-kept](../../.loop/regression.tsv), requirement, guards SET-3, both, not run, seen failing 2026-11-09
+- Given detail moved out of the workflow-delivery and workflow-docs SKILL.md files, when their references are read, then every moved sentence is there word for word and SKILL.md points to it. — [skill-kept](../../.loop/regression.tsv), requirement, guards SET-3, both, PASS 2026-11-10, seen failing 2026-11-09
 
 #### SET-4
 
@@ -77,4 +77,4 @@ Carries the design logic: the package explains how the loop and its release step
 
 ### Defect tests
 
-- Given the package's skills, when each SKILL.md is counted, then every one is under 150 lines, so test-board passes. — [skill-size-116](../../.loop/regression.tsv), defect, guards [#116](https://github.com/jcl2018/agent-workflow-template/issues/116) state unknown, both, not run, seen failing 2026-11-09
+- Given the package's skills, when each SKILL.md is counted, then every one is under 150 lines, so test-board passes. — [skill-size-116](../../.loop/regression.tsv), defect, guards [#116](https://github.com/jcl2018/agent-workflow-template/issues/116) state unknown, both, PASS 2026-11-10, seen failing 2026-11-09
