@@ -23,6 +23,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -208,9 +209,10 @@ def cmd_issues(args):
         print("ISSUE %s %s" % (link, out[link][0]))
     if args.write and rows:  # no rows read: keep the recorded states rather than wipe them
         path = os.path.join(args.root, ".loop", "regression-issues.tsv")
-        with open(path + ".new", "w") as handle:
+        fd, new = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".regression-issues.")  # its own name per writer
+        with os.fdopen(fd, "w") as handle:
             handle.write("# link\tstate\tdate\n" + "".join("%s\t%s\t%s\n" % (k, *v) for k, v in sorted(out.items())))
-        os.replace(path + ".new", path)  # whole or not at all
+        os.replace(new, path)  # whole or not at all
     return 0
 
 

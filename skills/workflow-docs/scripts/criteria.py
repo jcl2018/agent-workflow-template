@@ -159,14 +159,15 @@ SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date; anyt
 
 
 def tests_format(held={}):
-    """workflow-regression's tests.py (the test format), loaded once; None, with a NOTE, when missing or broken."""
+    """tests.py, the test format, loaded once; None, with a NOTE, if missing or broken."""
     import importlib.util
     if "m" not in held:
-        sys.dont_write_bytecode, held["m"] = True, None  # no __pycache__ in a skill folder
+        sys.dont_write_bytecode, held["m"] = True, None
         try:
             spec = importlib.util.spec_from_file_location("regression_tests", FORMAT)
             held["m"] = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(held["m"])
+            held["m"].fields, held["m"].issues_of  # too old: fall back
         except Exception as err:  # noqa: BLE001
             held["m"] = sys.stderr.write("NOTE: %s not found or broken (%s); Tests lines use the old shape\n"
                                          % (os.path.normpath(FORMAT), type(err).__name__)) and None
@@ -174,14 +175,13 @@ def tests_format(held={}):
 
 
 def scenario(row, ran, link, cell="", fmt=None, issues=None):
-    """One Tests line: the row's Given/When/Then description, then tests.py's fields: the row, its kind, what it
-    guards, when it runs, its last result and when it was seen failing."""
+    """One Tests line: the row's Given/When/Then words, then tests.py's fields (kind, guards, runs, result, seen)."""
     status, date = ran.get(row[0], ("not run", ""))
     words = row[5] or "-"
     if not SCENARIO.match(words):
         words += " (not yet Given/When/Then)"
     if fmt:
-        f = fmt.fields((row + [""] * 8)[:8], {}, ran, issues or {}, True)
+        f = fmt.fields((row + [""] * 8)[:8], {}, ran, issues or {}, True, True)
         return "- %s — [%s](%s), %s, guards %s, %s, %s, seen failing %s" % (words, row[0], link, *f[1:3], *f[4:])
     return "- %s — %s[%s](%s), %s, %s, seen failing %s" % (words, cell, row[0], link, RUNS.get(row[1], row[1]),
                                                        (status + " " + date).strip(), row[4] if SEEN.match(row[4]) else "no")

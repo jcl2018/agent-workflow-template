@@ -134,9 +134,11 @@ jobs:
           cat > "$here/tests.py" <<'TESTS_PY_EOF'
 @TESTS@
           TESTS_PY_EOF
-          timeout 120 python3 -I "$here/tests.py" issues --write >/dev/null || true  # never eats the job's last minutes
-          started=$(sed -n 's/^# started //p' "$REGRESSION_RESULTS" 2>/dev/null || true)
-          took=$(( $(date +%s) - ${started:-$(date +%s)} ))
+          started=$(sed -n 's/^# started //p' "$REGRESSION_RESULTS" 2>/dev/null | head -n 1 || true)
+          case "$started" in ''|*[!0-9]*) started=$(date +%s) ;; esac  # a number, or now: never an expression
+          left=$(( started + 89 * 60 - $(date +%s) - 30 ))  # the rows end by minute 88; keep 30 s for the summary itself
+          [ "$left" -ge 10 ] && timeout "$(( left < 60 ? left : 60 ))" python3 -I "$here/tests.py" issues --write >/dev/null || true
+          took=$(( $(date +%s) - started ))
           GH_TOKEN= python3 -I "$here/tests.py" summary --results "$REGRESSION_RESULTS" --took "$took" >> "$GITHUB_STEP_SUMMARY" || {
             printf '## Regression\n\nThe grouped summary could not be written; see this step'"'"'s log.\n\n| Test | Result |\n|---|---|\n'
             grep -v '^#' "$REGRESSION_RESULTS" 2>/dev/null | awk -F'\t' '{print "| " $1 " | " $2 " |"}'
