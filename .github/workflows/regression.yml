@@ -58,6 +58,9 @@ jobs:
                                               feature, from that run's results file (id<TAB>state lines; # lines are skipped)
             issues [--write]                  read each defect test's issue or pull request state with gh; --write records them in
                                               .loop/regression-issues.tsv (link, state, date) for the wiki and the health report
+            fixes --since REF                 one "Fixes #N: test ROW, seen failing DATE, passing" line per issue fixed since REF: a
+                                              defect row added, or whose seen-failing date was set, since REF, that links the
+                                              issue and passes in .loop/regression-runs.tsv (REG-6); the release notes list them
 
           A feature is the wiki page that holds the requirement a row guards (its goal, or its id); a row that guards none is in
           Other. Each test shows: test, kind (requirement or defect), what it guards (the requirement's ID and words, or the
@@ -266,6 +269,23 @@ jobs:
               return 0
 
 
+          def cmd_fixes(args):
+              """The release notes' proof lines (REG-6): defect rows this range added or proved, linked to an issue, passing now."""
+              shown = subprocess.run(["git", "show", "%s:.loop/regression.tsv" % args.since], cwd=args.root, capture_output=True,
+                                     text=True)
+              if shown.returncode and "exists on disk, but not in" not in shown.stderr and "does not exist" not in shown.stderr:
+                  return refuse("cannot read .loop/regression.tsv at %s: %s" % (args.since, shown.stderr.strip()[:200]))
+              old = {cells[0]: cells for cells in (line.split("\t") for line in shown.stdout.splitlines()) if cells[0] and cells[0][0] != "#"}
+              ran = {row[0]: row[1:2] for row in tsv(args.root, "regression-runs.tsv")}
+              for row in tsv(args.root, "regression.tsv"):
+                  row = (row + [""] * 8)[:8]
+                  found = re.match(r"^https?://\S+/issues/(\d+)$", row[7])
+                  before = (old.get(row[0], []) + [""] * 8)[4]
+                  if row[6] == "defect" and found and row[4] and row[4] != before and ran.get(row[0]) == ["PASS"]:
+                      print("Fixes #%s: test %s, seen failing %s, passing" % (found.group(1), row[0], row[4]))
+              return 0
+
+
           def main():
               parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
               sub = parser.add_subparsers(dest="command", required=True)
@@ -278,6 +298,9 @@ jobs:
               item.add_argument("--results", required=True)
               item.add_argument("--took", required=True)
               item.set_defaults(func=cmd_summary)
+              item = sub.add_parser("fixes")
+              item.add_argument("--since", required=True)
+              item.set_defaults(func=cmd_fixes)
               item = sub.add_parser("issues")
               item.add_argument("--write", action="store_true")
               item.set_defaults(func=cmd_issues)
@@ -404,6 +427,9 @@ jobs:
                                               feature, from that run's results file (id<TAB>state lines; # lines are skipped)
             issues [--write]                  read each defect test's issue or pull request state with gh; --write records them in
                                               .loop/regression-issues.tsv (link, state, date) for the wiki and the health report
+            fixes --since REF                 one "Fixes #N: test ROW, seen failing DATE, passing" line per issue fixed since REF: a
+                                              defect row added, or whose seen-failing date was set, since REF, that links the
+                                              issue and passes in .loop/regression-runs.tsv (REG-6); the release notes list them
 
           A feature is the wiki page that holds the requirement a row guards (its goal, or its id); a row that guards none is in
           Other. Each test shows: test, kind (requirement or defect), what it guards (the requirement's ID and words, or the
@@ -612,6 +638,23 @@ jobs:
               return 0
 
 
+          def cmd_fixes(args):
+              """The release notes' proof lines (REG-6): defect rows this range added or proved, linked to an issue, passing now."""
+              shown = subprocess.run(["git", "show", "%s:.loop/regression.tsv" % args.since], cwd=args.root, capture_output=True,
+                                     text=True)
+              if shown.returncode and "exists on disk, but not in" not in shown.stderr and "does not exist" not in shown.stderr:
+                  return refuse("cannot read .loop/regression.tsv at %s: %s" % (args.since, shown.stderr.strip()[:200]))
+              old = {cells[0]: cells for cells in (line.split("\t") for line in shown.stdout.splitlines()) if cells[0] and cells[0][0] != "#"}
+              ran = {row[0]: row[1:2] for row in tsv(args.root, "regression-runs.tsv")}
+              for row in tsv(args.root, "regression.tsv"):
+                  row = (row + [""] * 8)[:8]
+                  found = re.match(r"^https?://\S+/issues/(\d+)$", row[7])
+                  before = (old.get(row[0], []) + [""] * 8)[4]
+                  if row[6] == "defect" and found and row[4] and row[4] != before and ran.get(row[0]) == ["PASS"]:
+                      print("Fixes #%s: test %s, seen failing %s, passing" % (found.group(1), row[0], row[4]))
+              return 0
+
+
           def main():
               parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
               sub = parser.add_subparsers(dest="command", required=True)
@@ -624,6 +667,9 @@ jobs:
               item.add_argument("--results", required=True)
               item.add_argument("--took", required=True)
               item.set_defaults(func=cmd_summary)
+              item = sub.add_parser("fixes")
+              item.add_argument("--since", required=True)
+              item.set_defaults(func=cmd_fixes)
               item = sub.add_parser("issues")
               item.add_argument("--write", action="store_true")
               item.set_defaults(func=cmd_issues)
