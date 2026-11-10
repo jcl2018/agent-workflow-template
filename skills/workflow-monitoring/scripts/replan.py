@@ -27,7 +27,6 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import board_status as bs  # noqa: E402
-import goal_state  # noqa: E402
 import graph  # noqa: E402
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")  # no prompt ever blocks
 
@@ -120,7 +119,7 @@ def plan(top=None, at=None):
     seen = seen if isinstance(seen, dict) else {}
     records = runs(folder)
     found, _ = graph.read_pool(os.path.join(folder, "session-pool.json"))
-    goal_state.stamp_held(list(records.values()), graph.assigned(found), at, folder)  # true held time (issue 115)
+    graph.stamp_held(list(records.values()), graph.assigned(found), at, folder)  # true held time (issue 115)
     new = []
     for kind, slugs, reason in proposals(queue(top), records):
         key = "%s %s" % (kind, slugs)

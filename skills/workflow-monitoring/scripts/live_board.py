@@ -8,7 +8,7 @@ its fix in plain words; stopped goals grouped by cause by board_lines.py), Runni
 step flow with the current step in brackets, worker, depth, next step; [freezing] for a goal handed over before it was
 frozen; then the session pool line), Queued goals (held goals marked held, with their held time), Dependencies (board_lines.py's
 top-to-bottom graph) and one Finish time ("paused until ..." while every goal waits out one usage limit). Goal state comes
-from goal_state.py, pull request states from board_lines.py. Merged work, history and totals are left out. Health is
+from graph.py, pull request states from board_lines.py. Merged work, history and totals are left out. Health is
 workflow-health's verdict, or "unknown"; LOOP_BOARD_HEALTH replaces it (tests). Printed by report, dashboard and the
 status question, never by a check-in (MON-4). Imported by board_status.py.
 """
@@ -24,7 +24,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import board_lag  # noqa: E402
 import board_lines  # noqa: E402
 import board_status as bs  # noqa: E402
-import goal_state  # noqa: E402
 import graph  # noqa: E402
 import status_graph  # noqa: E402
 
@@ -69,7 +68,7 @@ def loop_dir(root):
 def load(root):
     folder = os.path.join(loop_dir(root), "runs")
     runs = [bs.read_json(os.path.join(folder, name)) for name in sorted(os.listdir(folder)) if name.endswith(".json")] if os.path.isdir(folder) else []
-    return goal_state.with_held([run for run in runs if isinstance(run, dict) and run.get("slug") and run.get("status") != "retired"],
+    return graph.with_held([run for run in runs if isinstance(run, dict) and run.get("slug") and run.get("status") != "retired"],
                                 loop_dir(root))
 
 
@@ -196,7 +195,7 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
                   "    fix: check it with python3 -m json.tool <git common dir>/loop/session-pool.json, then repair it (moved aside, "
                   "every held goal is forgotten); nothing was started or changed, and the next pass retries"]
     cfg = bs.read_json(os.path.join(root, ".loop", "config.json")) or {}
-    quiet_s = goal_state.silent_limit(cfg)
+    quiet_s = graph.silent_limit(cfg)
     stuck += board_lines.stuck(runs, cfg.get("resume_on_limit") is True)  # failed and stopped goals by cause, never raw agent output (issue 97)
     for run in runs:
         slug, report = run["slug"], (run.get("report") or {}).get("text", "")
@@ -209,7 +208,7 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
             other += ["- %s: the release failed: %s" % (slug, plain(run["release_error"])), '    fix: look at the problem, then type "resume %s"' % slug]
     for run in runs:
         last = parse_at(run.get("updated"))
-        last = goal_state.last_spoke(run) or last
+        last = graph.last_spoke(run) or last
         quiet = bool(at and last and (at - last).total_seconds() >= quiet_s)
         if quiet and is_held(run, taken) and graph.holds_slot(run):
             other += ["- %s: held %s and holds a slot" % (run["slug"], age(run.get("held_at") or run.get("updated"), at)),

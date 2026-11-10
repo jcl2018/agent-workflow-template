@@ -88,7 +88,7 @@ go back to 0), and launches a new worker told to continue from the goal file and
 ## Operation session
 
 **The operation session is for governance only: it assigns, watches and reports, and never runs `go` itself; workers
-build.** `operate.py run` loops `watch --once`, `board.py board`, `board_page.py`, `replan.py` and `auto.py pass`, prints the check-in (`checkin.py`, not the live board) every pass (`replan.py` MON-10, `auto.py` with `full_auto` MON-11, `pool.py` with `pool_size` MON-6 and MON-12, `govern_hook.py` MON-7, `goal_state.py`: `references/operation.md`), waits the `board.py cadence` gap (less when a worker reports), and stops when
+build.** `operate.py run` loops `watch --once`, `board.py board`, `board_page.py`, `replan.py` and `auto.py pass`, prints the check-in (`checkin.py`, not the live board) every pass (`replan.py` MON-10, `auto.py` with `full_auto` MON-11, `pool.py` with `pool_size` MON-6 and MON-12, `govern_hook.py` MON-7: `references/operation.md`; goal state lives in `graph.py`), waits the `board.py cadence` gap (less when a worker reports), and stops when
 nothing is left. `operate.py send SLUG "<text>"` gives a worker an answer or follow-up. `scripts/board.py` builds the progress board (`board`), keeps the check-in `cadence`, follows other repos
 (`repos add`), records a worker's latest message (`note SLUG TEXT`), retires a superseded goal (`retire SLUG --reason TEXT`) and writes a `handoff` file.
 `scripts/board_page.py` draws `board.html` and `board-artifact.html` from `board.json`, both carrying the live board.

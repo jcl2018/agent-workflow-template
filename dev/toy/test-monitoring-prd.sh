@@ -2,7 +2,7 @@
 # reads: skills/workflow-monitoring/scripts/auto.py skills/workflow-monitoring/scripts/board.py skills/workflow-monitoring/scripts/board_lines.py
 # reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-monitoring/scripts/board_runs.py
 # reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/checkin.py
-# reads: skills/workflow-monitoring/scripts/goal_state.py
+# reads:
 # reads: skills/workflow-monitoring/scripts/govern_hook.py skills/workflow-monitoring/scripts/graph.py
 # reads: skills/workflow-monitoring/scripts/live_board.py
 # reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/monitor.py
@@ -249,16 +249,16 @@ case_state113() {
   fresh; run h1 'worker="session"'; run r1 'pid=1'; run w1 'status="waiting"' 'waiting={"ask":"q","words":["a"]}'
   pool '{}'
   out=$(cd "$S" && python3 - "$L" <<'PY'
-import json, os, sys, graph, goal_state, live_board
+import json, os, sys, graph, live_board
 folder = sys.argv[1]
 runs = [json.load(open(os.path.join(folder, "runs", f))) for f in sorted(os.listdir(os.path.join(folder, "runs")))]
 taken = graph.assigned(graph.read_pool(os.path.join(folder, "session-pool.json"))[0])
-print(all(graph.holds_slot(r, taken) == goal_state.holds_slot(r, taken) for r in runs),
-      all(live_board.is_held(r, taken) == goal_state.held(r, taken) for r in runs),
-      [goal_state.classify(r, taken) for r in runs])
+print(all(graph.holds_slot(r, taken) == (r["slug"] != "h1") for r in runs),
+      all(live_board.is_held(r, taken) == graph.held(r, taken) for r in runs),
+      [graph.classify(r, taken) for r in runs])
 PY
 )
-  check "#113: graph, live board and goal_state agree on every goal" 'echo "$out" | grep -q "^True True \[.held., .running., .waiting.\]"'
+  check "#113: graph and live board agree on every goal" 'echo "$out" | grep -q "^True True \[.held., .running., .waiting.\]"'
 }
 
 case_attempt114() {

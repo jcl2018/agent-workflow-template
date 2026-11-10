@@ -234,16 +234,15 @@ def cmd_report(args):
     back = returned()
     print("\n".join("- %s (%s): %s" % item for item in back) if back else "(none)")
     taken, _ = pool()
-    import goal_state
     print("\nHELD OR FREEZING")
-    kept = [s for s in states if goal_state.held(s, taken)]
+    kept = [s for s in states if graph.held(s, taken)]
     for state in kept:
         print("- %s: held since %s, no worker; give it a session (sessions.py bind %s ID)" % (
             state["slug"], state.get("held_at") or state.get("updated") or "?", state["slug"]))
     on_disk = {s["slug"] for s in states}
-    for entry in goal_state.freezing(taken, on_disk):
+    for entry in graph.freezing(taken, on_disk):
         print("- %s: freezing in session %s since %s" % (entry["slug"], entry.get("name") or entry["id"], entry.get("since") or "?"))
-    if not kept and not goal_state.freezing(taken, on_disk):
+    if not kept and not graph.freezing(taken, on_disk):
         print("(none)")
     print("\nQUEUED, NOT STARTED")
     for goal, why in held:

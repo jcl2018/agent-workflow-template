@@ -27,11 +27,10 @@ try:  # board.py runs alone with graph.py; without board_status.py there is no e
     import board_status  # noqa: E402
 except ImportError:
     board_status = None
-try:  # the shared goal state (issue 113) and fast pull request states (MON-9), when they are beside this file
-    import goal_state  # noqa: E402
-    import board_lines as prs  # noqa: E402  (its pull request lookups)
+try:  # fast pull request states (MON-9), when board_lines.py is beside this file
+        import board_lines as prs  # noqa: E402  (its pull request lookups)
 except ImportError:
-    goal_state = prs = None
+    prs = None
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -39,7 +38,6 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
-QUIET = 1800
 RUN_COMMANDS = ("note", "retire")
 FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on", "report", "wiki_error", "release_error")
 
@@ -202,9 +200,8 @@ def collect(name, path, base, at):
         found = [f for f in extra.get("findings") or [] if isinstance(f, dict)]
         if found and run.get("status") in ("done", "merged"):
             note = {"text": "finding after %s: %s" % (run["status"], found[-1].get("text", ""))}
-        if goal_state:  # one silence rule for board and live board (MON-8)
-            last = goal_state.last_spoke(run) or last
-        limit = goal_state.silent_limit(cfg) if goal_state else QUIET
+        last = graph.last_spoke(run) or last  # one silence rule for board and live board (MON-8)
+        limit = graph.silent_limit(cfg)
         quiet = bool(run.get("status") == "running" and last and (at - last).total_seconds() >= limit)
         pr = clean(run.get("pr"))
         get = lambda field, size=300: clean(run.get(field), size)
@@ -218,7 +215,7 @@ def collect(name, path, base, at):
             "elapsed": (at - begun).total_seconds() if begun else 0, "age": span((at - begun).total_seconds()) if begun else "0m",
             "took": (last - begun).total_seconds() if begun and last else 0, "last": run.get("updated") or "",
             "waits_on": ", ".join(run.get("waits_on") or []), "touches": list(dict.fromkeys(list(run.get("touches") or []) + list(extra.get("touches") or []))),
-            "merged": graph.merged(run), "held": bool(goal_state and goal_state.held(run, taken)), "left": board_status and board_status.left_time(run, records, at),
+            "merged": graph.merged(run), "held": bool(graph.held(run, taken)), "left": board_status and board_status.left_time(run, records, at),
             "eta": get("eta"), "next": get("next"), "branch": get("branch"), "reason": clean((run.get("retired") or {}).get("reason"))})
     by_slug = {r["slug"]: r for r in records}
     names = {goal["slug"] for goal in queue_of(path)}

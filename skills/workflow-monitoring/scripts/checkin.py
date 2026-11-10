@@ -26,7 +26,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import auto  # noqa: E402
 import board_status as bs  # noqa: E402
 import board_lines  # noqa: E402
-import goal_state  # noqa: E402
 import govern_hook  # noqa: E402
 import graph  # noqa: E402
 import live_board as lb  # noqa: E402
@@ -50,7 +49,7 @@ def render(root=None, at=None, stamp=None):
     runs = lb.load(root)
     found, why = graph.read_pool(os.path.join(folder, "session-pool.json"))
     taken = graph.assigned(found)
-    states = {r["slug"]: goal_state.classify(r, taken, at, cfg) for r in runs}
+    states = {r["slug"]: graph.classify(r, taken, at, cfg) for r in runs}
     live = [r for r in runs if states[r["slug"]] not in ("merged", "retired")]
     queue = bs.queued(root, runs)
     ready, _ = graph.ready(queue, {r["slug"]: r for r in runs}, graph.parallel_of(cfg), taken, why)
@@ -95,7 +94,7 @@ def render(root=None, at=None, stamp=None):
                                                                        " / ".join('"%s"' % w for w in words), rec))
         elif state == "silent":
             needs.append("%s: its worker has sent nothing for %dm; look at its session" % (
-                run["slug"], goal_state.silent_for(run, at) // 60))
+                run["slug"], graph.silent_for(run, at) // 60))
         elif state == "held":
             needs.append("%s is held with no worker; give it a session (sessions.py bind %s ID)" % (run["slug"], run["slug"]))
     stuck = board_lines.stuck(live, cfg.get("resume_on_limit") is True)
