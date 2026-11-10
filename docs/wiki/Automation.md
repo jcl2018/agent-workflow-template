@@ -62,6 +62,8 @@ Health on a schedule. The health check runs on the schedule and files its findin
 - Given no agent key secret, when the scheduled health runs, then the judge is skipped and the report says so. — [aut-judge-no-secret](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given the secret but no judge program on the runner, when the scheduled health runs, then the judge is skipped and the report names the setting to fix. — [aut-judge-no-program](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a repo without a Backlog milestone, when the scheduled health files findings, then it makes the milestone first. — [aut-backlog-milestone](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given an agent key secret with another name, when the scheduled judge runs, then it receives the key under the name it reads. — [aut-secret-mapped](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a judge that fails, when the scheduled health runs, then the step stays green and its report stays readable. — [aut-judge-fails-green](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### AUT-4
 
@@ -92,3 +94,4 @@ Under my control. Each routine can be turned off or rescheduled in one setting, 
 - Given a routine set off, when someone starts it by hand, then it still runs. — [aut-by-hand-runs](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a cron setting with anything but plain cron fields, when a workflow is written, then it is refused. — [aut-cron-check](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given regression_cron off, when its workflow is written, then it has no schedule and keeps its by-hand trigger. — [aut-regression-off-written](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a cron setting that ends in a newline, when a workflow is written, then it is refused. — [aut-cron-newline](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10

@@ -7,6 +7,7 @@ adopt-set-5	PASS	2026-11-10
 aut-backlog-milestone	PASS	2026-11-10
 aut-by-hand-runs	PASS	2026-11-10
 aut-cron-check	PASS	2026-11-10
+aut-cron-newline	PASS	2026-11-10
 aut-defect-issue	PASS	2026-11-10
 aut-digest-comment-fails	PASS	2026-11-10
 aut-digest-create	PASS	2026-11-10
@@ -22,6 +23,7 @@ aut-health-off	PASS	2026-11-10
 aut-health-schedule	PASS	2026-11-10
 aut-health-workflow-current	PASS	2026-11-10
 aut-issue-list-fails	PASS	2026-11-10
+aut-judge-fails-green	PASS	2026-11-10
 aut-judge-no-program	PASS	2026-11-10
 aut-judge-no-secret	PASS	2026-11-10
 aut-missing-skills	PASS	2026-11-10
@@ -31,6 +33,7 @@ aut-old-issue-relabel	PASS	2026-11-10
 aut-regression-off	PASS	2026-11-10
 aut-regression-off-written	PASS	2026-11-10
 aut-schedule-mismatch	PASS	2026-11-10
+aut-secret-mapped	PASS	2026-11-10
 aut-secret-name	PASS	2026-11-10
 auto-approved	PASS	2026-11-09
 auto-release	PASS	2026-11-09
