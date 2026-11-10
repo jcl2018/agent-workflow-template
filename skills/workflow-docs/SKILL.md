@@ -7,8 +7,7 @@ description: Keeps a repo's wiki pages in the repo, finds pages that have gone s
 
 Six commands: `init`, `check`, `audit`, `criteria`, `publish` and `restore`, with `criteria.py` for review and Tests and `prd.py` to draft and convert PRD pages. `init` is the step list below, not a script command. The others
 are `scripts/docs.py` commands, with `survey` and `add` for `init`. Run it with `python3`. If the skill's files aren't
-on disk, write the script to a temporary file, run it, and delete it. If `.loop/config.json` is missing, use
-`workflow-setup` first.
+on disk, write the script to a temporary file, run it, and delete it. No `.loop/config.json`: use `workflow-setup` first.
 
 Pages live in the repo at `docs/wiki/` (`wiki_dir` in `.loop/config.json` changes that), so they're reviewed in pull
 requests. `.loop/docs.tsv` maps each page to the paths it describes.
@@ -144,6 +143,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-docs prd NAME "<idea>" --paths A,B` | `python3 scripts/prd.py new NAME "<idea>" --paths A,B` |
 | `/workflow-docs convert` | `python3 scripts/prd.py convert --write` |
 | `/workflow-docs render` | `python3 scripts/criteria.py render` |
+| `/workflow-docs entry` | `python3 scripts/entry.py write` (`check`, `render`, `block`) |
 | `/workflow-docs publish` | `python3 scripts/docs.py publish` |
 | `/workflow-docs restore` | `python3 scripts/docs.py restore` |
 | `/workflow-docs milestones` | `python3 scripts/milestone.py new --all` |

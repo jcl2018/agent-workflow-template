@@ -82,8 +82,9 @@ ASK = ('ask the user first: run goal.py wait {slug} --ask "Cut a release or leav
 def flow_set():
     try:
         with open(os.path.expanduser(os.environ.get("LOOP_FLOW") or "~/.workflow-loop/flow.json")) as handle:
-            steps = json.load(handle).get("steps") or {}
-    except (OSError, ValueError, AttributeError):
+            spec = json.load(handle)
+            steps = dict(spec.get("suite") or {}, **(spec.get("steps") or {}))  # as goal.py and flow.py merge them
+    except (OSError, ValueError, AttributeError, TypeError):
         return False
     return all(steps.get(step) for step in FLOW)
 

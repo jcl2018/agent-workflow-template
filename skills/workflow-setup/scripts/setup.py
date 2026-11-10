@@ -23,6 +23,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import agents  # noqa: E402
 import seed  # noqa: E402
 import settings  # noqa: E402
 import survey  # noqa: E402
@@ -193,6 +194,8 @@ def main():
     held = next((text for text in texts if text), None)
     old = json.loads(held) if held else {}
     config = merged(repo, old)
+    if not args.bare and not config.get("template_version") and agents.installed_version():
+        config["template_version"] = agents.installed_version()  # the version this repo was set up with; update moves it
     if args.bare and "criteria" not in old:
         config["criteria"] = False
     found = survey.survey(repo, config)
@@ -203,6 +206,8 @@ def main():
     acts = seed.decide(repo, config, found)
     if args.bare:
         acts = [a for a in acts if a[3] in ("config", "file")]
+    else:
+        acts += agents.plan(repo)  # .loop/START.md and the workflow-loop block in CLAUDE.md and AGENTS.md
     for verb, path, note, _ in acts:
         print("%s: %s%s" % (verb, path, " (%s)" % note if note else ""))
     if not args.dry_run:
@@ -221,6 +226,10 @@ def main():
     if not [a for a in acts if a[3]]:
         print("NO CHANGE: nothing to add or convert")
         return code
+    if not args.dry_run and any(a[3] == "agents" for a in acts) and agents.dirty(repo):
+        print("REFUSED: %s has uncommitted changes (SETUP_AGENT_FILE_DIRTY). Fix: commit or stash them, then run setup "
+              "again; nothing written." % ", ".join(agents.dirty(repo)))
+        return 2
     if not config["checks"]:
         print("NOTE: no test command found, so no regression row is seeded")
     if not config["agent_command"]:
@@ -241,8 +250,9 @@ def main():
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
     with open(config_path, "w") as handle:
         handle.write(json.dumps({k: v for k, v in config.items() if k != "checks"}, indent=2) + "\n")
-    seed.apply(repo, config, found, acts)
+    seed.apply(repo, config, found, [a for a in acts if a[3] != "agents"])
     paths = [p for p in (".loop", found["wiki"], ".github/workflows/regression.yml", ".github/workflows/health.yml") if os.path.exists(os.path.join(repo, p))]
+    paths += [] if args.bare else agents.apply(repo)
     git(repo, "add", "-A", "--", *paths)
     git(repo, "commit", "-m", "Adopt the workflow loop", "--allow-empty")
     print("WROTE the adoption on branch %s at %s" % (args.branch, git(repo, "rev-parse", "--short", "HEAD")))
