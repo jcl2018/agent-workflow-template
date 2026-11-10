@@ -1,5 +1,51 @@
 # Changelog
 
+## v0.25.0 - 2026-11-10
+
+- WIP: monitoring-prd new modules (goal_state, dep_graph, issue_lines, prs, pool, replan, auto, govern_hook, checkin)
+- Merge remote-tracking branch 'origin/main' into loop/monitoring-prd
+- WIP: monitoring-prd call sites (live_board, sessions, session_bind, operate, board, monitor, watch, graph, settings, setup)
+- monitoring-prd: toy suite, docs, review fixes (branch delete only when merged into base, quote-aware govern parse, PR prefetch)
+- monitoring-prd: reviewed plan (unattended, gate pending) and review fixes
+- monitoring-prd: regression rows for MON-4, MON-6..MON-12 and issues 94, 97, 111-115, 122, 175; old toy tests follow the new MON-4/MON-8 behaviour; operate.py run --board
+- monitoring-prd: Verify by hand, wiki Usage lines, setup command map
+- monitoring-prd: preview-auto verb
+- monitoring-prd: commands reference for check-in, re-plan, full auto, pool and govern hook
+- monitoring-prd: rows green; Monitoring Tests re-rendered
+- review: a failed report frees its session without blocking a rebind; MON-9 timing assertion annotated
+- review: cleanup runs git from the main checkout (a worker reporting from its own worktree kept the branch); only executing operate.py claims the operation session; wrappers no longer hide git writes; more risky words; malformed held.json tolerated
+- review: specialist fixes (dead code, board uses its parallel PR lookup, auto.log escapes |, git pull and -c alias blocked, wrappers by basename, worker exit before git, stale health lock, offline fetch, repeated question keeps its auto decision, stronger MON-11 checks)
+- review cycle 2: claim only when operate.py is executed (python flags, ./operate.py); wrapper flag values skipped; one merge check for freed_from and cleanup; repeated question matched by its words; MON-7 test checks real claims
+- review final: the govern hook skips only wrappers, their flags and values, so a command that names git is never refused
+- qa: no-prompt guard in the new scripts that start processes; SKILL.md back under 150 lines (new verbs as agent requests); narrow # reads: header; Setup and Documentation pages updated
+- qa: govern hook sees through shell keywords; a non-number --attempt is refused; an unreadable config shows under Needs you; a bad since time is refused; pool add counts each id once
+- Merge origin/main (docs-format, v0.22.0) into loop/monitoring-prd: both row sets kept, docs-format's pages kept with this goal's Usage lines added
+- monitoring-prd: rows re-recorded after the merge; Monitoring and Tests pages re-rendered (MON-6..MON-12 rows now listed)
+- monitoring-prd: MON-9's slow GitHub is a wrapper in its own test; the shared fake gh is back to main's
+- Documentation page reviewed against this branch's fake gh commits: the fake gh is unchanged from main, no wording change needed
+- Documentation page rendered (trailing blank line dropped)
+- Rows re-run after the render; Tests re-rendered
+- Issue 321: the reply hook checks the claimed operation session, so a one-line scheduled check-in reply is blocked and told the five missing parts
+- Issue 321 row seen failing then passing; Tests re-rendered
+- Merge origin/main (estimate-model, automation-email, v0.24.0) into loop/monitoring-prd: estimate ranges kept beside the graph, pool and check-in changes; both row sets kept; Tests re-rendered
+- monitoring-prd: dep_graph.py, issue_lines.py and prs.py merged into board_lines.py, behaviour unchanged, so the skill package fits its 99-file cap with room (98)
+- monitoring-prd: goal_state.py merged into graph.py (its state logic), behaviour unchanged; the skill package is at 99 files
+
+### How to verify
+
+1. In the main checkout, run `python3 skills/workflow-monitoring/scripts/operate.py run --once`.
+   Expect: one headline line, then All sessions, Dependencies, Needs you and Coming up; no `LIVE BOARD` block.
+2. Run `python3 skills/workflow-monitoring/scripts/monitor.py report`.
+   Expect: the live board, with Dependencies drawn top to bottom (`[>]`, `[ ]`, `<-`, a `|`/`v` between bands and a legend), no line wider than 60 characters, and a HELD OR FREEZING section.
+3. Run `python3 skills/workflow-monitoring/scripts/pool.py status`.
+   Expect: one line `pool: F free, B busy, T total (target 20)` with this repo's counts.
+4. Pipe a routine question into the full-auto check: `echo "Which helper name?" | python3 skills/workflow-monitoring/scripts/auto.py decide-text --kind routine --recommend a`, then the same with "Delete the cache?".
+   Expect: `AUTO` for the first, `WAITS: it mentions delete` for the second.
+5. Pipe two commands into the govern check: `echo "git -C . commit -m x" | python3 skills/workflow-monitoring/scripts/govern_hook.py check`, then `echo "git status" | ...`.
+   Expect: `BLOCK: git commit`, then `PASS`.
+6. Run `python3 skills/workflow-monitoring/scripts/replan.py plan` twice.
+   Expect: the first run lists each running goal's start with its reason (or REPLAN: no change); the second prints `REPLAN: no change`.
+
 ## v0.24.0 - 2026-11-10
 
 - Mail one digest per round, file issues on feature milestones, show round cost
