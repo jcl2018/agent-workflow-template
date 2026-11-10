@@ -5,8 +5,8 @@ usage: operate.py <command> [options]
 
   run [--once] [--poll S] [--max N] [--skill-dir DIR] [--board]
       Each pass: watch.py watch --once (starts every queued goal and batch line whose dependencies are merged, up to
-      parallel; mends and resumes if the config allows), board.py board, board_page.py. It prints the full live board
-      (live_board.py) and the changes every pass, even when nothing changed. Then it waits the gap from `board.py cadence`,
+      parallel; mends and resumes if the config allows), board.py board, board_page.py. It prints the check-in every pass, even when nothing changed
+      (--board adds the live board and its changes). Then it waits the gap from `board.py cadence`,
       or less: a worker that reports (a run record changes) or a goal added to the queue starts the next pass at once.
       It stops when nothing is queued, running or waiting, or when the cadence is off. --once makes one pass.
       Each pass also runs replan.py (MON-10) and auto.py pass (MON-11), and prints the check-in (checkin.py), not the

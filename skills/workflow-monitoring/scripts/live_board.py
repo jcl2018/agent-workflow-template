@@ -17,7 +17,6 @@ import datetime
 import html
 import os
 import re
-import subprocess
 import sys
 import textwrap
 
@@ -35,7 +34,6 @@ os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")
 
 FLOW = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
 WIDTH = 60   # a phone screen
-QUIET = goal_state.silent_limit()  # seconds a worker may stay silent before Issues names it (MON-8; silent_minutes, default 30)
 HEALTH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-health", "scripts", "health.py")
 
 

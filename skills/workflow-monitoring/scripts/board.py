@@ -190,7 +190,9 @@ def collect(name, path, base, at):
     live = [r for r in records if r.get("status") in ("running", "waiting")]
     taken = graph.assigned(graph.read_pool(os.path.join(base, "loop", "session-pool.json"))[0])
     if prs:  # every pull request asked at once, in parallel, before the rows ask one by one from the cache (MON-9)
-        prs.lookup([clean(r.get("pr")) for r in records if r.get("pr") and not graph.merged(r)], path)
+        known = prs.lookup([clean(r.get("pr")) for r in records if r.get("pr") and not graph.merged(r)], path)
+    else:
+        known = {}
     rows, deps = [], []
     for run in records:
         begun, last = started(run), stamp(run.get("updated"))
@@ -208,7 +210,7 @@ def collect(name, path, base, at):
         get = lambda field, size=300: clean(run.get(field), size)
         rows.append({
             "repo": run.get("repo") or name, "slug": run["slug"], "goal": get("goal", 80), "level": kind(run), "status": get("status"),
-            "step": get("step") or "-", "tries": run.get("tries", 0), "pr": pr, "prstate": pr_state(pr, path) if pr else "",
+            "step": get("step") or "-", "tries": run.get("tries", 0), "pr": pr, "prstate": ((known.get(pr) or "unknown").lower() if pr in known else pr_state(pr, path)) if pr else "",
             "wiki_error": "yes" if run.get("wiki_error") else "", "release_error": "yes" if run.get("release_error") else "",
             "checks": get("checks"), "quiet": "yes" if quiet else "no", "report": clean((run.get("report") or {}).get("text")),
             "note": clean(note.get("text")) if isinstance(note, dict) else "",

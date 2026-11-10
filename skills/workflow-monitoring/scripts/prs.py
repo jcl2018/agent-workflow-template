@@ -3,7 +3,7 @@
 call bounded, and a MERGED answer is kept in <git common dir>/loop/pr-states.json for good (OPEN and CLOSED can change,
 so they are asked each time, all at once). The file is written whole through a temp file and os.replace, so
 a reader never sees half of it; when two writers race, the last one wins and a lost answer is only asked again.
-Imported by board_status.py and board.py, not run.
+Imported by live_board.py, board.py and pool.py, not run.
 
   states(runs, root)  {slug: MERGED|CLOSED|OPEN|""} for each done, unmerged run with a pull request
   state(url, root)    one pull request's state ("" when gh can't say)
@@ -59,7 +59,7 @@ def ask(url, root):
         return ""
 
 
-def fresh(entry, now):
+def fresh(entry):
     return isinstance(entry, dict) and entry.get("state") == "MERGED"  # only a merge is final; OPEN and CLOSED are asked anew
 
 
@@ -69,7 +69,7 @@ def lookup(urls, root):
         return {url: "" for url in urls}
     path, now = cache_path(root), time.time()
     cache = load(path) if path else {}
-    out = {url: cache[url]["state"] for url in urls if fresh(cache.get(url), now)}
+    out = {url: cache[url]["state"] for url in urls if fresh(cache.get(url))}
     todo = [url for url in dict.fromkeys(urls) if url not in out]
     if todo:
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(WORKERS, len(todo))) as pool:
@@ -110,6 +110,8 @@ def health(root, script):
     age = time.time() - float(found.get("at") or 0)
     if age > HEALTH_TTL and os.path.exists(script):
         try:
+            if os.path.exists(path + ".lock") and time.time() - os.path.getmtime(path + ".lock") > 900:
+                os.remove(path + ".lock")  # a refresher that died left its lock: start again
             os.close(os.open(path + ".lock", os.O_CREAT | os.O_EXCL | os.O_WRONLY))
             subprocess.Popen([sys.executable, "-c", REFRESH, script, path], cwd=root, stdin=subprocess.DEVNULL,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)

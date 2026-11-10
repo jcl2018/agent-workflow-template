@@ -27,7 +27,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import reply_hook  # noqa: E402
 
-WRITES = {"commit", "push", "merge", "rebase", "reset", "cherry-pick", "revert", "am"}
+WRITES = {"commit", "push", "merge", "rebase", "reset", "cherry-pick", "revert", "am", "pull"}
 EDITS = {"Edit", "Write", "NotebookEdit", "MultiEdit"}
 SPLIT = re.compile(r"&&|\|\||;|\||\n")
 FIX = ("the operation session only governs (MON-7); a worker builds. Fix: hand the change to the goal's worker "
@@ -41,7 +41,7 @@ WRAPPERS = ("env", "command", "exec", "sudo", "nohup", "time", "nice", "xargs", 
 def strip(words):
     """A segment's words without leading VAR=x assignments and wrappers (timeout and nice take one argument)."""
     i = 0
-    while i < len(words) and (re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", words[i]) or words[i] in WRAPPERS or words[i].startswith("-")
+    while i < len(words) and (re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", words[i]) or os.path.basename(words[i]) in WRAPPERS or words[i].startswith("-")
                               or (i and words[i - 1] in ("timeout", "-n") and re.match(r"^[0-9.]+[smhd]?$", words[i]))):
         i += 1
     return words[i:]
@@ -57,6 +57,8 @@ def git_write(words):
     i += 1
     while i < len(words):
         word = words[i]
+        if word == "-c" and i + 1 < len(words) and words[i + 1].startswith("alias."):
+            return "alias"  # an alias defined on the command line can be any write
         if word in ("-C", "-c", "--git-dir", "--work-tree", "--namespace"):
             i += 2
         elif word.startswith("-"):
@@ -142,8 +144,9 @@ def log(common, text):
 
 def decide(payload):
     """The deny reason for one tool call, or '' to let it run."""
-    if os.environ.get("LOOP_GOVERN_HOOK") == "0":
-        return ""
+    cwd = os.path.realpath(str(payload.get("cwd") or ""))
+    if os.environ.get("LOOP_GOVERN_HOOK") == "0" or os.environ.get("LOOP_ROLE") == "worker" or "%sloop%sworktrees%s" % (os.sep, os.sep, os.sep) in cwd:
+        return ""  # a worker, cheaply, before any git call: the hook runs on every tool call
     where = reply_hook.repo_of(str(payload.get("cwd") or ""))
     if not where or str(where[2].get("govern_hook", True)).strip().lower() in ("false", "0", "off", "no"):
         return ""

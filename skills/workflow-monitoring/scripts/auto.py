@@ -104,7 +104,7 @@ def why_not(waiting, cfg, answered=False):
 
 
 def log(folder, slug, verdict, waiting, answer, reason, at):
-    line = " | ".join([at, slug, verdict, key_of(waiting.get("ask"))[:200], answer or "-", reason])
+    line = " | ".join(str(x).replace("|", "/") for x in (at, slug, verdict, key_of(waiting.get("ask"))[:200], answer or "-", reason))
     os.makedirs(folder, exist_ok=True)
     with open(os.path.join(folder, "auto.log"), "a") as handle:
         handle.write(line.replace("\n", " ") + "\n")

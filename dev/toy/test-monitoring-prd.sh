@@ -145,14 +145,18 @@ ask() { run "$1" 'status="waiting"' "waiting={\"ask\": \"$2\", \"words\": [\"use
 case_mon11() {
   fresh; ask r1 "Which helper name?" routine; ask r2 "Which layout for the keyboard map?" routine
   ask d1 "Pick one" destructive; ask n1 "Pick one" ""; ask k1 "Delete the old cache?" routine; ask o1 "Pick one again" routine
-  printf '%s\n' '{"slug": "o1", "key": "pick one", "words": "use b", "source": "owner"}' > "$L/answers.jsonl"
+  ask m1 "Pick one" money; ask s1 "Pick one" security; ask w1 "Pick one" owner; ask x1 "Pick one" sideways
+  python3 "$S/operate.py" send o1 "use b" >/dev/null 2>&1  # the owner answers o1 through the real path
   python3 "$S/auto.py" pass >/dev/null 2>&1
   check "MON-11: a routine decision is answered with its recommended option and logged" 'grep -q "| r1 | AUTO | which helper name? | use a |" "$L/auto.log"'
-  check "MON-11: the answer reaches the worker's inbox" 'grep -rqs "use a" "$L"/inbox* "$L"/runs/r1.* 2>/dev/null || grep -rqs "use a" "$L" --include="*inbox*"'
+  check "MON-11: the answer reaches the worker's inbox" 'grep -q "use a" "$L/inbox/r1.txt"'
+  check "MON-11: money, security, owner and unknown kinds wait and send nothing" \
+    '( for g in m1 s1 w1 x1; do grep -q "| $g | WAITS |" "$L/auto.log" || exit 1; [ ! -s "$L/inbox/$g.txt" ] || exit 1; done )'
   check "MON-11: keyboard is not a risky word" 'grep -q "| r2 | AUTO |" "$L/auto.log"'
   check "MON-11: destructive, no kind and a risky word wait for the owner" \
     'grep -q "| d1 | WAITS |.*destructive decision is the owner" "$L/auto.log" && grep -q "| n1 | WAITS |.*no kind given" "$L/auto.log" && grep -q "| k1 | WAITS |.*mentions delete" "$L/auto.log"'
-  check "MON-11: a goal the owner answered goes to the owner" 'grep -q "| o1 | WAITS |.*owner has answered" "$L/auto.log"'
+  check "MON-11: an owner answer sent with operate.py send is kept, and that goal goes to the owner" \
+    'grep -q "\"slug\": \"o1\".*\"source\": \"owner\"" "$L/answers.jsonl" && grep -q "| o1 | WAITS |.*owner has answered" "$L/auto.log"'
   n=$(wc -l < "$L/auto.log"); python3 "$S/auto.py" pass >/dev/null 2>&1
   check "MON-11: each question is decided once" '[ "$(wc -l < "$L/auto.log")" -eq "$n" ]'
   ask r3 "Which name?" routine; cfg full_auto=false; python3 "$S/auto.py" pass >/dev/null 2>&1

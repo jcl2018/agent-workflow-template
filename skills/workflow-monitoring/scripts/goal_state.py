@@ -8,7 +8,6 @@ handoff all ask here, so held, freezing, silent and slot-holding mean the same e
   held(run, taken)               running with no worker: the pool is known, no busy session names it, no pid
   freezing(taken, on_disk)       pool entries handed a goal that has no run record yet
   silent_for(run, at)            seconds since the worker last spoke (latest report, bind or change), or None
-  held_since(run)                when the goal first read as held (held_at, issue 115), else its last change
   stamp_held(runs, taken, at, folder)  record when each goal first read held in <loop>/held.json (replan.py, each pass)
   with_held(runs, folder)        fill held_at from that file
 
@@ -18,9 +17,6 @@ The pool is the busy map from graph.assigned (None when the pool can't be read: 
 import datetime
 import json
 import os
-
-LIVE = ("running", "waiting")
-ASKING = ("waiting", "failed", "stopped")
 
 
 def parse_at(text):
@@ -82,10 +78,6 @@ def last_spoke(run):
 def silent_for(run, at):
     last = last_spoke(run)
     return None if not last or not at else max(0.0, (at - last).total_seconds())
-
-
-def held_since(run):
-    return parse_at(run.get("held_at")) or parse_at(run.get("updated"))
 
 
 def held_file(folder):

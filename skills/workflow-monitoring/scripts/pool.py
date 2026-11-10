@@ -148,7 +148,10 @@ def remove_tree(slug, state):
                     "KEPT worktree %s: %s" % (os.path.basename(tree), (done.stderr.strip().splitlines() or ["git refused"])[-1]))
     branch, base = "loop/" + slug, config().get("base") or "main"
     if se.git("rev-parse", "--verify", "--quiet", "refs/heads/" + branch):
-        subprocess.run(["git", "fetch", "-q", "origin"], capture_output=True, timeout=60)
+        try:
+            subprocess.run(["git", "fetch", "-q", "origin"], capture_output=True, timeout=60)
+        except (OSError, subprocess.SubprocessError):
+            pass  # an offline fetch: decide on the origin we have
         base = "origin/" + base if se.git("rev-parse", "--verify", "--quiet", "origin/" + base) else base
         inside = subprocess.run(["git", "merge-base", "--is-ancestor", "refs/heads/" + branch, base], capture_output=True).returncode == 0
         done = subprocess.run(["git", "branch", "-D", branch], capture_output=True, text=True) if inside else None
