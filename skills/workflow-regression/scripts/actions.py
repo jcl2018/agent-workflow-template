@@ -204,7 +204,7 @@ def write(root, default):
             cron = json.load(handle).get("regression_cron") or default
     except (OSError, ValueError):
         cron = default
-    if cron != "off" and not (isinstance(cron, str) and re.match(r"^[0-9A-Za-z*/,\- ]+$", cron) and len(cron.split()) == 5):
+    if cron != "off" and not (isinstance(cron, str) and re.fullmatch(r"[0-9A-Za-z*/,\- ]+", cron) and len(cron.split()) == 5):
         sys.exit("REFUSED: regression_cron is not five cron fields or off. Fix: edit .loop/config.json.")
     path = os.path.join(root, ".github", "workflows", "regression.yml")
     if os.path.exists(path):

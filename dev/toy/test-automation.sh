@@ -114,6 +114,12 @@ printf '{"regression_cron": "off"}\n' > .loop/config.json; $reg workflow >/dev/n
 ! grep -q "schedule:" .github/workflows/regression.yml && grep -q "workflow_dispatch:" .github/workflows/regression.yml \
   && ok "regression written off keeps its by-hand and tag triggers only" || bad "regression off workflow"
 grep -q "milestone.py new backlog --live" .github/workflows/health.yml && ok "the health run makes sure its Backlog milestone exists before filing" || bad "backlog milestone"
+printf '{"health_cron": "1 2 3 4 5\\n"}\n' > .loop/config.json; ! $auto workflow >/dev/null 2>&1 && ok "a cron setting ending in a newline is refused" || bad "trailing newline cron"
+printf '{"judge_secret": "MY_KEY"}\n' > .loop/config.json; $auto workflow >/dev/null
+grep -qF 'ANTHROPIC_API_KEY: ${{ secrets.MY_KEY }}' .github/workflows/health.yml && ok "a secret with another name reaches the judge under the name it reads" || bad "custom secret name"
+printf '{"judge_command": ["true"]}\n' > .loop/config.json; $auto workflow >/dev/null; step .github/workflows/health.yml "Judge, only with the agent key secret" judge2.sh; : > s.txt
+GITHUB_STEP_SUMMARY=s.txt ANTHROPIC_API_KEY=set bash -e judge2.sh >/dev/null 2>&1; rc=$?
+[ $rc = 0 ] && [ "$(grep -c '^```$' s.txt)" = 2 ] && ok "a judge that fails leaves the step green and its report closed" || bad "judge failure fails the step"
 printf '{"judge_secret": "BAD NAME"}\n' > .loop/config.json; $auto workflow >/dev/null 2>err.txt; rc=$?
 [ $rc != 0 ] && grep -q "^REFUSED: judge_secret" err.txt && ok "a judge_secret that isn't a secret name is refused" || bad "secret name check"
 printf '{}\n' > .loop/config.json; $auto workflow >/dev/null; $reg workflow >/dev/null

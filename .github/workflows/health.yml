@@ -60,7 +60,7 @@ jobs:
       - name: Judge, only with the agent key secret
         if: always() && steps.routine.outputs.on == 'true'
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}  # the judge reads this name, whatever the secret is called
         run: |
           set -o pipefail
           if [ -z "$ANTHROPIC_API_KEY" ]; then echo "JUDGE: skipped, no ANTHROPIC_API_KEY secret is set." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
@@ -70,7 +70,7 @@ jobs:
           if [ -z "$prog" ] || ! command -v "$prog" >/dev/null; then
             echo "JUDGE: skipped, the runner has no ${prog:-judge_command}; set judge_setup in .loop/config.json." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
           fi
-          { echo "## Judge"; echo; echo '```'; python3 skills/workflow-health/scripts/health.py judge 2>&1 | sed -n '/^JUDGE/,$p'; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "## Judge"; echo; echo '```'; python3 skills/workflow-health/scripts/health.py judge 2>&1 | sed -n '/^JUDGE/,$p' || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"  # a red verdict is the report's, not the step's
       - name: Post the digest
         if: always() && steps.routine.outputs.on == 'true'
         env:

@@ -96,8 +96,10 @@ def decide(repo, config, found):
             acts.append(("add", ".loop/regression.tsv", "one land row per page's first criterion", "rows"))
         if survey.read(repo, ".github/workflows/regression.yml") is None:
             acts.append(("add", ".github/workflows/regression.yml", "regression run on " + config.get("regression_cron", ""), "workflow"))
-        if survey.read(repo, ".github/workflows/health.yml") is None:
+        if survey.read(repo, ".github/workflows/health.yml") is None and survey.read(repo, "skills/workflow-health/scripts/health.py") is not None:
             acts.append(("add", ".github/workflows/health.yml", "health and digest run on " + config.get("health_cron", ""), "health"))
+        elif survey.read(repo, ".github/workflows/health.yml") is None:  # its run needs the skill in the checkout
+            acts.append(("note", "health workflow", "not written: the workflow-health skill isn't in this repo, so a run could only fail", None))
     else:
         acts.append(("no fit", ".loop/regression.tsv", "no check command found, so no test row can be seeded", None))
     acts.append(("note", "milestones", "Backlog and one per page: python3 milestone.py new --all --live, when you are ready", None))

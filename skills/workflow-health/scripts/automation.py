@@ -92,17 +92,17 @@ jobs:
       - name: Judge, only with the agent key secret
         if: always() && steps.routine.outputs.on == 'true'
         env:
-          @SECRET@: ${{ secrets.@SECRET@ }}
+          ANTHROPIC_API_KEY: ${{ secrets.@SECRET@ }}  # the judge reads this name, whatever the secret is called
         run: |
           set -o pipefail
-          if [ -z "$@SECRET@" ]; then echo "JUDGE: skipped, no @SECRET@ secret is set." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "JUDGE: skipped, no @SECRET@ secret is set." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
           setup=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("judge_setup") or "")')
           [ -z "$setup" ] || sh -c "$setup"
           prog=$(python3 -c 'import json; c = json.load(open(".loop/config.json")).get("judge_command"); print(c[0] if isinstance(c, list) and c else "")')
           if [ -z "$prog" ] || ! command -v "$prog" >/dev/null; then
             echo "JUDGE: skipped, the runner has no ${prog:-judge_command}; set judge_setup in .loop/config.json." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
           fi
-          { echo "## Judge"; echo; echo '```'; python3 skills/workflow-health/scripts/health.py judge 2>&1 | sed -n '/^JUDGE/,$p'; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "## Judge"; echo; echo '```'; python3 skills/workflow-health/scripts/health.py judge 2>&1 | sed -n '/^JUDGE/,$p' || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"  # a red verdict is the report's, not the step's
       - name: Post the digest
         if: always() && steps.routine.outputs.on == 'true'
         env:
@@ -132,7 +132,7 @@ def settings(root):
     """(health_cron, judge_secret) from the config, or a REFUSED exit when either can't be written into a workflow."""
     cfg = config(root)
     cron, secret = cfg.get("health_cron") or CRON, cfg.get("judge_secret") or KEY_NAME
-    if cron != "off" and not (isinstance(cron, str) and re.match(r"^[0-9A-Za-z*/,\- ]+$", cron) and len(cron.split()) == 5):
+    if cron != "off" and not (isinstance(cron, str) and re.fullmatch(r"[0-9A-Za-z*/,\- ]+", cron) and len(cron.split()) == 5):
         sys.exit("REFUSED: health_cron is not five cron fields or off. Fix: edit .loop/config.json.")
     if not re.match(r"^[A-Z_][A-Z0-9_]*$", secret):
         sys.exit("REFUSED: judge_secret %r is not a secret name (capitals, digits, _). Fix: edit .loop/config.json." % secret)
