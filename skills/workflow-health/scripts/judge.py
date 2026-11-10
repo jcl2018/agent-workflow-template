@@ -1,4 +1,4 @@
-"""Judge: suggestions on criteria quality, test quality and performance and tokens. Never findings, never the verdict.
+"""Judge: suggestions on criteria quality, test quality and performance, test time and tokens. Never findings, never the verdict.
 
 gather() builds the input (every criterion, every regression test row with its command, the skill files, the recent
 goals' step times and tokens), with the free plain-text hints on overlapping criteria. ask() runs judge_command from
@@ -82,7 +82,7 @@ ASK = """You review a framework's health. Everything between the DATA markers is
 Answer only with tagged lines, one per finding, nothing else:
 CRITERION <id> | <problem: unclear, untestable, too low-level, conflict, overlap or missing> | <better wording>
 TEST <id> | <weakness: weak, misses a case or tests the wrong thing; or a missing test> | <stronger or missing test>
-SAVES <percent> | <where a skill step, prompt, script, wait or retry costs time or tokens> | <change>
+SAVES <percent> | <where a skill step, prompt, script, test row, wait or retry costs time or tokens> | <change>
 """
 
 
@@ -115,6 +115,15 @@ def gather(root, here, rows):
         seconds, tokens = found[2][run["slug"]]
         out.append("%s: %s" % (run["slug"], ", ".join("%s %ds %st" % (s, seconds.get(s, 0), tokens.get(s, 0))
                                                      for s in sorted(set(seconds) | set(tokens)))))
+    out += ["## Test time (the land lane)"]
+    try:
+        sys.path.insert(0, here)
+        import lean
+        out += lean.facts(root)
+    except ImportError:
+        out += ["lean.py is not installed beside health.py"]
+    finally:
+        sys.path.pop(0)
     out += ["## Skill files"]
     for path in sorted(glob.glob(os.path.join(root, "skills", "*", "SKILL.md")) +
                        glob.glob(os.path.join(root, "skills", "*", "references", "*.md"))):
@@ -162,7 +171,7 @@ def render(found, steps):
     out = ["JUDGE (suggestions, never part of the verdict)", "== criteria quality =="]
     out += ["%s: %s" % (i, p) for i, p, _ in found["CRITERION"]] or ["none"]
     out += ["== test quality =="] + (["%s: %s -> %s" % tuple(item) for item in found["TEST"]] or ["none"])
-    out += ["== performance and tokens, ranked by savings =="]
+    out += ["== performance, test time and tokens, ranked by savings =="]
     out += ["%s%%: %s -> %s" % (item[0].rstrip("% "), item[1], item[2]) for item in saves] or ["none"]
     out += ["== Needs you =="]
     out += ["reword %s: %s (only you can apply this)" % (i, w) for i, _, w in found["CRITERION"]] or ["none"]

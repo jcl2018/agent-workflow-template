@@ -1,4 +1,7 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/goal.py
+# reads: skills/workflow-monitoring/scripts/live_board.py skills/workflow-setup/scripts/settings.py
+# reads: skills/workflow-setup/scripts/setup.py
 # Proves review_depth: full is the default, condensed runs only when set, every recorded step names its depth, private
 # full_markers are required of a full plan or review, and setup writes the setting with its explanation. No model is called.
 # usage: test-review-depth.sh [DIR]

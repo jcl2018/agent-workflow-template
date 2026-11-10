@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/workflow-health/scripts/ skills/workflow-setup/scripts/setup.py
 # Test the Cost rule and the judge of workflow-health with a stand-in judge. usage: test-health-judge.sh [DIR]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
@@ -43,22 +44,22 @@ PY
 echo "== Cost: no budget set"
 goal quick 6 100
 out=$($health check --family cost); echo "$out"
-grep -q "^INFO cost budgets cost: " <<<"$out" && ok "no budget set is INFO" || bad "info"
+grep -q "^INFO performance budgets cost: " <<<"$out" && ok "no budget set is INFO" || bad "info"
 
 echo "== Cost: over a time and a token budget"
 setcfg time_budget_minutes=30 token_budget=1000
 goal slowone 90 5000
 out=$($health check --family cost); echo "$out"
-grep -q "^WARN cost slowone time: .*over 30 min; slowest: " <<<"$out" && ok "a goal over the time budget warns and names its slowest steps" || bad "time"
-grep -q "^WARN cost slowone tokens: 5000 tokens, over 1000; costliest: build 4500" <<<"$out" && ok "a goal over the token budget warns and names its costliest step" || bad "tokens"
-! grep -q "cost quick " <<<"$out" && ok "a goal within both budgets is not named" || bad "quick named"
+grep -q "^WARN performance slowone time: .*over 30 min; slowest: " <<<"$out" && ok "a goal over the time budget warns and names its slowest steps" || bad "time"
+grep -q "^WARN performance slowone tokens: 5000 tokens, over 1000; costliest: build 4500" <<<"$out" && ok "a goal over the token budget warns and names its costliest step" || bad "tokens"
+! grep -q "performance quick " <<<"$out" && ok "a goal within both budgets is not named" || bad "quick named"
 [ "$(tail -1 <<<"$out" | cut -c1-12)" = "HEALTH: gree" ] && ok "cost warnings never turn the verdict red" || bad "cost red"
 
 echo "== Cost: no tokens recorded"
 rm "$runs"/*.json; goal notokens 90 0
 out=$($health check --family cost); rc=$?; echo "$out"
-grep -q "^UNREAD cost tokens cost: no tokens recorded" <<<"$out" && [ $rc = 1 ] && ok "no tokens recorded prints UNREAD" || bad "unread"
-grep -q "^WARN cost notokens time: " <<<"$out" && ok "time is still judged" || bad "time without tokens"
+grep -q "^UNREAD performance tokens cost: no tokens recorded" <<<"$out" && [ $rc = 1 ] && ok "no tokens recorded prints UNREAD" || bad "unread"
+grep -q "^WARN performance notokens time: " <<<"$out" && ok "time is still judged" || bad "time without tokens"
 rm "$runs"/*.json; goal slowone 90 5000
 
 echo "== the judge: a stand-in, after the rules"
@@ -82,10 +83,10 @@ a=$($health check); b=$($health check); rc_check=$?
 out=$($health judge); rc=$?; echo "$out"
 [ $rc = $rc_check ] && ok "stand-in judge: same exit code as check" || bad "exit code with judge"
 [ -e "$JUDGE_CALLS" ] && ok "judge calls the judge command" || bad "judge not called"
-[ "$(sed -n '1,/^$/p' <<<"$out" | sed '$d')" = "$a" ] && ok "the rules and the verdict print first, as check prints them" || bad "rules first"
+[ "$(head -n "$(wc -l <<<"$a")" <<<"$out")" = "$a" ] && ok "the rules and the verdict print first, as check prints them" || bad "rules first"
 sec=$(sed -n '/^JUDGE (suggestions, never part of the verdict)$/,$p' <<<"$out")
 [ -n "$sec" ] && ok "the judge section is marked as suggestions" || bad "judge heading"
-for h in "criteria quality" "test quality" "performance and tokens, ranked by savings" "Needs you" "candidate goals" "next steps"; do
+for h in "criteria quality" "test quality" "performance, test time and tokens, ranked by savings" "Needs you" "candidate goals" "next steps"; do
   grep -q "^== $h ==$" <<<"$sec" && ok "section: $h" || bad "section $h"
 done
 needs=$(sed -n '/^== Needs you ==$/,/^== candidate goals ==$/p' <<<"$sec")

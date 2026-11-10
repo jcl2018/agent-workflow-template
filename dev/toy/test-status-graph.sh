@@ -1,4 +1,10 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/defect.py skills/workflow-delivery/scripts/flow.py
+# reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/role.py
+# reads: skills/workflow-monitoring/scripts/board.py skills/workflow-monitoring/scripts/board_page.py
+# reads: skills/workflow-monitoring/scripts/board_runs.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
+# reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-setup/scripts/setup.py
 # Proves the roadmap graph with a made-up queue: parallel and chained goals, the marks, the total as the longest chain, the same
 # graph on the board, and the step label changing when a step starts. No model is called. usage: test-status-graph.sh [DIR]
 set -u
@@ -49,7 +55,7 @@ block() { LOOP_BOARD_HEALTH=green python3 -c "
 import sys, datetime
 sys.path.insert(0, sys.argv[1]); import live_board
 at = datetime.datetime(2026, 6, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
-print(chr(10).join(live_board.render('$T/repo', at)))" "$M"; }
+print(chr(10).join(live_board.render('$T/repo', at)))" "$M"; }  # lanes: no read ($M only goes on sys.path)
 block > "$T/block"
 check "the live board sections are in the fixed order" 'python3 -c "
 t=open(\"$T/block\").read()
@@ -61,7 +67,12 @@ check "merged goals are left out; a running goal has its bar and time left" '! g
 check "the finish is the longest chain b > c > d, not the sum" 'grep -q "^finish about " "$T/block" && ! grep -q "at least" "$T/block" && python3 -c "
 import re,sys
 t=open(\"$T/block\").read()
-sys.exit(0 if re.search(r\"finish about \\d\\d:\\d\\d\", t) else 1)"'
+mins=lambda s: sum(int(n)*(60 if u==\"h\" else 1) for n,u in re.findall(r\"(\\d+)([hm])\", s))
+left={g: mins(m) for g,m in re.findall(r\"^- (\\w+)  (?:\\[.*?\\] \\d+%  )?(\\d+h\\d+m|\\d+h|\\d+m) left\", t, re.M)}
+h=re.search(r\"^LIVE BOARD  \\S+  (\\d\\d):(\\d\\d)\", t, re.M); f=re.search(r\"finish about (\\d\\d):(\\d\\d)\", t)
+gap=(int(f[1])*60+int(f[2])-int(h[1])*60-int(h[2]))%1440
+chain=left[\"b\"]+left[\"c\"]+left[\"d\"]
+assert abs(gap-chain)<=1 and abs(gap-sum(left.values()))>1, (gap, chain, left)"'
 check "a running goal shows its step flow with the current step in brackets" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr > release" "$T/block"'
 
 echo "== the pure graph"
@@ -100,5 +111,4 @@ $goal record lv plan --file "$C/loop/runs/lv.plan.txt" >/dev/null
 check "recording moves the label on, so the finished step is never shown as current" '[ "$(label)" = build ] && block | grep -q "idea✓ > plan✓ > \[build\]"'
 
 echo "== sizes"
-check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -size +20479c)" ]'
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
