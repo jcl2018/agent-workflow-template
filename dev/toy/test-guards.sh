@@ -90,6 +90,8 @@ out=$(LOOP_ROLE=worker $goal record g2 qa --file "$d/reply.txt" 2>&1); rc=$?
 check "the qa lane not passed on HEAD (a wrong HEAD) says no try is used, exit 2" '[ $rc = 2 ] && grep -q "^REFUSED (no try used): the qa lane has not passed on .* (LANE_MISSING)" <<<"$out" && [ "$(field g2 tries)" = 0 ]'
 for i in 1 2 3 4 5 6 7 8 9; do rec g2 review 'DEPTH: full\nall good' >/dev/null; done
 check "10 refused records in a row put the goal in waiting for the owner, still with no try" '[ "$(field g2 status)" = waiting ] && [ "$(field g2 tries)" = 0 ] && grep -q "10 refused records in a row" <<<"$(field g2 waiting.ask)"'
+$goal answer g2 >/dev/null
+check "the owner's answer starts the refusal count again" '[ "$(field g2 refusals)" = 0 ] && [ "$(field g2 status)" = running ]'
 check "a touches path with a comma or a newline is refused" '$goal touches g2 --add "a,b" --why x 2>&1 | grep -q TOUCHES_PATH && $goal touches g2 --add "$(printf "a\nb")" --why x 2>&1 | grep -q TOUCHES_PATH'
 new g2h
 export FAKE_SKILL_OUT='crashed halfway'; LOOP_ROLE=worker $F g2h idea --wait 5 >/dev/null 2>&1; LOOP_ROLE=worker $F g2h idea --wait 10 >/dev/null 2>&1; unset FAKE_SKILL_OUT

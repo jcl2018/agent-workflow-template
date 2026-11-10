@@ -226,6 +226,7 @@ def cmd_answer(g, args):
             args.slug, state.get("status"), args.slug, ANSWER_STATUS))
     state["status"] = "running"
     state["waiting"] = None
+    clear_refusals(state)  # an answer after the refusal wait starts the count again
     g.save(state, "answered")
     print("ANSWERED %s" % args.slug)
     return 0
