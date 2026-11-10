@@ -22,6 +22,7 @@ BOTS = ("github-actions[bot]", "app/github-actions", "github-actions")  # REST l
 BUDGET_MINUTES = 45  # fixed by AUT-7, no setting
 WINDOW = datetime.timedelta(hours=6)
 RUN_LIMIT = 200
+JOB_READS = 30  # runs whose jobs the spend reads; more since the last round make it a lower bound
 MARK = re.compile(r"<!-- automation-digest ([^<>]*?) -->")
 RUN = re.compile(r"[0-9]+|none|local")
 
@@ -88,13 +89,13 @@ def is_bot(login):
 
 
 def digest_issue():
-    """(number, body) of the oldest bot-authored digest issue with a marker, (None, "") when none, None when gh fails."""
+    """(number, body) of the oldest digest issue with a marker, a bot-authored one first (an issue a person made, by
+    --live or before this check, is still used when no bot one exists); (None, "") when none; None when gh fails."""
     done = gh("issue", "list", "--label", "automation", "--state", "all", "--limit", "300", "--json", "number,title,body,author")
     if done.returncode:
         return None
-    hits = [item for item in loads(done, []) if item.get("title") == TITLE and parse(item.get("body"))
-            and is_bot((item.get("author") or {}).get("login"))]
-    hits.sort(key=lambda item: item["number"])
+    hits = [item for item in loads(done, []) if item.get("title") == TITLE and parse(item.get("body"))]
+    hits.sort(key=lambda item: (not is_bot((item.get("author") or {}).get("login")), item["number"]))
     return (hits[0]["number"], hits[0]["body"]) if hits else (None, "")
 
 
@@ -138,7 +139,10 @@ def save_comment(comment_id, body):
 
 
 def milestone_titles():
+    """{number: title} of every milestone; None when gh can't read them."""
     done = gh("api", "--paginate", "--slurp", "repos/{owner}/{repo}/milestones?state=all&per_page=100")
+    if done.returncode:
+        return None
     return {m["number"]: m.get("title") or "" for page in loads(done, []) if isinstance(page, list) for m in page
             if isinstance(m, dict) and isinstance(m.get("number"), int)}
 
@@ -199,7 +203,7 @@ def spend(run, reg, health, reg_jobs, previous, now, cost):
     own = sum(m for _, m in health) + sum(m for _, m in reg_jobs)
     if after is None:
         return own, True
-    total = 0
+    total, read, unread = 0, 0, 0
     for workflow in ("regression.yml", "health.yml"):
         listed = runs(workflow, RUN_LIMIT, after)
         if listed is None:
@@ -210,8 +214,12 @@ def spend(run, reg, health, reg_jobs, previous, now, cost):
             when = stamp(item.get("createdAt"))
             if when is None or when <= after or str(item.get("databaseId")) == str(previous):
                 continue
-            counted = jobs(item["databaseId"], now)
+            counted = jobs(item["databaseId"], now) if read < JOB_READS else None
+            read += 1
+            unread += counted is None
             total += sum(m for _, m in counted or [])
+    if unread:
+        cost["note"] = "NOTE: %d runs since the last round weren't read; the spend is a lower bound" % unread
     return total, False
 
 

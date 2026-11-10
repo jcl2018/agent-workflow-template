@@ -132,7 +132,8 @@ def plan(rows, issues, groups, extra=(), judged=False, root=None):
         now = (issue.get("milestone") or {}).get("title") or ""
         moving = now == issue.get("placed") and home != now  # still where the automation put it
         body = act["body"] = body_of(item, home if moving else issue.get("placed", BACKLOG))
-        if moving:
+        if moving:  # if the move fails, the update keeps the old placed= so the next run tries again
+            act["keep_body"] = body_of(item, issue.get("placed", BACKLOG))
             out.append(dict(act, kind="move"))
         names = {label.get("name") for label in issue.get("labels") or [] if isinstance(label, dict)}
         if issue["state"].upper() != "OPEN":
@@ -210,6 +211,7 @@ def placed(act, miles):
 def apply(acts, root, groups):
     """Carry out the plan. The caller has already limited the plan to the named groups."""
     miles = milestones(root) if any(act["kind"] in ("open", "move") for act in acts) else {}
+    unmoved = set()
     for name in sorted({act["group"] for act in acts} | set(groups)):
         run(["label", "create", tag_of(name), "--description", "Filed by health.py file: the %s group" % TAG.get(name, name), "--force"], root)
     run(["label", "create", "health", "--description", "Filed by health.py file", "--force"], root)
@@ -218,6 +220,8 @@ def apply(acts, root, groups):
             print("SAME #%s %s" % (act["number"], act["key"]))
             continue
         closed = None
+        if act["kind"] == "update" and act.get("number") in unmoved and act.get("keep_body"):
+            act = dict(act, body=act["keep_body"])
         if act["kind"] in ("open", "move"):
             act, closed = placed(act, miles)
         args = args_of(act)
@@ -227,4 +231,6 @@ def apply(acts, root, groups):
         if not done.returncode and closed:
             number = act.get("number") or (re.findall(r"/issues/(\d+)", done.stdout) or [""])[-1]
             done = run(["api", "-X", "PATCH", "repos/{owner}/{repo}/issues/%s" % number, "-F", "milestone=%s" % closed], root)
+        if done.returncode and act["kind"] == "move":
+            unmoved.add(act["number"])
         print(("FAILED %s: %s" % (words(act), done.stderr.strip()[:160])) if done.returncode else "DONE " + words(act))

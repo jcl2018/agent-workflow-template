@@ -147,9 +147,11 @@ def email_line(cfg, previous):
     if "MAIL_ADDR_SET" in os.environ and not ready:
         names = "DIGEST_SMTP_USER, DIGEST_SMTP_PASSWORD" if mode == "smtp" else "CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_EMAIL_TOKEN"
         return "not set up (add the DIGEST_TO, DIGEST_FROM, %s secrets)" % names
+    if previous is False:
+        return "previous round: not read (gh couldn't read the comments)"
     if previous is None:
         return "previous round: none yet"
-    flags = previous["state"]["flags"] if previous else set()
+    flags = previous["state"]["flags"]
     said = "sent" if "mailed" in flags else "may have been sent" if "mailing" in flags else "not sent"
     return "previous round: " + said
 
@@ -223,8 +225,10 @@ def cmd_digest(args):
     ran = [("regression", regression_line() if live else "not read (dry run)"),
            ("health", health_line(os.environ.get("HEALTH_REPORT") or "")),
            ("round cost", rounds.line(cost) if cost else "not read (dry run)" if not live else rounds.line({"error": "no run id"})),
-           ("email", email_line(cfg, previous or None))]
+           ("email", email_line(cfg, previous))]
     titles = rounds.milestone_titles() if live else {}
+    if titles is None:
+        note, titles = (note + " " if note else "") + "Milestones couldn't be read, so issues are listed under No milestone.", {}
     comment, marker = compose(login, note, ran, now_open, before, run_id, titles)
     if cost is not None:
         rounds.summary("## Round\n\n" + rounds.line(cost) + "\n")

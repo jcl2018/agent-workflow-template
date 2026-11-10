@@ -234,6 +234,14 @@ PY
   reset; rm -f "$G/comments.json"; comment 201; issue "<!-- automation-digest run=200 open=5:0 -->"
   out=$(cf_env DIGEST_RUN=201 $mail send)
   grep -q "run=201 open=12:10 -->" "$G/body-77.md" && ok "a send repairs a body still holding the previous round" || bad "body repair"
+  reset; rm -f "$G/comments.json"; comment 201
+  out=$(STUB_PATCH_FAIL=1 cf_env DIGEST_RUN=201 $mail send); rc=$?
+  [ $rc = 1 ] && grep -q "(MAIL_MARK)" <<<"$out" && [ "$(cfreq)" = 0 ] && ! flags_of 0 | grep -q mail \
+    && ok "when the sending mark can't be written nothing is sent and the comment stays unmarked" || bad "mark fails"
+  reset; rm -f "$G/comments.json"; comment 201; issue "<!-- automation-digest run=205 open=12:10 -->"
+  out=$(cf_env DIGEST_RUN=203 $mail send); rc=$?
+  [ $rc = 0 ] && grep -q "(MAIL_STALE)" <<<"$out" && [ "$(cfreq)" = 0 ] && ok "a late rerun of an older round has nothing to mail and stays green" || bad "stale mail"
+  issue "<!-- automation-digest run=201 open=12:10 -->"
   reset; rm -f "$G/comments.json"; comment 201; cfg '{"digest_mail": "smtp", "smtp_host": "127.0.0.1"}'
   out=$(env DIGEST_TO=$ADDR DIGEST_FROM=digest@mail.example.test DIGEST_SMTP_USER=u DIGEST_SMTP_PASSWORD=$SMTPPW DIGEST_SMTP_TEST_PORT=$SMTPPORT \
     DIGEST_MAIL_RETRY_SECONDS=0 GH_TOKEN=x GITHUB_REPOSITORY=o/r DIGEST_RUN=201 $mail send); cfg '{"digest_mail": "cloudflare"}'
@@ -250,6 +258,8 @@ if want secrets; then
   reset; out=$(env DIGEST_TO=$ADDR GH_TOKEN=x DIGEST_RUN=201 $mail send); rc=$?
   [ $rc = 1 ] && grep -q "missing secrets DIGEST_FROM, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_EMAIL_TOKEN" <<<"$out" && grep -q "(MAIL_SECRETS)" <<<"$out" \
     && [ ! -s "$G/calls.log" ] && ok "with some secrets missing it names them, fails and writes nothing" || bad "partial secrets"
+  grep -q "gh secret set DIGEST_FROM; gh secret set CLOUDFLARE_ACCOUNT_ID; gh secret set CLOUDFLARE_EMAIL_TOKEN" <<<"$out" \
+    && ok "the Fix line gives one gh secret set per missing secret" || bad "fix commands"
   reset; rm -f "$G/comments.json"; comment 201; echo 401 > "$G/cf_mode"
   out=$(cf_env DIGEST_RUN=201 $mail send 2>&1); cf_env DIGEST_RUN=201 $mail send >/dev/null 2>&1
   shopt -s nullglob; files=("$r/sum.md" "$G/comments.json" "$G"/body-*.md); shopt -u nullglob
@@ -292,11 +302,14 @@ if want retry; then
   out=$(cd "$S" && python3 -B -c "
 import smtplib, mail
 calls = []
+import ssl
 class Fake:
-    def __init__(self, host, port, timeout=None): calls.append(('open', type(self).__name__, port))
+    def __init__(self, host, port, timeout=None, context=None):
+        calls.append(('open', type(self).__name__, port)); self.ctx = context
+        if context is not None: calls.append('verified' if context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname else 'unverified')
     def __enter__(self): return self
     def __exit__(self, *a): pass
-    def starttls(self): calls.append('starttls')
+    def starttls(self, context=None): calls.append('starttls ' + ('verified' if context is not None and context.verify_mode == ssl.CERT_REQUIRED else 'unverified'))
     def login(self, u, p): calls.append('login')
     def send_message(self, m): calls.append('send')
 class SSL(Fake): pass
@@ -305,8 +318,8 @@ smtplib.SMTP_SSL, smtplib.SMTP = SSL, Plain
 keys = {'DIGEST_TO': 'a@b.test', 'DIGEST_FROM': 'c@d.test', 'DIGEST_SMTP_USER': 'u', 'DIGEST_SMTP_PASSWORD': 'p'}
 mail.send_smtp(keys, 's', 't', '<p>t</p>', 'smtp.example.test', 465); print(calls); calls.clear()
 mail.send_smtp(keys, 's', 't', '<p>t</p>', 'smtp.example.test', 587); print(calls)")
-  head -1 <<<"$out" | grep -q "('open', 'SSL', 465), 'login', 'send'" && tail -1 <<<"$out" | grep -q "('open', 'Plain', 587), 'starttls', 'login', 'send'" \
-    && ok "port 465 uses TLS from the start and 587 calls STARTTLS before login" || bad "tls choice"
+  head -1 <<<"$out" | grep -q "('open', 'SSL', 465), 'verified', 'login', 'send'" && tail -1 <<<"$out" | grep -q "('open', 'Plain', 587), 'starttls verified', 'login', 'send'" \
+    && ok "port 465 uses TLS from the start and 587 calls STARTTLS before login, both verifying the server's certificate" || bad "tls choice"
 fi
 
 if want mailtest; then
@@ -451,6 +464,40 @@ assert i[3]["milestone"]["title"] == "Automation", i[3]
 PY
   out=$(fl skills/old/z.py)
   grep -q "^api -X PATCH repos/{owner}/{repo}/issues/4 -F milestone=3" "$FAKE_GH_DIR/calls.log" && ok "a finding for a feature whose milestone is closed is set on it by number" || bad "closed milestone"
+  python3 - "$FAKE_GH_DIR/issues.json" <<'PY2'
+import json, sys
+d = json.load(open(sys.argv[1]))
+d.append({"number": 9, "title": "health: size .github/workflows/q.yml limit", "state": "OPEN", "labels": [{"name": "health"}, {"name": "health:size"}],
+          "milestone": {"title": "Old"}, "body": "<!-- loop-health size:.github/workflows/q.yml:limit placed=Automation -->\n\nq"})
+d.append({"number": 10, "title": "health: size .github/workflows/r.yml limit", "state": "OPEN", "labels": [{"name": "health"}, {"name": "health:size"}],
+          "milestone": None, "body": "<!-- loop-health size:.github/workflows/r.yml:limit placed=Automation -->\n\nr"})
+json.dump(d, open(sys.argv[1], "w"))
+PY2
+  out=$(fl .github/workflows/q.yml .github/workflows/r.yml)
+  python3 - "$FAKE_GH_DIR/issues.json" <<'PY2' && ok "an issue the owner moved to another milestone, or off every milestone, stays where it is" || bad "owner moved elsewhere"
+import json, sys
+i = {x["number"]: x for x in json.load(open(sys.argv[1]))}
+assert i[9]["milestone"]["title"] == "Old" and i[10]["milestone"] is None, (i[9]["milestone"], i[10]["milestone"])
+assert "placed=Automation -->" in i[9]["body"] and "placed=Automation -->" in i[10]["body"]
+PY2
+  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
+import file, subprocess
+real, seen = file.run, []
+def run(args, root):
+    seen.append(args)
+    if args[:2] == ['issue', 'edit'] and '--milestone' in args:
+        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
+    return real(args, root)
+file.run = run
+key = 'size:skills/workflow-health/scripts/automation.py:limit'
+issues = {key: dict(number=11, state='OPEN', labels=[{'name': 'health:size'}], milestone={'title': 'Backlog'}, placed='Backlog', body='old')}
+row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/automation.py', rule='limit', detail='big', fix='')
+acts = file.plan([row], issues, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
+bodies = [a[a.index('--body') + 1] for a in seen if a[:3] == ['issue', 'edit', '11'] and '--body' in a]
+print([a['kind'] for a in acts]); print(bodies)
+" ) > "$G/keep.out" 2>&1
+  grep -q "'move'" "$G/keep.out" && grep -q "placed=Backlog -->" "$G/keep.out" && ! grep -q "placed=Automation -->" "$G/keep.out" \
+    && ok "a move that fails leaves the old placed= so the next run tries again" || bad "move failure placement"
   python3 -B -c "
 import sys; sys.path.insert(0, '$S'); import milestone
 assert milestone.page_of('$here', 'skills/workflow-health/scripts/mail.py') == 'Automation'
@@ -501,10 +548,27 @@ SH
     && ok "an issue the owner moved stays, and an older unplaced one moves to its feature" || bad "regression owner move"
   printf '[]\n' > "$G/regression.json"; out=$(STUB_ISSUE_FAIL=1 rows); rc=$?
   [ $rc = 1 ] && grep -q "FAILED issue for red" <<<"$out" && grep -q "FILED .* FAILED 2" <<<"$out" && ok "a filing that fails is named and fails the step" || bad "filing failure"
+  printf '[]\n' > "$G/regression.json"; printf 'Alpha\tsrc/alpha\n' > .loop/docs.tsv
+  printf '[{"number": 2, "title": "Backlog", "state": "open"}, {"number": 8, "title": "Alpha", "state": "closed"}]\n' > "$G/milestones.json"
+  out=$(rows)
+  grep -q "^issue create --title Regression: red .*placed=Alpha -->" "$G/calls.log" && ! grep -qx " --milestone Alpha" "$G/calls.log" \
+    && grep -q "^api -X PATCH repos/{owner}/{repo}/issues/77 -F milestone=8" "$G/calls.log" \
+    && ok "a failing row whose feature milestone is closed is set on it by number and records placed=Alpha" || bad "regression closed milestone"
+  rm -f "$G/milestones.json"; printf '#!/bin/bash\ncase "$*" in *milestones*) [ "$2" = "--paginate" ] && { echo "HTTP 502" >&2; exit 1; };; esac\nexec "$STUB/gh.real" "$@"\n' > "$G/gh.ms"
+  chmod +x "$G/gh.ms"; cp "$G/gh" "$G/gh.keep"; cp "$G/gh.ms" "$G/gh"; out=$(rows); cp "$G/gh.keep" "$G/gh"
+  ! grep -q -- "-X POST repos/{owner}/{repo}/milestones" "$G/calls.log" && grep -qx " --milestone Alpha" "$G/calls.log" \
+    && ok "when milestones can't be read none is created and gh places the issue by title" || bad "unreadable milestones"
   W=$here/.github/workflows/regression.yml
   grep -q 'cron: "17 \*/4 \* \* \*"' "$W" && grep -q 'tags: \["v\*"\]' "$W" && grep -q "issues: write" "$W" \
     && ok "the full suite runs every 4 hours by default and on every release tag, with issue write access" || bad "schedule"
   mv "$G/gh.real" "$G/gh"; rm -f .loop/docs.tsv
+  printf 'flag\tland\tfalse\tAAA-1\t2026-01-01\tGiven a, when b, then d.\tcriterion\t\n' >> .loop/regression.tsv
+  git add -A >/dev/null; git -c user.email=t@example.test -c user.name=Toy commit -qm rows >/dev/null
+  mkdir -p "$G/fake"; : > "$G/fake/calls.log"
+  PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$G/fake" FAKE_GH_ISSUE_OPEN=1 FAKE_GH_ISSUE_PLACED=1 \
+    python3 -B "$here/skills/workflow-regression/scripts/regression.py" run flag --live >/dev/null 2>&1
+  ! grep -q "^issue create" "$G/fake/calls.log" && grep -q "^issue comment 7" "$G/fake/calls.log" \
+    && ok "a local live run finds the issue the scheduled run placed on a milestone, opening no duplicate" || bad "local run duplicate"
 fi
 
 if want upgrade; then

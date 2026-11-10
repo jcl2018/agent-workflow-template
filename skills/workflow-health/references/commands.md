@@ -52,10 +52,11 @@ judge   (alias: suggest)
   the judge runs (and its savings are included) only when `performance` is named.
 
 - `file --group NAME[,NAME]` is the only writer, and refuses without a group. For the named groups only it files each
-  warning, failure or unread finding as one issue on the `Backlog` milestone, labelled `health:<group>` (`size`,
-  `criteria`, `docs`, `hygiene`, `performance` for Cost and the judge's savings, `mine`) and the older `health`. A hidden
-  marker in the body finds it again: a repeat updates the issue, a fixed finding closes it, a returning one reopens it,
-  and an issue you moved to a feature stays there. A rule that could not be read closes none of its issues. Create the
+  warning, failure or unread finding as one issue on its feature's milestone (`Backlog` when no `.loop/docs.tsv` page
+  holds its subject), labelled `health:<group>` (`size`, `criteria`, `docs`, `hygiene`, `performance` for Cost and the
+  judge's savings, `mine`) and the older `health`. A hidden marker in the body finds it again and records where it was
+  placed: a repeat updates the issue, a fixed finding closes it, a returning one reopens it, and an issue you moved
+  anywhere else, `Backlog` included, stays there. A rule that could not be read closes none of its issues. Create the
   milestones first (see Milestones).
 
 The milestones the issues land in are on the [Documentation](Documentation) page.

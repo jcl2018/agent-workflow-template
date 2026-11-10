@@ -13,12 +13,13 @@ run=DIGEST_RUN; the comment's marker gains `mailing` before the send and `mailed
 Every outcome is one `MAIL:` line ending in a code, also written to the run summary.
 """
 import argparse
-import html
+import http.client
 import json
 import os
 import re
 import smtplib
 import socket
+import ssl
 import subprocess
 import sys
 import time
@@ -32,6 +33,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import mail_render  # noqa: E402
 import rounds  # noqa: E402
 
 # Cloudflare Email Service REST API (its docs: Email Service, Send emails, REST API), read 2026-11-10:
@@ -42,7 +44,7 @@ ADDR = ("DIGEST_TO", "DIGEST_FROM")
 SENDERS = {"cloudflare": ("CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_EMAIL_TOKEN"), "smtp": ("DIGEST_SMTP_USER", "DIGEST_SMTP_PASSWORD")}
 ALL = ADDR + SENDERS["cloudflare"] + SENDERS["smtp"]
 LOCAL = ("127.0.0.1", "localhost")
-FIX_SECRETS = "gh secret set %s (or Settings, Secrets and variables, Actions), then rerun"
+FIX_SECRETS = "%s (or Settings, Secrets and variables, Actions), then rerun"
 
 
 class Stop(Exception):
@@ -111,75 +113,19 @@ def secrets(mode, test):
         return {name: os.environ[name] for name in need}
     if not any(os.environ.get(name) for name in ALL) and not test:
         raise Stop("MAIL_NOT_SET_UP", "not set up: no mail secret is set, so nothing was sent or written. Fix: to get the "
-                   "round's mail, " + FIX_SECRETS % " ".join(need), status=0)
+                   "round's mail, " + FIX_SECRETS % "; ".join("gh secret set " + n for n in need), status=0)
     raise Stop("MAIL_SECRETS", "%snot sent: missing secrets %s; nothing was written. Fix: %s"
-               % ("test " if test else "", ", ".join(missing), FIX_SECRETS % " ".join(missing)))
-
-
-def inline(text):
-    out = []
-    for piece in re.split(r"(\[[^\]]*\]\([^)\s]*\))", text):
-        link = re.fullmatch(r"\[([^\]]*)\]\(([^)\s]*)\)", piece)
-        if link and link.group(2).startswith("https://github.com/"):
-            out.append('<a href="%s">%s</a>' % (html.escape(link.group(2), quote=True), html.escape(link.group(1))))
-        elif link:
-            out.append(html.escape(link.group(1) + " (" + link.group(2) + ")"))
-        else:
-            out.append(html.escape(piece))
-    joined = "".join(out)
-    joined = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", joined)
-    return re.sub(r"`([^`]+)`", r"<code>\1</code>", joined).replace("**", "")
-
-
-def to_html(text):
-    out, table, items = [], [], []
-
-    def flush():
-        if table:
-            out.append("<table>" + "".join("<tr>%s</tr>" % "".join("<td>%s</td>" % inline(c.strip()) for c in row)
-                                           for row in table) + "</table>")
-            table.clear()
-        if items:
-            out.append("<ul>" + "".join("<li>%s</li>" % inline(i) for i in items) + "</ul>")
-            items.clear()
-    for line in text.splitlines():
-        if line.startswith("|"):
-            cells = [c for c in line.strip().strip("|").split("|")]
-            if not all(re.fullmatch(r"\s*-+\s*", c) for c in cells):
-                table.append(cells)
-            continue
-        if line.startswith("- "):
-            items.append(line[2:])
-            continue
-        flush()
-        if line.startswith("### "):
-            out.append("<h3>%s</h3>" % inline(line[4:]))
-        elif line.strip():
-            out.append("<p>%s</p>" % inline(line))
-    flush()
-    return "<html><body>%s</body></html>" % "\n".join(out)
-
-
-def message(body, repo):
-    lines = [line for line in body.splitlines() if not rounds.MARK.search(line)]
-    if lines:
-        lines[0] = re.sub(r"^@[A-Za-z0-9-]+ ", "", lines[0])
-    text = "\n".join(lines).strip() + "\n"
-    counts = {"New": 0, "Still open": 0, "Fixed": 0}
-    for kind, n in re.findall(r"^\*\*(New|Still open|Fixed)\*\* \((\d+)\)", text, re.M):
-        counts[kind] += int(n)
-    subject = "Automation digest: %d new, %d still open, %d fixed (%s)" % (counts["New"], counts["Still open"], counts["Fixed"], repo)
-    return subject, text, to_html(text)
+               % ("test " if test else "", ", ".join(missing), FIX_SECRETS % "; ".join("gh secret set " + n for n in missing)))
 
 
 def send_cloudflare(keys, subject, text, page, api):
-    """('ok'|'retry'|'refused'|'unknown', detail)."""
+    """('ok'|'retry'|'refused'|'unknown', detail): retry only when nothing can have reached Cloudflare."""
     data = json.dumps({"to": keys["DIGEST_TO"], "from": keys["DIGEST_FROM"], "subject": subject, "text": text, "html": page}).encode()
     request = urllib.request.Request(api + CF_PATH % keys["CLOUDFLARE_ACCOUNT_ID"], data=data, method="POST", headers={
         "Authorization": "Bearer " + keys["CLOUDFLARE_EMAIL_TOKEN"], "Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(request, timeout=30) as reply:
-            answer = json.loads(reply.read() or b"{}")
+            raw = reply.read() or b"{}"
     except urllib.error.HTTPError as err:
         try:
             first = (json.loads(err.read() or b"{}").get("errors") or [{}])[0]
@@ -189,12 +135,16 @@ def send_cloudflare(keys, subject, text, page, api):
         if err.code in CF_RETRY:
             return "retry", detail
         return ("unknown" if err.code >= 500 else "refused"), detail
-    except urllib.error.URLError as err:  # no connection: nothing reached Cloudflare
-        if isinstance(err.reason, (socket.timeout, TimeoutError)):
-            return "unknown", "timed out after the request was sent"
-        return "retry", "couldn't connect: %s" % err.reason
-    except (socket.timeout, TimeoutError):
-        return "unknown", "timed out after the request was sent"
+    except urllib.error.URLError as err:
+        if isinstance(err.reason, (ConnectionRefusedError, socket.gaierror)):  # no connection: nothing reached Cloudflare
+            return "retry", "couldn't connect: %s" % type(err.reason).__name__
+        return "unknown", "the connection failed while sending (%s)" % type(err.reason).__name__
+    except (OSError, http.client.HTTPException) as err:  # a timeout or reset after the request went out
+        return "unknown", "%s after the request was sent" % type(err).__name__
+    try:
+        answer = json.loads(raw)
+    except ValueError:
+        return "unknown", "Cloudflare answered 2xx with a body that isn't JSON"
     result = answer.get("result") or {}
     if not answer.get("success") or [a for a in result.get("permanent_bounces") or [] if a]:
         return "refused", "Cloudflare did not accept it: %s" % (answer.get("errors") or "permanent bounce")
@@ -202,31 +152,36 @@ def send_cloudflare(keys, subject, text, page, api):
 
 
 def send_smtp(keys, subject, text, page, host, port):
+    """Like send_cloudflare. TLS always verifies the server's certificate; nothing before DATA can have sent the mail."""
     mail = EmailMessage()
     mail["Subject"], mail["From"], mail["To"] = subject, keys["DIGEST_FROM"], keys["DIGEST_TO"]
     mail.set_content(text)
     mail.add_alternative(page, subtype="html")
+    started = False
     try:
         if os.environ.get("DIGEST_SMTP_TEST_PORT"):
             server = smtplib.SMTP(host, port, timeout=30)  # local test server only (settings checks the host)
         elif port == 465:
-            server = smtplib.SMTP_SSL(host, port, timeout=30)
+            server = smtplib.SMTP_SSL(host, port, timeout=30, context=ssl.create_default_context())
         else:
             server = smtplib.SMTP(host, port, timeout=30)
-            server.starttls()
+            server.starttls(context=ssl.create_default_context())
         with server:
             if not os.environ.get("DIGEST_SMTP_TEST_PORT"):
                 server.login(keys["DIGEST_SMTP_USER"], keys["DIGEST_SMTP_PASSWORD"])
+            started = True
             server.send_message(mail)
     except smtplib.SMTPAuthenticationError as err:
         return "refused", "login refused (%s)" % err.smtp_code
     except (smtplib.SMTPSenderRefused, smtplib.SMTPRecipientsRefused, smtplib.SMTPHeloError) as err:
         code = getattr(err, "smtp_code", 0) or min([c for c, _ in getattr(err, "recipients", {}).values()] or [500])
         return ("retry" if 400 <= code < 500 else "refused"), "%s %s" % (type(err).__name__, code)
-    except (smtplib.SMTPDataError, smtplib.SMTPServerDisconnected) as err:
-        return "unknown", "%s after the message started" % type(err).__name__
-    except (smtplib.SMTPConnectError, ConnectionRefusedError, socket.gaierror) as err:
-        return "retry", "couldn't connect: %s" % type(err).__name__
+    except (smtplib.SMTPDataError, smtplib.SMTPServerDisconnected, smtplib.SMTPException, OSError) as err:
+        if started:
+            return "unknown", "%s after the message started" % type(err).__name__
+        if isinstance(err, (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, ConnectionError, socket.gaierror, TimeoutError)):
+            return "retry", "couldn't connect: %s" % type(err).__name__
+        return "refused", "%s before the message started" % type(err).__name__  # TLS, certificate, STARTTLS or auth method
     return "ok", ""
 
 
@@ -261,7 +216,7 @@ def cmd_test(args):
     keys = secrets(mode, True)
     repo = os.environ.get("GITHUB_REPOSITORY") or "this repo"
     text = "This is a test of the Automation digest mail for %s. The round's mail will look like the digest comment.\n" % repo
-    outcome, detail, retried = deliver(mode, keys, "Automation digest: test from %s" % repo, text, to_html(text),
+    outcome, detail, retried = deliver(mode, keys, "Automation digest: test from %s" % repo, text, mail_render.to_html(text),
                                        (host, port, wait, api))
     if outcome != "ok":
         raise Stop("MAIL_REFUSED", "test not sent: %s refused it: %s. Fix: %s, then run the Mail test workflow again"
@@ -285,6 +240,10 @@ def cmd_send(args):
     comment = rounds.run_comment(number, run) if number is not None else None
     if comment is False:
         raise Stop("MAIL_GH", "gh couldn't read the digest comments, so nothing was sent. Fix: rerun this job (safe: nothing was sent)")
+    body_state = rounds.parse(body)
+    if not comment and body_state and rounds.order(body_state["run"]) > rounds.order(run):
+        raise Stop("MAIL_STALE", "run %s is older than the round on the digest issue (run %s), so it has nothing to mail"
+                   % (run, body_state["run"]), status=0)
     if not comment:
         raise Stop("MAIL_NO_COMMENT", "no digest comment for run %s, so nothing was sent. Fix: see the Post the digest step; "
                    "rerun this job once it has posted (safe: nothing was sent)" % run)
@@ -298,7 +257,7 @@ def cmd_send(args):
     if not rounds.save_comment(comment["id"], rounds.with_marker(comment["body"], state, {"mailing"})):
         raise Stop("MAIL_MARK", "couldn't mark run %s as sending on %s, so nothing was sent. Fix: rerun this job (safe: "
                    "nothing was sent)" % (run, comment["url"]))
-    subject, text, page = message(comment["body"], os.environ.get("GITHUB_REPOSITORY") or "this repo")
+    subject, text, page = mail_render.message(comment["body"], os.environ.get("GITHUB_REPOSITORY") or "this repo")
     outcome, detail, retried = deliver(mode, keys, subject, text, page, (host, port, wait, api))
     if outcome == "refused":
         if not rounds.save_comment(comment["id"], rounds.with_marker(comment["body"], state, set())):
@@ -313,7 +272,6 @@ def cmd_send(args):
     if not rounds.save_comment(comment["id"], rounds.with_marker(comment["body"], state, {"mailed"})):
         raise Stop("MAIL_MARKED_LATE", "sent for run %s, but couldn't mark the comment mailed; it keeps mailing, so a rerun "
                    "won't send again. Fix: nothing to do" % run)
-    body_state = rounds.parse(body)
     if body_state and rounds.order(body_state["run"]) < rounds.order(run):  # the digest couldn't save its state
         rounds.gh("issue", "edit", str(number), "--body", body.split("<!-- automation-digest")[0].rstrip() + "\n\n"
                   + rounds.marker(run, state["open"]))

@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/10
 
-Review: **Reviewed 2026-11-10** <!-- prd P=9fba2846 R=f97d5503 N=d6d10cdd M=dad3088c U=87137fcd -->
+Review: **Reviewed 2026-11-10** <!-- prd P=9fba2846 R=f97d5503 N=d6d10cdd M=dad3088c U=4dbbe9de -->
 
 ## Problem
 
@@ -41,6 +41,7 @@ The address and keys live only in those secrets: the digest step gets three true
 | `MAIL_SECRETS` | Some secrets are set and some are missing (named) | `gh secret set NAME` for each, then rerun |
 | `MAIL_SETTING` | A bad `digest_mail`, `smtp_port` or test setting | Fix `.loop/config.json` as the line says |
 | `MAIL_TEST_URL` | A test-only server address was set outside a test | Unset `DIGEST_MAIL_API` |
+| `MAIL_STALE` | This run is older than the round on the digest issue (a late rerun), so there is nothing to mail | Nothing |
 | `MAIL_NO_COMMENT` | No digest comment for this run (the digest step failed or didn't post) | See the Post the digest step; rerun once it has posted |
 | `MAIL_GH` | gh couldn't read the digest issue or its comments; nothing was sent | Rerun the job |
 | `MAIL_MARK` | Couldn't mark the round as sending; nothing was sent | Rerun the job |

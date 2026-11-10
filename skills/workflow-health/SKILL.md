@@ -69,11 +69,12 @@ python3 scripts/health.py file --group size,docs
 
 `preview` lists each issue that would be opened, updated, closed or reopened, with its `health:<group>` tag, and writes
 nothing. `file --group` is the only writer: it files only the named groups, one issue per `WARN`, `FAIL` or `UNREAD` row
-on the `Backlog` milestone, labelled `health:<group>` (`size`, `criteria`, `docs`, `hygiene`, `performance`, `mine`) and
-`health`, with a hidden marker in its body. A repeat updates that issue, a fixed finding closes it, a returning one
-reopens it, and an issue moved to a feature stays there. With no `--group` it refuses. `mine` is filed only when named;
+on the milestone of the feature it is about (the `.loop/docs.tsv` page whose path holds its subject; `Backlog` when none
+fits), labelled `health:<group>` (`size`, `criteria`, `docs`, `hygiene`, `performance`, `mine`) and `health`, with a
+hidden marker in its body that also records where it was placed. A repeat updates that issue, a fixed finding closes it,
+a returning one reopens it, and an issue you moved anywhere else, `Backlog` included, stays there. With no `--group` it refuses. `mine` is filed only when named;
 the judge, which calls a model, runs only when `performance` is named. `run` is a deprecated alias of `preview`.
-Run `milestone.py new --all --live` once first, or the issues have no `Backlog` to land in. Show the preview to the owner
+Run `milestone.py new --all --live` once first, or the issues have no feature or `Backlog` milestone to land in. Show the preview to the owner
 and file only the groups they confirm.
 
 ## Milestones: `scripts/milestone.py`
