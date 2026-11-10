@@ -15,11 +15,11 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-1. In the main checkout, run `python3 skills/workflow-monitoring/scripts/live_board.py > /tmp/board.txt`, then
-   `{ echo "Decisions: none"; cat /tmp/board.txt; } | python3 skills/workflow-monitoring/scripts/reply_hook.py check -`.
+1. Copy the example reply from `skills/workflow-monitoring/references/operation.md` (the block under "A reply that passes")
+   into a file and run `python3 skills/workflow-monitoring/scripts/reply_hook.py check FILE`.
    Expect: it prints nothing and exits 0.
 2. Run `echo "all quiet" | python3 skills/workflow-monitoring/scripts/reply_hook.py check -`.
-   Expect: `it does not end with the live board (no LIVE BOARD header)`, exit 1.
+   Expect: `it is not in the check-in layout (no All sessions, Dependencies, Needs you or Coming up section)`, exit 1.
 3. In a scratch clone that has `.loop/config.json`, run `python3 skills/workflow-setup/scripts/setup.py --reply-hook` twice.
    Expect: `HOOK: added` and a NOTE the first time, `HOOK: already installed` the second; `.claude/settings.local.json` holds
    one Stop hook naming reply_hook.py, and `git status` does not list it.
@@ -27,4 +27,4 @@ Frozen. A wrong done line needs a new goal.
    `python3 skills/workflow-setup/scripts/setup.py --reply-hook --remove`.
    Expect: `REPLY HOOK: installed, setting on, script found, ...`, then `HOOK: removed`.
 5. Open the Monitoring wiki page.
-   Expect: MON-5 reads `**Unreviewed**` with the reply-format sentence, waiting for the owner's review.
+   Expect: MON-5 reads `**Reviewed 2026-11-09**` with the check-in layout sentence the owner approved.
