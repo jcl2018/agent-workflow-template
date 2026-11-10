@@ -58,6 +58,25 @@ One regression row per check under AUT-n / REG-n, each seen failing once with `r
 ### 7. Docs and checks
 README (Automation in the commands and file table), the Health and Regression wiki pages' Usage, `loop-files.md`. Land lane (needs operation's go), docs check, health green, package, every script under 20 KB, SKILL.md under 150 lines.
 
+### Review changes taken into the build (autoplan, 2026-11-10; recommended answers, direction kept)
+Autoplan ran CEO, DX and Eng on the native voice; Codex was unavailable (its policy model is not supported on this login). 39 findings, 2 Critical, 12 High. The gate stays pending (unattended). The one user challenge, fewer digest comments, keeps the stated direction (done line 4: one comment after each round). Build obligations:
+- **Labels.** A failing row's issue carries both `regression` (tool-owned: the lookup and the digest use it) and `defect` (AUT-2, REG-5). The lookup stays on the tool-owned label, so unrelated `defect` issues can't push markers out of its window; issues touched again gain `defect`. Labels are created without `--force`, so an existing label's colour stays. Both the workflow and `regression.py sync_issues` do this, with one shared constant and a small edit.
+- **The row step carries tests.py** (written to a private mktemp folder, run with `python3 -I`) for the feature and requirement in issue bodies.
+- **Health in CI files only the groups that can read their data there:** size, criteria, docs, hygiene. Cost and Mine read local run records and private files, which a runner doesn't have. The report says they were skipped and why, and `file` never calls the judge.
+- **Step semantics.** The check's exit code is captured, its report is saved to a file the digest reads (that run's verdict), and the file, judge and digest steps run with `if: always()`. The job ends green unless a step itself breaks. A missing skills package fails the job loudly, with the fix, and writes nothing.
+- **Judge.** It runs only when the secret named by `judge_secret` (default `ANTHROPIC_API_KEY`, validated as `^[A-Z_][A-Z0-9_]*$`) is set, and only that step gets the secret. If the runner lacks `judge_command`'s program, it prints `JUDGE: skipped, the runner has no <program>; set judge_setup`. The optional `judge_setup` command runs first, only with the secret.
+- **Digest.**
+  - The state (open issue numbers, and the run id of the last comment) lives in the digest issue's body, not a comment, so a rerun of the same run doesn't post twice and a commenter can't forge it.
+  - The owner is `digest_owner`, defaulting to the repo owner; for an org owner it warns that no one is notified.
+  - Each ask references the issue only by number and link, never its title, e.g. ``Ask the agent: `/workflow-delivery go "Fix #N"` ``.
+  - Pinning is best-effort (a warning on failure).
+  - Without GH_TOKEN inside Actions it fails loudly; locally it is a dry run.
+  - `health.yml` gets `concurrency: health` and `workflow_dispatch`.
+- **Writers accept `"off"`:** the workflow is written without a schedule trigger, keeping `workflow_dispatch`, and the run-time check prints OFF. A schedule that differs from the config gives a `::warning::` naming the exact rewrite command.
+- **Tests update** the old default cron and the old file set (test-regression.sh, test-adopt.sh). New cases cover: no token in Actions, gh create or pin failure, rerun idempotency, a red check still reaching the digest, `file` not calling the judge, old-label issues, a hostile issue title, and an invalid secret name.
+- **Cost note.** The Automation page's Success metrics and README state that every-4-hours runs use Actions minutes, and how to slow or stop a routine.
+- **Follow-up, not this goal:** the defects health rule may want a defect row for a "Fix #N" goal whose failing row already guards #N (review note).
+
 ## Review record
 
-<!-- autoplan notes -->
+Autoplan run: gate pending, artifact valid. Phase coverage: ceo native 11, dx native 14, eng native 14; outside voice unavailable in all three. Gate: d1 keep direction (recommended), p1 approve as-is (recommended, pending: unattended).
