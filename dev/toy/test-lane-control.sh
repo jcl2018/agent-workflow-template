@@ -11,6 +11,7 @@ set -u
 unset LOOP_BATCH LOOP_SESSION_TOOL LOOP_OPERATION_SESSION GH_TOKEN GITHUB_TOKEN _LOOP_LANE_HELD LOOP_LANE_LIMIT
 export LOOP_ROLE=worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 export HOME="$T/home"; mkdir -p "$HOME"
 "$here/dev/toy/make.sh" "$T" >/dev/null
