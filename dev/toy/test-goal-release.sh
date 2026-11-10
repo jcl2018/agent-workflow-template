@@ -67,6 +67,11 @@ git add -A; git commit -qm "Defect row for #5"
 $reg red fix5-5 --break "sed -i.bak '/def fix5/d' calc.py" | grep -q "SEEN RED" && ok "the defect row is seen failing" || bad "red"
 git add -A; git commit -qm "fix5-5 seen failing"
 out=$($goal pr fix5 2>&1); grep -q "^PR " <<<"$out" && ok "goal.py pr opens the pull request" || bad "pr: $out"
+# Value: protects=the pull request shows which rows its pr lane ran and why (DX-21); fails_when=the lane part is dropped
+# from the body; why_new=the body listed only the flow steps; seam=none; no_claim=GitHub's rendering of <details>
+body=$(cat "$FAKE_GH_DIR"/body-* 2>/dev/null)
+grep -q "^### Regression lane" <<<"$body" && grep -q "^LANE pr " <<<"$body" && grep -q "<summary>Rows and why they ran</summary>" <<<"$body" \
+  && ok "the pull request body carries the pr lane's LANE line and each row with why it ran" || bad "pr body lane part: $(grep -c LANE <<<"$body")"
 git push -q origin loop/fix5 2>/dev/null || true
 
 echo "== merge.py merges and releases with the Fixes line"

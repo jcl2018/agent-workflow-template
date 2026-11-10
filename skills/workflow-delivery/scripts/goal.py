@@ -352,7 +352,7 @@ def cmd_pr(args):
     if what == "merged":
         print("MERGED %s into the branch" % detail)
         state = held(args.slug)
-    guards.sync_touches(goal_file(args.slug), guards.touches_of(state_dir(), state))  # before bump and lane
+    guards.sync_touches(goal_file(args.slug), guards.touches_of(state_dir(), state))
     if git("status", "--porcelain", "--", goal_file(args.slug)):
         git("commit", "-m", "Goal: %s touches" % args.slug, "--", goal_file(args.slug))
     head = git("rev-parse", "HEAD")
@@ -389,7 +389,7 @@ def cmd_pr(args):
     if not url:
         body = read(goal_file(args.slug))
         flow = "".join("\n- %s: %s" % (step, state["flow"][step]) for step in FLOW)
-        body += "\n## Result\n\nSkill flow:%s\n" % flow
+        body += "\n## Result\n\nSkill flow:%s\n%s" % (flow, state.get("pr_lane", ""))
         done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
                     "--title", state["goal"][:70], "--body", body], check=True)
         url = done.stdout.strip().splitlines()[-1]
