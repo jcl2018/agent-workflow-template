@@ -51,11 +51,61 @@ if (!$pid) { setpgrp(0, 0); exec @ARGV or exit 127; }
 for my $sig (qw(ALRM TERM INT)) { $SIG{$sig} = sub { kill 'KILL', -$pid; exit 124; }; }
 alarm 600; waitpid($pid, 0); exit($? & 127 ? 128 + ($? & 127) : $? >> 8);
 PL
+# A launch that skips sitecustomize (-I, -S, -E, or PYTHONPATH without the hook) runs its target through boot.py,
+# which installs the same hook, then runs the script, -c or -m as Python would; the launch's own flags still apply.
+cat > "$tmp/hook/boot.py" <<'PY'
+import os, runpy, sys, types
+if not getattr(sys.modules.get("sitecustomize"), "_hook", None):
+    _f = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sitecustomize.py")
+    with open(_f) as _h:
+        exec(compile(_h.read(), _f, "exec"), {"__name__": "lanes_trace_hook"})
+args, safe = sys.argv[1:], sys.flags.safe_path
+if not safe:
+    del sys.path[0]  # boot.py's own folder
+if args[0] == "-m":
+    sys.argv = args[1:]
+    safe or sys.path.insert(0, os.getcwd())
+    runpy.run_module(args[1], run_name="__main__", alter_sys=True)
+elif args[0] in ("-c", "-"):
+    code, name = (args[1], "<string>") if args[0] == "-c" else (sys.stdin.read(), "<stdin>")
+    sys.argv = [args[0]] + args[2 if args[0] == "-c" else 1:]
+    safe or sys.path.insert(0, "")
+    main = sys.modules["__main__"] = types.ModuleType("__main__")
+    exec(compile(code, name, "exec"), main.__dict__)
+else:
+    sys.argv = args
+    safe or sys.path.insert(0, os.path.dirname(os.path.abspath(args[0])))
+    runpy.run_path(args[0], run_name="__main__")
+PY
 real=$(python3 -c "import sys; print(sys.executable)")  # the interpreter itself, never an outer shim
-for name in python3 python; do
-  printf '#!/bin/bash\necho "LAUNCH $$ $*" >> "$LANES_TRACE_LOG"\nexec "%s" "$@"\n' "$real" > "$tmp/bin/$name"
-  chmod +x "$tmp/bin/$name"
+cat > "$tmp/bin/python3" <<SH
+#!/bin/bash
+echo "LAUNCH \$\$ \$*" >> "\$LANES_TRACE_LOG"
+real="$real"; hook="$tmp/hook"
+case ":\${PYTHONPATH:-}:" in *":\$hook:"*) need=0 ;; *) need=1 ;; esac
+orig=("\$@"); pre=(); mode=()
+while [ \$# -gt 0 ]; do
+  a=\$1
+  case \$a in --) pre+=("\$a"); shift; break ;; -|--*|[!-]*) break ;; esac
+  shift; i=1; cur=-
+  while [ \$i -lt \${#a} ]; do
+    c=\${a:i:1}; rest=\${a:i+1}
+    case \$c in
+      c|m) [ "\$cur" = - ] || pre+=("\$cur"); cur=-
+        if [ -n "\$rest" ]; then mode=(-\$c "\$rest"); else mode=(-\$c "\${1-}"); shift; fi; break 2 ;;
+      W|X) if [ -n "\$rest" ]; then pre+=("\$cur\$c\$rest"); else pre+=("\$cur\$c" "\${1-}"); shift; fi; cur=-; break ;;
+      I|S|E) need=1; cur+=\$c ;;
+      *) cur+=\$c ;;
+    esac
+    i=\$((i + 1))
+  done
+  [ "\$cur" = - ] || pre+=("\$cur")
 done
+[ \$need = 1 ] && { [ \${#mode[@]} -gt 0 ] || { [ \$# -gt 0 ] && [ "\${1#--}" = "\$1" ]; }; } &&
+  exec "\$real" "\${pre[@]}" "\$hook/boot.py" "\${mode[@]}" "\$@"
+exec "\$real" "\${orig[@]}"
+SH
+chmod +x "$tmp/bin/python3"; cp "$tmp/bin/python3" "$tmp/bin/python"
 rows=$(python3 - "$here" "$level" "$@" <<'PY'
 import sys
 here, level, wanted = sys.argv[1], sys.argv[2], set(sys.argv[3:])

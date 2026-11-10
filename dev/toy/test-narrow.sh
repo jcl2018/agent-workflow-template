@@ -156,16 +156,20 @@ printf 'import os\nopen(os.path.join(os.path.dirname(__file__), "c" + ".py")).re
 printf 'import os, shutil, subprocess, sys, tempfile\nt = tempfile.mkdtemp(); shutil.copy(os.path.join(os.path.dirname(__file__), "e" + ".py"), t + "/x.py")\nsubprocess.run(["python3", t + "/x.py"], check=True)\n' > "$c/skills/a/scripts/k.py"
 printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\npython3 skills/a/scripts/a.py\n' > "$c/dev/t1.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/a/scripts/g.py\npython3 skills/a/scripts/g.py\n' > "$c/dev/t2.sh"  # lanes: no read (toy repo file)
-printf '#!/bin/bash\n# reads: skills/a/scripts/a.py skills/a/scripts/b.py\npython3 skills/a/scripts/a.py; python3 -I skills/a/scripts/b.py\n' > "$c/dev/t3.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\npython3 skills/a/scripts/a.py; python3 -I skills/a/scripts/g.py\n' > "$c/dev/t3.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nPYTHONPATH= python3 -S skills/a/scripts/g.py\n' > "$c/dev/t5.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/a/scripts/k.py\npython3 skills/a/scripts/k.py\n' > "$c/dev/t4.sh"  # lanes: no read (toy repo file)
 printf '# id\tlevel\tcommand\n' > "$c/.loop/regression.tsv"
-for r in 1 2 3 4; do printf 'r%s\tland\tbash dev/t%s.sh\n' $r $r >> "$c/.loop/regression.tsv"; done
+for r in 1 2 3 4 5; do printf 'r%s\tland\tbash dev/t%s.sh\n' $r $r >> "$c/.loop/regression.tsv"; done
 out=$(bash "$c/dev/toy/check-reads.sh" 2>&1); rc=$?; echo "$out"
 # Value: protects=a row's runtime Python reads outside its closure fail the nightly trace; fails_when=the hook or the
 # closure comparison is dropped; why_new=new tool; seam=sitecustomize + PATH shim; no_claim=bash-only reads
 check "check-reads passes a row whose runtime reads are inside its closure" 'grep -q "^PASS r1" <<<"$out"'
 check "check-reads fails a row that reads a skill file its closure misses, with the line to add" '[ $rc = 1 ] && grep -q "^LANES-TRACE-UNDECLARED r2 skills/a/scripts/c.py" <<<"$out" && grep -q "^fix: # reads: skills/a/scripts/c.py" <<<"$out"'
-check "check-reads fails a row with a Python launch the hook never saw (python3 -I)" 'grep -q "^LANES-TRACE-NOHOOK r3: 2 Python launches, 1 hooked" <<<"$out"'
+# Value: protects=an isolated child (-I, -S, a reset PYTHONPATH) is traced, not trusted (issue 173); fails_when=the
+# shim stops running such launches through boot.py; why_new=the workflow's python3 -I steps went unhooked; seam=PATH shim;
+# no_claim=interpreters started by absolute path
+check "check-reads hooks an isolated child (python3 -I) and fails its read outside the row's closure" 'grep -q "^LANES-TRACE-UNDECLARED r3 skills/a/scripts/c.py" <<<"$out" && grep -q "^LANES-TRACE-UNDECLARED r5 skills/a/scripts/c.py" <<<"$out" && ! grep -q "^LANES-TRACE-NOHOOK" <<<"$out"'
 check "check-reads maps a read of a copied skill file back to the repo file" 'grep -q "^LANES-TRACE-UNDECLARED r4 skills/a/scripts/e.py" <<<"$out"'
 
 [ $fails = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
