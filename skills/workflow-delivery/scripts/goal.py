@@ -283,8 +283,8 @@ def next_step(state):
 def cmd_record(args):
     """Apply what a flow step left: done or skipped moves on, pending waits on the owner, anything else is a try."""
     state = held(args.slug)
-    if args.step == "qa":
-        role.need_lane(state_dir(), args.slug, args.file)
+    if args.step in ("qa", "ship"):  # a step reusing a lane must record on the HEAD that lane passed
+        role.need_lane(state_dir(), args.slug, args.file, args.step)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
     if args.in_session:  # the worker session ran the skill itself; its run record must name that session
         args.file = role.session_reply(state, args.slug, args.step, args.file, state_dir(), FLOW)

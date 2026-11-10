@@ -2,6 +2,7 @@
 """The GitHub Actions workflow regression.py workflow writes: it runs the rows on a schedule and keeps one issue per failing row."""
 import json
 import os
+import subprocess
 import sys
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -180,3 +181,51 @@ def write(root, default):
         handle.write(render(cron))
     print("WROTE " + path)
     return 0
+
+
+MARK = "<!-- loop-regression %s -->"
+
+
+def gh(*args):
+    return subprocess.run(["gh"] + list(args), capture_output=True, text=True)
+
+
+def sync_issues(results, live, day):
+    """One issue per failing row, keyed by a marker in its body."""
+    issues = []
+    if live:
+        gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
+        out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200",
+                 "--json", "number,state,body,comments")
+        if out.returncode:
+            print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
+            return
+        issues = json.loads(out.stdout or "[]")
+    for item in results:
+        mark = MARK % item["id"]
+        hits = [issue for issue in issues if mark in issue.get("body", "")]
+        hit = next((issue for issue in hits if issue.get("state") == "OPEN"), hits[0] if hits else None)
+        number = str(hit["number"]) if hit else ""
+        if item["state"] == "FAIL":
+            line = "Failing on %s." % day
+            body = "%s\nThe row `%s` fails.\n\n```\n%s\n```\n" % (mark, item["id"], item["tail"])
+            if not live:
+                print("WOULD open or update the issue for " + item["id"])
+            elif not hit:
+                gh("issue", "create", "--title", "Regression: " + item["id"], "--label", "regression", "--body", body)
+                print("OPENED issue for " + item["id"])
+            else:
+                if hit.get("state") != "OPEN":
+                    gh("issue", "reopen", number)
+                    print("REOPENED issue %s" % number)
+                said = [note.get("body", "") for note in hit.get("comments") or []]
+                if line not in said:
+                    gh("issue", "comment", number, "--body", line)
+                    print("UPDATED issue %s" % number)
+        elif item["state"] == "PASS" and not live:
+            print("WOULD close any open issue for " + item["id"])
+        elif item["state"] == "PASS":
+            for issue in hits:
+                if issue.get("state") == "OPEN":
+                    gh("issue", "close", str(issue["number"]), "--comment", "Passing again on %s." % day)
+                    print("CLOSED issue %s" % issue["number"])

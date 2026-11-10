@@ -34,7 +34,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
-import actions, lanes  # noqa: E401,E402
+import actions, lanes, slots  # noqa: E401,E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -47,7 +47,6 @@ FIELDS = ("id", "level", "command", "goal", "seen_red", "description", "category
 SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date; "", "-" or any other text is never seen failing
 HEADER = "# " + "\t".join(FIELDS) + "\n"
 CRON = "17 9 * * *"
-MARK = "<!-- loop-regression %s -->"
 def run(args, cwd=None):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
 
@@ -86,15 +85,14 @@ def read_rows(root):
     return rows
 
 
-def write_rows(root, rows):
-    os.makedirs(os.path.join(root, ".loop"), exist_ok=True)
-    temp = path_of(root, "regression.tsv.tmp")
-    with open(temp, "w") as handle:
-        handle.write(HEADER)
-        for key in rows:
-            row = rows[key]
-            handle.write("\t".join(row[name] for name in FIELDS) + "\n")
-    os.replace(temp, path_of(root, "regression.tsv"))
+def edit_rows(root, change):
+    """Re-read the rows, apply this command's change and write, under the table's lock (slots.edit)."""
+    def apply():
+        rows = read_rows(root)
+        change(rows)
+        os.makedirs(os.path.join(root, ".loop"), exist_ok=True)
+        slots.write_table(path_of(root, "regression.tsv"), HEADER, ["\t".join(r[n] for n in FIELDS) for r in rows.values()])
+    slots.edit(root, "regression.tsv", apply)
 
 
 def new(**kw):
@@ -115,16 +113,16 @@ def cmd_add(args):
     if not ID.match(args.id):
         sys.exit("REFUSED: bad id. Fix: letters, digits, dots, dashes.")
     root = top()
-    rows = read_rows(root)
-    old = rows.get(args.id, {})
-    same = old.get("command") == args.command
     if args.category == "defect" and not args.link:
         sys.exit("REFUSED: a defect row links to its issue or finding. Fix: add --link URL or finding:SLUG.")
-    rows[args.id] = new(id=args.id, level=args.level, command=clean(args.command), goal=clean(args.goal),
-                        category=args.category, link=clean(args.link),
-                        seen_red=old.get("seen_red", "") if same else "",
-                        description=clean(args.describe if args.describe is not None else old.get("description", "")))
-    write_rows(root, rows)
+
+    def change(rows):
+        old = rows.get(args.id, {})
+        rows[args.id] = new(id=args.id, level=args.level, command=clean(args.command), goal=clean(args.goal),
+                            category=args.category, link=clean(args.link),
+                            seen_red=old.get("seen_red", "") if old.get("command") == args.command else "",
+                            description=clean(args.describe if args.describe is not None else old.get("description", "")))
+    edit_rows(root, change)
     print("ROW %s %s: %s" % (args.id, args.level, args.command))
     return 0
 
@@ -170,7 +168,7 @@ def criterion_rows(rows, key):
 
 def cmd_sync(args):
     root = top()
-    rows = read_rows(root)
+    rows, drafted = read_rows(root), {}
     missing = gaps(root)
     for key in criteria_ids(root):
         found = criterion_rows(rows, key)
@@ -179,7 +177,7 @@ def cmd_sync(args):
         if not found:
             missing.append((key, "", "criterion has no regression row"))
             if args.write:
-                rows[key] = new(id=key, level="draft", command="echo write a test", goal=key)
+                rows[key] = drafted[key] = new(id=key, level="draft", command="echo write a test", goal=key)
     for slug, number, line in missing:
         if not number:
             print("GAP %s %s" % (slug, line))
@@ -187,9 +185,9 @@ def cmd_sync(args):
         print("GAP %s:%s %s" % (slug, number, line[:100]))
         if args.write:
             key = "%s-%s" % (slug, number)
-            rows[key] = new(id=key, level="draft", command="echo write a test", goal="%s:%s" % (slug, number))
-    if args.write:
-        write_rows(root, rows)
+            rows[key] = drafted[key] = new(id=key, level="draft", command="echo write a test", goal="%s:%s" % (slug, number))
+    if drafted:
+        edit_rows(root, lambda current: [current.setdefault(k, v) for k, v in drafted.items()])
     drafts = [row["id"] for row in rows.values() if row["level"] == "draft"]
     for key in drafts:
         print("DRAFT %s: not run until it has a command and level" % key)
@@ -246,9 +244,8 @@ def cmd_red(args):
     if done.returncode == 0:
         print("STILL GREEN %s: the test passed on broken code, so it proves nothing." % args.id)
         return 1
-    row["seen_red"] = today()
-    write_rows(root, rows)
-    print("SEEN RED %s on %s" % (args.id, row["seen_red"]))
+    edit_rows(root, lambda current: current[args.id].update(seen_red=today()) if args.id in current else None)
+    print("SEEN RED %s on %s" % (args.id, today()))
     return 0
 
 
@@ -260,52 +257,6 @@ def chosen(rows, target):
     if target == "nightly":
         return [row for row in rows.values() if row["level"] in ("land", "nightly")]
     sys.exit("REFUSED: no row or level called %s." % target)
-
-
-def gh(*args):
-    return run(["gh"] + list(args))
-
-
-def sync_issues(results, live):
-    """One issue per failing row, keyed by a marker in its body."""
-    issues = []
-    if live:
-        gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
-        out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200",
-                 "--json", "number,state,body,comments")
-        if out.returncode:
-            print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
-            return
-        issues = json.loads(out.stdout or "[]")
-    day = today()
-    for item in results:
-        mark = MARK % item["id"]
-        hits = [issue for issue in issues if mark in issue.get("body", "")]
-        hit = next((issue for issue in hits if issue.get("state") == "OPEN"), hits[0] if hits else None)
-        number = str(hit["number"]) if hit else ""
-        if item["state"] == "FAIL":
-            line = "Failing on %s." % day
-            body = "%s\nThe row `%s` fails.\n\n```\n%s\n```\n" % (mark, item["id"], item["tail"])
-            if not live:
-                print("WOULD open or update the issue for " + item["id"])
-            elif not hit:
-                gh("issue", "create", "--title", "Regression: " + item["id"], "--label", "regression", "--body", body)
-                print("OPENED issue for " + item["id"])
-            else:
-                if hit.get("state") != "OPEN":
-                    gh("issue", "reopen", number)
-                    print("REOPENED issue %s" % number)
-                said = [note.get("body", "") for note in hit.get("comments") or []]
-                if line not in said:
-                    gh("issue", "comment", number, "--body", line)
-                    print("UPDATED issue %s" % number)
-        elif item["state"] == "PASS" and not live:
-            print("WOULD close any open issue for " + item["id"])
-        elif item["state"] == "PASS":
-            for issue in hits:
-                if issue.get("state") == "OPEN":
-                    gh("issue", "close", str(issue["number"]), "--comment", "Passing again on %s." % day)
-                    print("CLOSED issue %s" % issue["number"])
 
 
 def lines_of(root, name):
@@ -341,6 +292,10 @@ def cmd_run(args):
             ids = ", ".join(todo[:10]) + (", +%d more" % (len(todo) - 10) if len(todo) > 10 else "")
             print("AFFECTED %d of %d rows (%s): %s" % (len(todo), len(picked), ids,
                                                        " ".join(lanes.changed(root, old["commit"]) or [])[:400]))
+    if todo and args.target in ("land", "nightly") and (why or not args.reuse):  # a FULL lane waits for a lane slot
+        slot = slots.acquire(root, os.environ.get("_LOOP_LANE_LABEL") or os.path.basename(root) + " by hand", head, unclean)
+    else:
+        slots.started()
     results = []
     for row in [r for r in picked if r["id"] in todo]:
         began = time.time()
@@ -358,13 +313,12 @@ def cmd_run(args):
         if state == "FAIL" and args.reuse:
             print("\n".join("    " + line for line in text.rstrip().splitlines()[-20:]), file=sys.stderr)
         results.append({"id": row["id"], "state": state, "tail": text[-1500:], "seconds": round(time.time() - began, 1)})
-    if not args.reuse:  # a reusing run writes nothing in the worktree and opens no issue: CI's plain run owns both
-        ran = {cells[0]: cells[:3] for cells in cells_of(root, "regression-runs.tsv")}
-        for item in results:
-            ran[item["id"]] = [item["id"], "PASS" if item["state"] == "PASS" else "FAIL", today()]
-        if results:
-            with open(path_of(root, "regression-runs.tsv"), "w") as handle:
-                handle.write("# id\tstatus\tdate\n" + "".join("\t".join(ran[key]) + "\n" for key in sorted(ran)))
+    if not args.reuse and results:  # a reusing run writes nothing in the worktree and opens no issue: CI's plain run owns both
+        def merge():
+            ran = {cells[0]: cells[:3] for cells in cells_of(root, "regression-runs.tsv")}
+            ran.update({i["id"]: [i["id"], "PASS" if i["state"] == "PASS" else "FAIL", today()] for i in results})
+            slots.write_table(path_of(root, "regression-runs.tsv"), "# id\tstatus\tdate\n", ["\t".join(ran[k]) for k in sorted(ran)])
+        slots.edit(root, "regression-runs.tsv", merge)
     left = sorted(set(lanes.dirty(root)) - set(unclean)) if record and not unclean else []
     if not record:
         print("NOT RECORDED: detached HEAD")
@@ -384,7 +338,7 @@ def cmd_run(args):
             key, os.path.abspath(__file__), key))
     if not args.reuse:
         live = args.live or bool(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
-        sync_issues(results, live)
+        actions.sync_issues(results, live, today())
     failed = [item["id"] for item in results if item["state"] == "FAIL"]
     kept = [old["rows"][key]["status"] for key in reused]  # a reused known failure still counts as known
     passed = sum(item["state"] == "PASS" for item in results) + kept.count("PASS")
