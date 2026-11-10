@@ -85,6 +85,7 @@ def lookup(urls, root):
 HEALTH_TTL = int(os.environ.get("LOOP_HEALTH_TTL", "900"))
 REFRESH = r"""
 import json, os, re, subprocess, sys, time
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")  # no prompt ever blocks
 script, path = sys.argv[1], sys.argv[2]
 try:
     out = subprocess.run([sys.executable, script, "check"], capture_output=True, text=True, timeout=600).stdout

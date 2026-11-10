@@ -33,6 +33,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import board_status as bs  # noqa: E402
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")  # no prompt ever blocks
 
 KINDS = ("routine", "destructive", "money", "security", "owner")
 END = r"(?:e|es|ed|ing|s|ion|ions|al|als)?"  # the endings a risky word may take: delete, deletes, deleted, deleting

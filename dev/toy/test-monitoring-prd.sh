@@ -1,5 +1,19 @@
 #!/bin/bash
-# reads: skills/workflow-monitoring/scripts/ skills/workflow-setup/scripts/ dev/toy/fakegh/
+# reads: skills/workflow-monitoring/scripts/auto.py skills/workflow-monitoring/scripts/board.py
+# reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-monitoring/scripts/board_runs.py
+# reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/checkin.py
+# reads: skills/workflow-monitoring/scripts/dep_graph.py skills/workflow-monitoring/scripts/goal_state.py
+# reads: skills/workflow-monitoring/scripts/govern_hook.py skills/workflow-monitoring/scripts/graph.py
+# reads: skills/workflow-monitoring/scripts/issue_lines.py skills/workflow-monitoring/scripts/live_board.py
+# reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/monitor.py
+# reads: skills/workflow-monitoring/scripts/operate.py skills/workflow-monitoring/scripts/pool.py
+# reads: skills/workflow-monitoring/scripts/prs.py skills/workflow-monitoring/scripts/replan.py
+# reads: skills/workflow-monitoring/scripts/reply_hook.py skills/workflow-monitoring/scripts/session_bind.py
+# reads: skills/workflow-monitoring/scripts/session_tool.py skills/workflow-monitoring/scripts/sessions.py
+# reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-monitoring/scripts/watch.py
+# reads: skills/workflow-monitoring/scripts/worker.py skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-setup/scripts/settings.py skills/workflow-setup/scripts/survey.py
+# reads: skills/workflow-setup/scripts/seed.py dev/toy/fakegh/gh dev/toy/fakegh/fake.py
 # Proves the Monitoring PRD's MON-4 and MON-6..MON-12 and issues 94, 97, 111-115, 122 and 175 with a made-up repo, a
 # fake gh and a stand-in session pool. No model is called. usage: test-monitoring-prd.sh [CASE ...] [--dir DIR]
 # Cases: mon4 mon6 mon7 mon8 mon9 mon10 mon11 mon12 deps94 issues97 held111 slot112 state113 attempt114 held115

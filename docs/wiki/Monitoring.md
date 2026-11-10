@@ -16,9 +16,9 @@ A failed release is recorded as `release_error` and lists under Issues beside `w
 ## Usage
 
 - `/workflow-monitoring operate` is the operation session: it plans queued goals, starts a worker for each ready one, re-plans and answers routine worker decisions (full auto), and prints the check-in; `/workflow-monitoring send SLUG "text"` gives a worker an answer.
-- `/workflow-monitoring checkin` prints the check-in; `/workflow-monitoring replan` and `/workflow-monitoring auto` run one re-plan or full-auto pass by hand (`/workflow-monitoring preview-auto` shows what full auto would answer, changing nothing).
-- `/workflow-monitoring pool` shows the session pool (free, busy, total); "fill pool" has the operation session create the missing sessions with the app, then `/workflow-monitoring fill-pool ID...` registers them.
-- `/workflow-monitoring claim` records the operation session for the govern hook (`/workflow-setup govern-hook` installs it), which refuses edits, commits and pushes there.
+- "Check in", "re-plan now" and "run full auto once" print the check-in or run one re-plan or full-auto pass by hand; "preview full auto" shows what it would answer, changing nothing.
+- "Show the session pool" prints free, busy and total; "fill pool" has the operation session create the missing sessions with the app, then `/workflow-monitoring fill-pool ID...` registers them.
+- "Claim the operation session" records it for the govern hook (`/workflow-setup govern-hook` installs it), which refuses edits, commits and pushes there.
 - `/workflow-monitoring go "goal" --done "line"` queues and starts a goal; `/workflow-monitoring watch` keeps goals moving; `/workflow-monitoring resume SLUG` restarts one.
 - `/workflow-monitoring report` and `/workflow-monitoring dashboard` show where every goal stands, with the live board; a check-in never prints the board.
 - "bind session s7 to goal board-held" records a session started with the app's tools and prints the worker command (`LOOP_ROLE=worker ...`) and the goal worktree to work in; a session folder outside that worktree is refused, and a stopped goal it revives gets the same reset as a resume.

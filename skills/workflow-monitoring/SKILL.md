@@ -88,7 +88,7 @@ go back to 0), and launches a new worker told to continue from the goal file and
 ## Operation session
 
 **The operation session is for governance only: it assigns, watches and reports, and never runs `go` itself; workers
-build.** `operate.py run` loops `watch --once`, `board.py board`, `board_page.py`, `replan.py` and `auto.py pass`, prints the check-in (`checkin.py`, not the live board) every pass, waits the `board.py cadence` gap (less when a worker reports), and stops when
+build.** `operate.py run` loops `watch --once`, `board.py board`, `board_page.py`, `replan.py` and `auto.py pass`, prints the check-in (`checkin.py`, not the live board) every pass (`replan.py` MON-10, `auto.py` with `full_auto` MON-11, `pool.py` with `pool_size` MON-6 and MON-12, `govern_hook.py` MON-7, `goal_state.py`: `references/operation.md`), waits the `board.py cadence` gap (less when a worker reports), and stops when
 nothing is left. `operate.py send SLUG "<text>"` gives a worker an answer or follow-up. `scripts/board.py` builds the progress board (`board`), keeps the check-in `cadence`, follows other repos
 (`repos add`), records a worker's latest message (`note SLUG TEXT`), retires a superseded goal (`retire SLUG --reason TEXT`) and writes a `handoff` file.
 `scripts/board_page.py` draws `board.html` and `board-artifact.html` from `board.json`, both carrying the live board.
@@ -108,21 +108,6 @@ agent ends, the worker sends its result back as a prompt message in the run reco
 `report`, `dashboard` and "where do things stand" print the live board (`scripts/live_board.py`, run by `board_status.py`; a check-in never does, MON-4), and `board-artifact.html` carries the same content, always in this format: a `LIVE BOARD` header (repo, local time, version, health); Issues (only what is open now, a stuck worker first, each with its fix in plain words and the exact words to answer);
 Running goals (a 10-cell bar with percent and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current step in brackets, and a one-line next step), then the session pool line; Queued goals; Dependencies as a top-to-bottom graph at most 60 columns wide with a legend; and one finish time. Merged work, history and totals are left out. The loop is in `references/operation.md`.
 Every operation-session check-in reply has one layout: a headline, All sessions, Dependencies, Needs you and, last, Coming up (`references/operation.md`); `scripts/reply_hook.py`, a Stop hook that `workflow-setup` installs with `setup.py --reply-hook`, blocks one that doesn't (never a worker's).
-
-### Re-plan, full auto, the session pool and govern only
-
-Each pass `replan.py` re-reads every goal and logs, once each with its reason, what started, merges it proposes (same
-`prd:` and shared `touches:`), splits (a blocking goal with `parts:`) and the merge line, critical path first; it never
-stops a running goal and applies nothing (MON-10). `auto.py pass` answers a worker's routine decision with its
-recommended option when `full_auto` is on (the default) and logs it; a worker asks with `sessions.py report SLUG
---status waiting --ask Q --words W ... --recommend W --kind routine|destructive|money|security|owner`, and anything not
-routine, risky by word or path, or on a goal you answered waits under Needs you (MON-11). `pool.py` keeps `pool_size`
-(default 20) idle sessions: `status`, `need`, `add ID ...` after you say "fill pool" and the operation session creates
-them with the app, `decline`, and `return SLUG`, which a merged report runs to put the session back (or mark it for
-archiving above `pool_size`) and remove the goal's worktree and branch (MON-6, MON-12). `govern_hook.py`, a PreToolUse
-hook that `setup.py --govern-hook` (or `--reply-hook`) installs, refuses edits and git commit, push and merge in the
-operation session, recorded by `operate.py claim` (MON-7). Goal state comes from one module, `goal_state.py`; a worker
-silent `silent_minutes` (30) shows under Needs you (MON-8).
 
 ## Statuses
 
@@ -161,10 +146,4 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-monitoring cleanup` | `python3 scripts/worker.py cleanup` |
 | `/workflow-monitoring reply-check FILE` | `python3 scripts/reply_hook.py check FILE` |
 | `/workflow-monitoring reply-status` | `python3 scripts/reply_hook.py status` |
-| `/workflow-monitoring checkin` | `python3 scripts/checkin.py` |
-| `/workflow-monitoring replan` | `python3 scripts/replan.py plan` |
-| `/workflow-monitoring auto` | `python3 scripts/auto.py pass` |
-| `/workflow-monitoring preview-auto` | `python3 scripts/auto.py pass --dry-run` |
-| `/workflow-monitoring pool` | `python3 scripts/pool.py status` |
 | `/workflow-monitoring fill-pool ID...` | `python3 scripts/pool.py add ID...` |
-| `/workflow-monitoring claim` | `python3 scripts/operate.py claim` |
