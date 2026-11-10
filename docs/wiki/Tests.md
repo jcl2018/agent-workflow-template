@@ -107,9 +107,9 @@
 | <a id="t-issue-gh-fail-unread"></a>issue-gh-fail-unread | requirement | DOC-10 | not run | - | local | 2026-11-10 |
 | <a id="t-issue-truncated-unread"></a>issue-truncated-unread | requirement | DOC-10 | not run | - | local | 2026-11-10 |
 | <a id="t-issue-closed-ignored"></a>issue-closed-ignored | requirement | DOC-10 | not run | - | local | 2026-11-10 |
-| <a id="t-publish-restore"></a>publish-restore | requirement | DOC-11 | not run | - | local | no |
-| <a id="t-docs-check-speed"></a>docs-check-speed | requirement | DOC-12 | not run | - | local | no |
-| <a id="t-docs-check-same"></a>docs-check-same | requirement | DOC-13 | not run | - | local | no |
+| <a id="t-publish-restore"></a>publish-restore | requirement | DOC-11 | not run | - | local | 2026-11-10 |
+| <a id="t-docs-check-speed"></a>docs-check-speed | requirement | DOC-12 | not run | - | local | 2026-11-10 |
+| <a id="t-docs-check-same"></a>docs-check-same | requirement | DOC-13 | not run | - | local | 2026-11-10 |
 
 ## Health
 
