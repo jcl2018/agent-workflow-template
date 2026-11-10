@@ -6,6 +6,7 @@
 set -u
 unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 cd "$here" || exit 1
 limit=${LIMIT:-30}
 fails=0

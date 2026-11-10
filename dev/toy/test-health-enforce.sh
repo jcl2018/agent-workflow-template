@@ -5,10 +5,11 @@
 # Unreviewed or Reviewed at most 7 days ago, and fails once it has stayed not enforced longer.
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 fails=0
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
-r=$(mktemp -d); trap 'rm -rf "$r"' EXIT
+r=$(mktemp -d); toy_on_exit 'rm -rf "$r"'
 mkdir -p "$r/docs/wiki" "$r/.loop"
 today=$(date +%Y-%m-%d); old=$(python3 -c 'import datetime; print(datetime.date.today() - datetime.timedelta(days=8))')
 printf '{"wiki_dir": "docs/wiki"}\n' > "$r/.loop/config.json"

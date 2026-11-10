@@ -7,13 +7,14 @@
 # usage: test-runs-column.sh
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR=$(mktemp -d)
 unset GH_TOKEN GITHUB_TOKEN GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID GITHUB_STEP_SUMMARY GITHUB_ENV GITHUB_OUTPUT
 pass=0; fail=0
 ok() { echo "PASS: $1"; pass=$((pass + 1)); }
 bad() { echo "FAIL: $1"; fail=$((fail + 1)); }
-r=$(mktemp -d); trap 'cd /; rm -rf "$r" "$FAKE_GH_DIR"' EXIT
+r=$(mktemp -d); toy_on_exit 'cd /; rm -rf "$r" "$FAKE_GH_DIR"'
 cd "$r" && git init -q && git config user.email t@t && git config user.name t && mkdir .loop
 { printf '# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\n'
   printf 'a1\tland\ttrue\t-\t2026-01-01\tA passing row.\tcriterion\t\n'
