@@ -139,16 +139,16 @@
 | <a id="t-format-bullets"></a>format-bullets | requirement | DOC-7 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-format-orphan-bullet"></a>format-orphan-bullet | requirement | DOC-7 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-format-groups"></a>format-groups | requirement | DOC-7 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
-| <a id="t-format-groups-read"></a>format-groups-read | requirement | DOC-7 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | no |
+| <a id="t-format-groups-read"></a>format-groups-read | requirement | DOC-7 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-format-problem"></a>format-problem | requirement | DOC-8 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-format-tests-table"></a>format-tests-table | requirement | DOC-9 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-tests-page-stale"></a>tests-page-stale | requirement | DOC-10 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
-| <a id="t-tests-page-run-link"></a>tests-page-run-link | requirement | DOC-10 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | no |
+| <a id="t-tests-page-run-link"></a>tests-page-run-link | requirement | DOC-10 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-cap-default-10"></a>cap-default-10 | requirement | DOC-1 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-format-key"></a>format-key | requirement | DOC-1 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
-| <a id="t-runs-sha"></a>runs-sha | requirement | DOC-10 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | no |
+| <a id="t-runs-sha"></a>runs-sha | requirement | DOC-10 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-runs-url"></a>runs-url | requirement | DOC-10 | FAIL | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
-| <a id="t-runs-partial"></a>runs-partial | requirement | DOC-10 | FAIL | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | no |
+| <a id="t-runs-partial"></a>runs-partial | requirement | DOC-10 | FAIL | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-runs-upgrade"></a>runs-upgrade | requirement | DOC-10 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-runs-keep"></a>runs-keep | requirement | DOC-10 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-issue-no-milestone-fails"></a>issue-no-milestone-fails | requirement | DOC-10 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
@@ -163,14 +163,14 @@
 | <a id="t-docs-milestone-line-issue-130"></a>docs-milestone-line-issue-130 | defect | [#130](https://github.com/jcl2018/agent-workflow-template/issues/130) state unknown | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-docs-locked-hint-issue-133"></a>docs-locked-hint-issue-133 | defect | [#133](https://github.com/jcl2018/agent-workflow-template/issues/133) state unknown | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-docs-merged-base-issue-156"></a>docs-merged-base-issue-156 | defect | [#156](https://github.com/jcl2018/agent-workflow-template/issues/156) state unknown | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
-| <a id="t-runs-same-day"></a>runs-same-day | requirement | DOC-10 | not run | - | local | no |
-| <a id="t-seal-sub-bullets"></a>seal-sub-bullets | requirement | DOC-2 | not run | - | local | no |
-| <a id="t-report-sub-bullets"></a>report-sub-bullets | requirement | DOC-2 | not run | - | local | no |
-| <a id="t-usage-empty-backticks"></a>usage-empty-backticks | requirement | DOC-6 | not run | - | local | no |
-| <a id="t-problem-plural"></a>problem-plural | requirement | DOC-8 | not run | - | local | no |
-| <a id="t-guide-marker-refused"></a>guide-marker-refused | requirement | DOC-1 | not run | - | local | no |
-| <a id="t-ci-issue-backlog"></a>ci-issue-backlog | requirement | DOC-10 | not run | - | local | no |
-| <a id="t-digest-backlog"></a>digest-backlog | requirement | DOC-10 | not run | - | local | no |
+| <a id="t-runs-same-day"></a>runs-same-day | requirement | DOC-10 | not run | - | local | 2026-11-10 |
+| <a id="t-seal-sub-bullets"></a>seal-sub-bullets | requirement | DOC-2 | not run | - | local | 2026-11-10 |
+| <a id="t-report-sub-bullets"></a>report-sub-bullets | requirement | DOC-2 | not run | - | local | 2026-11-10 |
+| <a id="t-usage-empty-backticks"></a>usage-empty-backticks | requirement | DOC-6 | not run | - | local | 2026-11-10 |
+| <a id="t-problem-plural"></a>problem-plural | requirement | DOC-8 | not run | - | local | 2026-11-10 |
+| <a id="t-guide-marker-refused"></a>guide-marker-refused | requirement | DOC-1 | not run | - | local | 2026-11-10 |
+| <a id="t-ci-issue-backlog"></a>ci-issue-backlog | requirement | DOC-10 | not run | - | local | 2026-11-10 |
+| <a id="t-digest-backlog"></a>digest-backlog | requirement | DOC-10 | not run | - | local | 2026-11-10 |
 
 ## Health
 
@@ -208,9 +208,9 @@
 | <a id="t-hlt6-removes-nothing"></a>hlt6-removes-nothing | requirement | HLT-6 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-hlt6-clean-quiet"></a>hlt6-clean-quiet | requirement | HLT-6 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-hlt6-never-filed"></a>hlt6-never-filed | requirement | HLT-6 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
-| <a id="t-health-not-enforced-warn"></a>health-not-enforced-warn | requirement | HLT-2 | not run | - | local | no |
-| <a id="t-health-not-enforced-fail"></a>health-not-enforced-fail | requirement | HLT-2 | not run | - | local | no |
-| <a id="t-health-unreviewed-warn-issue-118"></a>health-unreviewed-warn-issue-118 | defect | [#118](https://github.com/jcl2018/agent-workflow-template/issues/118) state unknown | not run | - | local | no |
+| <a id="t-health-not-enforced-warn"></a>health-not-enforced-warn | requirement | HLT-2 | not run | - | local | 2026-11-10 |
+| <a id="t-health-not-enforced-fail"></a>health-not-enforced-fail | requirement | HLT-2 | not run | - | local | 2026-11-10 |
+| <a id="t-health-unreviewed-warn-issue-118"></a>health-unreviewed-warn-issue-118 | defect | [#118](https://github.com/jcl2018/agent-workflow-template/issues/118) state unknown | not run | - | local | 2026-11-10 |
 
 ## Monitoring
 
