@@ -44,6 +44,7 @@ def results(top):
     if not os.path.isdir(REG):
         return
     sys.path.insert(0, REG)
+    sys.dont_write_bytecode = True  # importing them must not write a cache into the skill folder
     try:
         import lanes
         import runs
