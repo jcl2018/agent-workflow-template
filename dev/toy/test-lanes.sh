@@ -1,4 +1,7 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/goal.py
+# reads: skills/workflow-delivery/scripts/role.py skills/workflow-regression/scripts/regression.py
+# reads: skills/workflow-setup/scripts/setup.py skills/workflow-regression/scripts/lanes.py
 # Proves regression.py run --reuse: a goal's suite runs once, then later runs reuse it, rerun only the rows a change can
 # affect, and never reuse a failing or missing run. Then delivery's lanes: qa runs the lane before the qa skill (through
 # the flow file's test_record prefix), record refuses qa without it, and pr reruns only what a base merge affected.
@@ -41,7 +44,7 @@ printf 'b\tland\tbash dev/b.sh\tX-1\t2026-01-01\tB works.\tcriterion\t\n' >> .lo
 printf 'c\tnightly\techo c >> "$TOY_LOG"\tX-1\t2026-01-01\tC works.\tcriterion\t\n' >> .loop/regression.tsv
 git add -A; git commit -qm "Rows"; git push -q origin main
 
-if [ "$part" != delivery ]; then
+if [ "$part" = all ] || [ "$part" = regression ]; then
 echo "== the first run runs everything and records it"
 fresh; out=$($reg run land --reuse); rc=$?; echo "$out"
 check "first run is full (no record)" '[ $rc = 0 ] && grep -q "^FULL: no record" <<<"$out" && [ "$(ran)" = "a b " ]'
@@ -162,7 +165,7 @@ check "a detached HEAD is a full run and is not recorded" 'grep -q "^NOT RECORDE
 git switch -q main
 fi
 
-if [ "$part" != regression ]; then
+if [ "$part" = all ] || [ "$part" = delivery ]; then
 echo "== delivery: qa runs the lane before the qa skill, through the flow file's test_record"
 export LOOP_ROLE=worker TOY_RECEIPTS="$d/receipts"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"; F="python3 $here/skills/workflow-delivery/scripts/flow.py"
@@ -189,7 +192,7 @@ check "record refuses qa before the qa lane passed on HEAD" 'grep -q "the qa lan
 printf 'STEP: failed old\nSTEP: done\n' > "$d/q1"; printf 'PENDING: x\nSTEP: failed\n' > "$d/q2"
 out=$($goal record lg qa --file "$d/q1" 2>&1; $goal record lg qa --file "$d/q2" 2>&1)
 check "an earlier STEP: failed or a PENDING line never skips the qa lane" '[ "$(grep -c "(LANE_MISSING)" <<<"$out")" = 2 ]'
-check "the lane command resolves from the installed package, not the repo (no skills/ here)" '[ ! -e skills ] && grep -q "^python3 $here/skills/workflow-regression/scripts/regression.py run land --reuse$" <<<"$lane"'
+check "the lane command resolves from the installed package, not the repo (no skills folder here)" '[ ! -e skills ] && grep -q "^python3 $here/skills/workflow-regression/scripts/regression.py run land --reuse$" <<<"$lane"'
 out=$(step lg qa); echo "$out"
 check "qa runs the lane first: a full run on a branch with no record" 'grep -q "^LANE qa FULL \([0-9]*\)/\1 " <<<"$out" && grep -q "^FULL: no record" "$common/loop/runs/lg.qa-lane.txt"'
 check "the recorder got the exact lane command on the tested commit" 'grep -qF "commit=$(git rev-parse HEAD)	command=$lane" "$TOY_RECEIPTS"'

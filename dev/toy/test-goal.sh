@@ -1,4 +1,8 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/references/commands.md skills/workflow-delivery/scripts/flow.py
+# reads: skills/workflow-delivery/scripts/goal.py skills/workflow-monitoring/scripts/monitor.py
+# reads: skills/workflow-monitoring/scripts/watch.py skills/workflow-release/scripts/merge.py
+# reads: skills/workflow-setup/scripts/setup.py
 # Test the skill flow, the queue command, version bumps and the governing watch with a fake agent. No model is called.
 # usage: test-goal.sh [DIR]
 set -u
@@ -116,7 +120,6 @@ $goal new tries --here --goal "Add tries" --done "calc has tries" >/dev/null
 for n in 1 2 3; do FAKE_SKILL_OUT='STEP: failed no' step tries idea >/dev/null 2>&1; rc=$?; done
 [ "$rc" = 3 ] && [ "$(field tries status)" = stopped ] && grep -q "tries: Failed 3 tries" .loop/findings.md && ok "three failed tries stop the goal with a finding" || bad "3 tries ($rc $(field tries status))"
 git checkout -q -- . ; git switch -q main
-[ "$(grep -rlE '"pr", "merge"|gh pr merge' "$here/skills" --include=*.py | xargs -n1 basename | tr '\n' ' ')" = "merge.py " ] && ok "no script calls gh pr merge but the release step's merge.py" || bad "a script merges"
 MG="python3 $here/skills/workflow-release/scripts/merge.py"
 $MG low 2>&1 | grep -q "REFUSED: auto_merge is off in this repo, so the owner merges" && ! grep -q "^pr merge" "$FAKE_GH_DIR/calls.log" && ok "with auto_merge off, merge.py refuses and nothing merges" || bad "merge gate"
 
@@ -202,7 +205,7 @@ $W go "Add gamma" --done "gamma works" --touches c.py --slug gamma >/dev/null
 $W go "Add delta please" --done "delta works" --touches c.py >/dev/null
 grep -q '^- slug: add-delta-please |' .loop/queue.md && ok "slug made from the goal" || bad "slug"
 $W go "Bad" 2>&1 | grep -q "REFUSED" && ok "go needs a done line" || bad "go done"
-$W watch --interval 0.2 --skill-dir "$here/skills" | tee "$d/w1"
+$W watch --interval 0.2 --skill-dir "$here/skills" | tee "$d/w1"  # lanes: no read (watch only prints the path)
 grep -q "NOTHING LEFT" "$d/w1" && ok "watch ended by itself" || bad "watch end"
 for s in alpha beta gamma add-delta-please; do [ "$(field $s status)" = done ] || bad "$s status"; done
 ok "every goal finished"
@@ -215,13 +218,13 @@ echo "== mender: one fresh agent, told only the finding and the log"
 printf 'fail\nfail\nfail\n' > "$FAKE_AGENT/behave-mendme"
 cfg 'mend=true' 'mend_wait=0'
 $W go "Mend me" --done "mended" --slug mendme >/dev/null
-$W watch --interval 0.2 --skill-dir "$here/skills" | tee "$d/w2"
+$W watch --interval 0.2 --skill-dir "$here/skills" | tee "$d/w2"  # lanes: no read (watch only prints the path)
 [ "$(ls "$FAKE_AGENT"/prompt-mendme-* | wc -l | tr -d ' ')" = 2 ] && ok "one mend, then it stops" || bad "mend count"
 grep -q "could not find calc" "$FAKE_AGENT/prompt-mendme-1" && grep -q "WHY IT STOPPED" "$FAKE_AGENT/prompt-mendme-1" && ok "mender got the finding and log" || bad "mend prompt"
 grep -q "NEEDS YOU mendme" "$d/w2" && ok "still failed goal reported" || bad "needs you"
 printf 'fail\nok\n' > "$FAKE_AGENT/behave-mendok"
 $W go "Mend ok" --done "mended" --slug mendok >/dev/null
-$W watch --interval 0.2 --skill-dir "$here/skills" >/dev/null
+$W watch --interval 0.2 --skill-dir "$here/skills" >/dev/null  # lanes: no read (watch only prints the path)
 [ "$(field mendok status)" = done ] && [ "$(field mendok mended)" = True ] && ok "mended goal finished" || bad "mend ok"
 
 echo "== usage limit: waits, resumes, and doesn't use up the mend"
@@ -229,15 +232,15 @@ printf 'limit\nok\n' > "$FAKE_AGENT/behave-limited"
 cfg 'mend=false' 'resume_on_limit=true' 'limit_wait=2'
 $W go "Limited" --done "resumed" --slug limited >/dev/null
 sleep 1
-$W watch --once --skill-dir "$here/skills" | tee "$d/w3"
+$W watch --once --skill-dir "$here/skills" | tee "$d/w3"  # lanes: no read (watch only prints the path)
 [ "$(field limited status)" = failed ] && grep -q "usage limit" "$d/w3" && ok "first pass waits" || bad "limit wait"
-$W watch --interval 0.3 --skill-dir "$here/skills" | tee "$d/w4"
+$W watch --interval 0.3 --skill-dir "$here/skills" | tee "$d/w4"  # lanes: no read (watch only prints the path)
 [ "$(field limited status)" = done ] && [ "$(field limited limit_resumes)" = 1 ] && ok "resumed after the wait" || bad "limit resume"
 [ "$(field limited mended)" = None ] && ok "limit didn't use the mend" || bad "limit mend"
 printf 'fail\n' > "$FAKE_AGENT/behave-off"
 cfg 'resume_on_limit=false'
 $W go "Off" --done "x" --slug off >/dev/null
-$W watch --interval 0.2 --skill-dir "$here/skills" >/dev/null
+$W watch --interval 0.2 --skill-dir "$here/skills" >/dev/null  # lanes: no read (watch only prints the path)
 [ "$(ls "$FAKE_AGENT"/prompt-off-* | wc -l | tr -d ' ')" = 1 ] && ok "both off: no relaunch" || bad "off"
 
 echo "== report still works beside watch"

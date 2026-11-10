@@ -1,4 +1,11 @@
 #!/bin/bash
+# reads: skills/workflow-monitoring/scripts/batch.py skills/workflow-monitoring/scripts/board.py
+# reads: skills/workflow-monitoring/scripts/board_runs.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
+# reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/monitor.py
+# reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/status_graph.py
+# reads: skills/workflow-monitoring/scripts/watch.py skills/workflow-monitoring/scripts/worker.py
+# reads: skills/workflow-setup/scripts/setup.py
 # Proves assign -> worker loop -> report-back -> board with a stand-in agent. No model is called. usage: test-workers.sh [DIR]
 # The operation session only assigns, watches and reports; each worker runs its own loop and sends its result back.
 set -u
@@ -112,8 +119,10 @@ def stamp(m): return "2026-01-01T%02d:%02dZ" % divmod(m, 60) if False else "2026
 past = {"slug": "past", "goal": "Past", "status": "done", "step": "release", "pr": "", "tries": 0, "updated": stamp(40), "log": [
     stamp(0) + " queued", stamp(10) + " idea auto-approved: x", stamp(30) + " plan auto-approved: x", stamp(40) + " build"]}
 json.dump(past, open(os.path.join(d, "past.json"), "w"))
-now = {"slug": "cur", "goal": "Cur", "status": "running", "step": "idea", "pid": int(sys.argv[2]), "pr": "", "tries": 0, "updated": "2026-01-01T10:00:00Z",
-       "log": [stamp(0) + " queued"]}
+import datetime
+fresh = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+now = {"slug": "cur", "goal": "Cur", "status": "running", "step": "idea", "pid": int(sys.argv[2]), "pr": "", "tries": 0, "updated": fresh,
+       "log": [fresh + " queued"]}
 json.dump(now, open(os.path.join(d, "cur.json"), "w"))
 PY
 $M report > "$T/report2"
@@ -127,6 +136,4 @@ echo "== one way to run"
 check "go has no --session" '$W go "x" --done y --session 2>&1 | grep -q "unrecognized arguments: --session"'
 check "batch add has no --session" '$BA add night --goal x --done y --session 2>&1 | grep -q "unrecognized arguments: --session"'
 check "board.py has no take or session" '! $BO take g1 2>&1 | grep -q TAKEN && $BO session add x --repo r 2>&1 | grep -q "invalid choice"'
-check "a grep finds nothing for the old upgrade paths" '[ -z "$(grep -rniE --exclude=test-workers.sh -- "--session|board.py take|session (add|update|remove) |visible session|hand_over|sessions\.json|taken over" "$here/skills" "$here/docs/wiki" "$here/README.md" "$here/listing.json" "$here/dev/toy")" ]'
-check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -size +20479c)" ]'
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

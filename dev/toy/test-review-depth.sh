@@ -1,4 +1,7 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/goal.py
+# reads: skills/workflow-monitoring/scripts/live_board.py skills/workflow-setup/scripts/settings.py
+# reads: skills/workflow-setup/scripts/setup.py
 # Proves review_depth: full is the default, condensed runs only when set, every recorded step names its depth, private
 # full_markers are required of a full plan or review, and setup writes the setting with its explanation. No model is called.
 # usage: test-review-depth.sh [DIR]
@@ -147,6 +150,6 @@ import json, sys
 s = json.load(open(sys.argv[1])); s["status"] = "running"; s.pop("pr", None); json.dump(s, open(sys.argv[1], "w"))
 PY
 $LB > "$d/board"
-check "the live board shows each recorded step's depth and the setting" 'grep -q "^    depth: idea full, plan full, review full, qa full, ship full (setting full)$" "$d/board"'
+check "the live board shows each recorded step's depth and the setting" 'grep -A1 -x "    depth: idea full, plan full, review full, qa full, ship" "$d/board" | grep -qx "      full (setting full)"'
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

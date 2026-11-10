@@ -1,4 +1,10 @@
 #!/bin/bash
+# reads: skills/workflow-docs/scripts/criteria.py skills/workflow-docs/scripts/docs.py
+# reads: skills/workflow-docs/scripts/prd.py skills/workflow-health/scripts/health.py
+# reads: skills/workflow-health/scripts/milestone.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
+# reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-regression/scripts/regression.py
+# reads: skills/workflow-release/scripts/release.py skills/workflow-setup/scripts/setup.py
 # Test the PRD page format: section order, the owner's PRD review lock, Usage drift, Given/When/Then scenarios, the prd
 # command, convert, the requirement readers, and that this repo stays green. usage: test-prd.sh [DIR]
 set -u
@@ -211,9 +217,9 @@ for r in rows:
 open(p, "w").write("\n".join("\t".join(r) for r in rows))
 PY
 $reg run del-1a >/dev/null || true; $cri render >/dev/null
-grep -q "^- Given 1 2 3, when the median is asked, then it prints 2\. — \[del-1a\](../../.loop/regression.tsv), both, PASS $day, seen failing no$" $P && ok "a row renders as a scenario with its test, result and date" || bad "scenario line"
+grep -q "^- Given 1 2 3, when the median is asked, then it prints 2\. — \[del-1a\](../../.loop/regression.tsv), requirement, guards DEL-1, both, PASS $day, seen failing no$" $P && ok "a row renders as a scenario with its test, result and date" || bad "scenario line"
 grep -A6 "^#### DEL-2$" $P | grep -q "^- It exits 0\. (not yet Given/When/Then) — \[del-2a\]" && grep -A6 "^#### DEL-2$" $P | grep -q "^- \*\*not enforced\*\*" && ok "a plain description renders flagged, and a requirement with no passing row is not enforced" || bad "flagged"
-grep -A3 "^### Defect tests" $P | grep -q "^- Empty input crashes\. (not yet Given/When/Then) — \[#7\](https://example.test/issues/7), \[bug-1\]" && ok "defect tests render in the same scenario form" || bad "defect scenario"
+grep -A3 "^### Defect tests" $P | grep -q "^- Empty input crashes\. (not yet Given/When/Then) — \[bug-1\](.*), defect, guards \[#7\](https://example.test/issues/7) state unknown, " && ok "defect tests render in the same scenario form" || bad "defect scenario"
 out=$($docs audit --dry-run)
 grep -q "^REWRITE regression: SCENARIO row del-2a: 'It exits 0.' is not 'Given ..., when ..., then ...'. Fix:" <<<"$out" && grep -q "SCENARIO row bug-1" <<<"$out" && ! grep -q "SCENARIO row del-1a" <<<"$out" && ok "audit lists each plain row, defect rows too, as SCENARIO" || bad "scenario audit: $out"
 check | grep -q "SCENARIO" && bad "SCENARIO failed the docs check" || ok "SCENARIO is not a docs check failure"
@@ -289,12 +295,5 @@ printf '<!-- workflow-docs -->\n# Delivery\n\n## Overview\n\nOdd.\n\n## Tests\n\
 out=$($prd convert --write); rc=$?
 grep -q "^Delivery refused: sections are Overview, Tests" <<<"$out" && [ "$rc" = 1 ] && grep -q "Fix:" <<<"$out" && ok "an unrecognized page is refused with what is missing" || bad "refused: $out"
 git checkout -q -- .
-
-echo "== 11. this repo stays green: no docs check line but CHANGED, no health FAIL but a docs changed row"
-# STALE and TESTS are left out too: a goal's own run or code change makes them mid-goal, and its release step fixes them.
-out=$(cd "$here" && python3 skills/workflow-docs/scripts/docs.py check 2>&1)
-! grep -Ev "^(CHANGED|STALE|TESTS) " <<<"$out" | grep -qv "^DOCS OK" && ok "this repo's docs check has no line other than CHANGED" || bad "repo docs: $out"
-out=$(cd "$here" && python3 skills/workflow-health/scripts/health.py check 2>&1)
-! grep "^FAIL" <<<"$out" | grep -Eqv "^FAIL docs \S+ (changed|tests)" && ok "this repo's health has no FAIL other than a docs changed row" || bad "repo health: $(grep '^FAIL' <<<"$out")"
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

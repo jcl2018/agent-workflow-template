@@ -1,4 +1,6 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/goal.py skills/workflow-release/SKILL.md
+# reads: skills/workflow-release/scripts/release.py skills/workflow-setup/scripts/setup.py
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Test workflow-release on a throwaway toy repo with a fake gh. usage: test-release.sh [DIR]
 # env: AGENT_TEST=1 also runs a headless agent (MODEL, default haiku) that follows SKILL.md to ask and cut.
@@ -151,7 +153,7 @@ if [ -n "$AGENT_TEST" ]; then
   echo "== 5. headless agent follows SKILL.md"
   finish five
   prompt="Follow the skill at $here/skills/workflow-release/SKILL.md. Its script is $here/skills/workflow-release/scripts/release.py. The goal five in this repo is finished. Run the ask step. The human's answer is: cut five"
-  claude -p --model "${MODEL:-haiku}" --allowedTools "Bash,Read,Write,Edit" --add-dir "$here/skills" <<<"$prompt"
+  claude -p --model "${MODEL:-haiku}" --allowedTools "Bash,Read,Write,Edit" --add-dir "$here/skills" <<<"$prompt"  # lanes: no read (AGENT_TEST only, no row runs it)
   $rel show five
   grep -Eq "^release create v[0-9.]+ --draft .*--target loop/five$" "$FAKE_GH_DIR/calls.log" && ok "agent made a draft" || bad "agent cut"
 fi

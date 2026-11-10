@@ -1,37 +1,31 @@
 #!/usr/bin/env python3
 """Check a repo's health with fixed rules. Same repo, same answer. Read-only: it writes no file and calls no model.
 
-usage: health.py check [--json] [--family NAME]
-       health.py run [--live] [--family NAME]
+usage: health.py check [--json] [--group NAME] [--skip NAME]
+       health.py preview [--group NAME[,NAME]]
+       health.py file --group NAME[,NAME]
        health.py judge
 
-check prints a fixed template: HEALTH REPORT, each group (size, criteria, docs, hygiene, cost, Mine) with its lines, then
-the verdict. Mine runs the owner's own rules from ~/.workflow-loop/health.json (see mine.py); one that cannot run is UNREAD.
-judge (alias suggest) prints the check report, then a judge section of suggestions (see judge.py). check stays model-free
-and gives the same answer twice; the judge never changes the verdict or the exit code.
+check prints the formal report (report.py): the groups run and skipped, every rule of each group, then one verdict
+line, HEALTH: green or not green. Only FAIL and UNREAD (a rule that could not read its data) turn it red (exit 1).
+judge (alias suggest) adds a section of suggestions (judge.py) and never changes the verdict. --json prints the rows.
 
-One line per finding:  STATE family subject rule: detail -> fix: what to run
-STATE is PASS, WARN, FAIL, UNREAD (a rule could not read its data) or INFO. The last line is
-  HEALTH: green (...)  or  HEALTH: not green (...)
-Only FAIL and UNREAD turn it red, and the exit code is then 1. --json prints the same rows as records.
-
-Rules (at most MAX_RULES, asserted when the script loads; retire one before adding another):
+Rules (at most MAX_RULES; retire one before adding another):
   size      scripts under skills/*/scripts against 20 KB: WARN from 90%, FAIL over
-  criteria  composes regression.py sync: a criterion with no row FAILs, a draft or never-failed row FAILs,
-            done lines with no row WARN as one row; a closed issue or finding with no defect test FAILs (defects.py)
+  criteria  regression.py sync: a criterion with no row, or a draft or never-failed row, FAILs; done lines with
+            no row WARN; a closed issue or finding with no defect test FAILs (defects.py)
   docs      composes docs.py check: a stale page WARNs, any other gap FAILs
-  hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches nobody has checked out
-  cost      a finished goal over time_budget_minutes or token_budget in .loop/config.json WARNs, naming its slowest or
-            costliest steps (cost.py); no tokens recorded is UNREAD
+  hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches; lean.py: test time, stale
+            worktrees and local branches
+  cost      a finished goal over time_budget_minutes or token_budget WARNs (cost.py); no tokens is UNREAD
+  controls  each rule's negative control (controls.py) must fire; a rule with none makes health.py refuse (exit 2)
 
-run  files each WARN, FAIL or UNREAD row as one issue on the Backlog milestone, labelled health, found again by a
-hidden marker in its body: a repeat updates it, a fixed finding closes it, a returning one reopens it, and a moved
-issue stays where it was moved. With no --live, GH_TOKEN or GITHUB_TOKEN it prints WOULD lines and writes nothing.
-It runs git, gh and the two sibling scripts, and nothing else.
+preview lists what file would do, writing nothing; file --group NAME[,NAME] files those groups as issues (file.py).
 """
 import argparse
 import datetime
 import glob
+import importlib
 import json
 import os
 import re
@@ -47,11 +41,14 @@ LIMIT = 20 * 1024
 WARN_AT = LIMIT * 9 // 10
 FINDINGS_WARN = 5
 WAITING_HOURS = 24
-RULES = ("size", "criteria-rows", "criteria-done", "defect-tests", "docs-check", "findings", "waiting", "branches", "cost")
-MAX_RULES = 9  # raised from 8 on purpose, for cost
+RULES = ("size", "criteria-rows", "criteria-done", "defect-tests", "docs-check", "findings", "waiting", "branches", "cost",
+         "test-time", "worktrees", "local-branches")
+MAX_RULES = 12  # raised on purpose: 9 for cost, 12 for HLT-6
 assert len(RULES) <= MAX_RULES, "too many rules: retire one first"
-FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene", "cost": "cost", "mine": "mine"}
-ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine")  # the fixed order of the groups in the report
+FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene", "cost": "cost", "mine": "mine",
+          "controls": "controls"}
+ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine", "controls")  # the fixed order of the groups in the report
+NAMES = sorted(FAMILY) + ["performance"]  # performance is the Cost group's name in the report and its tag
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 
@@ -139,13 +136,9 @@ def docs_rows(root):
 
 
 def defect_rows(root):
-    sys.path.insert(0, HERE)
-    try:
-        import defects
-    except ImportError:
+    defects = sibling_module("defects")
+    if not defects:
         return [row("UNREAD", "criteria", "defects", "defect-tests", "defects.py is not installed beside health.py")]
-    finally:
-        sys.path.pop(0)
     return [row("FAIL", "criteria", ref, "defect-tests", "closed by %s with no defect test" % source,
                 "regression.py add --category defect --link ...") for ref, source in defects.missing(root)]
 
@@ -190,58 +183,77 @@ def hygiene_rows(root):
             if line.startswith("  ") and name.startswith("loop/"):
                 rows.append(row("WARN", "hygiene", name, "branch", "already merged into %s" % base,
                                 "worker.py cleanup"))
-    return rows or [row("PASS", "hygiene", "repo", "clean", "no stale findings, runs or merged branches")]
+    lean = sibling_module("lean")
+    return rows + (lean.rows(root) if lean else [row("UNREAD", "hygiene", "lean.py", r, "lean.py is missing") for r in RULES[-3:]])
 
 
-def line_of(item):
-    text = "%s %s %s %s: %s" % (item["state"], item["family"], item["subject"], item["rule"], item["detail"])
-    return text + (" -> fix: " + item["fix"] if item["fix"] else "")
+def sibling_module(name):
+    sys.path.insert(0, HERE)
+    try:
+        return importlib.import_module(name)
+    except ImportError:
+        return None
+    finally:
+        sys.path.pop(0)
+
+
+def rule_functions():
+    """Each rule -> the function its control calls."""
+    lean = sibling_module("lean")
+    groups = {"size": size_rows, "criteria-rows": criteria_rows, "criteria-done": criteria_rows, "defect-tests": defect_rows,
+              "docs-check": docs_rows, "findings": hygiene_rows, "waiting": hygiene_rows, "branches": hygiene_rows,
+              "cost": cost_rows}
+    if lean:
+        groups.update({"test-time": lean.test_rows, "worktrees": lean.worktree_rows, "local-branches": lean.branch_rows})
+    return {name: groups[name] for name in RULES if name in groups}
+
+
+def controls_rows(root):
+    controls = sibling_module("controls")
+    if controls is None:
+        return [row("UNREAD", "controls", "controls.py", "control", "controls.py is missing")]
+    return controls.run(rule_functions(), HERE)
 
 
 def mine_rows(root):
-    sys.path.insert(0, HERE)
-    try:
-        import mine
-    except ImportError:
-        return [row("UNREAD", "mine", "mine.py", "mine", "mine.py is not installed beside health.py")]
-    finally:
-        sys.path.pop(0)
-    return mine.mine_rows(root)
+    mine = sibling_module("mine")
+    return mine.mine_rows(root) if mine else [row("UNREAD", "mine", "mine.py", "mine", "mine.py is not installed beside health.py")]
 
 
 def cost_rows(root):
-    sys.path.insert(0, HERE)
-    try:
-        import cost
-    except ImportError:
-        return [row("UNREAD", "cost", "cost.py", "cost", "cost.py is not installed beside health.py")]
-    finally:
-        sys.path.pop(0)
-    return cost.cost_rows(root, HERE)
+    cost = sibling_module("cost")
+    return cost.cost_rows(root, HERE) if cost else [row("UNREAD", "cost", "cost.py", "cost", "cost.py is not installed beside health.py")]
 
 
 def gather(root, family):
     rules = {"size": size_rows, "criteria": lambda root: criteria_rows(root) + defect_rows(root), "docs": docs_rows, "hygiene": hygiene_rows,
-             "cost": cost_rows, "mine": mine_rows}
+             "cost": cost_rows, "mine": mine_rows, "controls": controls_rows}
     rows = []
-    for name in (family and [family] or ORDER):
+    for name in (family or ORDER):
         rows += rules[name](root)
     return rows
 
 
-def report(rows):
-    """The fixed template: a title, each group with its lines (state, subject, detail, fix), one verdict line."""
+def groups_of(text):
+    """Group names from a --group value (performance is cost), or None for all."""
+    names = [{"performance": "cost"}.get(n.strip(), n.strip()) for n in (text or "").split(",") if n.strip()]
+    bad = [n for n in names if n not in FAMILY]
+    if bad:
+        sys.exit("REFUSED: unknown group %s. Groups: %s." % (", ".join(bad), ", ".join(NAMES)))
+    return list(dict.fromkeys(names)) or None  # a repeated name (cost,performance) runs once
+
+
+def report(rows, asked=None):
+    """The formal report from report.py; a lone health.py prints the bare rows and a verdict."""
+    formal = sibling_module("report")
+    if formal:
+        built = formal.build(rows, asked)
+        return built[:4] + (built[6],)  # the rows the report shows, so --json rows agree with its counts
     counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
     green = not counts["FAIL"] and not counts["UNREAD"]
-    verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % (
-        "green" if green else "not green", counts["PASS"], counts["WARN"], counts["FAIL"], counts["UNREAD"])
-    out = ["HEALTH REPORT"]
-    for name in ORDER:
-        group = [item for item in rows if item["family"] == name]
-        if group:
-            out.append("== %s ==" % ("Mine" if name == "mine" else name))
-            out += [line_of(item) for item in group]
-    return out + [verdict], counts, green, verdict
+    verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % ("green" if green else "not green", *counts.values())
+    return (["HEALTH REPORT"] + ["%(state)s %(family)s %(subject)s %(rule)s: %(detail)s" % item for item in rows] + [verdict],
+            counts, green, verdict, rows)
 
 
 def repo_root():
@@ -253,30 +265,47 @@ def repo_root():
 
 def cmd_check(args):
     root = repo_root()
-    rows = gather(root, args.family)
-    text, counts, green, verdict = report(rows)
+    whole = asked = groups_of(args.group)
+    skipped = groups_of(args.skip) or []
+    asked = [name for name in (asked or ORDER) if name not in skipped] if skipped else asked
+    if asked == []:
+        print("REFUSED: --skip leaves no group to check")
+        return 2
+    text, counts, green, verdict, rows = report(gather(root, asked), asked)
     if args.json:
         print(json.dumps({"green": green, "counts": counts, "rows": rows, "verdict": verdict}, indent=2))
     else:
-        print("\n".join(text))
+        print("\n".join(with_tests(text, root) if whole is None else text))
     return 0 if green else 1
+
+
+def with_tests(text, root):
+    """The report with the test list just before its verdict, so the verdict stays the last line."""
+    last = len(text) - 1 if text and text[-1].startswith("HEALTH:") else len(text)
+    return text[:last] + tests_block(root) + text[last:]
+
+
+def tests_block(root):
+    """Every test in workflow-regression's one format, grouped by feature, before the verdict; read-only."""
+    script = sibling("workflow-regression", "tests.py")
+    done = run([sys.executable, script, "list", "--root", root], root) if script else None
+    if not done or done.returncode:
+        return ["", "TESTS", "NOTE: the test list is unavailable (%s)" % ("tests.py is not installed beside this skill" if not done
+                                                                 else (done.stderr.strip() or "no output")[:120]), ""]
+    return ["", "TESTS"] + done.stdout.rstrip("\n").splitlines() + [""]
 
 
 def cmd_judge(args):
     """The check report, then the judge section. The verdict and exit code are the check's, whatever the judge says."""
     root = repo_root()
     rows = gather(root, None)
-    text, _, green, _ = report(rows)
-    print("\n".join(text))
+    text, _, green, _, _ = report(rows)
+    print("\n".join(with_tests(text, root)))
     print()
-    sys.path.insert(0, HERE)
-    try:
-        import judge
-    except ImportError:
+    judge = sibling_module("judge")
+    if not judge:
         print("JUDGE UNAVAILABLE: judge.py is not installed beside health.py")
         return 0 if green else 1
-    finally:
-        sys.path.pop(0)
     try:
         answer, why = judge.ask(judge.gather(root, HERE, rows), root)
         found = judge.parse(answer)
@@ -289,76 +318,39 @@ def cmd_judge(args):
     return 0 if green else 1
 
 
-MARK = "<!-- loop-health %s -->"
-BACKLOG = "Backlog"
-
-
-def key_of(item):
-    return "%s:%s:%s" % (item["family"], item["subject"], item["rule"])
-
-
-def body_of(item):
-    return "%s\n\n%s\n\n%s\n" % (MARK % key_of(item), line_of(item),
-                                    "Filed by health.py run. Move it to a feature with milestone.py move.")
-
-
-def cmd_run(args):
-    root = repo_root()
-    live = bool(args.live or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
-    rows = gather(root, args.family)
-    found = [item for item in rows if item["state"] in ("WARN", "FAIL", "UNREAD") and item["family"] != "mine"]
-    got = run(["gh", "issue", "list", "--label", "health", "--state", "all", "--limit", "500", "--json",
-               "number,state,body"], root)
-    try:
-        issues = json.loads(got.stdout)
-    except ValueError:
-        issues = None
+def plan_for(root, asked, with_judge):
+    """(file module, acts, groups) for the groups asked, or exit when file.py or gh cannot be used."""
+    filing = sibling_module("file") or sys.exit("REFUSED: file.py is not installed beside health.py")
+    groups = asked or list(filing.DEFAULT)
+    rows = gather(root, None)
+    judged, extra = False, []
+    if with_judge and "cost" in groups:
+        extra, judged = filing.saves(root, HERE, rows)
+    issues, why = filing.held(root)
     if issues is None:
-        if live:
-            sys.exit("REFUSED: could not read the health issues: %s" % (got.stderr.strip() or "no answer")[:200])
-        print("NOTE: could not read the health issues, so every finding looks new")
-        issues = []
-    held = {}
-    for issue in sorted(issues, key=lambda one: one["number"]):
-        match = re.search(r"<!-- loop-health (\S+) -->", issue.get("body") or "")
-        if match:
-            held.setdefault(match.group(1), issue)
+        sys.exit("REFUSED: could not read the health issues: %s" % why)
+    return filing, filing.plan(rows, issues, groups, extra, judged), groups
 
-    def act(words, args_, number=0):
-        if live:
-            done = run(["gh"] + args_, root)
-            if done.returncode:
-                print("FAILED %s: %s" % (words, done.stderr.strip()[:160]))
-                return
-            print("DONE %s" % words)
-        else:
-            print("WOULD %s" % words)
 
-    if live and found:
-        run(["gh", "label", "create", "health", "--description", "Filed by health.py run", "--force"], root)
-    current = set()
-    for item in found:
-        key = key_of(item)
-        current.add(key)
-        title, body, issue = "health: %s %s %s" % (item["family"], item["subject"], item["rule"]), body_of(item), held.get(key)
-        if not issue:
-            act("create issue %r on %s" % (title, BACKLOG), ["issue", "create", "--title", title, "--body", body,
-                                                           "--label", "health", "--milestone", BACKLOG])
-            continue
-        number = str(issue["number"])
-        if issue["state"].upper() != "OPEN":
-            act("reopen #%s %s" % (number, key), ["issue", "reopen", number])
-        if (issue.get("body") or "") != body:
-            act("update #%s %s" % (number, key), ["issue", "edit", number, "--body", body])
-        elif issue["state"].upper() == "OPEN":
-            print("SAME #%s %s" % (number, key))
-    unread = {item["family"] for item in rows if item["state"] == "UNREAD"}
-    ran = {item["family"] for item in rows} - unread  # an issue closes only when its rule ran and read its data
-    for key, issue in sorted(held.items()):
-        if key not in current and key.split(":")[0] in ran and issue["state"].upper() == "OPEN":
-            number = str(issue["number"])
-            act("close #%s %s, no longer found" % (number, key),
-                ["issue", "close", number, "--comment", "No longer found by health.py run."])
+def cmd_preview(args):
+    """What file would do. Writes nothing; calls the judge only when performance is named."""
+    root = repo_root()
+    asked = groups_of(args.group)
+    if args.live:
+        print("NOTE: run and preview never write, even with --live. To write, run: health.py file --group NAME", file=sys.stderr)
+    filing, acts, _ = plan_for(root, asked, bool(asked))
+    count = filing.preview(acts)
+    print("PREVIEW: %d to write, nothing written. To write, run: health.py file --group %s" % (count, args.group or "NAME"))
+    return 0
+
+
+def cmd_file(args):
+    root = repo_root()
+    asked = groups_of(args.group)
+    if not asked:
+        sys.exit("REFUSED: file needs --group NAME[,NAME], one of %s. Run preview first." % ", ".join(NAMES))
+    filing, acts, groups = plan_for(root, asked, True)
+    filing.apply(acts, root, groups)
     return 0
 
 
@@ -367,18 +359,22 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
     item = sub.add_parser("check", help="run the fixed rules")
     item.add_argument("--json", action="store_true")
-    item.add_argument("--family", choices=sorted(FAMILY))
+    item.add_argument("--group", "--family", dest="group", help="one of: " + ", ".join(NAMES))
+    item.add_argument("--skip", default="", help="groups to leave out")
     item.set_defaults(func=cmd_check)
     for name in ("judge", "suggest"):
         item = sub.add_parser(name, help="the check report, then a judge section of suggestions")
         item.set_defaults(func=cmd_judge)
-    item = sub.add_parser("run", help="file findings as issues on the Backlog milestone")
-    item.add_argument("--live", action="store_true")
-    item.add_argument("--family", choices=sorted(FAMILY))
-    item.set_defaults(func=cmd_run)
+    for name, func in (("preview", cmd_preview), ("run", cmd_preview), ("file", cmd_file)):
+        item = sub.add_parser(name, help="file findings as issues by group" if name == "file" else "list what file would do")
+        item.add_argument("--group", "--family", dest="group", help="NAME[,NAME]: " + ", ".join(NAMES))
+        item.add_argument("--live", action="store_true", help=argparse.SUPPRESS)
+        item.set_defaults(func=func)
     args = parser.parse_args()
     return args.func(args)
 
 
 if __name__ == "__main__":
+    _controls = sibling_module("controls")
+    _controls and _controls.refuse(RULES)  # a new rule must come with its negative control (exit 2)
     sys.exit(main())

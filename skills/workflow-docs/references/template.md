@@ -38,7 +38,7 @@ optional `usage_section` goes between Problem and Requirements.
 - **Success metrics**: one to `metrics_lines` lines: how we know it works, each measurable.
 - **Tests**: made by `criteria.py render`, never by hand. For each requirement, a `#### ID` heading, its words, then
   one line per regression row linked to it: its `scenario` (the row's description), the row linked to
-  `.loop/regression.tsv`, when it runs, its last result and date, and when it was seen failing; `**not enforced**`
+  `.loop/regression.tsv`, its kind, what it guards, when it runs, its last result and date, and when it was seen failing; `**not enforced**`
   when no row passes. Defect tests (rows with category defect) follow under `### Defect tests` in the same form, with
   the issue or finding they keep fixed.
 
@@ -84,7 +84,7 @@ Owners of paid repos need cards charged once a month without a person in the loo
 
 A due card is charged once, and a failed charge is retried the next day.
 
-- Given a card due today, when billing runs twice, then it is charged once — [bil-once](../../.loop/regression.tsv), both, PASS 2026-11-08, seen failing 2026-11-07
+- Given a card due today, when billing runs twice, then it is charged once — [bil-once](../../.loop/regression.tsv), requirement, guards BIL-1, both, PASS 2026-11-08, seen failing 2026-11-07
 ```
 
 ## Required docs

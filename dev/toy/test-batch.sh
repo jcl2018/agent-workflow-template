@@ -1,4 +1,7 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/SKILL.md skills/workflow-monitoring/SKILL.md
+# reads: skills/workflow-monitoring/references/operation.md skills/workflow-monitoring/scripts/batch.py
+# reads: skills/workflow-monitoring/scripts/board.py skills/workflow-setup/scripts/setup.py
 # Proves batch.py with a stand-in agent. No model is called. usage: test-batch.sh [DIR]
 # The governing session only adds and starts; every goal runs in its own process, in its own worktree.
 set -u
@@ -71,7 +74,6 @@ echo "== text and sizes"
 for f in skills/workflow-monitoring/references/operation.md skills/workflow-monitoring/SKILL.md skills/workflow-delivery/SKILL.md; do
   check "$f says the operation session governs only" 'grep -qi "governance only" "$here/$f" && grep -qiE "runs neither|never runs" "$here/$f"'
 done
-check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -size +20480c)" ]'
 check "the test runs as a regression row" 'grep -q "test-batch.sh" "$here/.loop/regression.tsv"'
 page="$here/docs/wiki/Monitoring.md"
 for id in no-line-in-governor skill-says-governs; do

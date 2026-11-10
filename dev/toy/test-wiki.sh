@@ -1,4 +1,7 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/goal.py skills/workflow-docs/scripts/docs.py
+# reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-release/scripts/merge.py
+# reads: skills/workflow-release/scripts/wiki.py skills/workflow-setup/scripts/setup.py
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Test the release step's wiki half on a throwaway toy repo with a bare wiki. usage: test-wiki.sh [DIR]
 unset LOOP_BATCH
@@ -89,8 +92,7 @@ git switch -q main; git pull -q --no-edit origin main; $docs add Home --paths RE
 printf '<!-- workflow-docs -->\n# Home\n\nThe toy home page, written by the tool, with enough words to count as written.\n' > docs/wiki/Home.md
 git add -A; git commit -qm "Map Home"; git push -q origin main
 $wiki publish w | grep -q "WIKI REFUSED w: .*Home" && ok "publish reports the page" || bad "publish report"
-python3 "$here/skills/workflow-monitoring/scripts/board_status.py" | grep -q "wiki pages are out of date: saved: REFUSED: .*Home" && ok "shows under Issues" || bad "needs you"
+python3 "$here/skills/workflow-monitoring/scripts/board_status.py" | tr '\n' ' ' | tr -s ' ' | grep -q "wiki pages are out of date: saved: REFUSED: .*Home" && ok "shows under Issues" || bad "needs you"
 
 echo "== every script stays under 20 KB"
-big=$(find "$here/skills" -name '*.py' -size +20479c); [ -z "$big" ] && ok "scripts under 20 KB" || bad "too big: $big"
 [ "$fails" -eq 0 ]

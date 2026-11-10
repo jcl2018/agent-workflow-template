@@ -34,7 +34,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
-import lanes  # noqa: E402
+import actions, lanes  # noqa: E401,E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -44,6 +44,7 @@ if not sys.stdin or not sys.stdin.isatty():
 LEVELS = ("land", "nightly", "draft", "covered")
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$")
 FIELDS = ("id", "level", "command", "goal", "seen_red", "description", "category", "link")
+SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date; "", "-" or any other text is never seen failing
 HEADER = "# " + "\t".join(FIELDS) + "\n"
 CRON = "17 9 * * *"
 MARK = "<!-- loop-regression %s -->"
@@ -192,7 +193,7 @@ def cmd_sync(args):
     drafts = [row["id"] for row in rows.values() if row["level"] == "draft"]
     for key in drafts:
         print("DRAFT %s: not run until it has a command and level" % key)
-    never = [row["id"] for row in rows.values() if row["level"] in ("land", "nightly") and not row["seen_red"]]
+    never = [row["id"] for row in rows.values() if row["level"] in ("land", "nightly") and not SEEN.match(row["seen_red"])]
     for key in never:
         print("UNPROVEN %s: never seen failing. Run red." % key)
     bare = [row["id"] for row in rows.values() if row["level"] != "covered" and not row["description"]]
@@ -217,7 +218,8 @@ def cmd_criteria(_args):
         if not found:
             unmet.append("%s (no regression row)" % key)
         for row in found:
-            if row["level"] == "draft" or (row["level"] != "covered" and run(["sh", "-c", row["command"]], cwd=root).returncode):
+            if row["level"] == "draft" or (row["level"] != "covered" and subprocess.run(["sh", "-c", row["command"]], cwd=root,
+                                                                                   capture_output=True, env=actions.row_env()).returncode):
                 unmet.append("%s (row %s is a draft or failing)" % (key, row["id"]))
     print("\n".join(unmet))
     return 1 if unmet else 0
@@ -236,7 +238,7 @@ def cmd_red(args):
         broke = subprocess.run(args.break_it, shell=True, cwd=tree, capture_output=True, text=True)
         if broke.returncode:
             sys.exit("REFUSED: the break command failed: " + broke.stderr.strip()[:300])
-        done = subprocess.run(row["command"], shell=True, cwd=tree, capture_output=True, text=True,
+        done = subprocess.run(row["command"], shell=True, cwd=tree, capture_output=True, text=True, env=actions.row_env(),
                               timeout=args.timeout)
     finally:
         run(["git", "worktree", "remove", "--force", tree], cwd=root)
@@ -343,7 +345,7 @@ def cmd_run(args):
     for row in [r for r in picked if r["id"] in todo]:
         began = time.time()
         try:
-            done = subprocess.run(row["command"], shell=True, cwd=root, capture_output=True, text=True,
+            done = subprocess.run(row["command"], shell=True, cwd=root, capture_output=True, text=True, env=actions.row_env(),
                                   timeout=args.timeout)
             code, text = done.returncode, done.stdout + done.stderr
         except subprocess.TimeoutExpired:
@@ -376,7 +378,7 @@ def cmd_run(args):
         lanes.save(record, root, "regression.py run %s%s" % (args.target, " --reuse" if args.reuse else ""), results,
                    head, datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                    fresh=bool(args.reuse and why))
-    never = [row["id"] for row in picked if not row["seen_red"]]
+    never = [row["id"] for row in picked if not SEEN.match(row["seen_red"])]
     for key in never:
         print("UNPROVEN %s: never seen failing. Fix: python3 %s red %s --break \"<a command that breaks it>\"" % (
             key, os.path.abspath(__file__), key))
@@ -393,8 +395,6 @@ def cmd_run(args):
 
 
 def cmd_workflow(_args):
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import actions
     return actions.write(top(), CRON)
 
 
