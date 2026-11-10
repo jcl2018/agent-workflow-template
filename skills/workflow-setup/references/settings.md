@@ -19,7 +19,7 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `routines` | `[]` | Commands the release step runs on the base branch before it merges. |
 | `regression_cron` | `17 */4 * * *` | Five cron fields: when the regression routine runs in GitHub Actions; off turns it off. |
 | `health_cron` | `47 */4 * * *` | Five cron fields: when the health routine and its digest run in GitHub Actions; off turns it off. |
-| `judge_secret` | `ANTHROPIC_API_KEY` | The Actions secret holding the agent key; the scheduled judge runs only when it is set. |
+| `judge_env` | `ANTHROPIC_API_KEY` | The Actions secret holding the agent key; the scheduled judge runs only when it is set. |
 | `judge_setup` | `(empty)` | A command the scheduled health run uses to install judge_command's program, run only with the secret. |
 | `digest_owner` | `(empty)` | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). |
 | `review_depth` | `full` | full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run. |

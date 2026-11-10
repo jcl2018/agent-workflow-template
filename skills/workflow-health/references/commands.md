@@ -127,7 +127,7 @@ Proof: toy tests with a stand-in judge on a throwaway repo; no model is called i
 #### `automation.py`: `workflow`, `digest`
 
 `workflow` writes `.github/workflows/health.yml` from `.loop/config.json`: `health_cron` (five cron fields, or `off`,
-which keeps only the by-hand trigger) and `judge_secret` (a secret name, `^[A-Z_][A-Z0-9_]*$`; anything else is
+which keeps only the by-hand trigger) and `judge_env` (a secret name, `^[A-Z_][A-Z0-9_]*$`; anything else is
 refused). The run checks the routine first: `off` makes a scheduled run print `OFF:` and write nothing (a run started by hand
 still runs); a schedule unlike the config prints
 `SCHEDULE:` with the command that rewrites it; a checkout without the workflow-health skill prints `MISSING:` and fails,

@@ -6,7 +6,7 @@ usage: automation.py workflow            write .github/workflows/health.yml from
 
 The workflow checks the routine (health_cron "off" makes a run write nothing), runs health check into the run summary,
 files the groups a runner can read (size, criteria, docs) on the Backlog milestone as health:<group> issues, runs the judge only when
-the secret named by judge_secret is set, then posts the digest. Nothing in it pushes.
+the secret named by judge_env is set, then posts the digest. Nothing in it pushes.
 The digest lists what ran (regression's latest run, health's verdict), the new, still-open and fixed issues labelled
 regression or health since the last comment, and one request per open issue; it mentions digest_owner (default: the
 repo owner). Its state lives in the digest issue's body, so a rerun of the same run posts nothing twice. Outside Actions
@@ -129,13 +129,13 @@ def render(cron, secret):
 
 
 def settings(root):
-    """(health_cron, judge_secret) from the config, or a REFUSED exit when either can't be written into a workflow."""
+    """(health_cron, judge_env) from the config, or a REFUSED exit when either can't be written into a workflow."""
     cfg = config(root)
-    cron, secret = cfg.get("health_cron") or CRON, cfg.get("judge_secret") or KEY_NAME
+    cron, secret = cfg.get("health_cron") or CRON, cfg.get("judge_env") or KEY_NAME
     if cron != "off" and not (isinstance(cron, str) and re.fullmatch(r"[0-9A-Za-z*/,\- ]+", cron) and len(cron.split()) == 5):
         sys.exit("REFUSED: health_cron is not five cron fields or off. Fix: edit .loop/config.json.")
     if not re.match(r"^[A-Z_][A-Z0-9_]*$", secret):
-        sys.exit("REFUSED: judge_secret %r is not a secret name (capitals, digits, _). Fix: edit .loop/config.json." % secret)
+        sys.exit("REFUSED: judge_env %r is not a secret name (capitals, digits, _). Fix: edit .loop/config.json." % secret)
     return cron, secret
 
 

@@ -30,7 +30,7 @@
   "auto_merge": true,
   "regression_cron": "17 */4 * * *",
   "health_cron": "47 */4 * * *",
-  "judge_secret": "ANTHROPIC_API_KEY",
+  "judge_env": "ANTHROPIC_API_KEY",
   "judge_setup": "",
   "digest_owner": "",
   "routines": [],
