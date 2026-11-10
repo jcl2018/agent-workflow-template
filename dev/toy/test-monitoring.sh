@@ -11,6 +11,7 @@ set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 W="python3 $here/skills/workflow-monitoring/scripts/watch.py"
 M="python3 $here/skills/workflow-monitoring/scripts/monitor.py"
@@ -19,7 +20,7 @@ P="python3 $here/skills/workflow-monitoring/scripts/board_page.py"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh" HOME="$T/home" FAKE_AGENT="$T/fake"
 mkdir -p "$HOME" "$FAKE_AGENT"
-trap 'rm -f "$FAKE_AGENT"/hold-*' EXIT  # a held stand-in agent ends when its file goes
+toy_on_exit 'rm -f "$FAKE_AGENT"/hold-*'  # a held stand-in agent ends when its file goes
 fails=0
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }

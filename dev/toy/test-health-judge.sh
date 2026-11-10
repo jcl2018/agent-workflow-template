@@ -4,6 +4,7 @@
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1
 export LOOP_FLOW="$d/flow.json" LOOP_HEALTH="$d/none.json"
