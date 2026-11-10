@@ -136,13 +136,13 @@ good; grep -A4 '^#### DEL-1$' docs/wiki/Delivery.md | grep -q '^- \*\*not enforc
 $docs check | grep -q "DOCS OK" && ok "a rendered table passes" || bad "rendered table"
 $reg add del-1a --level land --command "true" --goal DEL-1 >/dev/null; $reg add del-1b --level land --command "false" --goal DEL-1 >/dev/null
 $cri render >/dev/null
-grep -q '^- .* — \[del-1a\](.*), both, not run, seen failing no$' docs/wiki/Delivery.md && grep -q '^- \*\*not enforced\*\*' docs/wiki/Delivery.md && ok "a test that never ran is not enforcing" || bad "not run"
+grep -q '^- .* — \[del-1a\](.*), requirement, guards DEL-1, both, not run, seen failing no$' docs/wiki/Delivery.md && grep -q '^- \*\*not enforced\*\*' docs/wiki/Delivery.md && ok "a test that never ran is not enforcing" || bad "not run"
 $reg run land >/dev/null || true
 grep -q "^del-1a	PASS	$day" .loop/regression-runs.tsv && grep -q "^del-1b	FAIL	$day" .loop/regression-runs.tsv && ok "a run records each row's status and date" || bad "ledger"
 $docs check | grep -q "^TESTS Delivery" && ok "a table behind the last run is stale" || bad "stale after run"
 $cri render --check | grep -q "^STALE" && ok "render --check names the stale page" || bad "render check"
 $cri render >/dev/null
-grep -q "^- .* — \[del-1a\](.*), both, PASS $day, seen failing no$" docs/wiki/Delivery.md && grep -q "^- .* — \[del-1b\](.*), both, FAIL $day, seen failing no$" docs/wiki/Delivery.md && ok "render shows status and date" || bad "render shows"
+grep -q "^- .* — \[del-1a\](.*), requirement, guards DEL-1, both, PASS $day, seen failing no$" docs/wiki/Delivery.md && grep -q "^- .* — \[del-1b\](.*), requirement, guards DEL-1, both, FAIL $day, seen failing no$" docs/wiki/Delivery.md && ok "render shows status and date" || bad "render shows"
 grep -q '^- \*\*not enforced' docs/wiki/Delivery.md && bad "one passing row still not enforced" || ok "one passing row is enough to be enforced"
 $reg add del-1a --level land --command "false" --goal DEL-1 >/dev/null; $reg run del-1a >/dev/null || true; $cri render >/dev/null
 grep -q '^- \*\*not enforced' docs/wiki/Delivery.md && ok "a criterion with no passing test shows as not enforced" || bad "all failing"
@@ -219,7 +219,7 @@ $reg add del-1c --level nightly --command "true" --goal DEL-1 --describe "Given 
 $reg red del-1c --break "true" >/dev/null || true
 printf 'del-1c\tnightly\ttrue\tDEL-1\t2026-01-02\tGiven a short list, when the median is asked, then it is printed.\n' > .loop/regression.tsv
 $reg run del-1c >/dev/null || true; $cri render >/dev/null
-grep -q "^- .* — \[del-1c\](../../.loop/regression.tsv), nightly, PASS $day, seen failing 2026-01-02$" docs/wiki/Delivery.md && ok "a scenario line carries the test, when it runs, its result and seen failing" || bad "scenario line fields"
+grep -q "^- .* — \[del-1c\](../../.loop/regression.tsv), requirement, guards DEL-1, nightly, PASS $day, seen failing 2026-01-02$" docs/wiki/Delivery.md && ok "a scenario line carries the test, when it runs, its result and seen failing" || bad "scenario line fields"
 grep -A4 "^#### DEL-1$" docs/wiki/Delivery.md | tr '\n' '~' | grep -q "^#### DEL-1~~The calculator prints a median.~~- Given a short list, when the median is asked, then it is printed. — \[del-1c\]" && ok "a row shows under its requirement as a Given/When/Then scenario" || bad "row shape"
 
 

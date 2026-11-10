@@ -233,7 +233,7 @@ Detail the skill's SKILL.md points to, kept word for word so no instruction is l
    no script names; ids are stable: take the next free id (`criteria PAGE` prints it), never reuse or renumber one;
 5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
 6. `## Tests`: written by `criteria.py render`, never by hand: under each requirement, one Given/When/Then scenario per
-   regression row with its test, when it runs, its last result and date and when it was seen failing; **not enforced**
+   regression row with its test, its kind, what it guards, when it runs, its last result and date and when it was seen failing; **not enforced**
    when no row passes; defect tests under `### Defect tests`.
 
 Lines: `SECTIONS` (wrong, extra or out-of-order sections, or text before the first one), `REVIEW`, `PROBLEM`,
