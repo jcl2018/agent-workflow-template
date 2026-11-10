@@ -23,6 +23,10 @@ def flag(name):
     return args[args.index(name) + 1] if name in args else None
 
 
+def flags(name):
+    return [args[i + 1] for i, a in enumerate(args) if a == name and i + 1 < len(args)]
+
+
 issues, miles = load("issues.json"), load("milestones.json")
 if args[0] == "api":
     if "-f" in args:
@@ -44,6 +48,7 @@ elif args[:2] == ["issue", "list"]:
 elif args[:2] == ["issue", "create"]:
     number = len(issues) + 1
     issues.append({"number": number, "title": flag("--title"), "body": flag("--body"), "state": "OPEN",
+                   "labels": [{"name": n} for n in flags("--label")],
                    "milestone": {"title": flag("--milestone")} if flag("--milestone") else None,
                    "createdAt": "2026-01-01T00:00:00Z"})
     save("issues.json", issues)
@@ -54,6 +59,7 @@ elif args[:2] in (["issue", "edit"], ["issue", "close"], ["issue", "reopen"], ["
             if args[1] == "edit":
                 if flag("--body") is not None:
                     i["body"] = flag("--body")
+                i.setdefault("labels", []).extend({"name": n} for n in flags("--add-label"))
                 if flag("--milestone"):
                     i["milestone"] = {"title": flag("--milestone")}
             elif args[1] != "comment":
