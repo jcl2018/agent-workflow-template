@@ -61,7 +61,7 @@ criteria-max-setting	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 criteria-no-scripts	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 cut-draft	PASS	2026-11-09	
 cut-needs-verify	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-defect-categories	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+defect-categories	PASS	2026-11-10	
 defect-flow-steps	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 defect-health	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 defect-known	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -235,7 +235,7 @@ prd-lock-four	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-new	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-nongoals-metrics	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-readers	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-prd-repo-green	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-repo-green	PASS	2026-11-10	
 prd-review-args	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-scenarios	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-section-order	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
