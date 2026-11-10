@@ -11,7 +11,7 @@ here=$(cd "$(dirname "$0")/../.." && pwd)
 cases=(); T=""
 while [ $# -gt 0 ]; do case "$1" in --dir) T=$2; shift 2;; *) cases+=("$1"); shift;; esac; done
 [ ${#cases[@]} -eq 0 ] && cases=(mon4 mon6 mon7 mon8 mon9 mon10 mon11 mon12 deps94 issues97 held111 slot112 state113 attempt114 held115 pool122 merged175)
-T=${T:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"; toy_on_exit 'rm -rf "$T"'
+T=${T:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"; [ -n "${KEEP:-}" ] || toy_on_exit 'rm -rf "$T"'
 S="$here/skills/workflow-monitoring/scripts"
 export HOME="$T/home" LOOP_BOARD_HEALTH=green PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh"; mkdir -p "$HOME"
 fails=0
@@ -66,7 +66,7 @@ case_mon4() {
 
 case_mon6() {
   fresh; cfg pool_size=2
-  git branch -q loop/gone; git worktree add -q "$L/worktrees/gone" loop/gone 2>/dev/null
+  git branch -q loop/gone origin/main; git worktree add -q "$L/worktrees/gone" loop/gone 2>/dev/null
   run gone 'status="running"' 'worker="session"' 'session={"id":"s1","name":"worker · gone"}' "worktree=\"$L/worktrees/gone\""
   pool '{"s1": {"name": "worker · gone", "slug": "gone", "state": "busy"}, "s2": {"name": "w2", "state": "free"}}'
   FAKE_GH_PR_STATE=MERGED python3 "$S/sessions.py" report gone --status merged --pr https://example.test/pull/1 >"$T/o6" 2>&1

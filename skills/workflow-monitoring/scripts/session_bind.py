@@ -66,8 +66,9 @@ def cmd_bind(g, args):
                 state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
             elif was in ("queued", "", None):
                 state.update(status="running", finding="", report=None)
+            new = (state.get("session") or {}).get("id") != args.id or was in ("failed", "stopped")  # a new worker: next attempt
             state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None, bound_at=g.now(),
-                         attempt=int(state.get("attempt") or 0) + 1)  # a report naming an older attempt is not applied (114)
+                         attempt=int(state.get("attempt") or 0) + (1 if new else 0))  # an older attempt's report is not applied (114)
             state.pop("held_at", None)
             found[args.id]["attempt"] = state["attempt"]
             g.save_pool(found)

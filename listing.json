@@ -101,7 +101,15 @@
     "skeleton",
     "summary",
     "issues",
-    "digest"
+    "digest",
+    "claim",
+    "pass",
+    "plan",
+    "since",
+    "return",
+    "need",
+    "decline",
+    "decide-text"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",

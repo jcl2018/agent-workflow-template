@@ -104,6 +104,21 @@ def is_operation(payload, common):
     return kind == "operation"
 
 
+def claim(payload, common):
+    """A session that runs `operate.py run` or `operate.py claim` (not a worker, not in a goal worktree) is the
+    operation session: its id from the hook's own input goes into operation.id, so no environment variable is needed."""
+    command = str((payload.get("tool_input") or {}).get("command") or "") if payload.get("tool_name") == "Bash" else ""
+    session, cwd = str(payload.get("session_id") or ""), os.path.realpath(str(payload.get("cwd") or ""))
+    if not re.search(r"operate\.py[\"']?\s+(run|claim)\b", command) or not reply_hook.SESSION.match(session):
+        return
+    if os.environ.get("LOOP_ROLE") == "worker" or cwd.startswith(os.path.join(common, "loop", "worktrees") + os.sep):
+        return
+    if session not in operation_ids(common):
+        with open(os.path.join(common, "loop", "operation.id"), "w") as handle:
+            handle.write(session + "\n")
+        log(common, "claimed %s from its operate.py call" % session)
+
+
 def log(common, text):
     try:
         with open(os.path.join(common, "loop", "govern-hook.log"), "a") as handle:
@@ -121,6 +136,7 @@ def decide(payload):
         return ""
     _, common, _ = where
     try:
+        claim(payload, common)
         if not is_operation(payload, common):
             return ""
         tool, given = payload.get("tool_name"), payload.get("tool_input") or {}

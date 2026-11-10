@@ -9,13 +9,11 @@ usage: sessions.py <command> [options]
                             (ASSIGNED: the board shows it freezing), after goal.py new it binds (BOUND). --force: rebind
                             a session freed from the goal. Prints the WORKER command and the WORKTREE (session_bind.py)
   free SLUG                 give back a stopped session's goal and slot (FREED, NOTHING TO FREE)
-  report SLUG [--step S] [--status running|waiting|merged|failed] [--pr URL] [--ask Q --words W... [--recommend W]
-              [--kind routine|destructive|money|security|owner]] [--attempt N] [--text T]
-                            record a worker's session message: each step change, and its result when the goal ends.
-                            merged is checked with gh; waiting with --ask is a question for the owner, without it the
-                            goal ended with its pull request waiting (auto.py may answer a routine one). A goal that ended
-                            returns its session to the pool (pool.py). Done is final: a later report is only recorded
-                            (KEPT), but a merged one still frees the session.
+  report SLUG [--step S] [--status running|waiting|merged|failed] [--pr URL] [--ask Q --words W... --recommend W
+              --kind K] [--attempt N] [--text T]
+                            a worker's step or result. waiting with --ask is a question (auto.py may answer a routine
+                            one); without it the pull request waits. merged is checked with gh. An ended goal's session
+                            goes back to the pool (pool.py). Done is final (KEPT), but merged still frees the session.
   send SLUG TEXT            send a worker session the owner's answer or a follow-up (operate.py send does this)
   list                      the sessions this repo knows, with their goals
 
@@ -37,6 +35,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.modules.setdefault("sessions", sys.modules[__name__])  # run as a script, pool.py's import finds this same module
 import graph  # noqa: E402
 import session_bind  # noqa: E402
 from session_tool import HUNG, LAST_ERROR, call, tool  # noqa: E402  (watch.py clears sessions.HUNG)
@@ -98,7 +97,7 @@ def pool():
     found, why = graph.read_pool(pool_path())
     if found is None:
         raise PoolUnreadable(why)
-    __import__("pool").quarantine()  # a malformed entry is set aside, not a block (issue 122)
+    pool_module().quarantine()  # a malformed entry is set aside, not a block (issue 122)
     return found
 
 
@@ -127,6 +126,11 @@ def save(state, note):
     state.setdefault("log", []).append("%s %s" % (state["updated"], note))
     write(os.path.join(base(), "runs", state["slug"] + ".json"), state)
     print("%s %s: %s" % (state["updated"], state["slug"], note))
+
+
+def pool_module():
+    import pool as found  # pool.py imports this module back, so only when first needed
+    return found
 
 
 def name_of(slug):
@@ -293,7 +297,7 @@ def release_step(state):
 def cmd_report(args):
     state = held(args.slug)
     said = args.status
-    if __import__("pool").stale(state, args):  # a late report from an old worker is only recorded (issue 114)
+    if pool_module().stale(state, args):  # a late report from an old worker is only recorded (issue 114)
         return 0
     if state.get("status") == "done" and (said in ("", "running", "failed") or (said == "waiting" and args.ask) or graph.merged(state)):
         # done is final (issue 108): record the report only; status, step, report (the merge evidence), finding stay
@@ -303,7 +307,7 @@ def cmd_report(args):
         save(state, "session report kept (done is final): " + text)
         print("KEPT done for %s: report recorded, status %s not applied (done is final)." % (args.slug, said or "(none)"))
         if said == "merged":  # a merged report always frees the session (issue 175, MON-6)
-            print("\n".join(__import__("pool").return_session(args.slug, merged=True)) or "NOTHING TO FREE")
+            print("\n".join(pool_module().return_session(args.slug, merged=True)) or "NOTHING TO FREE")
         return 0
     if said in ("merged", "failed") or (said == "waiting" and not args.ask):
         pool()  # a goal that ends frees its session: check the pool can be written before any change
@@ -339,7 +343,7 @@ def cmd_report(args):
     save(state, "session report: " + text)  # saved first: a pool that breaks now can't lose a merged result
     if ended:
         try:
-            print("\n".join(__import__("pool").return_session(args.slug, merged=said == "merged")))
+            print("\n".join(pool_module().return_session(args.slug, merged=said == "merged")))
         except PoolUnreadable as error:
             sys.exit("SAVED %s as %s, but its session wasn't freed: the session pool can't be read (%s). Fix: repair "
                      "the pool, then run sessions.py free %s." % (args.slug, state.get("status"), error, args.slug))

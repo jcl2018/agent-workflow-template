@@ -12,6 +12,7 @@ import concurrent.futures
 import json
 import os
 import subprocess
+import sys
 import time
 
 TTL = int(os.environ.get("LOOP_PR_TTL", "60"))
@@ -75,6 +76,45 @@ def lookup(urls, root):
         if path:
             save(path, cache)
     return out
+
+
+HEALTH_TTL = int(os.environ.get("LOOP_HEALTH_TTL", "900"))
+REFRESH = r"""
+import json, os, re, subprocess, sys, time
+script, path = sys.argv[1], sys.argv[2]
+try:
+    out = subprocess.run([sys.executable, script, "check"], capture_output=True, text=True, timeout=600).stdout
+    got = re.search(r"^HEALTH: (not green|green)", out, re.M)
+    tmp = path + ".%d.tmp" % os.getpid()
+    json.dump({"verdict": got.group(1) if got else "unknown", "at": time.time()}, open(tmp, "w"))
+    os.replace(tmp, path)
+finally:
+    try:
+        os.remove(path + ".lock")
+    except OSError:
+        pass
+"""
+
+
+def health(root, script):
+    """workflow-health's last verdict with its age ("green, 2h ago"), never run inline: the board stays fast. A verdict
+    older than HEALTH_TTL starts one detached refresh (a lock file keeps it to one); none yet reads "unknown (checking)"."""
+    path = cache_path(root).replace("pr-states.json", "health-verdict.json")
+    if not path:
+        return "unknown"
+    found = load(path)
+    age = time.time() - float(found.get("at") or 0)
+    if age > HEALTH_TTL and os.path.exists(script):
+        try:
+            os.close(os.open(path + ".lock", os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+            subprocess.Popen([sys.executable, "-c", REFRESH, script, path], cwd=root, stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        except OSError:  # a refresh is already running (or can't start): show what we have
+            pass
+    if not found.get("verdict"):
+        return "unknown (checking)"
+    minutes = int(age // 60)
+    return "%s, %s ago" % (found["verdict"], "%dm" % minutes if minutes < 120 else "%dh" % (minutes // 60))
 
 
 def states(runs, root, merged=lambda run: False):

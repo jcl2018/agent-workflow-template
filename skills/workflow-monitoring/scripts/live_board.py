@@ -53,12 +53,7 @@ def plain(text, size=200):
 def health(root):
     if os.environ.get("LOOP_BOARD_HEALTH"):
         return os.environ["LOOP_BOARD_HEALTH"]
-    try:
-        done = subprocess.run([sys.executable, HEALTH, "check"], cwd=root, capture_output=True, text=True, timeout=30)
-    except (OSError, subprocess.SubprocessError):
-        return "unknown"
-    found = re.search(r"^HEALTH: (not green|green)", done.stdout, re.M)
-    return found.group(1) if found else "unknown"
+    return prs.health(root, HEALTH)  # the last verdict with its age; a stale one is refreshed in the background (MON-9)
 
 
 def version(root):
@@ -301,7 +296,7 @@ def render(root=None, at=None):
                 "    next: the worker freezes it (goal.py new %s --here in its worktree), binds again, then idea%s"
                 % (entry["slug"], " (assigned %s ago)" % ago if ago else "")]
     out += ([] if running or freezing else ["- (none)"])
-    out += ["    " + __import__("pool").board_line(pool, root)] if pool is not None else []
+    out += [pool_line(pool, root)] if pool is not None else []
     out += ["", "Queued goals"]
     for run in held:
         tree = run.get("worktree") and os.path.isdir(run["worktree"])
@@ -322,6 +317,11 @@ def render(root=None, at=None):
     finish = "nothing left" if not items else "no estimate yet" if not seconds else "%sfinish about %s" % (
         "at least " if missing else "", graph.clock(at + datetime.timedelta(seconds=seconds)))
     return fit(out + ["", "Finish", issue_lines.paused(live) or finish])
+
+
+def pool_line(found, root):
+    import pool as pl  # pool.py imports sessions.py; only the board's pool line needs it
+    return "    " + pl.board_line(found, root)
 
 
 def fragment(lines):
