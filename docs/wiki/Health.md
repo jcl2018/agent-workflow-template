@@ -56,7 +56,7 @@ The rules. Health checks exactly these rules: Size (every script stays under 20 
 - Given a criterion with no test row, when health runs, then it is a FAIL. — [no-row-fail](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a closed issue or finding with no defect test, when health runs, then it is flagged. — [defect-health](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a goal over its time budget, when health runs, then it is a Cost warning naming its slowest steps. — [cost-time-warn](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given no tokens recorded, when the Cost rule runs, then it prints UNREAD. — [cost-unread-tokens](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given no tokens recorded, when the Performance rule runs, then it prints INFO and leaves the token check out, never red. — [cost-unread-tokens](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-08
 
 #### HLT-3
 
@@ -70,7 +70,7 @@ Formal report. Health prints one formal report: a header listing every rule grou
 Findings become tagged issues, under my control. Each finding can be filed as one GitHub issue on the Backlog milestone, tagged with its group: health:size, health:criteria, health:docs, health:hygiene, health:performance (the Cost rule and the judge's savings), health:mine. A preview first lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups to file. A repeat updates its issue, a fix closes it, a return reopens it.
 
 - Given no token and no --live flag, when health previews its findings, then it prints only WOULD lines and writes nothing. — [no-token-would](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given an existing health issue, when a later health run happens, then it updates that issue and opens no other. — [update-in-place](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given an existing health issue moved to another milestone, when a later health run happens, then it updates that issue onto its finding's feature milestone and opens no other. — [update-in-place](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a finding with an open issue, when the finding is fixed, then its issue is closed. — [fixed-closes](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a finding with an open issue, when the finding repeats, then no second issue is opened. — [repeat-no-second](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a rule that could not be read, when health runs, then none of its issues are closed. — [unread-closes-none](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07

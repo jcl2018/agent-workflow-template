@@ -46,7 +46,7 @@ jobs:
       - name: Health check
         if: steps.routine.outputs.on == 'true'
         run: |
-          python3 skills/workflow-health/scripts/health.py check --group size,criteria,docs > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
+          python3 skills/workflow-health/scripts/health.py check --group requirements,traceability,consistency,docs,freshness,tests,security,size,adoption > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
           { echo "## Health"; echo; echo '```'; cat "$RUNNER_TEMP/health-report.txt"; echo '```'; echo
             echo "Not run here: performance (the Cost rule), Mine and hygiene read this machine's run records, branches and private files, which a runner doesn't have."
           } >> "$GITHUB_STEP_SUMMARY"
@@ -56,7 +56,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 skills/workflow-health/scripts/milestone.py new backlog --live  # findings are filed on Backlog; it may not exist yet
-          python3 skills/workflow-health/scripts/health.py file --group size,criteria,docs
+          python3 skills/workflow-health/scripts/health.py file --group requirements,traceability,consistency,docs,freshness,tests,security,size,adoption
       - name: Judge, only with the agent key secret
         if: always() && steps.routine.outputs.on == 'true'
         env:

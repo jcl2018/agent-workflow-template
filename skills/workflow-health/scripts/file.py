@@ -161,7 +161,9 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
             continue
         if closed:
             out.append(dict(act, kind="reopen"))
-        if (issue.get("body") or "") != act["body"] or act["tag"] not in (issue.get("labels") or []) or issue.get("milestone") != stone:
+        if issue.get("milestone") not in (None, BACKLOG, stone):  # the owner moved it: it stays there
+            act["milestone"] = issue["milestone"]
+        if (issue.get("body") or "") != act["body"] or act["tag"] not in (issue.get("labels") or []) or issue.get("milestone") != act["milestone"]:
             out.append(dict(act, kind="update"))
         elif not closed:
             out.append(dict(act, kind="same"))

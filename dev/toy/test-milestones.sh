@@ -57,14 +57,14 @@ git switch -q main
 mkdir -p skills/x/scripts; python3 -c "print('# pad\n' * 3400)" > skills/x/scripts/near.py
 git add -A; git commit -qm "A near-limit script"
 out=$($health preview --group size); echo "$out"
-grep -q "^WOULD open issue 'health: size skills/x/scripts/near.py limit' on Backlog \[health:size\]" <<<"$out" && [ ! -f "$FAKE_GH_DIR/issues.json" ] \
+grep -q "^WOULD open issue 'health: size skills/x/scripts/near.py scripts' on Backlog \[health:size\]" <<<"$out" && [ ! -f "$FAKE_GH_DIR/issues.json" ] \
   && ok "preview: only WOULD lines, nothing written" || bad "run dry"
 out=$($health file --group size); echo "$out"
 python3 - <<'PYEND' && ok "file: one issue on Backlog, labelled, with the hidden marker" || bad "issue created"
-import json, os
+import json, os, re
 issues = json.load(open(os.environ["FAKE_GH_DIR"] + "/issues.json"))
 assert len(issues) == 1 and issues[0]["milestone"]["title"] == "Backlog"
-assert "<!-- loop-health size:skills/x/scripts/near.py:limit -->" in issues[0]["body"]
+assert re.search(r"<!-- loop-health size:skills/x/scripts/near.py:scripts evidence=[0-9a-f]{8} -->", issues[0]["body"])
 PYEND
 grep -q -e "--label health --label health:size --milestone Backlog" "$FAKE_GH_DIR/calls.log" && ok "labelled health and health:size" || bad "label"
 out=$($health file --group size); echo "$out"
@@ -72,21 +72,33 @@ grep -q "^SAME #1" <<<"$out" && [ "$(python3 -c "import json,os;print(len(json.l
 python3 -c "print('# pad\n' * 3500)" > skills/x/scripts/near.py; git commit -qam "Bigger"
 out=$($health file --group size); echo "$out"
 grep -q "^DONE update #1" <<<"$out" && ok "a changed finding updates its issue" || bad "update"
+python3 - <<'PYEND'
+import json, os, re
+p = os.environ["FAKE_GH_DIR"] + "/issues.json"; issues = json.load(open(p))
+issues[0]["body"] = re.sub(r"<!-- loop-health \S+ evidence=\w+ -->", "<!-- loop-health size:skills/x/scripts/near.py:limit -->", issues[0]["body"])
+json.dump(issues, open(p, "w"))
+PYEND
+out=$($health file --group size); echo "$out"
+python3 - <<'PYEND' && grep -q "^DONE update #1 size:skills/x/scripts/near.py:scripts" <<<"$out" && ! grep -q "^DONE \(open\|close\)" <<<"$out" && ok "an old size:...:limit marker is moved to the new key, not closed or duplicated" || bad "marker migrate"
+import json, os
+issues = json.load(open(os.environ["FAKE_GH_DIR"] + "/issues.json"))
+assert len(issues) == 1 and issues[0]["state"] == "OPEN" and "size:skills/x/scripts/near.py:scripts evidence=" in issues[0]["body"], issues
+PYEND
 
 echo "== moved issues stay moved"
 $ms move 1 calc --live | grep -q "^MOVED issue 1 to milestone Calc" && ok "move puts the issue in the feature's milestone" || bad "move"
 python3 -c "print('# pad\n' * 3600)" > skills/x/scripts/near.py; git commit -qam "Bigger again"
 out=$($health file --group size); echo "$out"
-python3 - <<'PYEND' && ok "a later run updates the issue where it is, and opens no other" || bad "moved"
+python3 - <<'PYEND' && ok "a later run updates the issue where the owner moved it, and opens no other" || bad "moved"
 import json, os
 issues = json.load(open(os.environ["FAKE_GH_DIR"] + "/issues.json"))
-assert len(issues) == 1 and issues[0]["milestone"]["title"] == "Calc" and "%d bytes" in "%d bytes", issues
+assert len(issues) == 1 and issues[0]["milestone"]["title"] == "Calc", issues
 PYEND
 
 echo "== fixed closes, returning reopens"
 git rm -q skills/x/scripts/near.py; git commit -qm "Remove it"
 out=$($health file --group size); echo "$out"
-grep -q "^DONE close #1 size:skills/x/scripts/near.py:limit" <<<"$out" && grep -q '"state": "CLOSED"' "$FAKE_GH_DIR/issues.json" && ok "a fixed finding closes its issue" || bad "close"
+grep -q "^DONE close #1 size:skills/x/scripts/near.py:scripts" <<<"$out" && grep -q '"state": "CLOSED"' "$FAKE_GH_DIR/issues.json" && ok "a fixed finding closes its issue" || bad "close"
 mkdir -p skills/x/scripts; python3 -c "print('# pad\n' * 3600)" > skills/x/scripts/near.py; git add -A; git commit -qm "Back again"
 out=$($health file --group size); echo "$out"
 grep -q "^DONE reopen #1" <<<"$out" && grep -q '"state": "OPEN"' "$FAKE_GH_DIR/issues.json" && [ "$(python3 -c "import json,os;print(len(json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json'))))")" = 1 ] \
@@ -102,7 +114,12 @@ $health file --group size >/dev/null
 still=$(python3 -c "import json,os;print(sorted(i['number'] for i in json.load(open(os.environ['FAKE_GH_DIR']+'/issues.json')) if i['state']=='OPEN' and 'size:' not in i['body']))")
 [ "$still" = "$open_other" ] && grep -q '"number": 1, .*"state": "CLOSED"' "$FAKE_GH_DIR/issues.json" && ok "file --group size closed only the size issue" || bad "family close: $still"
 lone=$(mktemp -d); cp "$here/skills/workflow-health/scripts/health.py" "$lone/"
-python3 "$lone/health.py" file --group size,criteria,docs 2>&1 | grep -q "^REFUSED: file.py is not installed" && ok "a lone health.py refuses to file" || bad "lone file"
+n=$(wc -l < "$FAKE_GH_DIR/calls.log")
+python3 "$lone/health.py" file --group size,criteria,docs >/dev/null 2>&1; rc=$?
+[ $rc = 2 ] && [ "$(wc -l < "$FAKE_GH_DIR/calls.log")" = "$n" ] && ok "a lone health.py has no file command and calls no gh" || bad "lone file"
+nofile=$(mktemp -d); cp -R "$here/skills/workflow-health/scripts/." "$nofile/"; rm -f "$nofile/file.py"
+out=$(python3 "$nofile/health.py" file --group size,criteria,docs 2>&1); rc=$?
+grep -q "^REFUSED\[file\]: file.py is not installed" <<<"$out" && [ $rc = 2 ] && [ "$(wc -l < "$FAKE_GH_DIR/calls.log")" = "$n" ] && ok "health.py without file.py refuses to file, writes nothing" || bad "no file.py"
 # Value: protects=a group whose rule cannot read its data closes none of its issues on file; fails_when=plan() stops
 #   taking unread groups out of the ones that ran; why_new=the lone health.py above now refuses before plan(), so it no
 #   longer reaches the guard; seam=none; no_claim=real GitHub issue state (fake gh; toy repo)

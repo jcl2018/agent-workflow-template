@@ -7,6 +7,9 @@ import json
 import os
 import subprocess
 
+# No terminal, no waiting: a prompt from git must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
 
 def since(root):
     try:

@@ -1,6 +1,6 @@
 """health.py's commands other than check: review, judge, preview, file and triage. Each takes the health module (h).
 
-Refusals print REFUSED[code] and exit 2: [group] an unknown group, [file] file with no group, [gh] the issues can't be
+Refusals print REFUSED[code] and exit 2: [file] file with no group, [gh] the issues can't be
 listed (nothing is written), [review] a --review FILE that isn't a saved review --json, [why] and [cap] from triage.
 """
 import json

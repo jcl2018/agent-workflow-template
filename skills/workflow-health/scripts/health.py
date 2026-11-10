@@ -248,6 +248,7 @@ def gather(root, family, ran_rules=None):
     """The rows of the groups asked (all when None), each rule function run once. A function that raises gives UNREAD
     rows for its rules; ran_rules (a set) collects the rules whose function ran."""
     asked = family or ORDER
+    T0[0] = T0[0] or time.time()  # check-time measures every command that gathers (check, judge, preview, file)
     funcs, done, rows = rule_functions(), {}, []
     for name in asked:
         if name == "mine":
@@ -266,7 +267,8 @@ def gather(root, family, ran_rules=None):
                     done[fn] = [placed(item) for item in fn(root)]
                 except Exception as error:  # a broken rule is unread, never a pass
                     done[fn] = [row("UNREAD", name, rule, rule, "%s: %s" % (type(error).__name__, str(error)[:100]))]
-            if ran_rules is not None and not any(i["state"] == "UNREAD" and i["rule"] == rule for i in done[fn]):
+            if ran_rules is not None and not any(i["state"] == "UNREAD" and (G.rule_of(i) if hasattr(G, "rule_of") else i["rule"]) == rule
+                                                 for i in done[fn]):
                 ran_rules.add(rule)
     for got in done.values():
         rows += [item for item in got if item["family"] in asked]

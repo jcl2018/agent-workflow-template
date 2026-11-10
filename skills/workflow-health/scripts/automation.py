@@ -5,7 +5,7 @@ usage: automation.py workflow            write .github/workflows/health.yml from
        automation.py digest [--owner L]  post this round's comment on the pinned Automation digest issue
 
 The workflow checks the routine (health_cron "off" makes a run write nothing), runs health check into the run summary,
-files the groups a runner can read (size, criteria, docs) on the Backlog milestone as health:<group> issues, runs the judge only when
+files the groups a runner can read (GROUPS below) on each finding's feature milestone as health:<group> issues, runs the judge only when
 the secret named by judge_env is set, then posts the digest. Nothing in it pushes.
 The digest lists what ran (regression's latest run, health's verdict), the new, still-open and fixed issues labelled
 regression or health since the last comment, and one request per open issue; it mentions digest_owner (default: the
@@ -27,7 +27,8 @@ if not sys.stdin or not sys.stdin.isatty():
 
 CRON = "47 */4 * * *"
 KEY_NAME = "ANTHROPIC_API_KEY"  # the name of the Actions secret, not a secret
-GROUPS = "size,criteria,docs"  # what a runner can read: cost, Mine and two hygiene checks need this machine's run records
+GROUPS = "requirements,traceability,consistency,docs,freshness,tests,security,size,adoption"  # what a runner can read:
+# performance, hygiene and Mine need this machine's run records, worktrees and private settings
 LABELS = ("regression", "health")  # the issues the digest follows: failing tests and health findings
 TITLE = "Automation digest"
 STATE = re.compile(r"<!-- automation-digest open=([\d,]*) run=(\S*) -->")

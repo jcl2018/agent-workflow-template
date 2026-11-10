@@ -23,7 +23,8 @@ field() { python3 -c "import json,sys;d=json.load(sys.stdin);print([r for r in d
 
 echo "== negative controls"
 out=$($health check --group controls); echo "$out"
-[ "$(grep -c '^PASS controls .* control: fires on its fixture' <<<"$out")" = 12 ] && ok "every rule's control fires" || bad "controls fire"
+n=$(cd "$S" && python3 -c "import groups; print(len(groups.RULES))")
+[ "$n" -ge 35 ] && [ "$(grep -c '^PASS controls .* control: fires on its fixture' <<<"$out")" = "$n" ] && [ "$(grep -c '^[A-Z]* controls ' <<<"$out")" = "$n" ] && ok "every rule's control fires ($n)" || bad "controls fire"
 grep -q "/tmp\|/var/\|health-control-" <<<"$out" && bad "a control row shows a temp path" || ok "control rows carry no temp path"
 [ "$($health check --group controls)" = "$out" ] && ok "controls print the same lines twice" || bad "controls differ"
 # Value: protects=a rule that silently stops matching is reported as unable to fire; fails_when=controls only check
@@ -32,18 +33,24 @@ broken="$d/broken/skills/workflow-health"; mkdir -p "$broken"; cp -R "$here/skil
 for s in workflow-docs workflow-regression workflow-monitoring; do ln -s "$here/skills/$s" "$d/broken/skills/$s"; done
 sed -i.b 's/^LIMIT = 20 \* 1024$/LIMIT = 20 * 1024 * 1000/' "$broken/scripts/health.py" && rm "$broken/scripts/health.py.b"
 out=$(python3 "$broken/scripts/health.py" check --group controls); rc=$?
-grep -q "^FAIL controls size control: cannot fire" <<<"$out" && grep -q "controls.py run size --keep" <<<"$out" && [ $rc = 1 ] \
+grep -q "^FAIL controls scripts control: cannot fire" <<<"$out" && grep -q "controls.py run scripts --keep" <<<"$out" && [ $rc = 1 ] \
   && ok "a broken rule is reported as unable to fire, with how to look" || bad "cannot fire"
 grep -q "^PASS controls findings control" <<<"$out" && ok "the other rules' controls still fire" || bad "other controls"
 # Value: protects=a new rule cannot be added without its control; fails_when=the load check is dropped; why_new=new;
 #   seam=none; no_claim=none beyond protects
-sed -i.b 's/^         "test-time", "worktrees", "local-branches")$/         "test-time", "worktrees", "local-branches", "new-rule")/; s/^MAX_RULES = 12 /MAX_RULES = 13 /' "$broken/scripts/health.py" && rm "$broken/scripts/health.py.b"
+sed -i.b 's/"worktrees", "local-branches", "idle-sessions")),$/"worktrees", "local-branches", "idle-sessions", "new-rule")),/' "$broken/scripts/groups.py" && rm "$broken/scripts/groups.py.b"
+grep -q '"idle-sessions", "new-rule"))' "$broken/scripts/groups.py" || bad "the groups.py edit did not apply"
 out=$(python3 "$broken/scripts/health.py" check 2>&1); rc=$?
 grep -q '^REFUSED: rule new-rule has no negative control. Fix: add CONTROLS\["new-rule"\] in controls.py' <<<"$out" && [ $rc = 2 ] \
   && ! grep -q "^HEALTH" <<<"$out" && ok "a rule without a control is refused before any report" || bad "refused"
-out=$($health check --skip controls); ! grep -q "^== controls" <<<"$out" && grep -q "skipped: .*controls (not asked)" <<<"$out" \
+gone="$d/gone/skills/workflow-health"; mkdir -p "$gone"; cp -R "$here/skills/workflow-health/scripts" "$gone/"
+sed -i.b '/^    "local-branches": ("hygiene", "local-branches", f_local_branches),$/d' "$gone/scripts/controls.py" && rm "$gone/scripts/controls.py.b"
+out=$(python3 "$gone/scripts/health.py" check 2>&1); rc=$?
+grep -q '^REFUSED: rule local-branches has no negative control. Fix: add CONTROLS\["local-branches"\] in controls.py' <<<"$out" && [ $rc = 2 ] \
+  && ! grep -q "^HEALTH" <<<"$out" && ok "a rule whose control is removed is refused before any report" || bad "refused removed control"
+out=$($health check --skip controls); ! grep -q "^== Controls" <<<"$out" && grep -q "skipped: .*Controls (not asked)" <<<"$out" && grep -q "^== Hygiene" <<<"$out" \
   && ok "check --skip controls leaves the group out" || bad "skip"
-out=$($health check --skip size,criteria,docs,hygiene,performance,mine,controls); rc=$?
+out=$($health check --skip requirements,traceability,consistency,docs,freshness,tests,performance,security,size,hygiene,adoption,mine,controls); rc=$?
 grep -q "^REFUSED: --skip leaves no group to check" <<<"$out" && [ $rc = 2 ] && ok "a --skip that leaves nothing is refused" || bad "skip all"
 # Value: protects=a control that crashes or whose rule cannot read is UNREAD, never a crash or a false "cannot fire";
 #   fails_when=one control's exception stops the check; why_new=review finding; seam=none; no_claim=none beyond protects
@@ -63,8 +70,8 @@ out=$(python3 "$crash/scripts/health.py" check --group controls 2>&1)
 grep -q "^UNREAD controls docs-check control: its rule could not read its data" <<<"$out" && ok "a rule that cannot read on its fixture is UNREAD, not cannot fire" || bad "control blind"
 
 echo "== test time"
-out=$($health check --group hygiene)
-grep -q "^INFO hygiene lane test-time: no lane record yet" <<<"$out" && ok "no lane record is INFO, never a pass" || bad "no record"
+out=$($health check --group performance)
+grep -q "^INFO performance lane test-time: no lane record yet" <<<"$out" && ok "no lane record is INFO, never a pass" || bad "no record"
 python3 - <<'PY'
 import json
 open(".loop/regression.tsv", "a").write("".join("slow-%d\tland\tbash dev/toy/test-a.sh\tX-1\t2026-01-01\n" % n for n in range(3))
@@ -82,24 +89,24 @@ json.dump({"at": "2026-01-02T00:00:00Z", "rows": rows}, open(sys.argv[1], "w"))
 PY
 # Value: protects=a slow land lane is named with its slowest rows; fails_when=nightly or deleted rows are counted, or
 #   no WARN; why_new=new; seam=none; no_claim=real lane timings (a stand-in record)
-out=$($health check --group hygiene); echo "$out" | grep test-time
-grep -q "^WARN hygiene lane test-time: the land lane takes 908 s, over test_budget_seconds=600 .*slowest rows: slow-2 302s, slow-1 301s, slow-0 300s, quick 5s; slowest scripts: dev/toy/test-a.sh 903s" <<<"$out" \
+out=$($health check --group performance); echo "$out" | grep test-time
+grep -q "^WARN performance lane test-time: the land lane takes 908 s, over test_budget_seconds=600 .*slowest rows: slow-2 302s, slow-1 301s, slow-0 300s, quick 5s; slowest scripts: dev/toy/test-a.sh 903s" <<<"$out" \
   && ok "a land lane over its budget warns, naming the slowest rows and scripts (nightly and deleted rows left out)" || bad "test-time warn"
 python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['test_budget_seconds']=1000;json.dump(d,open(p,'w'))"
-$health check --group hygiene | grep -q "^PASS hygiene lane test-time: the land lane takes 908 s, within test_budget_seconds=1000" \
+$health check --group performance | grep -q "^PASS performance lane test-time: the land lane takes 908 s, within test_budget_seconds=1000" \
   && ok "a lane within its budget stays quiet" || bad "test-time quiet"
 # Value: protects=another branch's record is never this branch's verdict, and a damaged own record is UNREAD;
 #   fails_when=a borrowed record passes or a damaged one is skipped; why_new=review finding; seam=none; no_claim=none
 mv "$OWN" "$C/loop/tests/other-abcdef12.json"
-$health check --group hygiene | grep -q "^INFO hygiene lane test-time: the land lane takes 908 s, within test_budget_seconds=1000 (from another branch's record, other-abcdef12.json)" \
+$health check --group performance | grep -q "^INFO performance lane test-time: the land lane takes 908 s, within test_budget_seconds=1000 (from another branch's record, other-abcdef12.json)" \
   && ok "another branch's record is INFO and named" || bad "borrowed record"
 git checkout -q -- .loop/config.json
-$health check --group hygiene | grep -q "^INFO hygiene lane test-time: the land lane takes 908 s, over test_budget_seconds=600 .*(from another branch's record, other-abcdef12.json)" \
+$health check --group performance | grep -q "^INFO performance lane test-time: the land lane takes 908 s, over test_budget_seconds=600 .*(from another branch's record, other-abcdef12.json)" \
   && ok "another branch's record over budget is INFO, never a warning" || bad "borrowed warn"
 echo '{"at": "x", "rows": {"a": {"seconds": "slow"}}}' > "$OWN"
-$health check --group hygiene | grep -q "^UNREAD hygiene lane test-time: this branch's lane record cannot be read" && ok "a damaged lane record of this branch is UNREAD" || bad "damaged record"
+$health check --group performance | grep -q "^UNREAD performance lane test-time: this branch's lane record cannot be read" && ok "a damaged lane record of this branch is UNREAD" || bad "damaged record"
 echo '{"at": "x", "rows": {"slow-0": {"seconds": NaN}}}' > "$OWN"
-out=$($health check --group hygiene 2>&1); grep -q "^UNREAD hygiene lane test-time: this branch's lane record cannot be read" <<<"$out" && ! grep -q Traceback <<<"$out" \
+out=$($health check --group performance 2>&1); grep -q "^UNREAD performance lane test-time: this branch's lane record cannot be read" <<<"$out" && ! grep -q Traceback <<<"$out" \
   && ok "a lane record with a NaN time is UNREAD, not a crash" || bad "nan record"
 cp .loop/config.json "$d/config.keep"; echo '[1]' > .loop/config.json
 out=$($health check --group hygiene 2>&1); ! grep -q Traceback <<<"$out" && grep -q "^HEALTH" <<<"$out" && ok "a config.json that is not an object never crashes the check" || bad "config list"
@@ -169,12 +176,12 @@ out=$($health check --group hygiene); grep -E "worktrees|local-branches" <<<"$ou
 # Value: protects=machine-local rows never become GitHub issues; fails_when=file.py files them; why_new=new; seam=none;
 #   no_claim=none beyond protects
 git worktree add -q -b loop/old2 "$C/loop/worktrees/old2"
-out=$($health preview --group hygiene)
+out=$($health preview --group hygiene,performance)
 grep -qE "worktrees|local-branches|test-time" <<<"$out" && bad "preview would file a local row" || ok "test time, worktree and branch rows are never filed"
 python3 -c "
 import sys; sys.path.insert(0, '$S'); import file
-rows = [{'state': 'UNREAD', 'family': 'hygiene', 'subject': 'lane', 'rule': 'test-time', 'detail': 'x', 'fix': ''}]
-print([a['kind'] for a in file.plan(rows, {'hygiene:x:findings': {'number': 7, 'state': 'OPEN'}}, ['hygiene'])])" | grep -qx "\['close'\]" \
+rows = [{'state': 'UNREAD', 'family': 'performance', 'subject': 'lane', 'rule': 'test-time', 'detail': 'x', 'fix': ''}]
+print([a['kind'] for a in file.plan(rows, {'hygiene:x:findings': {'number': 7, 'state': 'OPEN'}}, ['hygiene', 'performance'], ran_rules={'findings'})])" | grep -qx "\['close'\]" \
   && ok "an UNREAD report-only row never holds back closing a hygiene issue" || bad "report-only unread"
 python3 -c "
 import sys; sys.path.insert(0, '$S'); import file

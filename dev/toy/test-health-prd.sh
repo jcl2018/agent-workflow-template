@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-health/scripts/ skills/workflow-regression/scripts/ skills/workflow-docs/scripts/
+# reads: skills/workflow-health/scripts/ skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/donelines.py
 # reads: dev/toy/fakegh/gh dev/toy/fakegh/fake.py
 # Proves the owner-approved Health PRD on throwaway repos with a stand-in for GitHub and stand-in judges: the twelve groups
 # and their angles (HLT-2), feature milestones, links and migration (HLT-4), the review and its evidence (HLT-5, HLT-9),
