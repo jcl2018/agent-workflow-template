@@ -1,5 +1,54 @@
 # Changelog
 
+## v0.24.0 - 2026-11-10
+
+- Mail one digest per round, file issues on feature milestones, show round cost
+- Rows for the round's mail, milestones and cost; Automation wiki; Verify by hand
+- Keep the milestone title when milestones can't be read; settings reference; test expectations for feature placement
+- Review fixes: verify SMTP TLS, find placed issues locally, keep placement on failed moves, no milestone POSTs on unreadable lists, stale reruns mail nothing
+- Review pass 2: mail in its own job, keep placement on failed sets, make Backlog when missing
+- Review pass 3: fix the spend's run listing, keep placement when milestones can't be read
+- Disclose the mail hosts: api.cloudflare.com and the smtp_host
+- QA lane: rounds.py turns prompts off; the mail test declares the files it reads
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- test-automation-email.sh sources reap.sh (main's toy-cleanup rule) instead of its own trap
+- test: name the held-issue key so the secret scan doesn't read it as a credential
+- Rename templates.py to workflows.py: it holds the workflow texts, and a temp* name reads as scratch
+- test: setup plans mail-test.yml beside health.yml (ship coverage audit)
+- fix: a secret with a trailing newline neither leaks nor sticks a round; health still files when milestones can't be read
+- fix: review pass 2 on the secret fixes; leave the Automation page for the owner to re-review
+- fix: fix-check findings: owner local part from the trimmed address, no retry after a timeout, DONE names a closed milestone
+- docs: feature milestones, the mail job and mail-test.yml across the health, regression and setup docs
+- test: the mail test declares seed.py, which its setup case runs
+- Merge origin/main (v0.22.0, docs-format) into loop/automation-email
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- docs: Documentation Tests re-rendered for the ci-issue-backlog row
+- docs: Tests re-rendered after the merges
+- docs: Tests render matches the recorded runs
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- Wiki: update pages for automation-email
+
+### How to verify
+
+1. Pick a sender and add its secrets in Settings, Secrets and variables, Actions: DIGEST_TO, DIGEST_FROM and either
+   CLOUDFLARE_ACCOUNT_ID with CLOUDFLARE_EMAIL_TOKEN (a domain onboarded to Cloudflare Email Sending), or
+   DIGEST_SMTP_USER with DIGEST_SMTP_PASSWORD plus `"digest_mail": "smtp"` in `.loop/config.json`. Time how long it takes.
+   Expect: under five minutes once the domain or app password exists.
+2. In the Actions tab, run the mail-test workflow.
+   Expect: its log ends `MAIL: test sent (MAIL_SENT)`, and a mail titled "Automation digest: test from <owner/repo>"
+   arrives within a minute.
+3. Run the health workflow by hand.
+   Expect: a new comment on the pinned Automation digest issue, grouped under milestone headings, with `round cost` and
+   `email` rows; the run summary has a `## Round` line; one mail arrives with the same text as the comment.
+4. Re-run that same health run (Re-run all jobs).
+   Expect: no second comment and no second mail; the Email the digest step says `already sent for run ... (MAIL_ALREADY)`.
+5. Open the health and regression issues on GitHub.
+   Expect: each sits on its feature's milestone (Backlog only when no feature fits). Move one to Backlog by hand, run the
+   health workflow again, and it stays on Backlog.
+6. Search the run logs, the digest comment and the issues for your address.
+   Expect: it appears nowhere.
+
 ## v0.23.0 - 2026-11-10
 
 - Merge remote-tracking branch 'origin/main' into loop/setup-sync
