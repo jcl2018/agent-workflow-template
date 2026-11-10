@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.19.0 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/board-held
+- board-held: build in progress (graph pool reader, board held/freezing, sessions free/bind, watch fail-closed)
+- Merge remote-tracking branch 'origin/main' into loop/board-held
+- board-held: test-board-held.sh; watch texts back in watch.py so watch.py runs alone
+- board-held: Monitoring page, commands reference (board states, handoff, messages), SKILL.md
+- board-held: review fixes (assign claims a session under the lock, report saves before release, bind/free save under the lock, board crash guards, free wording) and review tests
+- board-held: review cycle 2 (assign keeps an operator's bind, report says when a session wasn't freed, rebind restores a failed run, bind checks pid liveness, a merged goal keeps its evidence against late reports, board guards a malformed reports field) and tests
+- board-held: review cycle 3 (assign rechecks its claim is still busy and saves onto the current run, mend refuses on an unreadable pool, commands doc names no removed flag), Monitoring page
+- board-held: session_tool.py sets the no-terminal guard like every script that starts processes
+- board-held: merge origin/main (review_depth); held goals show their depth line too
+- board-held: Monitoring page names held goals' depth line and the session tool's no-terminal guard
+- board-held: listing.json names the new free command (package disclosure rule)
+- board-held: render the Setup Tests tables
+- fix: pre-landing review fixes (assign gives a failed goal to its new session instead of misreading HANDED, watch still reports dead pids and questions on an unreadable pool, pool-fix and stale-freezing wording, listing names the lock file and mend)
+- test: board-held coverage (mend and assign races, report saved but not freed, Finish, pool-only slot, failed-goal reassign, waiting bind, forced lock interleave), exit 1 on failure, held-all row
+- test: held-all seen red on the pre-fix assign
+- fix: assign treats only a failed or stopped try's session as replaceable; tests for a HANDED assign's freed claim, a bind back to the old session, and a goal running in a session
+- fix: a manual assign refuses a goal that already has a worker; assign's final check sees a bind made during the send by its bound_at
+- board-held: Monitoring page names assign's refusal and HANDED
+- Merge remote-tracking branch 'origin/main' into loop/board-held
+- board-held: # reads: header for test-board-held.sh (narrow-rows check from main)
+
+### How to verify
+
+1. In the main checkout after the merge, start a session with the app's own tools for a goal that isn't frozen yet, run
+   `python3 skills/workflow-monitoring/scripts/sessions.py bind <new-slug> <session-id>`, then print the live board
+   (`python3 skills/workflow-monitoring/scripts/board_status.py`).
+   Expect: the bind prints `ASSIGNED ... not frozen yet`, and the board shows `<new-slug>` under Running goals at once,
+   with `[freezing]` and `worker: session worker · <new-slug>`.
+2. Look at a goal you put on hold (its session reassigned, its worktree kept) on the same board.
+   Expect: it is listed under Queued goals ending in `held`, with `worker: none (held, ...)` and a `sessions.py bind`
+   line naming it. It is not under Running goals and not called background.
+3. Look at a session goal that failed once and was bound again, after its worker sent a new report.
+   Expect: its next line is the newest report, not the old failure, and its bar line ends `try 2 of 3`.
+4. After a goal's pull request opens, send `python3 skills/workflow-monitoring/scripts/sessions.py report <slug> --status running`.
+   Expect: it prints `KEPT done for <slug>: ...`, and the goal still reads `next: merge the pull request` (or its merged report).
+
 ## v0.18.0 - 2026-11-10
 
 - Merge remote-tracking branch 'origin/main' into loop/narrow-rows
