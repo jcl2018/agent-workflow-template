@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.13.1 - 2026-11-10
+
+- regression-all: record every row, move slow rows to nightly, fix two failing rows
+- regression-all: review fixes for the workflow timeout, dash dates and test waits
+- regression-all: the longest-chain check now compares the finish time with the chain
+- regression-all: set row levels from measured suite times, and give the workflow room
+- regression-all: re-record every row, and bring three wiki pages up to date
+- regression-all: second review pass fixes
+- regression-all: wiki pages follow the second review pass
+- regression-all: third review pass fixes to the workflow runner and seen dates
+- regression-all: wiki pages follow the third review pass
+- Merge remote-tracking branch 'origin/main' into loop/regression-all
+- Merge remote-tracking branch 'origin/main' into loop/regression-all
+- regression-all: re-record every row on the code merged with v0.12.0
+- fix: pre-landing review fixes
+- docs: regression skill docs give the date-only seen rule and the workflow runner limits
+- Merge remote-tracking branch 'origin/main' into loop/regression-all
+
+### How to verify
+
+1. Open `docs/wiki/Regression.md` and `docs/wiki/Documentation.md` and read the Tests tables.
+   Expect: every row shows its level (`both` or `nightly`) and a last result of `PASS` with a date, and no row says `not enforced`.
+2. Open `.loop/regression.tsv`.
+   Expect: every row of the suites that take 20 seconds or more (for example `operate-all`, `frozen-done-lines`, `no-pid-left-alone`) is at level `nightly`, faster ones such as `auto-release` stay `land`, and none was removed.
+3. On GitHub, open Actions, then the `regression` workflow, and run it on this branch with "Run workflow".
+   Expect: the run finishes green and its summary table lists every row as PASS.
+
 ## v0.13.0 - 2026-11-10
 
 - Health: formal report, preview and file by group
