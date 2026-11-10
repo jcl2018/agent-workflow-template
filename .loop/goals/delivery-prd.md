@@ -1,7 +1,7 @@
 # Implement the owner-approved Delivery PRD: review depth fits the goal, releases bump patch by default, goals resume from their last step, budgets show on the board, and nothing private ships (owner, 2026-11-10: "Delivery page is okay, so you can queue another goal to implement this")
 
 - Slug: delivery-prd
-- Touches: skills/workflow-delivery, skills/workflow-release, skills/workflow-monitoring, dev/toy, .loop/regression.tsv, docs/wiki/Delivery.md
+- Touches: skills/workflow-delivery, skills/workflow-release, skills/workflow-monitoring, dev/toy, .loop/regression.tsv, docs/wiki/Delivery.md, docs/wiki/Monitoring.md
 
 ## Done lines
 
