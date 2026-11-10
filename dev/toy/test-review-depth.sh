@@ -34,7 +34,7 @@ json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
 }
 step() { $F "$1" "$2" --wait 5 >/dev/null; $F "$1" "$2" --wait 10 > "$d/flow-$1-$2" 2>&1; $goal record "$1" "$2" --file "$C/loop/runs/$1.$2.txt" 2>&1; }
-new() { git switch -q main; $goal new "$1" --here --goal "Goal $1" --done "Line $1" >/dev/null 2>&1; }
+new() { git switch -q main; $goal new "$1" --here --goal "Goal $1" --done "Line $1" --touches "src/$1" >/dev/null 2>&1; }  # small: one area (DEL-6)
 
 echo "== setup writes the setting"
 check "setup writes review_depth full with its one-line explanation" '[ "$(python3 -c "import json;c=json.load(open(\".loop/config.json\"));print(c[\"review_depth\"], bool(c[\"_help\"][\"review_depth\"]))")" = "full True" ]'
@@ -103,7 +103,7 @@ python3 - "$here" <<'PY' > "$d/prompt2"
 import sys; sys.path.insert(0, sys.argv[1] + "/skills/workflow-delivery/scripts")
 import flow; print(flow.depth_rule("review"))
 PY
-check "the prompt allows a condensed run only when the setting says so" 'grep -q "review_depth is condensed: a condensed run of this step is allowed" "$d/prompt2"'
+check "the prompt allows a condensed run only when the setting says so" 'grep -q "This goal.s depth is condensed (.*): run a condensed pass" "$d/prompt2"'
 base 'review_depth="full"'
 
 echo "== private full_markers"

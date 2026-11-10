@@ -91,7 +91,9 @@ Every check-in prints the live board, and `report`, `board`, `dashboard` and `bo
 in this format: a `LIVE BOARD` header (repo, local time, version, health); Issues (only what is open now, a stuck worker first,
 each with its fix in plain words and the exact words to answer, no local file paths); Running goals (a 10-cell bar with percent
 and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current step in
-brackets, the worker, the try count once a try has failed (`try 2 of 3`, or `tries used up (3 of 3)`), and a one-line next
+brackets, the worker, the try count once a try has failed (`try 2 of 3`, or `tries used up (3 of 3)`), `depth decided:` (the
+depth the goal is held to and why), the budget line (`budget: 35m of 120m, 0.4M of 3.0M tokens`, with `OVER time` or `OVER tokens`
+once spent, `budget: none set` when the goal carries none; time is advisory, tokens a spending limit), and a one-line next
 step: the latest session report, a running goal at release reads `finish release`, a step outside the flow keeps the last
 known flow step); Queued goals (held goals among them, marked `held`); Dependencies between running and queued goals as arrows
 (`a --> b`); and one finish time (the longest chain of estimates, not their sum; `at least` while a goal is held or freezing). Merged and closed work, history, milestones, duplicate totals, token
@@ -457,7 +459,8 @@ WORKER board-held: run goal steps as LOOP_ROLE=worker python3 <package>/workflow
 WORKTREE board-held: <git common dir>/loop/worktrees/board-held
 ```
 
-No process can set another's environment, so this is how binding gives a session the worker role. A goal step run
+ID `self` binds the session named by `CLAUDE_CODE_HOST_SESSION_ID`; with it unset, bind exits 2 before any work
+(`BIND_SELF_UNSET`, fix: `sessions.py bind SLUG <ID>`). No process can set another's environment, so this is how binding gives a session the worker role. A goal step run
 without it is refused with the exact command for that session (`NOT_WORKER`). `--cwd DIR` is the session's folder, and a
 folder outside the goal worktree is refused before the pool or run record changes (`CWD_OUTSIDE`: "start or move the
 session in PATH, then bind again"). A worker binding itself is always checked against its own folder too. With no

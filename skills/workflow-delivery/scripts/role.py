@@ -132,7 +132,17 @@ DEPTH = re.compile(r"^[ \t*_]*DEPTH:\s*(full|condensed)[ \t*_.]*$", re.M | re.I)
 STEP = re.compile(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", re.M | re.I)
 
 
-def depth_of(cfg):
+def depth_of(cfg, state=None, runs=None):
+    """The depth a step must run at. With a goal's state: fit.depth_for over the setting and the goal (its size and the
+    owner's override, DEL-6). Without: the setting alone."""
+    setting = setting_of(cfg)
+    if state is None:
+        return setting
+    import fit  # lazily: fit is pure, but role is imported early by everything
+    return fit.depth_for(setting, fit.view(state, runs))[0]
+
+
+def setting_of(cfg):
     """review_depth from the base branch's .loop/config.json, which a worker's worktree can't change: condensed only
     when the base branch says so, full otherwise (the default). cfg is the worktree's config, read for its base name."""
     base = (cfg or {}).get("base") or "main"
