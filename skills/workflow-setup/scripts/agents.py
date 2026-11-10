@@ -42,6 +42,11 @@ def block():
     return done.stdout if done.returncode == 0 and done.stdout.startswith(OPEN) else None
 
 
+def inside(root, full):
+    """True for a file in the repo's tree, outside its .git folder."""
+    return full.startswith(root + os.sep) and ".git" not in os.path.relpath(full, root).split(os.sep)
+
+
 def wired(raw, text):
     """raw with its block replaced by text, or text appended; line endings and a BOM kept."""
     bom, body = (BOM, raw[1:]) if raw.startswith(BOM) else ("", raw)
@@ -64,8 +69,9 @@ def wire(repo, dry=False):
     root = os.path.realpath(repo)
     for name in targets(repo):
         full = os.path.realpath(os.path.join(repo, name))
-        if not full.startswith(root + os.sep):
-            refused.append("REFUSED: %s resolves outside the repo (AGENTS_OUTSIDE). Fix: point agent_files at files inside it" % name)
+        if not inside(root, full):
+            refused.append("REFUSED: %s resolves outside the repo or into .git (AGENTS_OUTSIDE). Fix: point agent_files at "
+                           "files inside it" % name)
             continue
         if full in seen:
             continue
@@ -128,10 +134,15 @@ def dirty(repo):
 
 
 def apply(repo):
-    """Write the entry point and wire the agent files; return the paths to stage."""
-    entry(repo, "write")
-    wire(repo)
-    return [p for p in [os.path.join(".loop", "START.md")] + targets(repo) if os.path.exists(os.path.join(repo, p))]
+    """Write the entry point and wire the agent files; say each refusal; return the paths to stage (inside the repo)."""
+    code = entry(repo, "write")[0]
+    if code not in (0, None):
+        print("WARN: entry.py write failed (exit %s); .loop/START.md may be stale. Fix: run docs.py audit" % code, file=sys.stderr)
+    for line in wire(repo)[1]:
+        print(line, file=sys.stderr if line.startswith("REFUSED") else sys.stdout)
+    root = os.path.realpath(repo)
+    return [p for p in [os.path.join(".loop", "START.md")] + targets(repo)
+            if os.path.exists(os.path.join(repo, p)) and inside(root, os.path.realpath(os.path.join(repo, p)))]
 
 
 def main():
