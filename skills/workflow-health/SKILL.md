@@ -97,8 +97,8 @@ python3 scripts/automation.py workflow
 python3 scripts/automation.py digest
 ```
 
-`workflow` writes `.github/workflows/health.yml`, which runs on `health_cron` (default every 4 hours; `off` makes a run
-write nothing) and by hand: check, file the groups a runner can read, the judge only with the `judge_secret` secret, then
+`workflow` writes `.github/workflows/health.yml`, which runs on `health_cron` (default every 4 hours; `off` makes a
+scheduled run write nothing) and by hand: check, file the groups a runner can read, the judge only with the `judge_secret` secret, then
 the digest. `digest` posts one comment per round on the pinned `Automation digest` issue: what ran, the new, still-open
 and fixed issues, and a request per open issue, mentioning `digest_owner`; with no token outside Actions it only prints
 it. Neither pushes. Details: `references/commands.md`.

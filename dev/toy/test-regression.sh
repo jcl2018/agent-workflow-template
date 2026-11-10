@@ -158,7 +158,7 @@ rm -f BROKEN ci-block.py
 python3 - "$here" <<'PY' && ok "the committed regression workflow matches what actions.py writes" || bad "the committed regression workflow is stale"
 import json, sys
 sys.path.insert(0, sys.argv[1] + "/skills/workflow-regression/scripts"); import actions
-cron = json.load(open(sys.argv[1] + "/.loop/config.json")).get("regression_cron") or "17 9 * * *"
+cron = json.load(open(sys.argv[1] + "/.loop/config.json")).get("regression_cron") or "17 */4 * * *"
 assert actions.render(cron) == open(sys.argv[1] + "/.github/workflows/regression.yml").read()
 PY
 grep -q 'cron: "17 \*/4 \* \* \*"' .github/workflows/regression.yml && ok "default schedule written" || bad "default cron"

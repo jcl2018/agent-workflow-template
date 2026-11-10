@@ -25,9 +25,11 @@ jobs:
           python-version: "3.12"
       - name: Check the routine
         id: routine
+        env:
+          EVENT: ${{ github.event_name }}
         run: |
           cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("health_cron") or "")' 2>/dev/null || true)
-          if [ "$cron" = off ]; then
+          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then  # off stops the schedule; a run started by hand still runs
             echo "on=false" >> "$GITHUB_OUTPUT"
             echo "OFF: health is off in .loop/config.json (health_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -44,24 +46,27 @@ jobs:
       - name: Health check
         if: steps.routine.outputs.on == 'true'
         run: |
-          python3 skills/workflow-health/scripts/health.py check --group size,criteria,docs,hygiene > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
+          python3 skills/workflow-health/scripts/health.py check --group size,criteria,docs > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
           { echo "## Health"; echo; echo '```'; cat "$RUNNER_TEMP/health-report.txt"; echo '```'; echo
-            echo "Not run here: performance (the Cost rule) and Mine read this machine's run records and private files, which a runner doesn't have."
+            echo "Not run here: performance (the Cost rule), Mine and hygiene read this machine's run records, branches and private files, which a runner doesn't have."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: File the findings as tagged issues
         if: always() && steps.routine.outputs.on == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 skills/workflow-health/scripts/health.py file --group size,criteria,docs,hygiene
+        run: |
+          python3 skills/workflow-health/scripts/milestone.py new backlog --live  # findings are filed on Backlog; it may not exist yet
+          python3 skills/workflow-health/scripts/health.py file --group size,criteria,docs
       - name: Judge, only with the agent key secret
         if: always() && steps.routine.outputs.on == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
+          set -o pipefail
           if [ -z "$ANTHROPIC_API_KEY" ]; then echo "JUDGE: skipped, no ANTHROPIC_API_KEY secret is set." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
           setup=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("judge_setup") or "")')
           [ -z "$setup" ] || sh -c "$setup"
-          prog=$(python3 -c 'import json; print((json.load(open(".loop/config.json")).get("judge_command") or [""])[0])')
+          prog=$(python3 -c 'import json; c = json.load(open(".loop/config.json")).get("judge_command"); print(c[0] if isinstance(c, list) and c else "")')
           if [ -z "$prog" ] || ! command -v "$prog" >/dev/null; then
             echo "JUDGE: skipped, the runner has no ${prog:-judge_command}; set judge_setup in .loop/config.json." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
           fi

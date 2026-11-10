@@ -128,10 +128,11 @@ Proof: toy tests with a stand-in judge on a throwaway repo; no model is called i
 
 `workflow` writes `.github/workflows/health.yml` from `.loop/config.json`: `health_cron` (five cron fields, or `off`,
 which keeps only the by-hand trigger) and `judge_secret` (a secret name, `^[A-Z_][A-Z0-9_]*$`; anything else is
-refused). The run checks the routine first: `off` prints `OFF:` and writes nothing; a schedule unlike the config prints
+refused). The run checks the routine first: `off` makes a scheduled run print `OFF:` and write nothing (a run started by hand
+still runs); a schedule unlike the config prints
 `SCHEDULE:` with the command that rewrites it; a checkout without the workflow-health skill prints `MISSING:` and fails,
-writing nothing. Then `health.py check --group size,criteria,docs,hygiene` goes into the run summary (Cost and Mine need
-this machine's run records and private files), `health.py file` for those groups, the judge only when the secret is set
+writing nothing. Then `health.py check --group size,criteria,docs` goes into the run summary (Cost, Mine and hygiene need
+this machine's run records, branches and private files), `health.py file` for those groups, the judge only when the secret is set
 and the runner has `judge_command`'s program (`judge_setup` can install it; otherwise `JUDGE: skipped` says why), and the
 digest. The workflow reads the repo and writes only issues, labels, comments and the run summary.
 

@@ -273,7 +273,7 @@ def sync_issues(results, live):
         gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
         gh("label", "create", "defect", "--description", "A test that guards it is failing")
         out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200",
-                 "--json", "number,state,body,comments")
+                 "--json", "number,state,body,comments,labels")
         if out.returncode:
             print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
             return
@@ -293,7 +293,8 @@ def sync_issues(results, live):
                 gh("issue", "create", "--title", "Regression: " + item["id"], *("--label=" + n for n in actions.LABELS), "--body", body)
                 print("OPENED issue for " + item["id"])
             else:
-                gh("issue", "edit", number, "--add-label", "defect")
+                if "defect" not in [x.get("name") for x in hit.get("labels") or []]:
+                    gh("issue", "edit", number, "--add-label", "defect")
                 if hit.get("state") != "OPEN":
                     gh("issue", "reopen", number)
                     print("REOPENED issue %s" % number)

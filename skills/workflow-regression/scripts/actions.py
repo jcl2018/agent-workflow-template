@@ -2,6 +2,7 @@
 """The GitHub Actions workflow regression.py workflow writes: it runs the rows on a schedule and keeps one issue per failing row."""
 import json
 import os
+import re
 import sys
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -11,7 +12,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
             "REGRESSION_RESULTS", "REGRESSION_MAP", "RUNNER_TEMP")
-LABELS = ("regression", "defect")  # the tool's own label (lookup and digest), and the defect label every failing row carries
+LABELS = ("regression", "defect")  # the tool's own label, and the defect label every failing row's issue carries
 
 
 def row_env():
@@ -45,9 +46,11 @@ jobs:
           python-version: "3.12"
       - name: Check the routine
         id: routine
+        env:
+          EVENT: ${{ github.event_name }}
         run: |
           cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("regression_cron") or "")' 2>/dev/null || true)
-          if [ "$cron" = off ]; then
+          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then  # off stops the schedule; a tag or a run by hand still runs
             echo "on=false" >> "$GITHUB_OUTPUT"
             echo "OFF: regression is off in .loop/config.json (regression_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -111,8 +114,10 @@ jobs:
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           gh("label", "create", "defect", "--description", "A test that guards it is failing")  # an existing one keeps its colour
           guards = {cells[1]: cells for cells in rows(os.environ.get("REGRESSION_MAP") or os.devnull) if len(cells) > 4}
-          out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body")
-          issues = json.loads(out.stdout or "[]")
+          out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body,labels")
+          issues = json.loads(out.stdout or "[]") if out.returncode == 0 else None  # unread: change no issue, or each would repeat
+          if issues is None:
+              print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
           red, start = [], time.time()
           with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
               handle.write("# started %d\n" % start)
@@ -124,7 +129,7 @@ jobs:
               else:
                   (code, said), skipped = run(row[2]), False
               mark = "<!-- loop-regression %s -->" % row[0]
-              hits = [item for item in issues if mark in item["body"]]
+              hits = [item for item in issues or [] if mark in item["body"]]
               hit = next((item for item in hits if item["state"] == "OPEN"), hits[0] if hits else None)
               state = "PASS" if code == 0 else "SKIPPED" if skipped else "KNOWN" if row[0] in known else "FAIL"
               print(state, row[0])
@@ -135,6 +140,8 @@ jobs:
                           gh("issue", "close", str(item["number"]), "--comment", "Passing again.")
               elif row[0] not in known:
                   red.append(row[0])
+                  if issues is None:
+                      continue
                   cells = guards.get(row[0]) or [""] * 5
                   about = "- Feature: %s\n- Guards: %s\n- Checks: %s\n\n" % (cells[0] or "-", cells[3] or "-", cells[4] or "-")
                   body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "was skipped" if skipped else "fails", about,
@@ -145,7 +152,8 @@ jobs:
                   else:
                       if hit["state"] != "OPEN":
                           gh("issue", "reopen", str(hit["number"]))
-                      gh("issue", "edit", str(hit["number"]), "--add-label", "defect")
+                      if "defect" not in [label.get("name") for label in hit.get("labels") or []]:
+                          gh("issue", "edit", str(hit["number"]), "--add-label", "defect")
                       gh("issue", "comment", str(hit["number"]), "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
           sys.exit(1 if red else 0)
           PY
@@ -196,7 +204,7 @@ def write(root, default):
             cron = json.load(handle).get("regression_cron") or default
     except (OSError, ValueError):
         cron = default
-    if cron != "off" and (len(cron.split()) != 5 or '"' in cron or "'" in cron):
+    if cron != "off" and not (isinstance(cron, str) and re.match(r"^[0-9A-Za-z*/,\- ]+$", cron) and len(cron.split()) == 5):
         sys.exit("REFUSED: regression_cron is not five cron fields or off. Fix: edit .loop/config.json.")
     path = os.path.join(root, ".github", "workflows", "regression.yml")
     if os.path.exists(path):

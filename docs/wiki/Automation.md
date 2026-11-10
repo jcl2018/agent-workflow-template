@@ -12,8 +12,8 @@ Skills: `workflow-health` (`automation.py`) and `workflow-regression`. For the o
 ## Usage
 
 - `/workflow-setup` writes both workflows: `.github/workflows/regression.yml` on `regression_cron` and `.github/workflows/health.yml` on `health_cron` (every 4 hours by default, health 30 minutes after regression). Start either by hand from the Actions tab. A schedule change in `.loop/config.json` takes effect when the workflow is written again, and a run whose schedule differs from the config says so.
-- Set `regression_cron` or `health_cron` to `off` to turn that routine off: its next run writes nothing and says it is off.
-- A failing test opens or updates one issue labelled `defect` (and `regression`, the tool's own label), naming the test, the feature and the requirement it guards; it closes itself when the test passes again. Health files its findings as `health:<group>` issues for the groups a runner can read (size, criteria, docs, hygiene).
+- Set `regression_cron` or `health_cron` to `off` to turn that routine off: its scheduled runs write nothing and say it is off; a run you start by hand (or a release tag, for regression) still runs.
+- A failing test opens or updates one issue labelled `defect` (and `regression`, the tool's own label), naming the test, the feature and the requirement it guards; it closes itself when the test passes again. Health files its findings as `health:<group>` issues for the groups a runner can read (size, criteria, docs).
 - The judge runs in the health run only when the secret named by `judge_secret` (default `ANTHROPIC_API_KEY`) is set and the runner has `judge_command`'s program (`judge_setup` can install it); otherwise the run says why it skipped.
 - After each health run, one comment on the pinned `Automation digest` issue lists what ran, the new, still-open and fixed issues, and a request per open issue to give the agent; it mentions `digest_owner` (default: the repo owner), so GitHub's notifications email it. Every-4-hours runs use Actions minutes: slow a routine down or turn it off in the config.
 

@@ -5,7 +5,7 @@ usage: automation.py workflow            write .github/workflows/health.yml from
        automation.py digest [--owner L]  post this round's comment on the pinned Automation digest issue
 
 The workflow checks the routine (health_cron "off" makes a run write nothing), runs health check into the run summary,
-files the groups a runner can read (size, criteria, docs, hygiene) as health:<group> issues, runs the judge only when
+files the groups a runner can read (size, criteria, docs) on the Backlog milestone as health:<group> issues, runs the judge only when
 the secret named by judge_secret is set, then posts the digest. Nothing in it pushes.
 The digest lists what ran (regression's latest run, health's verdict), the new, still-open and fixed issues labelled
 regression or health since the last comment, and one request per open issue; it mentions digest_owner (default: the
@@ -27,7 +27,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 CRON = "47 */4 * * *"
 KEY_NAME = "ANTHROPIC_API_KEY"  # the name of the Actions secret, not a secret
-GROUPS = "size,criteria,docs,hygiene"  # what a runner can read: cost and Mine need this machine's run records and files
+GROUPS = "size,criteria,docs"  # what a runner can read: cost, Mine and two hygiene checks need this machine's run records
 LABELS = ("regression", "health")  # the issues the digest follows: failing tests and health findings
 TITLE = "Automation digest"
 STATE = re.compile(r"<!-- automation-digest open=([\d,]*) run=(\S*) -->")
@@ -57,9 +57,11 @@ jobs:
           python-version: "3.12"
       - name: Check the routine
         id: routine
+        env:
+          EVENT: ${{ github.event_name }}
         run: |
           cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("health_cron") or "")' 2>/dev/null || true)
-          if [ "$cron" = off ]; then
+          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then  # off stops the schedule; a run started by hand still runs
             echo "on=false" >> "$GITHUB_OUTPUT"
             echo "OFF: health is off in .loop/config.json (health_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -78,22 +80,25 @@ jobs:
         run: |
           python3 skills/workflow-health/scripts/health.py check --group @GROUPS@ > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
           { echo "## Health"; echo; echo '```'; cat "$RUNNER_TEMP/health-report.txt"; echo '```'; echo
-            echo "Not run here: performance (the Cost rule) and Mine read this machine's run records and private files, which a runner doesn't have."
+            echo "Not run here: performance (the Cost rule), Mine and hygiene read this machine's run records, branches and private files, which a runner doesn't have."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: File the findings as tagged issues
         if: always() && steps.routine.outputs.on == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 skills/workflow-health/scripts/health.py file --group @GROUPS@
+        run: |
+          python3 skills/workflow-health/scripts/milestone.py new backlog --live  # findings are filed on Backlog; it may not exist yet
+          python3 skills/workflow-health/scripts/health.py file --group @GROUPS@
       - name: Judge, only with the agent key secret
         if: always() && steps.routine.outputs.on == 'true'
         env:
           @SECRET@: ${{ secrets.@SECRET@ }}
         run: |
+          set -o pipefail
           if [ -z "$@SECRET@" ]; then echo "JUDGE: skipped, no @SECRET@ secret is set." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
           setup=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("judge_setup") or "")')
           [ -z "$setup" ] || sh -c "$setup"
-          prog=$(python3 -c 'import json; print((json.load(open(".loop/config.json")).get("judge_command") or [""])[0])')
+          prog=$(python3 -c 'import json; c = json.load(open(".loop/config.json")).get("judge_command"); print(c[0] if isinstance(c, list) and c else "")')
           if [ -z "$prog" ] || ! command -v "$prog" >/dev/null; then
             echo "JUDGE: skipped, the runner has no ${prog:-judge_command}; set judge_setup in .loop/config.json." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
           fi
@@ -127,7 +132,7 @@ def settings(root):
     """(health_cron, judge_secret) from the config, or a REFUSED exit when either can't be written into a workflow."""
     cfg = config(root)
     cron, secret = cfg.get("health_cron") or CRON, cfg.get("judge_secret") or KEY_NAME
-    if cron != "off" and (len(cron.split()) != 5 or re.search(r"""["'$`\\]""", cron)):
+    if cron != "off" and not (isinstance(cron, str) and re.match(r"^[0-9A-Za-z*/,\- ]+$", cron) and len(cron.split()) == 5):
         sys.exit("REFUSED: health_cron is not five cron fields or off. Fix: edit .loop/config.json.")
     if not re.match(r"^[A-Z_][A-Z0-9_]*$", secret):
         sys.exit("REFUSED: judge_secret %r is not a secret name (capitals, digits, _). Fix: edit .loop/config.json." % secret)
@@ -229,11 +234,12 @@ def compose(login, note, ran, now_open, before, run_id):
 
 def digest_issue():
     """(number, body) of the digest issue, or (None, "") when there is none yet; None when gh can't list issues."""
-    done = gh("issue", "list", "--label", "automation", "--state", "all", "--limit", "50", "--json", "number,title,body")
+    done = gh("issue", "list", "--label", "automation", "--state", "all", "--limit", "300", "--json", "number,title,body")
     if done.returncode:
         return None
-    hits = [item for item in loads(done, []) if item.get("title") == TITLE and STATE.search(item.get("body") or "")]
-    return (hits[0]["number"], hits[0]["body"]) if hits else (None, "")
+    hits = sorted((item for item in loads(done, []) if item.get("title") == TITLE and STATE.search(item.get("body") or "")),
+                  key=lambda item: item["number"])
+    return (hits[0]["number"], hits[0]["body"]) if hits else (None, "")  # the oldest: a later look-alike never takes over
 
 
 def cmd_digest(args):
@@ -242,6 +248,9 @@ def cmd_digest(args):
     if in_actions and not live:
         print("DIGEST: no GH_TOKEN in this step, so nothing was posted. Fix: give the step GH_TOKEN: the job's token.")
         return 1
+    if live:
+        for label in LABELS + ("automation",):  # a label that doesn't exist yet would make its listing fail
+            gh("label", "create", label)
     now_open = open_issues() if live else {}
     found = digest_issue() if live else (None, "")
     if now_open is None or found is None:
@@ -264,7 +273,8 @@ def cmd_digest(args):
     intro = "The Automation routines post one comment here per round. Watch this issue to get them by email.\n\n"
     if number is None:
         gh("label", "create", "automation", "--description", "The Automation digest")  # an existing one keeps its colour
-        made = gh("issue", "create", "--title", TITLE, "--label", "automation", "--body", intro + marker)
+        made = gh("issue", "create", "--title", TITLE, "--label", "automation", "--body",
+                  intro + "<!-- automation-digest open= run=none -->")  # this round's state only once its comment is posted
         number = (re.findall(r"/issues/(\d+)", made.stdout) or [None])[-1]
         if made.returncode or not number:
             print("DIGEST: couldn't create the digest issue: %s" % (made.stderr.strip()[:200] or "no issue number"))
@@ -275,7 +285,9 @@ def cmd_digest(args):
     if posted.returncode:
         print("DIGEST: couldn't comment on #%s: %s" % (number, posted.stderr.strip()[:200]))
         return 1
-    gh("issue", "edit", str(number), "--body", intro + marker)  # the state the next round compares with
+    if gh("issue", "edit", str(number), "--body", intro + marker).returncode:  # the state the next round compares with
+        print("DIGEST: posted on #%s, but couldn't save its state, so the next round may repeat these issues" % number)
+        return 1
     print("DIGEST: posted on #%s (%d open)" % (number, len(now_open)))
     return 0
 

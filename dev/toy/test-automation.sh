@@ -28,13 +28,13 @@ cat > "$G/gh" <<'SH'
 #!/bin/bash
 d=${STUB:?}; printf '%s\n' "$*" >> "$d/calls.log"
 case "$1 $2" in
-  "issue list") for l in regression health automation; do case "$*" in *"--label $l "*) cat "$d/$l.json" 2>/dev/null || echo "[]"; exit 0;; esac; done; echo "[]";;
+  "issue list") [ -n "${STUB_LIST_FAIL:-}" ] && { echo "HTTP 502" >&2; exit 1; }; for l in regression health automation; do case "$*" in *"--label $l "*) cat "$d/$l.json" 2>/dev/null || echo "[]"; exit 0;; esac; done; echo "[]";;
   "run list") cat "$d/runs.json" 2>/dev/null || echo "[]";;
   "repo view") echo "${STUB_OWNER:-toy-owner}";;
   "api users/"*) echo "${STUB_TYPE:-User}";;
   "issue create") echo "https://github.com/o/r/issues/77";;
   "issue pin") exit "${STUB_PIN_FAIL:-0}";;
-  "issue comment") n=$3; shift 3; [ "$1" = --body ] && printf '%s' "$2" > "$d/comment-$n.md";;
+  "issue comment") [ -n "${STUB_COMMENT_FAIL:-}" ] && { echo "API rate limit" >&2; exit 1; }; n=$3; shift 3; [ "$1" = --body ] && printf '%s' "$2" > "$d/comment-$n.md";;
   "issue edit") n=$3; shift 3; [ "$1" = --body ] && printf '%s' "$2" > "$d/body-$n.md";;
 esac
 exit 0
@@ -70,6 +70,13 @@ grep -q "^DIGEST: already posted for run 102" <<<"$out" && ! grep -q "^issue com
   && ok "a rerun of the same run posts nothing twice" || bad "digest rerun"
 rm -f "$G/automation.json"; out=$(STUB_TYPE=Organization live 103)
 ! head -1 "$c" | grep -q "^@" && grep -q "is an organisation, so no one is notified" "$c" && ok "an organisation owner is named, not mentioned" || bad "org owner"
+rm -f "$G/body-77.md"; : > "$G/calls.log"; out=$(STUB_COMMENT_FAIL=1 live 106); rc=$?
+[ $rc = 1 ] && grep -q "^DIGEST: couldn't comment" <<<"$out" && ! grep -q "^issue edit" "$G/calls.log" \
+  && grep -q "^issue create --title Automation digest --label automation --body " "$G/calls.log" && grep -qx "<!-- automation-digest open= run=none -->" "$G/calls.log" \
+  && ok "a round whose comment fails saves no state, so its rerun posts it" || bad "digest comment failure"
+: > "$G/calls.log"; out=$(STUB_LIST_FAIL=1 live 107); rc=$?
+[ $rc = 1 ] && grep -q "^DIGEST: gh couldn't read the issues" <<<"$out" && ! grep -q "^issue comment" "$G/calls.log" \
+  && ok "when gh can't list the issues the digest posts nothing" || bad "digest list failure"
 out=$(STUB_PIN_FAIL=1 live 104); grep -q "^WARNING: couldn't pin issue #77" <<<"$out" && grep -q "^DIGEST: posted on #77" <<<"$out" \
   && ok "a pin that fails warns and the digest still posts" || bad "pin failure"
 : > "$G/calls.log"; out=$(PATH="$G:$PATH" GITHUB_ACTIONS=true $auto digest); rc=$?
@@ -81,9 +88,11 @@ grep -q 'cron: "47 \*/4 \* \* \*"' $W && grep -q "^  workflow_dispatch:" $W && g
   && ok "the health workflow runs on health_cron and by hand, one at a time" || bad "health workflow triggers"
 step $W "Check the routine" routine.sh; mkdir -p skills/workflow-health/scripts && touch skills/workflow-health/scripts/health.py
 printf '{"health_cron": "off"}\n' > .loop/config.json; : > "$G/calls.log"; : > o.txt; : > s.txt
-PATH="$G:$PATH" GITHUB_OUTPUT=o.txt GITHUB_STEP_SUMMARY=s.txt bash -e routine.sh >/dev/null; rc=$?
+PATH="$G:$PATH" EVENT=schedule GITHUB_OUTPUT=o.txt GITHUB_STEP_SUMMARY=s.txt bash -e routine.sh >/dev/null; rc=$?
 [ $rc = 0 ] && grep -qx "on=false" o.txt && grep -q "^OFF: health is off" s.txt && [ ! -s "$G/calls.log" ] \
   && ok "with health_cron off the routine writes nothing and says it is off" || bad "health off switch"
+: > o.txt; EVENT=workflow_dispatch GITHUB_OUTPUT=o.txt GITHUB_STEP_SUMMARY=s.txt bash -e routine.sh >/dev/null
+grep -qx "on=true" o.txt && ok "with a routine off, a run started by hand still runs" || bad "off blocks a run by hand"
 $auto workflow >/dev/null; ! grep -q "schedule:" $W && grep -q "workflow_dispatch:" $W && ok "a routine written off keeps only its by-hand trigger" || bad "off workflow trigger"
 printf '{"health_cron": "5 1 * * *"}\n' > .loop/config.json; : > o.txt; : > s.txt; $auto workflow >/dev/null; step $W "Check the routine" routine.sh
 printf '{"health_cron": "7 2 * * *"}\n' > .loop/config.json
@@ -98,6 +107,13 @@ GITHUB_STEP_SUMMARY=s.txt ANTHROPIC_API_KEY= bash -e judge.sh >/dev/null; grep -
 printf '{"judge_command": ["no-such-judge-%s"]}\n' $$ > .loop/config.json; : > s.txt
 GITHUB_STEP_SUMMARY=s.txt ANTHROPIC_API_KEY=set bash -e judge.sh >/dev/null; grep -q "^JUDGE: skipped, the runner has no no-such-judge" s.txt \
   && ok "with the secret but no judge program the judge is skipped and says what to set" || bad "judge without its program"
+printf '{"health_cron": "1 2 3 4 $(id)"}\n' > .loop/config.json; $auto workflow >/dev/null 2>err.txt; rc=$?
+[ $rc != 0 ] && grep -q "^REFUSED: health_cron" err.txt && printf '{"regression_cron": "1 2 3 4 `id`"}\n' > .loop/config.json \
+  && ! $reg workflow >/dev/null 2>&1 && ok "a cron setting that isn't plain cron fields is refused" || bad "cron check"
+printf '{"regression_cron": "off"}\n' > .loop/config.json; $reg workflow >/dev/null
+! grep -q "schedule:" .github/workflows/regression.yml && grep -q "workflow_dispatch:" .github/workflows/regression.yml \
+  && ok "regression written off keeps its by-hand and tag triggers only" || bad "regression off workflow"
+grep -q "milestone.py new backlog --live" .github/workflows/health.yml && ok "the health run makes sure its Backlog milestone exists before filing" || bad "backlog milestone"
 printf '{"judge_secret": "BAD NAME"}\n' > .loop/config.json; $auto workflow >/dev/null 2>err.txt; rc=$?
 [ $rc != 0 ] && grep -q "^REFUSED: judge_secret" err.txt && ok "a judge_secret that isn't a secret name is refused" || bad "secret name check"
 printf '{}\n' > .loop/config.json; $auto workflow >/dev/null; $reg workflow >/dev/null
@@ -107,7 +123,7 @@ printf '{}\n' > .loop/config.json; $auto workflow >/dev/null; $reg workflow >/de
 echo "== the regression workflow: the off switch and defect labels"
 W=.github/workflows/regression.yml; step $W "Check the routine" rroutine.sh
 printf '{"regression_cron": "off"}\n' > .loop/config.json; : > o.txt; : > s.txt; : > "$G/calls.log"
-PATH="$G:$PATH" GITHUB_OUTPUT=o.txt GITHUB_STEP_SUMMARY=s.txt bash -e rroutine.sh >/dev/null
+PATH="$G:$PATH" EVENT=schedule GITHUB_OUTPUT=o.txt GITHUB_STEP_SUMMARY=s.txt bash -e rroutine.sh >/dev/null
 grep -qx "on=false" o.txt && grep -q "^OFF: regression is off" s.txt && [ ! -s "$G/calls.log" ] && grep -q "if: steps.routine.outputs.on == 'true'" $W \
   && ok "with regression_cron off the regression run writes nothing and says it is off" || bad "regression off switch"
 printf '# Alpha\n\n## Requirements\n\n- AAA-1: **Reviewed 2026-11-08** Alpha words.\n' > docs/wiki/Alpha.md
@@ -119,6 +135,12 @@ grep -q "^issue create --title Regression: red --label regression --label defect
   && grep -q "^- Guards: AAA-1: Alpha words.$" "$G/calls.log" && grep -q "^label create defect --description" "$G/calls.log" \
   && ! grep -q "^label create defect.*--force" "$G/calls.log" \
   && ok "a failing test opens one issue labelled defect, naming the feature and requirement it guards" || bad "defect issue"
+printf '[{"number": 31, "state": "OPEN", "body": "<!-- loop-regression red -->", "labels": [{"name": "regression"}]}]\n' > "$G/regression.json"; : > "$G/calls.log"
+PATH="$G:$PATH" GH_TOKEN=x REGRESSION_RESULTS="$r/res.tsv" RUNNER_TEMP="$r" bash rows.sh >/dev/null 2>&1
+grep -q "^issue edit 31 --add-label defect" "$G/calls.log" && ! grep -q "^issue create" "$G/calls.log" \
+  && ok "an older failing-test issue gains the defect label" || bad "old issue relabel"
+: > "$G/calls.log"; PATH="$G:$PATH" STUB_LIST_FAIL=1 GH_TOKEN=x REGRESSION_RESULTS="$r/res.tsv" RUNNER_TEMP="$r" bash rows.sh >/dev/null 2>&1
+! grep -q "^issue create\|^issue edit\|^issue comment" "$G/calls.log" && ok "when the issues can't be read the run changes no issue" || bad "issue list failure"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$G/fake"; mkdir -p "$FAKE_GH_DIR"
 git add -A >/dev/null; git -c user.email=t@example.test -c user.name=Toy commit -qm rows >/dev/null
 $reg run red --live >/dev/null 2>&1; grep -q "^issue create --title Regression: red --label=regression --label=defect" "$FAKE_GH_DIR/calls.log" \
