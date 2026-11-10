@@ -74,11 +74,14 @@ def drop(*paths):
 
 
 def alive(pid):
+    """A pid that runs and is no zombie. EPERM means it runs but this poller may not signal it (a sandbox): alive."""
     try:
         os.kill(pid, 0)
-        return subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()[:1] != "Z"
-    except OSError:
+    except PermissionError:
+        pass
+    except (OSError, TypeError):
         return False
+    return subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()[:1] != "Z"
 
 
 def mtime(path):
