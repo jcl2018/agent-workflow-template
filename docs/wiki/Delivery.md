@@ -58,7 +58,7 @@ The loop. I give one sentence and the done lines, and a worker runs it unattende
 - Given a flow step not yet done, when a pull request is opened, then it is refused. — [pr-needs-flow](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a new goal, when it starts, then it starts at the idea step. — [starts-at-idea](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a step reply, when it is recorded, then it is accepted only if the flow ran that step. — [steps-through-flow](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given any tool, when it runs, then it never waits on a terminal prompt. — [no-prompts](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given any tool, when it runs, then it never waits on a terminal prompt. — [no-prompts](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-07
 - Given the flow, when it is checked, then it has no checks step and every step can be mapped, with a default suite and overrides. — [defect-flow-steps](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given review_depth full, when a plan or review reply says it ran condensed, then the try fails. — [depth-condensed-refused](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
 - Given review_depth full and auto-approve on, when a condensed review leaves a gate, then it is refused, not approved. — [depth-auto-approve-gate](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
@@ -100,7 +100,7 @@ Release is the last step, fully automatic: every goal ends with release, which b
 
 ### Defect tests
 
-- Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. — [#35](https://github.com/jcl2018/agent-workflow-template/issues/35), [scripts-no-hang](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. — [#35](https://github.com/jcl2018/agent-workflow-template/issues/35), [scripts-no-hang](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-08
 - Given a pull request, when its body is written, then it says nothing about checks and lists each step's result. — [#62](https://github.com/jcl2018/agent-workflow-template/pull/62), [pr-body-no-checks](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given python leaves cache files behind, when a goal merges, then its wiki pages are still published. — [#58](https://github.com/jcl2018/agent-workflow-template/issues/58), [wiki-release-pycache](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a worker that ends with its pull request waiting, when it finishes, then it runs the release step itself. — [#61](https://github.com/jcl2018/agent-workflow-template/pull/61), [worker-runs-release](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08

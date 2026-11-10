@@ -19,7 +19,7 @@ criteria-max-setting	PASS	2026-11-09
 criteria-no-scripts	PASS	2026-11-09
 cut-draft	PASS	2026-11-09
 cut-needs-verify	PASS	2026-11-09
-defect-categories	FAIL	2026-11-09
+defect-categories	PASS	2026-11-10
 defect-flow-steps	PASS	2026-11-09
 defect-health	PASS	2026-11-09
 defect-known	PASS	2026-11-09
