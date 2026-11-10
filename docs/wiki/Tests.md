@@ -401,6 +401,18 @@
 | <a id="t-reg-defect-label"></a>reg-defect-label | requirement | REG-5 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-reg-same-env"></a>reg-same-env | requirement | REG-4 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-reg-local-relabel"></a>reg-local-relabel | requirement | REG-5 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
+| <a id="t-tiers-unmapped-qa-pr"></a>tiers-unmapped-qa-pr | requirement | REG-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-tiers-deleted-qa-pr"></a>tiers-deleted-qa-pr | requirement | REG-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-tiers-no-merge-base"></a>tiers-no-merge-base | requirement | REG-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-tiers-record-merge-base"></a>tiers-record-merge-base | requirement | REG-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-tiers-rows-summary"></a>tiers-rows-summary | requirement | REG-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-run-kind-filter"></a>run-kind-filter | requirement | REG-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-full-goal-lane-timeout"></a>full-goal-lane-timeout | requirement | REG-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-workflow-goal-to-release"></a>workflow-goal-to-release | workflow | REG-1: Three kinds of tests | not run | - | local | no |
+| <a id="t-workflow-kind-shown"></a>workflow-kind-shown | requirement | REG-1 | not run | - | local | no |
+| <a id="t-list-kind-filter"></a>list-kind-filter | requirement | REG-1 | not run | - | local | no |
+| <a id="t-one-format-everywhere"></a>one-format-everywhere | requirement | REG-2 | not run | - | local | no |
+| <a id="t-defect-owed-branch-proved"></a>defect-owed-branch-proved | requirement | REG-1 | not run | - | local | no |
 
 ## Setup
 
