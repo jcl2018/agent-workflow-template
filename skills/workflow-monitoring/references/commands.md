@@ -91,10 +91,60 @@ Every check-in prints the live board, and `report`, `board`, `dashboard` and `bo
 in this format: a `LIVE BOARD` header (repo, local time, version, health); Issues (only what is open now, a stuck worker first,
 each with its fix in plain words and the exact words to answer, no local file paths); Running goals (a 10-cell bar with percent
 and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current step in
-brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows (`a --> b`); and one
-finish time (the longest chain of estimates, not their sum). Merged and closed work, history, milestones, duplicate totals, token
+brackets, the worker, the try count once a try has failed (`try 2 of 3`, or `tries used up (3 of 3)`), and a one-line next
+step: the latest session report, a running goal at release reads `finish release`, a step outside the flow keeps the last
+known flow step); Queued goals (held goals among them, marked `held`); Dependencies between running and queued goals as arrows
+(`a --> b`); and one finish time (the longest chain of estimates, not their sum; `at least` while a goal is held or freezing). Merged and closed work, history, milestones, duplicate totals, token
 tables and done-line lists are left out. Estimates are the median of other finished runs' steps, read from their logs, and read
 `no estimate yet` without one.
+
+#### Board states
+
+The board reads the run records and the session pool (`<git common dir>/loop/session-pool.json`, through
+`graph.read_pool`). `LOOP_SESSION_QUIET` (seconds, default 3600) is how long a goal may stay quiet before Issues names it.
+
+| State | What it means | Next command | What you see after |
+|---|---|---|---|
+| running | A worker (session or process) has the goal | none | the next line moves as it reports |
+| freezing | A session was handed the goal before it was frozen (a busy pool entry, no run yet) | the worker runs `goal.py new <slug> --here` in its worktree, then `sessions.py bind <slug> <id>` | it shows as running |
+| stale freezing | Freezing for longer than the quiet time | look at the session; once it has stopped, `sessions.py free <slug>`, then start a new session in the worktree and bind, or `git worktree remove <path>` and start it again with `watch.py go --slug <slug>` (a handoff has no queue line, so `watch` never restarts it on its own) | it leaves the board, or shows as running |
+| held | Running, but no busy session and no process has it (session reassigned, worktree kept); listed under Queued goals | `sessions.py bind <slug> ID` | it shows as running |
+| held, worktree gone | Held, and its worktree folder is missing | `git worktree add <common>/loop/worktrees/<slug> loop/<slug>`, then bind (`watch.py resume` takes only failed or stopped goals) | it shows as running |
+| held, holds a slot | A held session goal still counts toward `parallel` | bind it, or once its old session has stopped, `sessions.py free <slug>` | the slot is free |
+| pool unreadable | The pool file can't be trusted: nothing is called held or freezing, and `watch` starts nothing | `python3 -m json.tool <path>`, then repair it (moving it aside forgets which goals sessions hold: free or bind each again first) | the next pass reads it |
+| done | The pull request is open; a later session report is only recorded (issue 108) | the release step merges it | it leaves the board |
+| tries used up | A stopped goal was brought back by a bind or mend | look at its finding | the next try counts from there |
+
+Handing a goal over before it is frozen (for a session the operation session started with the app's own tools; a goal
+`watch.py` starts is frozen before its session gets it, so it never shows as freezing):
+
+```text
+operation session: git worktree add -b loop/<slug> <common>/loop/worktrees/<slug> origin/main
+operation session: start the session, then sessions.py bind <slug> <id>   -> ASSIGNED ... not frozen yet   (board: [freezing])
+worker:            goal.py new <slug> --here ...                         -> FROZEN                        (board: running, idea)
+worker:            sessions.py bind <slug> <id>                          -> BOUND                         (board: worker: session <name>)
+```
+
+Recovering a stale assignment: confirm the session has stopped, run `sessions.py free <slug>` (FREED ... slot released), then
+start a new session in the worktree and bind it, or remove the worktree and let `watch.py watch` start the goal.
+
+| Message | Means | Fix |
+|---|---|---|
+| `ASSIGNED <slug> to session <id> ...; not frozen yet` | the handoff is recorded | the worker freezes, then binds |
+| `BOUND <slug> to session <id> (<name>)` | the run names that session (a repeat bind changes nothing) | none |
+| `FREED <n> session(s) for <slug>; slot released` or `slot already free` | the goal's sessions and slot are back | free only a session that has stopped |
+| `NOTHING TO FREE for <slug>: ...` | no busy session and no session run | check the goal name |
+| `KEPT done for <slug>: ...` | a report on a done goal was recorded, nothing else changed | none |
+| `REFUSED: bad goal name '<slug>'` | the name isn't lowercase letters, digits and hyphens | use the goal's slug |
+| `REFUSED: the session pool <path> can't be read (...)` | the pool is unreadable; nothing was changed | `python3 -m json.tool <path>`, repair it (moving it aside forgets which goals sessions hold) |
+| `REFUSED: session <id> was freed from <slug> ...` | a late bind of a freed session | `--force`, once no other worker has the goal |
+| `REFUSED: <slug> is assigned to session <name> but not frozen yet` | report or send before the goal is frozen | the worker freezes it first |
+| `REFUSED: <slug> is waiting on the owner (...)` | free on a waiting goal | answer it first |
+
+Limits: a report carries no worker identity, so a late report from an old worker after a rebind still counts, and a late
+`failed` from it still frees the new session's entry; `freed_from` is lost when a session is reused for another goal.
+Upgrading needs nothing: `bound_at`, `freed_from` and `freed_at` are extra fields old runs don't have (they filter
+nothing), no session needs a restart, and a rollback leaves the extra keys unread.
 
 The page step (`--in FILE`, `--out DIR`) reads `board.json` and writes `board.html` and `board-artifact.html`, each with a
 header line and the same live board. The pages have no scripts and load nothing from the network.
@@ -382,15 +432,15 @@ Proof: toy tests with a stand-in agent. It hasn't run on a real batch yet.
 ```mermaid
 flowchart LR
   a["Issues: stuck, waiting and failed workers, with the fix"]
-  b["Running goals: bar, step flow, next step"]
-  c["Queued goals and dependencies as arrows"]
+  b["Running goals: bar, step flow, next step, freezing goals"]
+  c["Queued goals (held marked) and dependencies as arrows"]
   d["Finish: one time"]
   a --> b
   b --> c
   c --> d
 ```
 
-Status: built and proven: Issues: stuck, waiting and failed workers, with the fix; Running goals: bar, step flow, next step; Queued goals and dependencies as arrows; Finish: one time. Built only: none. Planned: none.
+Status: built and proven: Issues: stuck, waiting and failed workers, with the fix; Running goals: bar, step flow, next step, freezing goals; Queued goals (held marked) and dependencies as arrows; Finish: one time. Built only: none. Planned: none.
 Stops for the owner: none.
-Proof: toy tests (dev/toy/test-live-board.sh).
+Proof: toy tests (dev/toy/test-live-board.sh, dev/toy/test-board-held.sh).
 

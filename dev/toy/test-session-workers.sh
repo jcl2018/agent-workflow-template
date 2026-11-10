@@ -132,6 +132,9 @@ check "a merged report is checked with gh: an open pull request is recorded as w
 python3 - "$C/loop/runs/b.json" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1])); s.update(status="running", updated="2026-01-01T00:00:00Z"); json.dump(s, open(sys.argv[1], "w"))
+pool = sys.argv[1].replace("runs/b.json", "session-pool.json")  # its session still has it: quiet, not held
+p = json.load(open(pool)); p["s9"] = {"name": "worker · b", "slug": "b", "state": "busy", "since": "2026-01-01T00:00:00Z"}
+json.dump(p, open(pool, "w"))
 PY
 $LB > "$T/board4"
 check "a worker session silent for an hour is named under Issues" 'grep -q "^- b: its session worker · b has sent nothing for" "$T/board4"'
