@@ -145,8 +145,9 @@ def ask(prompt, root):
                               timeout=180, cwd=root)
     except (OSError, subprocess.SubprocessError) as error:
         return "", "the judge did not run: %s" % str(error)[:100]
-    if done.returncode:
-        return "", "the judge exited %d" % done.returncode
+    if done.returncode:  # issue 158: name the cause, the command's first stderr line
+        first = (done.stderr.strip().splitlines() or [""])[0][:160]
+        return "", "the judge exited %d%s" % (done.returncode, ": " + first if first else " (no stderr)")
     return done.stdout, ""
 
 
