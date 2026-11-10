@@ -16,3 +16,12 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. In this repo, run `python3 skills/workflow-regression/scripts/lanes_cli.py check`.
+   Expect: no output and exit status 0 (every test script a row names has a valid `# reads:` header).
+2. Run `python3 skills/workflow-regression/scripts/lanes_cli.py affected skills/workflow-monitoring/scripts/batch.py`.
+   Expect: `AFFECTED 34 of 175 rows (...)`, well under half the land rows; with `LANES_WIDE=1` in front, all 175.
+3. Run `python3 skills/workflow-regression/scripts/lanes_cli.py deps "bash dev/toy/test-live-board.sh 2>&1" --why skills/workflow-health/scripts/judge.py`.
+   Expect: one chain of files from `dev/toy/test-live-board.sh` to `judge.py` (the live board runs health.py).
+4. Delete the `# reads:` lines from `dev/toy/test-health.sh` and run step 1 again, then restore the file.
+   Expect: `LANES-DECL-NONE dev/toy/test-health.sh:1: ...` and a `fix:` line, exit status 1.
