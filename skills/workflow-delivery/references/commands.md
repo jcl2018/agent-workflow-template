@@ -22,7 +22,7 @@ person can see, proves it before the pull request.
 ```text
 new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
 queue SLUG --goal TEXT --done LINE [--touches A,B] [--depends-on A,B]
-flow SLUG STEP [--note TEXT]
+flow SLUG STEP [--note TEXT] [--again]
 record SLUG STEP --file REPLY
 step SLUG NAME [--note TEXT] [--tokens N]
 pr SLUG
@@ -31,6 +31,7 @@ answer SLUG
 finding SLUG TEXT
 resume SLUG --why TEXT [--by WHO]
 touches SLUG --add PATH --why TEXT
+set SLUG [--depth full|condensed] [--bump minor|major] [--budget-minutes N] [--budget-tokens N] --why TEXT
 show SLUG
 ```
 
@@ -317,6 +318,106 @@ flowchart LR
 Status: built and proven: Print the run record. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests.
+
+## Delivery PRD rules (DEL-5..DEL-9)
+
+### Depth by size (DEL-6)
+
+`goal.py new` sizes the goal once, from its frozen done lines and touches: small is at most 3 done lines, no `github:`
+touch and at most one code area (a path's first two parts, like `skills/workflow-release` or `src/api`; `docs/`,
+`.loop/`, `dev/toy/`, `test/`, `tests/` and files at the repo root are no area). No touches counts as large. The step's
+depth is then: the owner's override (`goal.py set SLUG --depth`), else `review_depth` full holds every goal to full, else
+(`condensed`) a small goal runs condensed (one spec-review round, a lighter plan review, one review pass) and a larger one
+full, with a condensed reply refused. Widening touches to a second area re-sizes a small goal large, never the reverse.
+The pull request and the live board name the decided depth and why. The qa lane never changes with depth. A repo on
+`condensed` sees its large goals held to full from this release on.
+
+### Owner settings: `set`
+
+`goal.py set` is operation-only (it refuses `LOOP_ROLE=worker`): nothing a worker runs lowers a goal's depth or raises its
+budget. Values go to the operation sidecar `<runs>/<slug>.extra.json` under its lock, never to the run record. A depth set
+after the plan or review is recorded refuses (`SET_AFTER_RECORD`): set it, then rerun with `flow.py SLUG STEP --again`.
+
+```bash
+python3 scripts/goal.py set my-goal --depth full --why "owner: touches the release path"
+python3 scripts/goal.py set my-goal --bump minor --why "owner: adds a command"
+python3 scripts/goal.py set my-goal --budget-minutes 180 --budget-tokens 5000000 --why "owner: big goal"
+```
+
+| Flag | Repo setting it overrides for one goal |
+|---|---|
+| `--budget-minutes` | `time_budget_minutes` |
+| `--budget-tokens` | `token_budget` |
+
+### Release bump (DEL-5)
+
+The release bump is patch: a removed file or a BREAKING commit is named in the reason, never a silent major (issue 170).
+Minor or major only when the operation recorded it with `goal.py set SLUG --bump` (it does so right after freezing a goal
+whose text or queue line says minor or major; `new` prints a WARN when the text names one). The release side is in
+`skills/workflow-release/references/commands.md`.
+
+### Budgets (DEL-8)
+
+A goal carries `budget: {minutes, tokens}` from the repo settings at freeze, 0 meaning none set. The token budget is a
+spending limit: no new step starts at or over it (`BUDGET_TOKENS`). The time budget is advisory: the board flags it, and
+nothing stops. Tokens add up across attempts of a step (failed tries and `--again` count). The live board prints one line
+per running or held goal: `budget: 35m of 120m, 0.4M of 3.0M tokens`, `budget: 12m of 90m` (one half set), `budget: none
+set`, with `, OVER time` or `, OVER tokens` appended when spent.
+
+### Resume (DEL-7)
+
+A stopped or crashed goal goes on from its last recorded step, never from the start. A killed background step leaves its
+`.job`; the next `flow.py` finds the dead pid and `record` counts one failed try. `goal.py show` adds `resume_at`: the first
+of idea, plan, review, qa, ship not recorded, except `build` when idea and plan are recorded and no commit landed since
+the plan (`review` once one did), and `pr` when all are. `goal.py resume` and mend's prompt name it, the exact next
+command, HEAD and the uncommitted file count. `resume` resets the tries, so read them first. `flow.py SLUG STEP` on a
+recorded step refuses with no try (`ALREADY_RECORDED`); `--again` reruns it on purpose, clearing that step and every
+later one (result, depth, verdicts), never tries or tokens, and refuses while the step's job still runs.
+
+### Nothing private ships (DEL-9)
+
+Every push and GitHub write in delivery, release and monitoring runs `private.py` first: `goal.py pr` (the branch, the
+title, the body), a finding's push (kept local on a hit: `FINDING_LOCAL`, shown under Issues), `wiki.py`, the release
+steps and `merge.py`. The list is outside the repo, `$LOOP_PRIVATE_NAMES` or `~/.workflow-loop/private-names`, one regular
+expression per line, case-insensitive, `#` lines are comments:
+
+```text
+# names that never ship
+my-private-suite
+owner@example\.com
+```
+
+A file of only comments says the scan is off on purpose. No file: the scan passes, the pull request says "nothing was
+checked" and the board lists it under Issues. A broken file (unreadable, a bad pattern) refuses every push. A scan reads
+the branch name, changed file names, every commit's added lines and message (a name added then removed still counts; a
+commit that only removes one passes) and the named texts. A hit names its place and the list line, never the text:
+
+```text
+$ python3 scripts/private.py check
+PRIVATE LIST: 2 patterns from ~/.workflow-loop/private-names
+$ python3 scripts/goal.py pr my-goal
+REFUSED (no try used): a private name would be pushed: notes.txt:1 (commit:1a2b3c4) matches list line 2; nothing was pushed. Fix: remove the text, then squash ... (PRIVATE_NAME)
+```
+
+### Issue 38 and 117 extras
+
+A step reply's `VERDICT: <who>: <verdict>` lines are kept on the run record and listed under their step in the pull
+request, with each step's tokens. Touches may name GitHub surfaces (`github:wiki`, `github:milestones`, `github:projects`,
+`github:releases`, `github:labels`, `github:issues`); they make a goal large and are listed in the pull request. When a
+goal deletes a file a tracked script or workflow names, the pull request carries `WARN: <script> names <path>, which this
+goal deletes; it may write it back`. A worker session binds itself with `sessions.py bind SLUG self`.
+
+### Refusal codes
+
+| Code | Where | Fix |
+|---|---|---|
+| `PRIVATE_NAME` | `goal.py pr` | remove the text and squash, or edit that list line for a false positive |
+| `PRIVATE_LIST` | every scan | repair the list; `private.py check` names the line |
+| `FINDING_LOCAL` | a finding's push | the finding stays local; fix the hit, then push |
+| `ALREADY_RECORDED` | `flow.py` | go on with the step it names, or `--again` |
+| `SET_AFTER_RECORD` | `goal.py set` | set first, then `flow.py SLUG STEP --again` |
+| `BUDGET_TOKENS` | `flow.py` | `goal.py set SLUG --budget-tokens N` from the operation |
+| `BIND_SELF_UNSET` | `sessions.py bind SLUG self` | `sessions.py bind SLUG <ID>` |
 
 ## Moved from SKILL.md
 
