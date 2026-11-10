@@ -9,7 +9,7 @@ add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>] [
 sync [--write]
 criteria
 red <id> --break "<command>"
-run [land|nightly|<id>] [--timeout S] [--live]
+run [land|nightly|<id>] [--timeout S] [--live] [--reuse [--tier goal]] [--kind requirement|workflow|defect]
 workflow
 ```
 
@@ -236,3 +236,19 @@ outside it. All three take `--root DIR` (default: the git top level), exit 2 on 
 audit hook and fails a row whose run read a skill file outside its closure (`LANES-TRACE-UNDECLARED`, with the line
 to add), whose Python launch the hook never saw (`LANES-TRACE-NOHOOK`), or whose command failed. It covers Python reads
 only; bash reads are covered by the static rules above.
+
+## Goal tier
+
+A goal lane runs `run land --reuse --tier goal` (`scripts/tiers.py`). It plans from the branch's record only when
+the record's merge-base with the base branch is the current one (else from the merge-base, plus what a base merge
+brought in) and runs the rows a change reaches, new or edited rows, root runners and the record's failures; it takes a
+lane slot only when FULL, and a FULL goal lane's time limit is `full_suite_minutes`. Without `--tier` nothing changes.
+
+| Line | Means |
+|---|---|
+| `SELECTED <id>: <reason>` | Why a row runs: `reaches <file>`, `new row`, `root runner`, `failure rerun` or `FULL` |
+| `ROWS: S selected (A affected, N new, R root runners, F failure reruns), U reused; unmapped: K` | The plan; the LANE line repeats it with the unfinished count and the log path |
+| `UNMAPPED <file>: no row declares it. Note: ...` / `UNMAPPED <file>: deleted. Note: ...` | qa and ship: advisory; the pr lane runs the full suite once for it |
+| `FULL (unmapped <file> at pr): ...` / `FULL (deleted <file>): ...` | The pr lane runs every row once for a path no row maps |
+| `FULL (no merge-base with <base>): ...` | A shallow clone or a missing base ref: every row runs |
+| `LANE_TIMEOUT (FULL_TIMEOUT): ...` | A FULL goal lane passed `full_suite_minutes` (exit 124); the worker does not rerun it |

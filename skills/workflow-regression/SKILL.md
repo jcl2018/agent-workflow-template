@@ -51,13 +51,13 @@ It copies `HEAD` to a temporary worktree, runs the break command there, runs the
 fails. `STILL GREEN` means the test proves nothing, so fix the test. Commit the row first if the test is new. Your own
 checkout is never touched.
 
-## `run [land|nightly|<id>] [--timeout S] [--live]`
+## `run [land|nightly|<id>] [--timeout S] [--live] [--kind requirement|workflow|defect]`
 
 ```bash
 python3 scripts/regression.py run land
 ```
 
-The default is `land`.
+The default is `land`. `--kind` runs only that kind of test (`requirement` is category criterion).
 
 | Line | Means |
 |---|---|
@@ -99,7 +99,7 @@ A row whose command names no repo path always runs. `RESULT` counts reused rows 
 failure counts as known. A reusing run
 writes nothing in the worktree and opens no issue: a failure shows in its exit status and output (the last 20 lines of
 each failing row), and the plain `run` in GitHub Actions keeps the issues. A plain `run` forces every row and rewrites
-the record. Try it on a toy repo: `bash dev/toy/test-lanes.sh "" regression` (in this repo) walks every case.
+the record. Try it on a toy repo: `bash dev/toy/test-lanes.sh "" regression` (in this repo) walks every case. A goal lane adds `--tier goal` (`scripts/tiers.py`; `references/commands.md`, "Goal tier").
 
 **Declare what a test script runs** in `# reads:` lines at its top (`skills/` keeps it wide), then run `scripts/lanes_cli.py
 check <script>` and `affected <file>`; `LANES_WIDE=1` forces the wide mapping. Rules: `references/commands.md`, "Narrow rows".
