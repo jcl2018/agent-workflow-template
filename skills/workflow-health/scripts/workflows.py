@@ -1,0 +1,156 @@
+"""The workflow texts automation.py writes: health.yml (the round) and mail-test.yml (one test mail, by hand only).
+
+The mail secrets reach only the mail job (its own runner and fresh checkout, after the health job, so no earlier step
+such as the judge can touch its files or environment) and the mail-test job; the digest step gets three true/false
+values, never a secret. Nothing here pushes.
+"""
+GROUPS = "size,criteria,docs"  # what a runner can read: cost, Mine and two hygiene checks need this machine's run records
+MAIL_SECRETS = ("DIGEST_TO", "DIGEST_FROM", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_EMAIL_TOKEN", "DIGEST_SMTP_USER",
+                "DIGEST_SMTP_PASSWORD")
+HEADER = "# Written by workflow-health"
+
+WORKFLOW = r"""# Written by workflow-health (automation.py). It reads .loop/config.json.
+name: health
+on:
+@SCHEDULE@  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+  actions: read
+concurrency:
+  group: health
+  cancel-in-progress: false
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      on: ${{ steps.routine.outputs.on }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check the routine
+        id: routine
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("health_cron") or "")' 2>/dev/null || true)
+          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then  # off stops the schedule; a run started by hand still runs
+            echo "on=false" >> "$GITHUB_OUTPUT"
+            echo "OFF: health is off in .loop/config.json (health_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ ! -f skills/workflow-health/scripts/health.py ]; then
+            echo "MISSING: the workflow-health skill is not in this repo's checkout, so health ran nothing and wrote nothing. Fix: commit the skills/ folder, or set health_cron to off." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "on=true" >> "$GITHUB_OUTPUT"
+          if [ -n "$cron" ] && [ "$cron" != "@CRON@" ]; then
+            said="SCHEDULE: this workflow runs on '@CRON@' but .loop/config.json says '$cron'. Fix: python3 skills/workflow-health/scripts/automation.py workflow"
+            echo "::warning::$said"; echo "$said" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f skills/workflow-health/scripts/automation.py ]; then  # a workflow older than the skills says so on every run
+            checked=$(python3 skills/workflow-health/scripts/automation.py workflow --check 2>&1) || printf '%s\n' "$checked" | while IFS= read -r said; do
+              echo "::warning::$said"; echo "$said" >> "$GITHUB_STEP_SUMMARY"; done
+          fi
+      - name: Health check
+        if: steps.routine.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}  # the issue-milestone rule reads the open issues
+        run: |
+          python3 skills/workflow-health/scripts/health.py check --group @GROUPS@ > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
+          { echo "## Health"; echo; echo '```'; cat "$RUNNER_TEMP/health-report.txt"; echo '```'; echo
+            echo "Not run here: performance (the Cost rule), Mine and hygiene read this machine's run records, branches and private files, which a runner doesn't have."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: File the findings as tagged issues
+        if: always() && steps.routine.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 skills/workflow-health/scripts/milestone.py new --all --live \
+            || echo "::warning::couldn't make every feature milestone; findings whose milestone is missing go on Backlog"
+          python3 skills/workflow-health/scripts/health.py file --group @GROUPS@
+      - name: Judge, only with the agent key secret
+        if: always() && steps.routine.outputs.on == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.@SECRET@ }}  # the judge reads this name, whatever the secret is called
+        run: |
+          set -o pipefail
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "JUDGE: skipped, no @SECRET@ secret is set." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          setup=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("judge_setup") or "")')
+          [ -z "$setup" ] || env -u ANTHROPIC_API_KEY sh -c "$setup"
+          prog=$(python3 -c 'import json; c = json.load(open(".loop/config.json")).get("judge_command"); print(c[0] if isinstance(c, list) and c else "")')
+          if [ -z "$prog" ] || ! command -v "$prog" >/dev/null; then
+            echo "JUDGE: skipped, the runner has no ${prog:-judge_command}; set judge_setup in .loop/config.json." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          { echo "## Judge"; echo; echo '```'; python3 skills/workflow-health/scripts/health.py judge 2>&1 | sed -n '/^JUDGE/,$p' || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"  # a red verdict is the report's, not the step's
+      - name: Post the digest
+        if: always() && steps.routine.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEALTH_REPORT: ${{ runner.temp }}/health-report.txt
+          DIGEST_RUN: ${{ github.run_id }}
+          DIGEST_REPO_OWNER: ${{ github.repository_owner }}
+          MAIL_ADDR_SET: ${{ secrets.DIGEST_TO != '' && secrets.DIGEST_FROM != '' }}  # true or false, never a value
+          MAIL_CF_SET: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' && secrets.CLOUDFLARE_EMAIL_TOKEN != '' }}
+          MAIL_SMTP_SET: ${{ secrets.DIGEST_SMTP_USER != '' && secrets.DIGEST_SMTP_PASSWORD != '' }}
+        run: python3 skills/workflow-health/scripts/automation.py digest
+  mail:
+    needs: health
+    if: always() && needs.health.outputs.on == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Email the digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DIGEST_RUN: ${{ github.run_id }}
+@MAILENV@        run: python3 skills/workflow-health/scripts/mail.py send
+"""
+
+MAIL_TEST = r"""# Written by workflow-health (automation.py). Start it by hand from the Actions tab to send one test mail.
+name: mail-test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mail-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Email a test
+        env:
+@MAILENV@        run: python3 skills/workflow-health/scripts/mail.py test
+"""
+
+
+def mail_env(indent):
+    return "".join("%s%s: ${{ secrets.%s }}\n" % (indent, name, name) for name in MAIL_SECRETS)
+
+
+def health(cron, secret):
+    schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron
+    return (WORKFLOW.replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@GROUPS@", GROUPS)
+            .replace("@SECRET@", secret).replace("@MAILENV@", mail_env(" " * 10)))
+
+
+def mail_test():
+    return MAIL_TEST.replace("@MAILENV@", mail_env(" " * 10))

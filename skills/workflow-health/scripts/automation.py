@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """Run the health routine on a schedule in GitHub Actions, and post one digest comment per round.
 
-usage: automation.py workflow            write .github/workflows/health.yml from health_cron in .loop/config.json
+usage: automation.py workflow [--check]  write .github/workflows/health.yml and mail-test.yml from .loop/config.json;
+                                         --check only says which of them is missing or stale (exit 1)
        automation.py digest [--owner L]  post this round's comment on the pinned Automation digest issue
 
 The workflow checks the routine (health_cron "off" makes a run write nothing), runs health check into the run summary,
-files the groups a runner can read (size, criteria, docs) on the Backlog milestone as health:<group> issues, runs the judge only when
-the secret named by judge_env is set, then posts the digest. Nothing in it pushes.
-The digest lists what ran (regression's latest run, health's verdict), the new, still-open and fixed issues labelled
-regression or health since the last comment, and one request per open issue; it mentions digest_owner (default: the
-repo owner). Its state lives in the digest issue's body, so a rerun of the same run posts nothing twice. Outside Actions
-with no GH_TOKEN it only prints the comment.
+files the groups a runner can read (size, criteria, docs) on their feature's milestone as health:<group> issues, runs
+the judge only when the secret named by judge_env is set, posts the digest, then mails it (mail.py). Nothing pushes.
+The digest lists what ran (regression's latest run, health's verdict, the round's cost, the email), then per milestone
+the new, still-open and fixed issues labelled regression or health since the last comment, each open one with its link
+and the request to give the agent; it mentions digest_owner (default: the repo owner). Its state lives in the digest
+issue's body (rounds.py), so a rerun of the same run posts nothing twice and an older run never overwrites a newer one.
+Outside Actions with no GH_TOKEN it only prints the comment.
 """
 import argparse
 import datetime
@@ -25,95 +27,16 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import rounds  # noqa: E402
+import workflows  # noqa: E402
+
 CRON = "47 */4 * * *"
 KEY_NAME = "ANTHROPIC_API_KEY"  # the name of the Actions secret, not a secret
-GROUPS = "size,criteria,docs"  # what a runner can read: cost, Mine and two hygiene checks need this machine's run records
 LABELS = ("regression", "health")  # the issues the digest follows: failing tests and health findings
-TITLE = "Automation digest"
-STATE = re.compile(r"<!-- automation-digest open=([\d,]*) run=(\S*) -->")
-
-WORKFLOW = r"""# Written by workflow-health (automation.py). It reads .loop/config.json.
-name: health
-on:
-@SCHEDULE@  workflow_dispatch:
-permissions:
-  contents: read
-  issues: write
-  actions: read
-concurrency:
-  group: health
-  cancel-in-progress: false
-jobs:
-  health:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Check the routine
-        id: routine
-        env:
-          EVENT: ${{ github.event_name }}
-        run: |
-          cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("health_cron") or "")' 2>/dev/null || true)
-          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then  # off stops the schedule; a run started by hand still runs
-            echo "on=false" >> "$GITHUB_OUTPUT"
-            echo "OFF: health is off in .loop/config.json (health_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          if [ ! -f skills/workflow-health/scripts/health.py ]; then
-            echo "MISSING: the workflow-health skill is not in this repo's checkout, so health ran nothing and wrote nothing. Fix: commit the skills/ folder, or set health_cron to off." | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-          echo "on=true" >> "$GITHUB_OUTPUT"
-          if [ -n "$cron" ] && [ "$cron" != "@CRON@" ]; then
-            said="SCHEDULE: this workflow runs on '@CRON@' but .loop/config.json says '$cron'. Fix: python3 skills/workflow-health/scripts/automation.py workflow"
-            echo "::warning::$said"; echo "$said" >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - name: Health check
-        if: steps.routine.outputs.on == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}  # the issue-milestone rule reads the open issues
-        run: |
-          python3 skills/workflow-health/scripts/health.py check --group @GROUPS@ > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
-          { echo "## Health"; echo; echo '```'; cat "$RUNNER_TEMP/health-report.txt"; echo '```'; echo
-            echo "Not run here: performance (the Cost rule), Mine and hygiene read this machine's run records, branches and private files, which a runner doesn't have."
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: File the findings as tagged issues
-        if: always() && steps.routine.outputs.on == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 skills/workflow-health/scripts/milestone.py new backlog --live  # findings are filed on Backlog; it may not exist yet
-          python3 skills/workflow-health/scripts/health.py file --group @GROUPS@
-      - name: Judge, only with the agent key secret
-        if: always() && steps.routine.outputs.on == 'true'
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.@SECRET@ }}  # the judge reads this name, whatever the secret is called
-        run: |
-          set -o pipefail
-          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "JUDGE: skipped, no @SECRET@ secret is set." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
-          setup=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("judge_setup") or "")')
-          [ -z "$setup" ] || env -u ANTHROPIC_API_KEY sh -c "$setup"
-          prog=$(python3 -c 'import json; c = json.load(open(".loop/config.json")).get("judge_command"); print(c[0] if isinstance(c, list) and c else "")')
-          if [ -z "$prog" ] || ! command -v "$prog" >/dev/null; then
-            echo "JUDGE: skipped, the runner has no ${prog:-judge_command}; set judge_setup in .loop/config.json." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
-          fi
-          { echo "## Judge"; echo; echo '```'; python3 skills/workflow-health/scripts/health.py judge 2>&1 | sed -n '/^JUDGE/,$p' || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"  # a red verdict is the report's, not the step's
-      - name: Post the digest
-        if: always() && steps.routine.outputs.on == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEALTH_REPORT: ${{ runner.temp }}/health-report.txt
-          DIGEST_RUN: ${{ github.run_id }}
-          DIGEST_REPO_OWNER: ${{ github.repository_owner }}
-        run: python3 skills/workflow-health/scripts/automation.py digest
-"""
+TITLE = rounds.TITLE
+INTRO = "The Automation routines post one comment here per round, and mail it when the mail secrets are set.\n\n"
+gh, loads = rounds.gh, rounds.loads
 
 
 def config(root):
@@ -122,12 +45,6 @@ def config(root):
             return json.load(handle)
     except (OSError, ValueError):
         return {}
-
-
-def render(cron, secret):
-    schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron
-    return (WORKFLOW.replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@GROUPS@", GROUPS)
-            .replace("@SECRET@", secret))
 
 
 def settings(root):
@@ -141,25 +58,50 @@ def settings(root):
     return cron, secret
 
 
+def render(cron, secret):
+    return workflows.health(cron, secret)
+
+
+def wanted(root):
+    cron, secret = settings(root)
+    base = os.path.join(root, ".github", "workflows")
+    return [(os.path.join(base, "health.yml"), workflows.health(cron, secret)),
+            (os.path.join(base, "mail-test.yml"), workflows.mail_test())]
+
+
 def cmd_workflow(args):
-    cron, secret = settings(args.root)
-    path = os.path.join(args.root, ".github", "workflows", "health.yml")
-    if os.path.exists(path):
-        with open(path) as handle:
-            if not handle.read().startswith("# Written by workflow-health"):
-                sys.exit("REFUSED: %s exists, and this tool didn't write it. Fix: merge by hand." % path)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as handle:
-        handle.write(render(cron, secret))
-    print("WROTE " + path)
-    return 0
+    status = 0
+    for path, text in wanted(args.root):
+        rel = os.path.relpath(path, args.root)
+        current = open(path).read() if os.path.exists(path) else None
+        if current is not None and not current.startswith(workflows.HEADER):
+            if args.check:
+                print("NOT_OURS: %s was not written by automation.py, so it is never checked or rewritten (NOT_OURS)" % rel)
+                continue
+            sys.exit("REFUSED: %s exists, and this tool didn't write it. Fix: merge by hand." % path)
+        if args.check:
+            if current != text:
+                print("STALE_WORKFLOW: %s %s what automation.py writes. Fix: python3 skills/workflow-health/scripts/"
+                      "automation.py workflow, then commit (STALE_WORKFLOW)" % (rel, "is missing, unlike" if current is None else "differs from"))
+                status = 1
+            continue
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as handle:
+            handle.write(text)
+        print("WROTE " + path)
+    return status
 
 
-def gh(*args):
-    try:
-        return subprocess.run(("gh",) + args, capture_output=True, text=True, timeout=60)
-    except (OSError, subprocess.SubprocessError) as err:
-        return subprocess.CompletedProcess(args, 1, "", str(err))
+def open_issues():
+    """{number: (url, milestone number or 0)} of the open issues the digest follows; None when gh can't list them."""
+    found = {}
+    for label in LABELS:
+        done = gh("issue", "list", "--label", label, "--state", "open", "--limit", "300", "--json", "number,url,milestone")
+        if done.returncode:
+            return None
+        found.update({item["number"]: (item["url"], int((item.get("milestone") or {}).get("number") or 0))
+                      for item in loads(done, [])})
+    return found
 
 
 def backlog():
@@ -169,24 +111,6 @@ def backlog():
         return ["--milestone", "Backlog"] if "Backlog" in [m.get("title") for m in miles] else []
     except (ValueError, TypeError, AttributeError):
         return []
-
-
-def loads(done, default):
-    try:
-        return json.loads(done.stdout) if done.returncode == 0 and done.stdout.strip() else default
-    except ValueError:
-        return default
-
-
-def open_issues():
-    """{number: url} of the open issues the digest follows; None when gh can't list them."""
-    found = {}
-    for label in LABELS:
-        done = gh("issue", "list", "--label", label, "--state", "open", "--limit", "300", "--json", "number,url")
-        if done.returncode:
-            return None
-        found.update({item["number"]: item["url"] for item in loads(done, [])})
-    return found
 
 
 def owner_of(args, cfg):
@@ -222,35 +146,53 @@ def health_line(path):
     return lines[-1] if lines else "no report"
 
 
+def email_line(cfg, previous):
+    """The email row: off, not set up, or the previous round's mail outcome (read from that round's comment)."""
+    mode = cfg.get("digest_mail") or "cloudflare"
+    if mode == "off":
+        return "off (digest_mail in .loop/config.json)"
+    ready = os.environ.get("MAIL_ADDR_SET") == "true" and os.environ.get(
+        "MAIL_SMTP_SET" if mode == "smtp" else "MAIL_CF_SET") == "true"
+    if "MAIL_ADDR_SET" in os.environ and not ready:
+        names = "DIGEST_SMTP_USER, DIGEST_SMTP_PASSWORD" if mode == "smtp" else "CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_EMAIL_TOKEN"
+        return "not set up (add the DIGEST_TO, DIGEST_FROM, %s secrets)" % names
+    if previous is False:
+        return "previous round: not read (gh couldn't read the comments)"
+    if previous is None:
+        return "previous round: none yet"
+    flags = previous["state"]["flags"]
+    said = "sent" if "mailed" in flags else "may have been sent" if "mailing" in flags else "not sent"
+    return "previous round: " + said
+
+
 def listed(numbers, urls):
-    return ", ".join("[#%d](%s)" % (n, urls.get(n, "")) if urls.get(n) else "#%d" % n for n in sorted(numbers)) or "none"
+    return ", ".join("[#%d](%s)" % (n, urls[n][0]) if n in urls else "#%d" % n for n in sorted(numbers)) or "none"
 
 
-def compose(login, note, ran, now_open, before, run_id):
-    """The comment and the new state marker. Issues are named by number and link only: a title is never copied into
-    the request an owner pastes into an agent."""
-    new, still, fixed = set(now_open) - before, set(now_open) & before, before - set(now_open)
+def compose(login, note, ran, now_open, before, run_id, titles=None):
+    """The comment and its state marker. Issues are named by number and link only: a title is never copied into the
+    request an owner pastes into an agent. Milestone titles appear only as section headings."""
+    titles = titles or {}
+    new, still, fixed = set(now_open) - set(before), set(now_open) & set(before), set(before) - set(now_open)
     head = ("@%s " % login if login else "") + "Automation round, %s UTC" % datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M")
     out = [head, ""] + ([note, ""] if note else []) + ["| Routine | Result |", "|---|---|"]
     out += ["| %s | %s |" % (name, said.replace("|", "\\|")) for name, said in ran] + [""]
-    out += ["**New** (%d): %s" % (len(new), listed(new, now_open)), "",
-            "**Still open** (%d): %s" % (len(still), listed(still, now_open)), "",
-            "**Fixed** (%d): %s" % (len(fixed), listed(fixed, {})), ""]
-    if now_open:
-        out += ["### Ask the agent", ""] + ['- [#%d](%s): `/workflow-delivery go "Fix #%d"`' % (n, now_open[n], n)
-                                           for n in sorted(now_open)] + [""]
-    marker = "<!-- automation-digest open=%s run=%s -->" % (",".join(str(n) for n in sorted(now_open)), run_id)
+    home = {n: now_open[n][1] for n in now_open}
+    home.update({n: before[n] for n in fixed})
+    home = {n: m if m in titles else 0 for n, m in home.items()}  # one No milestone section, unknown ones included
+    def rank(m):  # features by title, then Backlog, then issues with no (or an unknown) milestone
+        title = titles.get(m) if m else None
+        return (2, "") if not title else (1, "") if title == "Backlog" else (0, title.lower())
+    for milestone in sorted(set(home.values()), key=rank):
+        out += ["### %s" % ((titles.get(milestone) if milestone else None) or "No milestone"), ""]
+        pick = lambda pool: {n for n in pool if home[n] == milestone}  # noqa: E731
+        out += ["**New** (%d): %s" % (len(pick(new)), listed(pick(new), now_open)), "",
+                "**Still open** (%d): %s" % (len(pick(still)), listed(pick(still), now_open)), "",
+                "**Fixed** (%d): %s" % (len(pick(fixed)), listed(pick(fixed), {})), ""]
+        mine = sorted(n for n in now_open if home[n] == milestone)
+        out += ['- [#%d](%s): `/workflow-delivery go "Fix #%d"`' % (n, now_open[n][0], n) for n in mine] + ([""] if mine else [])
+    marker = rounds.marker(run_id, {n: now_open[n][1] for n in now_open})
     return "\n".join(out + [marker]) + "\n", marker
-
-
-def digest_issue():
-    """(number, body) of the digest issue, or (None, "") when there is none yet; None when gh can't list issues."""
-    done = gh("issue", "list", "--label", "automation", "--state", "all", "--limit", "300", "--json", "number,title,body")
-    if done.returncode:
-        return None
-    hits = sorted((item for item in loads(done, []) if item.get("title") == TITLE and STATE.search(item.get("body") or "")),
-                  key=lambda item: item["number"])
-    return (hits[0]["number"], hits[0]["body"]) if hits else (None, "")  # the oldest: a later look-alike never takes over
 
 
 def cmd_digest(args):
@@ -263,29 +205,52 @@ def cmd_digest(args):
         for label in LABELS + ("automation",):  # a label that doesn't exist yet would make its listing fail
             gh("label", "create", label)
     now_open = open_issues() if live else {}
-    found = digest_issue() if live else (None, "")
+    found = rounds.digest_issue() if live else (None, "")
     if now_open is None or found is None:
         print("DIGEST: gh couldn't read the issues, so nothing was posted.")
         return 1
     number, body = found
-    state = STATE.search(body or "")
-    before = {int(n) for n in state.group(1).split(",") if n} if state else set()
+    state = rounds.parse(body)
+    before = state["open"] if state else {}
     run_id = os.environ.get("DIGEST_RUN") or "local"
-    if state and run_id != "local" and state.group(2) == run_id:
-        print("DIGEST: already posted for run %s" % run_id)
-        return 0
+    if state and run_id != "local":
+        if state["run"] == run_id:
+            print("DIGEST: already posted for run %s (DIGEST_ALREADY)" % run_id)
+            return 0
+        if rounds.order(state["run"]) > rounds.order(run_id):
+            print("DIGEST: run %s is older than the round on the issue (run %s); nothing posted (DIGEST_STALE)" % (run_id, state["run"]))
+            return 0
+    if number is not None and run_id != "local":
+        earlier = rounds.run_comment(number, run_id)
+        if earlier is False:
+            print("DIGEST: gh couldn't read the digest comments, so nothing was posted.")
+            return 1
+        if earlier:  # an earlier attempt posted it but couldn't save the body: repair, never post twice
+            gh("issue", "edit", str(number), "--body", INTRO + rounds.marker(run_id, earlier["state"]["open"]))
+            print("DIGEST: already posted for run %s; state repaired (DIGEST_REPAIRED)" % run_id)
+            return 0
     login, note = owner_of(args, cfg) if live else (args.owner or cfg.get("digest_owner") or "", "")
+    previous = rounds.run_comment(number, state["run"]) if live and number is not None and state else None
+    cost = rounds.round_cost(run_id, state["run"] if state else None) if live and in_actions else None
     ran = [("regression", regression_line() if live else "not read (dry run)"),
-           ("health", health_line(os.environ.get("HEALTH_REPORT") or ""))]
-    comment, marker = compose(login, note, ran, now_open, before, run_id)
+           ("health", health_line(os.environ.get("HEALTH_REPORT") or "")),
+           ("round cost", rounds.line(cost) if cost else "not read (dry run)" if not live else rounds.line({"error": "only read in Actions"})),
+           ("email", email_line(cfg, previous))]
+    titles = rounds.milestone_titles() if live else {}
+    if titles is None:
+        note, titles = (note + " " if note else "") + "Milestones couldn't be read, so issues are listed under No milestone.", {}
+    comment, marker = compose(login, note, ran, now_open, before, run_id, titles)
+    if cost is not None:
+        rounds.summary("## Round\n\n" + rounds.line(cost) + "\n")
+        if cost.get("over"):
+            print("::warning::" + rounds.line(cost))
     if not live:
         print(comment + "DRY RUN: no GH_TOKEN, so nothing was posted.")
         return 0
-    intro = "The Automation routines post one comment here per round. Watch this issue to get them by email.\n\n"
     if number is None:
         gh("label", "create", "automation", "--description", "The Automation digest")  # an existing one keeps its colour
         made = gh("issue", "create", "--title", TITLE, "--label", "automation", "--body",
-                  intro + "<!-- automation-digest open= run=none -->", *backlog())  # its state only once its comment is posted
+                  INTRO + "<!-- automation-digest open= run=none -->", *backlog())  # its state only once its comment is posted
         number = (re.findall(r"/issues/(\d+)", made.stdout) or [None])[-1]
         if made.returncode or not number:
             print("DIGEST: couldn't create the digest issue: %s" % (made.stderr.strip()[:200] or "no issue number"))
@@ -296,8 +261,10 @@ def cmd_digest(args):
     if posted.returncode:
         print("DIGEST: couldn't comment on #%s: %s" % (number, posted.stderr.strip()[:200]))
         return 1
-    if gh("issue", "edit", str(number), "--body", intro + marker).returncode:  # the state the next round compares with
-        print("DIGEST: posted on #%s, but couldn't save its state, so the next round may repeat these issues" % number)
+    if run_id == "local" and state and state["run"].isdigit():  # a local digest keeps the last Actions run on the issue
+        marker = rounds.marker(state["run"], {n: now_open[n][1] for n in now_open})
+    if gh("issue", "edit", str(number), "--body", INTRO + marker).returncode:  # the state the next round compares with
+        print("DIGEST: posted on #%s, but couldn't save its state; a rerun repairs it from the comment" % number)
         return 1
     print("DIGEST: posted on #%s (%d open)" % (number, len(now_open)))
     return 0
@@ -306,7 +273,9 @@ def cmd_digest(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("workflow").set_defaults(func=cmd_workflow)
+    item = sub.add_parser("workflow")
+    item.add_argument("--check", action="store_true", help="say which workflow is missing or stale; write nothing")
+    item.set_defaults(func=cmd_workflow)
     item = sub.add_parser("digest")
     item.add_argument("--owner", default="")
     item.add_argument("--live", action="store_true", help="post with your own gh login")

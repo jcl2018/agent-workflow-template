@@ -153,7 +153,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=219479d7 N=81dd3484 M=4599
 | [issue-truncated-unread](Tests#t-issue-truncated-unread) | requirement | DOC-10 | Given 1000 open issues come back, when health checks, then it reads UNREAD truncated. | PASS 2026-11-10 |
 | [issue-closed-ignored](Tests#t-issue-closed-ignored) | requirement | DOC-10 | Given a closed issue with no milestone, when health checks, then no row names it. | PASS 2026-11-10 |
 | [runs-same-day](Tests#t-runs-same-day) | requirement | DOC-10 | Given two branches running the same rows on one day, when each records its run, then the run files are identical. | PASS 2026-11-10 |
-| [ci-issue-backlog](Tests#t-ci-issue-backlog) | requirement | DOC-10 | Given a Backlog milestone, when CI opens a regression issue, then it is on Backlog, and with no Backlog it has no milestone flag. | PASS 2026-11-10 |
+| [ci-issue-backlog](Tests#t-ci-issue-backlog) | requirement | DOC-10 | Given a regression issue that fits no feature, when CI opens it, then it is on Backlog, and a missing Backlog is made once. | PASS 2026-11-10 |
 | [digest-backlog](Tests#t-digest-backlog) | requirement | DOC-10 | Given a Backlog milestone, when the digest issue is created, then it is on Backlog. | PASS 2026-11-10 |
 | [refuse-replace](Tests#t-refuse-replace) | requirement | DOC-11 | Given a wiki page the tool did not write, when the tool writes pages, then that page is never overwritten. | PASS 2026-11-10 |
 | [publish-restore](Tests#t-publish-restore) | requirement | DOC-11 | Given a publish that adopted a page someone else wrote, when restore runs, then the original page is back. | PASS 2026-11-10 |

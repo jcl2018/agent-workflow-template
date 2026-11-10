@@ -18,7 +18,7 @@ its skills without losing its data (`loop-files.md` lists every file).
 | Operation and workers | `workflow-monitoring` | One governing session assigns and watches; each worker is a background agent in its own worktree and never merges |
 | Documentation | `workflow-docs` | Feature pages as short PRDs: Problem, Usage, Requirements, Non-goals, Success metrics, Tests. A Reviewed requirement's wording is locked by a hash |
 | Regression | `workflow-regression` | Rows in `.loop/regression.tsv`, the scheduled GitHub workflow (every 4 hours by default), an issue per failing row |
-| Health | `workflow-health` | Fixed rules, same answer every time, one `HEALTH:` verdict; `preview` shows the issues, `file --group` files only the named groups as tagged Backlog issues; milestones per feature; `automation.py` writes the scheduled health workflow and posts the digest |
+| Health | `workflow-health` | Fixed rules, same answer every time, one `HEALTH:` verdict; `preview` shows the issues, `file --group` files only the named groups as tagged issues on their feature's milestone (Backlog when none fits); milestones per feature; `automation.py` writes the scheduled health workflow and posts the digest, `mail.py` emails it |
 
 ## How they connect
 
