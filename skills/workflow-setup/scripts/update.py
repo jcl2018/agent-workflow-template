@@ -4,19 +4,12 @@
 usage: update.py [--check | --apply | --propose [--file-issue]] [--take FILE ...] [--from PACKAGE] [--tag vX]
                  [--template OWNER/NAME] [--skills DIR] [--repo DIR]
 
---check (or no flag) previews and writes nothing: INSTALLED, AVAILABLE, REPO (this repo's template_version), what's
-new, each skill file to add, update or remove, and each LOCAL FIX (a skill file edited here). Exit 0 up to date, 1
-behind, 2 refused. --apply writes two halves. The skills half writes only the skills folder (--skills, default the
-folder holding this skill): every hash is checked first, files are replaced atomically and workflow-package.json last;
-a LOCAL FIX is kept (--take FILE takes the package copy instead). The repo half (sync.py) writes one repo (--repo,
-default the current one): missing repo settings, template_version, .loop/START.md and the agent blocks, committed on
-branch workflow-update-vX cut from the base branch, never merged or pushed. Hand-written data (config values, pages,
-rules, local settings) is only added to. --propose previews an issue proposing each LOCAL FIX back to the template;
---file-issue files it (propose.py). A linked or checkout skills folder skips the skills half (git pull it).
-
-The source is --from (a built ZIP or folder, or a source tree) or else the template's latest GitHub release source
-archive (--tag pins one). The template is the installed workflow-package.json's repo, else the repo setting
-template_repo; when both are set and differ it refuses unless --template names one. It never downgrades.
+--check (or no flag) writes nothing: INSTALLED, AVAILABLE, REPO, what's new, each file to change and each LOCAL FIX
+(a skill file edited here). Exit 0 up to date, 1 behind, 2 refused. --apply writes the skills folder (hashes checked
+first, atomic writes, workflow-package.json last; a LOCAL FIX is kept unless --take names it), then the repo half
+(sync.py) on branch workflow-update-vX. --propose sends each LOCAL FIX back as an issue (propose.py). The source is
+--from (a package or a source tree) or the template's latest GitHub release archive; the template is the installed
+stamp's repo, else template_repo (both set and different: refused unless --template). It never downgrades.
 """
 import argparse
 import fcntl
