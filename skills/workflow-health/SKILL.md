@@ -1,6 +1,6 @@
 ---
 name: workflow-health
-description: Checks a repo's health with fixed rules that give the same answer every time. `check` prints one line per finding (script size against 20 KB, criteria with no regression row, stale or unmapped wiki pages, old findings, stuck runs, merged branches, goals over their time or token budget) and one HEALTH verdict line. Read-only. Use when asked how healthy the repo is, or before a release.
+description: Checks a repo's health with fixed rules that give the same answer every time. `check` prints one line per finding (script size against 20 KB, criteria with no regression row, stale or unmapped wiki pages, old findings, stuck runs, merged branches, goals over their time or token budget, a slow land test lane, stale worktrees and local branches, and each rule's negative control) and one HEALTH verdict line. Read-only. Use when asked how healthy the repo is, or before a release.
 ---
 
 # workflow-health
@@ -38,8 +38,7 @@ exit code is then 1. `--json` prints the same rows as records, with the verdict.
 | `hygiene` | `.loop/findings.md`, the run records, local branches, the land lane record and the loop worktrees | Over 5 open findings, a run waiting over 24 hours, a `loop/` branch already merged; the land lane over `test_budget_seconds` (default 600), naming its slowest rows and scripts; loop worktrees no live goal names, and local branches on no remote older than `stale_branch_days` (default 14), one row per kind with the command that removes each | None |
 | `cost` (shown as `performance`) | The last 10 finished goals' run records against `time_budget_minutes` and `token_budget` in `.loop/config.json` | A goal over either, naming its three slowest or costliest steps | None; no tokens recorded in any of them is `UNREAD`, and no budget set is `INFO` |
 | `mine` | The owner's own rules from `~/.workflow-loop/health.json` | exit 2 | exit 1; any other exit or an unreadable setting is `UNREAD` |
-
-| `controls` | Each rule's negative control in `controls.py`: a throwaway repo made to break that rule | None | A control that stays green: the rule cannot fire; a fixture that cannot be built is `UNREAD` |
+| `controls` | Each rule's negative control in `controls.py`: a throwaway repo made to break that rule | None | A control that stays green: the rule cannot fire; a fixture that cannot be built, or a rule that cannot read on it, is `UNREAD` |
 
 `Mine` runs commands you name, outside the repo, so it is not covered by the read-only and same-answer promises, and it is filed only when named.
 
@@ -56,8 +55,8 @@ python3 scripts/health.py judge
 Prints the `check` report, then a judge section marked as suggestions. The verdict and exit code are `check`'s: the judge
 never changes them. The rules stay model-free; only the judge calls a model, through `judge_command` in
 `.loop/config.json`, with every criterion, every regression test row and its command, the skill files and the recent
-goals' step times and tokens as data. It prints three reviews: criteria quality, test quality, and performance and
-tokens ranked by savings. Suggested criterion wording goes under `Needs you` (only the owner applies it); weak tests and
+goals' step times and tokens, and the land lane's total and slowest rows, as data. It prints three reviews: criteria
+quality, test quality, and performance, test time and tokens ranked by savings. Suggested criterion wording goes under `Needs you` (only the owner applies it); weak tests and
 savings are candidate goals; ranked next steps end it. With no `judge_command`, a failure or an answer with no tagged
 line, it prints `JUDGE UNAVAILABLE: why` and nothing else changes.
 

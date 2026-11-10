@@ -27,14 +27,14 @@ judge   (alias: suggest)
 
 - `hygiene` also reads the land lane record (`regression.py`'s record of the current branch, else the newest one) and
   warns when its land rows took longer than `test_budget_seconds`, naming the five slowest rows and the slowest toy
-  scripts. It lists loop worktrees that no live goal names (running, waiting, failed, stopped, or done with its pull
+  scripts. It lists loop worktrees that no live goal names (queued, running, waiting, failed, stopped, or done with its pull
   request still open) and local branches on no remote older than `stale_branch_days`, one row per kind with the first
   five and their removal commands (all of them under `--json`). A branch whose commits exist only on this machine says
   so before `git branch -D`. These rows are never filed and the commands are never run for you.
 
 - `controls` runs each rule's negative control (`controls.py`): a throwaway repo, with no inherited git setting, made
   to break that rule, then the real rule on it. `PASS` means it fired; `FAIL ... cannot fire` means the rule no longer
-  sees what it is for; `UNREAD` means the fixture could not be built, with the failing command. A rule with no control
+  sees what it is for; `UNREAD` means the fixture could not be built, with the failing command, or the rule could not read its data on it. A rule with no control
   stops health.py from loading (exit 2). `check --skip controls` leaves the group out; `controls.py run <rule> --keep`
   runs one and keeps its fixture.
 

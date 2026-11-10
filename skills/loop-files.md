@@ -40,7 +40,7 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
   (generated from `settings.py`). `setup.py` writes each repo setting into `config.json` and each private setting into the
   flow file, and keeps any value already set. Every script reads these files fresh on each run, so a change applies at once.
 - `parallel`: workers at once; `0` means unlimited, and it is the default.
-- `cadence`, `step_limit`, `token_budget`, `max_tries`, `routines` and `regression_cron` are optional repo settings; see the reference.
+- `cadence`, `step_limit`, `token_budget`, `max_tries`, `routines`, `regression_cron`, and health's `test_budget_seconds` and `stale_branch_days` are optional repo settings; see the reference.
 - `agent_command` runs a goal in the background; the prompt is its last argument.
 - `auto_approve` (default `false`): `true` approves what a flow step leaves for the owner, logged as auto-approved.
 - `review_depth` (default `full`): `full` makes the plan and review steps run their skill's whole pipeline and refuses a
@@ -124,7 +124,7 @@ loop/cadence              minutes between check-ins (1 to 60), or off
 loop/handoff.md           the last handoff file
 loop/wiki.json            the last wiki publish, for restore
 loop/reply-hook/          the reply hook's state: <session>.kind (operation or worker), <session>.count (blocks this turn), log
-loop/tests/<branch>-<sha8>.json   a branch's last regression run: each row's result and commit (regression.py --reuse); deleted when its rows leave uncommitted files
+loop/tests/<branch>-<sha8>.json   a branch's last regression run: each row's result, seconds and commit, and the total (regression.py --reuse; health's test-time rule); deleted when its rows leave uncommitted files
 loop/runs/<slug>.qa-lane.*, ship-lane.*, pr-lane.*   a goal's regression lanes: job, exit status, output; qa-lane.ok
 ```
 
