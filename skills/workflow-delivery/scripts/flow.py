@@ -210,7 +210,7 @@ def main():
     parser.add_argument("--wait", type=float, default=90)
     parser.add_argument("--limit", type=float, default=2700)
     args = parser.parse_args()
-    role.guard("flow.py " + args.step)
+    role.guard("flow.py " + args.step, args.slug)
     if not flow()["steps"].get(args.step):
         sys.exit("REFUSED: no skill is mapped to the %s step. Fix: add it under \"steps\" or \"suite\" in %s; delivery "
                  "runs it itself without one." % (args.step, FLOW_FILE))

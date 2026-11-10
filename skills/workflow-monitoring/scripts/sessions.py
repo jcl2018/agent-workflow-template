@@ -4,7 +4,11 @@
 usage: sessions.py <command> [options]
 
   assign SLUG               give a frozen goal to a worker session (watch.py does this for every goal it starts)
-  bind SLUG ID [--name N]   record a session the operation session started itself with the app's own tools
+  bind SLUG ID [--name N] [--cwd DIR]  record a session started with the app's own tools; prints the WORKER command
+                            form and the WORKTREE to work in, and refuses a session folder (--cwd, or a worker binding
+                            itself from its own folder) outside the goal worktree. It revives a failed or stopped goal
+                            (a worker binding itself only attaches).
+  reserve SLUG ID [--undo]  take a free session for a goal under the pool lock (goal.py resume uses it)
   report SLUG [--step S] [--status running|waiting|merged|failed] [--pr URL] [--ask Q --words W...] [--text T]
                             record a worker's session message: each step change, and its result when the goal ends.
                             merged is checked with gh; waiting with --ask is a question for the owner, without it the
@@ -19,7 +23,9 @@ The pool lives in <git common dir>/loop/session-pool.json. Where auto_merge is o
 request open gets the release step run for it, as worker.py does for a background goal. Nothing else here merges.
 """
 import argparse
+import contextlib
 import datetime
+import fcntl
 import json
 import os
 import re
@@ -74,6 +80,15 @@ def write(path, data):
     os.replace(temp, path)
 
 
+@contextlib.contextmanager
+def locked():
+    """Every read-modify-write of the pool holds this lock, so two commands can't take the same free session."""
+    os.makedirs(base(), exist_ok=True)
+    with open(os.path.join(base(), "session-pool.lock"), "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        yield
+
+
 def pool():
     return read(os.path.join(base(), "session-pool.json"), {})
 
@@ -116,6 +131,7 @@ def tool(cfg):
 
 
 HUNG = []  # set when a call times out: the tool is given up for the rest of this run
+LAST_ERROR = [""]  # the last call's failure: the tool's first stderr line, "cannot start", or "timed out"
 
 
 def timeout():
@@ -129,13 +145,16 @@ def call(command, *args):
     """One session tool call: its last output line, or None when it can't start or reach a session. A call past the
     timeout (LOOP_SESSION_TIMEOUT, default 30 s) is killed with its process group, then the tool is given up for the
     run (watch.py clears that each round). Output goes to a file, so a helper the tool leaves running can't hold it."""
+    LAST_ERROR[0] = ""
     if HUNG:
+        LAST_ERROR[0] = "the session tool timed out earlier in this run"
         return None
-    with tempfile.TemporaryFile("w+") as out:
+    with tempfile.TemporaryFile("w+") as out, tempfile.TemporaryFile("w+") as err:
         try:
-            child = subprocess.Popen(command + list(args), stdout=out, stderr=subprocess.DEVNULL,
+            child = subprocess.Popen(command + list(args), stdout=out, stderr=err,
                                      stdin=subprocess.DEVNULL, start_new_session=True)
-        except OSError:
+        except OSError as error:
+            LAST_ERROR[0] = "cannot start %s: %s" % (command[0], error.strerror or error)
             return None
         try:
             child.wait(timeout=timeout())
@@ -151,9 +170,14 @@ def call(command, *args):
             if not isinstance(error, subprocess.TimeoutExpired):
                 raise
             HUNG.append(" ".join(args[:1]))
+            LAST_ERROR[0] = "timed out after %d s" % timeout()
             return None
         out.seek(0)
         lines = out.read().strip().splitlines()
+        if child.returncode:
+            err.seek(0)
+            first = (err.read().strip().splitlines() or ["exit %d" % child.returncode])[0]
+            LAST_ERROR[0] = first[:200]
     return (lines[-1].strip() if lines else "") if child.returncode == 0 else None
 
 
@@ -164,8 +188,13 @@ def assign(state, prompt, cfg):
     state["worker"], state["worker_why"] = "background", "no session tool is set (session_command)"
     if not command:
         return False
+    with locked():
+        return assign_locked(state, prompt, command, slug)
+
+
+def assign_locked(state, prompt, command, slug):
     found, to = pool(), os.environ.get("LOOP_OPERATION_SESSION", "")
-    text = SEND.format(slug=slug, tree=state.get("worktree") or "its worktree", to=" (%s)" % to if to else "") + prompt
+    text = SEND.format(slug=slug, tree=state.get("worktree") or "its worktree", to=" (%s)" % to if to else "") + worker_line(slug) + "\n\n" + prompt
     free = sorted(s for s, item in found.items() if item.get("state") == "free")[:FREE_TRIES]
     sid, reused = None, False
     for sid in free + [None]:  # free ones first, then a new one
@@ -210,22 +239,68 @@ def cmd_assign(args):
     return 0
 
 
+def worker_line(slug):
+    delivery = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-delivery", "scripts"))
+    return "WORKER %s: run goal steps as LOOP_ROLE=worker python3 %s/goal.py ... (and flow.py, role.py lane)" % (slug, delivery)
+
+
+def inside(folder, tree):
+    folder, tree = os.path.realpath(folder), os.path.realpath(tree or "/nonexistent")
+    return folder == tree or folder.startswith(tree + os.sep)
+
+
 def cmd_bind(args):
     state = held(args.slug)
+    worker = os.environ.get("LOOP_ROLE") == "worker"
     if state.get("pid") and state.get("status") == "running":
         sys.exit("REFUSED: %s is running as background pid %s; let it end first." % (args.slug, state["pid"]))
-    found = pool()
-    other = found.get(args.id) or {}
-    if other.get("state") == "busy" and other.get("slug") != args.slug:
-        sys.exit("REFUSED: session %s is busy with goal %s." % (args.id, other.get("slug")))
-    name = args.name or name_of(args.slug)
-    release(args.slug, found)  # a session the goal had before goes back to the pool
-    found[args.id] = {"name": name, "slug": args.slug, "state": "busy", "since": now()}
-    save_pool(found)
-    if state.get("status") in ("failed", "stopped", "queued", "", None):
+    folder, tree = args.cwd or (os.getcwd() if worker else ""), state.get("worktree") or ""
+    if folder and not inside(folder, tree):
+        sys.exit("REFUSED: session folder %s is outside the goal worktree %s. Fix: start or move the session in %s, then "
+                 "bind again (CWD_OUTSIDE)" % (folder, tree, tree))
+    with locked():
+        found = pool()
+        other = found.get(args.id) or {}
+        if other.get("state") == "busy" and other.get("slug") != args.slug:
+            sys.exit("REFUSED: session %s is busy with goal %s." % (args.id, other.get("slug")))
+        name = args.name or name_of(args.slug)
+        release(args.slug, found)  # a session the goal had before goes back to the pool
+        found[args.id] = {"name": name, "slug": args.slug, "state": "busy", "since": now()}
+        save_pool(found)
+    was, note = state.get("status"), "bound to session %s (%s)" % (args.id, name)
+    if was in ("failed", "stopped") and not worker:  # the same fields as guards.revive (goal.py resume)
+        state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
+        note += "; revived by bind (was %s)" % was
+    elif was in ("queued", "", None):
         state.update(status="running", finding="", report=None)
     state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None)
-    save(state, "bound to session %s (%s)" % (args.id, name))
+    save(state, note)
+    lines = [worker_line(args.slug), "WORKTREE %s: %s" % (args.slug, tree)]
+    if was in ("failed", "stopped") and worker:
+        lines.append("NEXT: ask the operation session to resume %s (a worker binding itself only attaches)" % args.slug)
+    print("\n".join(lines))
+    command = tool(config())
+    if command and call(command, "send", args.id, " ".join(lines[:2])) is None:
+        print("NOTE: the session didn't get these lines (%s); tell it yourself" % LAST_ERROR[0])
+    return 0
+
+
+def cmd_reserve(args):
+    """Take session ID for SLUG when it is free or already this goal's; --undo gives it back."""
+    with locked():
+        found = pool()
+        item = found.get(args.id) or {}
+        if args.undo:
+            if item.get("slug") == args.slug:
+                item["state"] = "free"
+                save_pool(found)
+            return 0
+        if item.get("state") == "busy" and item.get("slug") != args.slug:
+            sys.exit("REFUSED: session %s now serves goal %s. Fix: sessions.py bind %s ID with a free session (SESSION_TAKEN)" % (
+                args.id, item.get("slug"), args.slug))
+        found[args.id] = dict(item, name=item.get("name") or name_of(args.slug), slug=args.slug, state="busy", since=now())
+        save_pool(found)
+    print("RESERVED session %s for %s" % (args.id, args.slug))
     return 0
 
 
@@ -278,7 +353,8 @@ def cmd_report(args):
     if said in ("merged", "failed", "waiting"):
         state["report"] = {"status": said, "pr": pr, "text": text, "at": now()}
     if ended:
-        release(args.slug)
+        with locked():
+            release(args.slug)
     save(state, "session report: " + text)
     return 0
 
@@ -291,7 +367,7 @@ def cmd_send(args):
         print("NO SESSION for %s: the inbox carries it" % args.slug)
         return 1
     if call(command, "send", sid, " ".join(args.text.split())) is None:
-        print("UNREACHED session %s for %s: the inbox carries it" % (sid, args.slug))
+        print("UNREACHED session %s for %s: the inbox carries it (%s)" % (sid, args.slug, LAST_ERROR[0]))
         return 1
     print("SENT to session %s (%s)" % (sid, (state.get("session") or {}).get("name")))
     return 0
@@ -313,6 +389,11 @@ def main():
     item.add_argument("slug")
     item.add_argument("id")
     item.add_argument("--name", default="")
+    item.add_argument("--cwd", default="")
+    item = sub.add_parser("reserve")
+    item.add_argument("slug")
+    item.add_argument("id")
+    item.add_argument("--undo", action="store_true")
     item = sub.add_parser("report")
     item.add_argument("slug")
     item.add_argument("--status", default="", choices=["", "running", "waiting", "merged", "failed"])

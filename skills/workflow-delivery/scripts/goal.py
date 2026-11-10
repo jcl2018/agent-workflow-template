@@ -10,9 +10,12 @@ usage: goal.py <command> <slug> [options]
   pr SLUG  merge the latest base, push, open the PR, join its milestone
 Goal steps (step, record, pr) refuse outside a worker, which also sees what the operation session sent it.
   wait SLUG --ask TEXT --words W [--words W]
-  answer SLUG
-  finding SLUG TEXT
+  answer SLUG                 a waiting goal goes on
+  finding SLUG TEXT           stops a live goal; on a done or merged goal, only noted
+  resume SLUG --why T [--by W]   the operation revives a failed or stopped session goal (no process started)
+  touches SLUG --add PATH --why T   the operation widens a goal's touches
   show SLUG
+A refusal that changes nothing (a format slip) uses no try: it exits 2 and the goal keeps running (guards.py).
 """
 import argparse
 import datetime
@@ -26,6 +29,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import defect  # noqa: E402
+import guards  # noqa: E402
 import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -164,36 +168,20 @@ def base_ref(state):
     return base
 
 
-def write_finding(state, text):
-    line = "- %s: %s\n" % (state["slug"], " ".join(text.split()))
-    path = os.path.join(root(), ".loop", "findings.md")
-    write(path, line, "a")
-    git("add", ".loop/findings.md")
-    git("commit", "-m", "Finding: %s" % state["slug"], "--", ".loop/findings.md", check=False)
-    push = run(["git", "push", "-u", "origin", "HEAD"])
-    if push.returncode:
-        print("NOTE: finding stays local, push failed: " + push.stderr.strip()[:200])
-
-
 def fail_stop(state, text):
-    state["status"] = "stopped"
-    state["finding"] = text
-    state["waiting"] = None
-    save(state, "stopped: " + text)
-    write_finding(state, text)
-    print("STOPPED %s: %s" % (state["slug"], text))
-    sys.exit(3)
+    guards.fail_stop(sys.modules[__name__], state, text)
 
 
 def failed_try(state, why, step="build", fix="fix it, then run the step again"):
-    state["tries"] = state.get("tries", 0) + 1
-    most = int(config().get("max_tries") or MAX_TRIES)
-    if state["tries"] >= most:
-        fail_stop(state, "Failed %d tries. Last: %s" % (state["tries"], why))
-    state["step"] = step
-    save(state, "try %d failed: %s" % (state["tries"], why))
-    print("TRY %d OF %d FAILED: %s" % (state["tries"], most, why))
-    print("NEXT: " + fix)
+    guards.failed_try(sys.modules[__name__], state, why, step, fix)
+
+
+def cmd_wait(args):
+    return guards.cmd_wait(sys.modules[__name__], args)
+
+
+def cmd_answer(args):
+    return guards.cmd_answer(sys.modules[__name__], args)
 
 
 def flow_set():
@@ -240,6 +228,7 @@ def cmd_new(args):
              "branch": branch, "worktree": root(), "touches": touches, "pid": None, "pr": "",
              "batch": bool(os.environ.get("LOOP_BATCH")), "done_sha": done_sha(lines),
              "release": args.release, "waiting": None, "finding": "", "log": []}
+    guards.stamp(state, "idea")
     save(state, "frozen %d done lines" % len(lines))
     print("FROZEN %s branch=%s step=idea" % (args.slug, branch))
     return 0
@@ -281,8 +270,10 @@ def next_step(state):
 
 
 def cmd_record(args):
-    """Apply what a flow step left: done or skipped moves on, pending waits on the owner, anything else is a try."""
+    """Apply what a flow step left: done or skipped moves on, pending waits on the owner, a failed run is a try. A
+    reply that breaks a format rule, or a session reply with no STEP line, is refused and costs no try."""
     state = held(args.slug)
+    guards.waiting_gate(sys.modules[__name__], state)
     if args.step == "qa":
         role.need_lane(state_dir(), args.slug, args.file)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
@@ -290,23 +281,37 @@ def cmd_record(args):
         args.file = role.session_reply(state, args.slug, args.step, args.file, state_dir(), FLOW)
     reply = os.path.realpath(args.file)
     if reply != os.path.realpath(os.path.join(state_dir(), "%s.%s.txt" % (args.slug, args.step))) or not os.path.exists(ran):
-        no("%s wasn't run by flow.py. Fix: run flow.py %s %s until it prints NEXT." % (args.step, args.slug, args.step))
+        guards.refuse_no_try(state, "%s wasn't run by flow.py" % args.step, "run flow.py %s %s until it prints NEXT" % (
+            args.slug, args.step), guards.NOT_RUN_BY_FLOW, save)
     text = read(reply)
     found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b[ :.-]*(.*)$", text, re.M | re.I)
     result, why = (found[-1][0].lower(), found[-1][1].strip()) if found else ("", "")
     pending = [" ".join(item.split()) for item in re.findall(r"^\W*PENDING:\s*(.+)$", text, re.M)]
-    os.remove(ran)
+    session = args.in_session or state.get("worker") == "session"
+    if not result and not pending and session:  # flow.py's session route prints record without --in-session
+        guards.refuse_no_try(state, "the %s reply has no STEP line" % args.step, "end the reply with the DEPTH line and a "
+                             "STEP: done|skipped|pending|failed line, then record again", guards.NO_STEP_LINE, save)
     stamp, cfg = "", config()
     if result in ("done", "skipped") or ((pending or result == "pending") and cfg.get("auto_approve") is True):
-        stamp, bad = role.record_depth(state, args.step, text, cfg, result)
-        if bad:
-            failed_try(state, "%s failed: %s" % (args.step, bad), args.step, "rerun flow.py %s %s" % (args.slug, args.step))
-            return 1
+        stamp, refusal, ask, skipped = guards.check_record(state, args.step, text, cfg, result)
+        for line in skipped:
+            state.setdefault("log", []).append("%s rule %s" % (now(), line))
+        if ask:
+            state["status"], state["waiting"] = "waiting", {"ask": ask[:600], "words": ["go on " + args.slug, "stop " + args.slug]}
+            save(state, "%s waits for the owner (no try used): %s" % (args.step, ask[:200]))
+            print("WAITING %s (no try used): %s" % (args.slug, ask))
+            return 0
+        if refusal:
+            guards.refuse_no_try(state, refusal[0], refusal[1], refusal[2], save)
+    os.remove(ran)
+    if result in ("done", "skipped") or pending or result == "pending":
+        guards.clear_refusals(state)
     if (pending or result == "pending") and cfg.get("auto_approve") is True:
         took = "; ".join(pending) or why or "the step's pending gate"
         state["flow"][args.step] = "done: auto-approved: " + took[:200] + stamp
         state["step"] = role.after(args.step)
         state["note"] = {"text": "auto-approved at %s: %s" % (args.step, took[:240]), "at": now()}
+        guards.advance(sys.modules[__name__], state)
         save(state, "%s auto-approved: %s" % (args.step, took[:300]))
         print("AUTO-APPROVED %s %s: %s" % (args.slug, args.step, took))
         print("NEXT: " + ("build, then " if args.step == "plan" else "") + next_step(state))
@@ -322,6 +327,7 @@ def cmd_record(args):
     if result in ("done", "skipped"):
         state["flow"][args.step] = result + (" in session" if args.in_session else "") + (": " + why[:120] if why else "") + stamp
         state["step"] = role.after(args.step)
+        guards.advance(sys.modules[__name__], state)
         save(state, "%s %s" % (args.step, state["flow"][args.step]))
         print("RECORDED %s %s" % (args.step, state["flow"][args.step]))
         print("NEXT: " + ("build, then " if args.step == "plan" else "") + next_step(state))
@@ -329,27 +335,6 @@ def cmd_record(args):
     failed_try(state, "%s %s" % (args.step, "failed: " + why[:200] if result else "gave no STEP line"), args.step,
                "fix the cause, then run flow.py %s %s again" % (args.slug, args.step))
     return 1
-
-
-def bump_version(state, head):
-    cfg = config()
-    name = cfg.get("version_file") or "VERSION"
-    path = os.path.join(root(), name)
-    if not cfg.get("pr_bumps_version") or not os.path.exists(path):
-        return head
-    version = read(path).strip()
-    if version != git("show", "%s:%s" % (base_ref(state), name), check=False).strip():
-        return head
-    if not re.match(r"^\d+(\.\d+)+$", version):
-        no("the version %r isn't numbers and dots. Fix: set it by hand." % version)
-    parts = version.split(".")
-    parts[-1] = str(int(parts[-1]) + 1)
-    write(path, ".".join(parts) + "\n")
-    git("add", "--", name)
-    git("commit", "-m", "Bump version to " + ".".join(parts), "--", name)
-    new = git("rev-parse", "HEAD")
-    save(state, "bumped %s to %s" % (name, ".".join(parts)))
-    return new
 
 
 def cmd_pr(args):
@@ -365,6 +350,9 @@ def cmd_pr(args):
     if what == "merged":
         print("MERGED %s into the branch" % detail)
         state = held(args.slug)
+    guards.waiting_gate(sys.modules[__name__], state)
+    if guards.sync_touches(goal_file(args.slug), guards.touches_of(state_dir(), state)):  # before the bump and the lane
+        git("commit", "-m", "Goal: %s touches" % args.slug, "--", goal_file(args.slug))
     head = git("rev-parse", "HEAD")
     left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
     if left:
@@ -374,7 +362,7 @@ def cmd_pr(args):
         no("no passing defect test, seen failing, for %s. Fix: regression.py add --category defect --link ..., then red." % ", ".join(owed))
     if git("status", "--porcelain", "--", "."):
         print("NOTE: uncommitted files stay out of the PR")
-    head = bump_version(state, head)
+    head = role.bump_version(sys.modules[__name__], state, head)
     gate, line, ids = role.lane(state_dir(), args.slug, "pr", role.flow_spec(), config())
     print(line)
     if gate == "running":
@@ -415,27 +403,19 @@ def cmd_pr(args):
     return 0
 
 
-def cmd_wait(args):
-    state = load(args.slug)
-    state["status"] = "waiting"
-    state["waiting"] = {"ask": args.ask, "words": args.words}
-    save(state, "waiting: " + args.ask)
-    print("WAITING %s: %s" % (args.slug, args.ask))
-    return 0
-
-
-def cmd_answer(args):
-    state = load(args.slug)
-    state["status"] = "running"
-    state["waiting"] = None
-    save(state, "answered")
-    print("ANSWERED %s" % args.slug)
-    return 0
-
-
 def cmd_finding(args):
     state = load(args.slug)
+    if state.get("status") in ("done", "merged"):  # a finished goal keeps its status: the finding is only noted
+        return guards.note_finding(state_dir(), state, args.text)
     fail_stop(state, args.text)
+
+
+def cmd_resume(args):
+    return guards.cmd_resume(sys.modules[__name__], args)
+
+
+def cmd_touches(args):
+    return guards.cmd_touches(sys.modules[__name__], args)
 
 
 def cmd_show(args):
@@ -460,11 +440,13 @@ def main():
     add("record", cmd_record, ("step", {"choices": FLOW}), ("--file", {"required": True}), ("--in-session", {"action": "store_true"}))
     add("wait", cmd_wait, ("--ask", {"required": True}), ("--words", {"action": "append", "required": True}))
     add("finding", cmd_finding, ("text", {}))
+    add("resume", cmd_resume, ("--why", {"required": True}), ("--by", {"default": "operation session"}))
+    add("touches", cmd_touches, ("--add", {"required": True}), ("--why", {"required": True}))
     for name, func in (("pr", cmd_pr), ("answer", cmd_answer), ("show", cmd_show)):
         add(name, func)
     args = parser.parse_args()
     if args.command in ("step", "record", "pr"):
-        role.guard(args.command)
+        role.guard(args.command, args.slug)
         role.inbox(os.path.abspath(git("rev-parse", "--git-common-dir")), args.slug)
     return args.func(args)
 

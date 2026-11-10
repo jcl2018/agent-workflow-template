@@ -74,21 +74,21 @@ check "the pull request body lists every step with its depth" 'grep -q -- "- rev
 echo "== condensed under full is refused"
 new cond1
 out=$(FAKE_SKILL_OUT='STEP: done' step cond1 idea)
-check "an idea reply with no DEPTH line fails too" 'grep -q "idea failed: no DEPTH line. Fix: write .DEPTH: full. or .DEPTH: condensed. on a line of its own" <<<"$out"'
+check "an idea reply with no DEPTH line is refused, uses no try, and names the rule, its release and the line to add" 'grep -q "REFUSED (no try used): idea refused: no DEPTH line (rule depth-line, added in v0.12.1). Fix: write .DEPTH: full. or .DEPTH: condensed. on a line of its own" <<<"$out" && [ "$(field cond1 tries)" = 0 ] && [ "$(field cond1 status)" = running ]'
 step cond1 idea >/dev/null; step cond1 plan >/dev/null
 out=$(FAKE_SKILL_OUT='DEPTH: condensed\nSTEP: done' step cond1 review)
-check "a condensed review under full fails the try and names review_depth and the fix" 'grep -q "TRY .* FAILED: review failed: the review step ran condensed while review_depth is full. Fix: rerun the review step at full depth" <<<"$out" && [ "$(field cond1 depth.review)" = None ]'
+check "a condensed review under full is refused with no try, naming review_depth and the fix" 'grep -q "REFUSED (no try used): the review step ran condensed while review_depth is full (rule depth-condensed, added in v0.12.1). Fix: rerun the review step at full depth" <<<"$out" && [ "$(field cond1 depth.review)" = None ] && [ "$(field cond1 tries)" = 0 ]'
 check "the refusal never tells the worker to change the setting" '! grep -qi "set review_depth" <<<"$out"'
 out=$(FAKE_SKILL_OUT='STEP: done' step cond1 review)
-check "a review with no DEPTH line fails and says what line to add" 'grep -q "review failed: no DEPTH line. Fix: write .DEPTH: full. or .DEPTH: condensed." <<<"$out"'
+check "a review with no DEPTH line is refused and says what line to add" 'grep -q "review refused: no DEPTH line (rule depth-line, added in v0.12.1). Fix: write .DEPTH: full. or .DEPTH: condensed." <<<"$out"'
 out=$(FAKE_SKILL_OUT='> DEPTH: full\nI did a quick Depth: full review\nSTEP: done' step cond1 review)
-check "a quoted or prose depth is no DEPTH line" 'grep -q "review failed: no DEPTH line" <<<"$out"'
+check "a quoted or prose depth is no DEPTH line" 'grep -q "review refused: no DEPTH line" <<<"$out"'
 cfg 'review_depth="condensed"'
 out=$(FAKE_SKILL_OUT='DEPTH: condensed\nSTEP: done' step cond1 review)
-check "a worker that sets condensed in its own worktree is still held to the base branch's full" 'grep -q "review failed: the review step ran condensed while review_depth is full" <<<"$out"'
+check "a worker that sets condensed in its own worktree is still held to the base branch's full" 'grep -q "the review step ran condensed while review_depth is full" <<<"$out"'
 cfg 'review_depth="full"' 'auto_approve=true'
 out=$(FAKE_SKILL_OUT='PENDING: a gate\nDEPTH: condensed\nSTEP: pending' step cond1 review)
-check "an auto-approved condensed review under full is refused too" 'grep -q "review failed: the review step ran condensed" <<<"$out" && ! grep -q AUTO-APPROVED <<<"$out"'
+check "an auto-approved condensed review under full is refused too" 'grep -q "REFUSED (no try used): the review step ran condensed" <<<"$out" && ! grep -q AUTO-APPROVED <<<"$out"'
 out=$(FAKE_SKILL_OUT='DEPTH: condensed\nSTEP: failed tests broke' step cond1 review)
 check "a failed reply keeps its own reason, never a depth reason" 'grep -q "review failed: tests broke" <<<"$out" && ! grep -q "condensed while" <<<"$out"'
 git checkout -q -- .loop/config.json
@@ -140,8 +140,13 @@ mk "$d/flow.json" '{"review": "not-a-list"}'
 new mark3
 step mark3 idea >/dev/null; step mark3 plan >/dev/null
 out=$(step mark3 review)
-check "full_markers that are not a list of strings refuse the step for the owner to fix, never pass silently" 'grep -q "review failed: full_markers for review in the flow file is not a list of non-empty strings. Fix: the owner corrects it" <<<"$out"'
+check "full_markers that are not a list of strings put the goal in waiting for the owner, with no try, never pass silently" 'grep -q "WAITING mark3 (no try used): review: full_markers for review in the flow file is not a list of non-empty strings. Fix: the owner corrects it" <<<"$out" && [ "$(field mark3 status)" = waiting ] && [ "$(field mark3 tries)" = 0 ]'
+out=$($goal record mark3 review --file "$C/loop/runs/mark3.review.txt" 2>&1)
+check "a waiting goal's record is refused until the owner answers (WAITING_OWNER)" 'grep -q "mark3 waits for the owner: .*(WAITING_OWNER)" <<<"$out" && [ "$(field mark3 tries)" = 0 ]'
 mk "$d/flow.json" '{}'
+$goal answer mark3 >/dev/null
+out=$(step mark3 review)
+check "once the owner fixes the flow file and answers, the step records" 'grep -q "^RECORDED review done (depth full)" <<<"$out" && [ "$(field mark3 status)" = running ]'
 
 echo "== the board shows the depth"
 python3 - "$C/loop/runs/full1.json" <<'PY'
