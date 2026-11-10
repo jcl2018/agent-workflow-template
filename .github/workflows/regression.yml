@@ -421,8 +421,15 @@ jobs:
                   body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "was skipped" if skipped else "fails", about,
                                                                  said[-1500:].replace("`" * 3, "'" * 3))
                   if not hit:
-                      made = write("issue for " + row[0], "issue", "create", "--title", "Regression: " + row[0], "--label", "regression",
-                                   "--label", "defect", "--body", body, *(["--milestone", title] if title else []))
+                      made = gh("issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect",
+                                "--body", body, "--milestone", title) if title and not READ else None  # by title, unchecked
+                      if made is not None and not made.returncode:
+                          filed[0] += 1
+                      else:
+                          if made is not None:  # no such milestone yet: on none, placed= empty
+                              body = FOUND.sub(lambda m: m.group(0).split(" placed=")[0] + " placed= -->", body, count=1)
+                          made = write("issue for " + row[0], "issue", "create", "--title", "Regression: " + row[0], "--label", "regression",
+                                       "--label", "defect", "--body", body, *(["--milestone", title] if title and made is None else []))
                       by_number((re.findall(r"/issues/(\d+)", made.stdout) or [""])[-1], closed, FOUND.sub(lambda m: m.group(0).split(" placed=")[0] + " placed= -->", body, count=1))
                   else:
                       n = str(hit["number"])

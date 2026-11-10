@@ -70,7 +70,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 skills/workflow-health/scripts/milestone.py new --all --live  # Backlog and every feature: findings go on their feature's milestone
+          python3 skills/workflow-health/scripts/milestone.py new --all --live \
+            || echo "::warning::couldn't make every feature milestone; findings whose milestone is missing go on Backlog"
           python3 skills/workflow-health/scripts/health.py file --group @GROUPS@
       - name: Judge, only with the agent key secret
         if: always() && steps.routine.outputs.on == 'true'

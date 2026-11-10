@@ -117,13 +117,12 @@ def plan(rows, issues, groups, extra=(), judged=False, root=None):
     ran = set(groups) - unread - idle  # a clean group gives no rows, so it ran unless a rule in it could not read
     out, current = [], set()
     miles = milestones(root) if root and found else {}
-    if miles is None:  # unreadable: Backlog, which the workflow made just before, as before this change
-        miles = {BACKLOG: (None, "open")}
+    blind = miles is None  # unreadable: keep each home by title and move nothing this run
     for item in found:
         key, group = key_of(item), item["family"]
         current.add(key)
         issue, home = issues.get(key), feature_of(root, item)
-        if miles and home not in miles:  # its milestone isn't there: Backlog, so placed= matches where it really goes
+        if not blind and miles and home not in miles:  # its milestone isn't there: Backlog, so placed= matches where it really goes
             home = BACKLOG
         act = {"group": group, "key": key, "body": body_of(item, home), "milestone": home,
                "title": "health: %s %s %s" % (group, item["subject"], item["rule"])}
@@ -132,7 +131,7 @@ def plan(rows, issues, groups, extra=(), judged=False, root=None):
             continue
         act["number"] = str(issue["number"])
         now = (issue.get("milestone") or {}).get("title") or ""
-        moving = now == issue.get("placed") and home != now  # still where the automation put it
+        moving = not blind and now == issue.get("placed") and home != now  # still where the automation put it
         body = act["body"] = body_of(item, home if moving else issue.get("placed", BACKLOG))
         if moving:  # if the move fails, the update keeps the old placed= so the next run tries again
             act["keep_body"] = body_of(item, issue.get("placed", BACKLOG))

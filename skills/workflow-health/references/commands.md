@@ -57,7 +57,8 @@ judge   (alias: suggest)
   judge's savings, `mine`) and the older `health`. A hidden marker in the body finds it again and records where it was
   placed: a repeat updates the issue, a fixed finding closes it, a returning one reopens it, and an issue you moved
   anywhere else, `Backlog` included, stays there. A rule that could not be read closes none of its issues. Create the
-  milestones first (see Milestones).
+  milestones first (see Milestones); a missing `Backlog` is made when a finding needs it. When the milestones can't be
+  read, issues are placed by title and none is moved.
 
 The milestones the issues land in are on the [Documentation](Documentation) page.
 
@@ -142,4 +143,9 @@ the open issues labelled `regression` (failing tests, also labelled `defect`) or
 kept in the digest issue's body, and posts one comment: `@digest_owner` (default the repo owner; an organisation is named,
 not mentioned), what ran (regression's latest run, health's verdict), **New**, **Still open** and **Fixed**, and for each
 open issue ``/workflow-delivery go "Fix #N"`` with its link, never its title. A rerun of the same run posts nothing. In
-Actions with no token it says so and fails; elsewhere without one it only prints the comment.
+Actions with no token it says so and fails; elsewhere without one it only prints the comment. `workflow --check` reports a
+written workflow older than the skills (`STALE_WORKFLOW`) or one not written by it (`NOT_OURS`).
+
+`mail.py send` (the `mail` job, after the digest) mails the round's comment at most once, by Cloudflare Email or SMTP
+(`digest_mail`), to the address in the `DIGEST_TO` secret; `mail.py test` (`mail-test.yml`, by hand) sends one fixed mail.
+Codes and fixes are in the Automation wiki page.

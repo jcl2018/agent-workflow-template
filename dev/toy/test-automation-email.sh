@@ -86,6 +86,8 @@ elif a[:2] == ["run", "view"]:
         sys.exit(1)
     print(run["createdAt"] if "createdAt" in a else json.dumps({"jobs": run.get("jobs", [])}))
 elif a[:2] == ["run", "list"]:
+    if not (flag("--limit") or "").isdigit():
+        sys.stderr.write("invalid argument for --limit\n"); sys.exit(1)
     wf, after = flag("--workflow"), (flag("--created") or ">=")[2:]
     runs = [dict(r, databaseId=int(k)) for k, r in load("runs.json", {}).items() if r.get("workflow") == wf and r["createdAt"] >= after]
     runs.sort(key=lambda r: r["createdAt"], reverse=True)
@@ -232,7 +234,7 @@ PY
     && ok "with no digest comment for the run nothing is sent and the step fails" || bad "no comment"
   reset; rm -f "$G/comments.json"; comment 201 "" mailed; comment 202 "" mailed; issue "<!-- automation-digest run=202 open=12:10 -->"
   out=$(cf_env DIGEST_RUN=201 $mail send); rc=$?
-  [ $rc = 0 ] && grep -q "(MAIL_ALREADY)" <<<"$out" && [ "$(cfreq)" = 0 ] && ok "rerunning an old round's job after a newer round sends nothing" || bad "old run rerun"
+  [ $rc = 0 ] && grep -q "(MAIL_STALE)" <<<"$out" && [ "$(cfreq)" = 0 ] && ok "rerunning an old round's job after a newer round sends nothing" || bad "old run rerun"
   reset; rm -f "$G/comments.json"; comment 201; issue "<!-- automation-digest run=200 open=5:0 -->"
   out=$(cf_env DIGEST_RUN=201 $mail send)
   grep -q "run=201 open=12:10 -->" "$G/body-77.md" && ok "a send repairs a body still holding the previous round" || bad "body repair"
@@ -243,6 +245,8 @@ PY
   reset; rm -f "$G/comments.json"; comment 201; issue "<!-- automation-digest run=205 open=12:10 -->"
   out=$(cf_env DIGEST_RUN=203 $mail send); rc=$?
   [ $rc = 0 ] && grep -q "(MAIL_STALE)" <<<"$out" && [ "$(cfreq)" = 0 ] && ok "a late rerun of an older round has nothing to mail and stays green" || bad "stale mail"
+  out=$(cf_env DIGEST_RUN=201 $mail send); rc=$?
+  [ $rc = 0 ] && grep -q "(MAIL_STALE)" <<<"$out" && [ "$(cfreq)" = 0 ] && ok "a rerun of an older round that has its comment mails nothing once a later round posted" || bad "stale with comment"
   issue "<!-- automation-digest run=201 open=12:10 -->"
   reset; rm -f "$G/comments.json"; comment 201; cfg '{"digest_mail": "smtp", "smtp_host": "127.0.0.1"}'
   out=$(env DIGEST_TO=$ADDR DIGEST_FROM=digest@mail.example.test DIGEST_SMTP_USER=u DIGEST_SMTP_PASSWORD=$SMTPPW DIGEST_SMTP_TEST_PORT=$SMTPPORT \
@@ -458,6 +462,8 @@ d = json.load(open(sys.argv[1])); d["299"]["status"] = "in_progress"; d["299"]["
 json.dump(d, open(sys.argv[1], "w"))
 PY
   out=$(rc 300 250); grep -q "regression still running, partial 42 min" <<<"$out" && ok "a regression run still going is counted as partial" || bad "partial"
+  grep -q "^run list --workflow regression.yml --limit 200 --json databaseId,createdAt,status,url --created >=" "$G/calls.log" \
+    && ok "the spend lists runs since the last round with a well-formed gh run list" || bad "run list args"
   python3 - "$G/runs.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1])); d["299"]["jobs"][0]["completedAt"] = "0001-01-01T00:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
@@ -577,6 +583,23 @@ import sys; sys.path.insert(0, '$S'); import milestone
 assert milestone.page_of('$here', 'skills/workflow-health/scripts/mail.py') == 'Automation'
 assert milestone.page_of('$here', 'skills/workflow-health/scripts/health.py') == 'Health'
 assert milestone.page_of('$here', 'nowhere.txt') == ''" && ok "mail.py maps to Automation and health.py to Health (longest path wins)" || bad "page_of"
+  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
+import file, subprocess
+real = file.run
+def run(args, root):
+    if args[:2] == ['api', '--paginate'] and any('milestones' in a for a in args):
+        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
+    return real(args, root)
+file.run = run
+key = 'size:skills/workflow-health/scripts/automation.py:limit'
+issues = {key: dict(number=12, state='OPEN', labels=[{'name': 'health:size'}], milestone={'title': 'Automation'}, placed='Automation', body='x')}
+row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/automation.py', rule='limit', detail='big', fix='')
+new = dict(row, subject='skills/workflow-health/scripts/rounds.py')
+acts = file.plan([row, new], issues, ['size'], root='$r')
+print(sorted((a['kind'], a.get('milestone')) for a in acts))
+" ) > "$G/blind.out" 2>&1
+  grep -q "('open', 'Health'), ('update', 'Automation')" "$G/blind.out" && ! grep -q "'move'" "$G/blind.out" && ! grep -q "Backlog" "$G/blind.out" \
+    && ok "when milestones can't be read a finding keeps its feature and no issue is moved" || bad "health blind"
   rm -f .loop/docs.tsv; unset FAKE_GH_DIR
 fi
 
@@ -636,6 +659,15 @@ SH
   chmod +x "$G/gh.ms"; cp "$G/gh" "$G/gh.keep"; cp "$G/gh.ms" "$G/gh"; out=$(rows); cp "$G/gh.keep" "$G/gh"
   ! grep -q -- "-X POST repos/{owner}/{repo}/milestones" "$G/calls.log" && grep -qx " --milestone Alpha" "$G/calls.log" \
     && ok "when milestones can't be read none is created and gh places the issue by title" || bad "unreadable milestones"
+  cat > "$G/gh.ms2" <<'SH'
+#!/bin/bash
+case "$*" in *milestones*) [ "$2" = "--paginate" ] && { echo "HTTP 502" >&2; exit 1; };; esac
+case "$1 $2" in "issue create") case "$*" in *--milestone*) echo "$*" >> "$STUB/calls.log"; echo "milestone not found" >&2; exit 1;; esac;; esac
+exec "$STUB/gh.real" "$@"
+SH
+  chmod +x "$G/gh.ms2"; cp "$G/gh.ms2" "$G/gh"; out=$(rows); rc=$?; cp "$G/gh.keep" "$G/gh"
+  grep -q "^issue create --title Regression: red .*placed= -->" "$G/calls.log" && ! grep -q "FAILED issue for red" <<<"$out" \
+    && ok "when milestones can't be read and the feature has none yet, the issue is still filed, on no milestone" || bad "blind create fallback"
   W=$here/.github/workflows/regression.yml
   grep -q 'cron: "17 \*/4 \* \* \*"' "$W" && grep -q 'tags: \["v\*"\]' "$W" && grep -q "issues: write" "$W" \
     && ok "the full suite runs every 4 hours by default and on every release tag, with issue write access" || bad "schedule"

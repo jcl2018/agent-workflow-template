@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/10
 
-Review: **Reviewed 2026-11-10** <!-- prd P=9fba2846 R=f97d5503 N=d6d10cdd M=dad3088c U=4dbbe9de -->
+Review: **Reviewed 2026-11-10** <!-- prd P=9fba2846 R=f97d5503 N=d6d10cdd M=dad3088c U=ca0bc119 -->
 
 ## Problem
 
@@ -17,8 +17,8 @@ After each round one email should tell me what ran, what broke, what got fixed a
 - Set `regression_cron` or `health_cron` to `off` to turn that routine off: its scheduled runs write nothing and say it is off; a run you start by hand (or a release tag, for regression) still runs. Set `digest_mail` to `off` to stop the email only.
 - A failing test opens or updates one issue labelled `defect` (and `regression`), naming the test, the feature and the requirement it guards, on that feature's milestone (a `.loop/docs.tsv` page; Backlog when the test's page is none); it closes itself when the test passes again. Health files its findings as `health:<group>` issues for the groups a runner can read (size, criteria, docs), on the milestone of the feature whose path holds the finding (the longest path in `.loop/docs.tsv` wins), Backlog when none fits. The automation places an issue once and moves it only while it is still where it put it, so an issue you move (Backlog included) stays.
 - The judge runs in the health run only when the secret named by `judge_env` (default `ANTHROPIC_API_KEY`) is set and the runner has `judge_command`'s program (`judge_setup` can install it; it runs with the key unset, but the step still holds the key, so put only trusted commands there); otherwise the run says why it skipped.
-- After each health run, one comment on the pinned `Automation digest` issue lists what ran, the round's cost and the email's state, then per milestone the new, still-open and fixed issues, each open one with its link and the request to give the agent. It mentions `digest_owner` (default: the repo owner). The Email the digest step then mails that same comment, at most once per round.
-- The round's cost is job time: the round's regression run plus this health run so far, through the digest (both workflows have one job). Over 45 minutes it is flagged `OVER 45 min` in the comment, the run summary and a warning; slow a routine down or turn it off. Beside it, the Actions minutes of runs started since the last round (each job rounded up to a minute; a run still going at a round's cut-off is counted by the round in which it started).
+- After each health run, one comment on the pinned `Automation digest` issue lists what ran, the round's cost and the email's state, then per milestone the new, still-open and fixed issues, each open one with its link and the request to give the agent. It mentions `digest_owner` (default: the repo owner). The Email the digest job then mails that same comment, at most once per round.
+- The round's cost is job time: the round's regression run plus this health run so far, through the digest (the Email the digest job runs after it and counts in the next round's Actions minutes). Over 45 minutes it is flagged `OVER 45 min` in the comment, the run summary and a warning; slow a routine down or turn it off. Beside it, the Actions minutes of runs started since the last round (each job rounded up to a minute; a run still going at a round's cut-off is counted by the round in which it started).
 
 ### Email quickstart
 

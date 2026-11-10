@@ -252,7 +252,7 @@ def cmd_send(args):
     if comment is False:
         raise Stop("MAIL_GH", "gh couldn't read the digest comments, so nothing was sent. Fix: rerun this job (safe: nothing was sent)")
     body_state = rounds.parse(body)
-    if not comment and body_state and rounds.order(body_state["run"]) > rounds.order(run):
+    if body_state and rounds.order(body_state["run"]) > rounds.order(run):  # a later round posted: its mail is the news
         raise Stop("MAIL_STALE", "run %s is older than the round on the digest issue (run %s), so it has nothing to mail"
                    % (run, body_state["run"]), status=0)
     if not comment:

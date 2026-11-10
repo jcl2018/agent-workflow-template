@@ -74,7 +74,7 @@ fits), labelled `health:<group>` (`size`, `criteria`, `docs`, `hygiene`, `perfor
 hidden marker in its body that also records where it was placed. A repeat updates that issue, a fixed finding closes it,
 a returning one reopens it, and an issue you moved anywhere else, `Backlog` included, stays there. With no `--group` it refuses. `mine` is filed only when named;
 the judge, which calls a model, runs only when `performance` is named. `run` is a deprecated alias of `preview`.
-Run `milestone.py new --all --live` once first, or the issues have no feature or `Backlog` milestone to land in. Show the preview to the owner
+Run `milestone.py new --all --live` once first so each feature has its milestone; `file` makes a missing `Backlog` itself. Show the preview to the owner
 and file only the groups they confirm.
 
 ## Milestones: `scripts/milestone.py`

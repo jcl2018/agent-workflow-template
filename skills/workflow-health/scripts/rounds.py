@@ -167,7 +167,7 @@ def jobs(run, now):
 def runs(workflow, limit, after=None):
     args = ["run", "list", "--workflow", workflow, "--limit", str(limit), "--json", "databaseId,createdAt,status,url"]
     if after:
-        args[5:5] = ["--created", ">=" + after.strftime("%Y-%m-%dT%H:%M:%SZ")]
+        args += ["--created", ">=" + after.strftime("%Y-%m-%dT%H:%M:%SZ")]
     done = gh(*args)
     return None if done.returncode else loads(done, [])
 
