@@ -58,7 +58,7 @@ check "line 1 is the header: LIVE BOARD, repo, local time, version, health" 'L 1
 check "the sections come in order: Issues, Running goals, Queued goals, Dependencies, Finish" 'grep -nE "^(Issues|Running goals|Queued goals|Dependencies|Finish)$" "$T/board" | cut -d: -f2 | paste -sd, - | grep -qx "Issues,Running goals,Queued goals,Dependencies,Finish"'
 check "Issues puts the stuck worker first, with its fix and the exact words" 'sed -n "/^Issues/,/^Running/p" "$T/board" | sed -n 2,3p | grep -q "^- beta is waiting" && sed -n "/^Issues/,/^Running/p" "$T/board" | grep -q "fix: answer by typing \"use sqlite\" or \"use postgres\""'
 check "no local path appears anywhere" '! grep -Eq "/srv|/home|~/|\.git/|\.loop" "$T/board"'
-check "a running goal has a 10-cell bar, percent and time left" 'grep -Eq "^- alpha  \[#{2}-{8}\] 25%  [0-9]+m left$" "$T/board"'
+check "a running goal has a 10-cell bar, percent and time left" 'grep -Eq "^- alpha  \[#{2}-{8}\] 25%  [0-9]+m to [0-9]+m left(, rough)?$" "$T/board"'
 check "its step flow ticks done steps and brackets the current one, wrapped at the joints" 'grep -qx "    idea✓ > plan✓ > \[build\] > review > qa > ship > pr >" "$T/board" && grep -qx "    release" "$T/board"'
 check "the other running goal shows its own flow" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr >" "$T/board"'
 check "each running goal has a one-line next step" '[ "$(grep -c "^    next: " "$T/board")" = 2 ]'
