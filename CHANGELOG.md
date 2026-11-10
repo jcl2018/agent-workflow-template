@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.15.0 - 2026-11-10
+
+- reply-hook: a Stop hook keeps the operation session's reply format; setup.py --reply-hook installs it; MON-5 proposed Unreviewed
+- reply-hook: MON-5 rows seen failing and passing; Tests rendered; Setup page names --reply-hook
+- reply-hook: check the owner's check-in layout (issue 123); review fixes: incremental classifier, latest signal wins, stale and synthetic messages skipped, tracked settings refused
+- MON-5 Reviewed 2026-11-09 by the owner ("Approve MON-5")
+- reply-hook: rows re-seen red and green on the check-in layout; Tests rendered; Setup page
+- reply-hook: review cycle 2: refusal is the first output line only, calls whose result lands after a stop are kept, exact subcommands, bash -c and uv run, case-insensitive headings, fenced lines never headings
+- reply-hook: review cycle 3: a denied call did not run; one-line fences and clock times no longer fool the layout check
+- reply-hook: the hook keeps the no-prompt guard and answers --help, so it packages and runs alone
+- Merge origin/main (v0.12.1: review-depth, operate-all known failure) into loop/reply-hook
+- docs/wiki: Monitoring and Setup describe the reply hook as built
+- docs/wiki: Monitoring keeps its Problem to three paragraphs
+- Merge origin/main (v0.14.1) into reply-hook
+- reply-hook: defect row for issue 123, Closes #123 in the goal
+- reply-hook: issue 123 defect row seen red
+- reply-hook: keep workflow-monitoring SKILL.md under the 150-line limit
+- reply-hook: wiki Tests re-rendered; Monitoring Usage names install and on
+
+### How to verify
+
+1. Copy the example reply from `skills/workflow-monitoring/references/operation.md` (the block under "A reply that passes")
+   into a file and run `python3 skills/workflow-monitoring/scripts/reply_hook.py check FILE`.
+   Expect: it prints nothing and exits 0.
+2. Run `echo "all quiet" | python3 skills/workflow-monitoring/scripts/reply_hook.py check -`.
+   Expect: `it is not in the check-in layout (no All sessions, Dependencies, Needs you or Coming up section)`, exit 1.
+3. In a scratch clone that has `.loop/config.json`, run `python3 skills/workflow-setup/scripts/setup.py --reply-hook` twice.
+   Expect: `HOOK: added` and a NOTE the first time, `HOOK: already installed` the second; `.claude/settings.local.json` holds
+   one Stop hook naming reply_hook.py, and `git status` does not list it.
+4. In that clone, run `python3 skills/workflow-monitoring/scripts/reply_hook.py status`, then
+   `python3 skills/workflow-setup/scripts/setup.py --reply-hook --remove`.
+   Expect: `REPLY HOOK: installed, setting on, script found, ...`, then `HOOK: removed`.
+5. Open the Monitoring wiki page.
+   Expect: MON-5 reads `**Reviewed 2026-11-09**` with the check-in layout sentence the owner approved.
+
 ## v0.14.1 - 2026-11-10
 
 - skill-size: office-hours design

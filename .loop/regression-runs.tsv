@@ -1,9 +1,9 @@
 # id	status	date
-adopt-set-1	PASS	2026-11-09
-adopt-set-2	PASS	2026-11-09
-adopt-set-3	PASS	2026-11-09
-adopt-set-4	PASS	2026-11-09
-adopt-set-5	PASS	2026-11-09
+adopt-set-1	PASS	2026-11-10
+adopt-set-2	PASS	2026-11-10
+adopt-set-3	PASS	2026-11-10
+adopt-set-4	PASS	2026-11-10
+adopt-set-5	PASS	2026-11-10
 auto-approved	PASS	2026-11-09
 auto-release	PASS	2026-11-09
 bad-schedule-refused	PASS	2026-11-09
@@ -19,7 +19,7 @@ criteria-max-setting	PASS	2026-11-09
 criteria-no-scripts	PASS	2026-11-09
 cut-draft	PASS	2026-11-09
 cut-needs-verify	PASS	2026-11-09
-defect-categories	PASS	2026-11-09
+defect-categories	PASS	2026-11-10
 defect-flow-steps	PASS	2026-11-09
 defect-health	PASS	2026-11-09
 defect-known	PASS	2026-11-09
@@ -77,7 +77,7 @@ no-done-line-refused	PASS	2026-11-09
 no-flow-refused	PASS	2026-11-09
 no-line-in-governor	PASS	2026-11-09
 no-pid-left-alone	PASS	2026-11-09
-no-prompts	PASS	2026-11-09
+no-prompts	PASS	2026-11-10
 no-row-fail	PASS	2026-11-09
 no-token-dry-run	PASS	2026-11-09
 no-token-would	PASS	2026-11-09
@@ -115,6 +115,13 @@ reg2-wording	PASS	2026-11-10
 release-note-found	PASS	2026-11-09
 release-runs-audit	PASS	2026-11-09
 repeat-no-second	PASS	2026-11-09
+reply-hook-all	PASS	2026-11-09
+reply-hook-blocks	PASS	2026-11-09
+reply-hook-guard	PASS	2026-11-09
+reply-hook-install	PASS	2026-11-09
+reply-hook-mon5-wording	PASS	2026-11-09
+reply-hook-off	PASS	2026-11-09
+reply-hook-scope	PASS	2026-11-09
 retired-leaves-waiting	PASS	2026-11-09
 review-dated	PASS	2026-11-09
 review-owner-only	PASS	2026-11-09
@@ -122,7 +129,7 @@ reviewed-lock	PASS	2026-11-09
 run-ledger	PASS	2026-11-09
 same-lines	PASS	2026-11-09
 schedule-setting	PASS	2026-11-09
-scripts-no-hang	PASS	2026-11-09
+scripts-no-hang	PASS	2026-11-10
 session-answer	PASS	2026-11-09
 session-assign	PASS	2026-11-09
 session-board-issue98	PASS	2026-11-09
