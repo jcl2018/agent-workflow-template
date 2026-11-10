@@ -75,6 +75,7 @@ defect-flow-steps	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 defect-health	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 defect-known	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 defect-owed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+defect-owed-branch-proved	PASS	2026-11-10	
 defect-wording	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 dependencies-on-map	PASS	2026-11-09	
 dependency-held	PASS	2026-11-09	
@@ -194,6 +195,7 @@ lanes-trace	FAIL	2026-11-10
 lanes-trace-check	PASS	2026-11-10	
 lanes-trace-hook-173	PASS	2026-11-10	
 lanes-wide-parity	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+list-kind-filter	PASS	2026-11-10	
 list-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 list-tsv-raw	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 live-board-arrows	PASS	2026-11-10	
@@ -229,6 +231,7 @@ no-row-fail	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 no-token-dry-run	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 no-token-would	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 one-failure	PASS	2026-11-09	
+one-format-everywhere	PASS	2026-11-10	
 one-issue	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 one-link	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 one-way-to-run	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -384,4 +387,6 @@ worker-refuses	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 worker-reports	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 worker-reports-live	PASS	2026-11-09	
 worker-runs-release	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+workflow-goal-to-release	PASS	2026-11-10	
+workflow-kind-shown	PASS	2026-11-10	
 workflow-same-as-run	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
