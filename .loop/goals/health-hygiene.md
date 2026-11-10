@@ -16,4 +16,11 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
+1. Run `python3 skills/workflow-health/scripts/health.py check --group controls`.
+   Expect: a `controls` group with one `PASS ... control: fires on its fixture` line per rule (twelve), then a green verdict.
+2. Run `python3 skills/workflow-health/scripts/health.py check --group hygiene`.
+   Expect: a `test-time` line with the land lane's seconds against `test_budget_seconds` (and, when it is over, the slowest rows and scripts), and `worktrees` and `local-branches` lines, each stale one with the exact command that removes it; nothing is removed.
+3. Run `python3 skills/workflow-health/scripts/health.py preview --group hygiene`.
+   Expect: no line for test time, worktrees or local branches.
+
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->

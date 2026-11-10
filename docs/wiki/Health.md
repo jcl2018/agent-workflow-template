@@ -88,16 +88,16 @@ Judge and next steps. After the rules, a separate judge section, marked as sugge
 
 Health keeps itself honest and the repo lean. Every health rule has a negative control that proves it can fire; the check flags a land test run over its time budget and names the slowest rows to move to nightly; and it flags stale worktrees and branches that exist only on this machine.
 
-- Given every health rule, when health check runs its controls, then each rule's negative control makes it fire. — [hlt6-controls-fire](../../.loop/regression.tsv), both, not run, seen failing no
-- Given a rule broken so it can never report, when health check runs its controls, then that rule is reported as one that cannot fire, with how to look. — [hlt6-cannot-fire](../../.loop/regression.tsv), both, not run, seen failing no
-- Given a new rule with no negative control, when health.py starts, then it refuses before any report and names the control to add. — [hlt6-refused](../../.loop/regression.tsv), both, not run, seen failing no
-- Given a land lane recorded over test_budget_seconds, when health check runs, then it warns and names the slowest rows and scripts to move to nightly. — [hlt6-test-time](../../.loop/regression.tsv), both, not run, seen failing no
-- Given a land lane within test_budget_seconds, when health check runs, then the test-time rule passes. — [hlt6-test-quiet](../../.loop/regression.tsv), both, not run, seen failing no
-- Given a regression run, when it saves its lane record, then the record holds each row's time and the total. — [hlt6-run-times](../../.loop/regression.tsv), both, not run, seen failing no
-- Given a lane record, when the judge gathers its facts, then its performance review sees the land lane's total and slowest rows as well as tokens. — [hlt6-judge-time](../../.loop/regression.tsv), both, not run, seen failing no
-- Given a loop worktree no live goal names, when health check runs, then it lists it with the command that removes it, and leaves a live goal's worktree alone. — [hlt6-worktrees](../../.loop/regression.tsv), both, not run, seen failing no
-- Given a local branch on no remote older than stale_branch_days, when health check runs, then it lists it with a quoted delete and a data-loss warning, and leaves a young branch alone. — [hlt6-branches](../../.loop/regression.tsv), both, not run, seen failing no
-- Given stale worktrees and branches, when health check runs, then nothing is removed. — [hlt6-removes-nothing](../../.loop/regression.tsv), both, not run, seen failing no
-- Given no stale worktree or branch, when health check runs, then both rules pass. — [hlt6-clean-quiet](../../.loop/regression.tsv), both, not run, seen failing no
-- Given stale worktrees, when health previews the hygiene group, then no test-time, worktree or branch row would be filed. — [hlt6-never-filed](../../.loop/regression.tsv), both, not run, seen failing no
+- Given every health rule, when health check runs its controls, then each rule's negative control makes it fire. — [hlt6-controls-fire](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
+- Given a rule broken so it can never report, when health check runs its controls, then that rule is reported as one that cannot fire, with how to look. — [hlt6-cannot-fire](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
+- Given a new rule with no negative control, when health.py starts, then it refuses before any report and names the control to add. — [hlt6-refused](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
+- Given a land lane recorded over test_budget_seconds, when health check runs, then it warns and names the slowest rows and scripts to move to nightly. — [hlt6-test-time](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
+- Given a land lane within test_budget_seconds, when health check runs, then the test-time rule passes. — [hlt6-test-quiet](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
+- Given a regression run, when it saves its lane record, then the record holds each row's time and the total. — [hlt6-run-times](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
+- Given a lane record, when the judge gathers its facts, then its performance review sees the land lane's total and slowest rows as well as tokens. — [hlt6-judge-time](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
+- Given a loop worktree no live goal names, when health check runs, then it lists it with the command that removes it, and leaves a live goal's worktree alone. — [hlt6-worktrees](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
+- Given a local branch on no remote older than stale_branch_days, when health check runs, then it lists it with a quoted delete and a data-loss warning, and leaves a young branch alone. — [hlt6-branches](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
+- Given stale worktrees and branches, when health check runs, then nothing is removed. — [hlt6-removes-nothing](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
+- Given no stale worktree or branch, when health check runs, then both rules pass. — [hlt6-clean-quiet](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
+- Given stale worktrees, when health previews the hygiene group, then no test-time, worktree or branch row would be filed. — [hlt6-never-filed](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10
 - **not enforced**: no passing test
