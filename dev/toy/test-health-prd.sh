@@ -8,6 +8,7 @@
 set -u
 unset GH_TOKEN GITHUB_TOKEN LOOP_HEALTH_GH_FIXTURE LOOP_HEALTH_T0 CI GITHUB_ACTIONS
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 d=${1:-$(mktemp -d)}; part=${2:-all}; rm -rf "${d:?}"; mkdir -p "$d"
 S="$here/skills/workflow-health/scripts"; H="python3 $S/health.py"
 export HOME="$d/home" PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"; mkdir -p "$HOME" "$FAKE_GH_DIR"
@@ -59,6 +60,8 @@ PY
 out=$($H preview --group size,consistency 2>&1)
 check "an old marker is moved to the new key, not closed" 'grep -q "^WOULD update #1 size:skills/calc/scripts/near.py:scripts on Calc" <<<"$out" && ! grep -q "close #1" <<<"$out"'
 check "a finding with no feature lands on Backlog, tagged with its group" 'grep -q "^WOULD open issue .health: consistency /workflow-zzz frob usage-readme. on Backlog \[health:consistency\]" <<<"$out"'
+pf=$(r=$PWD; cd "$S" && python3 -B -c "import feature; print(feature.feature_of('$r', {'subject': 'Calc', 'evidence': 'Calc'}))" 2>&1)
+check "a page-level finding (a stale page) lands on that page's milestone ($pf)" '[ "$pf" = Calc ]'
 $H file --group size,consistency >/dev/null 2>&1
 m=$(python3 -c "import json;print([i['milestone']['title'] for i in json.load(open('$FAKE_GH_DIR/issues.json')) if i['number']==1][0])")
 check "file puts the size finding on the Calc milestone" '[ "$m" = Calc ]'
@@ -102,6 +105,9 @@ python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command'
 $H review --json > "$d/two.json"; $H file --review "$d/two.json" >/dev/null 2>&1
 check "two findings of one kind on one feature are two issues, and file --review files only review findings" '[ "$(python3 -c "import json;print(sum(1 for i in json.load(open(\"$FAKE_GH_DIR/issues.json\")) if \"review-gap\" in str(i[\"labels\"]) and \"gap\" in i[\"title\"]))")" = 2 ] && ! grep -q "health:size\|health:docs" "$FAKE_GH_DIR/issues.json"'
 check "review --json is versioned, and file --review files it as health:review-<kind> on its feature" 'grep -q "\"version\": 1" "$d/r.json" && $H preview --review "$d/r.json" 2>&1 | grep -q "on Calc \[health:review-conflict\]"'
+printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|gap|a|one|CAL-1|same fix"\necho "FINDING|Calc|gap|a|two|CAL-2|same fix"\n' > "$d/same.sh"; chmod +x "$d/same.sh"
+python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command']=['$d/same.sh'];json.dump(c,open('.loop/config.json','w'))"
+check "next steps name each distinct fix once" '$H review 2>&1 | grep -qx "next steps: 1. same fix"'
 fi
 
 if want h8; then

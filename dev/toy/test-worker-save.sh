@@ -4,6 +4,7 @@
 # A stand-in merged() records the merge mid-call. No model or network. usage: test-worker-save.sh [DIR]
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 d=${1:-$(mktemp -d)}; rm -rf "${d:?}"; mkdir -p "$d/repo"; cd "$d/repo" || exit 1
 git init -q -b main
 fails=0

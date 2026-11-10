@@ -149,7 +149,8 @@ def render(findings, dropped, why):
         out.append("== %s ==" % name)
         out += ["FINDING %s (%s): %s -- evidence: %s -> fix: %s" % (f["kind"], f["angle"], f["detail"], f["evidence"], f["fix"])
                 for f in mine]
-        out.append("next steps: " + "; ".join("%d. %s" % (n, f["fix"]) for n, f in enumerate(mine[:3], 1)))
+        steps = list(dict.fromkeys(f["fix"] for f in mine))[:3]  # one step per distinct fix, in rank order
+        out.append("next steps: " + "; ".join("%d. %s" % (n, step) for n, step in enumerate(steps, 1)))
     out.append("REVIEW: %d findings, %d dropped for no evidence" % (len(findings), dropped))
     return out
 

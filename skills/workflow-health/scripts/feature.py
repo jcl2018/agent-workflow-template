@@ -2,6 +2,7 @@
 
 A feature is a page of .loop/docs.tsv other than Home; its milestone has the page's name. In order:
   a review finding's own feature (only when it names a docs.tsv page)
+  a page name (the subject or evidence), such as a stale page
   a path (the subject or evidence): the page whose docs.tsv path is the longest prefix of it, or docs/wiki/<Page>.md
   a requirement id: the page that defines it
   a regression row id: the page of the requirement its row guards
@@ -71,7 +72,7 @@ def feature_of(root, item, cache=None):
             if stone in pages:
                 return stone
             continue
-        page = by_path(text, pages)
+        page = text if text in pages else by_path(text, pages)  # a page-level finding (docs stale) names its page
         if page:
             return page
     return BACKLOG

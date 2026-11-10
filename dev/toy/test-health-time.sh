@@ -5,6 +5,7 @@
 set -u
 unset LOOP_HEALTH_T0 CI GITHUB_ACTIONS
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 H="python3 $here/skills/workflow-health/scripts/health.py"
 fails=0
 ok() { echo "PASS: $1"; }
