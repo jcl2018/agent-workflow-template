@@ -5,8 +5,9 @@ usage: regression.py <command> [options]
 
   add ID --level L --command C [--goal SLUG:N] [--describe TEXT] [--category C --link L]
                                 add or replace a row. L is land, nightly, draft or covered;
-                                TEXT says in plain words what the test checks; C is criterion (default) or defect, and
-                                a defect row needs L, the issue URL or finding:SLUG it keeps fixed
+                                TEXT says in plain words what the test checks; C is criterion (default), workflow (an
+                                end-to-end run of a whole flow on a toy repo) or defect, and a defect row needs L, the
+                                issue URL or finding:SLUG it keeps fixed
   sync [--write]                list done lines and criteria with no row, rows with no description, rows never seen
                                 failing; --write drafts rows (a criterion's row has its id as id or goal)
   criteria                      run each wiki criterion's row; print one UNMET line for each missing, draft or failing
@@ -211,10 +212,10 @@ def cmd_sync(args):
     bare = [row["id"] for row in rows.values() if row["level"] != "covered" and not row["description"]]
     for key in bare:
         print("NODESC %s: no description. Fix: add --describe." % key)
-    odd = [row["id"] for row in rows.values() if row["category"] not in ("criterion", "defect")
+    odd = [row["id"] for row in rows.values() if row["category"] not in tiers.KINDS.values()
            or (row["category"] == "defect" and not row["link"])]
     for key in odd:
-        print("NOCATEGORY %s: a category of criterion or defect, and a link for a defect. Fix: add --category, --link." % key)
+        print("NOCATEGORY %s: a category of criterion, workflow or defect, and a link for a defect. Fix: add --category, --link." % key)
     if missing or drafts or never or bare or odd:
         return 1
     print("SYNC OK: %d rows" % len(rows))
@@ -321,7 +322,7 @@ def cmd_run(args):
             print("FIXED %s: remove it from the known list" % row["id"])
         reason = " (%s)" % expected[row["id"]] if state == "KNOWN" else ""
         print("%s %s%s" % (state, row["id"], reason), flush=True)
-        if signal and state != "PASS":  # docs: Regression#lane-messages
+        if signal and state != "PASS":  # workflow-regression/references/lanes.md
             print("KILLED %s: signal %s (pid %d). Note: a signal stopped this row; see the lane log" % (row["id"], signal, pid))
         if state == "FAIL" and args.reuse:
             print("\n".join("    " + line for line in text.rstrip().splitlines()[-20:]), file=sys.stderr)
@@ -371,7 +372,7 @@ def main():
     item.add_argument("--command", required=True)
     item.add_argument("--goal", default="")
     item.add_argument("--describe")
-    item.add_argument("--category", choices=("criterion", "defect"), default="criterion")
+    item.add_argument("--category", choices=tuple(tiers.KINDS.values()), default="criterion")
     item.add_argument("--link", default="")
     item.set_defaults(func=cmd_add)
     item = sub.add_parser("sync")

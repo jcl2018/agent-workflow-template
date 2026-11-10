@@ -161,21 +161,22 @@ def plain(row, ran):
     """The fields tests.py would give, for when it is missing: test, kind, guards, checks, runs, result, seen."""
     status, day = ran.get(row[0], ("not run", ""))
     guard = row[7] if row[6] == "defect" else row[3]
-    return [row[0], "defect" if row[6] == "defect" else "requirement", guard or "-", row[5] or "-", row[1], (status + " " + day).strip(),
+    return [row[0], row[6] if row[6] in ("defect", "workflow") else "requirement", guard or "-", row[5] or "-", row[1], (status + " " + day).strip(),
             row[4] if re.match(r"^\d{4}-\d\d-\d\d$", row[4]) else "no"]
 
 
 def tests_table(ids, linked, defects, rows, fields, ran):
-    """A feature page's Tests: one TESTS table, each requirement's rows (a 'not enforced' row when none passes), then
-    its defect rows. `fields(row)` is tests.py's one format for a row."""
-    out = []
+    """A feature page's Tests: one TESTS table in three parts: each requirement's rows (a 'not enforced' row when none
+    passes), then the workflow tests (category workflow, REG-1), then the defect tests, each part in requirement order.
+    `fields(row)` is tests.py's one format for a row."""
+    out, flows = [], []
     for key, _ in ids:
         names = linked.get(key, [])
         for name in names:
-            out.append(fields(rows[name]))
+            (flows if rows[name][6] == "workflow" else out).append(fields(rows[name]))
         if not any(ran.get(name, ("",))[0] == "PASS" for name in names):
             out.append(["-", "requirement", key, "no passing test", "", "not enforced"])
-    out += [fields(rows[name]) for key, _ in ids for name in defects.get(key, [])]
+    out += flows + [fields(rows[name]) for key, _ in ids for name in defects.get(key, [])]
     shown = [[x[0] if x[0] == "-" else "[%s](Tests#t-%s)" % (x[0], test_slug(x[0])), x[1], x[2],
               x[3] if x[0] == "-" else checks_cell(x[3]), x[5]] for x in out]
     return pageformat.table(TESTS, shown) if shown else []

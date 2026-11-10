@@ -4,10 +4,13 @@
 usage: defect.py owed SLUG
 
 A goal fixes an issue when its text says "fixes #N" (or closes, resolves), and a finding when it says "fixes finding:ID".
-Each needs a regression row with category defect, a link to it, a date it was seen failing, and a passing command.
+Each needs a regression row with category defect, a link to it, a date it was seen failing, and a passing command, and
+the goal's branch must have added that row or set its seen-failing date (regression.tsv against the merge-base with
+origin/<base>, E-10): an old row merely edited does not count.
 Prints one line per ref with no such row, and exits 1 if any. goal.py pr calls owed() and refuses on its answer.
 """
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -37,13 +40,29 @@ def has(link, ref):
     return re.search(r"(?:issues/|#)%s\b" % re.escape(ref), link) if ref.isdigit() else re.search(r"finding:%s(?![\w-])" % re.escape(ref), link)
 
 
+def before(root):
+    """{row id: seen_red} at the merge-base with origin/<base> (else <base>); None when there is none to compare."""
+    try:
+        with open(os.path.join(root, ".loop", "config.json")) as handle:
+            base = json.load(handle).get("base") or "main"
+    except (OSError, ValueError):
+        base = "main"
+    git = lambda *a: subprocess.run(("git",) + a, cwd=root, capture_output=True, text=True)
+    found = next((x for x in (git("merge-base", "HEAD", ref).stdout.strip() for ref in ("origin/" + base, base)) if x), "")
+    shown = git("show", found + ":.loop/regression.tsv") if found else None
+    if not shown or shown.returncode and "exists on disk" not in shown.stderr and "does not exist" not in shown.stderr:
+        return None
+    return {c[0]: (c + [""] * 5)[4] for c in (line.split("\t") for line in shown.stdout.splitlines()) if c[0][:1] not in ("", "#")}
+
+
 def owed(root, text):
-    """The refs the text fixes with no defect row that was seen failing and passes now."""
-    owe = []
+    """The refs the text fixes with no defect row this branch added or proved, seen failing and passing now (E-10)."""
+    owe, old = [], before(root)
     for number, finding in FIXES.findall(text):
         ref = number or finding.lower()
-        if not any(SEEN.match(seen) and has(link, ref) and subprocess.run(command, shell=True, cwd=root, capture_output=True).returncode == 0
-                   for _, command, seen, link in rows(root)):
+        if not any(SEEN.match(seen) and has(link, ref) and (old is None or old.get(name) != seen)
+                   and subprocess.run(command, shell=True, cwd=root, capture_output=True).returncode == 0
+                   for name, command, seen, link in rows(root)):
             owe.append(("#" if number else "finding ") + ref)
     return owe
 

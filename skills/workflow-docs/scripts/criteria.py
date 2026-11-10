@@ -148,7 +148,7 @@ def tsv(root, name):
 
 
 def test_rows(root):
-    """Real tests as {criterion: [row id]}, plus ids linked to none."""
+    """Requirement and workflow tests as {criterion: [row id]}, plus ids linked to none."""
     linked, loose = {}, []
     for row in tsv(root, "regression.tsv"):
         if row[6] == "defect":

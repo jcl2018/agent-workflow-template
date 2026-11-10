@@ -3,7 +3,8 @@
 
 usage: tests.py <command> [--root DIR]
 
-  list [--markdown|--tsv]           every test from the recorded runs, one group per feature
+  list [--markdown|--tsv] [--kind K]  every test from the recorded runs, one group per feature; --kind requirement,
+                                    workflow or defect lists only that kind
   summary --results FILE --took S   a GitHub run summary: one header with totals and the run time, then one table per
                                     feature, from that run's results file (id<TAB>state lines; # lines are skipped)
   issues [--write]                  read each defect test's issue or pull request state with gh; --write records them in
@@ -15,7 +16,7 @@ usage: tests.py <command> [--root DIR]
                                     issue and passes in .loop/regression-runs.tsv (REG-6); the release notes list them
 
 A feature is the wiki page that holds the requirement a row guards (its goal, or its id); a row that guards none is in
-Other. Each test shows: test, kind (requirement or defect), what it guards (the requirement's ID and words, or the
+Other. Each test shows: test, kind (requirement, workflow or defect), what it guards (the requirement's ID and words, or the
 issue's link and state), what it checks, when it runs, its last result and date, and when it was seen failing.
 Stdlib only and self-contained: the regression workflow carries a copy of this file.
 """
@@ -37,7 +38,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 ID = re.compile(r"^[A-Z]{2,5}-\d+$")
 SEEN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-KIND = {"criterion": "requirement", "defect": "defect"}
+KIND = {"criterion": "requirement", "workflow": "workflow", "defect": "defect"}  # category: kind
 RUNS = {"land": "both", "nightly": "nightly", "covered": "by a person"}
 STATES = ("PASS", "FAIL", "SKIPPED", "KNOWN")
 COLUMNS = ("Test", "Kind", "Guards", "Checks", "Runs", "Last result", "Seen failing")
@@ -145,6 +146,9 @@ def table(header, lines):
 def cmd_list(args):
     out = []
     for feature, lines in entries(args.root, markdown=args.markdown, raw=args.tsv):
+        lines = [each for each in lines if each[1] == (args.kind or each[1])]
+        if not lines:
+            continue
         if args.tsv:
             out += ["\t".join([feature] + each) for each in lines]
         elif args.markdown:
@@ -262,6 +266,7 @@ def main():
     shape = item.add_mutually_exclusive_group()
     shape.add_argument("--markdown", action="store_true")
     shape.add_argument("--tsv", action="store_true")
+    item.add_argument("--kind", choices=tuple(KIND.values()))
     item.set_defaults(func=cmd_list)
     item = sub.add_parser("summary")
     item.add_argument("--results", required=True)

@@ -99,7 +99,7 @@ PY
     LOOP_FLOW="$d/five.json" $flow fs release 2>&1 | grep -q "no skill is mapped to the release step" || no "an unmapped step ran"
     exit 0;;
   categories) # done line 4: every row has a category, defect rows link their issue, the page shows defect tests with their kind
-    awk -F'\t' '/^#/ || NF == 0 {next} $7 != "criterion" && $7 != "defect" {print $1; bad = 1} $7 == "defect" && $8 == "" {print $1; bad = 1} END {exit bad}' "$here/.loop/regression.tsv" || no "a row has no category, or a defect has no link"
+    awk -F'\t' '/^#/ || NF == 0 {next} $7 != "criterion" && $7 != "workflow" && $7 != "defect" {print $1; bad = 1} $7 == "defect" && $8 == "" {print $1; bad = 1} END {exit bad}' "$here/.loop/regression.tsv" || no "a row has no category, or a defect has no link"
     toy
     $reg add dd --level land --command true --category defect 2>&1 | grep -q "links to its issue or finding" || no "a defect row without a link was added"
     $reg add dd --level land --command true --category defect --link https://example.test/issues/1 >/dev/null || no "add defect"
@@ -219,7 +219,7 @@ workflow-delivery|- `"auto_approve": true`: `record` approves what a step leaves
 workflow-delivery|merges the pull request, bumps the version once and publishes a GitHub release with a CHANGELOG entry.
 workflow-docs|2. `## Problem`: who it's for and what it solves, at most `problem_lines` lines;
 workflow-docs|5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
-workflow-docs|   when no row passes; defect tests under `### Defect tests`.
+workflow-docs|   when no row passes; then the workflow tests, then the defect tests, in the same table.
 workflow-docs|`NONGOALS`, `METRICS`, `CRITERION`, `CAP`, `SCRIPT`, `USAGE`, `TESTS` (run `render`), `LOCKED`, `CHANGED`.
 workflow-docs|Usage. After it, a change to any of the first four is `LOCKED` (check, audit and release fail); a change to Usage alone
 workflow-docs|owner un-reviews that requirement and the PRD, then reviews both again.

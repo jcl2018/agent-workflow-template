@@ -7,7 +7,7 @@ Moved from the wiki page, which is now only a summary, criteria and tests.
 ## Commands
 
 ```text
-add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>] [--category criterion|defect --link <url>]
+add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>] [--category criterion|workflow|defect --link <url>]
 sync [--write]
 criteria
 red <id> --break "<command>"
@@ -25,7 +25,9 @@ workflow
 - `add` adds or replaces a row. `--goal` ties it to a criterion or a goal's done line, and a changed command must be
   proved again. `--category defect --link <issue or pull request URL, or finding:SLUG>` makes it a defect test: it keeps a
   fixed issue, finding or bug fixed, shows under "Defect tests" on the page of the criterion in `--goal`, and never counts as
-  proof of that criterion. A row with no category reads as a criterion test; a defect row with no link is flagged by `sync`.
+  proof of that criterion. `--category workflow` makes it a workflow test: an end-to-end run of a whole flow on a toy
+  repo, shown as kind `workflow` after the requirement tests of its criterion. A row with no category reads as a
+  criterion test; a defect row with no link is flagged by `sync`.
 - `sync` lists done lines, and wiki criteria (a row whose id or `--goal` is the criterion id), with no row (`GAP`), `DRAFT` rows and `UNPROVEN` rows; `--write` adds drafts.
 - `criteria` runs the row of every wiki criterion and prints any that is missing, a draft or failing.
 - `red` copies `HEAD` to a temporary worktree, applies the break and records the date if the test fails. `STILL GREEN`
@@ -44,7 +46,8 @@ workflow
   that always runs writes the run summary: one header with totals and the run time, then one table per feature, or the
   plain results if that fails. Rows run with no GitHub token and none of the runner's own files in their environment
   (`regression.py run` too), and the checkout uses `persist-credentials: false`.
-- `tests.py list` prints every test in one fixed format, grouped by feature (`--markdown` tables, `--tsv` lines);
+- `tests.py list` prints every test in one fixed format, grouped by feature (`--markdown` tables, `--tsv` lines,
+  `--kind requirement|workflow|defect` only that kind);
   `summary` writes the GitHub run summary from a run's results; `issues --write` records each defect test's issue or
   pull request state. The wiki Tests lines and the health report use the same fields.
 
@@ -166,7 +169,7 @@ python3 scripts/tests.py list
 ```
 
 Every test in one fixed format, grouped by feature: the wiki page that holds the requirement a row guards, in page
-order, then `Other` for rows that guard none. Each test shows its name, kind (`requirement` or `defect`), what it guards
+order, then `Other` for rows that guard none. Each test shows its name, kind (`requirement`, `workflow` or `defect`), what it guards
 (the requirement's ID and words, or the issue or pull request link with its recorded state and date, or the finding),
 what it checks, when it runs (`both`, `nightly`, `by a person`), its last result and date, and when it was seen failing.
 Plain output has one `FEATURE <name>` line per group; `--markdown` gives one table per feature; `--tsv` gives one line
