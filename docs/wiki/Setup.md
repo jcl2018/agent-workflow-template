@@ -11,13 +11,8 @@ Skill: `workflow-setup`. Adopts a repo into this template's format: loop config,
 
 ## Usage
 
-<<<<<<< HEAD
-- `/workflow-setup setup` shows what it found and would add (`--dry-run`), then writes it on a branch; `--bare` writes only the config, queue and findings.
-- `/workflow-setup settings` prints every setting with its default and one-line explanation; `/workflow-setup fill-repo` adds any missing repo setting to `.loop/config.json`. Every setting is in `skills/workflow-setup/references/settings.md`; `cadence`, the minutes between live-board check-ins, defaults to 30; health reads `test_budget_seconds` (600) and `stale_branch_days` (14).
-=======
 - `/workflow-setup setup` shows what it found and would add (`--dry-run`), then writes it on a branch, including both scheduled workflows (regression and health, every 4 hours by default; health only when the workflow-health skill is in the repo, since its run needs it); `--bare` writes only the config, queue and findings.
 - `/workflow-setup settings` prints every setting with its default and one-line explanation; `/workflow-setup fill-repo` adds any missing repo setting to `.loop/config.json`, such as the Automation settings `health_cron`, `judge_env`, `judge_setup` and `digest_owner`. Every setting is in `skills/workflow-setup/references/settings.md`; `cadence`, the minutes between live-board check-ins, defaults to 30; health reads `test_budget_seconds` (600) and `stale_branch_days` (14).
->>>>>>> de3d86c (docs: the health and setup pages name the Automation settings)
 - `/workflow-setup reply-hook` installs the operation session's reply-format Stop hook into the repo's machine-local `.claude/settings.local.json`, which git is told to ignore (`--remove` takes it out; a second run changes nothing; a committed settings file, or a run from a goal worktree, is refused); `reply_hook: false` in `.loop/config.json` turns it off.
 
 ## Requirements
