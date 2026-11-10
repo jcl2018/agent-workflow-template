@@ -5,11 +5,12 @@ description: Checks a repo's health with fixed rules that give the same answer e
 
 # workflow-health
 
-Three commands, `check`, `judge` and `run`, and `milestone.py` for milestones. Run `scripts/health.py` with `python3` from the repo. If the skill's files aren't on disk, write
-the script to a temporary file, run it, and delete it. It composes `workflow-docs` and `workflow-regression`, so
+Four commands, `check`, `preview`, `file` and `judge`, and `milestone.py` for milestones. Run `scripts/health.py` with `python3` from the repo. If the skill's files aren't on disk, write
+every file of `scripts/` to one new private temporary folder (made with `mktemp -d`), run `health.py` there, and delete the folder: `check`
+works from `health.py` alone, but `preview` and `file` need `file.py` beside it, and the report needs `report.py`. It composes `workflow-docs` and `workflow-regression`, so
 install them beside it. If one is missing, its rule prints `UNREAD`.
 
-## `check [--json] [--family size|criteria|docs|hygiene|cost|mine]`
+## `check [--json] [--group size|criteria|docs|hygiene|performance|mine]`
 
 ```bash
 python3 scripts/health.py check
@@ -26,7 +27,7 @@ It writes no file, makes no commit and calls no model. Each line reads
 | `UNREAD` | The rule couldn't read its data. Never a pass |
 | `INFO` | For reading only |
 
-The report is a fixed template: `HEALTH REPORT`, each group with its lines, then the last line, `HEALTH: green (...)` or `HEALTH: not green (...)`. Only `FAIL` and `UNREAD` turn it red, and the
+The report is a formal template: `HEALTH REPORT`, a header naming the groups run and skipped, each group (Cost shown as `performance`) with every rule it checked, then the last line, `HEALTH: green (...)` or `HEALTH: not green (...)`. Only `FAIL` and `UNREAD` turn it red, and the
 exit code is then 1. `--json` prints the same rows as records, with the verdict.
 
 | Family | Fixed rule | Warn | Fail |
@@ -35,10 +36,10 @@ exit code is then 1. `--json` prints the same rows as records, with the verdict.
 | `criteria` | `regression.py sync` | Done lines with no regression row, as one row | A criterion with no row, a draft row, or a row never seen failing |
 | `docs` | `docs.py check` | A stale page | Any other gap: missing, unwritten, unmapped or a broken page |
 | `hygiene` | `.loop/findings.md`, the run records and local branches | Over 5 open findings, a run waiting over 24 hours, a `loop/` branch already merged | None |
-| `cost` | The last 10 finished goals' run records against `time_budget_minutes` and `token_budget` in `.loop/config.json` | A goal over either, naming its three slowest or costliest steps | None; no tokens recorded in any of them is `UNREAD`, and no budget set is `INFO` |
+| `cost` (shown as `performance`) | The last 10 finished goals' run records against `time_budget_minutes` and `token_budget` in `.loop/config.json` | A goal over either, naming its three slowest or costliest steps | None; no tokens recorded in any of them is `UNREAD`, and no budget set is `INFO` |
 | `mine` | The owner's own rules from `~/.workflow-loop/health.json` | exit 2 | exit 1; any other exit or an unreadable setting is `UNREAD` |
 
-`Mine` runs commands you name, outside the repo, so it is not covered by the read-only and same-answer promises, and `run` never files it.
+`Mine` runs commands you name, outside the repo, so it is not covered by the read-only and same-answer promises, and it is filed only when named.
 
 There are at most nine fixed rules (the cap was raised from eight on purpose, for `cost`), and the script refuses to load with more. Retire one before adding another.
 
@@ -56,16 +57,21 @@ tokens ranked by savings. Suggested criterion wording goes under `Needs you` (on
 savings are candidate goals; ranked next steps end it. With no `judge_command`, a failure or an answer with no tagged
 line, it prints `JUDGE UNAVAILABLE: why` and nothing else changes.
 
-## `run [--live] [--family NAME]`
+## `preview [--group NAME[,NAME]]` and `file --group NAME[,NAME]`
 
 ```bash
-python3 scripts/health.py run
+python3 scripts/health.py preview
+python3 scripts/health.py file --group size,docs
 ```
 
-Files each `WARN`, `FAIL` or `UNREAD` row as one issue on the `Backlog` milestone, labelled `health`, with a hidden
-marker in its body. A repeat updates that issue, a finding that is fixed closes it, a returning one reopens it, and an
-issue moved to a feature stays there. With no `--live`, `GH_TOKEN` or `GITHUB_TOKEN` it prints `WOULD` lines and writes
-nothing. Run `milestone.py new --all --live` once first, or the issues have no `Backlog` to land in.
+`preview` lists each issue that would be opened, updated, closed or reopened, with its `health:<group>` tag, and writes
+nothing. `file --group` is the only writer: it files only the named groups, one issue per `WARN`, `FAIL` or `UNREAD` row
+on the `Backlog` milestone, labelled `health:<group>` (`size`, `criteria`, `docs`, `hygiene`, `performance`, `mine`) and
+`health`, with a hidden marker in its body. A repeat updates that issue, a fixed finding closes it, a returning one
+reopens it, and an issue moved to a feature stays there. With no `--group` it refuses. `mine` is filed only when named;
+the judge, which calls a model, runs only when `performance` is named. `run` is a deprecated alias of `preview`.
+Run `milestone.py new --all --live` once first, or the issues have no `Backlog` to land in. Show the preview to the owner
+and file only the groups they confirm.
 
 ## Milestones: `scripts/milestone.py`
 
@@ -97,4 +103,5 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 |---|---|
 | `/workflow-health check` | `python3 scripts/health.py check` |
 | `/workflow-health judge` | `python3 scripts/health.py judge` |
-| `/workflow-health run` | `python3 scripts/health.py run` |
+| `/workflow-health preview` | `python3 scripts/health.py preview` |
+| `/workflow-health file --group docs` | `python3 scripts/health.py file --group docs` |
