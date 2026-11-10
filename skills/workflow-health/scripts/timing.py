@@ -6,7 +6,7 @@ Goal lanes: each `<slug>.<name>-lane.last` in <git common dir>/loop/runs of a go
 not done, failed, retired or stopped); its LANE line gives the time. FULL lanes are left to full_suite_minutes. The full
 suite: the newest `full` line of <git common dir>/loop/suite-times.tsv (sha, kind, seconds, date), written by a plain
 `regression.py run nightly` here or downloaded from the CI run by the scheduled health job. No line: an INFO row saying
-how to get one. Reads only local files: no network. docs: Regression#lane-messages.
+how to get one. Reads only local files: no network. workflow-regression/references/lanes.md.
 """
 import glob
 import json

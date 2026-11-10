@@ -1,5 +1,7 @@
 # Regression: commands and flows
 
+Lane messages, which tests run when, clocks and lane settings: `references/lanes.md`.
+
 Moved from the wiki page, which is now only a summary, criteria and tests.
 
 ## Commands

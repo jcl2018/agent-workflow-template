@@ -50,7 +50,7 @@ def reach(top, paths):
 
 def base_moved(state, cfg, top):
     """None when the merge may go ahead, else (exit code, refusal): the base moved since the pr lane in paths this goal's
-    rows reach (2), or origin can't be fetched to tell (3). A move elsewhere only notes it. docs: Regression#lane-messages."""
+    rows reach (2), or origin can't be fetched to tell (3). A move elsewhere only notes it. workflow-regression/references/lanes.md."""
     base, was = cfg.get("base", "main"), state.get("pr_base")
     if not was:  # a pull request opened before goal.py pr recorded its base
         return None

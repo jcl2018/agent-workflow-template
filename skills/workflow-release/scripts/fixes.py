@@ -3,7 +3,7 @@
 since the previous v* tag, from workflow-regression's tests.py fixes. Imported by release.py (cut) and autorelease.py.
 
 A missing tests.py gives "Fixes: unknown (workflow-regression not installed)"; a failing one gives "Fixes: not listed
-(<first line>). Note: ...": a report never fails a release. docs: Regression#lane-messages.
+(<first line>). Note: ...": a report never fails a release. workflow-regression/references/lanes.md.
 """
 import os
 import subprocess

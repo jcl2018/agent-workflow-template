@@ -8,7 +8,7 @@ Imported by goal.py. record(state, base):
   3. one commit of those two files when they changed (`git commit --only`), then
   4. state["pr_head"] (the head goal.py pr pushes: the lane's commit plus that bookkeeping commit) and state["pr_base"]
      (the base commit it was merged with), for merge.py's HEAD_MOVED and BASE_MOVED checks.
-docs: Regression#lane-messages.
+workflow-regression/references/lanes.md.
 """
 import datetime
 import os
