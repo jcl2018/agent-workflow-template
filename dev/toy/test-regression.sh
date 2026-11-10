@@ -159,16 +159,16 @@ rm -f BROKEN ci-block.py
 python3 - "$here" <<'PY' && ok "the committed regression workflow matches what actions.py writes" || bad "the committed regression workflow is stale"
 import json, sys
 sys.path.insert(0, sys.argv[1] + "/skills/workflow-regression/scripts"); import actions
-cron = json.load(open(sys.argv[1] + "/.loop/config.json")).get("regression_cron") or "17 9 * * *"
+cron = json.load(open(sys.argv[1] + "/.loop/config.json")).get("regression_cron") or "17 */4 * * *"
 assert actions.render(cron) == open(sys.argv[1] + "/.github/workflows/regression.yml").read()
 PY
-grep -q 'cron: "17 9 \* \* \*"' .github/workflows/regression.yml && ok "default schedule written" || bad "default cron"
+grep -q 'cron: "17 \*/4 \* \* \*"' .github/workflows/regression.yml && ok "default schedule written" || bad "default cron"
 python3 - <<'PY'
 import json
 c = json.load(open(".loop/config.json")); c["regression_cron"] = "5 4 * * 1"
 json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
-$reg workflow >/dev/null; grep -q 'cron: "5 4 \* \* 1"' .github/workflows/regression.yml && ! grep -q '17 9' .github/workflows/regression.yml && ok "changing regression_cron changes the schedule" || bad "cron setting"
+$reg workflow >/dev/null; grep -q 'cron: "5 4 \* \* 1"' .github/workflows/regression.yml && ! grep -q 'cron: "17 \*/4' .github/workflows/regression.yml && ok "changing regression_cron changes the schedule" || bad "cron setting"
 python3 - <<'PY'
 import json
 c = json.load(open(".loop/config.json")); c["regression_cron"] = "nightly"
@@ -178,7 +178,7 @@ $reg workflow >/dev/null 2>&1 && bad "bad cron written" || ok "a setting that is
 echo "== the workflow and a local run do the same (REG-3)"
 python3 - <<'PY'
 import json
-c = json.load(open(".loop/config.json")); c["regression_cron"] = "17 9 * * *"
+c = json.load(open(".loop/config.json")); c["regression_cron"] = "17 */4 * * *"
 json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
 $reg workflow >/dev/null
