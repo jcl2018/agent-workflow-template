@@ -1,5 +1,6 @@
 #!/bin/bash
-# reads: skills/
+# reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/graph.py
+# reads: skills/workflow-monitoring/scripts/live_board.py skills/workflow-monitoring/scripts/status_graph.py
 # Goal estimates from size and similar finished goals (issue 96) and stalled goals under Issues (issue 37), on a made-up
 # repo of finished runs. No model is called. usage: test-estimates.sh [CHECK]  (no CHECK runs them all)
 set -u
@@ -82,9 +83,9 @@ def est(repo, run):
 
 
 def check_area():
-    cases = {"skills/workflow-monitoring/scripts/x.py": "skills/workflow-monitoring", "dev/toy/t.sh": "dev", ".github/workflows/x.yml": ".github",
-             "docs/wiki/Home.md": "docs", ".loop/docs.tsv": ".loop", "README.md": "README.md", "skills/*/SKILL.md": "skills",
-             "dev/toy/test-*.sh": "dev", "skills/README.md": "skills", "`./skills/workflow-docs/`": "skills/workflow-docs"}
+    cases = {"skills/workflow-monitoring/scripts/x.py": "skills/workflow-monitoring", "dev/toy/t.sh": "dev", ".github/workflows/x.yml": ".github",  # lanes: no read (path strings graph.area folds)
+             "docs/wiki/Home.md": "docs", ".loop/docs.tsv": ".loop", "README.md": "README.md", "skills/*/SKILL.md": "skills",  # lanes: no read (path strings graph.area folds)
+             "dev/toy/test-*.sh": "dev", "skills/README.md": "skills", "`./skills/workflow-docs/`": "skills/workflow-docs"}  # lanes: no read (path strings graph.area folds)
     for path, want in cases.items():
         need(graph.area(path) == want, "%s folds to %s, not %s" % (path, want, graph.area(path)))
     need(graph.size(["a", "b"], ["dev/toy", "dev/x", "README.md"]) == (2, 2) and graph.size([], ["x"]) is None, "size counts done lines and areas")
@@ -315,4 +316,4 @@ for name in pick:
 print("== %d of %d checks failed" % (failed, len(pick)) if failed else "ALL PASS")
 sys.exit(1 if failed else 0)
 PY
-cd "$T" && python3 "$T/checks.py" "$here/skills/workflow-monitoring/scripts" "$@"
+cd "$T" && python3 "$T/checks.py" "$here/skills/workflow-monitoring/scripts" "$@"  # lanes: no read (the folder only goes on sys.path)
