@@ -10,7 +10,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
-            "REGRESSION_RESULTS")
+            "REGRESSION_RESULTS", "RUNNER_TEMP")
 
 
 def row_env():
@@ -46,7 +46,7 @@ jobs:
       - name: Run the rows, and keep one issue per failing row
         env:
           GH_TOKEN: ${{ github.token }}
-          REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv  # the runner's own file; no row sees its path
+          REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv  # the runner's own file, in no row's environment
         run: |
           python3 - <<'PY'
           import json, os, subprocess, sys, tempfile, time
@@ -129,13 +129,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv
         run: |
-          cat > "$RUNNER_TEMP/tests.py" <<'TESTS_PY_EOF'
+          here=$(mktemp -d)  # a new private folder: nothing a row left behind is on this script's import path
+          cat > "$here/tests.py" <<'TESTS_PY_EOF'
 @TESTS@
           TESTS_PY_EOF
-          python3 "$RUNNER_TEMP/tests.py" issues --write >/dev/null || true
-          started=$(sed -n 's/^# started //p' "$REGRESSION_RESULTS" 2>/dev/null)
+          python3 -I "$here/tests.py" issues --write >/dev/null || true
+          started=$(sed -n 's/^# started //p' "$REGRESSION_RESULTS" 2>/dev/null || true)
           took=$(( $(date +%s) - ${started:-$(date +%s)} ))
-          python3 "$RUNNER_TEMP/tests.py" summary --results "$REGRESSION_RESULTS" --took "$took" >> "$GITHUB_STEP_SUMMARY" || {
+          GH_TOKEN= python3 -I "$here/tests.py" summary --results "$REGRESSION_RESULTS" --took "$took" >> "$GITHUB_STEP_SUMMARY" || {
             printf '## Regression\n\nThe grouped summary could not be written; see this step'"'"'s log.\n\n| Test | Result |\n|---|---|\n'
             grep -v '^#' "$REGRESSION_RESULTS" 2>/dev/null | awk -F'\t' '{print "| " $1 " | " $2 " |"}'
           } >> "$GITHUB_STEP_SUMMARY"

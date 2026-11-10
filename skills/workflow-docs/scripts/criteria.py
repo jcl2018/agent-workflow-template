@@ -158,15 +158,19 @@ RUNS = {"land": "both", "nightly": "nightly", "covered": "by a person"}
 SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date; anything else shows "no"
 
 
-def tests_format():
-    """workflow-regression's tests.py, which owns the test format; None, with a NOTE, when it isn't installed."""
+def tests_format(held={}):
+    """workflow-regression's tests.py, which owns the test format, loaded once; None, with a NOTE, when it isn't installed."""
     import importlib.util
+    if "m" in held:
+        return held["m"]
+    sys.dont_write_bytecode, held["m"] = True, None  # no __pycache__ in a skill folder: the package check refuses one
     if not os.path.exists(FORMAT):
         sys.stderr.write("NOTE: %s not found; Tests lines use the old shape\n" % os.path.normpath(FORMAT))
         return None
     spec = importlib.util.spec_from_file_location("regression_tests", FORMAT)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    held["m"] = module
     return module
 
 

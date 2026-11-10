@@ -218,7 +218,8 @@ def cmd_criteria(_args):
         if not found:
             unmet.append("%s (no regression row)" % key)
         for row in found:
-            if row["level"] == "draft" or (row["level"] != "covered" and run(["sh", "-c", row["command"]], cwd=root).returncode):
+            if row["level"] == "draft" or (row["level"] != "covered" and subprocess.run(["sh", "-c", row["command"]], cwd=root,
+                                                                                   capture_output=True, env=actions.row_env()).returncode):
                 unmet.append("%s (row %s is a draft or failing)" % (key, row["id"]))
     print("\n".join(unmet))
     return 1 if unmet else 0

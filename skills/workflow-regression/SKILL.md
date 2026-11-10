@@ -115,7 +115,7 @@ runner's own files (`GITHUB_STEP_SUMMARY`, `GITHUB_ENV`, `GITHUB_OUTPUT`, `GITHU
 environment, so a toy test can't write into the real summary, and the checkout keeps no token in its git config.
 `regression.py run` gives its rows the same environment.
 
-## `tests.py list [--markdown|--tsv]`, `summary`, `issues [--write]`
+## `list [--markdown|--tsv]`, `summary`, `issues [--write]` (scripts/tests.py)
 
 ```bash
 python3 scripts/tests.py list

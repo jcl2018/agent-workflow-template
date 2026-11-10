@@ -282,7 +282,7 @@ def tests_block(root):
     script = sibling("workflow-regression", "tests.py")
     done = run([sys.executable, script, "list", "--root", root], root) if script else None
     if not done or done.returncode:
-        return ["", "NOTE: the test list is unavailable (%s)" % ("tests.py is not installed beside this skill" if not done
+        return ["", "TESTS", "NOTE: the test list is unavailable (%s)" % ("tests.py is not installed beside this skill" if not done
                                                                  else (done.stderr.strip() or "no output")[:120]), ""]
     return ["", "TESTS"] + done.stdout.rstrip("\n").splitlines() + [""]
 

@@ -18,6 +18,7 @@ import argparse
 import datetime
 import glob
 import json
+import math
 import os
 import re
 import subprocess
@@ -119,7 +120,7 @@ def entries(root, results=None, markdown=False):
     rows = {row[0]: (row + [""] * 8)[:8] for row in tsv(root, "regression.tsv")}
     order = [name for name in rows if rows[name][1] != "draft"] if results is None else list(results)
     for name in order:
-        row = rows.get(name) or [name, "", "", "-", "", "", "", ""]
+        row = rows.get(name) or [name, "", "", "-", "", "", "-", ""]
         key = key_of(row)
         groups.setdefault(found[key][0] if key in found else OTHER, []).append(fields(row, found, ran, issues, markdown))
     return [(title, groups[title]) for title in titles + [OTHER] if title in groups]
@@ -150,7 +151,7 @@ def refuse(text):
 def cmd_summary(args):
     try:
         took = float(args.took)
-        if took < 0:
+        if took < 0 or not math.isfinite(took):
             raise ValueError
     except ValueError:
         return refuse("--took %r is not a number of seconds. Fix: pass the run's seconds, e.g. --took 95" % args.took)
@@ -196,12 +197,13 @@ def cmd_issues(args):
     old, day, out = issues_of(args.root), datetime.date.today().isoformat(), {}
     for row in tsv(args.root, "regression.tsv"):
         link = row[7] if len(row) > 7 else ""
-        kind = re.search(r"/(issues|pull)/\d+$", link)
-        if row[6:7] != ["defect"] or not kind:
+        kind = re.match(r"^https?://\S+/(issues|pull)/\d+$", link)
+        if row[6:7] != ["defect"] or not kind or link in out:
             continue
         done = gh("issue" if kind.group(1) == "issues" else "pr", "view", link, "--json", "state", "-q", ".state")
         state = done.stdout.strip().lower()
-        out[link] = (state, day) if not done.returncode and state else old.get(link, ("unknown", day))
+        kept = old.get(link, ("unknown", day))  # a state that didn't change keeps its date, so a run leaves no churn
+        out[link] = kept if done.returncode or not state or state == kept[0] else (state, day)
         print("ISSUE %s %s" % (link, out[link][0]))
     if args.write:
         with open(os.path.join(args.root, ".loop", "regression-issues.tsv"), "w") as handle:
