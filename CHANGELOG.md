@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.14.0 - 2026-11-10
+
+- docs check: close the four count gaps (issues 104-107)
+- docs-count-gaps: record the four defect tests as seen failing
+- docs count review fixes: workflow-ready only, code after a heading or fence, thematic breaks, a wrong defect count fails
+- Merge remote-tracking branch 'origin/main' into loop/docs-count-gaps
+- Documentation: the check bullet says a stated defect tests count is checked
+
+### How to verify
+
+1. In a scratch copy of the repo, add the line `The repo has twenty workflow-ready skills.` to README.md and run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: a line `COUNT README.md: says twenty workflow-ready skills, the repo has 7` (the real number of skills).
+2. Replace that line with a blank line followed by `    The repo has twenty skills.` (four leading spaces) and run the check again.
+   Expect: no COUNT line for README.md.
+3. Run `bash dev/toy/test-criteria.sh | grep "(10[4-7])"`.
+   Expect: four PASS lines, one per issue 104 to 107.
+
 ## v0.13.1 - 2026-11-10
 
 - regression-all: record every row, move slow rows to nightly, fix two failing rows
