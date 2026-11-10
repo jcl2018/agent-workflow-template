@@ -26,6 +26,9 @@ import subprocess
 import sys
 import time
 
+# No terminal, no waiting: a prompt from git must fail, not block. (stdin is the hook's input, so it stays open.)
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
 SECTIONS = ("All sessions", "Dependencies", "Needs you", "Coming up")  # the reply's sections, in order; Coming up last
 NOTHING = "Nothing needs you"
 
@@ -419,8 +422,8 @@ def main(argv):
     if argv[:1] == ["status"]:
         return status(os.getcwd())
     if argv:
-        print(__doc__.strip().split("\n\n")[1])
-        return 2
+        print(__doc__.strip())
+        return 0 if argv[0] in ("-h", "--help") else 2
     try:
         payload = json.loads(sys.stdin.read() or "{}")
         decision = hook(payload) if isinstance(payload, dict) else None
