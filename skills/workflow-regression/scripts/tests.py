@@ -7,7 +7,9 @@ usage: tests.py <command> [--root DIR]
   summary --results FILE --took S   a GitHub run summary: one header with totals and the run time, then one table per
                                     feature, from that run's results file (id<TAB>state lines; # lines are skipped)
   issues [--write]                  read each defect test's issue or pull request state with gh; --write records them in
-                                    .loop/regression-issues.tsv (link, state, date) for the wiki and the health report
+                                    .loop/regression-issues.tsv (link, state, date, reopened_at) for the wiki and the
+                                    health report; a defect row whose open issue was reopened shows "failing (issue
+                                    reopened)" until the issue closes or a run on a later day passes
   fixes --since REF                 one "Fixes #N: test ROW, seen failing DATE, passing" line per issue fixed since REF: a
                                     defect row added, or whose seen-failing date was set, since REF, that links the
                                     issue and passes in .loop/regression-runs.tsv (REG-6); the release notes list them
@@ -85,7 +87,9 @@ def key_of(row):
 
 
 def issues_of(root):
-    return {row[0]: (row[1], row[2] if len(row) > 2 else "") for row in tsv(root, "regression-issues.tsv") if len(row) > 1}
+    """{link: (state, date, reopened_at)}; reopened_at is the newest reopen time GitHub's timeline gave, or empty."""
+    return {row[0]: (row[1], row[2] if len(row) > 2 else "", row[3] if len(row) > 3 else "")
+            for row in tsv(root, "regression-issues.tsv") if len(row) > 1}
 
 
 def guard(row, found, issues, markdown):
@@ -95,7 +99,7 @@ def guard(row, found, issues, markdown):
         number = re.search(r"/(issues|pull)/(\d+)$", link)
         if not number:
             return link.replace("finding:", "finding ", 1)
-        state, day = issues.get(link, ("state unknown", ""))
+        state, day = issues.get(link, ("state unknown", ""))[:2]
         name = ("#" if number.group(1) == "issues" else "PR ") + number.group(2)
         shown = "[%s](%s)" % (name, link) if markdown else "%s %s" % (name, link)
         return "%s %s%s" % (shown, state.lower(), " (%s)" % day if day else "")
@@ -109,6 +113,9 @@ def fields(row, found, ran, issues, markdown=False, raw=False):
     """The one fixed format for one row (all 8 columns of regression.tsv): test, kind, guards, checks, runs, last
     result and date, seen failing."""
     status, day = ran.get(row[0], ("not run", ""))
+    known = issues.get(row[7], ()) if row[6] == "defect" else ()
+    if len(known) > 2 and known[2] and known[0] == "open" and not (status == "PASS" and day > known[2][:10]):
+        status, day = "failing (issue reopened)", known[2][:10]  # REG-6: until the issue closes or a later day passes
     return [cell(item, raw) for item in (row[0], KIND.get(row[6] or "criterion", row[6]), guard(row, found, issues, markdown),
                                     row[5] or "-", RUNS.get(row[1], row[1] or "-"), (status + " " + day).strip(),
                                     row[4] if SEEN.match(row[4]) else "no")]
@@ -192,6 +199,17 @@ def gh(*args):
         return subprocess.CompletedProcess(args, 1, "", str(err))
 
 
+def reopened(link):
+    """The newest time the issue's GitHub timeline says it was reopened, or "" (REG-6: sampled states miss a reopen)."""
+    parts = re.match(r"^https?://[^/]+/([^/]+)/([^/]+)/issues/(\d+)$", link)
+    if not parts:
+        return ""
+    done = gh("api", "repos/%s/%s/issues/%s/events" % parts.groups(), "--jq",
+              '[.[] | select(.event == "reopened") | .created_at] | last')
+    value = done.stdout.strip()
+    return value if done.returncode == 0 and re.match(r"^\d{4}-\d\d-\d\dT", value) else ""
+
+
 def cmd_issues(args):
     probe = gh("auth", "status")
     if probe.returncode:
@@ -207,14 +225,15 @@ def cmd_issues(args):
             continue
         done = gh("issue" if kind.group(1) == "issues" else "pr", "view", link, "--json", "state", "-q", ".state")
         state = done.stdout.strip().lower()
-        kept = old.get(link, ("unknown", day))  # a state that didn't change keeps its date, so a run leaves no churn
-        out[link] = kept if done.returncode or not state or state == kept[0] else (state, day)
+        kept = (old.get(link, ()) + ("unknown", day, ""))[:3] if link in old else ("unknown", day, "")
+        new = kept if done.returncode or not state or state == kept[0] else (state, day, kept[2])
+        out[link] = new[:2] + (reopened(link) or new[2],) if kind.group(1) == "issues" and state == "open" else new
         print("ISSUE %s %s" % (link, out[link][0]))
     if args.write and rows:  # no rows read: keep the recorded states rather than wipe them
         path = os.path.join(args.root, ".loop", "regression-issues.tsv")
         fd, new = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".regression-issues.")  # its own name per writer
         with os.fdopen(fd, "w") as handle:
-            handle.write("# link\tstate\tdate\n" + "".join("%s\t%s\t%s\n" % (k, *v) for k, v in sorted(out.items())))
+            handle.write("# link\tstate\tdate\treopened_at\n" + "".join("%s\t%s\t%s\t%s\n" % (k, *v) for k, v in sorted(out.items())))
         os.replace(new, path)  # whole or not at all
     return 0
 
