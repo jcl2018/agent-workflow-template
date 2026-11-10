@@ -302,6 +302,16 @@
 | <a id="t-est-worktree"></a>est-worktree | requirement | MON-4 | not run | - | local | 2026-11-10 |
 | <a id="t-est-similar-step"></a>est-similar-step | requirement | MON-4 | not run | - | local | 2026-11-10 |
 | <a id="t-est-stall-held"></a>est-stall-held | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-backtest-best"></a>est-backtest-best | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-backtest-loo"></a>est-backtest-loo | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-accuracy-line"></a>est-accuracy-line | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-backtest-fails"></a>est-backtest-fails | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-stall-floor"></a>est-stall-floor | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-held-idle"></a>est-held-idle | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-module-size"></a>est-module-size | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-backtest-speed"></a>est-backtest-speed | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-steps-monotone"></a>est-steps-monotone | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-est-recompute"></a>est-recompute | requirement | MON-4 | not run | - | local | 2026-11-10 |
 
 ## Regression
 
