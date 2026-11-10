@@ -1,7 +1,7 @@
 # Implement the owner-approved Health PRD: twelve rule groups each with its angle, a repo reviewer that files findings per feature on its milestone, triage, and the first full inspection of this repo (owner, 2026-11-10: "I want to approve 1, 2, 3")
 
 - Slug: health-prd
-- Touches: skills/workflow-health, skills/workflow-regression, docs/wiki/Health.md, .loop/config.json, .loop/regression.tsv, dev/toy
+- Touches: skills/workflow-health, skills/workflow-regression, docs/wiki/Health.md, .loop/config.json, .loop/regression.tsv, dev/toy, .github/workflows/health.yml, skills/workflow-monitoring/scripts/worker.py
 
 ## Done lines
 
