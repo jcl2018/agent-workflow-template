@@ -951,7 +951,14 @@ Auto-decided: see the Decision Audit Trail; the rest are the gate items below.
 #### Deferred (no TODOS.md in this repo; for the owner)
 - Health trend per release (C8); triage summary in the Automation digest (C9); per-rule signal metric (CEO F1); judge eval set (CEO X3); per-finding allowlist (DX N8); `--summary` view; shared subprocess deadline beyond C44; concurrent `file` runs.
 
-#### Final gate (pending the owner; nothing approved)
+#### Final gate (answered 2026-11-10)
+
+Answered by the operation session under full auto (MON-11, logged), relayed to this worker: "rec, with uc1 = keep one
+goal" (a split would abandon the frozen goal; the first inspection waits on docs-format anyway); d1 to d5 the defaults;
+d6 yes (touches widened to .github/workflows/health.yml); p1 approve. Issue 118 moved to docs-format (operation's scope
+note): done line 9's 118 is met by docs-format's fix and its defect row on main.
+
+#### Final gate as presented (gate_rev 1)
 - uc1 (approval) Split or re-scope the goal. Default if approved: b (split into goal A: groups, migration, fixes, deterministic rules; goal B: review, triage, HLT-7..9, first inspection, health.yml). Your direction (a, one goal) stands until you answer.
 - d1 (auto, default a) Closed findings stay closed until the evidence hash changes; b: 90-day expiry.
 - d2 (auto, default a) LINK on qualified tokens only (C54).
