@@ -218,3 +218,11 @@ lines are carried here and in the PR. The goal file's done lines stay frozen.
 25. **prd-stamps.** Each feature page whose text the owner approves is copied in verbatim, apart from the machine lines
     and Tests. Each requirement and the PRD are then stamped Reviewed with `criteria.py review --user`, quoting the
     owner's words in the commit. Done so far: Documentation and Delivery.
+26. **Issues 125, 130, 133, 156** (added by the owner's regroup, next to 104..107). Each one gets a defect row in
+    `dev/toy/test-docs-issues.sh`, seen failing on 2026-11-10 and then passing:
+    - 125: guide pages;
+    - 130: the milestone comes from the page's Milestone line;
+    - 133: LOCKED hints never suggest review, and `--user` with no terminal needs LOOP_OWNER_WORDS;
+    - 156: `--base` ignores commits that came in by merging the base. The ship skill's own gate is outside this repo.
+
+    Issue 132 is closed as covered, and 155 as won't fix per DOC-11. The operation session handles both.
