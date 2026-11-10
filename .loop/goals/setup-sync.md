@@ -23,7 +23,7 @@ Frozen. A wrong done line needs a new goal.
    Expect: the same `<!-- workflow-loop -->` block in both, telling a session to read `.loop/START.md` first and listing the seven workflow skills.
 3. Change one Usage bullet's first sentence in `docs/wiki/Setup.md`, then run `python3 skills/workflow-docs/scripts/docs.py check`.
    Expect: `STALE .loop/START.md: ... (ENTRY_STALE)` and exit 1; `python3 skills/workflow-docs/scripts/docs.py audit` rewrites it, and the check is back to `DOCS OK`. Undo the edit.
-4. Run `bash dev/toy/test-sync.sh update` and `bash dev/toy/test-sync.sh board`.
+4. Run `bash dev/toy/test-sync-update.sh update` and `bash dev/toy/test-sync-update.sh board`.
    Expect: `ALL PASS (update)` (check shows what is new, apply lands `workflow-update-v1.1.0` and keeps the repo's data) and `ALL PASS (board)` (the live board lists `oldharbor runs template v1.0.0, older than v1.1.0`).
 5. Run `bash dev/toy/test-sync.sh builtin`.
    Expect: `ALL PASS (builtin)`: a goal with a flow file whose steps are all `built-in` and no probe runs every step through delivery's own routine.

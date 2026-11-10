@@ -3,10 +3,10 @@
 # reads: skills/workflow-delivery/references/default-flow.md skills/workflow-monitoring/scripts/watch.py
 # reads: skills/workflow-setup/ skills/workflow-docs/ skills/workflow-delivery/SKILL.md skills/workflow-health/SKILL.md
 # reads: skills/workflow-monitoring/SKILL.md skills/workflow-regression/SKILL.md skills/workflow-release/SKILL.md
-# reads: dev/toy/make.sh dev/toy/reap.sh dev/toy/test-sync-update.sh
+# reads: dev/toy/make.sh dev/toy/reap.sh
 # setup-sync: the built-in flow (issue 47), the generated entry point (SET-5) and the agent files (SET-10); update both
 # ways and the board's lag line are in test-sync-update.sh. No model is called.
-# usage: test-sync.sh [builtin|entry|agents]   no part runs every part; update, propose and board run test-sync-update.sh.
+# usage: test-sync.sh [builtin|entry|agents]   no part runs every part; update, propose and board are in test-sync-update.sh.
 set -u
 unset LOOP_ROLE LOOP_SESSION LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_FLOW
 here=$(cd "$(dirname "$0")/../.." && pwd)
@@ -14,8 +14,8 @@ here=$(cd "$(dirname "$0")/../.." && pwd)
 only=${1:-}
 case "$only" in  # an unknown part would run nothing and still say ALL PASS
   ""|builtin|entry|agents) ;;
-  update|propose|board) exec bash "$here/dev/toy/test-sync-update.sh" "$only" ;;
-  *) echo "test-sync.sh: no part '$only'; usage: test-sync.sh [builtin|entry|agents|update|propose|board]" >&2; exit 2 ;;
+  update|propose|board) echo "test-sync.sh: the $only part is in dev/toy/test-sync-update.sh; run that instead" >&2; exit 2 ;;
+  *) echo "test-sync.sh: no part '$only'; usage: test-sync.sh [builtin|entry|agents]" >&2; exit 2 ;;
 esac
 T=$(mktemp -d); toy_on_exit 'rm -rf "$T"'
 export HOME="$T/home" LOOP_BOARD_HEALTH=green; mkdir -p "$HOME"
