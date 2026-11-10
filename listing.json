@@ -116,7 +116,7 @@
     "docs/wiki/*.md and a commit of them, when you run criteria.py review, unreview or render",
     ".loop/regression-runs.tsv, when you run regression.py run",
     "issues labelled regression or health, and milestones on them, on GitHub, only with --live or a token",
-    "reads ~/.workflow-loop/flow.json, and runs its probe and its command for each flow step",
+    "reads ~/.workflow-loop/flow.json, and runs its probe and its command for each flow step; record reads its full_markers, and each step's depth goes into the run record and the pull request body",
     "a merge of a goal's pull request into the base branch, only with auto_merge on, when you run merge.py",
     "a feature page for each top-level code folder and Home, .loop/docs.tsv and .loop/regression.tsv rows, on the workflow-setup branch",
     "the installed skill files and workflow-package.json in the skills folder, only when you run update.py --apply"
