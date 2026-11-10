@@ -13,8 +13,9 @@ unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_BATCH LOOP_PRIVATE_NAMES TOY
 set -u
 export LOOP_ROLE=worker
 here=$(cd "$(dirname "$0")/../.." && pwd); only=${1:-all}; self="$here/dev/toy/$(basename "$0")"
+. "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)
-d=$(mktemp -d); trap 'rm -rf "$d" "$HOME"' EXIT
+d=$(mktemp -d); toy_on_exit 'rm -rf "$d" "$HOME"'
 "$here/dev/toy/make.sh" "$d" >/dev/null || { echo "FAIL: toy repo"; exit 1; }
 export LOOP_FLOW="$d/flow.json" FAKE_GH_DIR="$d/gh" FAKE_GH_ORIGIN="$d/origin.git" TOY_FAKEGH="$here/dev/toy/fakegh/gh"
 mkdir -p "$d/shim" "$d/gh"

@@ -15,6 +15,7 @@ set -u
 unset LOOP_PRIVATE_NAMES LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_SESSION CLAUDE_CODE_HOST_SESSION_ID
 case "${1:-}" in budget|depth|issues|mend|bind) only=$1; shift;; *) only="";; esac
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 d=${1:-$(mktemp -d)}; rm -rf "${d:?}"; mkdir -p "$d"
 export HOME="$d/home" LOOP_BOARD_HEALTH=green LOOP_FLOW="$d/flow.json"; mkdir -p "$HOME"
 "$here/dev/toy/make.sh" "$d" >/dev/null || exit 1

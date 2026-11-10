@@ -10,8 +10,9 @@
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_PRIVATE_NAMES LOOP_BATCH
 here=$(cd "$(dirname "$0")/../.." && pwd); case=${1:-all}
+. "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)
-d=$(mktemp -d); trap 'rm -rf "$d" "$HOME"' EXIT
+d=$(mktemp -d); toy_on_exit 'rm -rf "$d" "$HOME"'
 "$here/dev/toy/make.sh" "$d" >/dev/null || exit 1
 S="$here/skills/workflow-delivery/scripts"
 goal="python3 $S/goal.py"; F="python3 $S/flow.py"
