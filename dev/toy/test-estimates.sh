@@ -206,6 +206,19 @@ def check_offflow():
     need(bs.current({"slug": "q", "status": "queued"}) == 0, "a queued goal is at idea")
 
 
+def check_offflow_done():
+    # Regression: a goal at checks after "review done" read as on review, so its qa time never counted and it never stalled
+    repo = Repo()
+    history(repo, (3, 2), [{s: 10 for s in STEPS}] * 5, "h")
+    log = [stamp(-9000) + " frozen", stamp(-8400) + " idea done", stamp(-7800) + " plan auto-approved: x", stamp(-7200) + " build done",
+           stamp(-6600) + " review done in session"]
+    repo.write("rd", status="running", step="checks", log=log, updated=stamp(0), pid=1, flow={"review": "done"})
+    repo.goal("rd", 3, 2)
+    run = [r for r in repo.records() if r["slug"] == "rd"][0]
+    need(bs.current(run) == STEPS.index("qa"), "a goal at checks after review done is at qa: %s" % bs.FLOW[bs.current(run)])
+    need("- rd is stalled: qa has run 1h50m" in "\n".join(repo.board()), "its qa time counts, so it stalls past 3x")
+
+
 def check_flow_seconds():
     log = [stamp(-4000) + " frozen", stamp(-3400) + " idea done", stamp(-3000) + " session report: worker: step plan, running",
            stamp(-2800) + " plan done", stamp(-2700) + " session report: worker: step build, running", stamp(-2000) + " report: half way",

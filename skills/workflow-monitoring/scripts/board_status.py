@@ -94,7 +94,7 @@ def left_time(run, runs, at, root=None):
 
 def current(run):
     """Index in FLOW of the step a goal is on: a finished, unmerged goal waits at release. A step outside the flow (a check,
-    say) keeps the newest timestamped evidence naming a flow step (a report's at, a log entry), else the furthest step in
+    say) keeps the newest timestamped evidence naming a flow step (a report's at, a log entry; see after), else the furthest step in
     the run's flow record, else idea."""
     if run.get("status") == "done":
         return FLOW.index("release")
@@ -102,7 +102,7 @@ def current(run):
         return FLOW.index(run["step"])
     seen = [(stamp(item.get("at")), item["step"]) for item in (run.get("reports") if isinstance(run.get("reports"), list) else [])
             if isinstance(item, dict) and item.get("step") in FLOW and stamp(item.get("at"))]
-    seen += [(stamp(entry), named(entry)) for entry in run.get("log") or [] if named(entry) and stamp(entry)]
+    seen += [(stamp(entry), after(entry)) for entry in run.get("log") or [] if after(entry) and stamp(entry)]
     if seen:
         return FLOW.index(max(seen, key=lambda pair: pair[0])[1])
     known = [FLOW.index(step) for step in (run.get("flow") or {}) if step in FLOW]
@@ -119,6 +119,13 @@ def named(entry):
     return found.group(1) if found and found.group(1) in FLOW else ""
 
 
+def after(entry):
+    """The flow step in force after a log entry: the step it names, or the next one when it says that step is done."""
+    word = named(entry)
+    done = word and re.search(r"\b(done|auto-approved|approved)\b", str(entry)) and FLOW.index(word) + 1 < len(FLOW)
+    return FLOW[FLOW.index(word) + 1] if done else word
+
+
 def flow_seconds(run, at):
     """Time per step with one rule for past and live runs: a gap before an entry naming a step counts toward that step;
     any other gap counts toward the step in force (the last one named, or the next after a finished one). A gap after a
@@ -130,9 +137,7 @@ def flow_seconds(run, at):
         step = word if word in STEPS and not re.search(r"\bstep [a-z]+, running", str(entry)) else force
         if a and b and step in STEPS and not pause:
             found[step] = found.get(step, 0) + max(0, (b - a).total_seconds())
-        if word:
-            done = re.search(r"\b(done|auto-approved|approved)\b", str(entry)) and FLOW.index(word) + 1 < len(FLOW)
-            force = FLOW[FLOW.index(word) + 1] if done else word
+        force = after(entry) or force
     last = stamp(log[-1]) if log else None
     step = run.get("step") if run.get("step") in STEPS else force
     if run.get("status") == "running" and step in STEPS and last:
