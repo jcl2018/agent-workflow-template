@@ -107,7 +107,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=219479d7 N=81dd3484 M=4599
 | [prd-repo-green](Tests#t-prd-repo-green) | requirement | DOC-1 | Given this repo, when its docs check and health run, then nothing fails but a page whose Usage changed since the owner's review. | FAIL 2026-11-10 |
 | [cap-default-10](Tests#t-cap-default-10) | requirement | DOC-1 | Given no criteria_max in the config, when the cap is read, then it is 10 in both the docs check and setup. | PASS 2026-11-10 |
 | [format-key](Tests#t-format-key) | requirement | DOC-1 | Given a template rules block whose format key leaves out problem, when the docs check runs, then the Problem check is off. | PASS 2026-11-10 |
-| [guide-marker-refused](Tests#t-guide-marker-refused) | requirement | DOC-1 | Given a page with requirement or Review lines, when it carries the guide marker, then the docs check refuses it naming the page. | not run |
+| [guide-marker-refused](Tests#t-guide-marker-refused) | requirement | DOC-1 | Given a page with requirement or Review lines, when it carries the guide marker, then the docs check refuses it naming the page. | PASS 2026-11-10 |
 | [review-dated](Tests#t-review-dated) | requirement | DOC-2 | Given a criterion, when it is reviewed, then it is marked Reviewed with the date. | PASS 2026-11-10 |
 | [review-owner-only](Tests#t-review-owner-only) | requirement | DOC-2 | Given a criterion, when a review is attempted, then it is reviewed only with the owner's words. | PASS 2026-11-10 |
 | [reviewed-lock](Tests#t-reviewed-lock) | requirement | DOC-2 | Given a reviewed criterion, when it is changed, then the check fails. | PASS 2026-11-10 |
@@ -117,8 +117,8 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=219479d7 N=81dd3484 M=4599
 | [prd-usage-changed](Tests#t-prd-usage-changed) | requirement | DOC-2 | Given a PRD the owner reviewed, when only its Usage is edited, added or removed, then the docs check fails with CHANGED and the board lists the page. | PASS 2026-11-10 |
 | [prd-review-args](Tests#t-prd-review-args) | requirement | DOC-2 | Given review or unreview with no --user, a bad ID, a bad page or a bad date, when it runs, then it refuses and changes nothing. | PASS 2026-11-10 |
 | [prd-stamps-free](Tests#t-prd-stamps-free) | requirement | DOC-2 | Given a PRD the owner reviewed, when a requirement is reviewed or unreviewed, or the owner un-reviews and reviews the PRD again, then no lock trips. | PASS 2026-11-10 |
-| [seal-sub-bullets](Tests#t-seal-sub-bullets) | requirement | DOC-2 | Given a reviewed requirement, when one of its sub-bullets changes, then the docs check reports LOCKED. | not run |
-| [report-sub-bullets](Tests#t-report-sub-bullets) | requirement | DOC-2 | Given a reviewed requirement whose sub-bullet changed, when the report prints, then it names it, and not once restored. | not run |
+| [seal-sub-bullets](Tests#t-seal-sub-bullets) | requirement | DOC-2 | Given a reviewed requirement, when one of its sub-bullets changes, then the docs check reports LOCKED. | PASS 2026-11-10 |
+| [report-sub-bullets](Tests#t-report-sub-bullets) | requirement | DOC-2 | Given a reviewed requirement whose sub-bullet changed, when the report prints, then it names it, and not once restored. | PASS 2026-11-10 |
 | [untested-listed](Tests#t-untested-listed) | requirement | DOC-3 | Given a Reviewed criterion with no test or a test that no longer matches, when the check runs, then it is listed. | PASS 2026-11-10 |
 | [prd-scenarios](Tests#t-prd-scenarios) | requirement | DOC-3 | Given regression rows linked to a requirement, when the Tests are rendered, then each row is a Given/When/Then scenario with its test, result and date, and a plain description is flagged. | PASS 2026-11-10 |
 | [prd-untested](Tests#t-prd-untested) | requirement | DOC-3 | Given a PRD the owner reviewed whose requirement has no test, when the docs audit runs, then it lists that requirement as UNTESTED. | PASS 2026-11-10 |
@@ -127,13 +127,13 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=219479d7 N=81dd3484 M=4599
 | [usage-no-script](Tests#t-usage-no-script) | requirement | DOC-6 | Given a Usage entry whose command is not in the skill's Command map, when the docs check runs, then it fails. | PASS 2026-11-10 |
 | [usage-agent-requests](Tests#t-usage-agent-requests) | requirement | DOC-6 | Given a Usage written as API entries with syntax, output and refusals, when the docs check runs, then it passes. | PASS 2026-11-10 |
 | [format-usage-api](Tests#t-format-usage-api) | requirement | DOC-6 | Given a Usage entry that does not say what it prints, when the docs check runs, then it fails naming the page, Usage and DOC-6. | PASS 2026-11-10 |
-| [usage-empty-backticks](Tests#t-usage-empty-backticks) | requirement | DOC-6 | Given a Usage entry whose backticks hold only spaces, when the docs check runs, then it fails without a crash. | not run |
+| [usage-empty-backticks](Tests#t-usage-empty-backticks) | requirement | DOC-6 | Given a Usage entry whose backticks hold only spaces, when the docs check runs, then it fails without a crash. | PASS 2026-11-10 |
 | [format-bullets](Tests#t-format-bullets) | requirement | DOC-7 | Given a requirement with no sub-bullet, when the docs check runs, then it fails naming the page, Requirements and DOC-7. | PASS 2026-11-10 |
 | [format-orphan-bullet](Tests#t-format-orphan-bullet) | requirement | DOC-7 | Given a sub-bullet with no requirement above it, when the docs check runs, then it is refused. | PASS 2026-11-10 |
 | [format-groups](Tests#t-format-groups) | requirement | DOC-7 | Given Requirements without the Functional or Non-functional heading, when the docs check runs, then it fails. | PASS 2026-11-10 |
 | [format-groups-read](Tests#t-format-groups-read) | requirement | DOC-7 | Given a reviewed requirement under either group, when a sub-bullet is added, then it is still read and the check reports LOCKED. | PASS 2026-11-10 |
 | [format-problem](Tests#t-format-problem) | requirement | DOC-8 | Given a Problem that names code internals, when the docs check runs, then it fails naming the page, Problem and DOC-8. | PASS 2026-11-10 |
-| [problem-plural](Tests#t-problem-plural) | requirement | DOC-8 | Given a Problem with a banned word in the plural, when the docs check runs, then it fails. | not run |
+| [problem-plural](Tests#t-problem-plural) | requirement | DOC-8 | Given a Problem with a banned word in the plural, when the docs check runs, then it fails. | PASS 2026-11-10 |
 | [format-tests-table](Tests#t-format-tests-table) | requirement | DOC-9 | Given a hand-edited Tests table, when the docs check runs, then it fails naming the page, Tests and DOC-9. | PASS 2026-11-10 |
 | [milestones-once](Tests#t-milestones-once) | requirement | DOC-10 | Given milestones already created, when milestones runs again, then nothing new is created. | PASS 2026-11-10 |
 | [pr-in-milestone](Tests#t-pr-in-milestone) | requirement | DOC-10 | Given a pull request, when milestones runs, then the pull request goes into its milestone. | PASS 2026-11-10 |
@@ -151,9 +151,9 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=219479d7 N=81dd3484 M=4599
 | [issue-gh-fail-unread](Tests#t-issue-gh-fail-unread) | requirement | DOC-10 | Given gh fails, when health checks, then one UNREAD row shows and the verdict is unchanged. | PASS 2026-11-10 |
 | [issue-truncated-unread](Tests#t-issue-truncated-unread) | requirement | DOC-10 | Given 1000 open issues come back, when health checks, then it reads UNREAD truncated. | PASS 2026-11-10 |
 | [issue-closed-ignored](Tests#t-issue-closed-ignored) | requirement | DOC-10 | Given a closed issue with no milestone, when health checks, then no row names it. | PASS 2026-11-10 |
-| [runs-same-day](Tests#t-runs-same-day) | requirement | DOC-10 | Given two branches running the same rows on one day, when each records its run, then the run files are identical. | not run |
-| [ci-issue-backlog](Tests#t-ci-issue-backlog) | requirement | DOC-10 | Given a Backlog milestone, when CI opens a regression issue, then it is on Backlog, and with no Backlog it has no milestone flag. | not run |
-| [digest-backlog](Tests#t-digest-backlog) | requirement | DOC-10 | Given a Backlog milestone, when the digest issue is created, then it is on Backlog. | not run |
+| [runs-same-day](Tests#t-runs-same-day) | requirement | DOC-10 | Given two branches running the same rows on one day, when each records its run, then the run files are identical. | PASS 2026-11-10 |
+| [ci-issue-backlog](Tests#t-ci-issue-backlog) | requirement | DOC-10 | Given a Backlog milestone, when CI opens a regression issue, then it is on Backlog, and with no Backlog it has no milestone flag. | PASS 2026-11-10 |
+| [digest-backlog](Tests#t-digest-backlog) | requirement | DOC-10 | Given a Backlog milestone, when the digest issue is created, then it is on Backlog. | PASS 2026-11-10 |
 | [refuse-replace](Tests#t-refuse-replace) | requirement | DOC-11 | Given a wiki page the tool did not write, when the tool writes pages, then that page is never overwritten. | PASS 2026-11-10 |
 | [publish-restore](Tests#t-publish-restore) | requirement | DOC-11 | Given a publish that adopted a page someone else wrote, when restore runs, then the original page is back. | PASS 2026-11-10 |
 | [docs-check-speed](Tests#t-docs-check-speed) | requirement | DOC-12 | Given this repo, when the docs check runs, then it finishes in under 30 seconds. | PASS 2026-11-10 |

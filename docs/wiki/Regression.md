@@ -122,7 +122,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf
 | [lanes-check](Tests#t-lanes-check) | requirement | REG-4 | Given a header problem, when lanes_cli.py check runs, then it names the code, the file and line, and the line to fix. | PASS 2026-11-10 |
 | [lanes-wide-parity](Tests#t-lanes-wide-parity) | requirement | REG-4 | Given scripts with no header, when affected runs, then the mapping is the same as the wide one, and LANES_WIDE=1 forces it everywhere. | PASS 2026-11-10 |
 | [lanes-trace-check](Tests#t-lanes-trace-check) | requirement | REG-4 | Given a row whose run reads a skill file outside its closure, when check-reads runs, then that row fails with the line to add. | PASS 2026-11-10 |
-| [lanes-trace](Tests#t-lanes-trace) | requirement | REG-4 | Given every land row, when check-reads traces their runs, then each run's skill reads are inside its closure. | not run |
+| [lanes-trace](Tests#t-lanes-trace) | requirement | REG-4 | Given every land row, when check-reads traces their runs, then each run's skill reads are inside its closure. | FAIL 2026-11-10 |
 | [lanes-table](Tests#t-lanes-table) | requirement | REG-4 | Given an edit to one row of the table, when a reusing run happens, then only that row and the rows that read this repo's table rerun. | PASS 2026-11-10 |
 | [reg-same-env](Tests#t-reg-same-env) | requirement | REG-4 | Given the same test, when it runs locally, in the loop or in GitHub Actions, then it gets the same environment from the same command. | PASS 2026-11-10 |
 | [known-no-block](Tests#t-known-no-block) | requirement | REG-5 | Given a known failure, when the run happens, then it does not block the run or open an issue. | PASS 2026-11-10 |

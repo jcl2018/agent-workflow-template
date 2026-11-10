@@ -84,8 +84,8 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
 | [defect-health](Tests#t-defect-health) | requirement | HLT-2 | Given a closed issue or finding with no defect test, when health runs, then it is flagged. | PASS 2026-11-10 |
 | [cost-time-warn](Tests#t-cost-time-warn) | requirement | HLT-2 | Given a goal over its time budget, when health runs, then it is a Cost warning naming its slowest steps. | PASS 2026-11-10 |
 | [cost-unread-tokens](Tests#t-cost-unread-tokens) | requirement | HLT-2 | Given no tokens recorded, when the Cost rule runs, then it prints UNREAD. | PASS 2026-11-10 |
-| [health-not-enforced-warn](Tests#t-health-not-enforced-warn) | requirement | HLT-2 | Given a Reviewed requirement with no test, when health runs within 7 days of its Reviewed date, then it warns as not enforced. | not run |
-| [health-not-enforced-fail](Tests#t-health-not-enforced-fail) | requirement | HLT-2 | Given a Reviewed requirement with no test for 8 days, when health runs, then it fails. | not run |
+| [health-not-enforced-warn](Tests#t-health-not-enforced-warn) | requirement | HLT-2 | Given a Reviewed requirement with no test, when health runs within 7 days of its Reviewed date, then it warns as not enforced. | PASS 2026-11-10 |
+| [health-not-enforced-fail](Tests#t-health-not-enforced-fail) | requirement | HLT-2 | Given a Reviewed requirement with no test for 8 days, when health runs, then it fails. | PASS 2026-11-10 |
 | [unread-not-green](Tests#t-unread-not-green) | requirement | HLT-3 | Given a health rule that cannot be read, when health runs, then it is never shown green. | PASS 2026-11-10 |
 | [report-header](Tests#t-report-header) | requirement | HLT-3 | Given a repo with findings in several groups, when health check runs, then the report header names every group it ran and the one it skipped. | PASS 2026-11-10 |
 | [no-token-would](Tests#t-no-token-would) | requirement | HLT-4 | Given no token and no --live flag, when health previews its findings, then it prints only WOULD lines and writes nothing. | PASS 2026-11-10 |
@@ -115,4 +115,4 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
 | [check-writes-nothing](Tests#t-check-writes-nothing) | requirement | HLT-1 | Given a repo, when the health check runs, then it writes no file and makes no commit. | PASS 2026-11-10 |
 | - | requirement | HLT-7 | no passing test | not enforced |
 | - | requirement | HLT-9 | no passing test | not enforced |
-| [health-unreviewed-warn-issue-118](Tests#t-health-unreviewed-warn-issue-118) | defect | [#118](https://github.com/jcl2018/agent-workflow-template/issues/118) state unknown | Given an Unreviewed requirement with no test, when health runs, then it warns and never fails. | not run |
+| [health-unreviewed-warn-issue-118](Tests#t-health-unreviewed-warn-issue-118) | defect | [#118](https://github.com/jcl2018/agent-workflow-template/issues/118) state unknown | Given an Unreviewed requirement with no test, when health runs, then it warns and never fails. | PASS 2026-11-10 |
