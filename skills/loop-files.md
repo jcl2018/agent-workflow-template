@@ -17,6 +17,10 @@ The workflow skills share this contract. `design-guide.md` beside it explains ho
 | `.loop/regression-issues.tsv` | Each defect test's issue or pull request: link, state, date; written only by `tests.py issues --write`, shown in the wiki Tests lines and the health report |
 | `.loop/regression-runs.tsv` | Each row's last run: id, PASS or FAIL, date; written by `regression.py run`, shown in the wiki Tests tables |
 | `.loop/regression-known.tsv` | Rows expected to fail, with a reason; they don't block |
+| `.loop/START.md` | The generated entry point every new session reads first (`entry.py write`); never edited by hand |
+| `CLAUDE.md`, `AGENTS.md` | Each agent's entry file; setup wires the same marked `<!-- workflow-loop -->` block into each (`agent_files`), text outside it is the repo's own |
+| `.loop/config.json` key `template_version` | The template version that last wrote the repo's generated files; `update` moves it, the board flags a repo behind |
+| `.loop/config.json` keys `template_repo`, `agent_files` | The template's GitHub repo, used when the installed package names none; the agent files setup wires |
 
 Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -->`, which marks it as safe to update.
 
@@ -82,6 +86,8 @@ and the wiki pages on the `workflow-setup` branch and leaves existing values and
 ## Outside the repo: your skill flow
 
 `~/.workflow-loop/flow.json` (or the file `$LOOP_FLOW` names) is yours and is never committed. Delivery refuses without it.
+Setup writes one whose suite maps the five steps to `built-in`, delivery's own routine (`workflow-delivery/references/default-flow.md`),
+so it runs with no suite of your own; it fills a suite that was never configured (every value empty, no `steps`) the same way.
 
 ```json
 {
@@ -101,7 +107,9 @@ and the wiki pages on the `workflow-setup` branch and leaves existing values and
 
 - `command` runs one step; the prompt is its last argument. `env` is added to its environment.
 - `probe` runs under the same environment, and its output must hold `probe_expect`, or no step starts. Use it to prove
-  your skills will take their recommended answers, leave approvals pending, and never push.
+  your skills will take their recommended answers, leave approvals pending, and never push. Only a step mapped to a named
+  skill needs it; a `built-in` step doesn't, and an in-session step needs no `command`. The first `flow.py` call checks
+  every mapped step and refuses with the whole list (`FLOW_UNRUNNABLE`) before any step starts.
 - `suite` is your default skill for each step, and `steps` replaces the skill for any one step. The steps are `idea`,
   `plan`, `build`, `review`, `qa`, `ship`, `pr` and `release`; the first five must be mapped, and delivery runs `build`,
   `pr` and `release` itself unless you map them. `limit` stops a step after that many seconds.

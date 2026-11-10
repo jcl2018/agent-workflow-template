@@ -12,6 +12,21 @@ Moved from the wiki page, which is now only a summary, criteria and tests.
 Freeze, then idea, plan, build, review, qa, ship, pull request and release. Review is the only gate. Each step can be mapped to a skill in the private flow file, under `suite` (the default) or `steps` (an override for one step). The chart
 under `go` shows it.
 
+A step mapped to `built-in` runs delivery's own routine, from `references/default-flow.md`, instead of a skill, so the
+package runs with no suite of your own; setup fills a never-configured suite with `built-in` (the private flow file is
+machine-wide, so one setup run makes goals runnable in every repo on that machine). A named skill needs the flow's
+probe; a headless step needs its `command`; an in-session step needs neither. The first `flow.py` call checks every
+mapped step for the mode it will run in and refuses with the whole list before any step starts.
+
+| Code | Means | Fix |
+|---|---|---|
+| `FLOW_UNRUNNABLE` | a mapped step can't run in this mode: a named skill with no probe, or a headless step with no command | add `probe` and `command` to the flow file, or map those steps to `built-in` |
+| `FLOW_SECTION_MISSING` | `references/default-flow.md` has no section for a built-in step | reinstall workflow-delivery |
+
+A goal whose change makes `.loop/START.md` or a marked agent block stale (a PRD page's Usage, a setting) runs
+`docs.py audit` (or `entry.py write`) in build and commits the result. A merge conflict in `.loop/START.md` or in a
+marked block is resolved by taking either side, running `entry.py write`, and committing.
+
 ### Done lines
 
 Done lines are frozen when the goal starts. A wrong one needs a new goal. Write each one so a test, or what a
