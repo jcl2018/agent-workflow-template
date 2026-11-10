@@ -22,7 +22,7 @@ import role  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 RULES = {"depth-line": "0.12.1", "depth-condensed": "0.12.1", "full-markers": "0.12.1"}
-NOTE_AT = 5  # refused records in a row before the board shows a note
+NOTE_AT, WAIT_AT = 5, 10  # refused records in a row before a board note, and before the owner is asked
 FORMAT_RULE, NO_STEP_LINE, NOT_RUN_BY_FLOW = "FORMAT_RULE", "NO_STEP_LINE", "NOT_RUN_BY_FLOW"
 WORKER_SELF_REPAIR, RESUME_STATUS, RESUME_NO_SESSION = "WORKER_SELF_REPAIR", "RESUME_STATUS", "RESUME_NO_SESSION"
 RESUME_NO_WORKTREE, SESSION_TAKEN, DONE_LINES_CHANGED = "RESUME_NO_WORKTREE", "SESSION_TAKEN", "DONE_LINES_CHANGED"
@@ -40,7 +40,9 @@ def known():
 
 def stamp(state, step):
     """Record the rules known now as the ones step started under; a later start overwrites an earlier entry."""
-    state.setdefault("rules_at", {})[step] = known()
+    if not isinstance(state.get("rules_at"), dict):  # missing, or null in an older record
+        state["rules_at"] = {}
+    state["rules_at"][step] = known()
 
 
 def applies(state, step, rule):
@@ -78,12 +80,12 @@ def check_record(state, step, text, cfg, result):
         if depth == "condensed" and setting == "full" and held("depth-condensed"):
             return "", ("the %s step ran condensed while review_depth is full (%s)" % (step, named("depth-condensed")),
                         "rerun the %s step at full depth, then record again" % step, "%s depth-condensed" % FORMAT_RULE), None, skipped
-        if depth == "full":
+        if depth == "full" and held("full-markers"):
             wanted, bad = role.markers(step)
             if bad:
                 return "", None, "%s: %s (the flow file's full_markers)" % (step, bad), skipped
             rest = "\n".join(line for line in body.splitlines() if not role.DEPTH.match(line)).lower()
-            if any(m.lower() not in rest for m in wanted) and held("full-markers"):
+            if any(m.lower() not in rest for m in wanted):
                 return "", ("a configured full_markers evidence string for %s is missing from the reply (%s)" % (step, named("full-markers")),
                             "rerun the %s step at full depth, then record again" % step, "%s full-markers" % FORMAT_RULE), None, skipped
     state.setdefault("depth", {})[step] = depth
@@ -94,6 +96,9 @@ def refuse_no_try(state, why, fix, code, save):
     """A refusal that changes nothing the goal depends on: no try is used and the goal keeps running. Only a counter is
     kept; at NOTE_AT in a row the run record's note says so, and the board shows it to the operation."""
     state["refusals"] = int(state.get("refusals") or 0) + 1
+    if state["refusals"] >= WAIT_AT:  # a worker that can't fix its reply: the owner decides, never a silent loop
+        state["status"], state["waiting"] = "waiting", {"ask": "%d %s: %s" % (state["refusals"], REFUSALS, why),
+                                                        "words": ["go on " + state["slug"], "stop " + state["slug"]]}
     if state["refusals"] >= NOTE_AT:
         state["note"] = {"text": "%s: %d %s: %s" % (state.get("step") or "-", state["refusals"], REFUSALS, why), "at": now()}
     save(state, "refused (no try used): %s (%s)" % (why, code))
@@ -150,7 +155,7 @@ def touches_of(runs, state):
 
 def check_path(path, have):
     """None when PATH may widen touches, else the reason."""
-    if not path or os.path.isabs(path) or ".." in path.split("/") or path.startswith("~"):
+    if not path or os.path.isabs(path) or ".." in path.split("/") or path.startswith("~") or re.search(r"[,|\s\x00-\x1f]", path):
         return "%r isn't a repo-relative path" % path
     if path.rstrip("/") in [t.rstrip("/") for t in have]:
         return "%s is already in the goal's touches" % path
@@ -227,9 +232,12 @@ def cmd_answer(g, args):
 
 
 def waiting_gate(g, state):
+    """A waiting goal can't record or open its pull request until the owner answers; that costs no try (exit 2)."""
     if state.get("status") == "waiting":
-        g.no("%s waits for the owner: %s. Fix: the operation answers (goal.py answer %s), then try again (no try used) (%s)" % (
-            state["slug"], (state.get("waiting") or {}).get("ask") or "see the board", state["slug"], WAITING_OWNER))
+        sys.stderr.write("REFUSED (no try used): %s waits for the owner: %s. Fix: the operation answers (goal.py answer %s), "
+                         "then try again (%s)\n" % (state["slug"], (state.get("waiting") or {}).get("ask") or "see the board",
+                                                     state["slug"], WAITING_OWNER))
+        sys.exit(2)
 
 
 def advance(g, state):
@@ -247,7 +255,9 @@ def note_finding(runs, state, text):
     return 0
 
 
-def operation_only(g, name):
+def operation_only(g, name, slug):
+    if not g.SLUG.match(slug):
+        g.no("bad slug %r" % slug)
     if os.environ.get("LOOP_ROLE") == "worker":
         g.no("a worker can't %s its own goal. Fix: ask the operation session (%s)" % (name, WORKER_SELF_REPAIR))
 
@@ -255,7 +265,7 @@ def operation_only(g, name):
 def cmd_resume(g, args):
     """The operation revives a failed or stopped goal for the session that owns it. Every check runs first; nothing is
     written on a refusal. It never starts a process."""
-    operation_only(g, "resume")
+    operation_only(g, "resume", args.slug)
     state, slug = g.load(args.slug), args.slug
     if state.get("status") not in ("failed", "stopped"):
         g.no("%s is %s; only a failed or stopped goal resumes (%s)" % (slug, state.get("status"), RESUME_STATUS))
@@ -265,6 +275,8 @@ def cmd_resume(g, args):
            "worker (%s)" % (slug, slug, slug, RESUME_NO_SESSION))
     tree = state.get("worktree") or ""
     try:
+        if not os.path.isdir(tree):
+            raise OSError(tree)
         text = g.read(os.path.join(tree, ".loop", "goals", slug + ".md"))
     except OSError:
         g.no("the goal's worktree or goal file is gone (%s). Fix: watch.py resume %s (%s)" % (tree, slug, RESUME_NO_WORKTREE))
@@ -276,7 +288,10 @@ def cmd_resume(g, args):
     took = g.run([sys.executable, tool, "reserve", slug, sid])
     if took.returncode:
         g.no((took.stderr or took.stdout).strip().replace("REFUSED: ", "") or "session %s can't be reserved (%s)" % (sid, SESSION_TAKEN))
-    state = g.load(slug)
+    state = g.load(slug)  # recheck after the reservation: a stop that cleared meanwhile isn't revived
+    if state.get("status") not in ("failed", "stopped") or (state.get("session") or {}).get("id") != sid:
+        g.run([sys.executable, tool, "reserve", slug, sid, "--undo"])
+        g.no("%s changed while resuming (now %s); nothing changed (%s)" % (slug, state.get("status"), RESUME_STATUS))
     note = revive(state, "resumed", args.by, args.why)
     try:
         g.save(state, note)
@@ -296,7 +311,7 @@ def cmd_resume(g, args):
 
 def cmd_touches(g, args):
     """The operation widens a goal's touches. Only the sidecar changes; the worker syncs the goal file itself."""
-    operation_only(g, "widen touches of")
+    operation_only(g, "widen touches of", args.slug)
     state = g.load(args.slug)
     bad = check_path(args.add, touches_of(g.state_dir(), state))
     if bad:

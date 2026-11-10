@@ -58,6 +58,19 @@ check "a step started after the rule is refused, naming the rule and the release
 setf g1 '{"rules_at": null}'
 out=$(rec g1 plan 'STEP: done')
 check "a run record with no rules_at (a goal from before) is held to every rule known, as today" 'grep -q "rule depth-line, added in v0.12.1" <<<"$out"'
+out=$(rec g1 plan 'DEPTH: full\nSTEP: done')
+check "a record whose rules_at is null still advances, and the next step gets its rules" 'grep -q "^RECORDED plan" <<<"$out" && grep -q depth-line <<<"$(field g1 rules_at.review)"'
+python3 - "$d/flow.json" <<'PY2'
+import json, sys
+s = json.load(open(sys.argv[1])); s["full_markers"] = {"review": "not-a-list"}; json.dump(s, open(sys.argv[1], "w"))
+PY2
+setf g1 '{"rules_at": {"review": ["depth-line"]}}'
+out=$(rec g1 review 'DEPTH: full\nSTEP: done')
+check "a malformed marker setting doesn't hold a step that started before the marker rule" 'grep -q "^RECORDED review" <<<"$out" && [ "$(field g1 status)" = running ]'
+python3 - "$d/flow.json" <<'PY2'
+import json, sys
+s = json.load(open(sys.argv[1])); s.pop("full_markers", None); json.dump(s, open(sys.argv[1], "w"))
+PY2
 fi
 
 if want g2; then
@@ -73,8 +86,11 @@ out=$(rec g2 plan 'DEPTH: full\nSTEP: done')
 check "a good record clears the count and the note" 'grep -q "^RECORDED plan" <<<"$out" && [ "$(field g2 refusals)" = 0 ] && [ "$(field g2 note)" = None ]'
 out=$(rec g2 review 'DEPTH: full\nall good'); rc=$?
 check "a session reply with no STEP line is refused with no try" '[ $rc = 2 ] && grep -q "REFUSED (no try used): the review reply has no STEP line" <<<"$out" && grep -q "(NO_STEP_LINE)" <<<"$out" && [ "$(field g2 tries)" = 0 ]'
-out=$(LOOP_ROLE=worker $goal record g2 qa --file "$d/reply.txt" 2>&1)
-check "the qa lane not passed on HEAD (a wrong HEAD) says no try is used" 'grep -q "^REFUSED (no try used): the qa lane has not passed on .* (LANE_MISSING)" <<<"$out" && [ "$(field g2 tries)" = 0 ]'
+out=$(LOOP_ROLE=worker $goal record g2 qa --file "$d/reply.txt" 2>&1); rc=$?
+check "the qa lane not passed on HEAD (a wrong HEAD) says no try is used, exit 2" '[ $rc = 2 ] && grep -q "^REFUSED (no try used): the qa lane has not passed on .* (LANE_MISSING)" <<<"$out" && [ "$(field g2 tries)" = 0 ]'
+for i in 1 2 3 4 5 6 7 8 9; do rec g2 review 'DEPTH: full\nall good' >/dev/null; done
+check "10 refused records in a row put the goal in waiting for the owner, still with no try" '[ "$(field g2 status)" = waiting ] && [ "$(field g2 tries)" = 0 ] && grep -q "10 refused records in a row" <<<"$(field g2 waiting.ask)"'
+check "a touches path with a comma or a newline is refused" '$goal touches g2 --add "a,b" --why x 2>&1 | grep -q TOUCHES_PATH && $goal touches g2 --add "$(printf "a\nb")" --why x 2>&1 | grep -q TOUCHES_PATH'
 new g2h
 export FAKE_SKILL_OUT='crashed halfway'; LOOP_ROLE=worker $F g2h idea --wait 5 >/dev/null 2>&1; LOOP_ROLE=worker $F g2h idea --wait 10 >/dev/null 2>&1; unset FAKE_SKILL_OUT
 out=$(LOOP_ROLE=worker $goal record g2h idea --file "$R/g2h.idea.txt" 2>&1)
@@ -179,6 +195,8 @@ check "a folder inside the worktree binds" '$SE bind g6 s7 --cwd "$TREE/.loop" >
 git worktree add -q --detach "$d/wt6" main
 out=$(cd "$d/wt6" && LOOP_ROLE=worker $SE bind g6 s8 2>&1)
 check "a worker binding itself from another worktree is refused" 'grep -q "(CWD_OUTSIDE)" <<<"$out"'
+out=$(cd "$d/wt6" && LOOP_ROLE=worker $SE bind g6 s8 --cwd "$TREE" 2>&1)
+check "a worker can't pass --cwd to hide where it runs" 'grep -q "session folder $(cd "$d/wt6" && pwd -P) is outside.*(CWD_OUTSIDE)" <<<"$out"'
 LOOP_SESSION_TOOL="$d/tool.sh" $SE assign g6 >/dev/null 2>&1
 check "assign's message names the worktree and the worker command" 'cat "$TOOL_LOG".sent.* | grep -q "cd $TREE first" && cat "$TOOL_LOG".sent.* | grep -q "^WORKER g6:"'
 fi
@@ -194,8 +212,8 @@ check "answer refuses a goal that isn't waiting" 'grep -q "(ANSWER_STATUS)" <<<"
 out=$(LOOP_ROLE=worker $SE bind g7 s71 --cwd "$TREE" 2>&1)
 check "a worker binding itself to a stopped goal attaches without reviving it" '[ "$(field g7 status)" = stopped ] && grep -q "NEXT: ask the operation session to resume g7" <<<"$out"'
 setf g7 '{"status": "waiting", "waiting": {"ask": "pick one", "words": ["go on g7"]}}'
-out=$(rec g7 idea 'DEPTH: full\nSTEP: done')
-check "a waiting goal's record is refused with no try" 'grep -q "g7 waits for the owner: pick one.*(WAITING_OWNER)" <<<"$out" && [ "$(field g7 tries)" = 0 ]'
+out=$(rec g7 idea 'DEPTH: full\nSTEP: done'); rc=$?
+check "a waiting goal's record is refused with no try, exit 2" '[ $rc = 2 ] && grep -q "g7 waits for the owner: pick one.*(WAITING_OWNER)" <<<"$out" && [ "$(field g7 tries)" = 0 ]'
 $goal answer g7 >/dev/null; out=$(rec g7 idea 'DEPTH: full\nSTEP: done')
 check "after the answer the record goes through" 'grep -q "^RECORDED idea" <<<"$out"'
 check "watch.py's freeze stamps the rules known" '[ "$(python3 -c "import sys;sys.path.insert(0,\"$S\");import watch;print(watch.known_rules())")" = "$(python3 -c "import sys;sys.path.insert(0,\"$D\");import guards;print(guards.known())")" ] && grep -q "\"rules_at\": {\"idea\": known_rules()}" "$S/watch.py"'
@@ -203,7 +221,9 @@ python3 - "$C/loop/session-pool.json" <<'PY'
 import json, sys
 p = json.load(open(sys.argv[1])); p["sx"] = {"name": "x", "slug": "", "state": "free"}; json.dump(p, open(sys.argv[1], "w"))
 PY
-($SE reserve ga sx > "$d/ra" 2>&1 &) ; ($SE reserve gb sx > "$d/rb" 2>&1 &); sleep 2
+python3 -c "import fcntl,sys,time;f=open(sys.argv[1],'w');fcntl.flock(f,fcntl.LOCK_EX);open(sys.argv[2],'w').close();time.sleep(2)" "$C/loop/session-pool.lock" "$d/held" &
+while [ ! -e "$d/held" ]; do sleep 0.1; done  # both reservations start while the lock is held, so without it they'd race
+($SE reserve ga sx > "$d/ra" 2>&1 &) ; ($SE reserve gb sx > "$d/rb" 2>&1 &); sleep 4
 check "two reservations of one free session: exactly one wins" '[ "$(cat "$d/ra" "$d/rb" | grep -c "^RESERVED")" = 1 ] && grep -q "(SESSION_TAKEN)" "$d/ra" "$d/rb"'
 errs=$(LOOP_SESSION_TIMEOUT=1 python3 - "$S" <<'PY'
 import sys; sys.path.insert(0, sys.argv[1]); import sessions

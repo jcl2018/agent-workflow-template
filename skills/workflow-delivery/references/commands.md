@@ -42,7 +42,7 @@ files a finding in `.loop/findings.md` and stops with exit code 3. A refusal tha
 `REFUSED (no try used): ... Fix: ... (CODE)` and `NEXT:`, exits 2, keeps the step's reply and run marker, and the goal keeps
 running. That covers a session reply with no `STEP:` line, a step refused for its depth (no `DEPTH:` line, condensed under
 `review_depth` full, a missing `full_markers` string), a reply `flow` didn't produce, and the qa lane not passed on HEAD.
-Five refusals in a row leave a note on the board. A format rule binds only steps started after it landed: each step records
+Five refusals in a row leave a note on the board; ten put the goal in waiting for the owner. A format rule binds only steps started after it landed: each step records
 the rule ids known when it started (`guards.py known` prints them), and a refusal names the rule and the release that
 added it. A malformed `full_markers` in the flow file isn't the worker's slip: the goal waits for the owner. While a goal
 waits, `record` and `pr` refuse (`WAITING_OWNER`). `pr` refuses until every step is done

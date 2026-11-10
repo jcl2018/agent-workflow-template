@@ -113,14 +113,17 @@ def name_of(slug):
 
 
 def release(slug, found=None):
-    """Free every session the pool holds for this goal; the caller saves the pool when it passes one in."""
-    held = found if found is not None else pool()
-    for item in held.values():
+    """Free every session the pool holds for this goal. A caller holding the pool lock passes its pool in and saves it;
+    with none, this takes the lock, reads, frees and saves itself (mend.py and report call it that way)."""
+    if found is None:
+        with locked():
+            held = release(slug, pool())
+            save_pool(held)
+        return held
+    for item in found.values():
         if item.get("slug") == slug and item.get("state") == "busy":
             item["state"] = "free"
-    if found is None:
-        save_pool(held)
-    return held
+    return found
 
 
 def tool(cfg):
@@ -254,8 +257,10 @@ def cmd_bind(args):
     worker = os.environ.get("LOOP_ROLE") == "worker"
     if state.get("pid") and state.get("status") == "running":
         sys.exit("REFUSED: %s is running as background pid %s; let it end first." % (args.slug, state["pid"]))
-    folder, tree = args.cwd or (os.getcwd() if worker else ""), state.get("worktree") or ""
-    if folder and not inside(folder, tree):
+    tree = state.get("worktree") or ""
+    for folder in [f for f in (args.cwd, os.getcwd() if worker else "") if f]:  # a worker is checked where it runs too
+        if inside(folder, tree):
+            continue
         sys.exit("REFUSED: session folder %s is outside the goal worktree %s. Fix: start or move the session in %s, then "
                  "bind again (CWD_OUTSIDE)" % (folder, tree, tree))
     with locked():
@@ -290,15 +295,18 @@ def cmd_reserve(args):
     with locked():
         found = pool()
         item = found.get(args.id) or {}
-        if args.undo:
-            if item.get("slug") == args.slug:
-                item["state"] = "free"
+        if args.undo:  # put back exactly what reserve found
+            if item.get("slug") == args.slug and "prior" in item:
+                found[args.id] = item.pop("prior") or {}
+                if not found[args.id]:
+                    del found[args.id]
                 save_pool(found)
             return 0
         if item.get("state") == "busy" and item.get("slug") != args.slug:
             sys.exit("REFUSED: session %s now serves goal %s. Fix: sessions.py bind %s ID with a free session (SESSION_TAKEN)" % (
                 args.id, item.get("slug"), args.slug))
-        found[args.id] = dict(item, name=item.get("name") or name_of(args.slug), slug=args.slug, state="busy", since=now())
+        prior = {k: v for k, v in item.items() if k != "prior"}
+        found[args.id] = dict(prior, name=item.get("name") or name_of(args.slug), slug=args.slug, state="busy", since=now(), prior=prior)
         save_pool(found)
     print("RESERVED session %s for %s" % (args.id, args.slug))
     return 0
@@ -353,8 +361,7 @@ def cmd_report(args):
     if said in ("merged", "failed", "waiting"):
         state["report"] = {"status": said, "pr": pr, "text": text, "at": now()}
     if ended:
-        with locked():
-            release(args.slug)
+        release(args.slug)
     save(state, "session report: " + text)
     return 0
 

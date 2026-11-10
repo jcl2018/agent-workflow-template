@@ -351,7 +351,8 @@ def cmd_pr(args):
         print("MERGED %s into the branch" % detail)
         state = held(args.slug)
     guards.waiting_gate(sys.modules[__name__], state)
-    if guards.sync_touches(goal_file(args.slug), guards.touches_of(state_dir(), state)):  # before the bump and the lane
+    guards.sync_touches(goal_file(args.slug), guards.touches_of(state_dir(), state))  # before bump and lane
+    if git("status", "--porcelain", "--", goal_file(args.slug)):
         git("commit", "-m", "Goal: %s touches" % args.slug, "--", goal_file(args.slug))
     head = git("rev-parse", "HEAD")
     left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]

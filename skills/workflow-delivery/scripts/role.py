@@ -31,6 +31,7 @@ def guard(name, slug=None):
                 state = json.load(handle)
         except (OSError, ValueError):
             state = {}
+    state = state if isinstance(state, dict) else {}
     session = (state.get("session") or {}) if state.get("worker") == "session" else {}
     if session.get("id"):
         command = " ".join(shlex.quote(part) for part in [os.path.abspath(sys.argv[0])] + sys.argv[1:])
@@ -292,8 +293,9 @@ def need_lane(runs, slug, reply):
     except OSError:
         ok = ""
     if ok != head:
-        sys.exit("REFUSED (no try used): the qa lane has not passed on %s (LANE_MISSING). Fix: python3 %s lane %s qa" % (
+        sys.stderr.write("REFUSED (no try used): the qa lane has not passed on %s (LANE_MISSING). Fix: python3 %s lane %s qa\n" % (
             head[:12], os.path.abspath(__file__), slug))
+        sys.exit(2)
 
 
 def lane_exec(rc, limit, argv):
