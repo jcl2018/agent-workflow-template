@@ -154,8 +154,8 @@ case_pull() {
   check "#495 negative control: plain git pull is still refused" '[ "$(pull "git pull")" = "BLOCK: git pull" ]'
   check "#495 negative control: -r, --rebase=merges, --no-ff and --ff-only --rebase are refused" \
     '[ "$(pull "git pull -r")$(pull "git pull --rebase=merges")$(pull "git pull --no-ff")$(pull "git pull --ff-only --rebase")" = "BLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pull" ]'
-  check "#495 negative control: --ff after --ff-only, a +refspec, -f and a -c fetch override are refused (git takes the last flag)" \
-    '[ "$(pull "git pull --ff-only --ff")$(pull "git pull --ff-only origin +main:main")$(pull "git pull --ff-only -f")$(pull "git -c remote.origin.fetch=+refs/heads/main:refs/heads/main pull --ff-only origin")" = "BLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pull" ]'
+  check "#495 negative control: --ff after --ff-only, a +refspec, -f and a -c, --config-env or GIT_CONFIG fetch override are refused (git takes the last flag)" \
+    '[ "$(pull "git pull --ff-only --ff")$(pull "git pull --ff-only origin +main:main")$(pull "git pull --ff-only -f")$(pull "git -c remote.origin.fetch=+refs/heads/main:refs/heads/main pull --ff-only origin")$(pull "git --config-env=remote.origin.fetch=V pull --ff-only")$(pull "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.fetch GIT_CONFIG_VALUE_0=+refs/heads/main:refs/heads/main git pull --ff-only")" = "BLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pull" ]'
 }
 
 for c in "${cases[@]}"; do "case_$c"; done

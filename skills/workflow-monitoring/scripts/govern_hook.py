@@ -63,6 +63,7 @@ def safe_pull(args):
 
 def git_write(words):
     """The history-writing git subcommand in one segment's words, or ''."""
+    configured = any(w.startswith("GIT_CONFIG") for w in words)  # an env config override (a forced fetch refspec)
     words, i = strip(words), 0
     if i < len(words) and os.path.basename(words[i]) in ("bash", "sh", "zsh") and i + 2 < len(words) and words[i + 1] == "-c":
         return verdict(words[i + 2], nested=True)
@@ -78,7 +79,8 @@ def git_write(words):
         elif word.startswith("-"):
             i += 1
         else:
-            if word == "pull" and "-c" not in words[1:i] and safe_pull(words[i + 1:]):  # a -c override (a forced fetch refspec) never passes
+            plain = all(w == "-C" or words[n - 1] == "-C" for n, w in enumerate(words[1:i], 1))  # only -C <dir> before pull
+            if word == "pull" and plain and not configured and safe_pull(words[i + 1:]):  # no -c, --config-env or GIT_CONFIG_*
                 return ""  # issue 495: a fast-forward-only pull can't rewrite history
             return word if word in WRITES else ""
     return ""
