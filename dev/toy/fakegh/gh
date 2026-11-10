@@ -2,7 +2,6 @@
 # Test double for gh. Records calls under $FAKE_GH_DIR. Dev only; never packaged.
 d=${FAKE_GH_DIR:?}; mkdir -p "$d"
 echo "$*" >> "$d/calls.log"
-[ "$1 $2" = "pr view" ] && [ -n "${FAKE_GH_SLEEP:-}" ] && sleep "$FAKE_GH_SLEEP"  # a slow GitHub (MON-9's board timing)
 here=$(cd "$(dirname "$0")" && pwd)
 case "$1 $2" in
   "api "*) exec python3 "$here/fake.py" "$@";;
