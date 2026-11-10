@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/
 # Test the regression run summary and the one test format on throwaway repos with a fake gh. usage: test-summary.sh
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)

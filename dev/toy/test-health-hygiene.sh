@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/
 # Test HLT-6 on a toy repo: negative controls, test time, stale worktrees and branches. usage: test-health-hygiene.sh [DIR]
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
