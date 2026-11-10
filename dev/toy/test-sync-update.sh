@@ -76,6 +76,7 @@ if want update; then
   python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['template_repo']='evil/fork';json.dump(d,open(p,'w'),indent=2)"; git commit -qam "redirect"
   out=$($U --check 2>&1); code=$?
   check "a committed template_repo that differs from the installed stamp's repo is refused (UPDATE_TEMPLATE_MISMATCH)" "[ $code = 2 ] && grep -q 'UPDATE_TEMPLATE_MISMATCH' <<<\"\$out\""
+  python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['template_repo']='';json.dump(d,open(p,'w'),indent=2)"; git commit -qam "no redirect"
   out=$($U --check --from "$T/t1.zip" --template acme/tmpl 2>&1)
   check "an older AVAILABLE is never a downgrade" "grep -q 'AVAILABLE v1.0.0 is older than INSTALLED v1.1.0: nothing to do' <<<\"\$out\""
   python3 - "$T" <<'EOF'
