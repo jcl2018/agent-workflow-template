@@ -75,10 +75,10 @@ Test format. Every test is listed in one fixed format, grouped by feature, where
 - Given defect tests linked to an issue and a pull request, when their states are read, then each state is recorded with its date, and nothing is written when gh cannot read them. — [issue-states](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a repo's tests, when the health check runs, then its report lists the tests grouped by feature in the same format, before its verdict. — [health-lists-tests](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given the owner's REG-2 wording approved in chat on 2026-11-08, when the Regression page is read, then REG-2 says it word for word and is Reviewed 2026-11-08. — [reg2-wording](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
-- Given a defect test's link gh cannot read, when issue states are read, then its last recorded state is kept. — [issue-keeps-state](../../.loop/regression.tsv), requirement, guards REG-2, both, not run, seen failing no
-- Given the rows never ran, when the summary step runs under the GitHub shell, then the run summary still says the grouped summary could not be written. — [summary-no-results](../../.loop/regression.tsv), requirement, guards REG-2, both, not run, seen failing no
-- Given tests.py holds text GitHub Actions would evaluate, when the workflow is written, then it is refused. — [summary-render-guard](../../.loop/regression.tsv), requirement, guards REG-2, both, not run, seen failing no
-- Given tests.py is not installed, when health and the wiki render run, then each says so and keeps working. — [tests-py-missing](../../.loop/regression.tsv), requirement, guards REG-2, both, not run, seen failing no
+- Given a defect test's link gh cannot read, when issue states are read, then its last recorded state is kept. — [issue-keeps-state](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given the rows never ran, when the summary step runs under the GitHub shell, then the run summary still says the grouped summary could not be written. — [summary-no-results](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given tests.py holds text GitHub Actions would evaluate, when the workflow is written, then it is refused. — [summary-render-guard](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given tests.py is not installed, when health and the wiki render run, then each says so and keeps working. — [tests-py-missing](../../.loop/regression.tsv), requirement, guards REG-2, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### REG-3
 
@@ -101,7 +101,7 @@ Failures go to GitHub: one issue per failing test, updated, closed on pass; know
 - Given a known failure, when the run happens, then it does not block the run or open an issue. — [known-no-block](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given no GitHub token, when a run happens, then it only prints what it would do. — [no-token-dry-run](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a failing test, when the run reports it, then one GitHub issue is opened. — [one-issue](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a known failure, when the GitHub run runs it, then its result is recorded KNOWN, not FAIL. — [known-recorded](../../.loop/regression.tsv), requirement, guards REG-5, both, not run, seen failing no
+- Given a known failure, when the GitHub run runs it, then its result is recorded KNOWN, not FAIL. — [known-recorded](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### REG-6
 
