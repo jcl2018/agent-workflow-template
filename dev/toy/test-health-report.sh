@@ -74,7 +74,7 @@ echo "== preview writes nothing"
 before=$(writes)
 out=$($health preview); echo "$out"
 grep -q "^WOULD open issue 'health: size skills/x/scripts/near.py limit' on Backlog \[health:size\]" <<<"$out" \
-  && grep -q "^WOULD open issue 'health: docs Ghost missing' on Backlog \[health:docs\]" <<<"$out" \
+  && grep -q "^WOULD open issue 'health: docs Ghost missing' on Ghost \[health:docs\]" <<<"$out" \
   && grep -q "\[health:hygiene\]" <<<"$out" && grep -q "\[health:criteria\]" <<<"$out" && ok "each issue it would open shows with its tag" || bad "preview lines"
 [ "$(writes)" = "$before" ] && [ ! -f "$FAKE_GH_DIR/issues.json" ] && ok "preview made no write call" || bad "preview wrote"
 GH_TOKEN=x $health preview >/dev/null; [ "$(writes)" = "$before" ] && ok "a token does not make preview write" || bad "token"

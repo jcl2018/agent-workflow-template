@@ -193,6 +193,8 @@ def placed(act, miles):
     """The act with a milestone that exists: its feature's, else Backlog with a NOTE, else none. Returns (act, number of a
     closed milestone to set by REST, or None)."""
     title = act.get("milestone") or BACKLOG
+    if not miles:  # milestones unreadable: let gh place it by title, as before
+        return dict(act, milestone=title), None
     if title not in miles:
         fallback = BACKLOG if BACKLOG in miles else ""
         print("NOTE: milestone %s doesn't exist, so the issue goes on %s" % (title, fallback or "no milestone"))

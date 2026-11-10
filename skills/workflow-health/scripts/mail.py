@@ -34,8 +34,7 @@ if not sys.stdin or not sys.stdin.isatty():
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rounds  # noqa: E402
 
-# Cloudflare Email Service REST API, read 2026-11-10:
-# https://developers.cloudflare.com/email-service/api/send-emails/rest-api/
+# Cloudflare Email Service REST API (its docs: Email Service, Send emails, REST API), read 2026-11-10:
 CF_API = "https://api.cloudflare.com/client/v4"
 CF_PATH = "/accounts/%s/email/sending/send"  # POST {to, from, subject, text, html}, Authorization: Bearer <token>
 CF_RETRY = (429, 503)  # 10004 throttled, 10100 auth upstream: the mail was not accepted, so one retry is safe
