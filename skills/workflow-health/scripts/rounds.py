@@ -26,6 +26,7 @@ REG_LOOKBACK = 20  # regression runs searched for the round's own
 JOB_READS = 30  # runs whose jobs the spend reads; more since the last round make it a lower bound
 MARK = re.compile(r"<!-- automation-digest ([^<>]*?) -->")
 RUN = re.compile(r"[0-9]+|none|local")
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
 
 def gh(*args):
