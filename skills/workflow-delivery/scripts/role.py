@@ -281,21 +281,20 @@ def lane(runs, slug, name, spec, cfg, wait=90):
 
 
 def need_lane(runs, slug, reply):
-    """record qa refuses unless the qa lane passed on this HEAD. Only a reply goal.py record counts as a failed try (its
+    """(why, fix, code) when record qa must refuse because the qa lane hasn't passed on this HEAD, else None. Only a reply goal.py record counts as a failed try (its
     last STEP line is failed and it has no PENDING line, which record would wait on or auto-approve) skips the lane."""
     text = open(reply).read() if os.path.isfile(reply) else ""
     found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I)
     if found and found[-1].lower() == "failed" and not re.search(r"^\W*PENDING:", text, re.M):
-        return
+        return None
     head = git("rev-parse", "HEAD").stdout.strip()
     try:
         ok = open(os.path.join(runs, slug + ".qa-lane.ok")).read().strip()
     except OSError:
         ok = ""
     if ok != head:
-        sys.stderr.write("REFUSED (no try used): the qa lane has not passed on %s (LANE_MISSING). Fix: python3 %s lane %s qa\n" % (
-            head[:12], os.path.abspath(__file__), slug))
-        sys.exit(2)
+        return ("the qa lane has not passed on %s" % head[:12], "python3 %s lane %s qa" % (os.path.abspath(__file__), slug), "LANE_MISSING")
+    return None
 
 
 def lane_exec(rc, limit, argv):

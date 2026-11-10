@@ -11,11 +11,11 @@ usage: goal.py <command> <slug> [options]
 Goal steps (step, record, pr) refuse outside a worker, which also sees what the operation session sent it.
   wait SLUG --ask TEXT --words W [--words W]
   answer SLUG                 a waiting goal goes on
-  finding SLUG TEXT           stops a live goal; on a done or merged goal, only noted
-  resume SLUG --why T [--by W]   the operation revives a failed or stopped session goal (no process started)
-  touches SLUG --add PATH --why T   the operation widens a goal's touches
+  finding SLUG TEXT           stops a live goal; a done or merged one is only noted
+  resume SLUG --why T [--by W]    the operation revives a stopped session goal
+  touches SLUG --add PATH --why T the operation widens a goal's touches
   show SLUG
-A refusal that changes nothing (a format slip) uses no try: it exits 2 and the goal keeps running (guards.py).
+A refusal that changes nothing uses no try: exit 2, the goal keeps running (guards.py).
 """
 import argparse
 import datetime
@@ -270,12 +270,12 @@ def next_step(state):
 
 
 def cmd_record(args):
-    """Apply what a flow step left: done or skipped moves on, pending waits on the owner, a failed run is a try. A
-    reply that breaks a format rule, or a session reply with no STEP line, is refused and costs no try."""
+    """Apply what a flow step left: done or skipped moves on, pending waits, a failed run is a try; format slips cost none."""
     state = held(args.slug)
     guards.waiting_gate(sys.modules[__name__], state)
-    if args.step == "qa":
-        role.need_lane(state_dir(), args.slug, args.file)
+    lane = role.need_lane(state_dir(), args.slug, args.file) if args.step == "qa" else None
+    if lane:
+        guards.refuse_no_try(state, *lane, save)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
     if args.in_session:  # the worker session ran the skill itself; its run record must name that session
         args.file = role.session_reply(state, args.slug, args.step, args.file, state_dir(), FLOW)
@@ -339,6 +339,7 @@ def cmd_record(args):
 
 def cmd_pr(args):
     state = held(args.slug)
+    guards.waiting_gate(sys.modules[__name__], state)
     left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
     if left:
         no("the flow hasn't finished: %s. Fix: run flow.py %s %s." % (", ".join(left), args.slug, left[0]))
@@ -350,7 +351,6 @@ def cmd_pr(args):
     if what == "merged":
         print("MERGED %s into the branch" % detail)
         state = held(args.slug)
-    guards.waiting_gate(sys.modules[__name__], state)
     guards.sync_touches(goal_file(args.slug), guards.touches_of(state_dir(), state))  # before bump and lane
     if git("status", "--porcelain", "--", goal_file(args.slug)):
         git("commit", "-m", "Goal: %s touches" % args.slug, "--", goal_file(args.slug))

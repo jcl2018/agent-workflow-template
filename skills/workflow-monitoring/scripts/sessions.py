@@ -270,16 +270,17 @@ def cmd_bind(args):
             sys.exit("REFUSED: session %s is busy with goal %s." % (args.id, other.get("slug")))
         name = args.name or name_of(args.slug)
         release(args.slug, found)  # a session the goal had before goes back to the pool
+        state = held(args.slug)  # reread under the lock goal.py resume holds too
+        was, note = state.get("status"), "bound to session %s (%s)" % (args.id, name)
+        if was in ("failed", "stopped") and not worker:  # the same fields as guards.revive (goal.py resume)
+            state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
+            note += "; revived by bind (was %s)" % was
+        elif was in ("queued", "", None):
+            state.update(status="running", finding="", report=None)
+        state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None)
+        save(state, note)
         found[args.id] = {"name": name, "slug": args.slug, "state": "busy", "since": now()}
         save_pool(found)
-    was, note = state.get("status"), "bound to session %s (%s)" % (args.id, name)
-    if was in ("failed", "stopped") and not worker:  # the same fields as guards.revive (goal.py resume)
-        state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
-        note += "; revived by bind (was %s)" % was
-    elif was in ("queued", "", None):
-        state.update(status="running", finding="", report=None)
-    state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None)
-    save(state, note)
     lines = [worker_line(args.slug), "WORKTREE %s: %s" % (args.slug, tree)]
     if was in ("failed", "stopped") and worker:
         lines.append("NEXT: ask the operation session to resume %s (a worker binding itself only attaches)" % args.slug)

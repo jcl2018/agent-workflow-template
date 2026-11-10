@@ -285,19 +285,28 @@ def cmd_resume(g, args):
         sys.stderr.write("REFUSED: the done lines changed after they were frozen; a wrong done line needs a new goal (%s)\n" % DONE_LINES_CHANGED)
         return 1
     tool = os.path.join(HERE, "..", "..", "workflow-monitoring", "scripts", "sessions.py")
-    took = g.run([sys.executable, tool, "reserve", slug, sid])
-    if took.returncode:
-        g.no((took.stderr or took.stdout).strip().replace("REFUSED: ", "") or "session %s can't be reserved (%s)" % (sid, SESSION_TAKEN))
-    state = g.load(slug)  # recheck after the reservation: a stop that cleared meanwhile isn't revived
-    if state.get("status") not in ("failed", "stopped") or (state.get("session") or {}).get("id") != sid:
-        g.run([sys.executable, tool, "reserve", slug, sid, "--undo"])
-        g.no("%s changed while resuming (now %s); nothing changed (%s)" % (slug, state.get("status"), RESUME_STATUS))
-    note = revive(state, "resumed", args.by, args.why)
-    try:
-        g.save(state, note)
-    except OSError as error:  # the run record didn't change: give the session back
-        g.run([sys.executable, tool, "reserve", slug, sid, "--undo"])
-        g.no("the run record couldn't be saved (%s); nothing changed" % error)
+    loop = os.path.dirname(g.state_dir())
+    with open(os.path.join(loop, "session-pool.lock"), "w") as lock:  # the lock sessions.py's bind and assign hold
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        state = g.load(slug)  # recheck under the lock: a goal bound or cleared meanwhile isn't revived
+        if state.get("status") not in ("failed", "stopped") or (state.get("session") or {}).get("id") != sid:
+            g.no("%s changed while resuming (now %s); nothing changed (%s)" % (slug, state.get("status"), RESUME_STATUS))
+        path = os.path.join(loop, "session-pool.json")
+        try:
+            pool = json.load(open(path))
+        except (OSError, ValueError):
+            pool = {}
+        pool = pool if isinstance(pool, dict) else {}
+        item = pool.get(sid) or {}
+        if item.get("state") == "busy" and item.get("slug") != slug:
+            g.no("session %s now serves goal %s. Fix: sessions.py bind %s ID with a free session (%s)" % (sid, item.get("slug"), slug, SESSION_TAKEN))
+        note = revive(state, "resumed", args.by, args.why)
+        g.save(state, note)  # a failed save raises before the pool changes
+        pool[sid] = dict(item, name=item.get("name") or "worker · " + slug, slug=slug, state="busy", since=now())
+        temp = path + ".%d.tmp" % os.getpid()
+        with open(temp, "w") as handle:
+            json.dump(pool, handle, indent=2)
+        os.replace(temp, path)
     message = "goal %s %s. Continue at %s in %s" % (slug, note, state.get("step") or "the next step", tree)
     sent = g.run([sys.executable, tool, "send", slug, message])
     if sent.returncode:

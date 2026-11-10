@@ -214,6 +214,8 @@ check "a worker binding itself to a stopped goal attaches without reviving it" '
 setf g7 '{"status": "waiting", "waiting": {"ask": "pick one", "words": ["go on g7"]}}'
 out=$(rec g7 idea 'DEPTH: full\nSTEP: done'); rc=$?
 check "a waiting goal's record is refused with no try, exit 2" '[ $rc = 2 ] && grep -q "g7 waits for the owner: pick one.*(WAITING_OWNER)" <<<"$out" && [ "$(field g7 tries)" = 0 ]'
+out=$(LOOP_ROLE=worker $goal pr g7 2>&1); rc=$?
+check "a waiting goal's pull request is refused first, with no try" '[ $rc = 2 ] && grep -q "(WAITING_OWNER)" <<<"$out" && [ "$(field g7 tries)" = 0 ]'
 $goal answer g7 >/dev/null; out=$(rec g7 idea 'DEPTH: full\nSTEP: done')
 check "after the answer the record goes through" 'grep -q "^RECORDED idea" <<<"$out"'
 check "watch.py's freeze stamps the rules known" '[ "$(python3 -c "import sys;sys.path.insert(0,\"$S\");import watch;print(watch.known_rules())")" = "$(python3 -c "import sys;sys.path.insert(0,\"$D\");import guards;print(guards.known())")" ] && grep -q "\"rules_at\": {\"idea\": known_rules()}" "$S/watch.py"'
