@@ -51,8 +51,8 @@ def results(top):
         import slots
         record, _ = lanes.load(lanes.record_path(top), top)
         rows = (record or {}).get("rows") or {}
-        done = [{"id": key, "state": value.get("status")} for key, value in sorted(rows.items())
-                if value.get("status") in ("PASS", "FAIL")]
+        done = [dict({"id": key, "state": value.get("status")}, **{k: value[k] for k in ("flaky",) if k in value})
+                for key, value in sorted(rows.items()) if value.get("status") in ("PASS", "FAIL")]  # flaky: flaky.py
         if done:
             day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
             slots.edit(top, "regression-runs.tsv", lambda: runs.write(top, done, day, git("rev-parse", "HEAD")))
