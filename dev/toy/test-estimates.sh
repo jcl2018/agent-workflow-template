@@ -316,6 +316,43 @@ def check_cache():
     need(first != second, "a changed finished run changes the estimate in the same process: %s %s" % (first, second))
 
 
+
+def check_worktree():
+    repo = Repo()
+    tree = os.path.join(repo.root, ".git", "loop", "worktrees", "w")
+    outside = tempfile.mkdtemp()
+    for base in (tree, outside):
+        os.makedirs(os.path.join(base, ".loop", "goals"))
+        with open(os.path.join(base, ".loop", "goals", "w.md"), "w") as handle:
+            handle.write("# w\n\n- Touches: a/x, b/y\n\n## Done lines\n\n1. one\n2. two\n")
+    bs.COMMON.clear()
+    need(bs.size_of({"slug": "w", "worktree": tree}, repo.root) == (2, 2), "a running goal is sized from the goal file in its worktree")
+    need(bs.size_of({"slug": "w", "worktree": outside}, repo.root) is None, "a worktree outside <common>/loop/worktrees is never read")
+
+
+def check_similar_step():
+    repo = Repo()
+    history(repo, (2, 1), [{s: 10 for s in STEPS if s != "pr"}] * 5, "s")
+    history(repo, (8, 8), [{s: 60 for s in STEPS}] * 5, "far")
+    bs.MODEL.clear()
+    m = bs.model(repo.records(), AT, repo.root)
+    pr, similar = bs.base(m["done"], (2, 1), "pr")
+    need(similar >= 5 and pr and pr[0] == 3600, "a step no similar goal logged comes from every finished goal: %s %s" % (pr, similar))
+    build = bs.base(m["done"], (2, 1), "build")[0]
+    need(build and build[0] == 600, "a step the similar goals logged comes from them: %s" % (build,))
+
+
+def check_stall_held():
+    repo = Repo()
+    history(repo, (3, 2), [{s: 10 for s in STEPS}] * 5, "h")
+    running(repo, "hd", (3, 2), {"idea": 10, "plan": 10}, "build", 6 * 3600)
+    need("- hd is stalled" in "\n".join(repo.board()), "with a worker, a goal far past 3x is stalled")
+    record = [r for r in repo.records() if r["slug"] == "hd"][0]
+    record.pop("pid")
+    repo.write("hd", **{k: v for k, v in record.items() if k != "slug"})
+    text = "\n".join(repo.board())
+    need("is stalled" not in text and "held" in text, "a held goal (no worker) is never called stalled: %s" % text[:400])
+
 names = [n[6:] for n in sorted(globals()) if n.startswith("check_")]
 pick = sys.argv[2:] or names
 failed = 0
