@@ -6,7 +6,7 @@ unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a rea
 unset LOOP_BATCH
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
-cases="wording flow-steps categories defect-owed health-closed worker-release pr-body pr-body-criterion no-hang known-defects"
+cases="wording flow-steps categories defect-owed health-closed worker-release pr-body pr-body-criterion no-hang known-defects skill-size skill-kept"
 if [ $# = 0 ]; then
   fails=0
   for c in $cases; do
@@ -184,6 +184,40 @@ PY
       set -- $want
       awk -F'\t' -v id="$1" -v link="$2" '$1 == id && $7 == "defect" && $8 ~ link && $5 != "" {ok = 1} END {exit !ok}' "$here/.loop/regression.tsv" || no "no defect row $1 linked to $2, seen failing"
     done
+    exit 0;;
+  skill-size) # issue 116: every SKILL.md stays under test-board's 150-line limit
+    for f in "$here"/skills/*/SKILL.md; do [ "$(wc -l < "$f")" -lt 150 ] || no "$f is $(wc -l < "$f") lines"; done
+    exit 0;;
+  skill-kept) # issue 116: what left the two SKILL.md files is kept word for word in their references, and they point there
+    while IFS='|' read -r skill phrase; do
+      grep -qF -- "$phrase" "$here/skills/$skill/references/commands.md" || no "$skill/references lost: $phrase"
+    done <<'KEPT'
+workflow-delivery|input + output + cache-creation
+workflow-delivery|tests the committed HEAD only: an unclean tree fails it (`LANE_DIRTY`).
+workflow-delivery|until a qa lane passed on HEAD (`LANE_MISSING`; start one with `role.py lane <slug> qa`), except for a reply whose last
+workflow-delivery|`STEP:` line is `failed` and that has no `PENDING:` line, which records as a failed try.
+workflow-delivery|only the rows the change can affect. The release step itself (merge.py) doesn't rerun it; GitHub Actions still runs the
+workflow-delivery|With `pr_bumps_version` on, it moves the last number of the version file once on this branch first, unless the
+workflow-delivery|branch already changed it. It retries a failed push twice, then prints git's full error.
+workflow-delivery|- `"auto_approve": true`: `record` approves what a step leaves for the owner, logs it as auto-approved, and goes on.
+workflow-delivery|merges the pull request, bumps the version once and publishes a GitHub release with a CHANGELOG entry.
+workflow-docs|2. `## Problem`: who it's for and what it solves, at most `problem_lines` lines;
+workflow-docs|5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
+workflow-docs|   when no row passes; defect tests under `### Defect tests`.
+workflow-docs|`NONGOALS`, `METRICS`, `CRITERION`, `CAP`, `SCRIPT`, `USAGE`, `TESTS` (run `render`), `LOCKED`, `CHANGED`.
+workflow-docs|Usage. After it, a change to any of the first four is `LOCKED` (check, audit and release fail); a change to Usage alone
+workflow-docs|owner un-reviews that requirement and the PRD, then reviews both again.
+workflow-docs|`Given <context>, when <action>, then <outcome>.`; `audit` lists any other as `SCENARIO` and the release step blocks on
+workflow-docs|`regression.py sync` reports an id with no row, and `release.py cut` refuses while any of its rows is missing, a draft
+workflow-docs|is `UNWRITTEN` until then) and add its requirement's regression row in the same pull request (it needs one before the
+workflow-docs|`convert --write` does it (Summary becomes Problem, Criteria Requirements, every stamp kept, placeholder Non-goals and
+KEPT
+    for skill in workflow-delivery workflow-docs; do
+      grep -q "references/commands.md" "$here/skills/$skill/SKILL.md" || no "$skill/SKILL.md does not point to its references"
+      grep -q "^## Command map" "$here/skills/$skill/SKILL.md" || no "$skill/SKILL.md lost its Command map"
+    done
+    grep -q "governance only" "$here/skills/workflow-delivery/SKILL.md" || no "workflow-delivery/SKILL.md lost its governance line"
+    grep -q "Never review or unreview on a goal's own initiative" "$here/skills/workflow-docs/SKILL.md" || no "workflow-docs/SKILL.md lost its review rule"
     exit 0;;
   *) no "unknown case";;
 esac
