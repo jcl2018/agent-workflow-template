@@ -2,7 +2,9 @@
 # reads: skills/
 # Test HLT-6 on a toy repo: negative controls, test time, stale worktrees and branches. usage: test-health-hygiene.sh [DIR]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1

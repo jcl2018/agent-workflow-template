@@ -15,6 +15,7 @@ usage: docs.py <command> [options]
   restore                      revert the last publish, if nothing came after it
 
 With "criteria": true in .loop/config.json, check also enforces the PRD page contract (references/template.md).
+It also enforces the page format (pageformat.py, FORMAT lines) and that the generated Tests page matches a fresh render.
 criteria.py reviews requirements and PRDs and renders Tests; prd.py drafts and converts pages; counting.py reads counts.
 
 Publish never deletes a page, and refuses to replace a page without this tool's marker unless you name it with --adopt.
@@ -31,6 +32,8 @@ import tempfile
 
 import counting
 import criteria
+import entry
+import pageformat
 
 # No terminal, no waiting.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GIT_EDITOR="true")
@@ -176,7 +179,10 @@ def problems(root, base):
     found = []
     rows = read_map(root)
     folder = wiki_dir(root)
+    merged = from_base(root, base)
     for page, paths in sorted(rows.items()):
+        if page in pageformat.GENERATED:
+            continue  # checked against a fresh render below
         rel = "%s/%s.md" % (folder, page)
         full = os.path.join(root, rel)
         if not os.path.exists(full):
@@ -189,17 +195,58 @@ def problems(root, base):
         seen = git("rev-list", "--no-merges", "HEAD", "--", rel, cwd=root, check=False).split()
         if not seen:
             continue
-        skip = ["^" + sha for sha in seen + [base] if sha]  # merges add nothing
-        changed = git("log", "--no-merges", "--full-history", "--format=%h %s", "HEAD", *skip, "--", *paths,
+        skip = ["^" + sha for sha in seen + [base] + merged if sha]  # merges add nothing
+        mine = paths + [":(exclude).loop/config.json"] * pageformat.is_guide(text)  # a guide isn't about settings values
+        changed = git("log", "--no-merges", "--full-history", "--format=%h %s", "HEAD", *skip, "--", *mine,
                       cwd=root).splitlines()
         if changed:
             found.append(("STALE", page, "%d commits since the page: %s" % (len(changed), changed[0][:70])))
     held = os.path.join(root, folder)
     if os.path.isdir(held):
         for name in sorted(os.listdir(held)):
-            if name.endswith(".md") and name[:-3] not in rows:
+            if name.endswith(".md") and name[:-3] not in rows and name[:-3] not in pageformat.GENERATED:
                 found.append(("UNMAPPED", name[:-3], "not in .loop/docs.tsv"))
+    if config(root).get("criteria") and feature_pages(root):
+        import render
+        found += render.generated(root)
     return found
+
+
+def from_base(root, base):
+    """With a base, the base-branch commits merged into this branch since it, as parents to skip: they were judged in
+    their own goal, so only what the branch itself changed can stale its pages."""
+    if not base:
+        return []
+    name = config(root).get("base") or "main"
+    tips = [t for t in ("origin/" + name,) if git("rev-parse", "--verify", "--quiet", t, cwd=root, check=False)
+            and run(["git", "merge-base", "--is-ancestor", "HEAD", t], cwd=root).returncode]  # not on the base branch itself
+    out = []
+    for line in git("rev-list", "--merges", "--first-parent", "--parents", "HEAD", "^" + base, cwd=root, check=False).splitlines():
+        for parent in line.split()[2:]:
+            if any(not run(["git", "merge-base", "--is-ancestor", parent, t], cwd=root).returncode for t in tips):
+                out.append(parent)
+    return out
+
+
+def guide(root, page):
+    try:
+        with open(os.path.join(root, wiki_dir(root), page + ".md")) as handle:
+            return pageformat.is_guide(handle.read())
+    except OSError:
+        return False
+
+
+def guarded(root, page):
+    """The first requirement or Review line on a page, shortened; '' when it has none."""
+    with open(os.path.join(root, wiki_dir(root), page + ".md")) as handle:
+        hit = next((x for x in handle.read().splitlines() if criteria.LINE.match(x) or x.startswith("Review: ")), "")
+    return pageformat.short(hit) if hit else ""
+
+
+def feature_pages(root):
+    """The mapped pages that exist, other than Home, guides and the generated ones."""
+    return [page for page in sorted(read_map(root)) if PAGE.match(page) and page != "Home" and page not in pageformat.GENERATED
+            and os.path.exists(os.path.join(root, wiki_dir(root), page + ".md")) and not guide(root, page)]
 
 
 def counts(root):
@@ -211,13 +258,16 @@ def contract(root):
     """Criteria contract trouble, as (kind, page, detail). Off unless config sets "criteria": true."""
     if not config(root).get("criteria"):
         return []
-    found, names = [], []
+    import render
+    found, names = [], feature_pages(root)
     for page in sorted(read_map(root)):
         if not PAGE.match(page):
             found.append(("PAGE", page, "not a page name. Fix: letters, digits and hyphens, or remove its .loop/docs.tsv row"))
-        elif page != "Home" and os.path.exists(os.path.join(root, wiki_dir(root), page + ".md")):
-            names.append(page)
-    return found + criteria.contract(root, names, {})
+        elif guide(root, page) and guarded(root, page):
+            found.append(("FORMAT", page, "DOC-1 a guide page holds no requirement or Review line (got %s). Fix: remove "
+                          "the line %s and use the feature page format, or move them to a feature page"
+                          % (guarded(root, page), pageformat.GUIDE)))
+    return found + criteria.contract(root, names, {}) + render.front(root, names)
 
 
 def cmd_criteria(args):
@@ -247,8 +297,10 @@ def cmd_check(args):
     if not read_map(root):
         print("NO PAGES: run add first")
         return 1
-    found = problems(root, args.base) + contract(root) + counts(root)
-    for kind, page, detail in found:
+    point = entry.problems(root)
+    notes = [item for item in point if item[0] in ("LAG", "SKIPPED")]  # said, never a failure
+    found = problems(root, args.base) + contract(root) + counts(root) + [i for i in point if i not in notes]
+    for kind, page, detail in found + notes:
         print("%s %s: %s" % (kind, page, detail))
     if found:
         return 1
@@ -279,7 +331,8 @@ def cmd_publish(args):
         clone(url, wiki)
         before = git("rev-parse", "HEAD", cwd=wiki)
         changed = []
-        for page in sorted(rows):
+        made = [name for name in pageformat.GENERATED if os.path.exists(os.path.join(root, wiki_dir(root), name + ".md"))]
+        for page in sorted(set(rows) | set(made)):
             with open(os.path.join(root, wiki_dir(root), page + ".md")) as handle:
                 text = handle.read()
             if not text.startswith(MARKER):

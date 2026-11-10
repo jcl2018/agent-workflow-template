@@ -17,10 +17,14 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `pr_bumps_version` | `false` | true moves the last number of the version file once on a goal's branch. |
 | `version_file` | `VERSION` | The file that holds the version; a release bumps it and writes the changelog. |
 | `routines` | `[]` | Commands the release step runs on the base branch before it merges. |
-| `regression_cron` | `17 9 * * *` | Five cron fields: when the nightly regression runs in GitHub Actions. |
+| `regression_cron` | `17 */4 * * *` | Five cron fields: when the regression routine runs in GitHub Actions; off turns it off. |
+| `health_cron` | `47 */4 * * *` | Five cron fields: when the health routine and its digest run in GitHub Actions; off turns it off. |
+| `judge_env` | `ANTHROPIC_API_KEY` | The Actions secret holding the agent key; the scheduled judge runs only when it is set. |
+| `judge_setup` | `(empty)` | A command the scheduled health run uses to install judge_command's program, run only with the secret. |
+| `digest_owner` | `(empty)` | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). |
 | `review_depth` | `full` | full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run. |
 | `criteria` | `true` | true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests). |
-| `criteria_max` | `6` | Most criteria a wiki page may hold, 1 to 50; docs check and health fail a page over it. |
+| `criteria_max` | `10` | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. |
 | `wiki_dir` | `docs/wiki` | The folder of wiki pages. |
 | `risky_paths` | `["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]` | Regexes for paths whose goals need extra care. |
 | `step_limit` | `0` | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. |
@@ -33,6 +37,8 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `resume_on_limit` | `false` | true lets watch resume a goal that hit a usage limit. |
 | `limit_wait` | `1800` | Seconds to wait after a usage limit before resuming. |
 | `watch_interval` | `20` | Seconds between rounds of watch. |
+| `agent_files` | `["CLAUDE.md", "AGENTS.md"]` | Agent entry files setup wires the workflow-loop block into; [] turns wiring off. |
+| `template_repo` | `(empty)` | The template's GitHub repo (owner/name) update reads releases from, when the installed package names none. |
 | `reply_hook` | `true` | false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session. |
 
 ## Private settings
@@ -44,7 +50,7 @@ Outside the repo, never committed: `~/.workflow-loop/flow.json` (or `$LOOP_FLOW`
 | `command` | `["claude", "-p"]` | Flow file: the agent command that runs each flow step unattended. |
 | `allowed_tools` | `[]` | Flow file: tools a step's agent may use, passed as --allowedTools; empty adds nothing. |
 | `model` | `(empty)` | Flow file: the model a step's agent uses, passed as --model; empty keeps the command's own. |
-| `suite` | `{"idea": "", "plan": "", "review": "", "qa": "", "ship": ""}` | Flow file: the default skill for each step; empty until you name your own. |
+| `suite` | `{"idea": "built-in", "plan": "built-in", "review": "built-in", "qa": "built-in", "ship": "built-in"}` | Flow file: the skill for each step; built-in runs delivery's own routine until you name your own. |
 | `steps` | `{}` | Flow file: a skill for any one step, replacing the suite's. |
 | `overrides` | `{}` | Flow file: per step {skill, model, allowed_tools} that replace the defaults above. |
 | `env` | `{}` | Flow file: environment that puts the skills in their unattended mode. |

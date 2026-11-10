@@ -12,6 +12,7 @@ set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE  # these tests act as the operation session
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 S="$here/skills/workflow-monitoring/scripts"
 BA="python3 $S/batch.py"; W="python3 $S/watch.py"; M="python3 $S/monitor.py"; BO="python3 $S/board.py"
@@ -118,13 +119,15 @@ def stamp(m): return "2026-01-01T%02d:%02dZ" % divmod(m, 60) if False else "2026
 past = {"slug": "past", "goal": "Past", "status": "done", "step": "release", "pr": "", "tries": 0, "updated": stamp(40), "log": [
     stamp(0) + " queued", stamp(10) + " idea auto-approved: x", stamp(30) + " plan auto-approved: x", stamp(40) + " build"]}
 json.dump(past, open(os.path.join(d, "past.json"), "w"))
-now = {"slug": "cur", "goal": "Cur", "status": "running", "step": "idea", "pid": int(sys.argv[2]), "pr": "", "tries": 0, "updated": "2026-01-01T10:00:00Z",
-       "log": [stamp(0) + " queued"]}
+import datetime
+fresh = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+now = {"slug": "cur", "goal": "Cur", "status": "running", "step": "idea", "pid": int(sys.argv[2]), "pr": "", "tries": 0, "updated": fresh,
+       "log": [fresh + " queued"]}
 json.dump(now, open(os.path.join(d, "cur.json"), "w"))
 PY
 $M report > "$T/report2"
 cur=$(grep -A2 "^- cur " "$T/report2")
-check "a running goal shows its time left from past runs, and its flow" 'grep -Eq "^- cur  \[----------\] 0%  [0-9]+m left" <<<"$cur" && grep -q "\[idea\] > plan" <<<"$cur"'
+check "a running goal shows its time left from past runs, and its flow" 'grep -Eq "^- cur  \[----------\] 0%  [0-9]+m to [0-9]+m left" <<<"$cur" && grep -q "\[idea\] > plan" <<<"$cur"'
 rm "$C/loop/runs/past.json"
 check "with no past runs the time left reads no estimate yet" '$M report | grep "^- cur " | grep -q "no estimate yet"'
 rm "$C/loop/runs/cur.json"

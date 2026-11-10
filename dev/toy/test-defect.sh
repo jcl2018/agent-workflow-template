@@ -6,10 +6,12 @@
 # Prove the defect-tests goal's done lines, and guard the known defects. usage: test-defect.sh [CASE]
 # With a CASE it exits non-zero if that case fails (regression rows call it so); with none it prints one PASS per case.
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_BATCH
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 cases="wording flow-steps categories defect-owed health-closed worker-release pr-body pr-body-criterion no-hang known-defects skill-size skill-kept"
 if [ $# = 0 ]; then
   fails=0
@@ -21,7 +23,7 @@ if [ $# = 0 ]; then
 fi
 case=$1
 no() { echo "$case: $1"; exit 1; }
-d=${TOY_KEEP:-$(mktemp -d)}; [ -n "${TOY_KEEP:-}" ] || trap 'rm -rf "$d"' EXIT
+d=${TOY_KEEP:-$(mktemp -d)}; [ -n "${TOY_KEEP:-}" ] || toy_on_exit 'rm -rf "$d"'
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 flow="python3 $here/skills/workflow-delivery/scripts/flow.py"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"
@@ -55,7 +57,7 @@ want = {
 for page, ids in want.items():
     text = open("%s/%s" % (sys.argv[1], page)).read()
     for key, words in ids.items():
-        assert re.search(r"^- %s: \*\*Reviewed 2026-11-08\*\* %s <!-- reviewed \w+ -->$" % (key, re.escape(words)), text, re.M), key
+        assert re.search(r"^- %s: \*\*Reviewed \d{4}-\d\d-\d\d\*\* \S.* <!-- reviewed \w+ -->$" % key, text, re.M), key  # the owner's latest words, sealed
 PY
     out=$(cd "$here" && python3 skills/workflow-docs/scripts/docs.py check 2>&1); grep -q "LOCKED" <<<"$out" && no "a reviewed criterion's seal is broken"
     exit 0;;
@@ -86,19 +88,19 @@ PY
     grep -l "Use the own-review skill" "$d"/prompt-* >/dev/null && ! grep -l "Use the suite-review skill" "$d"/prompt-* >/dev/null || no "the override did not win"
     LOOP_FLOW="$d/five.json" $flow fs release 2>&1 | grep -q "no skill is mapped to the release step" || no "an unmapped step ran"
     exit 0;;
-  categories) # done line 4: every row has a category, defect rows link their issue, the page shows defect tests apart
+  categories) # done line 4: every row has a category, defect rows link their issue, the page shows defect tests with their kind
     awk -F'\t' '/^#/ || NF == 0 {next} $7 != "criterion" && $7 != "defect" {print $1; bad = 1} $7 == "defect" && $8 == "" {print $1; bad = 1} END {exit bad}' "$here/.loop/regression.tsv" || no "a row has no category, or a defect has no link"
     toy
     $reg add dd --level land --command true --category defect 2>&1 | grep -q "links to its issue or finding" || no "a defect row without a link was added"
     $reg add dd --level land --command true --category defect --link https://example.test/issues/1 >/dev/null || no "add defect"
     awk -F'\t' '$1 == "dd" && $7 == "defect" && $8 ~ /issues\/1$/ {ok = 1} END {exit !ok}' .loop/regression.tsv || no "the row lost its category or link"
     $reg add cc --level land --command true >/dev/null; awk -F'\t' '$1 == "cc" && $7 == "criterion" {ok = 1} END {exit !ok}' .loop/regression.tsv || no "no default category"
-    python3 - "$here" <<'PY' || no "the page shows no separate defect part"
+    python3 - "$here" <<'PY' || no "the page shows no defect rows"
 import sys
 text = open(sys.argv[1] + "/docs/wiki/Delivery.md").read()
-head, _, defects = text.split("\n## Tests", 1)[1].partition("### Defect tests")
-assert "issues/35" in defects, "no defect part"
-assert "scripts-no-hang" not in head and "scripts-no-hang" in defects
+rows = text.split("\n## Tests", 1)[1].splitlines()
+assert any("issues/35" in r and "| defect |" in r for r in rows), "no defect row"
+assert [r for r in rows if "scripts-no-hang" in r] and all("| defect |" in r for r in rows if "scripts-no-hang" in r)
 PY
     (cd "$here" && python3 skills/workflow-docs/scripts/criteria.py render --check >/dev/null) || no "the Tests tables are stale"
     exit 0;;

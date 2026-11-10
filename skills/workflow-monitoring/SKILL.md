@@ -96,7 +96,7 @@ Any command that would build, plan or run a goal step from this session (`build`
 `ship`, `step`, `pr`, `record`, `run`) refuses with one line naming `batch.py start NAME`.
 
 `scripts/sessions.py`: `assign SLUG` (watch.py runs it: a free or new session from `session_command`, renamed
-`worker · <goal>`, sent the goal; it holds a `parallel` slot), `bind SLUG ID [--force]` (a session started with the app's tools; before the goal is frozen it records the handoff, shown as freezing), `free SLUG` (give back a stopped session's goal and slot),
+`worker · <goal>`, sent the goal; it holds a `parallel` slot), `bind SLUG ID [--force] [--cwd DIR]` (a session started with the app's tools; before the goal is frozen it records the handoff, shown as freezing; it prints the WORKER command and the WORKTREE, and refuses a folder outside it), `free SLUG` (give back a stopped session's goal and slot),
 `list`, `send` (operate.py send uses it) and `report SLUG --step S | --status merged|failed|waiting [--pr URL | --ask Q]` (a done goal stays done). States and messages: `references/commands.md`.
 
 Batches of goals go through `scripts/batch.py` (`add`, `start`, `status`). `start` begins one worker for each goal:
@@ -106,7 +106,7 @@ agent ends, the worker sends its result back as a prompt message in the run reco
 `worker.py met SLUG N` marks a done line met; `worker.py send SLUG TEXT` leaves a message its agent sees next; `worker.py cleanup [--dry-run]` deletes merged `loop/*` branches no worktree has checked out (`git branch -d`, local only).
 
 Each check-in prints the live board (`scripts/live_board.py`, run by `board_status.py`), and `dashboard` and `board-artifact.html` carry the same content, always in this format: a `LIVE BOARD` header (repo, local time, version, health); Issues (only what is open now, a stuck worker first, each with its fix in plain words and the exact words to answer);
-Running goals (a 10-cell bar with percent and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current step in brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows; and one finish time. Merged work, history and totals are left out. The loop is in `references/operation.md`.
+Running goals (a 10-cell bar with percent and a time-left range from finished goals of a similar size, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current step in brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows; and one finish time. Merged work, history and totals are left out. The loop is in `references/operation.md`.
 Every operation-session check-in reply has one layout: a headline, All sessions, Dependencies, Needs you and, last, Coming up (`references/operation.md`); `scripts/reply_hook.py`, a Stop hook that `workflow-setup` installs with `setup.py --reply-hook`, blocks one that doesn't (never a worker's).
 
 ## Statuses

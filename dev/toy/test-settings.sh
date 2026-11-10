@@ -8,6 +8,7 @@ set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 fails=0
 ok() { echo "PASS: $1"; }
@@ -24,7 +25,7 @@ done
 check "the reference lists every repo and private setting with a default and a line" '[ -z "$missing" ]'
 check "the saved reference is the generated one" '[ "$ref" = "$(cat "$here/skills/workflow-setup/references/settings.md")" ]'
 check "parallel 0 means unlimited and is the default" 'grep -q "^| .parallel. | .0. | Workers running at once; 0 means unlimited" <<<"$ref"'
-check "criteria_max defaults to 6 with a one-line explanation" 'grep -q "^| .criteria_max. | .6. | Most criteria a wiki page may hold" <<<"$ref"'
+check "criteria_max defaults to 10 with a one-line explanation" 'grep -q "^| .criteria_max. | .10. | Most criteria a wiki page may hold" <<<"$ref"'
 check "this repo commits parallel 0" '[ "$(python3 -c "import json;print(json.load(open(\"$here/.loop/config.json\"))[\"parallel\"])")" = 0 ]'
 
 cd "$T/repo" || exit 1
@@ -37,7 +38,7 @@ c = json.load(open(".loop/config.json"))
 print(all(k in c for k, *_ in settings.keys("repo")) and c["parallel"] == 0)
 PY
 )
-check "setup writes criteria_max 6 to the config" '[ "$(python3 -c "import json;print(json.load(open(\".loop/config.json\"))[\"criteria_max\"])")" = 6 ]'
+check "setup writes criteria_max 10 to the config" '[ "$(python3 -c "import json;print(json.load(open(\".loop/config.json\"))[\"criteria_max\"])")" = 10 ]'
 check "setup writes every repo setting, parallel 0" '[ "$all" = True ]'
 python3 - <<'PY'
 import json

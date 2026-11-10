@@ -1,219 +1,347 @@
-# id	status	date
-adopt-set-1	PASS	2026-11-10
-adopt-set-2	PASS	2026-11-10
-adopt-set-3	PASS	2026-11-10
-adopt-set-4	PASS	2026-11-10
-adopt-set-5	PASS	2026-11-10
-auto-approved	PASS	2026-11-09
-auto-release	PASS	2026-11-09
-bad-schedule-refused	PASS	2026-11-09
-batch-cut-user	PASS	2026-11-09
-board-sections	PASS	2026-11-09
-breaking-asks	PASS	2026-11-09
-check-writes-nothing	PASS	2026-11-09
-ci-summary	PASS	2026-11-09
-cost-time-warn	PASS	2026-11-09
-cost-unread-tokens	PASS	2026-11-09
-criteria-max-config	PASS	2026-11-09
-criteria-max-setting	PASS	2026-11-09
-criteria-no-scripts	PASS	2026-11-09
-cut-draft	PASS	2026-11-09
-cut-needs-verify	PASS	2026-11-09
-defect-categories	PASS	2026-11-10
-defect-flow-steps	PASS	2026-11-09
-defect-health	PASS	2026-11-09
-defect-known	PASS	2026-11-09
-defect-owed	PASS	2026-11-09
-defect-wording	PASS	2026-11-10
-dependencies-on-map	PASS	2026-11-09
-dependency-held	PASS	2026-11-09
-describe-needed	PASS	2026-11-09
-docs-audit	PASS	2026-11-09
-docs-count-mismatch	PASS	2026-11-09
-docs-counts-issue-39	PASS	2026-11-09
-docs-only	PASS	2026-11-09
-estimates-shown	PASS	2026-11-09
-every-row-described	PASS	2026-11-10
-failed-waits-mender	PASS	2026-11-09
-fixed-closes	PASS	2026-11-09
-frozen-done-lines	PASS	2026-11-09
-health-group-no-tests	PASS	2026-11-10
-health-lists-tests	PASS	2026-11-10
-health-tests-error	PASS	2026-11-10
-issue-keeps-state	PASS	2026-11-10
-issue-states	PASS	2026-11-10
-issues-no-rows	PASS	2026-11-10
-judge-needs-you	PASS	2026-11-09
-judge-section-format	PASS	2026-11-09
-judge-verdict-unchanged	PASS	2026-11-09
-keeps-seen-red	PASS	2026-11-09
-known-no-block	PASS	2026-11-09
-known-recorded	PASS	2026-11-10
-landed-left-alone	PASS	2026-11-09
-lanes-affected	PASS	2026-11-09
-lanes-always	PASS	2026-11-10
-lanes-check	PASS	2026-11-10
-lanes-declared	PASS	2026-11-10
-lanes-deleted	PASS	2026-11-10
-lanes-failing	PASS	2026-11-09
-lanes-folder-var	PASS	2026-11-10
-lanes-glob	PASS	2026-11-10
-lanes-headers	PASS	2026-11-10
-lanes-missing	PASS	2026-11-09
-lanes-narrow-wide	PASS	2026-11-10
-lanes-pr-affected	PASS	2026-11-09
-lanes-qa-record	PASS	2026-11-09
-lanes-repo-narrow	PASS	2026-11-10
-lanes-reuse	PASS	2026-11-09
-lanes-ship-reuses	PASS	2026-11-09
-lanes-table	PASS	2026-11-10
-lanes-trace-check	PASS	2026-11-10
-lanes-wide-parity	PASS	2026-11-10
-list-no-tests	PASS	2026-11-10
-list-tsv-raw	PASS	2026-11-10
-live-board-arrows	PASS	2026-11-09
-live-board-cadence	PASS	2026-11-09
-live-board-flow	PASS	2026-11-09
-live-board-header	PASS	2026-11-09
-live-board-issues	PASS	2026-11-09
-live-board-leftouts	PASS	2026-11-09
-live-board-no-oneline	PASS	2026-11-09
-local-row-env	PASS	2026-11-10
-lock-in-report	PASS	2026-11-09
-milestone-links	PASS	2026-11-09
-milestones-once	PASS	2026-11-09
-needs-you-stuck	PASS	2026-11-09
-never-merges	PASS	2026-11-09
-no-change-quiet	PASS	2026-11-09
-no-done-line-refused	PASS	2026-11-09
-no-flow-refused	PASS	2026-11-09
-no-line-in-governor	PASS	2026-11-09
-no-pid-left-alone	PASS	2026-11-09
-no-prompts	PASS	2026-11-10
-no-row-fail	PASS	2026-11-09
-no-token-dry-run	PASS	2026-11-09
-no-token-would	PASS	2026-11-09
-one-failure	PASS	2026-11-09
-one-issue	PASS	2026-11-09
-one-link	PASS	2026-11-09
-one-way-to-run	PASS	2026-11-10
-operate-all	PASS	2026-11-09
-operate-wakes-on-report	PASS	2026-11-09
-page-shape	PASS	2026-11-09
-parallel-unlimited	PASS	2026-11-09
-pending-waits	PASS	2026-11-09
-pr-body-criterion	PASS	2026-11-09
-pr-body-no-checks	PASS	2026-11-09
-pr-in-milestone	PASS	2026-11-09
-pr-needs-flow	PASS	2026-11-09
-prd-audit-ignores-changed	PASS	2026-11-09
-prd-convert	PASS	2026-11-09
-prd-lock-four	PASS	2026-11-09
-prd-new	PASS	2026-11-09
-prd-nongoals-metrics	PASS	2026-11-09
-prd-readers	PASS	2026-11-09
-prd-repo-green	PASS	2026-11-10
-prd-review-args	PASS	2026-11-09
-prd-scenarios	PASS	2026-11-09
-prd-section-order	PASS	2026-11-09
-prd-stamps-free	PASS	2026-11-09
-prd-untested	PASS	2026-11-09
-prd-usage-changed	PASS	2026-11-09
-publish-refused-stale	PASS	2026-11-09
-record-in-session	PASS	2026-11-09
-refuse-replace	PASS	2026-11-09
-refused-unmet	PASS	2026-11-09
-reg2-wording	PASS	2026-11-10
-release-note-found	PASS	2026-11-09
-release-runs-audit	PASS	2026-11-09
-repeat-no-second	PASS	2026-11-09
-reply-hook-all	PASS	2026-11-09
-reply-hook-blocks	PASS	2026-11-09
-reply-hook-guard	PASS	2026-11-09
-reply-hook-install	PASS	2026-11-09
-reply-hook-mon5-wording	PASS	2026-11-09
-reply-hook-off	PASS	2026-11-09
-reply-hook-scope	PASS	2026-11-09
-retired-leaves-waiting	PASS	2026-11-09
-review-dated	PASS	2026-11-09
-review-owner-only	PASS	2026-11-09
-reviewed-lock	PASS	2026-11-09
-run-ledger	PASS	2026-11-09
-same-lines	PASS	2026-11-09
-schedule-setting	PASS	2026-11-09
-scripts-no-hang	PASS	2026-11-10
-session-answer	PASS	2026-11-09
-session-assign	PASS	2026-11-09
-session-board-issue98	PASS	2026-11-09
-session-ended-waiting	PASS	2026-11-09
-session-fallback	PASS	2026-11-09
-session-holds-slot	PASS	2026-11-09
-session-quiet	PASS	2026-11-09
-session-rename	PASS	2026-11-09
-session-reports	PASS	2026-11-09
-session-reuse	PASS	2026-11-09
-session-tool-helper	PASS	2026-11-09
-session-tool-timeout	PASS	2026-11-09
-settings-read-fresh	PASS	2026-11-09
-settings-reference	PASS	2026-11-09
-setup-both-halves	PASS	2026-11-09
-size-fail	PASS	2026-11-09
-skill-kept	PASS	2026-11-10
-skill-says-governs	PASS	2026-11-09
-skill-size-116	PASS	2026-11-10
-stale-found	PASS	2026-11-09
-stale-groups-defect	PASS	2026-11-09
-stale-merge-order	PASS	2026-11-09
-stale-page-row	PASS	2026-11-09
-starts-at-idea	PASS	2026-11-09
-status-graph-board	PASS	2026-11-09
-status-graph-levels	PASS	2026-11-09
-status-graph-marks	PASS	2026-11-09
-status-graph-order	PASS	2026-11-09
-status-graph-total	PASS	2026-11-09
-status-order	PASS	2026-11-09
-status-roadmap-features	PASS	2026-11-09
-step-label-live	PASS	2026-11-09
-steps-in-session	PASS	2026-11-09
-steps-through-flow	PASS	2026-11-09
-stop-after-3-tries	PASS	2026-11-09
-stuck-stays-top	PASS	2026-11-09
-summary-escapes	PASS	2026-11-10
-summary-fallback	PASS	2026-11-10
-summary-fields	PASS	2026-11-10
-summary-groups	PASS	2026-11-10
-summary-header	PASS	2026-11-10
-summary-no-results	PASS	2026-11-10
-summary-only-real-rows	PASS	2026-11-10
-summary-refuses	PASS	2026-11-10
-summary-render-guard	PASS	2026-11-10
-summary-step	PASS	2026-11-10
-summary-unknown-row	PASS	2026-11-10
-template-sheet	PASS	2026-11-09
-tests-last-run	PASS	2026-11-09
-tests-not-enforced	PASS	2026-11-09
-tests-py-missing	PASS	2026-11-10
-tests-row-shape	PASS	2026-11-10
-tests-seen-failing	PASS	2026-11-09
-tests-table-columns	PASS	2026-11-10
-tests-table-stale	PASS	2026-11-09
-unproven-blocks	PASS	2026-11-09
-unread-closes-none	PASS	2026-11-09
-unread-not-green	PASS	2026-11-09
-unreview-lifts	PASS	2026-11-09
-untested-listed	PASS	2026-11-09
-update-in-place	PASS	2026-11-09
-usage-agent-requests	PASS	2026-11-09
-usage-no-script	PASS	2026-11-09
-usage-optional	PASS	2026-11-09
-usage-section-allowed	PASS	2026-11-09
-waits-first	PASS	2026-11-09
-wiki-release	PASS	2026-11-09
-wiki-release-pycache	PASS	2026-11-09
-wiki-unmapped-stale	PASS	2026-11-09
-worker-per-goal	PASS	2026-11-09
-worker-refuses	PASS	2026-11-09
-worker-reports	PASS	2026-11-09
-worker-reports-live	PASS	2026-11-09
-worker-runs-release	PASS	2026-11-09
-workflow-same-as-run	PASS	2026-11-09
+# id	status	date	run
+adopt-set-1	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+adopt-set-2	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+adopt-set-3	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+adopt-set-4	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+adopt-set-5	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-backlog-milestone	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-by-hand-runs	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-cron-check	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-cron-newline	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-defect-issue	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-digest-comment-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-digest-create	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-digest-dry-run	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-digest-format	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-digest-list-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-digest-no-title	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-digest-no-token	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-digest-org	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-digest-pin-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-digest-rerun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-digest-rounds	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-foreign-workflow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-health-off	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-health-schedule	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-health-workflow-current	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-issue-list-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-judge-fails-green	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-judge-no-program	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-judge-no-secret	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-missing-skills	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-no-push	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-off-by-hand	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-off-dispatch-runs	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-off-push-runs	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-old-issue-relabel	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-regression-off	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-regression-off-written	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-regression-schedule-mismatch	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-schedule-mismatch	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-secret-mapped	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-secret-name	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-setup-health-only-with-skill	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+auto-approved	PASS	2026-11-09	
+auto-release	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+bad-schedule-refused	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+batch-cut-user	PASS	2026-11-09	
+board-estimates-overrun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+board-sections	PASS	2026-11-09	
+breaking-asks	PASS	2026-11-09	
+cap-default-10	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+check-writes-nothing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+ci-issue-backlog	PASS	2026-11-10	
+ci-summary	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+cost-time-warn	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+cost-unread-tokens	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+criteria-max-config	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+criteria-max-setting	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+criteria-no-scripts	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+cut-draft	PASS	2026-11-09	
+cut-needs-verify	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+defect-categories	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+defect-flow-steps	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+defect-health	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+defect-known	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+defect-owed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+defect-wording	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+dependencies-on-map	PASS	2026-11-09	
+dependency-held	PASS	2026-11-09	
+depth-auto-approve-gate	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+depth-base-branch	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+depth-condensed-refused	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+depth-condensed-when-set	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+depth-fill-repo-help	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+depth-in-pr-body	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+depth-loop-flow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+depth-markers	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+depth-on-board	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+depth-recorded	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+depth-reference	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+depth-setup	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+describe-needed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+digest-backlog	PASS	2026-11-10	
+docs-audit	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-check-same	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-check-speed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-count-defect-tests-issue-106	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-count-indented-code-issue-105	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-count-mismatch	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-count-other-id-issue-107	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-count-word-gap-issue-104	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-counts-issue-39	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-guide-page-issue-125	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-locked-hint-issue-133	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-merged-base-issue-156	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-milestone-line-issue-130	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+docs-only	PASS	2026-11-09	
+estimates-shown	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+every-row-described	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+failed-waits-mender	PASS	2026-11-09	
+file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+fixed-closes	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+format-bullets	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+format-frontdoor	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+format-groups	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+format-groups-read	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+format-home	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+format-key	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+format-orphan-bullet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+format-problem	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+format-tests-table	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+format-usage-api	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+frozen-done-lines	PASS	2026-11-09	
+guards-extra	PASS	2026-11-10	
+guards-no-try	PASS	2026-11-10	
+guards-resume	PASS	2026-11-10	
+guards-rule-start	PASS	2026-11-10	
+guards-touches-finding	PASS	2026-11-10	
+guards-worker-role	PASS	2026-11-10	
+guards-worktree	PASS	2026-11-10	
+guide-marker-refused	PASS	2026-11-10	
+health-group-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+health-lists-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+health-not-enforced-fail	PASS	2026-11-10	
+health-not-enforced-warn	PASS	2026-11-10	
+health-tests-error	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+health-unreviewed-warn-issue-118	PASS	2026-11-10	
+held-all	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+held-freezing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+held-off-flow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+held-shows-held	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+held-stale-next	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-branches	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-cannot-fire	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-clean-quiet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-controls-fire	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-judge-time	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-never-filed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-refused	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-removes-nothing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-run-times	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-test-quiet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-test-time	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt6-worktrees	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+issue-closed-ignored	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+issue-gh-fail-unread	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+issue-keeps-state	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+issue-milestone-passes	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+issue-no-milestone-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+issue-states	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+issue-truncated-unread	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+issues-no-rows	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+judge-needs-you	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+judge-section-format	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+judge-verdict-unchanged	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+keeps-seen-red	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+known-no-block	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+known-recorded	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+landed-left-alone	PASS	2026-11-09	
+lanes-affected	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-always	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-check	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-declared	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-deleted	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-failing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-folder-var	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-glob	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-headers	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-missing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-narrow-wide	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-pr-affected	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-qa-record	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-repo-narrow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-reuse	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-ship-reuses	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-table	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-trace	FAIL	2026-11-10	
+lanes-trace-check	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-wide-parity	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+list-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+list-tsv-raw	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+live-board-arrows	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+live-board-cadence	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+live-board-flow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+live-board-header	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+live-board-issues	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+live-board-leftouts	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+live-board-no-oneline	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+local-row-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lock-in-report	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+milestone-links	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+milestones-once	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+needs-you-stuck	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+never-merges	PASS	2026-11-09	
+no-change-quiet	PASS	2026-11-09	
+no-done-line-refused	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+no-flow-refused	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+no-line-in-governor	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+no-pid-left-alone	PASS	2026-11-09	
+no-prompts	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+no-row-fail	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+no-token-dry-run	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+no-token-would	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+one-failure	PASS	2026-11-09	
+one-issue	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+one-link	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+one-way-to-run	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+operate-all	PASS	2026-11-09	
+operate-wakes-on-report	PASS	2026-11-09	
+page-shape	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+parallel-unlimited	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+pending-waits	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+pr-body-criterion	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+pr-body-no-checks	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+pr-in-milestone	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+pr-needs-flow	PASS	2026-11-09	
+prd-audit-ignores-changed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-convert	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-lock-four	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-new	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-nongoals-metrics	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-readers	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-repo-green	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-review-args	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-scenarios	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-section-order	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-stamps-free	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-untested	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+prd-usage-changed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+preview-writes-nothing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+problem-plural	PASS	2026-11-10	
+publish-refused-stale	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+publish-restore	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+record-in-session	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+refuse-replace	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+refused-unmet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reg-defect-label	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reg-local-relabel	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reg-same-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reg2-wording	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+release-note-found	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+release-runs-audit	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+repeat-no-second	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reply-hook-all	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reply-hook-blocks	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reply-hook-checkin-123	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reply-hook-guard	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reply-hook-install	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reply-hook-mon5-wording	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reply-hook-off	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reply-hook-scope	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+report-done-final	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+report-header	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+report-sub-bullets	PASS	2026-11-10	
+retired-leaves-waiting	PASS	2026-11-09	
+review-dated	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+review-owner-only	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reviewed-lock	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+run-ledger	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+runs-keep	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+runs-partial	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+runs-same-day	PASS	2026-11-10	
+runs-sha	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+runs-upgrade	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+runs-url	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+same-lines	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+schedule-setting	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+scripts-no-hang	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+seal-sub-bullets	PASS	2026-11-10	
+session-answer	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-assign	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-board-issue98	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-ended-waiting	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-fallback	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-holds-slot	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-quiet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-rename	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-reports	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-reuse	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-tool-helper	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-tool-timeout	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+settings-read-fresh	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+settings-reference	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+setup-both-halves	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+size-fail	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+skill-kept	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+skill-says-governs	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+skill-size-116	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+stale-found	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+stale-groups-defect	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+stale-merge-order	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+stale-page-row	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+starts-at-idea	PASS	2026-11-09	
+status-graph-board	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+status-graph-levels	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+status-graph-marks	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+status-graph-order	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+status-graph-total	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+status-order	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+status-roadmap-features	PASS	2026-11-09	
+step-label-live	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+steps-in-session	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+steps-through-flow	PASS	2026-11-09	
+stop-after-3-tries	PASS	2026-11-09	
+stuck-stays-top	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+summary-escapes	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+summary-fallback	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+summary-fields	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+summary-groups	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+summary-header	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+summary-no-results	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+summary-only-real-rows	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+summary-refuses	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+summary-render-guard	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+summary-step	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+summary-unknown-row	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+template-sheet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+tests-last-run	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+tests-not-enforced	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+tests-page-run-link	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+tests-page-stale	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+tests-py-missing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+tests-row-shape	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+tests-seen-failing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+tests-table-columns	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+tests-table-stale	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+unproven-blocks	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+unread-closes-none	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+unread-not-green	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+unreview-lifts	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+untested-listed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+update-in-place	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+usage-agent-requests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+usage-empty-backticks	PASS	2026-11-10	
+usage-no-script	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+usage-optional	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+usage-section-allowed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+waits-first	PASS	2026-11-09	
+wiki-release	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+wiki-release-pycache	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+wiki-unmapped-stale	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+worker-per-goal	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+worker-refuses	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+worker-reports	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+worker-reports-live	PASS	2026-11-09	
+worker-runs-release	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+workflow-same-as-run	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a

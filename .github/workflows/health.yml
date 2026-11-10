@@ -1,0 +1,83 @@
+# Written by workflow-health (automation.py). It reads .loop/config.json.
+name: health
+on:
+  schedule:
+    - cron: "47 */4 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+  actions: read
+concurrency:
+  group: health
+  cancel-in-progress: false
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check the routine
+        id: routine
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("health_cron") or "")' 2>/dev/null || true)
+          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then  # off stops the schedule; a run started by hand still runs
+            echo "on=false" >> "$GITHUB_OUTPUT"
+            echo "OFF: health is off in .loop/config.json (health_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ ! -f skills/workflow-health/scripts/health.py ]; then
+            echo "MISSING: the workflow-health skill is not in this repo's checkout, so health ran nothing and wrote nothing. Fix: commit the skills/ folder, or set health_cron to off." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "on=true" >> "$GITHUB_OUTPUT"
+          if [ -n "$cron" ] && [ "$cron" != "47 */4 * * *" ]; then
+            said="SCHEDULE: this workflow runs on '47 */4 * * *' but .loop/config.json says '$cron'. Fix: python3 skills/workflow-health/scripts/automation.py workflow"
+            echo "::warning::$said"; echo "$said" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Health check
+        if: steps.routine.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}  # the issue-milestone rule reads the open issues
+        run: |
+          python3 skills/workflow-health/scripts/health.py check --group size,criteria,docs > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
+          { echo "## Health"; echo; echo '```'; cat "$RUNNER_TEMP/health-report.txt"; echo '```'; echo
+            echo "Not run here: performance (the Cost rule), Mine and hygiene read this machine's run records, branches and private files, which a runner doesn't have."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: File the findings as tagged issues
+        if: always() && steps.routine.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 skills/workflow-health/scripts/milestone.py new backlog --live  # findings are filed on Backlog; it may not exist yet
+          python3 skills/workflow-health/scripts/health.py file --group size,criteria,docs
+      - name: Judge, only with the agent key secret
+        if: always() && steps.routine.outputs.on == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}  # the judge reads this name, whatever the secret is called
+        run: |
+          set -o pipefail
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "JUDGE: skipped, no ANTHROPIC_API_KEY secret is set." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          setup=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("judge_setup") or "")')
+          [ -z "$setup" ] || env -u ANTHROPIC_API_KEY sh -c "$setup"
+          prog=$(python3 -c 'import json; c = json.load(open(".loop/config.json")).get("judge_command"); print(c[0] if isinstance(c, list) and c else "")')
+          if [ -z "$prog" ] || ! command -v "$prog" >/dev/null; then
+            echo "JUDGE: skipped, the runner has no ${prog:-judge_command}; set judge_setup in .loop/config.json." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          { echo "## Judge"; echo; echo '```'; python3 skills/workflow-health/scripts/health.py judge 2>&1 | sed -n '/^JUDGE/,$p' || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"  # a red verdict is the report's, not the step's
+      - name: Post the digest
+        if: always() && steps.routine.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEALTH_REPORT: ${{ runner.temp }}/health-report.txt
+          DIGEST_RUN: ${{ github.run_id }}
+          DIGEST_REPO_OWNER: ${{ github.repository_owner }}
+        run: python3 skills/workflow-health/scripts/automation.py digest

@@ -1,6 +1,6 @@
 ---
 name: workflow-delivery
-description: Takes one sentence to a pull request by running your own idea, plan, review, test and ship skills unattended, in a background agent, with frozen done lines around them and review as the only gate. `go` starts a goal. Use when asked to build a change and open a pull request. It needs a configured skill flow.
+description: Takes one sentence to a pull request by running your own idea, plan, review, test and ship skills unattended, in a background agent, with frozen done lines around them and review as the only gate. `go` starts a goal. Use when asked to build a change and open a pull request. With no suite of your own it runs its built-in routine for each step.
 ---
 
 # workflow-delivery
@@ -11,8 +11,8 @@ first.
 
 Delivery is a wrapper around your own skill suite: you bring the skills that shape an idea, plan it, review it, test it
 and ship it. A private file outside the repo, `~/.workflow-loop/flow.json`, names them, the command that runs them, the
-environment that puts them in their own unattended mode, and a probe that proves it. With no flow set, every command
-refuses with one line saying how to set it. `loop-files.md` describes the file.
+environment that puts them in their own unattended mode, and a probe that proves it. Setup fills it with `built-in`
+steps (`references/default-flow.md`), so it runs standalone; with no flow file, every command refuses. `loop-files.md`.
 
 The operation session is for governance only: it assigns and watches, and never runs `go` itself.
 
@@ -66,9 +66,10 @@ Run it again until it stops printing `RUNNING`: a step can take many minutes. Th
 - `WAITING`: the step left a decision only the owner can make. Stop. It shows under Waiting on you. After the answer,
   run `goal.py answer <slug>`, then run the step again with `--note "<the owner's answer>"`.
 - `TRY n OF 3 FAILED`: fix the cause, then run the step again.
+- `REFUSED (no try used)`: a format slip (no DEPTH or STEP line, say). Fix the reply as `NEXT` says and record again.
 
-Goal steps (`step`, `record`, `pr`, `flow.py`) refuse outside a worker (`LOOP_ROLE=worker`), naming
-`batch.py start NAME`. In a worker they print any message from the operation session once; treat it as the owner's answer
+Goal steps (`step`, `record`, `pr`, `flow.py`) refuse outside a worker (`LOOP_ROLE=worker`); the refusal prints the exact
+command to run in the goal's bound session. In a worker they print any message from the operation session once; treat it as the owner's answer
 or follow-up. How steps report tokens (and how to report a step `flow.py` didn't run): `references/commands.md`.
 
 The idea step writes the design and the plan step reviews it into a plan, both in your skills' own files. Commit
@@ -114,8 +115,9 @@ This repo has both on. Say so whenever you report a goal here.
 
 ## When a goal stops
 
-A flow step that failed, gave no `STEP:` line or was refused for its depth, each cost a try. After 3, the script files a finding
-in `.loop/findings.md` and stops with exit code 3. Stop, report it, and leave the done lines as they are.
+A failed step (or a background run with no `STEP:` line) costs a try; after 3 the script files a finding and stops (exit 3).
+Stop, report it, and leave the done lines as they are. The operation session revives it with `goal.py resume`, widens
+touches with `goal.py touches`, and a `finding` on a done or merged goal only notes (`references/commands.md`).
 
 If you need an answer only the user can give:
 

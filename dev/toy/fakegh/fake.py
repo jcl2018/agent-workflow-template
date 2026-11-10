@@ -42,12 +42,15 @@ if args[0] == "api":
             m["closed_issues"] = sum(i["state"] == "CLOSED" for i in mine)
         print(json.dumps(miles))
 elif args[:2] == ["issue", "list"]:
+    if os.environ.get("FAKE_GH_LIST_FAIL"):  # gh cannot read the list: one error line, exit 1
+        sys.exit(os.environ["FAKE_GH_LIST_FAIL"])
     pick = [i for i in issues if flag("--milestone") in (None, (i.get("milestone") or {}).get("title"))
             and flag("--state") in (None, "all", i["state"].lower())]
-    print(json.dumps(pick))
+    print(json.dumps(pick[:int(flag("--limit"))] if flag("--limit") else pick))
 elif args[:2] == ["issue", "create"]:
     number = len(issues) + 1
-    issues.append({"number": number, "title": flag("--title"), "body": flag("--body"), "state": "OPEN",
+    body = open(flag("--body-file")).read() if flag("--body-file") else flag("--body")
+    issues.append({"number": number, "title": flag("--title"), "body": body, "state": "OPEN", "repo": flag("--repo"),
                    "labels": [{"name": n} for n in flags("--label")],
                    "milestone": {"title": flag("--milestone")} if flag("--milestone") else None,
                    "createdAt": "2026-01-01T00:00:00Z"})

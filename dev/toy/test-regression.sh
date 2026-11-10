@@ -4,8 +4,10 @@
 # reads: skills/workflow-regression/scripts/regression.py skills/workflow-setup/scripts/setup.py
 # Test workflow-regression on a throwaway toy repo with a fake gh. usage: test-regression.sh [DIR]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1
@@ -33,9 +35,9 @@ printf 'text-1\tland\ttrue\tREG-9\tn/a\tA row dated with words.\tcriterion\t\n' 
 $reg sync | grep -q "^UNPROVEN dash-1" && $reg run dash-1 | grep -q "^UNPROVEN dash-1" && ok "a seen-failing date of - is unproven" || bad "a - date counted as seen failing"
 $reg sync | grep -q "^UNPROVEN text-1" && ok "a seen-failing value that is not a date is unproven" || bad "a non-date counted as seen failing"
 python3 - "$here/skills/workflow-docs/scripts" <<'PY' && ok "the Tests table shows no for a - or a non-date" || bad "Tests table shows a non-date as seen failing"
-import sys; sys.path.insert(0, sys.argv[1]); import criteria
-out = criteria.table(".", [("REG-9", "Words.")], {"REG-9": ["dash-1", "text-1"]})
-cells = [line.rsplit("seen failing ", 1)[-1] for line in out if "[dash-1]" in line or "[text-1]" in line]
+import sys; sys.dont_write_bytecode = True; sys.path.insert(0, sys.argv[1]); import render
+out = render.tests_page(".").splitlines()
+cells = [line.split(" | ")[-1].rstrip(" |") for line in out if 'id="t-dash-1"' in line or 'id="t-text-1"' in line]
 assert cells == ["no", "no"], out
 PY
 sed -i.bak '/^dash-1	/d; /^text-1	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak
@@ -125,6 +127,12 @@ python3 -c 'import yaml; yaml.safe_load(open(".github/workflows/regression.yml")
 touch BROKEN; git add -A; git commit -qm "Break it" >/dev/null
 python3 ci-block.py; rc=$?
 [ $rc = 1 ] && [ "$(calls '^issue create')" = 1 ] && ok "CI block fails and opens an issue" || bad "CI block"
+# Value: protects=a regression issue goes on Backlog when the repo has that milestone, and carries no flag when it has
+#   none; fails_when=the CI block drops the --milestone flag or always adds it; why_new=no test had a Backlog milestone
+nomile=$(grep -c -- '--milestone' "$FAKE_GH_DIR/calls.log"); : > "$FAKE_GH_DIR/calls.log"; echo '[{"number": 1, "title": "Backlog", "state": "open"}]' > "$FAKE_GH_DIR/milestones.json"
+python3 ci-block.py >/dev/null 2>&1; [ "$nomile" = 0 ] && [ "$(calls '^issue create')" = 1 ] && grep -q -- "--milestone Backlog$" "$FAKE_GH_DIR/calls.log" \
+  && ok "the CI block opens a regression issue on Backlog when it exists, with no milestone flag otherwise" || bad "backlog milestone: $nomile"
+rm -f "$FAKE_GH_DIR/milestones.json" "$FAKE_GH_DIR/issues.json"
 nap="31.$((RANDOM % 9000 + 1000))"  # a sleep no other run on this machine uses
 printf 'hang\tland\techo started-hang; sleep %s & sleep %s\t-\t2026-01-01\tA row that hangs.\tcriterion\t\n' "$nap" "$nap" >> .loop/regression.tsv
 printf 'own-124\tland\techo own-exit; exit 124\t-\t2026-01-01\tA row that exits 124 itself.\tcriterion\t\n' >> .loop/regression.tsv
@@ -158,16 +166,16 @@ rm -f BROKEN ci-block.py
 python3 - "$here" <<'PY' && ok "the committed regression workflow matches what actions.py writes" || bad "the committed regression workflow is stale"
 import json, sys
 sys.path.insert(0, sys.argv[1] + "/skills/workflow-regression/scripts"); import actions
-cron = json.load(open(sys.argv[1] + "/.loop/config.json")).get("regression_cron") or "17 9 * * *"
+cron = json.load(open(sys.argv[1] + "/.loop/config.json")).get("regression_cron") or "17 */4 * * *"
 assert actions.render(cron) == open(sys.argv[1] + "/.github/workflows/regression.yml").read()
 PY
-grep -q 'cron: "17 9 \* \* \*"' .github/workflows/regression.yml && ok "default schedule written" || bad "default cron"
+grep -q 'cron: "17 \*/4 \* \* \*"' .github/workflows/regression.yml && ok "default schedule written" || bad "default cron"
 python3 - <<'PY'
 import json
 c = json.load(open(".loop/config.json")); c["regression_cron"] = "5 4 * * 1"
 json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
-$reg workflow >/dev/null; grep -q 'cron: "5 4 \* \* 1"' .github/workflows/regression.yml && ! grep -q '17 9' .github/workflows/regression.yml && ok "changing regression_cron changes the schedule" || bad "cron setting"
+$reg workflow >/dev/null; grep -q 'cron: "5 4 \* \* 1"' .github/workflows/regression.yml && ! grep -q 'cron: "17 \*/4' .github/workflows/regression.yml && ok "changing regression_cron changes the schedule" || bad "cron setting"
 python3 - <<'PY'
 import json
 c = json.load(open(".loop/config.json")); c["regression_cron"] = "nightly"
@@ -177,7 +185,7 @@ $reg workflow >/dev/null 2>&1 && bad "bad cron written" || ok "a setting that is
 echo "== the workflow and a local run do the same (REG-3)"
 python3 - <<'PY'
 import json
-c = json.load(open(".loop/config.json")); c["regression_cron"] = "17 9 * * *"
+c = json.load(open(".loop/config.json")); c["regression_cron"] = "17 */4 * * *"
 json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
 $reg workflow >/dev/null

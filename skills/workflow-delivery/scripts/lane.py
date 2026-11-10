@@ -310,25 +310,26 @@ def wait_for(runs, slug, name, timeout=None):
 
 
 def need_lane(runs, slug, reply, step="qa"):
-    """record qa and record ship refuse unless that step's lane passed on this HEAD. Only a reply goal.py record counts
-    as a failed try (its last STEP line is failed and it has no PENDING line) skips the check."""
+    """(why, fix, code) when record qa or record ship must refuse because that step's lane hasn't passed on this HEAD,
+    else None. Only a reply goal.py record counts as a failed try (its last STEP line is failed and it has no PENDING
+    line) skips the check."""
     text = open(reply).read() if os.path.isfile(reply) else ""
     found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I)
     if found and found[-1].lower() == "failed" and not re.search(r"^\W*PENDING:", text, re.M):
-        return
+        return None
     head = git("rev-parse", "HEAD").stdout.strip()
     try:
         ok = open(os.path.join(runs, "%s.%s-lane.ok" % (slug, step))).read().strip()
     except OSError:
         ok = ""
-    role = os.path.join(HERE, "role.py")
+    fix = "python3 %s lane %s %s" % (os.path.join(HERE, "role.py"), slug, step)
     if not ok:
-        sys.exit("REFUSED: the %s lane has not passed on %s (LANE_MISSING). Fix: python3 %s lane %s %s" % (
-            step, head[:12], role, slug, step))
+        return ("the %s lane has not passed on %s" % (step, head[:12]), fix, "LANE_MISSING")
     if ok != head:
-        sys.exit("REFUSED: HEAD moved since the %s lane passed (lane on %s, HEAD %s). Fix: python3 %s lane %s %s (reruns "
-                 "only the rows the change can affect; FULL, and slotted, only if the change deletes a file or touches a "
-                 "path no row maps)." % (step, ok[:12], head[:12], role, slug, step))
+        return ("HEAD moved since the %s lane passed (lane on %s, HEAD %s)" % (step, ok[:12], head[:12]),
+                fix + " (reruns only the rows the change can affect; FULL, and slotted, only if the change deletes a file "
+                "or touches a path no row maps)", "HEAD_MOVED")
+    return None
 
 
 def lane_exec(rc, seconds, last, attempt, pool, argv):

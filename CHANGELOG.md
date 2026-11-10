@@ -1,5 +1,198 @@
 # Changelog
 
+## v0.23.0 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/setup-sync
+- Built-in default flow: steps mapped to built-in run delivery's own routine (issue 47)
+- Entry point (entry.py, START.md) and agent files (agents.py), wired by setup; agent_files and template_repo settings
+- update both ways: --check, the release source archive, the repo half (sync.py) on workflow-update-vX, local fixes and propose (propose.py); fake gh serves archives and issues
+- Board lag line for governed repos on an older template; test-sync parts for entry, agents, update, propose, board; MISSING only for stamped repos; no-hang guards
+- Rows for SET-4, SET-5 and SET-10
+- Docs: Setup SET-4, SET-5, SET-10 (approved wording, reviewed 2026-11-10), Usage with a sample; Monitoring, Documentation, Home, README, loop-files, skill pages; this repo's START.md, CLAUDE.md and AGENTS.md
+- Verify by hand steps; Usage sample as an indented block
+- update.py: shorter docstring
+- Split test-sync: narrow builtin/entry/agents keep exact # reads:, wide update/propose/board move to test-sync-update.sh; operate-fit-3 scopes its wiki assertion
+- entry.py write: splice the matched block (a stray close marker no longer multiplies the file), keep CRLF, accept a block at end of file; check reports stray markers (ENTRY_MARKER); docs check renders once
+- agents.py apply: say wire's refusals and a failed entry write, stage only files inside the repo and outside .git
+- update: a failed repo half no longer leaves an empty workflow-update-vX that reads as merged; a local fix matching the new copy is stamped, a dropped one is kept without holding check at behind; the repo half runs the sync.py just written; a checkout with no VERSION stamps nothing; PARTIAL whenever the skills were written
+- test-adopt SET-4: the update branch changes only config, START.md and the agent files; a linked skills folder is left alone
+- Docs: Setup and Documentation Usage for the review fixes (dropped local fix kept, a failed repo half safe to rerun, stray markers left for you)
+- agents.py wire refuses any file without exactly one block (the rule entry.py write follows); update flushes before the repo half and runs it in-process when sync.py itself is a kept local fix
+- test-sync-update: reset template_repo after the redirect check, so a full run passes
+- fix(qa): ISSUE-001 — test-sync.sh update/board ran nothing and said ALL PASS; forward them to test-sync-update.sh, refuse an unknown part (exit 2)
+- fix(qa): ISSUE-002 — entry.py read an indented example output's '- ' line as a Usage sub-bullet
+- Docs: Documentation notes the Features table leaves an indented example block out
+- test-sync.sh points update, propose and board at test-sync-update.sh instead of running it, so its rows stay narrow; Verify step 4 names that script
+- builtin-flow: watch's suite check moves to test-builtin-watch.sh so test-sync.sh stays narrow
+- test-sync.sh declares exact files; entry-adopt (same command as adopt-set-5) runs nightly, keeping a one-file change under half the land rows
+- Merge origin/main (v0.22.0 docs-format) into loop/setup-sync: both sides' rows kept, docs-format's reviewed pages win with this goal's Usage entries re-added; entry.py reads a bullet Problem
+- README front door rows for update, propose and agents; Home and Monitoring name the built-in routine and the lag line; workflow-docs SKILL.md back under 150 lines
+- Documentation: entry names what it reads from each PRD page
+- Merge origin/main (v0.22.1 estimate-model): both sides' rows kept, live board keeps the stall and lag lines; the lag line moves to board_lag.py so board_status.py stays under 20 KB
+
+### How to verify
+
+1. In this repo, open `.loop/START.md`.
+   Expect: a "First five minutes" list, one part each for Loop, Release, Operation and workers, Docs, Regression, Health and Settings, a Features table naming all seven feature pages (Home is not one) with how to use each, and a Settings table with every repo setting and its value.
+2. Open `CLAUDE.md` and `AGENTS.md` side by side.
+   Expect: the same `` block in both, telling a session to read `.loop/START.md` first and listing the seven workflow skills.
+3. Change one Usage bullet's first sentence in `docs/wiki/Setup.md`, then run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: `STALE .loop/START.md: ... (ENTRY_STALE)` and exit 1; `python3 skills/workflow-docs/scripts/docs.py audit` rewrites it, and the check is back to `DOCS OK`. Undo the edit.
+4. Run `bash dev/toy/test-sync-update.sh update` and `bash dev/toy/test-sync-update.sh board`.
+   Expect: `ALL PASS (update)` (check shows what is new, apply lands `workflow-update-v1.1.0` and keeps the repo's data) and `ALL PASS (board)` (the live board lists `oldharbor runs template v1.0.0, older than v1.1.0`).
+5. Run `bash dev/toy/test-sync.sh builtin`.
+   Expect: `ALL PASS (builtin)`: a goal with a flow file whose steps are all `built-in` and no probe runs every step through delivery's own routine.
+
+## v0.22.1 - 2026-11-10
+
+- estimate-model: estimates from goal size and similar finished goals, ranges, pace, stalled goals under Issues
+- estimate-model: docs name the estimate model; MON-4 scenarios rendered; rows seen failing once
+- estimate-model: narrow test-estimates reads header so test-tree's one-file narrowing check passes
+- test: status-graph comment matches the new step-time rule
+- fix(qa): a goal at an off-flow step after a done entry sits at the next step
+- docs: Monitoring Tests list est-offflow-done
+- Merge remote-tracking branch 'origin/main' into loop/estimate-model
+- test: estimate checks for worktree goal files, unlogged similar steps and held goals
+- test: record the three new estimate rows seen failing; Monitoring Tests list
+- docs: estimate rules in the Monitoring summary and monitoring references match the code
+- fix: test-estimates.sh sources reap.sh like every toy test
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.22.0 - 2026-11-10
+
+- docs-format: DOC-4, DOC-5 and DOC-6 back to Unreviewed for rewording
+- docs-format: enforce the documentation format (DOC-4..DOC-10), full Tests page, run links, issue milestones, cap default 10
+- docs-format: Documentation page as the owner approved it (DOC-1..DOC-13), Usage and sub-bullet checks fitted to it
+- docs-format: Tests rendered as tables, full Tests page generated; Documentation PRD Reviewed 2026-11-10
+- docs-format: Delivery page as the owner approved it (DEL-1..DEL-9), Reviewed 2026-11-10
+- docs-format: merged goals docs-count-gaps and prd-stamps into the plan; issues 104-107 rows run and passing
+- docs-format: Delivery's merge.py Usage entry says what it prints, re-reviewed
+- docs-format: Monitoring page as the owner approved it (MON-1..MON-11), Reviewed 2026-11-10
+- docs-format: Regression page as the owner approved it (REG-1..REG-9), Reviewed 2026-11-10
+- docs-format: Monitoring Problem in three bullets, as the owner approved
+- docs-format: Health page as the owner approved it (HLT-1..HLT-9), Reviewed 2026-11-10
+- docs-format: Setup page as the owner approved it (SET-1..SET-10), Reviewed 2026-11-10
+- docs-format: Home as one features table, README How to use, Setup Problem reworded, MON-12 Session pool
+- Merge origin/main (v0.20.0, automation) into loop/docs-format: approved pages kept, rows unioned, Automation on Home and README
+- docs-format: Automation page as the owner approved it (AUT-1..AUT-7), REG-4 on the Automation schedule
+- docs-format: fix issues 125, 130, 133 and 156 (guide pages, milestone line, LOCKED hint and owner words, merged-base staleness)
+- docs-format: full land run recorded (run links), Tests re-rendered; run-link rows grep fixed strings, reg2-wording follows the owner's 2026-11-10 REG-2, Tests page is not a feature group
+- Merge origin/main (v0.21.0, loop-guards) into loop/docs-format: approved pages kept, rows unioned, Tests re-rendered
+- health: a requirement with no test warns as not enforced, and fails only after 7 days Reviewed (HLT-2, REG-1, DOC-1); fixes #118
+- docs-format: review fixes (run cells, CI-safe tests, sealed sub-bullets, smaller fixes); stamps re-sealed
+- docs-format: Tests re-rendered
+- docs-format: review-fix rows seen failing (15 rows)
+- health: a malformed Reviewed date fails its row instead of crashing; files closed; only a soft UNREAD row is kept from counting as a pass
+- docs-format: results recorded for the 19 rows never run on this branch; Tests re-rendered
+- Merge origin/main (v0.21.1, toy-cleanup) into loop/docs-format: approved Regression page kept, Tests re-rendered
+- docs-format: new toy tests source reap.sh and register cleanup with toy_on_exit (toy-no-leftovers from main)
+
+### How to verify
+
+1. Open `docs/wiki/Home.md`.
+   Expect: the title, `## Features` and one table with Feature, What it does, How to use and Milestone; seven rows,
+   nothing else.
+2. Open the README on GitHub and click a Home row's "How to use" link.
+   Expect: it lands on that feature's "How to use" table of phrases you can say, with no command syntax.
+3. Open `docs/wiki/Delivery.md`.
+   Expect: Problem as "I ..." bullets, Usage as one `command — what it prints and refuses` bullet per command,
+   Requirements under Functional and Non-functional with sub-bullets, and Tests as a table whose test names link to
+   the Tests page.
+4. Follow one test link into `docs/wiki/Tests.md` (on the published wiki, after release).
+   Expect: it jumps to that test's row under its feature, with result, date, run link and seen-failing date.
+5. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: `DOCS OK: 8 pages`.
+6. In a scratch copy, change a word in any page's Problem to `script`, then run the same check.
+   Expect: `FORMAT <Page>:<line>: Problem: DOC-8 ...`, naming the page, line, section and rule.
+
+## v0.21.1 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- dev/toy: every toy test reaps the processes it started (issue 100)
+- dev/toy: defect test for issue 100, no toy test leaves a process running
+- regression: toy-no-leftovers seen red 2026-11-09 (reaper stubbed out)
+- dev/toy: reaper judges a hidden-env process by its nearest known ancestor
+- Merge origin/main (review-depth, v0.12.1) into loop/toy-cleanup: both regression rows kept, test-review-depth.sh sources reap.sh
+- fix(qa): sweep stops a dead test's system-binary child; reap.py rejects bad options
+- Merge origin/main (board-estimates and earlier) into loop/toy-cleanup: both rows kept, the 8 new toy tests source reap.sh, test-narrow uses toy_on_exit
+- test-no-leftovers.sh declares # reads: dev/toy/ (main's lanes header rule)
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- test-automation.sh (new on main) sources reap.sh
+- Merge origin/main (loop-guards, v0.21.0) into loop/toy-cleanup: both rows kept, test-guards.sh sources reap.sh
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.21.0 - 2026-11-10
+
+- loop-guards: guards.py (rules per step start, no-try refusals, resume, touches, finished findings), worker refusal text, bind worktree/--cwd, pool lock, toy test
+- loop-guards: regression rows (7, seen red), wiki Usage and Tests, Monitoring commands, goal Closes and verify steps
+- loop-guards: review fixes (pool release locked, resume rechecks after reserve, exact undo, worker cwd always checked, null rules_at, marker rule gate, pr commits a synced goal file, exit 2 for no-try refusals, 10 refusals wait for the owner, touches path chars, slug check)
+- loop-guards: review cycle 2 (resume reserves and saves under the pool lock; bind saves inside it; pr checks waiting first; the qa lane refusal counts as a refusal)
+- loop-guards: qa fix: answer clears the refusal count after the owner wait
+- loop-guards: listing declares reserve (and touches); DEL-3 row expects the waiting gate pr now checks first
+- Merge remote-tracking branch 'origin/main' into loop/loop-guards
+- Wiki: update pages for loop-guards
+
+### How to verify
+
+1. In a toy repo (`bash dev/toy/test-guards.sh /tmp/guards g2` builds one and leaves it), record a step whose reply has no
+   DEPTH line: `LOOP_ROLE=worker python3 skills/workflow-delivery/scripts/goal.py record <slug> plan --file reply.txt --in-session`.
+   Expect: `REFUSED (no try used): plan refused: no DEPTH line (rule depth-line, added in v0.12.1)`, exit 2, and the
+   goal still running with tries 0 (`goal.py show <slug>`).
+2. Mark a session goal stopped, then run `python3 skills/workflow-delivery/scripts/goal.py resume <slug> --why "check"` from the main checkout.
+   Expect: `RESUMED <slug> at <step>`, status running, tries 0, and `resumed by operation session: check` in its log.
+3. Run `python3 skills/workflow-delivery/scripts/goal.py record <slug> idea --file x` without LOOP_ROLE.
+   Expect: a `REFUSED` line naming the goal's session, its worktree and `LOOP_ROLE=worker python3 .../goal.py record <slug> idea --file x`.
+4. Run `python3 skills/workflow-monitoring/scripts/sessions.py bind <slug> <id> --cwd /tmp`.
+   Expect: `REFUSED: session folder /tmp is outside the goal worktree ... (CWD_OUTSIDE)`; without `--cwd`, a `WORKTREE <slug>: <path>` line.
+
+## v0.20.0 - 2026-11-10
+
+- feat: scheduled health and digest (automation.py), regression routine switch and defect labels, Automation PRD page, REG-4/5 reworded
+- test: Automation toy test with stub gh, rows for AUT-1..5 and REG-4/5; schedule rows move to Automation
+- docs: Automation in the health and regression skills, README and wiki; new rows seen failing once, results recorded
+- docs: Home lists Automation; the Setup page says setup writes both scheduled workflows
+- fix: review (Backlog milestone before filing, digest state only after its comment, no hygiene on runners, off stops only the schedule, plain-cron check, no issue writes when the list fails, relabel only when needed)
+- test: review rows seen failing once, results recorded
+- docs: the health page says which groups the scheduled run files
+- fix: review pass 2 (judge failure keeps the step green, cron fullmatch, custom secret name maps to the judge's variable, setup writes health.yml only with the skill in the repo)
+- test: pass-2 rows seen failing once, results recorded
+- docs: the setup page says when health.yml is written; the regression page states the cron rule
+- docs: the health page says how the scheduled judge runs
+- fix: pregate (the judge setting is judge_env, naming the secret without looking like one; old default cron literals in tests updated)
+- docs: the health and setup pages name the Automation settings
+- test: coverage for the foreign health.yml, the local dry-run digest, off on push and by hand, the regression schedule warning, local relabel and setup's health.yml choice
+- test: coverage rows seen failing once, results recorded
+- automation: judge_setup runs without the agent key; non-string judge_env and digest_owner refused or named; test header declares skills/
+- docs: Automation and Health pages name the judge_setup key rule and the judge_env check
+- workflow-regression SKILL.md back under 150 lines after merging main; Automation page: judge_setup takes trusted commands only
+- docs: Regression page names the default schedule
+- docs: design guide and setup skill name the scheduled workflows
+- docs: Regression and Setup pages as merged with main (rebase conflict repair)
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.19.1 - 2026-11-10
+
+- No code changes
+
+### How to verify
+
+1. Run `bash dev/toy/test-board-estimates.sh` and read the printed board.
+   Expect: the running goal shows `[build over by 30m]`, `30m left`, a finish time later than the on-time board, and no line wider than 60 characters.
+2. Run `python3 skills/workflow-monitoring/scripts/board_status.py` in this repo.
+   Expect: the step flow wraps at the `>` joints and no line runs past 60 characters.
+
+Closes #93
+
 ## v0.19.0 - 2026-11-10
 
 - Merge remote-tracking branch 'origin/main' into loop/board-held

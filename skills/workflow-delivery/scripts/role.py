@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """What goal.py and flow.py do as a worker: refuse outside one, read the operation session's messages, report each
 change of step or status, bring the latest base into the branch, count tokens, and run the regression lane.
-Imported; run only as `role.py lane SLUG qa|ship|pr` (start or poll a lane by hand) and `role.py lane-wait SLUG qa|ship|pr`
-(block until the lane for HEAD ends). The lane itself lives in lane.py."""
+Imported; run only as `role.py lane SLUG qa|ship|pr` (start or poll a lane by hand) and `role.py lane-exec` (a lane's child)."""
 import os
 import re
 import shlex
@@ -14,16 +13,33 @@ import json
 import datetime
 import time
 
-REFUSE = "REFUSED: %s is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME"
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 TOKENS = re.compile(r"(\d[\d,]*) (?:total )?tokens", re.I)
 
 
-def guard(name):
-    """Goal steps run in a worker, which has LOOP_ROLE=worker; anywhere else they refuse, naming the worker command."""
-    if os.environ.get("LOOP_ROLE") != "worker":
-        sys.exit(REFUSE % name)
+def guard(name, slug=None):
+    """Goal steps run in a worker, which has LOOP_ROLE=worker; anywhere else they refuse. For a goal bound to a session the
+    refusal gives the exact command to run there (LOOP_ROLE is a role convention, not a security boundary); otherwise it
+    says how to start or bind a worker."""
+    if os.environ.get("LOOP_ROLE") == "worker":
+        return
+    state = {}
+    if slug and re.match(r"^[a-z0-9][a-z0-9-]{0,50}$", slug):
+        try:
+            with open(os.path.join(os.path.abspath(git("rev-parse", "--git-common-dir").stdout.strip()), "loop", "runs", slug + ".json")) as handle:
+                state = json.load(handle)
+        except (OSError, ValueError):
+            state = {}
+    state = state if isinstance(state, dict) else {}
+    session = (state.get("session") or {}) if state.get("worker") == "session" else {}
+    if session.get("id"):
+        command = " ".join(shlex.quote(part) for part in [os.path.abspath(sys.argv[0])] + sys.argv[1:])
+        sys.exit("REFUSED: %s is worker work and LOOP_ROLE is not worker here. Fix: in %s, in %s, run: LOOP_ROLE=worker "
+                 "python3 %s. The operation session doesn't run goal steps. (NOT_WORKER)" % (
+                     name, session.get("name") or session["id"], state.get("worktree") or "the goal's worktree", command))
+    sys.exit("REFUSED: %s is worker work. Fix: start a worker for %s (batch.py start NAME), or bind a session "
+             "(sessions.py bind %s ID) and run it there as LOOP_ROLE=worker. (NOT_WORKER)" % (name, slug or "the goal", slug or "SLUG"))
 
 
 def inbox(common, slug):
@@ -102,6 +118,8 @@ def begin(record, step):
         return
     state["step"] = step
     (state.get("depth") or {}).pop(step, None)  # a rerun step's earlier depth no longer stands
+    import guards  # lazily: guards imports role
+    guards.stamp(state, step)  # the format rules this step started under
     state["updated"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     state.setdefault("log", []).append("%s start %s" % (state["updated"], step))
     temp = record + ".%d.tmp" % os.getpid()
@@ -148,39 +166,36 @@ def markers(step):
     return found, ""
 
 
-def record_depth(state, step, text, cfg, result):
-    """(stamp, error) for a step that advances. Every step states its depth on a DEPTH: line of its own before its STEP
-    line; under review_depth full, plan and review may not run condensed, and a full one carries every private marker.
-    A skipped step is held to neither: it ran nothing."""
-    setting = depth_of(cfg)
-    ends = list(STEP.finditer(text))
-    body = text[:ends[-1].start()] if ends else text
-    found = DEPTH.findall(body)
-    if not found:
-        return "", "no DEPTH line. Fix: write 'DEPTH: full' or 'DEPTH: condensed' on a line of its own just before the STEP line"
-    depth = found[-1].lower()
-    if step in ("plan", "review") and result != "skipped":
-        if depth == "condensed" and setting == "full":
-            return "", "the %s step ran condensed while review_depth is full. Fix: rerun the %s step at full depth" % (step, step)
-        if depth == "full":
-            wanted, bad = markers(step)
-            if bad:
-                return "", bad
-            rest = "\n".join(line for line in body.splitlines() if not DEPTH.match(line)).lower()
-            if any(m.lower() not in rest for m in wanted):
-                return "", "a configured full_markers evidence string for %s is missing from the reply. Fix: rerun the %s step at full depth" % (step, step)
-    state.setdefault("depth", {})[step] = depth
-    return " (depth %s%s)" % (depth, ", skipped" if result == "skipped" else ""), ""
-
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lane import NOTHING, alive, flow_spec, kill, lane, lane_argv, lane_status, lane_text, need_lane, wait_for  # noqa: E402,F401
+
+
+def bump_version(g, state, head):
+    """goal.py pr: bump the version file once per pull request where the repo asks for it (pr_bumps_version)."""
+    cfg = g.config()
+    name = cfg.get("version_file") or "VERSION"
+    path = os.path.join(g.root(), name)
+    if not cfg.get("pr_bumps_version") or not os.path.exists(path):
+        return head
+    version = g.read(path).strip()
+    if version != g.git("show", "%s:%s" % (g.base_ref(state), name), check=False).strip():
+        return head
+    if not re.match(r"^\d+(\.\d+)+$", version):
+        g.no("the version %r isn't numbers and dots. Fix: set it by hand." % version)
+    parts = version.split(".")
+    parts[-1] = str(int(parts[-1]) + 1)
+    g.write(path, ".".join(parts) + "\n")
+    g.git("add", "--", name)
+    g.git("commit", "-m", "Bump version to " + ".".join(parts), "--", name)
+    new = g.git("rev-parse", "HEAD")
+    g.save(state, "bumped %s to %s" % (name, ".".join(parts)))
+    return new
 
 
 if __name__ == "__main__":
     import lane as lanes
     if sys.argv[1:2] in (["lane"], ["lane-wait"]):
-        guard("role.py " + sys.argv[1])
+        guard("role.py " + sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
     sys.exit(lanes.main(sys.argv[1:]))
 
 

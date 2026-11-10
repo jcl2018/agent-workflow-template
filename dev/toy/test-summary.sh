@@ -2,7 +2,9 @@
 # reads: skills/
 # Test the regression run summary and the one test format on throwaway repos with a fake gh. usage: test-summary.sh
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR=$(mktemp -d)
 unset GH_TOKEN GITHUB_TOKEN GITHUB_STEP_SUMMARY GITHUB_ENV GITHUB_OUTPUT GITHUB_PATH GITHUB_STATE
@@ -95,13 +97,13 @@ rm run.tsv; : > sum.md
 RUNNER_TEMP="$r" REGRESSION_RESULTS="$r/run.tsv" GITHUB_STEP_SUMMARY="$r/sum.md" PATH="$g:$PATH" bash -e step.sh >/dev/null 2>&1
 grep -q "could not be written" sum.md && ok "with no results file at all, the summary still says so" || bad "summary with no results"
 c=$(mktemp -d); cp -R "$here/skills" "$c/"; echo '# ${{ github.token }}' >> "$c/skills/workflow-regression/scripts/tests.py"
-python3 -B -c "import sys; sys.path.insert(0, '$c/skills/workflow-regression/scripts'); import actions; actions.render('17 9 * * *')" 2>err.txt; rc=$?
+python3 -B -c "import sys; sys.path.insert(0, '$c/skills/workflow-regression/scripts'); import actions; actions.render('17 */4 * * *')" 2>err.txt; rc=$?
 [ $rc != 0 ] && grep -q "^REFUSED: tests.py contains \${{" err.txt && ok "the workflow refuses to carry a tests.py Actions would read" || bad "render guard"
 rm "$c/skills/workflow-regression/scripts/tests.py"
 out=$(python3 -B "$c/skills/workflow-health/scripts/health.py" check 2>/dev/null)
-python3 -B -c "import sys; sys.path.insert(0, '$c/skills/workflow-docs/scripts'); import criteria; assert criteria.tests_format() is None" 2>err.txt
+python3 -B -c "import sys; sys.path.insert(0, '$c/skills/workflow-docs/scripts'); import render; assert render.tests_format() is None" 2>err.txt
 awk '/^TESTS$/{t=1; next} t && /^$/{exit} t' <<<"$out" | grep -q "^NOTE: the test list is unavailable" && tail -1 <<<"$out" | grep -q '^HEALTH: ' \
-  && grep -q "^NOTE: .*tests.py not found or broken (FileNotFoundError); Tests lines use the old shape" err.txt && ok "without tests.py, health and the wiki say so and keep working" || bad "missing tests.py"
+  && grep -q "^NOTE: .*tests.py not found or broken (FileNotFoundError); Tests use a plain shape" err.txt && ok "without tests.py, health and the wiki say so and keep working" || bad "missing tests.py"
 rm -rf "$c"
 out=$(python3 -B "$here/skills/workflow-health/scripts/health.py" check 2>/dev/null)
 t=$(awk '/^TESTS$/{t=1; next} t && /^$/{exit} t' <<<"$out")

@@ -5,7 +5,7 @@ echo "$*" >> "$d/calls.log"
 here=$(cd "$(dirname "$0")" && pwd)
 case "$1 $2" in
   "api "*) exec python3 "$here/fake.py" "$@";;
-  "issue list"|"issue create") [[ "$*" == *"--label health"* || "$*" == *"--milestone"* ]] && exec python3 "$here/fake.py" "$@";;
+  "issue list"|"issue create") [[ "$*" == *"--label health"* || "$*" == *"--milestone"* || "$*" == *"--repo "* || "$*" == *"number,title,milestone"* ]] && exec python3 "$here/fake.py" "$@";;
   "issue edit"|"issue close"|"issue reopen"|"issue comment"|"pr edit") [ -f "$d/issues.json" ] || [ "$1" = pr ] && exec python3 "$here/fake.py" "$@";;
 esac
 case "$1 $2" in
@@ -23,7 +23,10 @@ case "$1 $2" in
   "release create") [ -n "${FAKE_GH_RELEASE_FAIL:-}" ] && { echo "release refused" >&2; exit 1; }
      while [ $# -gt 0 ]; do [ "$1" = --notes-file ] && cat "$2" >> "$d/notes.log"; shift; done
      echo "https://example.test/releases/draft";;
-  "release view") grep -qx "$3" "$d/releases" 2>/dev/null && exit 0; echo "release not found" >&2; exit 1;;
+  "release view") [[ "$*" == *"--json tagName"* ]] && { [ -n "${FAKE_GH_LATEST_TAG:-}" ] && { echo "$FAKE_GH_LATEST_TAG"; exit 0; }; echo "release not found" >&2; exit 1; }
+     grep -qx "$3" "$d/releases" 2>/dev/null && exit 0; echo "release not found" >&2; exit 1;;
+  "release download") [[ "$*" == *"--archive zip"* ]] || exit 1; dir=.; while [ $# -gt 0 ]; do [ "$1" = --dir ] && dir=$2; shift; done
+     [ -f "${FAKE_GH_ARCHIVE:-}" ] || { echo "release not found" >&2; exit 1; }; cp "$FAKE_GH_ARCHIVE" "$dir/";;
   "pr list") echo "[]";;
   "issue list") python3 -c '
 import datetime, json, os

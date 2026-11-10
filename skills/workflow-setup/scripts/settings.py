@@ -32,10 +32,14 @@ TABLE = [
     ("pr_bumps_version", REPO, False, "true moves the last number of the version file once on a goal's branch."),
     ("version_file", REPO, "VERSION", "The file that holds the version; a release bumps it and writes the changelog."),
     ("routines", REPO, [], "Commands the release step runs on the base branch before it merges."),
-    ("regression_cron", REPO, "17 9 * * *", "Five cron fields: when the nightly regression runs in GitHub Actions."),
+    ("regression_cron", REPO, "17 */4 * * *", "Five cron fields: when the regression routine runs in GitHub Actions; off turns it off."),
+    ("health_cron", REPO, "47 */4 * * *", "Five cron fields: when the health routine and its digest run in GitHub Actions; off turns it off."),
+    ("judge_env", REPO, "ANTHROPIC_API_KEY", "The Actions secret holding the agent key; the scheduled judge runs only when it is set."),
+    ("judge_setup", REPO, "", "A command the scheduled health run uses to install judge_command's program, run only with the secret."),
+    ("digest_owner", REPO, "", "Who the digest comment mentions; empty means the repo owner (an organisation notifies no one)."),
     ("review_depth", REPO, "full", "full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run."),
     ("criteria", REPO, True, "true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests)."),
-    ("criteria_max", REPO, 6, "Most criteria a wiki page may hold, 1 to 50; docs check and health fail a page over it."),
+    ("criteria_max", REPO, 10, "Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it."),
     ("wiki_dir", REPO, "docs/wiki", "The folder of wiki pages."),
     ("risky_paths", REPO, RISKY, "Regexes for paths whose goals need extra care."),
     ("step_limit", REPO, 0, "Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit."),
@@ -48,12 +52,14 @@ TABLE = [
     ("resume_on_limit", REPO, False, "true lets watch resume a goal that hit a usage limit."),
     ("limit_wait", REPO, 1800, "Seconds to wait after a usage limit before resuming."),
     ("watch_interval", REPO, 20, "Seconds between rounds of watch."),
+    ("agent_files", REPO, ["CLAUDE.md", "AGENTS.md"], "Agent entry files setup wires the workflow-loop block into; [] turns wiring off."),
+    ("template_repo", REPO, "", "The template's GitHub repo (owner/name) update reads releases from, when the installed package names none."),
     ("reply_hook", REPO, True, "false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session."),
     ("command", PRIVATE, ["claude", "-p"], "Flow file: the agent command that runs each flow step unattended."),
     ("allowed_tools", PRIVATE, [], "Flow file: tools a step's agent may use, passed as --allowedTools; empty adds nothing."),
     ("model", PRIVATE, "", "Flow file: the model a step's agent uses, passed as --model; empty keeps the command's own."),
-    ("suite", PRIVATE, {"idea": "", "plan": "", "review": "", "qa": "", "ship": ""},
-     "Flow file: the default skill for each step; empty until you name your own."),
+    ("suite", PRIVATE, {"idea": "built-in", "plan": "built-in", "review": "built-in", "qa": "built-in", "ship": "built-in"},
+     "Flow file: the skill for each step; built-in runs delivery's own routine until you name your own."),
     ("steps", PRIVATE, {}, "Flow file: a skill for any one step, replacing the suite's."),
     ("overrides", PRIVATE, {}, "Flow file: per step {skill, model, allowed_tools} that replace the defaults above."),
     ("env", PRIVATE, {}, "Flow file: environment that puts the skills in their unattended mode."),
@@ -118,9 +124,9 @@ def check_depth(held, path):
 
 
 def repo_help(held):
-    """The config's _help map: review_depth's one-line explanation added when missing, anything already there kept."""
+    """The config's _help map: review_depth's and criteria_max's explanations added when missing, the rest kept."""
     found = held.get("_help") if isinstance(held.get("_help"), dict) else {}
-    return dict({"review_depth": next(t for k, _, _, t in TABLE if k == "review_depth")}, **found)
+    return dict({k: t for k, _, _, t in TABLE if k in ("review_depth", "criteria_max")}, **found)
 
 
 def private_path():
@@ -139,6 +145,10 @@ def fill_private(path=None):
             new[key] = default
         if key in FLOW_KEYS and key not in help_:
             help_[key] = text.split(": ", 1)[-1]
+    suite = new.get("suite")
+    if isinstance(suite, dict) and not any(suite.values()) and not new.get("steps"):  # never configured: the built-in flow
+        new["suite"] = dict((key, "built-in") for key in ("idea", "plan", "review", "qa", "ship"))
+        added.append("suite")
     new["_help"] = help_
     if new != held:
         write_json(path, new, 0o600)
@@ -150,6 +160,22 @@ def fill_private(path=None):
     if not os.path.exists(repos):
         open(repos, "w").close()
         os.chmod(repos, 0o600)
+    return added
+
+
+def fill_repo(path):
+    """Add each missing repo setting, with its default and _help line, to the config at path; never changes a value set.
+    Keeps the config's key order, new keys last. Returns what was added (update's repo half calls it too)."""
+    held = load(path)
+    if "criteria_max" in held and (isinstance(held["criteria_max"], bool) or not isinstance(held["criteria_max"], int)
+                                   or not 1 <= held["criteria_max"] <= 50):
+        sys.exit("REFUSED: criteria_max is %r in %s. Fix: a whole number from 1 to 50 (default 10)." % (held["criteria_max"], path))
+    check_depth(held, path)
+    added = [k for k in repo_defaults() if k not in held]
+    merged = dict(held, **{k: v for k, v in repo_defaults().items() if k not in held})
+    merged["_help"] = repo_help(held)
+    if merged != held:
+        write_json(path, merged)
     return added
 
 
@@ -175,16 +201,7 @@ def main():
     elif args.command == "fill-repo":
         top = subprocess.run(["git", "-C", args.repo, "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
         path = os.path.join(top or args.repo, ".loop", "config.json")
-        held = load(path)
-        if "criteria_max" in held and (isinstance(held["criteria_max"], bool) or not isinstance(held["criteria_max"], int)
-                                       or not 1 <= held["criteria_max"] <= 50):
-            sys.exit("REFUSED: criteria_max is %r in %s. Fix: a whole number from 1 to 50." % (held["criteria_max"], path))
-        check_depth(held, path)
-        added = [k for k in repo_defaults() if k not in held]
-        merged = dict(repo_defaults(), **held)
-        merged["_help"] = repo_help(held)
-        write_json(path, merged)
-        print("FILLED %s: %s" % (path, ", ".join(added) or "nothing missing"))
+        print("FILLED %s: %s" % (path, ", ".join(fill_repo(path)) or "nothing missing"))
     else:
         added = fill_private(args.file or None)
         print("FILLED %s: %s" % (args.file or private_path(), ", ".join(added) or "nothing missing"))

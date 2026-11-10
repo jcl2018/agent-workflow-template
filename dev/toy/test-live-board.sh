@@ -8,9 +8,11 @@
 # Proves the live board line by line with a made-up repo: two running goals, queued and chained goals and one open issue (a stuck
 # worker). No model is called. usage: test-live-board.sh [DIR]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 M="$here/skills/workflow-monitoring/scripts"
 export HOME="$T/home"; mkdir -p "$HOME"
@@ -58,9 +60,9 @@ check "line 1 is the header: LIVE BOARD, repo, local time, version, health" 'L 1
 check "the sections come in order: Issues, Running goals, Queued goals, Dependencies, Finish" 'grep -nE "^(Issues|Running goals|Queued goals|Dependencies|Finish)$" "$T/board" | cut -d: -f2 | paste -sd, - | grep -qx "Issues,Running goals,Queued goals,Dependencies,Finish"'
 check "Issues puts the stuck worker first, with its fix and the exact words" 'sed -n "/^Issues/,/^Running/p" "$T/board" | sed -n 2,3p | grep -q "^- beta is waiting" && sed -n "/^Issues/,/^Running/p" "$T/board" | grep -q "fix: answer by typing \"use sqlite\" or \"use postgres\""'
 check "no local path appears anywhere" '! grep -Eq "/srv|/home|~/|\.git/|\.loop" "$T/board"'
-check "a running goal has a 10-cell bar, percent and time left" 'grep -Eq "^- alpha  \[#{2}-{8}\] 25%  [0-9]+m left$" "$T/board"'
-check "its step flow ticks done steps and brackets the current one" 'grep -qx "    idea✓ > plan✓ > \[build\] > review > qa > ship > pr > release" "$T/board"'
-check "the other running goal shows its own flow" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr > release" "$T/board"'
+check "a running goal has a 10-cell bar, percent and time left" 'grep -Eq "^- alpha  \[#{2}-{8}\] 25%  [0-9]+m to [0-9]+m left(, rough)?$" "$T/board"'
+check "its step flow ticks done steps and brackets the current one, wrapped at the joints" 'grep -qx "    idea✓ > plan✓ > \[build\] > review > qa > ship > pr >" "$T/board" && grep -qx "    release" "$T/board"'
+check "the other running goal shows its own flow" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr >" "$T/board"'
 check "each running goal has a one-line next step" '[ "$(grep -c "^    next: " "$T/board")" = 2 ]'
 check "Queued goals list gamma, delta and eps with what they wait on" 'sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep -q "^- gamma .*waits on alpha$" && sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep -q "^- delta .*waits on gamma, beta$" && sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep -Eq "^- eps  [^ ].*$" && ! sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep eps | grep -q waits'
 check "Dependencies are arrows between running and queued goals" 'sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -qx "alpha --> gamma" && sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -qx "gamma --> delta" && sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -qx "beta --> delta"'

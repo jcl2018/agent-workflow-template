@@ -3,14 +3,18 @@
 # reads: skills/workflow-docs/scripts/prd.py skills/workflow-health/scripts/health.py
 # reads: skills/workflow-health/scripts/milestone.py skills/workflow-monitoring/scripts/board_status.py
 # reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
+# reads: skills/workflow-health/scripts/judge.py
 # reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-regression/scripts/regression.py
 # reads: skills/workflow-release/scripts/release.py skills/workflow-setup/scripts/setup.py
 # Test the PRD page format: section order, the owner's PRD review lock, Usage drift, Given/When/Then scenarios, the prd
 # command, convert, the requirement readers, and that this repo stays green. usage: test-prd.sh [DIR]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_BATCH  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
+export LOOP_OWNER_WORDS='"review it" (the toy owner)'  # review --user with no terminal needs the owner's words
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1
 export LOOP_FLOW="$d/flow.json" PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
@@ -26,14 +30,23 @@ python3 -c "import json; c = json.load(open('.loop/config.json')); c['criteria']
 mkdir -p "$FAKE_GH_DIR" docs/wiki skills/toy
 printf '## Command map\n\n| Ask | Runs |\n|---|---|\n| `/toy median` | `python3 scripts/calc.py median` |\n| `/toy mean` | `python3 scripts/calc.py mean` |\n' > skills/toy/SKILL.md
 printf 'Delivery\tcalc.py\nHome\tREADME.md\n' > .loop/docs.tsv
-printf '<!-- workflow-docs -->\n# Home\n\nThe home page of the toy repo, with enough words to count as written.\n' > docs/wiki/Home.md
+printf '<!-- workflow-docs -->\n# Toy\n\n## Features\n\n| Feature | What it does | How to use | Milestone |\n|---|---|---|---|\n| [Delivery](Delivery) | Sums up the numbers of the toy calculator. | [README](https://github.com/toy/repo#how-to-use-delivery) | https://example.test/milestone/1 |\n' > docs/wiki/Home.md
+printf '\n## How to use\n\n### How to use Delivery\n\n| You say | What happens |\n|---|---|\n| "What is the median of 1 2 3?" | The calculator prints it. |\n' >> README.md
 repo=$PWD; fails=0; day=$(date -u +%F)
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 P=docs/wiki/Delivery.md
-USAGE='- `/toy median 1 2 3` prints the median.'
-REQS='- DEL-1: **Unreviewed** The calculator prints a median.
-- DEL-2: **Unreviewed** It exits 0.'
+USAGE='- `/toy median 1 2 3` — Prints the median (`2`). Refuses nothing.'
+REQS='### Functional
+
+- DEL-1: **Unreviewed** The calculator prints a median.
+  - The median of the numbers given is printed.
+- DEL-2: **Unreviewed** It exits 0.
+  - It exits 0 once it has printed.
+
+### Non-functional
+
+None'
 page() { # page [USAGE]: a PRD page for Delivery, rendered
   local usage=""; [ -n "${1:-}" ] && usage="## Usage
 
@@ -50,7 +63,7 @@ Review: **Unreviewed**
 
 ## Problem
 
-The owner of the toy calculator wants its numbers summed up.
+- I own the toy calculator and want my numbers summed up.
 
 ${usage}## Requirements
 
@@ -128,7 +141,7 @@ $cri review Delivery 2>&1 | grep -q "only the owner" && ok "a PRD review needs -
 $cri review Delivery --user --date 2026-11-08 | grep -q "^REVIEWED PAGE Delivery" && grep -q "^Review: \*\*Reviewed 2026-11-08\*\* <!-- prd P=[0-9a-f]\{8\} R=[0-9a-f]\{8\} N=[0-9a-f]\{8\} M=[0-9a-f]\{8\} U=[0-9a-f]\{8\} -->$" $P && ok "review PAGE --user --date stamps the PRD line with five fingerprints" || bad "review page"
 check | grep -q "DOCS OK" && ok "a reviewed PRD passes" || bad "reviewed: $(check)"
 git commit -qam "Reviewed PRD" >/dev/null
-for pair in "owner of the toy calculator|owner of the big calculator|Problem" "prints a median.|prints a mode.|Requirements" "- No charts.|- No graphs.|Non-goals" "for every list|for most lists|Success metrics"; do
+for pair in "own the toy calculator|own the big calculator|Problem" "prints a median.|prints a mode.|Requirements" "- No charts.|- No graphs.|Non-goals" "for every list|for most lists|Success metrics"; do
   IFS='|' read -r a b name <<<"$pair"
   edit "$a" "$b"; out=$(check)
   grep -q "^LOCKED Delivery: the reviewed PRD changed in $name (reviewed lock" <<<"$out" && grep -q "Fix: git log -p -- docs/wiki/Delivery.md .*unreview Delivery --user (and /workflow-docs unreview ID --user" <<<"$out" && ok "a change to $name is LOCKED with both un-review fixes" || bad "lock $name: $out"
@@ -141,10 +154,10 @@ t = t.replace("- No files.\n\n", "", 1).replace("## Success metrics\n\n", "## Su
 open(p, "w").write(t)
 PY
 check | grep -q "^LOCKED Delivery: the reviewed PRD changed in Non-goals, Success metrics" && ok "a line moved from Non-goals to Success metrics is LOCKED naming both" || bad "moved line"
-git checkout -q -- $P; edit "owner of the toy" "owner of the old"; edit "- No charts." "- No plots."
+git checkout -q -- $P; edit "own the toy" "own the old"; edit "- No charts." "- No plots."
 check | grep -q "^LOCKED Delivery: the reviewed PRD changed in Problem, Non-goals (reviewed lock P=.* N=.*, now P=.* N=" && ok "two sections changed at once are both named, with both locks" || bad "two sections"
-git checkout -q -- $P; edit "The owner of the toy calculator wants its numbers summed up." "The owner of the toy calculator
-wants   its numbers summed up."
+git checkout -q -- $P; edit "- I own the toy calculator and want my numbers summed up." "- I own the toy calculator
+and want   my numbers summed up."
 check | grep -q "LOCKED" && bad "a reflow-only edit is LOCKED" || ok "a reflow-only edit is not LOCKED"
 git checkout -q -- $P; edit "- DEL-2: **Unreviewed** It exits 0." "- DEL-2: **Unreviewed** It exits 0.
 - DEL-3: **Unreviewed** It is quick."; check | grep -q "^LOCKED Delivery: the reviewed PRD changed in Requirements" && ok "adding a requirement is LOCKED" || bad "add requirement"
@@ -171,7 +184,7 @@ $cri unreview Home --user 2>&1 | grep -q "REFUSED: Home is not a feature page" &
 ! $cri unreview ../../README --user >/dev/null 2>&1 && ok "a page name outside the wiki is refused" || bad "page path"
 
 echo "== 4. a Usage change after the review is CHANGED: the check fails, the board lists it, audit and publish ignore it"
-edit "prints the median." "prints the median of the numbers."
+edit "Prints the median (\`2\`)." "Prints the median of the numbers (\`2\`)."
 out=$(check); rc=$?
 grep -q "^CHANGED Delivery: Usage edited since the owner's review on 2026-11-08 (reviewed U=[0-9a-f]*, now U=[0-9a-f]*). Fix: the owner runs /workflow-docs review Delivery --user; an agent cannot clear this" <<<"$out" && ! grep -q LOCKED <<<"$out" && [ "$rc" = 1 ] && ok "an edited Usage is CHANGED, not LOCKED, and the check exits 1" || bad "usage edited: $out"
 (cd "$here/skills/workflow-monitoring/scripts" && python3 -c "import board_status; print(board_status.wiki_check('$repo'))") | grep -q "('CHANGED', 'Delivery')" && ok "the board's wiki check lists the CHANGED page" || bad "board"
@@ -179,8 +192,8 @@ out=$($docs audit --dry-run); rc=$?
 ! grep -q CHANGED <<<"$out" && grep -q "^UNTESTED DEL-1" <<<"$out" && [ "$rc" = 0 ] && ok "audit --dry-run with only CHANGED and UNTESTED lines prints no CHANGED and exits 0" || bad "audit: $rc $out"
 out=$($docs publish --dry-run --adopt Home 2>&1)
 ! grep -q "fix the pages above" <<<"$out" && ! grep -q "^CHANGED" <<<"$out" && grep -q "WOULD WRITE Delivery" <<<"$out" && ok "publish's pre-check passes with only a CHANGED line" || bad "publish: $out"
-git checkout -q -- $P; edit "- \`/toy median 1 2 3\` prints the median." "- \`/toy median 1 2 3\` prints the median.
-- \`/toy mean 1 2 3\` prints the mean."
+git checkout -q -- $P; edit "Refuses nothing." "Refuses nothing.
+- \`/toy mean 1 2 3\` — Prints the mean (\`2\`). Refuses nothing."
 check | grep -q "^CHANGED Delivery: Usage edited" && ok "a new Usage line is CHANGED" || bad "usage line added"
 git checkout -q -- $P; python3 - "$P" <<'PY'
 import re, sys
@@ -216,9 +229,9 @@ for r in rows:
 open(p, "w").write("\n".join("\t".join(r) for r in rows))
 PY
 $reg run del-1a >/dev/null || true; $cri render >/dev/null
-grep -q "^- Given 1 2 3, when the median is asked, then it prints 2\. — \[del-1a\](../../.loop/regression.tsv), requirement, guards DEL-1, both, PASS $day, seen failing no$" $P && ok "a row renders as a scenario with its test, result and date" || bad "scenario line"
-grep -A6 "^#### DEL-2$" $P | grep -q "^- It exits 0\. (not yet Given/When/Then) — \[del-2a\]" && grep -A6 "^#### DEL-2$" $P | grep -q "^- \*\*not enforced\*\*" && ok "a plain description renders flagged, and a requirement with no passing row is not enforced" || bad "flagged"
-grep -A3 "^### Defect tests" $P | grep -q "^- Empty input crashes\. (not yet Given/When/Then) — \[bug-1\](.*), defect, guards \[#7\](https://example.test/issues/7) state unknown, " && ok "defect tests render in the same scenario form" || bad "defect scenario"
+grep -qxF "| [del-1a](Tests#t-del-1a) | requirement | DEL-1 | Given 1 2 3, when the median is asked, then it prints 2. | PASS $day |" $P && ok "a row renders as a scenario in the Tests table, with its test link, result and date" || bad "scenario line"
+grep -qxF "| [del-2a](Tests#t-del-2a) | requirement | DEL-2 | It exits 0. (not yet Given/When/Then) | not run |" $P && grep -qxF "| - | requirement | DEL-2 | no passing test | not enforced |" $P && ok "a plain description renders flagged, and a requirement with no passing row is not enforced" || bad "flagged"
+grep -qxF "| [bug-1](Tests#t-bug-1) | defect | [#7](https://example.test/issues/7) state unknown | Empty input crashes. (not yet Given/When/Then) | not run |" $P && ok "defect tests render in the same scenario form, in the same table" || bad "defect scenario"
 out=$($docs audit --dry-run)
 grep -q "^REWRITE regression: SCENARIO row del-2a: 'It exits 0.' is not 'Given ..., when ..., then ...'. Fix:" <<<"$out" && grep -q "SCENARIO row bug-1" <<<"$out" && ! grep -q "SCENARIO row del-1a" <<<"$out" && ok "audit lists each plain row, defect rows too, as SCENARIO" || bad "scenario audit: $out"
 check | grep -q "SCENARIO" && bad "SCENARIO failed the docs check" || ok "SCENARIO is not a docs check failure"
@@ -263,7 +276,7 @@ $prd new DEL-4 "x" --paths calc.py 2>&1 | grep -q "REFUSED: DEL-4 looks like a r
 $prd new Billing "charge cards" 2>&1 | grep -q "REFUSED: no --paths.*Fix: .*--paths" && [ ! -f docs/wiki/Billing.md ] && ok "a missing --paths is refused" || bad "no paths"
 $prd new Delivery "x" --paths calc.py 2>&1 | grep -q "REFUSED: docs/wiki/Delivery.md already exists" && ok "an existing page is refused" || bad "existing"
 out=$($prd new Delight "Owners want a smile when the sum is right." --paths calc.py); echo "$out"
-grep -q "^DRAFTED docs/wiki/Delight.md: Review \*\*Unreviewed\*\*, requirement DELI-1" <<<"$out" && grep -q "^NEXT replace the two placeholder lines" <<<"$out" && grep -q "regression row in this same pull request" <<<"$out" && ok "prd new drafts the page, takes a free prefix (DEL is used) and prints the next steps" || bad "new output"
+grep -q "^DRAFTED docs/wiki/Delight.md: Review \*\*Unreviewed\*\*, requirement DELI-1" <<<"$out" && grep -q "^NEXT replace the placeholder lines" <<<"$out" && grep -q "regression row in this same pull request" <<<"$out" && ok "prd new drafts the page, takes a free prefix (DEL is used) and prints the next steps" || bad "new output"
 grep -q "^Review: \*\*Unreviewed\*\*$" docs/wiki/Delight.md && grep -q "^- DELI-1: \*\*Unreviewed\*\* Owners want a smile" docs/wiki/Delight.md && ! grep -q "^Milestone:" docs/wiki/Delight.md && ok "the draft is Unreviewed, with no Milestone line" || bad "draft shape"
 out=$(check); grep -q "^UNMAPPED" <<<"$out" && bad "the draft is unmapped" || ok "the draft is mapped in docs.tsv"
 grep -q "^UNWRITTEN Delight" <<<"$out" && ! grep -q "^SECTIONS Delight" <<<"$out" && ok "the draft is UNWRITTEN until its placeholders are replaced" || bad "unwritten: $out"
@@ -283,7 +296,7 @@ $prd convert --write | grep -q "^Delivery skipped$" && ok "converting twice chan
 $cri render >/dev/null; out=$(check)
 grep -q "^UNWRITTEN Delivery" <<<"$out" && ! grep -q "^SECTIONS" <<<"$out" && ok "a converted page is UNWRITTEN until its placeholder drafts are replaced" || bad "convert unwritten: $out"
 sed -i.bak 's/^- Write this page from what is really in the repo\./- A real draft line./' $P; rm $P.bak
-check | grep -q "DOCS OK" && ok "with real drafts the converted page passes" || bad "drafted: $(check)"
+! check | grep -v "^FORMAT" | grep -q . && ok "with real drafts the converted page passes all but the format checks, which want a rewrite" || bad "drafted: $(check)"
 printf '<!-- workflow-docs -->\n# Delivery\n\nReview: **Unreviewed**\n\n## Problem\n\nHalf done.\n\n## Criteria\n\n%s\n\n## Non-goals\n\n- None.\n\n## Tests\n\n' "$REQS" > $P
 $prd convert --write | grep -q "^Delivery completed$" && grep -q "^## Requirements$" $P && grep -q "^## Success metrics$" $P && [ "$(grep -c '^Review:' $P)" = 1 ] && ok "a half-converted page is completed" || bad "completed"
 printf '<!-- workflow-docs -->\n# Delivery\n\nReview: **Unreviewed**\n\n## Problem\n\nHalf done.\n\n## Requirements\n\n%s\n\n## Success metrics\n\n- m\n\n## Tests\n\n' "$REQS" > $P

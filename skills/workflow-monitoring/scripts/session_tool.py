@@ -20,6 +20,7 @@ def tool(cfg):
 
 
 HUNG = []  # set when a call times out: the tool is given up for the rest of this run
+LAST_ERROR = [""]  # the last call's failure: the tool's first stderr line, "cannot start", or "timed out"
 
 
 def timeout():
@@ -33,13 +34,16 @@ def call(command, *args):
     """One session tool call: its last output line, or None when it can't start or reach a session. A call past the
     timeout (LOOP_SESSION_TIMEOUT, default 30 s) is killed with its process group, then the tool is given up for the
     run (watch.py clears that each round). Output goes to a file, so a helper the tool leaves running can't hold it."""
+    LAST_ERROR[0] = ""
     if HUNG:
+        LAST_ERROR[0] = "the session tool timed out earlier in this run"
         return None
-    with tempfile.TemporaryFile("w+") as out:
+    with tempfile.TemporaryFile("w+") as out, tempfile.TemporaryFile("w+") as err:
         try:
-            child = subprocess.Popen(command + list(args), stdout=out, stderr=subprocess.DEVNULL,
+            child = subprocess.Popen(command + list(args), stdout=out, stderr=err,
                                      stdin=subprocess.DEVNULL, start_new_session=True)
-        except OSError:
+        except OSError as error:
+            LAST_ERROR[0] = "cannot start %s: %s" % (command[0], error.strerror or error)
             return None
         try:
             child.wait(timeout=timeout())
@@ -55,7 +59,11 @@ def call(command, *args):
             if not isinstance(error, subprocess.TimeoutExpired):
                 raise
             HUNG.append(" ".join(args[:1]))
+            LAST_ERROR[0] = "timed out after %d s" % timeout()
             return None
         out.seek(0)
         lines = out.read().strip().splitlines()
+        if child.returncode:
+            err.seek(0)
+            LAST_ERROR[0] = (err.read().strip().splitlines() or ["exit %d" % child.returncode])[0][:200]
     return (lines[-1].strip() if lines else "") if child.returncode == 0 else None

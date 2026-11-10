@@ -8,9 +8,11 @@
 # Proves the roadmap graph with a made-up queue: parallel and chained goals, the marks, the total as the longest chain, the same
 # graph on the board, and the step label changing when a step starts. No model is called. usage: test-status-graph.sh [DIR]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE  # these tests act as the operation session; workers get LOOP_ROLE=worker where they need it
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 M="$here/skills/workflow-monitoring/scripts"; D="$here/skills/workflow-delivery/scripts"
 BO="python3 $M/board.py"; BP="python3 $M/board_page.py"
@@ -30,7 +32,7 @@ AT=2026-06-01T12:00:00Z
 
 echo "== a made-up queue"
 # Finished goals took idea 10m, plan 21m and build 30m30s, so a goal that has not started needs 61m30s. b is running at plan,
-# which began at AT, so it needs the plan's 21m and the build's 30m30s: 51m30s. a is merged.
+# which began at AT; the 400s since its idea finished count toward plan, so it needs 21m - 6m40s + 30m30s: 44m50s. a is merged.
 mkdir -p "$C/loop/runs"
 python3 - "$C/loop/runs" <<'PY'
 import json, os, sys
@@ -63,17 +65,17 @@ at=[t.index(\"\n%s\n\" % n) for n in (\"Issues\",\"Running goals\",\"Queued goal
 assert at==sorted(at)"'
 check "chained goals are drawn as arrows between running and queued goals" 'grep -qx "b --> c" "$T/block" && grep -qx "c --> d" "$T/block" && ! grep -q "ghost -->" "$T/block"'
 check "a queued goal shows what it waits on, a standalone one waits on nothing" 'grep -q "^- c .*waits on b" "$T/block" && grep -q "^- d .*waits on c" "$T/block" && grep -q "^- e " "$T/block" && ! grep "^- e " "$T/block" | grep -q waits'
-check "merged goals are left out; a running goal has its bar and time left" '! grep -q "merged\|hist\|^- a " "$T/block" && grep -q "^- b  \[#---------\] 12%  51m left" "$T/block" && grep -q "^- c  1h01m left" "$T/block"'
-check "the finish is the longest chain b > c > d, not the sum" 'grep -q "^finish about " "$T/block" && ! grep -q "at least" "$T/block" && python3 -c "
+check "merged goals are left out; a running goal has its bar and time left" '! grep -q "merged\|hist\|^- a " "$T/block" && grep -q "^- b  \[#---------\] 12%  44m to 44m left" "$T/block" && grep -q "^- c  1h01m to 1h01m left" "$T/block"'
+check "the finish is the longest chain b > c > d, not the sum (at least: later steps have no history)" 'grep -q "^at least finish about " "$T/block" && python3 -c "
 import re,sys
 t=open(\"$T/block\").read()
 mins=lambda s: sum(int(n)*(60 if u==\"h\" else 1) for n,u in re.findall(r\"(\\d+)([hm])\", s))
-left={g: mins(m) for g,m in re.findall(r\"^- (\\w+)  (?:\\[.*?\\] \\d+%  )?(\\d+h\\d+m|\\d+h|\\d+m) left\", t, re.M)}
+left={g: mins(m) for g,m in re.findall(r\"^- (\\w+)  (?:\\[.*?\\] \\d+%  )?(\\d+h\\d+m|\\d+h|\\d+m) to \\S+ left\", t, re.M)}
 h=re.search(r\"^LIVE BOARD  \\S+  (\\d\\d):(\\d\\d)\", t, re.M); f=re.search(r\"finish about (\\d\\d):(\\d\\d)\", t)
 gap=(int(f[1])*60+int(f[2])-int(h[1])*60-int(h[2]))%1440
 chain=left[\"b\"]+left[\"c\"]+left[\"d\"]
 assert abs(gap-chain)<=1 and abs(gap-sum(left.values()))>1, (gap, chain, left)"'
-check "a running goal shows its step flow with the current step in brackets" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr > release" "$T/block"'
+check "a running goal shows its step flow with the current step in brackets" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr >" "$T/block"'
 
 echo "== the pure graph"
 python3 - "$M" <<'PY' && ok "no estimate gives at least, a cycle is cut, an empty queue is empty" || bad "pure graph"

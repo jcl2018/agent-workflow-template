@@ -5,6 +5,7 @@
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1
@@ -43,7 +44,7 @@ out=$($health check --family size); rc=$?
 
 echo "== docs and criteria are composed, not re-implemented"
 mkdir -p docs/wiki
-printf '<!-- workflow-docs -->\n# Calc\n\n## Criteria\n\n- REL-1: **Unreviewed** calc adds.\n' > docs/wiki/Calc.md
+printf '<!-- workflow-docs -->\n# Calc\n\n## Criteria\n\n- REL-1: **Reviewed 2026-01-01** calc adds.\n' > docs/wiki/Calc.md
 printf 'Calc\tcalc.py\nGhost\tghost.py\n' > .loop/docs.tsv
 git add -A; git commit -qm "Map pages"
 echo "# change" >> calc.py; git commit -qam "Change calc"
@@ -51,7 +52,7 @@ out=$($health check --family docs); echo "$out"
 grep -q "^WARN docs Calc stale: " <<<"$out" && ok "a stale page shows as a docs row naming it" || bad "stale"
 grep -q "^FAIL docs Ghost missing: " <<<"$out" && ok "a missing page shows as a FAIL" || bad "missing"
 out=$($health check --family criteria); echo "$out"
-grep -q "^FAIL criteria REL-1 rows: criterion has no regression row" <<<"$out" && ok "a criterion with no row is a FAIL" || bad "criterion row"
+grep -q "^FAIL criteria REL-1 rows: not enforced for [0-9]* days since Reviewed 2026-01-01" <<<"$out" && ok "a criterion with no row is a FAIL" || bad "criterion row"
 python3 - <<'PY'
 import os
 os.makedirs(".loop/goals", exist_ok=True)

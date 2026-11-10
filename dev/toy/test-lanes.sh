@@ -7,11 +7,13 @@
 # the flow file's test_record prefix), record refuses qa without it, and pr reruns only what a base merge affected.
 # No model is called. usage: test-lanes.sh [DIR] [regression|delivery]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION GH_TOKEN GITHUB_TOKEN
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
-[ -n "${1:-}" ] || trap 'rm -rf "$d" "$HOME"' EXIT
+[ -n "${1:-}" ] || toy_on_exit 'rm -rf "$d" "$HOME"'
 part=${2:-all}
 "$here/dev/toy/make.sh" "$d" >/dev/null || exit 1
 export LOOP_FLOW="$d/flow.json" PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh" TOY_LOG="$d/ran.log"

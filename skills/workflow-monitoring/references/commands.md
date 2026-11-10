@@ -93,10 +93,11 @@ each with its fix in plain words and the exact words to answer, no local file pa
 and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current step in
 brackets, the worker, the try count once a try has failed (`try 2 of 3`, or `tries used up (3 of 3)`), and a one-line next
 step: the latest session report, a running goal at release reads `finish release`, a step outside the flow keeps the last
-known flow step); Queued goals (held goals among them, marked `held`); Dependencies between running and queued goals as arrows
-(`a --> b`); and one finish time (the longest chain of estimates, not their sum; `at least` while a goal is held or freezing). Merged and closed work, history, milestones, duplicate totals, token
-tables and done-line lists are left out. Estimates are the median of other finished runs' steps, read from their logs, and read
-`no estimate yet` without one.
+known flow step, or the next one once a log entry says that step is done); Queued goals (held goals among them, marked `held`); Dependencies between running and queued goals as arrows
+(`a --> b`); and one finish time (the longest chain of estimates, not their sum; `at least` while a goal is held, freezing or has no estimate yet). Merged and closed work, history, milestones, duplicate totals, token
+tables and done-line lists are left out. Estimates come from finished goals like this one: a goal's size is its done lines and touched areas (a skill folder, else its first folder, else the root file), and per step the estimate is the median of the times of finished goals within one done line and one area of it, when there are 5 or more and they logged that step, else of every finished goal; a whole-goal lift (at least a minute per extra done line or area) makes a larger goal always longer. The board shows a range, the 25th to 75th percentile summed over the steps left (`20m to 45m left`), with `, rough` when fewer than 5 goals are similar, the size is unknown or more than one done line or area past every finished goal's, or a step still to run has no history (then the finish also reads `at least`). Step time counts reports and checks toward the step in force (the next step once a log entry says a step is done); a pause after a stopped, failed or waiting entry counts nothing. A running goal's pace over its finished steps (held between half and double) scales the rest; a running goal whose current step outlasts 3 times its estimate shows under Issues as stalled, with how long it has run (a held goal never does). Without any history it reads `no estimate yet`. A current step past its estimate has its time left re-estimated (half the time it has run, at
+least a minute), so time left and the finish time grow; a minute or more past, it reads `over by Nm` in its brackets. Every line
+fits 60 characters: the step flow wraps at its ` > ` joints and a long header splits in two.
 
 #### Board states
 
@@ -444,3 +445,30 @@ Status: built and proven: Issues: stuck, waiting and failed workers, with the fi
 Stops for the owner: none.
 Proof: toy tests (dev/toy/test-live-board.sh, dev/toy/test-board-held.sh).
 
+
+#### `sessions.py bind`: the worker command and the worktree
+
+`bind SLUG ID [--name N] [--force] [--cwd DIR]` (in `session_bind.py`) also prints two lines for whoever binds to pass
+on (assign's message to a new session already carries both):
+
+```text
+WORKER board-held: run goal steps as LOOP_ROLE=worker python3 <package>/workflow-delivery/scripts/goal.py ... (and flow.py, role.py lane)
+WORKTREE board-held: <git common dir>/loop/worktrees/board-held
+```
+
+No process can set another's environment, so this is how binding gives a session the worker role. A goal step run
+without it is refused with the exact command for that session (`NOT_WORKER`). `--cwd DIR` is the session's folder, and a
+folder outside the goal worktree is refused before the pool or run record changes (`CWD_OUTSIDE`: "start or move the
+session in PATH, then bind again"). A worker binding itself is always checked against its own folder too. With no
+folder known (the operation binding from the main checkout), only the WORKTREE hint is printed. This doesn't change the
+desktop app's own edit guard, which keys on the folder a session started in.
+
+bind revives a failed or stopped goal with the same fields as `goal.py resume` (status, tries, refusals, finding,
+waiting, note, report). A worker binding itself only attaches and says to ask the operation session to resume. `goal.py
+resume` takes the goal's session under the same pool lock bind and assign hold (`session-pool.json.lock`), so two goals
+can't take one session. A failed tool call keeps its first stderr line ("cannot start ..." or "timed out after N s"
+otherwise) for the NOTE that follows.
+
+Status: built and proven: bind prints WORKER and WORKTREE; refuses an outside folder; resume reserves under the pool lock. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests (dev/toy/test-guards.sh).
