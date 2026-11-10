@@ -4,6 +4,7 @@
 # reads: skills/workflow-regression/scripts/regression.py skills/workflow-setup/scripts/setup.py
 # Test workflow-regression on a throwaway toy repo with a fake gh. usage: test-regression.sh [DIR]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
@@ -34,9 +35,9 @@ printf 'text-1\tland\ttrue\tREG-9\tn/a\tA row dated with words.\tcriterion\t\n' 
 $reg sync | grep -q "^UNPROVEN dash-1" && $reg run dash-1 | grep -q "^UNPROVEN dash-1" && ok "a seen-failing date of - is unproven" || bad "a - date counted as seen failing"
 $reg sync | grep -q "^UNPROVEN text-1" && ok "a seen-failing value that is not a date is unproven" || bad "a non-date counted as seen failing"
 python3 - "$here/skills/workflow-docs/scripts" <<'PY' && ok "the Tests table shows no for a - or a non-date" || bad "Tests table shows a non-date as seen failing"
-import sys; sys.path.insert(0, sys.argv[1]); import criteria
-out = criteria.table(".", [("REG-9", "Words.")], {"REG-9": ["dash-1", "text-1"]})
-cells = [line.rsplit("seen failing ", 1)[-1] for line in out if "[dash-1]" in line or "[text-1]" in line]
+import sys; sys.dont_write_bytecode = True; sys.path.insert(0, sys.argv[1]); import render
+out = render.tests_page(".").splitlines()
+cells = [line.split(" | ")[-1].rstrip(" |") for line in out if 'id="t-dash-1"' in line or 'id="t-text-1"' in line]
 assert cells == ["no", "no"], out
 PY
 sed -i.bak '/^dash-1	/d; /^text-1	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak
@@ -126,6 +127,14 @@ python3 -c 'import yaml; yaml.safe_load(open(".github/workflows/regression.yml")
 touch BROKEN; git add -A; git commit -qm "Break it" >/dev/null
 python3 ci-block.py; rc=$?
 [ $rc = 1 ] && [ "$(calls '^issue create')" = 1 ] && ok "CI block fails and opens an issue" || bad "CI block"
+# Value: protects=a regression issue that fits no feature goes on Backlog (DOC-10), which is made once when missing and
+#   reused when it exists; fails_when=the CI block drops the --milestone flag or makes Backlog again; why_new=no test had a Backlog milestone
+made=$(grep -c -- '-X POST repos/{owner}/{repo}/milestones -f title=Backlog' "$FAKE_GH_DIR/calls.log"); first=$(grep -c -- "--milestone Backlog$" "$FAKE_GH_DIR/calls.log")
+: > "$FAKE_GH_DIR/calls.log"; echo '[{"number": 1, "title": "Backlog", "state": "open"}]' > "$FAKE_GH_DIR/milestones.json"
+python3 ci-block.py >/dev/null 2>&1; [ "$made" = 1 ] && [ "$first" = 1 ] && [ "$(calls '^issue create')" = 1 ] && grep -q -- "--milestone Backlog$" "$FAKE_GH_DIR/calls.log" \
+  && ! grep -q -- "-X POST repos/{owner}/{repo}/milestones" "$FAKE_GH_DIR/calls.log" \
+  && ok "the CI block opens a regression issue on Backlog, making Backlog once when the repo has none" || bad "backlog milestone: made=$made first=$first"
+rm -f "$FAKE_GH_DIR/milestones.json" "$FAKE_GH_DIR/issues.json"
 nap="31.$((RANDOM % 9000 + 1000))"  # a sleep no other run on this machine uses
 printf 'hang\tland\techo started-hang; sleep %s & sleep %s\t-\t2026-01-01\tA row that hangs.\tcriterion\t\n' "$nap" "$nap" >> .loop/regression.tsv
 printf 'own-124\tland\techo own-exit; exit 124\t-\t2026-01-01\tA row that exits 124 itself.\tcriterion\t\n' >> .loop/regression.tsv

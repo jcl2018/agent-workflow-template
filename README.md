@@ -20,6 +20,98 @@ scan still guards every commit. The risk is plain: a broken or wrong change can 
 the only check left is the regression workflow on GitHub, which reports and never blocks. A repo set up from this
 template keeps every gate until its owner turns one off.
 
+## How to use
+
+Say these to the agent in the operation session. Each feature's wiki page has the exact commands.
+
+### How to use Delivery
+
+Say these to the agent:
+
+| You say | What happens |
+|---|---|
+| "Start a goal to add caching, done when the cache test passes" | The goal is drafted with its done lines and shown back to you to confirm. |
+| "Go" | The goal is frozen and a worker session starts it right away. |
+| "Queue it" | The goal waits in line and starts when its dependencies merge. |
+| "What needs me?" | You get the questions waiting on you, each with a recommended answer. |
+| "Approve it" / "a" | The decision is recorded with your words and the goal carries on. |
+| "Merge it" | A ready pull request is merged and released. |
+
+### How to use Monitoring
+
+Say these to the agent:
+
+| You say | What happens |
+|---|---|
+| "Run the operation session" | Every ready goal gets its own worker session, and the full live board prints now and at each check-in, or sooner when a worker reports. |
+| "Start a goal to add result caching, done when repeat searches are served from the cache" | The goal is queued and starts in its own worker as soon as a slot is free. |
+| "Where do things stand?" | You get the live board: Issues first, then running goals with progress and time left, queued goals, dependencies and one finish time. |
+| "Tell the caching worker to keep the old cache format" | Your answer reaches that worker session as a message. |
+| "Resume the failed caching goal" | A failed or stopped goal gets a new worker; any other goal is refused. |
+| "Clean up merged branches, list them first" | You see the merged goal branches that would go; once you say so, they are deleted locally. |
+
+### How to use Documentation
+
+Say these to the agent:
+
+| You say | What happens |
+|---|---|
+| "Check the docs" | Every stale, missing, unmapped or unwritten page is listed with what is wrong, or you hear that the docs are clean. |
+| "Audit the docs and fix what you can" | Mechanical fixes such as the Tests tables are made, and the wording left to rewrite is listed. |
+| "Draft a feature page for billing: charge cards once a month" | A new Unreviewed feature page is drafted and mapped, with a list of what is left to write. |
+| "I've reviewed the Delivery page" | The page is marked Reviewed with today's date, and its Problem, Requirements, Non-goals and Success metrics lock. |
+| "Publish the wiki" | Pages are copied to the GitHub wiki; it refuses while a page still has problems. |
+| "Undo the last publish" | The last publish is reverted, unless the wiki changed since. |
+
+### How to use Regression
+
+Say these to the agent:
+
+| You say | What happens |
+|---|---|
+| "Run the land tests" | Every land test runs; each failing test gets one GitHub issue, and a test that passes again closes its issue. |
+| "Add a test for DEL-1 that runs the delivery toy suite" | A test row is added and tied to that requirement. |
+| "Prove the cache test can fail" | The test runs against deliberately broken code, and is marked seen failing or flagged as proving nothing. |
+| "What's untested?" | Requirements with no test, draft tests and tests never seen failing are listed. |
+| "List every test" | Every test, grouped by feature, with its kind, what it guards, what it checks and its last result. |
+| "Write the GitHub workflow" | The GitHub Actions run is written, so the same tests run there on its schedule. |
+
+### How to use Health
+
+Say these to the agent:
+
+| You say | What happens |
+|---|---|
+| "How healthy is this repo?" | You get the formal report: every rule by group, each problem with its fix, the tests, and one verdict. |
+| "Check only the docs health" | The same report for that one group. |
+| "What would you file?" | Each issue it would open, update, close or reopen is listed; nothing is written. |
+| "File the docs findings" | Only that group's findings become issues on the Backlog milestone, each tagged with its group. |
+| "Judge the repo" | The report, plus suggestions on requirement wording, test strength and speed, with ranked next steps; the verdict doesn't change. |
+
+### How to use Setup
+
+Say these to the agent:
+
+| You say | What happens |
+|---|---|
+| "Set up this repo" | It shows what it found and would add, then writes it on a setup branch for you to review and merge. |
+| "Show me what setup would do first" | Every file it would add or convert is listed; nothing is written. |
+| "Show me every setting" | Each repo and private setting, with its default and a one-line explanation. |
+| "Fill in any missing settings" | Missing repo settings are added with their defaults; your own values are kept. |
+| "Install the reply hook" | Operation-session replies that don't follow the check-in layout are blocked, saying what is missing. |
+
+### How to use Automation
+
+Say these to the agent:
+
+| You say | What happens |
+|---|---|
+| "Set up the scheduled routines" | Regression and health workflows are written to run every 4 hours in GitHub Actions, for you to merge. |
+| "Run health every 12 hours instead" | The schedule setting changes and the health workflow is written again to match. |
+| "Turn off the scheduled health run" | Scheduled health runs write nothing and say the routine is off; you can still start one by hand. |
+| "Post the automation digest" | One comment on the pinned digest issue lists what ran, the new, still-open and fixed issues, and a request per open issue. |
+| "Write the scheduled regression run again" | The regression workflow is rewritten from the current config, so its schedule matches. |
+
 ## What it aims to be
 
 - **Light:** Markdown instructions and a few small scripts, with no engine to run.
@@ -189,6 +281,64 @@ From install to one finished goal.
    `--release ask`; then it waits for `cut <slug>` or `leave <slug>` (see [Delivery](docs/wiki/Delivery.md)). With
    `"release_auto": true`, it decides from its diff and may cut a draft instead. Answer before you merge, because `cut`
    commits on the goal's branch. Review and merge the pull request yourself; nothing here merges unless `auto_merge` is on.
+
+## About this repo
+
+This section was the wiki Home page; Home now holds only the features table.
+
+A small agentic workflow for any repo: you state a goal and the checks that prove it, and a background agent takes it
+through your own skill suite's flow, unattended, to a pull request you review. One session governs and the others build: `/workflow-monitoring operate` plans queued goals as a dependency graph and starts the workers and prints the live board (issues, running goals, queued goals, dependencies and one finish time) every 30 minutes by default. To install it
+and run a first goal, or to see where every file lives, read the rest of this README. It's released under the MIT license. The last step of every goal, the release step (see the [Delivery](https://github.com/jcl2018/agent-workflow-template/wiki/Delivery) page), also brings the wiki up to date and publishes it.
+
+
+**This repo runs with no gates.** Its `.loop/config.json` turns on `auto_approve` and `auto_merge`. Review is the only gate: delivery runs no check step. What the skills leave for the
+owner is approved automatically and logged as auto-approved, in the goal's log and on the board. The release step then
+merges the pull request into `main` by itself. The skills' own built-in refusals still apply, and the private-name leak
+scan still guards every commit. The risk is plain: a broken or wrong change can reach `main` with nobody looking, and
+the only check left is the regression workflow on GitHub, which reports and never blocks. A repo set up from this
+template keeps every gate until its owner turns one off.
+
+
+### Reading the charts
+
+The charts in each skill's `references/` folder are read this way. Each chart shows a command's stages, with amber at each stop for the owner. Under it, `Status:` puts every stage in one
+of three groups, `Stops for the owner:` names the stops, and `Proof:` says what the status rests on.
+
+| Status | Means |
+|---|---|
+| Built and proven | A toy test passes on this stage, or a real run on this repo is on record |
+| Built only | It exists, but no test exercises it and no real run is on record |
+| Planned | Not built yet |
+
+A toy test uses a throwaway repo and a stand-in for GitHub, so built and proven doesn't mean it has run on a real repo.
+`Proof:` says when it hasn't. Real runs were read on 2026-11-06 from the run records of this repo and one other it
+follows, plus their pull requests, releases and wikis. That second repo isn't named here. On this repo, eight real goals
+reached a pull request, all at the level now called 1, and three publishes reached the wiki. The second repo ran ten
+goals, including one real `cut` to a draft release. This repo has since had its own real `cut`, v0.1.1. Neither repo shows a regression workflow run in CI, a
+or a batch with a real agent. Records older than these goals may be gone, so "not on record" doesn't mean it never happened.
+
+### What is proven
+
+- "`report` left out queued goals that were ready to start. It now lists them." (FINDINGS.md)
+- Toy tests cover goals, the board, docs, criteria, releases and regression, each under `dev/toy/`.
+- Codex ran a level 0 toy goal from design to pull request with no failed try (FINDINGS.md).
+- The regression workflow passes on GitHub. Its first run failed 2 rows, and both are fixed (FINDINGS.md).
+
+### What is not proven
+
+- "Real repos differ from the toy: four-number versions, changelogs with bracket headings and an intro paragraph, tests
+  outside `tests/`, a wiki with pages from another tool, and a pre-push hook that takes minutes." (FINDINGS.md)
+- Several goals pushing at once can fail with a bare git error, and a plain re-push works; `pr` retries twice
+  (FINDINGS.md).
+- Some scripts are within a few hundred bytes of the 20 KB limit, so the next feature needs a new script
+  (FINDINGS.md).
+- "Codex's `workspace-write` sandbox blocks writes to `.git` and outside the workspace." (FINDINGS.md)
+
+### Gaps for the owner
+
+- The timed check-in loop (`cadence`, then `watch --once` and `board` on each wait) has not fired on its timer. No
+  finding or decision records a run of it, and its toy test uses fixtures.
+- The skill flow has run for real only up to the idea step, which waited for the owner as it should (docs/ROADMAP.md).
 
 ## File reference
 

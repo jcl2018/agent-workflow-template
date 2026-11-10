@@ -3,6 +3,7 @@
 # lists only open items, a goal merged on GitHub shows merged, the roadmap is the live dependency graph, and a pass with nothing
 # changed prints one line. No model is called. usage: test-operate-fit.sh [DIR]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE
 here=$(cd "$(dirname "$0")/../.." && pwd)
