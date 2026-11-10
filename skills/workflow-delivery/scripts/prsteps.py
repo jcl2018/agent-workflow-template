@@ -69,7 +69,8 @@ def record(state, base):
         issues(top)
         results(top)
         changed = [path for path in FILES if git("status", "--porcelain", "--", path)]
-        if changed:
+        if changed:  # a new (untracked) file must be added before --only can commit it
+            subprocess.run(["git", "add", "--"] + changed, cwd=top, capture_output=True, text=True)
             subprocess.run(["git", "commit", "--only", "-q", "-m", "pr: record issue states and the lane's results", "--"]
                            + changed, cwd=top, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=60)
     head = git("rev-parse", "HEAD")
