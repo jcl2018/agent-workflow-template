@@ -79,7 +79,7 @@ PY
   out=$(FAKE_SKILL_OUT='DEPTH: condensed\nSTEP: done' step full3 review)
   check "under review_depth full a small goal with no override is held to full" 'grep -q "ran condensed while review_depth is full" <<<"$out"'
   git switch -q loop/full2; w $F full2 qa --wait 60 > "$d/qa1" 2>&1; step full2 qa >/dev/null
-  check "a condensed goal still runs the full land lane in qa" 'grep -qi "lane" "$d/qa1" && [ "$(field full2 flow.qa)" != None ]'
+  check "a condensed goal still runs the full land lane in qa" 'grep -qi "lane" "$d/qa1" && [ "$(field full2 flow.qa)" != None ] && python3 -c "import sys; sys.path.insert(0, \"$S\"); import role; assert role.lane_argv()[-3:] == [\"run\", \"land\", \"--reuse\"]"'
   python3 - "$S" <<'PY' && ok "the lane command never depends on depth" || bad "lane and depth"
 import sys; sys.path.insert(0, sys.argv[1]); import role
 assert role.lane_argv()[-3:] == ["run", "land", "--reuse"]
@@ -189,9 +189,11 @@ for skill in ("workflow-delivery", "workflow-release", "workflow-monitoring"):
         tree = ast.parse(open(os.path.join(folder, name)).read())
         for fn in [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]:
             text = ast.unparse(fn)
-            writes = ('"push"' in text and '"git"' in text) or ('"pr", "create"' in text) or ('"release", "create"' in text) \
-                or ('"pr", "merge"' in text) or ('"pr", "comment"' in text)
-            if writes and "scan" not in text and "private" not in text:
+            q = text.replace('"', "'")  # ast.unparse prints single quotes
+            writes = ("'push'" in q and "'git'" in q) or any("'%s', '%s'" % pair in q for pair in (
+                ("pr", "create"), ("release", "create"), ("pr", "merge"), ("pr", "comment"), ("pr", "edit")))
+            called = {(c.func.attr if isinstance(c.func, ast.Attribute) else getattr(c.func, "id", "")) for c in ast.walk(fn) if isinstance(c, ast.Call)}
+            if writes and not called & {"scan", "private_check", "check", "pr_text"}:
                 bad.append("%s:%s" % (name, fn.name))
 if bad:
     print("unscanned: " + ", ".join(bad)); sys.exit(1)
