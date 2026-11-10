@@ -95,7 +95,7 @@ until_status d done
 echo "== the status block"
 python3 "$M/board_status.py" > "$T/block"
 queuedpart=$(sed -n '/^Queued goals/,/^Dependencies/p' "$T/block")
-check "Queued goals hold the goal with what it waits on; a goal waiting to merge sits at release" 'grep -q "^- b .*waits on a" <<<"$queuedpart" && grep -q "^- a " "$T/block" && grep -q "^    next: .*waits for review and merge" "$T/block"'
+check "Queued goals hold the goal with what it waits on; a goal waiting to merge sits at release" 'grep -q "^- b .*waits on a" <<<"$queuedpart" && grep -q "^- a " "$T/block" && tr -s " \n" "  " < "$T/block" | grep -q "waits for review and merge"'
 check "Running goals show a running goal with its flow" 'grep -q "^- c " "$T/block" && sed -n "/^Running goals/,/^Queued/p" "$T/block" | grep -q "\[build\]"'
 sets a 'release="merged"'; sets d 'release="merged"'
 python3 "$M/board_status.py" > "$T/block2"

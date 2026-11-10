@@ -95,7 +95,7 @@ rm run.tsv; : > sum.md
 RUNNER_TEMP="$r" REGRESSION_RESULTS="$r/run.tsv" GITHUB_STEP_SUMMARY="$r/sum.md" PATH="$g:$PATH" bash -e step.sh >/dev/null 2>&1
 grep -q "could not be written" sum.md && ok "with no results file at all, the summary still says so" || bad "summary with no results"
 c=$(mktemp -d); cp -R "$here/skills" "$c/"; echo '# ${{ github.token }}' >> "$c/skills/workflow-regression/scripts/tests.py"
-python3 -B -c "import sys; sys.path.insert(0, '$c/skills/workflow-regression/scripts'); import actions; actions.render('17 9 * * *')" 2>err.txt; rc=$?
+python3 -B -c "import sys; sys.path.insert(0, '$c/skills/workflow-regression/scripts'); import actions; actions.render('17 */4 * * *')" 2>err.txt; rc=$?
 [ $rc != 0 ] && grep -q "^REFUSED: tests.py contains \${{" err.txt && ok "the workflow refuses to carry a tests.py Actions would read" || bad "render guard"
 rm "$c/skills/workflow-regression/scripts/tests.py"
 out=$(python3 -B "$c/skills/workflow-health/scripts/health.py" check 2>/dev/null)

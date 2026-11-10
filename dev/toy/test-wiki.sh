@@ -91,7 +91,7 @@ git switch -q main; git pull -q --no-edit origin main; $docs add Home --paths RE
 printf '<!-- workflow-docs -->\n# Home\n\nThe toy home page, written by the tool, with enough words to count as written.\n' > docs/wiki/Home.md
 git add -A; git commit -qm "Map Home"; git push -q origin main
 $wiki publish w | grep -q "WIKI REFUSED w: .*Home" && ok "publish reports the page" || bad "publish report"
-python3 "$here/skills/workflow-monitoring/scripts/board_status.py" | grep -q "wiki pages are out of date: saved: REFUSED: .*Home" && ok "shows under Issues" || bad "needs you"
+python3 "$here/skills/workflow-monitoring/scripts/board_status.py" | tr '\n' ' ' | tr -s ' ' | grep -q "wiki pages are out of date: saved: REFUSED: .*Home" && ok "shows under Issues" || bad "needs you"
 
 echo "== every script stays under 20 KB"
 [ "$fails" -eq 0 ]

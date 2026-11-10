@@ -91,10 +91,62 @@ Every check-in prints the live board, and `report`, `board`, `dashboard` and `bo
 in this format: a `LIVE BOARD` header (repo, local time, version, health); Issues (only what is open now, a stuck worker first,
 each with its fix in plain words and the exact words to answer, no local file paths); Running goals (a 10-cell bar with percent
 and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current step in
-brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows (`a --> b`); and one
-finish time (the longest chain of estimates, not their sum). Merged and closed work, history, milestones, duplicate totals, token
+brackets, the worker, the try count once a try has failed (`try 2 of 3`, or `tries used up (3 of 3)`), and a one-line next
+step: the latest session report, a running goal at release reads `finish release`, a step outside the flow keeps the last
+known flow step); Queued goals (held goals among them, marked `held`); Dependencies between running and queued goals as arrows
+(`a --> b`); and one finish time (the longest chain of estimates, not their sum; `at least` while a goal is held or freezing). Merged and closed work, history, milestones, duplicate totals, token
 tables and done-line lists are left out. Estimates are the median of other finished runs' steps, read from their logs, and read
-`no estimate yet` without one.
+`no estimate yet` without one. A current step past its estimate has its time left re-estimated (half the time it has run, at
+least a minute), so time left and the finish time grow; a minute or more past, it reads `over by Nm` in its brackets. Every line
+fits 60 characters: the step flow wraps at its ` > ` joints and a long header splits in two.
+
+#### Board states
+
+The board reads the run records and the session pool (`<git common dir>/loop/session-pool.json`, through
+`graph.read_pool`). `LOOP_SESSION_QUIET` (seconds, default 3600) is how long a goal may stay quiet before Issues names it.
+
+| State | What it means | Next command | What you see after |
+|---|---|---|---|
+| running | A worker (session or process) has the goal | none | the next line moves as it reports |
+| freezing | A session was handed the goal before it was frozen (a busy pool entry, no run yet) | the worker runs `goal.py new <slug> --here` in its worktree, then `sessions.py bind <slug> <id>` | it shows as running |
+| stale freezing | Freezing for longer than the quiet time | look at the session; once it has stopped, `sessions.py free <slug>`, then start a new session in the worktree and bind, or `git worktree remove <path>` and start it again with `watch.py go --slug <slug>` (a handoff has no queue line, so `watch` never restarts it on its own) | it leaves the board, or shows as running |
+| held | Running, but no busy session and no process has it (session reassigned, worktree kept); listed under Queued goals | `sessions.py bind <slug> ID` | it shows as running |
+| held, worktree gone | Held, and its worktree folder is missing | `git worktree add <common>/loop/worktrees/<slug> loop/<slug>`, then bind (`watch.py resume` takes only failed or stopped goals) | it shows as running |
+| held, holds a slot | A held session goal still counts toward `parallel` | bind it, or once its old session has stopped, `sessions.py free <slug>` | the slot is free |
+| pool unreadable | The pool file can't be trusted: nothing is called held or freezing, and `watch` starts nothing | `python3 -m json.tool <path>`, then repair it (moving it aside forgets which goals sessions hold: free or bind each again first) | the next pass reads it |
+| done | The pull request is open; a later session report is only recorded (issue 108) | the release step merges it | it leaves the board |
+| tries used up | A stopped goal was brought back by a bind or mend | look at its finding | the next try counts from there |
+
+Handing a goal over before it is frozen (for a session the operation session started with the app's own tools; a goal
+`watch.py` starts is frozen before its session gets it, so it never shows as freezing):
+
+```text
+operation session: git worktree add -b loop/<slug> <common>/loop/worktrees/<slug> origin/main
+operation session: start the session, then sessions.py bind <slug> <id>   -> ASSIGNED ... not frozen yet   (board: [freezing])
+worker:            goal.py new <slug> --here ...                         -> FROZEN                        (board: running, idea)
+worker:            sessions.py bind <slug> <id>                          -> BOUND                         (board: worker: session <name>)
+```
+
+Recovering a stale assignment: confirm the session has stopped, run `sessions.py free <slug>` (FREED ... slot released), then
+start a new session in the worktree and bind it, or remove the worktree and let `watch.py watch` start the goal.
+
+| Message | Means | Fix |
+|---|---|---|
+| `ASSIGNED <slug> to session <id> ...; not frozen yet` | the handoff is recorded | the worker freezes, then binds |
+| `BOUND <slug> to session <id> (<name>)` | the run names that session (a repeat bind changes nothing) | none |
+| `FREED <n> session(s) for <slug>; slot released` or `slot already free` | the goal's sessions and slot are back | free only a session that has stopped |
+| `NOTHING TO FREE for <slug>: ...` | no busy session and no session run | check the goal name |
+| `KEPT done for <slug>: ...` | a report on a done goal was recorded, nothing else changed | none |
+| `REFUSED: bad goal name '<slug>'` | the name isn't lowercase letters, digits and hyphens | use the goal's slug |
+| `REFUSED: the session pool <path> can't be read (...)` | the pool is unreadable; nothing was changed | `python3 -m json.tool <path>`, repair it (moving it aside forgets which goals sessions hold) |
+| `REFUSED: session <id> was freed from <slug> ...` | a late bind of a freed session | `--force`, once no other worker has the goal |
+| `REFUSED: <slug> is assigned to session <name> but not frozen yet` | report or send before the goal is frozen | the worker freezes it first |
+| `REFUSED: <slug> is waiting on the owner (...)` | free on a waiting goal | answer it first |
+
+Limits: a report carries no worker identity, so a late report from an old worker after a rebind still counts, and a late
+`failed` from it still frees the new session's entry; `freed_from` is lost when a session is reused for another goal.
+Upgrading needs nothing: `bound_at`, `freed_from` and `freed_at` are extra fields old runs don't have (they filter
+nothing), no session needs a restart, and a rollback leaves the extra keys unread.
 
 The page step (`--in FILE`, `--out DIR`) reads `board.json` and writes `board.html` and `board-artifact.html`, each with a
 header line and the same live board. The pages have no scripts and load nothing from the network.
@@ -382,23 +434,23 @@ Proof: toy tests with a stand-in agent. It hasn't run on a real batch yet.
 ```mermaid
 flowchart LR
   a["Issues: stuck, waiting and failed workers, with the fix"]
-  b["Running goals: bar, step flow, next step"]
-  c["Queued goals and dependencies as arrows"]
+  b["Running goals: bar, step flow, next step, freezing goals"]
+  c["Queued goals (held marked) and dependencies as arrows"]
   d["Finish: one time"]
   a --> b
   b --> c
   c --> d
 ```
 
-Status: built and proven: Issues: stuck, waiting and failed workers, with the fix; Running goals: bar, step flow, next step; Queued goals and dependencies as arrows; Finish: one time. Built only: none. Planned: none.
+Status: built and proven: Issues: stuck, waiting and failed workers, with the fix; Running goals: bar, step flow, next step, freezing goals; Queued goals (held marked) and dependencies as arrows; Finish: one time. Built only: none. Planned: none.
 Stops for the owner: none.
-Proof: toy tests (dev/toy/test-live-board.sh).
+Proof: toy tests (dev/toy/test-live-board.sh, dev/toy/test-board-held.sh).
 
 
-#### `sessions.py bind` and `reserve`
+#### `sessions.py bind`: the worker command and the worktree
 
-`bind SLUG ID [--name N] [--cwd DIR]` records a session started with the app's own tools for a goal. It prints two lines
-and, with a session tool set, sends them to the session:
+`bind SLUG ID [--name N] [--force] [--cwd DIR]` (in `session_bind.py`) also prints two lines for whoever binds to pass
+on (assign's message to a new session already carries both):
 
 ```text
 WORKER board-held: run goal steps as LOOP_ROLE=worker python3 <package>/workflow-delivery/scripts/goal.py ... (and flow.py, role.py lane)
@@ -408,17 +460,16 @@ WORKTREE board-held: <git common dir>/loop/worktrees/board-held
 No process can set another's environment, so this is how binding gives a session the worker role. A goal step run
 without it is refused with the exact command for that session (`NOT_WORKER`). `--cwd DIR` is the session's folder, and a
 folder outside the goal worktree is refused before the pool or run record changes (`CWD_OUTSIDE`: "start or move the
-session in PATH, then bind again"). A worker binding itself is checked against its own folder. With no folder known
-(the operation binding from the main checkout), only the WORKTREE hint is printed. This doesn't change the desktop app's
-own edit guard, which keys on the folder a session started in.
+session in PATH, then bind again"). A worker binding itself is always checked against its own folder too. With no
+folder known (the operation binding from the main checkout), only the WORKTREE hint is printed. This doesn't change the
+desktop app's own edit guard, which keys on the folder a session started in.
 
-bind revives a failed or stopped goal, resetting the same fields as `goal.py resume` (status, tries, refusals, finding,
-waiting, note, report). A worker binding itself only attaches and says to ask the operation session to resume.
-`reserve SLUG ID [--undo]` takes a free session, or one already this goal's, for `goal.py resume`; a session serving
-another goal is refused (`SESSION_TAKEN`). Every read-modify-write of the pool (assign, bind, reserve, a report that
-ends a goal) holds `session-pool.lock`, so two goals can't take one session. A failed tool call keeps its first stderr
-line ("cannot start ..." or "timed out after N s" otherwise) for the NOTE that follows.
+bind revives a failed or stopped goal with the same fields as `goal.py resume` (status, tries, refusals, finding,
+waiting, note, report). A worker binding itself only attaches and says to ask the operation session to resume. `goal.py
+resume` takes the goal's session under the same pool lock bind and assign hold (`session-pool.json.lock`), so two goals
+can't take one session. A failed tool call keeps its first stderr line ("cannot start ..." or "timed out after N s"
+otherwise) for the NOTE that follows.
 
-Status: built and proven: bind prints WORKER and WORKTREE; refuses an outside folder; reserve under the pool lock. Built only: none. Planned: none.
+Status: built and proven: bind prints WORKER and WORKTREE; refuses an outside folder; resume reserves under the pool lock. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests (dev/toy/test-guards.sh).

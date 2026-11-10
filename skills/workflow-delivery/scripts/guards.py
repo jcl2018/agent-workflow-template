@@ -287,17 +287,18 @@ def cmd_resume(g, args):
         return 1
     tool = os.path.join(HERE, "..", "..", "workflow-monitoring", "scripts", "sessions.py")
     loop = os.path.dirname(g.state_dir())
-    with open(os.path.join(loop, "session-pool.lock"), "w") as lock:  # the lock sessions.py's bind and assign hold
+    with open(os.path.join(loop, "session-pool.json.lock"), "a") as lock:  # the lock sessions.py's bind and assign hold
         fcntl.flock(lock, fcntl.LOCK_EX)
         state = g.load(slug)  # recheck under the lock: a goal bound or cleared meanwhile isn't revived
         if state.get("status") not in ("failed", "stopped") or (state.get("session") or {}).get("id") != sid:
             g.no("%s changed while resuming (now %s); nothing changed (%s)" % (slug, state.get("status"), RESUME_STATUS))
         path = os.path.join(loop, "session-pool.json")
         try:
-            pool = json.load(open(path))
+            pool = json.load(open(path)) if os.path.exists(path) else {}
         except (OSError, ValueError):
-            pool = {}
-        pool = pool if isinstance(pool, dict) else {}
+            pool = None
+        if not isinstance(pool, dict):  # never write a pool that can't be read (sessions.py's rule)
+            g.no("the session pool %s can't be read. Fix: repair it, then resume again; nothing changed" % path)
         item = pool.get(sid) or {}
         if item.get("state") == "busy" and item.get("slug") != slug:
             g.no("session %s now serves goal %s. Fix: sessions.py bind %s ID with a free session (%s)" % (sid, item.get("slug"), slug, SESSION_TAKEN))

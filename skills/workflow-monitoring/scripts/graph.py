@@ -3,9 +3,11 @@
 
 A queue line may carry `depends: a, b` or `depends-on: a, b` (both spellings mean the same). A goal waits only on goals it depends on, and only until they are merged;
 sharing files is never a reason to wait (the later goal merges the base before its pull request). The only other limit
-is `parallel` in .loop/config.json (0 or unset: unlimited). Imported, not run.
+is `parallel` in .loop/config.json (0 or unset: unlimited). A goal a worker session was handed before it was frozen
+(a busy entry in the session pool with no run yet) holds a slot too, and is never started a second time. Imported, not run.
 """
 import datetime
+import json
 import re
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
@@ -46,9 +48,44 @@ def unmet(goal, records, queued):
     return found
 
 
-def holds_slot(run):
-    """A running goal uses a worker slot when a process or a worker session has it; one with neither uses none."""
-    return run.get("status") != "running" or bool(run.get("pid")) or run.get("worker") == "session"
+def read_pool(path):
+    """The session pool as (entries, ""), or (None, reason) when it can't be trusted: unreadable, not JSON, not an
+    object, an entry that isn't an object, or a busy entry without a valid goal. A missing file is an empty pool."""
+    try:
+        with open(path) as handle:
+            found = json.load(handle)
+    except FileNotFoundError:
+        return {}, ""
+    except OSError as error:
+        return None, "can't read it: %s" % (error.strerror or error)
+    except ValueError as error:
+        return None, "bad JSON: %s" % error
+    if not isinstance(found, dict):
+        return None, "it is not a JSON object"
+    for key, item in found.items():
+        if not isinstance(item, dict):
+            return None, "entry %s is not an object" % key
+        if item.get("state") == "busy" and not (isinstance(item.get("slug"), str) and SLUG.match(item["slug"])):
+            return None, "busy entry %s has no valid goal" % key
+    return found, ""
+
+
+def assigned(pool):
+    """{slug: entry with its session id} for each goal a busy session holds; None when the pool is unknown."""
+    if pool is None:
+        return None
+    taken = {}
+    for sid, item in sorted(pool.items()):
+        if item.get("state") == "busy":
+            taken.setdefault(item["slug"], dict(item, id=sid))
+    return taken
+
+
+def holds_slot(run, taken=None):
+    """A running goal uses a worker slot when a process or a worker session has it (in its run, or as a busy pool
+    entry while it is between freezing and its worker's bind); one with none of these uses none."""
+    return (run.get("status") != "running" or bool(run.get("pid")) or run.get("worker") == "session"
+            or bool(taken and run.get("slug") in taken))
 
 
 def parallel_of(cfg):
@@ -59,16 +96,30 @@ def parallel_of(cfg):
         return 0
 
 
-def ready(goals, records, limit):
-    """Split queued goals into (start, held). held is [(goal, reason)]; start never exceeds the free worker slots (limit 0: no limit)."""
+def pool_fix(why):
+    """The one line every reader prints for a pool it can't trust."""
+    return ("the session pool can't be read (%s); fix: check it with python3 -m json.tool, repair it (moved aside, every held goal is forgotten); "
+            "nothing was started" % why)
+
+
+def ready(goals, records, limit, taken=None, why=""):
+    """Split queued goals into (start, held). held is [(goal, reason)]; start never exceeds the free worker slots (limit 0: no limit).
+    taken (from assigned) adds one slot per goal a session holds with no run yet, and holds that goal: its session freezes it.
+    With why set and taken None (the pool can't be read), nothing starts: every goal is held with the fix."""
+    if taken is None and why:
+        return [], [(goal, pool_fix(why)) for goal in goals]
     queued = {goal["slug"] for goal in goals}
-    used = sum(1 for run in records.values() if run.get("status") in LIVE and holds_slot(run))
+    taken = taken or {}
+    used = sum(1 for run in records.values() if run.get("status") in LIVE and holds_slot(run, taken))
+    used += sum(1 for slug in taken if slug not in records)
     start, held = [], []
     for goal in goals:
         if goal["slug"] in records:
             continue
         waits = unmet(goal, records, queued)
-        if waits:
+        if goal["slug"] in taken:
+            held.append((goal, "assigned to session %s; not frozen yet" % taken[goal["slug"]].get("name", taken[goal["slug"]]["id"])))
+        elif waits:
             held.append((goal, "waits on " + ", ".join(why for _, why in waits)))
         elif limit and used >= limit:
             held.append((goal, "slots full (%d of %d)" % (used, limit)))

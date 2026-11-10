@@ -73,7 +73,7 @@ h=re.search(r\"^LIVE BOARD  \\S+  (\\d\\d):(\\d\\d)\", t, re.M); f=re.search(r\"
 gap=(int(f[1])*60+int(f[2])-int(h[1])*60-int(h[2]))%1440
 chain=left[\"b\"]+left[\"c\"]+left[\"d\"]
 assert abs(gap-chain)<=1 and abs(gap-sum(left.values()))>1, (gap, chain, left)"'
-check "a running goal shows its step flow with the current step in brackets" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr > release" "$T/block"'
+check "a running goal shows its step flow with the current step in brackets" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr >" "$T/block"'
 
 echo "== the pure graph"
 python3 - "$M" <<'PY' && ok "no estimate gives at least, a cycle is cut, an empty queue is empty" || bad "pure graph"

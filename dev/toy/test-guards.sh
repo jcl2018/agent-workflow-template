@@ -192,13 +192,14 @@ echo "== g6 (160, owner's choice a): bind hands over the worktree and refuses an
 new g6; out=$($SE bind g6 s6 2>&1)
 check "bind prints the goal worktree to work in" 'grep -q "^WORKTREE g6: $TREE$" <<<"$out"'
 out=$($SE bind g6 s7 --cwd /tmp 2>&1)
-check "a session folder outside the worktree is refused, and the pool is unchanged" 'grep -q "REFUSED: session folder /tmp is outside the goal worktree $TREE.*(CWD_OUTSIDE)" <<<"$out" && ! grep -q "\"s7\"" "$C/loop/session-pool.json"'
+check "a session folder outside the worktree is refused, and the pool is unchanged" 'grep -q "REFUSED: session folder $(cd /tmp && pwd -P) is outside the goal worktree $TREE.*(CWD_OUTSIDE)" <<<"$out" && ! grep -q "\"s7\"" "$C/loop/session-pool.json"'
 check "a folder inside the worktree binds" '$SE bind g6 s7 --cwd "$TREE/.loop" >/dev/null 2>&1 && grep -q "\"s7\"" "$C/loop/session-pool.json"'
 git worktree add -q --detach "$d/wt6" main
 out=$(cd "$d/wt6" && LOOP_ROLE=worker $SE bind g6 s8 2>&1)
 check "a worker binding itself from another worktree is refused" 'grep -q "(CWD_OUTSIDE)" <<<"$out"'
 out=$(cd "$d/wt6" && LOOP_ROLE=worker $SE bind g6 s8 --cwd "$TREE" 2>&1)
 check "a worker can't pass --cwd to hide where it runs" 'grep -q "session folder $(cd "$d/wt6" && pwd -P) is outside.*(CWD_OUTSIDE)" <<<"$out"'
+$SE free g6 >/dev/null 2>&1; setf g6 '{"status": "queued"}'
 LOOP_SESSION_TOOL="$d/tool.sh" $SE assign g6 >/dev/null 2>&1
 check "assign's message names the worktree and the worker command" 'cat "$TOOL_LOG".sent.* | grep -q "cd $TREE first" && cat "$TOOL_LOG".sent.* | grep -q "^WORKER g6:"'
 fi
@@ -225,10 +226,10 @@ python3 - "$C/loop/session-pool.json" <<'PY'
 import json, sys
 p = json.load(open(sys.argv[1])); p["sx"] = {"name": "x", "slug": "", "state": "free"}; json.dump(p, open(sys.argv[1], "w"))
 PY
-python3 -c "import fcntl,sys,time;f=open(sys.argv[1],'w');fcntl.flock(f,fcntl.LOCK_EX);open(sys.argv[2],'w').close();time.sleep(2)" "$C/loop/session-pool.lock" "$d/held" &
-while [ ! -e "$d/held" ]; do sleep 0.1; done  # both reservations start while the lock is held, so without it they'd race
-($SE reserve ga sx > "$d/ra" 2>&1 &) ; ($SE reserve gb sx > "$d/rb" 2>&1 &); sleep 4
-check "two reservations of one free session: exactly one wins" '[ "$(cat "$d/ra" "$d/rb" | grep -c "^RESERVED")" = 1 ] && grep -q "(SESSION_TAKEN)" "$d/ra" "$d/rb"'
+python3 -c "import fcntl,sys,time;f=open(sys.argv[1],'a');fcntl.flock(f,fcntl.LOCK_EX);open(sys.argv[2],'w').close();time.sleep(2)" "$C/loop/session-pool.json.lock" "$d/held" &
+while [ ! -e "$d/held" ]; do sleep 0.1; done  # both binds start while the lock is held, so without it they'd race
+($SE bind ga sx > "$d/ra" 2>&1 &) ; ($SE bind gb sx > "$d/rb" 2>&1 &); sleep 4
+check "two goals binding one free session at once: exactly one gets it" '[ "$(cat "$d/ra" "$d/rb" | grep -c "^ASSIGNED")" = 1 ] && grep -q "is busy with goal" "$d/ra" "$d/rb"'
 errs=$(LOOP_SESSION_TIMEOUT=1 python3 - "$S" <<'PY'
 import sys; sys.path.insert(0, sys.argv[1]); import sessions
 out = []
