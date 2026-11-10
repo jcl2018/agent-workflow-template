@@ -65,13 +65,15 @@ PY
 
 echo "== rows and slots"
 for i in 1 2 3; do $reg add r$i --level land --command "sleep 3; test ! -e broken" --describe "toy row $i" >/dev/null; done
+# A base branch that does not exist: every goal lane here has no merge-base, so it plans FULL and takes a lane slot (S22).
+python3 -c "import json;c=json.load(open('.loop/config.json'));c['base']='nobase';json.dump(c,open('.loop/config.json','w'),indent=2)"
 seen r1 r2 r3; git add -A; git commit -qm "rows"
 
 # Value: protects=a FULL lane waits for a lane slot and starts when one frees (150); fails_when=no slot pool, or the wait counts against the time limit; why_new=no slot code existed; seam=none; no_claim=real CPU contention (sleep rows)
 export LOOP_LANE_LIMIT=2
 for g in ga gb gc; do (until_done $g qa > "$T/$g.res") & sleep 0.4; done; wait
 waited=$(grep -l "^LANE_WAIT: 2 of 2 lane slots busy" "$RUNS"/g[abc].qa-lane.txt 2>/dev/null | wc -l | tr -d ' ')
-check "three full lanes with 2 lane slots: one waits with LANE_WAIT naming the holders, all three pass" '[ "$waited" = 1 ] && [ "$(grep -l "^pass" "$T"/g[abc].res | wc -l | tr -d " ")" = 3 ] && grep -q "since" "$RUNS"/g[abc].qa-lane.txt'
+check "three full lanes with 2 lane slots: one waits with LANE_WAIT naming the holders, all three pass" 'grep -q "^FULL (no merge-base with nobase): " "$RUNS"/ga.qa-lane.txt && [ "$waited" = 1 ] && [ "$(grep -l "^pass" "$T"/g[abc].res | wc -l | tr -d " ")" = 3 ] && grep -q "since" "$RUNS"/g[abc].qa-lane.txt'
 check "the waiting lane's time counts from its slot, and its queue time is printed separately" 'grep -h "^LANE qa" "$T"/g[abc].res | grep -q "(queued [0-9]*s)"'
 check ".last holds each lane's terminal result with its head" 'for g in ga gb gc; do python3 -c "import json,sys;d=json.load(open(sys.argv[1]));assert d[\"state\"]==\"pass\" and d[\"head\"]==sys.argv[2]" "$RUNS/$g.qa-lane.last" "$(git rev-parse HEAD)" || exit 1; done'
 

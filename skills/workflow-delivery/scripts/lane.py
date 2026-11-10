@@ -41,7 +41,7 @@ def git(*args):
 
 def lane_argv():
     """The one lane command, resolved from this package: every prompt, run and receipt uses exactly this."""
-    return ["python3", os.path.join(REG, "regression.py"), "run", "land", "--reuse"]
+    return ["python3", os.path.join(REG, "regression.py"), "run", "land", "--reuse", "--tier", "goal"]
 
 
 def lane_text():
@@ -101,7 +101,7 @@ def deadline(held):
         return held["started"] + held["limit"], "past its time limit of %ds" % held["limit"]
     began = mtime(held["rc"] + ".started")
     if began:
-        return began + held["limit"], "past its time limit of %ds (%s)" % (held["limit"], held.get("source", "flow file limit"))
+        return began + slots.lane_limit(held)[0], "past its time limit of %ds (%s)" % slots.lane_limit(held)
     if os.path.exists(held["rc"] + ".queued"):
         return max(held["started"], slots.last_change(held.get("pool") or slots.lanes_dir())) + 4 * held["limit"], \
             "queued or planning past %ds" % (4 * held["limit"])
@@ -146,7 +146,7 @@ def stop(base, held):
         kill(held["pid"])
     drop(base + ".job")
     if held:
-        drop(*[held["rc"] + end for end in ("", ".queued", ".started", ".note", ".claimed")])
+        drop(*[held["rc"] + end for end in ("", ".queued", ".started", ".note", ".claimed", ".limit")])
 
 
 def finalize(base, held, name):
@@ -169,7 +169,7 @@ def finalize(base, held, name):
     began, now = mtime(held["rc"] + ".started"), time.time()
     notes = open(held["rc"] + ".note").read().strip() if os.path.exists(held["rc"] + ".note") else ""
     ids = re.findall(r"^(?:FAIL|UNPROVEN) ([^\s:]+)", text, re.M)
-    kind = (re.findall(r"^(REUSED|AFFECTED|FULL)", text, re.M) or ["FULL"])[0]
+    kind = (re.findall(r"^(REUSED|AFFECTED|FULL(?: \([^)]*\))?)", text, re.M) or ["FULL"])[0]
     ran, reused = len(re.findall(r"^(?:PASS|FAIL|KNOWN) ", text, re.M)), re.findall(r"\((\d+) reused\)", text)
     took = now - (began or held["started"])
     line = "LANE %s %s %d/%d in %ds" % (name, kind, ran, ran + int((reused or [0])[0]), took)
@@ -178,6 +178,7 @@ def finalize(base, held, name):
         line += "; " + ", ".join("%s killed by %s (pid %s)" % k for k in killed)
     if began and began - held["started"] >= 1:
         line += " (queued %ds)" % (began - held["started"])
+    line += slots.rows_line(text, ran, out)
     status = "fail"
     try:  # rendered Tests tables a row left are the next prep commit's, not dirt (done line 5)
         wiki = json.load(open(os.path.join(git("rev-parse", "--show-toplevel").stdout.strip(), ".loop", "config.json")))
@@ -195,9 +196,7 @@ def finalize(base, held, name):
         line += "\nLANE_DIRTY at end: a row left %s. Fix: make it clean up; %s." % (", ".join(after[:10]), NOTHING)
         ids = []
     elif rc == 124:
-        why = deadline(held)[1]
-        line += ("\nLANE_TIMEOUT: %s; the lane was killed, rows partly ran, nothing committed or pushed. Fix: run the same "
-                 "command again, or raise the flow file \"limit\" (else step_limit)." % why)
+        line += "\n" + slots.timeout_line(text, deadline(held)[1], held)
     elif rc == slots.EXIT_WAIT:
         line += "\nLANE_BUG: the lane's child stopped waiting for a slot (exit 4), which a lane never does; %s." % NOTHING
     elif rc:
@@ -342,8 +341,8 @@ def need_lane(runs, slug, reply, step="qa"):
         return ("the %s lane has not passed on %s" % (step, head[:12]), fix, "LANE_MISSING")
     if ok != head:
         return ("HEAD moved since the %s lane passed (lane on %s, HEAD %s)" % (step, ok[:12], head[:12]),
-                fix + " (reruns only the rows the change can affect; FULL, and slotted, only if the change deletes a file "
-                "or touches a path no row maps)", "HEAD_MOVED")
+                fix + " (reruns only the rows the change can affect; a path no row maps is left to the full suite)",
+                "HEAD_MOVED")
     return None
 
 
@@ -394,7 +393,7 @@ def main(argv):
         cfg = json.load(open(os.path.join(git("rev-parse", "--show-toplevel").stdout.strip(), ".loop", "config.json")))
         status, line, _ = lane(runs, argv[1], argv[2], flow_spec(), cfg)
         print(line, file=sys.stderr if status == "fail" else sys.stdout)
-        return 0 if status != "fail" else 1
+        return 0 if status != "fail" else 124 if "(FULL_TIMEOUT)" in line else 1
     print("usage: role.py lane SLUG qa|ship|pr            start or poll a goal's regression lane\n"
           "       role.py lane-wait SLUG qa|ship|pr [--timeout S]   block until the lane for HEAD ends")
     return 0 if argv in ([], ["-h"], ["--help"]) else 2

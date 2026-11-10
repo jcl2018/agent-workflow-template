@@ -54,7 +54,7 @@ def git(root, *args):
 def runner():
     here = os.path.dirname(os.path.abspath(__file__))
     digest = hashlib.sha256()
-    for name in ("regression.py", "lanes.py", "narrow.py"):
+    for name in ("regression.py", "lanes.py", "narrow.py", "tiers.py"):
         with open(os.path.join(here, name), "rb") as handle:
             digest.update(handle.read())
     return digest.hexdigest()[:12]
@@ -87,18 +87,19 @@ def load(path, root):
     return data, ""
 
 
-def save(path, root, command, results, head, at, fresh):
-    """Merge the rows this run ran into the record, under a lock; a fresh (full) run first drops the old rows."""
+def save(path, root, command, results, head, at, fresh, base=None):
+    """Merge the rows this run ran into the record, under a lock; a fresh (full) run, or a goal tier run on a new
+    merge-base (base), first drops the old rows. base is kept as the record's merge_base (tiers.py)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path + ".lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         old, _ = load(path, root)
-        rows = {} if fresh or not old else old["rows"]
+        rows = {} if fresh or not old or (base and old.get("merge_base") != base) else old["rows"]
         for item in results:
             rows[item["id"]] = {"status": item["state"], "seconds": item["seconds"], "commit": head,
                                 "pid": item.get("pid"), "rc": item.get("rc"), "signal": item.get("signal")}
         data = {"schema": SCHEMA, "runner": runner(), "worktree": root, "command": command, "at": at,
-                "commit": head, "rows": rows, "total_seconds": round(sum(r.get("seconds") or 0 for r in rows.values()), 1)}
+                "commit": head, "merge_base": base, "rows": rows, "total_seconds": round(sum(r.get("seconds") or 0 for r in rows.values()), 1)}
         temp = "%s.%d.tmp" % (path, os.getpid())
         with open(temp, "w") as handle:
             json.dump(data, handle, indent=1, sort_keys=True)

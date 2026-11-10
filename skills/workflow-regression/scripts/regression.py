@@ -11,8 +11,9 @@ usage: regression.py <command> [options]
                                 failing; --write drafts rows (a criterion's row has its id as id or goal)
   criteria                      run each wiki criterion's row; print one UNMET line for each missing, draft or failing
   red ID --break CMD            copy HEAD, run CMD to break it, and record that the test fails there
-  run [land|nightly|ID] [--timeout S] [--live] [--reuse]
-                                run the rows, then open, update or close one issue per failing row
+  run [land|nightly|ID] [--timeout S] [--live] [--reuse [--tier goal]] [--kind requirement|workflow|defect]
+                                run the rows (of one kind), then open, update or close one issue per failing row;
+                                --tier goal plans a goal lane (tiers.py)
   workflow                      write .github/workflows/regression.yml, on the schedule in regression_cron
   reads ROW                     suggest a # reads: header for ROW's script from the newest check-reads trace
 
@@ -35,7 +36,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
-import actions, lanes, runs, slots  # noqa: E401,E402
+import actions, lanes, runs, slots, tiers  # noqa: E401,E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -284,14 +285,16 @@ def cmd_run(args):
         print("NO ROWS: nothing to run" if args.reuse else "NO ROWS: run add first")
         return 0 if args.reuse else 1
     expected, picked = known(root), []
-    for row in chosen(rows, args.target):
+    for row in tiers.kinds(chosen(rows, args.target), args.kind):
         if row["level"] in ("draft", "covered"):
             print("SKIP %s: %s" % (row["id"], row["level"]))
         else:
             picked.append(row)
     head, record, unclean = git("rev-parse", "HEAD"), lanes.record_path(root), lanes.dirty(root)
     todo, reused, why = [row["id"] for row in picked], [], ""
-    if args.reuse and picked:
+    if args.reuse and picked and args.tier:
+        todo, reused, old, why = tiers.plan(root, picked, record)
+    elif args.reuse and picked:
         old, why = lanes.load(record, root)
         if old:
             todo, reused, notes, why = lanes.plan(root, picked, old, lines_of(root, "regression.tsv"),
@@ -338,7 +341,7 @@ def cmd_run(args):
     elif results:
         lanes.save(record, root, "regression.py run %s%s" % (args.target, " --reuse" if args.reuse else ""), results,
                    head, datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                   fresh=bool(args.reuse and why))
+                   fresh=bool(args.reuse and why), base=tiers.BASE)
     never = [row["id"] for row in picked if not SEEN.match(row["seen_red"])]
     for key in never:
         print("UNPROVEN %s: never seen failing. Fix: python3 %s red %s --break \"<a command that breaks it>\"" % (
@@ -385,6 +388,8 @@ def main():
     item.add_argument("--timeout", type=int, default=900)
     item.add_argument("--reuse", action="store_true", help="reuse this branch's last run; run only the rows a change can affect")
     item.add_argument("--live", action="store_true")
+    item.add_argument("--tier", choices=("goal",), help="a goal lane: affected rows only, never FULL but at pr (tiers.py)")
+    item.add_argument("--kind", choices=tuple(tiers.KINDS))
     item.set_defaults(func=cmd_run)
     sub.add_parser("workflow").set_defaults(func=cmd_workflow)
     item = sub.add_parser("reads")

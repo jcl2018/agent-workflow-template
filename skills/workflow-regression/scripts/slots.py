@@ -18,6 +18,7 @@ import fcntl
 import glob
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -306,3 +307,31 @@ def write_table(path, header, lines):
     with open(temp, "w") as handle:
         handle.write(header + "".join(line + "\n" for line in lines))
     os.replace(temp, path)
+
+
+def lane_limit(held):
+    """(seconds, source) of a lane's time limit: a FULL goal lane's full_suite_minutes (tiers.py writes <rc>.limit)."""
+    try:
+        return float(open(held["rc"] + ".limit").read()), "full_suite_minutes"
+    except (OSError, ValueError, KeyError):
+        return held["limit"], held.get("source", "flow file limit")
+
+
+def timeout_line(text, why, held):
+    """The LANE_TIMEOUT line; a FULL goal lane's is FULL_TIMEOUT, which the worker never reruns (DX-16)."""
+    if re.search(r"^FULL \(", text, re.M):
+        return ("LANE_TIMEOUT (FULL_TIMEOUT): the full suite passed its %g min limit; not retryable by the worker. Fix: the "
+                "owner raises full_suite_minutes or narrows rows; rerunning times out again" % (lane_limit(held)[0] / 60))
+    return ("LANE_TIMEOUT: %s; the lane was killed, rows partly ran, nothing committed or pushed. Fix: run the same "
+            "command again, or raise the flow file \"limit\" (else step_limit)." % why)
+
+
+def rows_line(text, ran, log):
+    """The LANE line's end (DX-12, DX-18 ROWS): the goal tier's ROWS counts, the selected rows a timeout left unfinished,
+    and the lane log."""
+    found = re.search(r"^ROWS: (\d+) selected (\(.*?\)), (\d+) reused; unmapped: (\d+)$", text, re.M)
+    if not found:
+        return "; log: %s" % log
+    count, parts, reused, loose = found.groups()
+    return "; rows: %s selected %s, %s reused, %d unfinished; unmapped: %s; log: %s" % (
+        count, parts, reused, max(int(count) - ran, 0), loose, log)
