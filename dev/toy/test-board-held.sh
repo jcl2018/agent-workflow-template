@@ -67,7 +67,15 @@ Q
 board() { python3 - "$S" "$T/repo" <<'PY'
 import sys, datetime
 sys.path.insert(0, sys.argv[1]); import live_board
-print("\n".join(live_board.render(sys.argv[2], datetime.datetime(2026, 6, 1, 12, 0, 0, tzinfo=datetime.timezone.utc))))
+out, base = [], 0  # undo the 60-column wrap so each check reads one logical line
+for line in live_board.render(sys.argv[2], datetime.datetime(2026, 6, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)):
+    indent = len(line) - len(line.lstrip())
+    if out and line.strip() and (out[-1].endswith(" >") or indent == base + 2):
+        out[-1] += " " + line.strip()
+        continue
+    out.append(line)
+    base = indent
+print("\n".join(out))
 PY
 }
 board > "$T/board" 2> "$T/board.err"; echo "exit $?" >> "$T/board.err"

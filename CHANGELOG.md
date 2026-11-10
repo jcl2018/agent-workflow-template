@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.20.0 - 2026-11-10
+
+- feat: scheduled health and digest (automation.py), regression routine switch and defect labels, Automation PRD page, REG-4/5 reworded
+- test: Automation toy test with stub gh, rows for AUT-1..5 and REG-4/5; schedule rows move to Automation
+- docs: Automation in the health and regression skills, README and wiki; new rows seen failing once, results recorded
+- docs: Home lists Automation; the Setup page says setup writes both scheduled workflows
+- fix: review (Backlog milestone before filing, digest state only after its comment, no hygiene on runners, off stops only the schedule, plain-cron check, no issue writes when the list fails, relabel only when needed)
+- test: review rows seen failing once, results recorded
+- docs: the health page says which groups the scheduled run files
+- fix: review pass 2 (judge failure keeps the step green, cron fullmatch, custom secret name maps to the judge's variable, setup writes health.yml only with the skill in the repo)
+- test: pass-2 rows seen failing once, results recorded
+- docs: the setup page says when health.yml is written; the regression page states the cron rule
+- docs: the health page says how the scheduled judge runs
+- fix: pregate (the judge setting is judge_env, naming the secret without looking like one; old default cron literals in tests updated)
+- docs: the health and setup pages name the Automation settings
+- test: coverage for the foreign health.yml, the local dry-run digest, off on push and by hand, the regression schedule warning, local relabel and setup's health.yml choice
+- test: coverage rows seen failing once, results recorded
+- automation: judge_setup runs without the agent key; non-string judge_env and digest_owner refused or named; test header declares skills/
+- docs: Automation and Health pages name the judge_setup key rule and the judge_env check
+- workflow-regression SKILL.md back under 150 lines after merging main; Automation page: judge_setup takes trusted commands only
+- docs: Regression page names the default schedule
+- docs: design guide and setup skill name the scheduled workflows
+- docs: Regression and Setup pages as merged with main (rebase conflict repair)
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.19.1 - 2026-11-10
+
+- No code changes
+
+### How to verify
+
+1. Run `bash dev/toy/test-board-estimates.sh` and read the printed board.
+   Expect: the running goal shows `[build over by 30m]`, `30m left`, a finish time later than the on-time board, and no line wider than 60 characters.
+2. Run `python3 skills/workflow-monitoring/scripts/board_status.py` in this repo.
+   Expect: the step flow wraps at the `>` joints and no line runs past 60 characters.
+
+Closes #93
+
 ## v0.19.0 - 2026-11-10
 
 - Merge remote-tracking branch 'origin/main' into loop/board-held

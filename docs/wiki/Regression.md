@@ -104,9 +104,6 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=b5e36347 N=f86bd012 M=bdcf
 | [health-group-no-tests](Tests#t-health-group-no-tests) | requirement | REG-2 | Given a health check of one group, when it runs, then no TESTS block is printed. | PASS 2026-11-10 |
 | [workflow-same-as-run](Tests#t-workflow-same-as-run) | requirement | REG-3 | Given the same tests, when the workflow runs and regression.py runs locally, then both end the same way and open the same issues. | PASS 2026-11-09 |
 | [local-row-env](Tests#t-local-row-env) | requirement | REG-3 | Given a local run with GH_TOKEN and a run summary file set, when a row runs, then it sees neither. | PASS 2026-11-10 |
-| [ci-summary](Tests#t-ci-summary) | requirement | REG-4 | Given the nightly run, when it ends, then it writes a results table to the job summary. | PASS 2026-11-09 |
-| [schedule-setting](Tests#t-schedule-setting) | requirement | REG-4 | Given a changed schedule setting, when the workflow is rewritten, then the Actions schedule changes. | PASS 2026-11-09 |
-| [bad-schedule-refused](Tests#t-bad-schedule-refused) | requirement | REG-4 | Given a schedule setting that is not a cron time, when it is applied, then it is refused. | PASS 2026-11-09 |
 | [lanes-reuse](Tests#t-lanes-reuse) | requirement | REG-4 | Given a first run on unchanged content, when a second run happens, then it reuses the first and runs no test. | PASS 2026-11-09 |
 | [lanes-affected](Tests#t-lanes-affected) | requirement | REG-4 | Given a change, when tests run again, then only the tests that read the changed files run. | PASS 2026-11-09 |
 | [lanes-failing](Tests#t-lanes-failing) | requirement | REG-4 | Given a run with a failing test, when a later run happens, then it is never reused. | PASS 2026-11-09 |
@@ -127,10 +124,13 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=b5e36347 N=f86bd012 M=bdcf
 | [lanes-trace-check](Tests#t-lanes-trace-check) | requirement | REG-4 | Given a row whose run reads a skill file outside its closure, when check-reads runs, then that row fails with the line to add. | PASS 2026-11-10 |
 | [lanes-trace](Tests#t-lanes-trace) | requirement | REG-4 | Given every land row, when check-reads traces their runs, then each run's skill reads are inside its closure. | not run |
 | [lanes-table](Tests#t-lanes-table) | requirement | REG-4 | Given an edit to one row of the table, when a reusing run happens, then only that row and the rows that read this repo's table rerun. | PASS 2026-11-10 |
+| [reg-same-env](Tests#t-reg-same-env) | requirement | REG-4 | Given the same test, when it runs locally, in the loop or in GitHub Actions, then it gets the same environment from the same command. | PASS 2026-11-10 |
 | [known-no-block](Tests#t-known-no-block) | requirement | REG-5 | Given a known failure, when the run happens, then it does not block the run or open an issue. | PASS 2026-11-09 |
 | [no-token-dry-run](Tests#t-no-token-dry-run) | requirement | REG-5 | Given no GitHub token, when a run happens, then it only prints what it would do. | PASS 2026-11-09 |
 | [one-issue](Tests#t-one-issue) | requirement | REG-5 | Given a failing test, when the run reports it, then one GitHub issue is opened. | PASS 2026-11-09 |
 | [known-recorded](Tests#t-known-recorded) | requirement | REG-5 | Given a known failure, when the GitHub run runs it, then its result is recorded KNOWN, not FAIL. | PASS 2026-11-10 |
+| [reg-defect-label](Tests#t-reg-defect-label) | requirement | REG-5 | Given a failing test, when a local live run reports it, then its issue is labelled defect. | PASS 2026-11-10 |
+| [reg-local-relabel](Tests#t-reg-local-relabel) | requirement | REG-5 | Given an older open issue for a failing test, when a local live run reports it, then the issue gains the defect label. | PASS 2026-11-10 |
 | - | requirement | REG-6 | no passing test | not enforced |
 | - | requirement | REG-7 | no passing test | not enforced |
 | - | requirement | REG-8 | no passing test | not enforced |

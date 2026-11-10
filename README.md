@@ -100,6 +100,18 @@ Say these to the agent:
 | "Fill in any missing settings" | Missing repo settings are added with their defaults; your own values are kept. |
 | "Install the reply hook" | Operation-session replies that don't follow the check-in layout are blocked, saying what is missing. |
 
+### How to use Automation
+
+Say these to the agent:
+
+| You say | What happens |
+|---|---|
+| "Set up the scheduled routines" | Regression and health workflows are written to run every 4 hours in GitHub Actions, for you to merge. |
+| "Run health every 12 hours instead" | The schedule setting changes and the health workflow is written again to match. |
+| "Turn off the scheduled health run" | Scheduled health runs write nothing and say the routine is off; you can still start one by hand. |
+| "Post the automation digest" | One comment on the pinned digest issue lists what ran, the new, still-open and fixed issues, and a request per open issue. |
+| "Write the scheduled regression run again" | The regression workflow is rewritten from the current config, so its schedule matches. |
+
 ## What it aims to be
 
 - **Light:** Markdown instructions and a few small scripts, with no engine to run.
@@ -135,6 +147,10 @@ Every goal runs the same flow: freeze the done lines, then your idea skill, your
 ship skill, then the pull request and the release. Review is the only gate; each step can be mapped to any skill in your private flow file. Each skill runs only after a probe proves its unattended mode, takes its recommended answers, and leaves
 anything only you can decide under Waiting on you. Nothing is approved for you. The ship skill never pushes in that
 mode, so delivery opens the pull request itself, with each step's result in its body.
+
+Regression and health also run on a schedule in GitHub Actions (every 4 hours by default, `off` per routine in
+`.loop/config.json`), filing failing tests as `defect` issues and health findings as tagged issues, and posting one
+digest comment per round on a pinned `Automation digest` issue that GitHub emails you. These runs use Actions minutes.
 
 See where things stand, or pick up a failed goal:
 
@@ -335,6 +351,8 @@ In the repo:
 | `.loop/docs.tsv` | Each wiki page and the paths it describes |
 | `.loop/regression.tsv` | Test rows |
 | `.loop/regression-known.tsv` | Rows expected to fail, with a reason |
+| `.loop/regression-runs.tsv`, `.loop/regression-issues.tsv` | Each row's last result; each defect test's issue state |
+| `.github/workflows/regression.yml`, `.github/workflows/health.yml` | The scheduled routines (written by setup) |
 | `docs/wiki/` | Wiki pages, each starting with `<!-- workflow-docs -->` |
 
 Outside the repo, run state lives in `<git common dir>/loop/`: `runs/<slug>.json`, `logs/<slug>.log`,
