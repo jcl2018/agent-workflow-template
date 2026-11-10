@@ -204,3 +204,17 @@ Decisions kept as written (recommended `a` at the gate):
 ## Review record
 
 - Plan review: gate pending (gate_rev=1). CEO reviewer 14 findings, DX reviewer 14, Eng reviewer 18. The outside voice was unavailable in all three phases.
+
+## Amendment: merged goals (owner, 2026-11-10)
+
+The owner asked to regroup the work as one goal per approved PRD and to merge similar goals: "rewrite the goals ... to
+like 3 goals to implement these 3 based on the PRD. If there are any conflicting goal or the similar goal, merge them."
+docs-format is now the goal for the Documentation PRD (DOC-1..DOC-13), and two held goals merge into it. Their done
+lines are carried here and in the PR. The goal file's done lines stay frozen.
+
+24. **docs-count-gaps (issues 104, 105, 106, 107).** These were already fixed and merged in v0.14.0, and each defect
+    row was seen failing on 2026-11-09. This branch runs each row (PASS 2026-11-10) and refreshes the issue states
+    (closed), so the Tests show them run and passing.
+25. **prd-stamps.** Each feature page whose text the owner approves is copied in verbatim, apart from the machine lines
+    and Tests. Each requirement and the PRD are then stamped Reviewed with `criteria.py review --user`, quoting the
+    owner's words in the commit. Done so far: Documentation and Delivery.

@@ -80,10 +80,10 @@
 | <a id="t-prd-new"></a>prd-new | requirement | DOC-1 | PASS | 2026-11-09 | local | 2026-11-09 |
 | <a id="t-prd-convert"></a>prd-convert | requirement | DOC-1 | PASS | 2026-11-09 | local | 2026-11-09 |
 | <a id="t-prd-repo-green"></a>prd-repo-green | requirement | DOC-1 | PASS | 2026-11-10 | local | 2026-11-10 |
-| <a id="t-docs-count-word-gap-issue-104"></a>docs-count-word-gap-issue-104 | defect | [#104](https://github.com/jcl2018/agent-workflow-template/issues/104) state unknown | not run | - | local | 2026-11-09 |
-| <a id="t-docs-count-indented-code-issue-105"></a>docs-count-indented-code-issue-105 | defect | [#105](https://github.com/jcl2018/agent-workflow-template/issues/105) state unknown | not run | - | local | 2026-11-09 |
-| <a id="t-docs-count-defect-tests-issue-106"></a>docs-count-defect-tests-issue-106 | defect | [#106](https://github.com/jcl2018/agent-workflow-template/issues/106) state unknown | not run | - | local | 2026-11-09 |
-| <a id="t-docs-count-other-id-issue-107"></a>docs-count-other-id-issue-107 | defect | [#107](https://github.com/jcl2018/agent-workflow-template/issues/107) state unknown | not run | - | local | 2026-11-09 |
+| <a id="t-docs-count-word-gap-issue-104"></a>docs-count-word-gap-issue-104 | defect | [#104](https://github.com/jcl2018/agent-workflow-template/issues/104) closed (2026-11-10) | PASS | 2026-11-10 | [c2ada09](https://github.com/jcl2018/agent-workflow-template/commit/c2ada097516cc982cf6b648b44a3ed0f1328d248) | 2026-11-09 |
+| <a id="t-docs-count-indented-code-issue-105"></a>docs-count-indented-code-issue-105 | defect | [#105](https://github.com/jcl2018/agent-workflow-template/issues/105) closed (2026-11-10) | PASS | 2026-11-10 | [c2ada09](https://github.com/jcl2018/agent-workflow-template/commit/c2ada097516cc982cf6b648b44a3ed0f1328d248) | 2026-11-09 |
+| <a id="t-docs-count-defect-tests-issue-106"></a>docs-count-defect-tests-issue-106 | defect | [#106](https://github.com/jcl2018/agent-workflow-template/issues/106) closed (2026-11-10) | PASS | 2026-11-10 | [c2ada09](https://github.com/jcl2018/agent-workflow-template/commit/c2ada097516cc982cf6b648b44a3ed0f1328d248) | 2026-11-09 |
+| <a id="t-docs-count-other-id-issue-107"></a>docs-count-other-id-issue-107 | defect | [#107](https://github.com/jcl2018/agent-workflow-template/issues/107) closed (2026-11-10) | PASS | 2026-11-10 | [c2ada09](https://github.com/jcl2018/agent-workflow-template/commit/c2ada097516cc982cf6b648b44a3ed0f1328d248) | 2026-11-09 |
 | <a id="t-format-home"></a>format-home | requirement | DOC-4 | not run | - | local | 2026-11-10 |
 | <a id="t-format-frontdoor"></a>format-frontdoor | requirement | DOC-5 | not run | - | local | 2026-11-10 |
 | <a id="t-format-usage-api"></a>format-usage-api | requirement | DOC-6 | not run | - | local | 2026-11-10 |
@@ -207,14 +207,14 @@
 | <a id="t-reply-hook-install"></a>reply-hook-install | requirement | MON-5 | PASS | 2026-11-09 | local | 2026-11-09 |
 | <a id="t-reply-hook-all"></a>reply-hook-all | requirement | MON-5 | PASS | 2026-11-09 | local | 2026-11-09 |
 | <a id="t-reply-hook-mon5-wording"></a>reply-hook-mon5-wording | requirement | MON-5 | PASS | 2026-11-09 | local | 2026-11-09 |
-| <a id="t-held-stale-next"></a>held-stale-next | defect | [#102](https://github.com/jcl2018/agent-workflow-template/issues/102) state unknown | not run | - | local | 2026-11-09 |
-| <a id="t-held-shows-held"></a>held-shows-held | defect | [#102](https://github.com/jcl2018/agent-workflow-template/issues/102) state unknown | not run | - | local | 2026-11-09 |
-| <a id="t-held-freezing"></a>held-freezing | defect | [#102](https://github.com/jcl2018/agent-workflow-template/issues/102) state unknown | not run | - | local | 2026-11-09 |
-| <a id="t-held-off-flow"></a>held-off-flow | defect | [#102](https://github.com/jcl2018/agent-workflow-template/issues/102) state unknown | not run | - | local | 2026-11-09 |
-| <a id="t-report-done-final"></a>report-done-final | defect | [#108](https://github.com/jcl2018/agent-workflow-template/issues/108) state unknown | not run | - | local | 2026-11-09 |
+| <a id="t-held-stale-next"></a>held-stale-next | defect | [#102](https://github.com/jcl2018/agent-workflow-template/issues/102) closed (2026-11-10) | not run | - | local | 2026-11-09 |
+| <a id="t-held-shows-held"></a>held-shows-held | defect | [#102](https://github.com/jcl2018/agent-workflow-template/issues/102) closed (2026-11-10) | not run | - | local | 2026-11-09 |
+| <a id="t-held-freezing"></a>held-freezing | defect | [#102](https://github.com/jcl2018/agent-workflow-template/issues/102) closed (2026-11-10) | not run | - | local | 2026-11-09 |
+| <a id="t-held-off-flow"></a>held-off-flow | defect | [#102](https://github.com/jcl2018/agent-workflow-template/issues/102) closed (2026-11-10) | not run | - | local | 2026-11-09 |
+| <a id="t-report-done-final"></a>report-done-final | defect | [#108](https://github.com/jcl2018/agent-workflow-template/issues/108) closed (2026-11-10) | not run | - | local | 2026-11-09 |
 | <a id="t-depth-on-board"></a>depth-on-board | requirement | MON-4 | not run | - | local | 2026-11-09 |
 | <a id="t-held-all"></a>held-all | requirement | MON-4 | not run | - | local | 2026-11-10 |
-| <a id="t-reply-hook-checkin-123"></a>reply-hook-checkin-123 | defect | [#123](https://github.com/jcl2018/agent-workflow-template/issues/123) state unknown | not run | - | local | 2026-11-10 |
+| <a id="t-reply-hook-checkin-123"></a>reply-hook-checkin-123 | defect | [#123](https://github.com/jcl2018/agent-workflow-template/issues/123) closed (2026-11-10) | not run | - | local | 2026-11-10 |
 
 ## Regression
 
@@ -261,7 +261,7 @@
 | <a id="t-lanes-trace-check"></a>lanes-trace-check | requirement | REG-6 | PASS | 2026-11-10 | local | 2026-11-10 |
 | <a id="t-lanes-trace"></a>lanes-trace | requirement | REG-6 | not run | - | local | 2026-11-10 |
 | <a id="t-lanes-table"></a>lanes-table | requirement | REG-6 | PASS | 2026-11-10 | local | 2026-11-10 |
-| <a id="t-summary-only-real-rows"></a>summary-only-real-rows | defect | [#92](https://github.com/jcl2018/agent-workflow-template/issues/92) open (2026-11-09) | PASS | 2026-11-10 | local | 2026-11-10 |
+| <a id="t-summary-only-real-rows"></a>summary-only-real-rows | defect | [#92](https://github.com/jcl2018/agent-workflow-template/issues/92) closed (2026-11-10) | PASS | 2026-11-10 | local | 2026-11-10 |
 | <a id="t-summary-groups"></a>summary-groups | requirement | REG-2 | PASS | 2026-11-10 | local | 2026-11-10 |
 | <a id="t-summary-fields"></a>summary-fields | requirement | REG-2 | PASS | 2026-11-10 | local | 2026-11-10 |
 | <a id="t-summary-escapes"></a>summary-escapes | requirement | REG-2 | PASS | 2026-11-10 | local | 2026-11-10 |
@@ -299,7 +299,7 @@
 | <a id="t-parallel-unlimited"></a>parallel-unlimited | requirement | SET-2 | PASS | 2026-11-09 | local | 2026-11-09 |
 | <a id="t-settings-read-fresh"></a>settings-read-fresh | requirement | SET-2 | PASS | 2026-11-09 | local | 2026-11-09 |
 | <a id="t-criteria-max-setting"></a>criteria-max-setting | requirement | SET-2 | PASS | 2026-11-09 | local | 2026-11-10 |
-| <a id="t-skill-size-116"></a>skill-size-116 | defect | [#116](https://github.com/jcl2018/agent-workflow-template/issues/116) state unknown | PASS | 2026-11-10 | local | 2026-11-09 |
+| <a id="t-skill-size-116"></a>skill-size-116 | defect | [#116](https://github.com/jcl2018/agent-workflow-template/issues/116) closed (2026-11-10) | PASS | 2026-11-10 | local | 2026-11-09 |
 | <a id="t-skill-kept"></a>skill-kept | requirement | SET-3 | PASS | 2026-11-10 | local | 2026-11-09 |
 | <a id="t-depth-setup"></a>depth-setup | requirement | SET-2 | not run | - | local | 2026-11-09 |
 | <a id="t-depth-reference"></a>depth-reference | requirement | SET-2 | not run | - | local | 2026-11-09 |
