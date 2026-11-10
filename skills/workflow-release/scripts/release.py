@@ -11,9 +11,9 @@ usage: release.py <command> <slug> [options]
   show SLUG   print the goal's release field
 
 A batch goal never cuts unless --user is given, and --user means the human's own message said to cut.
-With "release_auto": true in .loop/config.json, a batch ask reads the diff: leave, patch or minor cut or leave by
-itself (a DRAFT, no --user); a breaking change waits.
-It runs git and gh, and nothing else. It never publishes a release, never pushes a tag and never merges.
+With "release_auto": true in .loop/config.json, a batch ask reads the diff and cuts a patch DRAFT by itself (no
+--user), or the goal's own bump set with goal.py set SLUG --bump; only docs, tests or .loop leave.
+cut scans for private names before its push (PRIVATE_NAME). It never publishes, never pushes a tag, never merges.
 """
 import argparse
 import datetime
@@ -107,12 +107,11 @@ def cmd_ask(args):
         print("NEED %s: %s" % need)
         if need[0] == "leave":
             return do_leave(state, "the batch (%s)" % need[1])
-        if need[0] != "ask":
-            try:
-                return cmd_cut(argparse.Namespace(slug=args.slug, bump=need[0], user=False, auto=True))
-            except SystemExit as stop:
-                print(stop, "\nThe owner decides.")
-                state = load(args.slug)
+        try:
+            return cmd_cut(argparse.Namespace(slug=args.slug, bump=need[0], user=False, auto=True))
+        except SystemExit as stop:
+            print(stop, "\nThe owner decides.")
+            state = load(args.slug)
     words = ["cut " + args.slug, "leave " + args.slug]
     state["status"] = "waiting"
     state["step"] = "release"
@@ -150,12 +149,18 @@ def auto_need(top, state):
     msgs = git("log", "--format=%s%n%b", base + "..HEAD", cwd=top, check=False)
     if not code:
         need = ("leave", "only docs, tests or .loop changed")
-    elif re.search(r"BREAKING|^\w+(\([^)]*\))?!:", msgs, re.M) or any(k == "D" for k, _ in code):
-        need = ("ask", "a breaking change: a commit says so or a file was removed")
-    elif any(k == "A" for k, _ in code) or re.search(r"^feat\b", msgs, re.M | re.I):
-        need = ("minor", "a new feature or command")
-    else:
-        need = ("patch", "a fix")
+    else:  # patch unless the owner set the goal's bump; a removal or BREAKING is only named (issue 170)
+        import autorelease
+        fit, stop = autorelease.sibling("fit")
+        if stop:
+            sys.exit("REFUSED: %s. Fix: %s (%s)" % stop)
+        part = fit.view(state, os.path.dirname(state_path(state["slug"]))).get("bump")
+        part = part if part in ("minor", "major") else None
+        why = ["the goal's bump, set with goal.py set" if part else "a code change: patch by default"]
+        gone = [p for k, p in code if k == "D"]
+        why += ["removes %s" % ", ".join(gone[:3])] * bool(gone)
+        why += ["a commit says breaking"] * bool(re.search(r"BREAKING|^\w+(\([^)]*\))?!:", msgs, re.M))
+        need = (part or "patch", "; ".join(why))
     state["release_need"], state["release_reason"] = need
     save(state, "release need %s: %s" % need)
     return need
@@ -349,14 +354,20 @@ def cmd_cut(args):
     if run(["git", "add", "--"] + files, cwd).returncode or run(["git", "commit", "-m", message, "--"] + files, cwd).returncode:
         restore(cwd, files, before, message)
         sys.exit("REFUSED: could not commit the release files.")
+    text = "\n".join("- " + item for item in bullets) + "\n\n## How to verify\n\n%s\n\n## Documentation\n\n%s\n\nPull request: %s\n" % (
+        steps, "\n\n".join(docs_lines(cwd, cfg, base)), state.get("pr", ""))
+    import autorelease
+    stop = autorelease.private_check(cwd, base, {"release notes": text}, bool(git("ls-remote", "origin", branch, cwd=cwd, check=False)))
+    if stop:
+        restore(cwd, files, before, message)
+        sys.exit("REFUSED: %s. Fix: %s (%s)" % stop)
     pushed = run(["git", "push", "-u", "origin", branch], cwd)
     if pushed.returncode:
         restore(cwd, files, before, message)
         sys.exit("REFUSED: push failed, release undone: " + pushed.stderr.strip()[:300])
     notes = tempfile.NamedTemporaryFile("w", suffix=".md", prefix="release-notes-", delete=False)
     with notes:
-        notes.write("\n".join("- " + item for item in bullets) + "\n\n## How to verify\n\n%s\n\n## Documentation\n\n%s\n\nPull request: %s\n"
-                    % (steps, "\n\n".join(docs_lines(cwd, cfg, base)), state.get("pr", "")))
+        notes.write(text)
     try:
         made = run(["gh", "release", "create", tag, "--draft", "--title", tag, "--notes-file", notes.name,
                     "--target", branch], cwd=cwd)

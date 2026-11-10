@@ -4,7 +4,7 @@
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Test workflow-release on a throwaway toy repo with a fake gh. usage: test-release.sh [DIR]
 # env: AGENT_TEST=1 also runs a headless agent (MODEL, default haiku) that follows SKILL.md to ask and cut.
-unset LOOP_BATCH
+unset LOOP_BATCH LOOP_PRIVATE_NAMES
 set -e
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
@@ -113,28 +113,28 @@ grep -q "NEED patch" <<<"$out" && grep -q "^CUT fixit" <<<"$out" && $rel show fi
 $goal show fixit | grep -q '"release_need": "patch"' && $goal show fixit | grep -q release_reason && ok "need and reason recorded" || bad "need record"
 [ "$(git show loop/fixit:VERSION)" = "0.1.1" ] && ok "patch moved the last number" || bad "patch version"
 LOOP_BATCH=1 FILE=extra.py finish newcmd
-out=$($rel ask newcmd); grep -q "NEED minor" <<<"$out" && [ "$(git show loop/newcmd:VERSION)" = "0.2.0" ] && ok "new file cut a minor" || bad "auto minor"
+out=$($rel ask newcmd); grep -q "NEED patch: a code change: patch by default" <<<"$out" && [ "$(git show loop/newcmd:VERSION)" = "0.1.1" ] && ok "new file cuts a patch (no goal bump set)" || bad "auto minor"
 LOOP_BATCH=1 FILE=NOTES.md finish onlydocs
 out=$($rel ask onlydocs); grep -q "NEED leave" <<<"$out" && $rel show onlydocs | grep -qx "release=leave" && ok "docs only leaves" || bad "docs leave"
 LOOP_BATCH=1 MSG="feat!: drop the old API" finish brk
-out=$($rel ask brk); grep -q "NEED ask" <<<"$out" && grep -q "WAITING brk" <<<"$out" && $rel show brk | grep -qx "release=ask" && ok "breaking change waits" || bad "breaking"
-$rel cut brk && bad "breaking cut without --user" || ok "waiting breaking goal still refuses a bare cut"
+out=$($rel ask brk); grep -q "NEED patch: .*a commit says breaking" <<<"$out" && $rel show brk | grep -qx "release=cut" && ok "breaking commit cuts a patch, named in the reason" || bad "breaking"
+[ "$(git show loop/brk:VERSION)" = "0.1.1" ] && ok "breaking commit never becomes major" || bad "breaking version"
 LOOP_BATCH=1 finish owner --release ask
 out=$($rel ask owner); grep -q "WAITING owner" <<<"$out" && ok "release: ask still waits" || bad "release ask"
 NO_VERIFY=1 LOOP_BATCH=1 finish nosteps
 out=$($rel ask nosteps); grep -q "REFUSED" <<<"$out" && grep -q "WAITING nosteps" <<<"$out" && ok "missing verify steps refuse, owner decides" || bad "nosteps"
 LOOP_BATCH=1 MSG="feat: calc gets a helper" finish featmsg
-out=$($rel ask featmsg); grep -q "NEED minor" <<<"$out" && ok "feat commit cuts a minor" || bad "feat minor"
+out=$($rel ask featmsg); grep -q "NEED patch" <<<"$out" && ok "feat commit cuts a patch" || bad "feat minor"
 git switch -q main; echo old > old.py; git add old.py; git commit -qm "Add old.py"; git push -q origin main
 LOOP_BATCH=1 finish rmfile
 git rm -q old.py; git commit -qm "Remove old.py"
-out=$($rel ask rmfile); grep -q "NEED ask" <<<"$out" && grep -q "WAITING rmfile" <<<"$out" && ok "removed file waits" || bad "removed file"
+out=$($rel ask rmfile); grep -q "NEED patch: .*removes old.py" <<<"$out" && $rel show rmfile | grep -qx "release=cut" && ok "removed file cuts a patch, named in the reason (#170)" || bad "removed file"
 LOOP_BATCH=1 MSG="Rework calc
 
 BREAKING CHANGE: calc output moved" finish brkword
-out=$($rel ask brkword); grep -q "NEED ask" <<<"$out" && ok "BREAKING CHANGE footer waits" || bad "breaking footer"
+out=$($rel ask brkword); grep -q "NEED patch: .*a commit says breaking" <<<"$out" && ok "BREAKING CHANGE footer cuts a patch, named" || bad "breaking footer"
 LOOP_BATCH=1 FILE=dev/install-local.sh finish devtool
-out=$($rel ask devtool); grep -q "NEED minor" <<<"$out" && ok "shipped dev tooling is not docs" || bad "dev tooling"
+out=$($rel ask devtool); grep -q "NEED patch" <<<"$out" && ok "shipped dev tooling is not docs" || bad "dev tooling"
 LOOP_BATCH=1 FILE=tests/test_more.py finish testsonly
 out=$($rel ask testsonly); grep -q "NEED leave: only docs, tests" <<<"$out" && ok "tests only leaves" || bad "tests leave"
 git switch -q main; mkdir -p docs/wiki; echo page > docs/wiki/Calc.md; printf 'Calc\tcalc.py\n' > .loop/docs.tsv
@@ -143,7 +143,7 @@ LOOP_BATCH=1 finish stalepage
 out=$($rel ask stalepage); grep -q "REFUSED: the docs audit found trouble" <<<"$out" && grep -q "WAITING stalepage" <<<"$out" && ok "stale page refuses, owner decides" || bad "stale gate"
 git switch -q main; git rm -q .loop/docs.tsv docs/wiki/Calc.md; git commit -qm "Unmap the Calc page"
 grep -Eq "draft=false|release edit|release upload" "$FAKE_GH_DIR/calls.log" && bad "publish call" || ok "auto mode only made drafts"
-[ "$(grep -c '^release create' "$FAKE_GH_DIR/calls.log")" = "$(( $(grep -c '^release create' <(head -n "$n" "$FAKE_GH_DIR/calls.log")) + 4 ))" ] && ok "exactly four auto drafts" || bad "draft count"
+[ "$(grep -c '^release create' "$FAKE_GH_DIR/calls.log")" = "$(( $(grep -c '^release create' <(head -n "$n" "$FAKE_GH_DIR/calls.log")) + 7 ))" ] && ok "exactly seven auto drafts" || bad "draft count"
 [ -z "$(git ls-remote --tags origin)" ] && ok "still no tag" || bad "tag pushed"
 [ "$(wc -c < "$here/skills/workflow-release/scripts/release.py")" -lt 20480 ] && ok "release.py under 20 KB" || bad "release.py size"
 git switch -q main; sed -i.bak 's/, "release_auto": true//' .loop/config.json && rm .loop/config.json.bak; git commit -qam "Turn release_auto off"

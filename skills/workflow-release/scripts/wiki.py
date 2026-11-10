@@ -9,6 +9,10 @@ usage: wiki.py <command> SLUG
   publish SLUG              after the merge: run docs.py publish from a clean checkout of origin/<base>; on a refusal
                             record `wiki_error` (page and reason) on the goal, which shows under Issues.
 
+Both scan for private names first: prepare --commit scans the branch before its push; publish scans every page in the
+wiki folder and publishes nothing on a hit (wiki_error names the page and line). A GitHub wiki with no first page can't
+be cloned: the error says to create the first page in the repo's Wiki tab, then run merge.py SLUG again (issue 129).
+
 A repo without .loop/docs.tsv has no wiki: both commands do nothing. It runs git and docs.py, and nothing else.
 """
 import argparse
@@ -18,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 
+import autorelease
 import release
 from release import base_of, git, load, read_config, run, save
 
@@ -65,6 +70,9 @@ def cmd_prepare(args):
         return 1
     if args.commit and load(args.slug).get("pr"):
         branch = git("branch", "--show-current", cwd=top)
+        stop = autorelease.private_check(top, base_of(top, cfg), {}, True)
+        if stop:
+            sys.exit("REFUSED: %s. Fix: %s (%s)" % stop)
         pushed = run(["git", "push", "origin", "HEAD:" + branch], cwd=top)
         if pushed.returncode:
             sys.exit("REFUSED: push of the wiki update failed: " + pushed.stderr.strip()[:300])
@@ -82,8 +90,23 @@ def publish(top, cfg, slug):
     try:
         if run(["git", "worktree", "add", "-q", "--detach", tree, "origin/" + base], cwd=top).returncode:
             return "could not check out origin/%s" % base
+        folder = os.path.join(tree, cfg.get("wiki_dir") or "docs/wiki")
+        texts = {}
+        for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
+            if name.endswith(".md"):
+                with open(os.path.join(folder, name), encoding="utf-8", errors="replace") as handle:
+                    texts["wiki:" + name[:-3]] = handle.read()
+        stop = autorelease.private_check(top, None, texts)
+        if stop and stop[2] == "PRIVATE_NAME":
+            return ("%s; nothing was published. Fix: remove the name from that page on %s (a goal that edits it), or edit "
+                    "that line of the list for a false positive, then run merge.py %s again (PRIVATE_NAME)" % (stop[0], base, slug))
+        if stop:
+            return "%s; nothing was published. Fix: %s (%s)" % stop
         done = run([sys.executable, DOCS, "publish"], cwd=tree)
         lines = (done.stdout + done.stderr).strip().splitlines()
+        if done.returncode and any("can't read the wiki" in line for line in lines):
+            return ("the GitHub wiki has no first page, so it can't be cloned; nothing was published. Fix: create the "
+                    "first page in the repo's Wiki tab, then run merge.py %s again" % slug)
         if done.returncode:
             reasons = [line for line in lines if not line.startswith("REFUSED")] or lines
             return " | ".join(line.strip() for line in (reasons[:3] + [line for line in lines if line.startswith("REFUSED")][:1]))[:400]

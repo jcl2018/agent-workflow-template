@@ -8,11 +8,15 @@ without that switch keeps the owner's merge: nothing here merges there. Then it 
 releases: one version bump, a CHANGELOG entry and a published GitHub release (autorelease.py). Any failure is recorded
 on the goal as `release_error`. Where .loop/docs.tsv maps pages, it first refuses while a page the goal's paths map to is stale,
 and after the merge it publishes the wiki through wiki.py; a refused publish is recorded as `wiki_error`, not undone.
+Before merging it scans the branch and the release notes for private names (refusing, nothing merged), and holds the
+merge (REQUIREMENT_MISSING) while a criterion row the goal adds names a requirement ID no wiki page on the base names,
+where the base's pages already use that ID's prefix; otherwise a missing ID is only a NOTE.
 """
 import argparse
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -28,6 +32,23 @@ if not sys.stdin or not sys.stdin.isatty():
 
 def run(args, cwd=None):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+
+
+def missing_ids(top, cfg):
+    """(held, noted): requirement IDs of criterion rows this goal adds that no wiki page on origin/<base> names."""
+    base = "origin/" + cfg.get("base", "main")
+    folder = (cfg.get("wiki_dir") or "docs/wiki").strip("/")
+    added = run(["git", "diff", "-U0", base + "...HEAD", "--", ".loop/regression.tsv"], cwd=top).stdout
+    ids = set()
+    for line in added.splitlines():
+        cells = line[1:].split("\t") if line.startswith("+") and not line.startswith("+++") else []
+        if len(cells) > 3 and (cells[6:7] in ([], [""], ["criterion"])) and re.match(r"^[A-Z]{2,5}-\d+$", cells[3]):
+            ids.add(cells[3])
+    names = run(["git", "ls-tree", "--name-only", base, folder + "/"], cwd=top).stdout.split()
+    text = "\n".join(run(["git", "show", "%s:%s" % (base, name)], cwd=top).stdout for name in names if name.endswith(".md"))
+    gone = sorted(i for i in ids if not re.search(r"\b%s\b" % re.escape(i), text))
+    held = [i for i in gone if names and re.search(r"\b%s\d+\b" % re.escape(i.split("-")[0] + "-"), text)]
+    return held, [i for i in gone if i not in held]
 
 
 def main():
@@ -65,9 +86,17 @@ def main():
                 sys.exit("REFUSED: this branch's latest commit is not on origin. Fix: run wiki.py prepare %s --commit." % args.slug)
         if known != "OPEN":
             sys.exit("REFUSED: the pull request %s is %s, not open." % (state["pr"], known or "unknown"))
-        autorelease.run_routines(top, cfg, state)
         autorelease.stage_notes(top, state, cfg)
         autorelease.stage_part(top, state)
+        autorelease.check(state, top, "origin/" + cfg.get("base", "main"), {"release notes": autorelease.notes_text(state)}, True)
+        held, noted = missing_ids(top, cfg)
+        if held:
+            autorelease.fail(state, "criterion rows name %s, which no wiki page on origin/%s names; nothing was merged. Fix: "
+                             "merge the goal that adds their text, then merge.py %s (REQUIREMENT_MISSING)" % (
+                                 ", ".join(held), cfg.get("base", "main"), args.slug))
+        if noted:
+            print("NOTE: no wiki page on the base names %s yet; merging anyway" % ", ".join(noted))
+        autorelease.run_routines(top, cfg, state)
         done = run(["gh", "pr", "merge", state["pr"], "--merge"])
         if done.returncode:
             autorelease.fail(state, "gh could not merge %s: %s" % (state["pr"], done.stderr.strip()[-300:]))

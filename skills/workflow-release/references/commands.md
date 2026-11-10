@@ -16,8 +16,20 @@ show SLUG
 
 - `wiki prepare` lists the mapped pages that are stale (see `.loop/docs.tsv`). The agent rewrites them, then `--commit`
   commits them on the goal's branch and pushes it. `merge` runs the same check and refuses while a page is stale.
-- `wiki publish` runs after the merge, from a clean checkout of `origin/main`. If publish refuses, the merge stands, the
-  goal records `wiki_error` (which page and why) in its report, and it shows under Issues.
+- `merge` (with `auto_merge` on) merges the goal's pull request and publishes the release (no draft): one version bump,
+  a CHANGELOG entry and a published GitHub release. On a protected base (a `pull_request` rule from
+  `gh api repos/{owner}/{repo}/rules/branches/<base>`, or a push refused with GH006, GH013, "protected branch", "through
+  a pull request" or "rule violations") it goes through a release PR: branch `release/vX-<slug>`, title
+  `Release vX (<slug>)`, the release notes as its body. The loop merges it itself with `gh pr merge --merge`, never
+  `--admin`; pending checks wait (`release_pr_waiting`, the next `merge` retries); a required review records
+  `RELEASE_PR_BLOCKED` with your command. The release targets the release PR's merge commit. Any other push refusal
+  keeps the three tries. Before merging it scans the branch and release notes for private names.
+- Bump rule: patch by default; minor or major only when the operation recorded the goal's bump with
+  `goal.py set SLUG --bump minor|major`. A removed file or a `BREAKING` commit is named in the reason, never a major.
+- `wiki publish` runs after the merge, from a clean checkout of `origin/main`. It first scans every page in the wiki
+  folder for private names and publishes nothing on a hit. If publish refuses, the merge stands, the goal records
+  `wiki_error` (which page and why) in its report, and it shows under Issues. A GitHub wiki with no first page can't be
+  cloned: create the first page in the repo's Wiki tab, then run `merge.py SLUG` again.
 - `ask` shows the changed docs, the wiki link and the verify steps, then prints `cut <slug>` and `leave <slug>`. A
   monitored batch goal without `release: ask` answers `leave` by itself.
 - `leave` keeps the work unreleased and changes nothing versioned.
@@ -35,13 +47,27 @@ stands.
 ### Automatic draft releases
 
 Set `"release_auto": true` in `.loop/config.json` to let a monitored batch goal decide from its diff. `ask` prints
-`NEED <leave|patch|minor|ask>: <reason>` and records it. Docs, tests and `.loop` changes leave. A fix cuts a `patch`
-draft, and a new non-doc file or a `feat` commit cuts a `minor` draft, with no `--user`. A breaking change (a `BREAKING`
-or `!:` commit, or a removed file) always waits for you, and so does a goal marked `release: ask`. Every refusal of
-`cut` still applies, and then you decide. Without `release_auto`, a batch goal leaves as before. The release is always a
-draft.
+`NEED <leave|patch|minor|major>: <reason>` and records it. Docs, tests and `.loop` changes leave. Anything else cuts a
+draft with the bump rule (patch unless the goal's bump was set), with no `--user`; a removed file or a breaking commit
+is named in the reason. A goal marked `release: ask` waits for you. Every refusal of `cut` still applies, and then you
+decide. Without `release_auto`, a batch goal leaves as before. This path's release is always a draft.
 
-No release is published and nothing merges without you.
+Without `auto_merge`, no release is published and nothing merges without you. With it, `merge` publishes the release
+(no draft).
+
+### Codes
+
+Each refusal ends with one of these codes; the line also gives the fix and what was or wasn't pushed.
+
+| Code | Means | Fix |
+|---|---|---|
+| `PRIVATE_NAME` | a private name is in the branch, a commit message, the release notes or a wiki page; nothing pushed or merged | remove it (squash so no commit keeps it), or edit that line of the list for a false positive |
+| `PRIVATE_LIST` | the private-name list can't be read, holds an invalid pattern, or the scan failed | repair the line `private.py check` names |
+| `PRIVATE_MODULE` | workflow-delivery's `private.py` or `fit.py` is missing beside this skill (the path is named) | reinstall, or put workflow-delivery beside workflow-release |
+| `RELEASE_PR_BLOCKED` | the release PR needs a review or is blocked; branch pushed and PR open | `gh pr merge <n> --merge`, then `merge.py SLUG` |
+| `RELEASE_VERSION_MISMATCH` | VERSION at the release PR's merge commit is not vX; no release made | set VERSION on the base, then `merge.py SLUG` |
+| `RELEASE_EXISTS` | a GitHub release vX already exists at another target | look at it, keep or delete it, then `merge.py SLUG` |
+| `REQUIREMENT_MISSING` | a criterion row names a requirement ID no wiki page on the base names; nothing merged | merge the goal that adds its text, then `merge.py SLUG` |
 
 The package for Agensi is a skill pack: one ZIP with all seven skills, and the shared file contract under `shared/`.
 

@@ -5,7 +5,7 @@
 # reads: skills/workflow-setup/scripts/setup.py
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Proves the automatic release on a throwaway toy repo with a fake gh. usage: test-autorelease.sh [DIR]
-unset LOOP_BATCH
+unset LOOP_BATCH LOOP_PRIVATE_NAMES
 set -e
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
@@ -62,11 +62,12 @@ grep -q "^release create v0.1.1 --title v0.1.1 " "$FAKE_GH_DIR/calls.log" && ! g
 out=$(PRS=MERGED merge one); grep -q "^ALREADY" <<<"$out" && [ "$(remote_file VERSION)" = "0.1.1" ] && ok "a second run bumps nothing" || bad "twice"
 [ "$(git log origin/main --format=%s | grep -c '^Release ')" = 1 ] && ok "one release commit" || bad "release commits"
 
-echo "== 2. a breaking change releases with no question"
+echo "== 2. a breaking change releases a patch with no question, the reason named"
 MSG="feat!: drop the old API" finish brk
 export FAKE_GH_MERGE_BRANCH=loop/brk
 out=$(merge brk); echo "$out"
-grep -q "^RELEASED v0.2.0" <<<"$out" && [ "$(state brk release_part)" = major ] && ok "breaking released (minor while 0.x)" || bad "breaking"
+grep -q "^RELEASED v0.1.2" <<<"$out" && [ "$(state brk release_part)" = patch ] && state brk release_reason | grep -q "a commit says breaking" \
+  && ok "breaking released as a patch, named in the reason" || bad "breaking"
 (cd "$here" && python3 - <<'PY'
 import sys; sys.path.insert(0, "skills/workflow-release/scripts")
 import autorelease as a
