@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=219479d7 N=81dd3484 M=4599a537 U=3a46b9d6 -->
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
@@ -82,80 +82,83 @@ Review: **Unreviewed**
 
 ## Tests
 
-#### DOC-1
-
-PRD template. One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Usage (the commands and how to use each, left out when nothing applies); Requirements (up to the repo's limit, default 6, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes). Nothing else goes on the page.
-
-- Given a wiki page with a Commands section, when the check runs, then it fails. — [page-shape](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a criterion that names a script, when the check runs, then it fails. — [criteria-no-scripts](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a criterion with no passing test, when the page is shown, then it shows as not enforced. — [tests-not-enforced](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given recorded runs, when the Tests table is shown, then it shows each test's last result and date. — [tests-last-run](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a Tests table behind the last run, when the check runs, then it is reported stale. — [tests-table-stale](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a changed template sheet, when the docs check runs, then it reads the page rules from the sheet, so the check changes with it. — [template-sheet](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given criteria_max in the config, when a page has more criteria than it allows, then the check fails. — [criteria-max-config](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a Usage section between Problem and Requirements, when the check runs, then it passes. — [usage-section-allowed](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a page with no commands and no Usage section, when the check runs, then it passes. — [usage-optional](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a PRD page with swapped sections, an unknown section or stray text before the first one, when the docs check runs, then it fails with SECTIONS. — [prd-section-order](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a PRD page with empty Non-goals or four Success metrics lines, when the docs check runs, then it fails naming the section. — [prd-nongoals-metrics](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a one-line idea, when prd new runs with --paths, then it drafts a mapped, Unreviewed PRD page that stays UNWRITTEN until its drafts are written. — [prd-new](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given old Summary and Criteria pages, when convert runs, then they become PRD pages with the same IDs and stamps, a half-converted page is completed, and a second run changes nothing. — [prd-convert](../../.loop/regression.tsv), requirement, guards DOC-1, both, PASS 2026-11-09, seen failing 2026-11-09
-
-#### DOC-2
-
-The PRD is mine. I review the PRD as a whole (Problem, Usage, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that. After it, nothing in Problem, Requirements, Non-goals or Success metrics changes unless I un-review it; Usage updates with the commands, and any change to it shows as changed since my review, under Needs you, until I review it again.
-
-- Given a criterion, when it is reviewed, then it is marked Reviewed with the date. — [review-dated](../../.loop/regression.tsv), requirement, guards DOC-2, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a criterion, when a review is attempted, then it is reviewed only with the owner's words. — [review-owner-only](../../.loop/regression.tsv), requirement, guards DOC-2, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a reviewed criterion, when it is changed, then the check fails. — [reviewed-lock](../../.loop/regression.tsv), requirement, guards DOC-2, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a reviewed criterion, when it is unreviewed, then its lock is lifted. — [unreview-lifts](../../.loop/regression.tsv), requirement, guards DOC-2, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a reviewed criterion that changed, when the report is printed, then it names that criterion. — [lock-in-report](../../.loop/regression.tsv), requirement, guards DOC-2, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a PRD the owner reviewed, when Problem, Requirements, Non-goals or Success metrics changes, then the docs check fails with LOCKED naming each changed section. — [prd-lock-four](../../.loop/regression.tsv), requirement, guards DOC-2, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a PRD the owner reviewed, when only its Usage is edited, added or removed, then the docs check fails with CHANGED and the board lists the page. — [prd-usage-changed](../../.loop/regression.tsv), requirement, guards DOC-2, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given review or unreview with no --user, a bad ID, a bad page or a bad date, when it runs, then it refuses and changes nothing. — [prd-review-args](../../.loop/regression.tsv), requirement, guards DOC-2, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a PRD the owner reviewed, when a requirement is reviewed or unreviewed, or the owner un-reviews and reviews the PRD again, then no lock trips. — [prd-stamps-free](../../.loop/regression.tsv), requirement, guards DOC-2, both, PASS 2026-11-09, seen failing 2026-11-09
-
-#### DOC-3
-
-Tests follow on their own. Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes; I never write or manage tests.
-
-- Given a Reviewed criterion with no test or a test that no longer matches, when the check runs, then it is listed. — [untested-listed](../../.loop/regression.tsv), requirement, guards DOC-3, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given regression rows linked to a requirement, when the Tests are rendered, then each row is a Given/When/Then scenario with its test, result and date, and a plain description is flagged. — [prd-scenarios](../../.loop/regression.tsv), requirement, guards DOC-3, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a PRD the owner reviewed whose requirement has no test, when the docs audit runs, then it lists that requirement as UNTESTED. — [prd-untested](../../.loop/regression.tsv), requirement, guards DOC-3, both, PASS 2026-11-09, seen failing 2026-11-09
-
-#### DOC-4
-
-One command enforces it: checks all required docs against the template, code and tests, fixes what's mechanical, lists wording to rewrite; the release step runs it on every goal before merging; I can run it myself. It never deletes a page, never overwrites a page it didn't write unless I name it, and the last publish can be undone.
-
-- Given a wiki page behind the code it covers, when the docs check runs, then the page is reported as stale. — [stale-found](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a stale wiki page, when the wiki is published, then publishing is refused. — [publish-refused-stale](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a wiki page the tool did not write, when the tool writes pages, then that page is never overwritten. — [refuse-replace](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given two docs merges, when they merge in either order, then no page is left stale. — [stale-merge-order](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given rewording left in the docs, when the docs command runs, then it fixes the Tests table, lists wording to rewrite and exits 1 while any is left. — [docs-audit](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given trouble in the docs, when the release step runs, then it reads the docs command and sees the trouble. — [release-runs-audit](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a page stating the wrong number of skills, when the docs check runs, then it fails naming the file, the stated number and the real one. — [docs-count-mismatch](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a page whose Usage changed since the owner's review, when the docs audit, the release fixes or publish run, then none of them stops on it or changes Usage. — [prd-audit-ignores-changed](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given this repo, when its docs check and health run, then nothing fails but a page whose Usage changed since the owner's review. — [prd-repo-green](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-10, seen failing 2026-11-10
-
-#### DOC-5
-
-Required docs: every repo keeps up to date one wiki page per feature, one GitHub milestone per feature linked from its page plus a Backlog milestone, and a release note for every release; each goal's pull request lands in its feature's milestone.
-
-- Given milestones already created, when milestones runs again, then nothing new is created. — [milestones-once](../../.loop/regression.tsv), requirement, guards DOC-5, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a pull request, when milestones runs, then the pull request goes into its milestone. — [pr-in-milestone](../../.loop/regression.tsv), requirement, guards DOC-5, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a feature page, when the check runs, then it links to its GitHub milestone and a missing Backlog is found. — [milestone-links](../../.loop/regression.tsv), requirement, guards DOC-5, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a release with no release note, when the check runs, then it is found. — [release-note-found](../../.loop/regression.tsv), requirement, guards DOC-5, both, PASS 2026-11-09, seen failing 2026-11-08
-
-#### DOC-6
-
-A feature page's Usage is written as what the owner asks the agent, a skill command or a plain request, and names no script file.
-
-- Given a feature page whose Usage names a script file, when the docs check runs, then it fails. — [usage-no-script](../../.loop/regression.tsv), requirement, guards DOC-6, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a Usage written as requests to the agent, when the docs check runs, then it passes. — [usage-agent-requests](../../.loop/regression.tsv), requirement, guards DOC-6, both, PASS 2026-11-09, seen failing 2026-11-09
-
-### Defect tests
-
-- Given counts in the docs that drift from the code, when the docs check runs, then it fails (issue 39). — [docs-counts-issue-39](../../.loop/regression.tsv), defect, guards [#39](https://github.com/jcl2018/agent-workflow-template/issues/39) closed (2026-11-09), both, PASS 2026-11-09, seen failing 2026-11-09
-- Given a wrong skills count with a word such as "workflow-ready" or an extra space before the noun, when the docs check runs, then it fails, and a part such as "other" is not read. — [docs-count-word-gap-issue-104](../../.loop/regression.tsv), defect, guards [#104](https://github.com/jcl2018/agent-workflow-template/issues/104) state unknown, both, not run, seen failing 2026-11-09
-- Given a count inside a 4-space indented code block, when the docs check runs, then it is skipped while the same indent inside a list item is still read. — [docs-count-indented-code-issue-105](../../.loop/regression.tsv), defect, guards [#105](https://github.com/jcl2018/agent-workflow-template/issues/105) state unknown, both, not run, seen failing 2026-11-09
-- Given a page with one criterion test and one defect test, when the docs check runs, then a tests count of both passes. — [docs-count-defect-tests-issue-106](../../.loop/regression.tsv), defect, guards [#106](https://github.com/jcl2018/agent-workflow-template/issues/106) state unknown, both, not run, seen failing 2026-11-09
-- Given a line naming another page's criterion, when the docs check runs, then its skills count is still checked and its tests count is not. — [docs-count-other-id-issue-107](../../.loop/regression.tsv), defect, guards [#107](https://github.com/jcl2018/agent-workflow-template/issues/107) state unknown, both, not run, seen failing 2026-11-09
+| Test | Kind | Guards | Checks | Last result |
+|---|---|---|---|---|
+| [stale-found](Tests#t-stale-found) | requirement | DOC-1 | Given a wiki page behind the code it covers, when the docs check runs, then the page is reported as stale. | PASS 2026-11-09 |
+| [publish-refused-stale](Tests#t-publish-refused-stale) | requirement | DOC-1 | Given a stale wiki page, when the wiki is published, then publishing is refused. | PASS 2026-11-09 |
+| [stale-merge-order](Tests#t-stale-merge-order) | requirement | DOC-1 | Given two docs merges, when they merge in either order, then no page is left stale. | PASS 2026-11-09 |
+| [page-shape](Tests#t-page-shape) | requirement | DOC-1 | Given a wiki page with a Commands section, when the check runs, then it fails. | PASS 2026-11-09 |
+| [criteria-no-scripts](Tests#t-criteria-no-scripts) | requirement | DOC-1 | Given a criterion that names a script, when the check runs, then it fails. | PASS 2026-11-09 |
+| [tests-not-enforced](Tests#t-tests-not-enforced) | requirement | DOC-1 | Given a criterion with no passing test, when the page is shown, then it shows as not enforced. | PASS 2026-11-09 |
+| [tests-last-run](Tests#t-tests-last-run) | requirement | DOC-1 | Given recorded runs, when the Tests table is shown, then it shows each test's last result and date. | PASS 2026-11-09 |
+| [tests-table-stale](Tests#t-tests-table-stale) | requirement | DOC-1 | Given a Tests table behind the last run, when the check runs, then it is reported stale. | PASS 2026-11-09 |
+| [template-sheet](Tests#t-template-sheet) | requirement | DOC-1 | Given a changed template sheet, when the docs check runs, then it reads the page rules from the sheet, so the check changes with it. | PASS 2026-11-09 |
+| [docs-audit](Tests#t-docs-audit) | requirement | DOC-1 | Given rewording left in the docs, when the docs command runs, then it fixes the Tests table, lists wording to rewrite and exits 1 while any is left. | PASS 2026-11-09 |
+| [release-runs-audit](Tests#t-release-runs-audit) | requirement | DOC-1 | Given trouble in the docs, when the release step runs, then it reads the docs command and sees the trouble. | PASS 2026-11-09 |
+| [criteria-max-config](Tests#t-criteria-max-config) | requirement | DOC-1 | Given criteria_max in the config, when a page has more criteria than it allows, then the check fails. | PASS 2026-11-09 |
+| [usage-section-allowed](Tests#t-usage-section-allowed) | requirement | DOC-1 | Given a Usage section of API entries between Problem and Requirements, when the check runs, then it passes. | PASS 2026-11-09 |
+| [usage-optional](Tests#t-usage-optional) | requirement | DOC-1 | Given a page with no commands and no Usage section, when the check runs, then it passes. | PASS 2026-11-09 |
+| [docs-count-mismatch](Tests#t-docs-count-mismatch) | requirement | DOC-1 | Given a page stating the wrong number of skills, when the docs check runs, then it fails naming the file, the stated number and the real one. | PASS 2026-11-09 |
+| [prd-section-order](Tests#t-prd-section-order) | requirement | DOC-1 | Given a PRD page with swapped sections, an unknown section or stray text before the first one, when the docs check runs, then it fails with SECTIONS. | PASS 2026-11-09 |
+| [prd-nongoals-metrics](Tests#t-prd-nongoals-metrics) | requirement | DOC-1 | Given a PRD page with empty Non-goals or four Success metrics lines, when the docs check runs, then it fails naming the section. | PASS 2026-11-09 |
+| [prd-audit-ignores-changed](Tests#t-prd-audit-ignores-changed) | requirement | DOC-1 | Given a page whose Usage changed since the owner's review, when the docs audit, the release fixes or publish run, then none of them stops on it or changes Usage. | PASS 2026-11-09 |
+| [prd-new](Tests#t-prd-new) | requirement | DOC-1 | Given a one-line idea, when prd new runs with --paths, then it drafts a mapped, Unreviewed PRD page that stays UNWRITTEN until its drafts are written. | PASS 2026-11-09 |
+| [prd-convert](Tests#t-prd-convert) | requirement | DOC-1 | Given old Summary and Criteria pages, when convert runs, then they become PRD pages with the same IDs and stamps, a half-converted page is completed, and a second run changes nothing. | PASS 2026-11-09 |
+| [prd-repo-green](Tests#t-prd-repo-green) | requirement | DOC-1 | Given this repo, when its docs check and health run, then nothing fails but a page whose Usage changed since the owner's review. | PASS 2026-11-10 |
+| [cap-default-10](Tests#t-cap-default-10) | requirement | DOC-1 | Given no criteria_max in the config, when the cap is read, then it is 10 in both the docs check and setup. | not run |
+| [format-key](Tests#t-format-key) | requirement | DOC-1 | Given a template rules block whose format key leaves out problem, when the docs check runs, then the Problem check is off. | not run |
+| [review-dated](Tests#t-review-dated) | requirement | DOC-2 | Given a criterion, when it is reviewed, then it is marked Reviewed with the date. | PASS 2026-11-09 |
+| [review-owner-only](Tests#t-review-owner-only) | requirement | DOC-2 | Given a criterion, when a review is attempted, then it is reviewed only with the owner's words. | PASS 2026-11-09 |
+| [reviewed-lock](Tests#t-reviewed-lock) | requirement | DOC-2 | Given a reviewed criterion, when it is changed, then the check fails. | PASS 2026-11-09 |
+| [unreview-lifts](Tests#t-unreview-lifts) | requirement | DOC-2 | Given a reviewed criterion, when it is unreviewed, then its lock is lifted. | PASS 2026-11-09 |
+| [lock-in-report](Tests#t-lock-in-report) | requirement | DOC-2 | Given a reviewed criterion that changed, when the report is printed, then it names that criterion. | PASS 2026-11-09 |
+| [prd-lock-four](Tests#t-prd-lock-four) | requirement | DOC-2 | Given a PRD the owner reviewed, when Problem, Requirements, Non-goals or Success metrics changes, then the docs check fails with LOCKED naming each changed section. | PASS 2026-11-09 |
+| [prd-usage-changed](Tests#t-prd-usage-changed) | requirement | DOC-2 | Given a PRD the owner reviewed, when only its Usage is edited, added or removed, then the docs check fails with CHANGED and the board lists the page. | PASS 2026-11-09 |
+| [prd-review-args](Tests#t-prd-review-args) | requirement | DOC-2 | Given review or unreview with no --user, a bad ID, a bad page or a bad date, when it runs, then it refuses and changes nothing. | PASS 2026-11-09 |
+| [prd-stamps-free](Tests#t-prd-stamps-free) | requirement | DOC-2 | Given a PRD the owner reviewed, when a requirement is reviewed or unreviewed, or the owner un-reviews and reviews the PRD again, then no lock trips. | PASS 2026-11-09 |
+| [untested-listed](Tests#t-untested-listed) | requirement | DOC-3 | Given a Reviewed criterion with no test or a test that no longer matches, when the check runs, then it is listed. | PASS 2026-11-09 |
+| [prd-scenarios](Tests#t-prd-scenarios) | requirement | DOC-3 | Given regression rows linked to a requirement, when the Tests are rendered, then each row is a Given/When/Then scenario with its test, result and date, and a plain description is flagged. | PASS 2026-11-09 |
+| [prd-untested](Tests#t-prd-untested) | requirement | DOC-3 | Given a PRD the owner reviewed whose requirement has no test, when the docs audit runs, then it lists that requirement as UNTESTED. | PASS 2026-11-09 |
+| [format-home](Tests#t-format-home) | requirement | DOC-4 | Given a Home page with a line outside its Features table, when the docs check runs, then it fails naming Home, Features and DOC-4. | not run |
+| - | requirement | DOC-4 | no passing test | not enforced |
+| [format-frontdoor](Tests#t-format-frontdoor) | requirement | DOC-5 | Given a README How to use table with a command in You say, when the docs check runs, then it fails naming README, the section and DOC-5. | not run |
+| - | requirement | DOC-5 | no passing test | not enforced |
+| [usage-no-script](Tests#t-usage-no-script) | requirement | DOC-6 | Given a Usage entry whose command is not in the skill's Command map, when the docs check runs, then it fails. | PASS 2026-11-09 |
+| [usage-agent-requests](Tests#t-usage-agent-requests) | requirement | DOC-6 | Given a Usage written as API entries with syntax, output and refusals, when the docs check runs, then it passes. | PASS 2026-11-09 |
+| [format-usage-api](Tests#t-format-usage-api) | requirement | DOC-6 | Given a Usage entry that does not say what it prints, when the docs check runs, then it fails naming the page, Usage and DOC-6. | not run |
+| [format-bullets](Tests#t-format-bullets) | requirement | DOC-7 | Given a requirement with no sub-bullet, when the docs check runs, then it fails naming the page, Requirements and DOC-7. | not run |
+| [format-orphan-bullet](Tests#t-format-orphan-bullet) | requirement | DOC-7 | Given a sub-bullet with no requirement above it, when the docs check runs, then it is refused. | not run |
+| [format-groups](Tests#t-format-groups) | requirement | DOC-7 | Given Requirements without the Functional or Non-functional heading, when the docs check runs, then it fails. | not run |
+| [format-groups-read](Tests#t-format-groups-read) | requirement | DOC-7 | Given a reviewed requirement under either group, when sub-bullets are added, then it is still read and its stamp holds. | not run |
+| - | requirement | DOC-7 | no passing test | not enforced |
+| [format-problem](Tests#t-format-problem) | requirement | DOC-8 | Given a Problem that names code internals, when the docs check runs, then it fails naming the page, Problem and DOC-8. | not run |
+| - | requirement | DOC-8 | no passing test | not enforced |
+| [format-tests-table](Tests#t-format-tests-table) | requirement | DOC-9 | Given a hand-edited Tests table, when the docs check runs, then it fails naming the page, Tests and DOC-9. | not run |
+| - | requirement | DOC-9 | no passing test | not enforced |
+| [milestones-once](Tests#t-milestones-once) | requirement | DOC-10 | Given milestones already created, when milestones runs again, then nothing new is created. | PASS 2026-11-09 |
+| [pr-in-milestone](Tests#t-pr-in-milestone) | requirement | DOC-10 | Given a pull request, when milestones runs, then the pull request goes into its milestone. | PASS 2026-11-09 |
+| [milestone-links](Tests#t-milestone-links) | requirement | DOC-10 | Given a feature page, when the check runs, then it links to its GitHub milestone and a missing Backlog is found. | PASS 2026-11-09 |
+| [release-note-found](Tests#t-release-note-found) | requirement | DOC-10 | Given a release with no release note, when the check runs, then it is found. | PASS 2026-11-09 |
+| [tests-page-stale](Tests#t-tests-page-stale) | requirement | DOC-10 | Given a full Tests page behind the runs, when the docs check runs, then it is reported stale with its first differing line. | not run |
+| [tests-page-run-link](Tests#t-tests-page-run-link) | requirement | DOC-10 | Given a runs file with a run column, when the Tests page is rendered, then each result links its Actions run or its commit. | not run |
+| [runs-sha](Tests#t-runs-sha) | requirement | DOC-10 | Given no GITHUB_* vars, when a row runs, then its run cell is the HEAD sha. | not run |
+| [runs-url](Tests#t-runs-url) | requirement | DOC-10 | Given all three GITHUB_* vars, when a row runs, then its run cell is the Actions run URL. | not run |
+| [runs-partial](Tests#t-runs-partial) | requirement | DOC-10 | Given only some GITHUB_* vars, when a row runs, then the sha is written. | not run |
+| [runs-upgrade](Tests#t-runs-upgrade) | requirement | DOC-10 | Given an old 3-column runs file, when a row runs, then every row has 4 columns and old rows have an empty run. | not run |
+| [runs-keep](Tests#t-runs-keep) | requirement | DOC-10 | Given a recorded row, when only another row runs, then its run cell is unchanged. | not run |
+| [issue-no-milestone-fails](Tests#t-issue-no-milestone-fails) | requirement | DOC-10 | Given an open issue with no milestone, when health checks, then a FAIL row names it. | not run |
+| [issue-milestone-passes](Tests#t-issue-milestone-passes) | requirement | DOC-10 | Given an open issue on a milestone, when health checks, then no row names it. | not run |
+| [issue-gh-fail-unread](Tests#t-issue-gh-fail-unread) | requirement | DOC-10 | Given gh fails, when health checks, then one UNREAD row shows and the verdict is unchanged. | not run |
+| [issue-truncated-unread](Tests#t-issue-truncated-unread) | requirement | DOC-10 | Given 1000 open issues come back, when health checks, then it reads UNREAD truncated. | not run |
+| [issue-closed-ignored](Tests#t-issue-closed-ignored) | requirement | DOC-10 | Given a closed issue with no milestone, when health checks, then no row names it. | not run |
+| [refuse-replace](Tests#t-refuse-replace) | requirement | DOC-11 | Given a wiki page the tool did not write, when the tool writes pages, then that page is never overwritten. | PASS 2026-11-09 |
+| [publish-restore](Tests#t-publish-restore) | requirement | DOC-11 | Given a publish that adopted a page someone else wrote, when restore runs, then the original page is back. | not run |
+| [docs-check-speed](Tests#t-docs-check-speed) | requirement | DOC-12 | Given this repo, when the docs check runs, then it finishes in under 30 seconds. | not run |
+| - | requirement | DOC-12 | no passing test | not enforced |
+| [docs-check-same](Tests#t-docs-check-same) | requirement | DOC-13 | Given the same pages and rows, when the docs check runs twice, then it prints the same result. | not run |
+| - | requirement | DOC-13 | no passing test | not enforced |
+| [docs-counts-issue-39](Tests#t-docs-counts-issue-39) | defect | [#39](https://github.com/jcl2018/agent-workflow-template/issues/39) closed (2026-11-09) | Given counts in the docs that drift from the code, when the docs check runs, then it fails (issue 39). | PASS 2026-11-09 |
+| [docs-count-word-gap-issue-104](Tests#t-docs-count-word-gap-issue-104) | defect | [#104](https://github.com/jcl2018/agent-workflow-template/issues/104) state unknown | Given a wrong skills count with a word such as "workflow-ready" or an extra space before the noun, when the docs check runs, then it fails, and a part such as "other" is not read. | not run |
+| [docs-count-indented-code-issue-105](Tests#t-docs-count-indented-code-issue-105) | defect | [#105](https://github.com/jcl2018/agent-workflow-template/issues/105) state unknown | Given a count inside a 4-space indented code block, when the docs check runs, then it is skipped while the same indent inside a list item is still read. | not run |
+| [docs-count-defect-tests-issue-106](Tests#t-docs-count-defect-tests-issue-106) | defect | [#106](https://github.com/jcl2018/agent-workflow-template/issues/106) state unknown | Given a page with one criterion test and one defect test, when the docs check runs, then a tests count of both passes. | not run |
+| [docs-count-other-id-issue-107](Tests#t-docs-count-other-id-issue-107) | defect | [#107](https://github.com/jcl2018/agent-workflow-template/issues/107) state unknown | Given a line naming another page's criterion, when the docs check runs, then its skills count is still checked and its tests count is not. | not run |
