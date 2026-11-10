@@ -236,6 +236,7 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
             other += ["- %s: assigned to session %s %s ago and still not frozen" % (entry["slug"], name, age(entry["since"], at)),
                       "    fix: look at the session %s; once it has stopped, drop the assignment with sessions.py free %s"
                       % (name, entry["slug"])]
+    other += bs.template_lag(root)
     found = bs.wiki_check(root)
     parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]
     for run in runs:

@@ -150,7 +150,64 @@ def wiki_check(root):
         return None
     if done.returncode not in (0, 1) or "NO PAGES" in done.stdout:
         return None
-    return sorted({m.groups() for m in re.finditer(r"^([A-Z]+) (\S+): ", done.stdout, re.M)}) if done.returncode else []
+    found = {m.groups() for m in re.finditer(r"^([A-Z]+) (\S+): ", done.stdout, re.M)} if done.returncode else set()
+    return sorted(item for item in found if item[0] != "LAG")  # a repo behind the installed skills shows as template_lag
+
+
+SKILLS = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir))
+
+
+def version_key(text):
+    """The first three integers of a version; empty or unreadable is older than any version."""
+    return tuple(int(x) for x in re.findall(r"\d+", str(text or ""))[:3])
+
+
+def baseline():
+    """The operator's installed template version: workflow-package.json beside the skills, else a checkout's VERSION."""
+    held = read_json(os.path.join(SKILLS, "workflow-package.json"))
+    if isinstance(held, dict) and held.get("version"):
+        return str(held["version"]), False
+    try:
+        with open(os.path.join(SKILLS, os.pardir, "VERSION")) as handle:
+            return handle.read().strip(), True
+    except OSError:
+        return "", True
+
+
+def followed(root):
+    try:
+        with open(os.path.expanduser("~/.workflow-loop/repos")) as handle:
+            extra = [line.strip() for line in handle if line.strip()]
+    except OSError:
+        extra = []
+    return list(dict.fromkeys([root] + extra))
+
+
+def template_lag(root):
+    """Issues lines for each followed repo on an older template version than the operator's installed skills (the
+    baseline); a repo holding the board's own skills checkout is the template itself and is skipped."""
+    want, source = baseline()
+    out = []
+    for repo in followed(root):
+        if source and SKILLS.startswith(os.path.realpath(repo) + os.sep) or not os.path.isdir(repo):
+            continue
+        cfg = read_json(os.path.join(repo, ".loop", "config.json"))
+        if not isinstance(cfg, dict):
+            continue
+        base = git("show", "%s:.loop/config.json" % (cfg.get("base") or "main"), cwd=repo)
+        try:
+            held = str((json.loads(base) if base else cfg).get("template_version") or "")
+        except ValueError:
+            held = str(cfg.get("template_version") or "")
+        name = os.path.basename(os.path.realpath(repo))
+        if not held:
+            out.append("- %s: template version unknown" % name)
+        elif version_key(held) < version_key(want):
+            out.append("- %s runs template v%s, older than v%s" % (name, held, want))
+        else:
+            continue
+        out.append("    fix: ask for workflow-setup update in that repo")
+    return out
 
 
 def main():

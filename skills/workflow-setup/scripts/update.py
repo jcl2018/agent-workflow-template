@@ -195,7 +195,7 @@ def apply_skills(skills, manifest, read, old, fixes, take, where):
     keep = [r for r in fixes if r not in take]
     blobs = {}
     for rel, digest in files.items():
-        if (old.get("files") or {}).get(rel) == digest and os.path.isfile(os.path.join(skills, rel)) and rel not in take:
+        if (old.get("files") or {}).get(rel) == digest and os.path.isfile(os.path.join(skills, rel)) and rel not in take + keep:
             continue
         data = read(rel)
         if sha(data) != digest or not (rel.startswith("workflow-") or "/" not in rel) or not os.path.realpath(
@@ -294,10 +294,10 @@ def main():
     behind = sync.report(repo, base_cfg, target) if repo else False
     changed, dropped = check(skills, manifest, old, fixes, ours) if not tree else ([], [])
     if not args.apply:
-        up = not changed and not dropped and not behind and not args.take
+        up = not changed and not dropped and not behind and not args.take and (tree or manifest["version"] == ours)
         print("UP TO DATE" if up else "PREVIEW: nothing written. Ask for workflow-setup update (update.py --apply) to apply")
         return 0 if up else 1
-    if not tree and (changed or dropped or args.take):
+    if not tree and (changed or dropped or args.take or manifest["version"] != ours):  # a version bump alone moves the stamp
         with locked(skills):
             apply_skills(skills, manifest, read, old, fixes, args.take, where)
     return sync.apply_repo(repo, base_cfg, target, skills, bool(changed or dropped)) if repo else 0

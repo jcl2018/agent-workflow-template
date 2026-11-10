@@ -19,7 +19,10 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ENTRY = os.path.join(os.path.dirname(os.path.dirname(HERE)), "workflow-docs", "scripts", "entry.py")
 OPEN, CLOSE = "<!-- workflow-loop -->", "<!-- /workflow-loop -->"
-BOM = "﻿"
+BOM = "\ufeff"
+
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
 
 def targets(repo):

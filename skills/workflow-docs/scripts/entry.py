@@ -34,6 +34,9 @@ OPEN, CLOSE = "<!-- workflow-loop -->", "<!-- /workflow-loop -->"
 AGENT_FILES = ["CLAUDE.md", "AGENTS.md"]
 PARTS = ("Loop", "Release", "Operation and workers", "Docs", "Regression", "Health", "Settings")
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
 
 def version_key(text):
     """The first three integers of a version; empty or unreadable is older than any version."""
@@ -209,8 +212,11 @@ def problems(root):
     lag = lagging(root, cfg)
     fix = "Fix: python3 <workflow-docs>/scripts/entry.py write (or docs.py audit)"
     note = "installed v%s, repo v%s: ask for workflow-setup update" % (installed(), cfg.get("template_version") or "unknown")
+    # MISSING applies once a repo was set up by a version that writes the entry point (it holds template_version), or
+    # to the template's own checkout; a repo adopted before keeps passing until update writes it.
+    owed = cfg.get("criteria") and (cfg.get("template_version") or os.path.realpath(SKILLS).startswith(os.path.realpath(root) + os.sep))
     if have is None:
-        if cfg.get("criteria"):
+        if owed:
             found.append(("MISSING", ENTRY, "no entry point (ENTRY_MISSING). " + fix))
     elif have != want:
         own = ["| `%s` |" % k for k in cfg if not k.startswith("_")]  # rows the repo's config holds, not new defaults
@@ -222,7 +228,7 @@ def problems(root):
         return found
     for name in agent_files(cfg):
         held = held_block(read(os.path.join(root, name)))
-        if held is None and cfg.get("criteria"):
+        if held is None and owed:
             found.append(("MISSING", name, "no workflow-loop block (ENTRY_MISSING). Fix: ask for workflow-setup agents"))
         elif held is not None and held != block():
             found.append(("LAG", name, note + " (ENTRY_LAG)") if lag else ("STALE", name, "its workflow-loop block differs (ENTRY_STALE). " + fix))

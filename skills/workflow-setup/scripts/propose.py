@@ -19,6 +19,9 @@ import subprocess
 import sys
 
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
 def base_copy(skills, old, rel):
     """The package copy a local fix was made on: the kept copy, else what the stamp's hash says was installed (unknown)."""
     kept = os.path.join(skills, ".workflow-kept", rel)
