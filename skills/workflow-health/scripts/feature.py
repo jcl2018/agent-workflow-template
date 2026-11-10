@@ -37,7 +37,7 @@ def by_path(path, pages):
     path = path.split(":")[0].strip()
     if path.startswith("/workflow-"):  # a command: /workflow-docs init is about skills/workflow-docs
         path = "skills/" + path.split()[0].lstrip("/")
-    path = path.lstrip("./")
+    path = path[2:] if path.startswith("./") else path.lstrip("/")
     best, length = None, -1
     for page, paths in pages.items():
         for prefix in paths + ["docs/wiki/%s.md" % page]:

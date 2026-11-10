@@ -252,7 +252,10 @@ def gather(root, family, ran_rules=None):
     funcs, done, rows = rule_functions(), {}, []
     for name in asked:
         if name == "mine":
-            rows += mine_rows(root)
+            got = mine_rows(root)
+            rows += got
+            if ran_rules is not None and not any(i["state"] == "UNREAD" for i in got) and any(i["state"] != "INFO" for i in got):
+                ran_rules.update(i["rule"] for i in got)
             continue
         if name == "controls":
             rows += controls_rows(root)
@@ -267,8 +270,7 @@ def gather(root, family, ran_rules=None):
                     done[fn] = [placed(item) for item in fn(root)]
                 except Exception as error:  # a broken rule is unread, never a pass
                     done[fn] = [row("UNREAD", name, rule, rule, "%s: %s" % (type(error).__name__, str(error)[:100]))]
-            if ran_rules is not None and not any(i["state"] == "UNREAD" and (G.rule_of(i) if hasattr(G, "rule_of") else i["rule"]) == rule
-                                                 for i in done[fn]):
+            if ran_rules is not None and not any(i["state"] == "UNREAD" for i in done[fn]):  # a shared source unread: none ran
                 ran_rules.add(rule)
     for got in done.values():
         rows += [item for item in got if item["family"] in asked]

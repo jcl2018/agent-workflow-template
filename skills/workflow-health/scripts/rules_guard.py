@@ -49,7 +49,11 @@ def private(root):
     out = []
     for number, pattern in enumerate(wanted, 1):
         hits = git(root, "grep", "-n", "-I", "-E", "-e", pattern, "--", ".", ":(exclude).git")
-        for line in (hits or "").splitlines():
+        if hits is None:  # git grep exits 128 on a bad pattern: never a silent pass
+            out.append(row("UNREAD", "security", "pattern %d" % number, "private", "leak pattern %d is not a valid regex" % number,
+                           "fix leak_patterns in the private flow file"))
+            continue
+        for line in hits.splitlines():
             where = ":".join(line.split(":", 2)[:2])  # file:line, never the text
             out.append(row("FAIL", "security", where, "private", "matches leak pattern %d" % number,
                            "remove it from the file and from history", where))

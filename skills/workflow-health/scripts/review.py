@@ -30,7 +30,7 @@ ASK = """You review one repo, feature by feature, against its own PRD pages. For
 conflict (two requirements that contradict, or a page breaking a reviewed rule), gap (a missing requirement, an untested
 promise, an open issue that fits no requirement), drift (code or Usage doing what its page doesn't say), weak-test (a test
 that doesn't prove what it claims), savings (time or tokens to cut, ranked by size). Answer only lines of the form
-FINDING|<feature>|<kind>|<angle>|<evidence>|<fix>
+FINDING|<feature>|<kind>|<angle>|<what is wrong>|<evidence>|<fix>
 where evidence is comma-separated citations: a requirement id (HLT-2), a file or file:line, a regression row id, or #N.
 A finding with no checkable evidence will be dropped.
 """
@@ -110,13 +110,13 @@ def judged(root, wanted, every):
     out, dropped = [], 0
     for line in text.splitlines():
         parts = [p.strip() for p in line.split("|")]
-        if len(parts) != 6 or parts[0] != "FINDING" or parts[2] not in KINDS or parts[1] not in wanted:
+        if len(parts) != 7 or parts[0] != "FINDING" or parts[2] not in KINDS or parts[1] not in wanted:
             continue
-        cites = [c for c in parts[4].split(",") if c.strip() and verified(root, c, known, rows, issues)]
+        cites = [c for c in parts[5].split(",") if c.strip() and verified(root, c, known, rows, issues)]
         if not cites:
             dropped += 1
             continue
-        out.append(finding(parts[1], parts[2], parts[3], parts[3], ", ".join(c.strip() for c in cites), parts[5], "judge"))
+        out.append(finding(parts[1], parts[2], parts[3], parts[4], ", ".join(c.strip() for c in cites), parts[6], "judge"))
     return out, dropped, ""
 
 
@@ -133,7 +133,10 @@ def review(root, only=None):
 
 def as_rows(findings):
     """The findings as health rows, for file.py: family review, the feature as subject, the kind as rule."""
-    return [{"state": "WARN", "family": "review", "subject": f["feature"], "rule": f["kind"], "detail": f["detail"],
+    import hashlib  # one issue per finding: the feature and a hash of its normalized citations name it
+    cite = lambda f: ",".join(sorted({re.sub(r":\d+(-\d+)?$", "", c.strip()) for c in f["evidence"].split(",") if c.strip()}))
+    return [{"state": "WARN", "family": "review", "rule": f["kind"], "detail": f["detail"],
+             "subject": "%s-%s" % (f["feature"], hashlib.sha1(cite(f).encode()).hexdigest()[:6]),
              "fix": f["fix"], "evidence": f["evidence"], "feature": f["feature"], "angle": f["angle"]} for f in findings]
 
 

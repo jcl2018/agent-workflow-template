@@ -31,13 +31,14 @@ if not sys.stdin or not sys.stdin.isatty():
 
 MARK = "<!-- loop-health %s evidence=%s -->"
 LINK = "<!-- loop-health-link %s evidence=%s -->"
-FOUND = re.compile(r"<!-- loop-health (\S+?)(?: evidence=(\w+))? -->")
+FOUND = re.compile(r"<!-- loop-health (.+?)(?: evidence=(\w+))? -->")  # a key may hold spaces (/workflow-x verb)
 BACKLOG = feature.BACKLOG
 GROUPS = tuple(g for g in G.ORDER if g != "controls") + ("review",)
 DEFAULT = tuple(g for g in G.ORDER if g not in ("mine", "controls"))  # a preview with no group names these, never mine
 BAD = ("WARN", "FAIL", "UNREAD")
 # Shown, never filed: local paths and machine state, the controls, and the check's own clock.
-REPORT_ONLY = ("test-time", "worktrees", "local-branches", "idle-sessions", "scan-hook", "check-time", "control")
+REPORT_ONLY = ("test-time", "worktrees", "local-branches", "idle-sessions", "scan-hook", "check-time", "control",
+               "finding-age")  # finding-age is about health issues themselves: filing it would feed itself
 OLD = {"requirements": "criteria", "performance": "cost", "traceability": "criteria", "tests": "criteria"}
 OLD_RULE = {"scripts": "limit", "seen-red": "proof", "done": "rows"}
 
@@ -118,14 +119,16 @@ def held(root):
     for issue in sorted(found, key=lambda one: one["number"]):
         match = FOUND.search(issue.get("body") or "")
         if match and ghcache.is_health(issue):
-            out.setdefault(match.group(1), dict(issue, evidence=match.group(2) or ""))
+            seen = out.get(match.group(1))
+            if seen is None or (seen.get("state") != "open" and issue.get("state") == "open"):  # an open duplicate wins
+                out[match.group(1)] = dict(issue, evidence=match.group(2) or "")
     return out, found, ""
 
 
 def covering(item, issues, stone):
     """An open non-health issue on the finding's milestone naming its subject as a whole token."""
     subject = (item.get("evidence") or item["subject"]).split(",")[0].strip()
-    if not re.search(r"[/.]|^[A-Z]{2,5}-\d+|^[a-z0-9-]+$", subject) or len(subject) < 4:
+    if not re.search(r"[/.]|^[A-Z]{2,5}-\d+", subject) or len(subject) < 4:  # a path or an id, never a plain word
         return None
     pattern = re.compile(r"(?<![\w./-])%s(?![\w/-])" % re.escape(subject))
     for issue in issues:
@@ -155,6 +158,7 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
             out.append(dict(act, kind="link", number=str(cover["number"])) if cover else dict(act, kind="open"))
             continue
         act["number"] = str(issue["number"])
+        act["stale"] = [t for t in issue.get("labels") or [] if t.startswith("health:") and t not in (act["tag"], "health:closed")]
         closed = issue.get("state", "").lower() != "open"
         if closed and "health:closed" in (issue.get("labels") or []) and issue.get("evidence") == mark:
             out.append(dict(act, kind="same", why="closed by the owner, evidence unchanged"))
@@ -174,6 +178,9 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
         if key in current or family not in groups or issue.get("state", "").lower() != "open" or only:
             continue
         savings = ":judge:saves-" in key
+        whole = {"criteria": {"requirements", "traceability", "tests"}, "cost": {"performance"}}.get(key.partition(":")[0])
+        if whole and not whole <= set(groups):  # an old key could mean a rule in a group not run now: leave it
+            continue
         if (savings and judged) or (not savings and ran_rules is not None and rule in ran_rules):  # its own rule passed
             out.append({"kind": "close", "group": family, "key": key, "number": str(issue["number"]), "title": "", "body": "",
                         "tag": tag_of(family), "milestone": issue.get("milestone") or BACKLOG})
@@ -194,7 +201,8 @@ def args_of(act):
     n = act.get("number")
     return {"open": ["issue", "create", "--title", act["title"], "--body", act["body"], "--label", "health", "--label", act["tag"],
                      "--milestone", act["milestone"]],
-            "update": ["issue", "edit", n, "--body", act["body"], "--add-label", act["tag"], "--milestone", act["milestone"]],
+            "update": ["issue", "edit", n, "--body", act["body"], "--add-label", act["tag"], "--milestone", act["milestone"]]
+            + [part for t in act.get("stale") or [] for part in ("--remove-label", t)],
             "reopen": ["issue", "reopen", n],
             "close": ["issue", "close", n, "--comment", "No longer found by health.py file."]}[act["kind"]]
 
@@ -218,9 +226,17 @@ def linked(root, number, act):
 
 def apply(acts, root, groups):
     """Carry out the plan: labels and milestones first, then each issue's writes in plan order (reopen before update)."""
+    got = run(["api", "repos/{owner}/{repo}/milestones?state=all&per_page=100"], root)
+    try:
+        listed = json.loads(got.stdout or "[]") if not got.returncode else None
+    except ValueError:
+        listed = None
+    if not isinstance(listed, list):  # before any write: never file half a plan
+        print("REFUSED[gh]: can't list the milestones (%s). Nothing was written." % (got.stderr.strip()[:120] or "no list"))
+        return
+    have = {item.get("title") for item in listed if isinstance(item, dict)}
     for tag in sorted({act["tag"] for act in acts} | {"health"}):
         run(["label", "create", tag, "--description", "Filed by health.py file", "--force"], root)
-    have = {item.get("title") for item in json.loads(run(["api", "repos/{owner}/{repo}/milestones?state=all&per_page=100"], root).stdout or "[]")}
     for stone in sorted({act["milestone"] for act in acts} - have):  # a feature's milestone, created before filing on it
         run(["api", "-X", "POST", "repos/{owner}/{repo}/milestones", "-f", "title=" + stone], root)
     for act in acts:
@@ -235,4 +251,6 @@ def apply(acts, root, groups):
                 LINK % (act["key"], act["evidence"]), act["body"].split("\n\n")[1])], root)
         else:
             done = run(args_of(act), root)
+            if act["kind"] == "reopen" and not done.returncode:  # the owner's close no longer holds
+                run(["issue", "edit", act["number"], "--remove-label", "health:closed"], root)
         print(("FAILED %s: %s" % (words(act), done.stderr.strip()[:160])) if done.returncode else "DONE " + words(act))

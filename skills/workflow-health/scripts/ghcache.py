@@ -39,7 +39,7 @@ def issues(root):
         return CACHE[root]
     try:
         done = subprocess.run(["gh", "api", "--paginate", "--slurp", "repos/{owner}/{repo}/issues?state=all&per_page=100"],
-                              cwd=root, capture_output=True, text=True, timeout=60)
+                              cwd=root, capture_output=True, text=True, timeout=20)
     except (OSError, subprocess.SubprocessError) as error:
         CACHE[root] = (None, "gh not available here (%s)" % str(error)[:80])
         return CACHE[root]

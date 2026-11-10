@@ -72,6 +72,7 @@ elif args[:2] in (["issue", "edit"], ["issue", "close"], ["issue", "reopen"], ["
                 if flag("--body") is not None:
                     i["body"] = flag("--body")
                 i.setdefault("labels", []).extend({"name": n} for n in flags("--add-label"))
+                i["labels"] = [lab for lab in i["labels"] if lab.get("name") not in flags("--remove-label")]
                 if flag("--milestone"):
                     i["milestone"] = {"title": flag("--milestone")}
             elif args[1] == "comment":

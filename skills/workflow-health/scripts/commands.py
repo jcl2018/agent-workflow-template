@@ -53,9 +53,10 @@ def cmd_review(h, args):
 def plan_for(h, root, asked, with_judge, only=None, saved=None):
     """(file module, acts, groups) for the groups asked; exit 2 when file.py or gh can't be used."""
     filing = h.sibling_module("file") or refuse("file", "file.py is not installed beside health.py")
-    groups = list(asked or filing.DEFAULT)
+    groups = list(asked) if asked is not None else list(filing.DEFAULT)
     ran = set()
-    rows = h.gather(root, [g for g in groups if g in h.ORDER] or None, ran)
+    checked = [g for g in groups if g in h.ORDER]
+    rows = h.gather(root, checked, ran) if checked else []
     if saved:
         found = h.sibling_module("review").load(saved)
         if found is None:
@@ -77,7 +78,7 @@ def cmd_preview(h, args):
     asked = h.groups_of(args.group)
     if args.live:
         print("NOTE: run and preview never write, even with --live. To write, run: health.py file --group NAME", file=sys.stderr)
-    filing, acts, _ = plan_for(h, root, asked, bool(asked), args.feature, args.review)
+    filing, acts, _ = plan_for(h, root, asked, bool(asked) and "performance" in asked, args.feature, args.review)
     count = filing.preview(acts)
     print("PREVIEW: %d to write, nothing written. To write, run: health.py file --group %s" % (count, args.group or "NAME"))
     return 0
@@ -88,7 +89,7 @@ def cmd_file(h, args):
     asked = h.groups_of(args.group)
     if not asked and not args.review:
         refuse("file", "file needs --group NAME[,NAME] (one of %s) or --review FILE. Run preview first." % ", ".join(h.NAMES))
-    filing, acts, groups = plan_for(h, root, asked or [], True, args.feature, args.review)
+    filing, acts, groups = plan_for(h, root, asked if asked else [], bool(asked) and "performance" in asked, args.feature, args.review)
     filing.apply(acts, root, groups)
     return 0
 

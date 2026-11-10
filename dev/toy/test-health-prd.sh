@@ -3,8 +3,8 @@
 # reads: dev/toy/fakegh/gh dev/toy/fakegh/fake.py
 # Proves the owner-approved Health PRD on throwaway repos with a stand-in for GitHub and stand-in judges: the twelve groups
 # and their angles (HLT-2), feature milestones, links and migration (HLT-4), the review and its evidence (HLT-5, HLT-9),
-# triage (HLT-8), controls (HLT-6), same answer and no writes (HLT-1), the 60-second check (HLT-7), and issues 124, 158
-# and 159. No model is called. usage: test-health-prd.sh [DIR] [h1|h2|h4|h5|h6|h7|h8|i124|i158|i159]   (no part: all)
+# triage (HLT-8), controls (HLT-6), same answer and no writes (HLT-1), and issues 124, 158
+# and 159. No model is called. usage: test-health-prd.sh [DIR] [h1|h2|h4|h5|h6|h8|i124|i158|i159]   (HLT-7: test-health-time.sh)   (no part: all)
 set -u
 unset GH_TOKEN GITHUB_TOKEN LOOP_HEALTH_GH_FIXTURE LOOP_HEALTH_T0 CI GITHUB_ACTIONS
 here=$(cd "$(dirname "$0")/../.." && pwd)
@@ -40,7 +40,8 @@ check "check runs exactly the twelve groups in order, plus Mine" '[ "$heads" = "
 check "each group heading prints its angle" 'grep -q "^== Tests (a skeptic.s angle: do the tests prove anything?) ==" <<<"$out" && grep -q "^== Security and privacy (a leak.s angle: can anything private escape?) ==" <<<"$out"'
 n=$(python3 -c "import sys;sys.path.insert(0,'$S');import groups;print(len(groups.RULES))")
 check "every rule has a negative control that fires" '[ "$(grep -c "^PASS controls .* control: fires on its fixture" <<<"$out")" = "$n" ] && [ "$n" -ge 30 ]'
-check "groups.py refuses a thirteenth group" '! python3 -c "import sys;sys.path.insert(0,\"$S\");import groups;assert len(groups.GROUPS)!=12" 2>/dev/null && grep -q "assert len(GROUPS) == MAX_GROUPS" "$S/groups.py"'
+mkdir -p "$d/g13"; sed 's/^GROUPS = (/GROUPS = (("extra", "Extra", "x", ()),/' "$S/groups.py" > "$d/g13/groups.py"
+check "groups.py refuses a thirteenth group" 'python3 -c "import sys;sys.path.insert(0,\"$d/g13\");import groups" 2>&1 | grep -q "AssertionError: exactly 12 groups"'
 fi
 
 if want h4; then
@@ -61,8 +62,8 @@ check "a finding with no feature lands on Backlog, tagged with its group" 'grep 
 $H file --group size,consistency >/dev/null 2>&1
 m=$(python3 -c "import json;print([i['milestone']['title'] for i in json.load(open('$FAKE_GH_DIR/issues.json')) if i['number']==1][0])")
 check "file puts the size finding on the Calc milestone" '[ "$m" = Calc ]'
-out=$($H preview --group size 2>&1)
-check "a repeat is SAME" 'grep -q "^SAME #1 " <<<"$out" && grep -q "PREVIEW: 0 to write" <<<"$out"'
+out=$($H preview --group size,consistency 2>&1)
+check "a repeat is SAME, a key with a space (a /workflow command) included" 'grep -q "^SAME #1 " <<<"$out" && grep -q "^SAME #2 consistency:/workflow-zzz frob:usage-readme" <<<"$out" && grep -q "PREVIEW: 0 to write" <<<"$out"'
 printf '# small\n' > skills/calc/scripts/near.py; git commit -qam fixed
 out=$($H preview --group size 2>&1)
 check "a fix closes its issue" 'grep -q "^WOULD close #1 " <<<"$out"'
@@ -87,15 +88,19 @@ echo "== HLT-5 and HLT-9: review per feature, every finding with evidence, unver
 # Value: protects=HLT-5, HLT-9; fails_when=a finding without checkable evidence is kept, review writes a file, or a failing
 # judge hides its cause; why_new=no review existed; seam=stand-in judges; no_claim=a real model's judgment
 mkrepo
-printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|conflict|a reader.s angle|CAL-1,docs/wiki/Calc.md:3|merge them"\necho "FINDING|Calc|weak-test|a skeptic.s angle|nowhere/x.py:9|drop"\necho "FINDING|Ghost|gap|x|CAL-1|y"\n' > "$d/judge.sh"; chmod +x "$d/judge.sh"
+printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|conflict|a reader.s angle|CAL-1 and CAL-2 pull apart|CAL-1,docs/wiki/Calc.md:3|merge them"\necho "FINDING|Calc|weak-test|a skeptic.s angle|no test|nowhere/x.py:9|drop"\necho "FINDING|Ghost|gap|x|z|CAL-1|y"\n' > "$d/judge.sh"; chmod +x "$d/judge.sh"
 python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command']=['$d/judge.sh'];json.dump(c,open('.loop/config.json','w'))"
 git commit -qam judge; before=$(git status --porcelain)
 out=$($H review 2>&1)
-check "review reports per feature with angle and evidence" 'grep -q "^== Calc ==" <<<"$out" && grep -q "^FINDING conflict (a reader.s angle): .* -- evidence: CAL-1, docs/wiki/Calc.md:3" <<<"$out"'
+check "review reports per feature with angle, what is wrong and evidence" 'grep -q "^== Calc ==" <<<"$out" && grep -q "^FINDING conflict (a reader.s angle): CAL-1 and CAL-2 pull apart -- evidence: CAL-1, docs/wiki/Calc.md:3" <<<"$out"'
 check "a finding whose evidence doesn't exist is dropped and counted" '! grep -q "weak-test" <<<"$out" && grep -q "REVIEW: .* 1 dropped for no evidence" <<<"$out"'
 check "a finding for an unknown feature is never shown" '! grep -q "Ghost" <<<"$out"'
 check "review writes nothing" '[ "$(git status --porcelain)" = "$before" ]'
 $H review --json > "$d/r.json"
+printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|gap|a|first gap|CAL-1|x"\necho "FINDING|Calc|gap|a|second gap|CAL-2|y"\n' > "$d/two.sh"; chmod +x "$d/two.sh"
+python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command']=['$d/two.sh'];json.dump(c,open('.loop/config.json','w'))"
+$H review --json > "$d/two.json"; $H file --review "$d/two.json" >/dev/null 2>&1
+check "two findings of one kind on one feature are two issues, and file --review files only review findings" '[ "$(python3 -c "import json;print(sum(1 for i in json.load(open(\"$FAKE_GH_DIR/issues.json\")) if \"review-gap\" in str(i[\"labels\"]) and \"gap\" in i[\"title\"]))")" = 2 ] && ! grep -q "health:size\|health:docs" "$FAKE_GH_DIR/issues.json"'
 check "review --json is versioned, and file --review files it as health:review-<kind> on its feature" 'grep -q "\"version\": 1" "$d/r.json" && $H preview --review "$d/r.json" 2>&1 | grep -q "on Calc \[health:review-conflict\]"'
 fi
 
@@ -115,6 +120,13 @@ check "--yes closes the batch with the owner's words and health:closed" 'python3
 import json; i=json.load(open(\"$FAKE_GH_DIR/issues.json\"))[0]
 assert i[\"state\"]==\"CLOSED\" and {\"name\":\"health:closed\"} in i[\"labels\"] and \"generated file\" in json.dumps(i[\"comments\"])"'
 check "the next file leaves it closed while its evidence is the same" '$H preview --group size 2>&1 | grep -q "^SAME #1 .*closed by the owner, evidence unchanged"'
+python3 - "$FAKE_GH_DIR/issues.json" <<'PY'
+import json, sys
+s = json.load(open(sys.argv[1])); s[0]["body"] = s[0]["body"].replace("evidence=", "evidence=0"); json.dump(s, open(sys.argv[1], "w"))
+PY
+$H file --group size >/dev/null 2>&1
+check "when the evidence changes it reopens, and the owner's health:closed label comes off" 'python3 -c "
+import json; i=json.load(open(\"$FAKE_GH_DIR/issues.json\"))[0]; assert i[\"state\"]==\"OPEN\" and {\"name\":\"health:closed\"} not in i[\"labels\"], i[\"labels\"]"'
 fi
 
 if want h6; then
@@ -134,21 +146,12 @@ echo "== HLT-1: the same answer twice, and check changes nothing"
 # Value: protects=HLT-1; fails_when=a line carries a time, count drift or temp path, or check writes a file; why_new=the
 # new rules read dates and gh; seam=fake gh; no_claim=a repo that changes between the two runs
 mkrepo
-a=$($H check --skip controls 2>&1); b=$($H check --skip controls 2>&1); s=$(git status --porcelain; ls -la .git | md5)
+a=$($H check --skip controls 2>&1); b=$($H check --skip controls 2>&1); s=$(git status --porcelain; ls -la .git | cksum)
 check "two checks of an unchanged repo print the same lines" '[ "$a" = "$b" ]'
 $H check >/dev/null 2>&1
-check "check changes no file" '[ "$(git status --porcelain; ls -la .git | md5)" = "$s" ]'
+check "check changes no file" '[ "$(git status --porcelain; ls -la .git | cksum)" = "$s" ]'
 fi
 
-if want h7; then
-echo "== HLT-7: check without controls in under 60 seconds"
-# Value: protects=HLT-7; fails_when=a rule makes check slow (a gh call per issue, a scan of the whole history); why_new=no
-# timing check; seam=this repo; no_claim=a much larger repo
-cd "$here" || exit 1
-t0=$(date +%s); $H check --skip controls >/dev/null 2>&1; t1=$(date +%s)
-check "check --skip controls on this repo takes under 60 seconds ($((t1 - t0)) s)" '[ $((t1 - t0)) -lt 60 ]'
-check "the check-time rule warns on a fixture past 60 seconds" 'LOOP_HEALTH_T0=1 $H check --group performance 2>&1 | grep -q "^WARN performance check check-time"'
-fi
 
 if want i124; then
 echo "== issue 124: older repos can go green: goals without tokens, done lines before adoption"
@@ -161,7 +164,9 @@ out=$(python3 "$here/skills/workflow-regression/scripts/regression.py" sync 2>&1
 python3 -c "import json;c=json.load(open('.loop/config.json'));c['done_lines_since']='2021-01-01';json.dump(c,open('.loop/config.json','w'))"
 out2=$(python3 "$here/skills/workflow-regression/scripts/regression.py" sync 2>&1)
 check "with done_lines_since set, a goal frozen before it owes no done-line row" 'grep -q "^GAP old:1" <<<"$out" && ! grep -q "^GAP old:1" <<<"$out2"'
-check "cost with no tokens recorded is INFO, never UNREAD (test-health-judge)" 'grep -q "\"INFO\", \"tokens\", \"cost\"" "$S/cost.py"'
+mkdir -p .git/loop/runs; printf '{"slug": "old", "status": "done", "updated": "2026-01-01T03:00:00Z", "log": ["2026-01-01T00:00:00Z queued", "2026-01-01T01:00:00Z build"]}' > .git/loop/runs/old.json
+out=$($H check --group performance 2>&1)
+check "a finished goal with no tokens recorded is INFO, never UNREAD, and the check stays green" 'grep -q "^INFO performance tokens cost: no tokens recorded" <<<"$out" && ! grep -q "^UNREAD" <<<"$out" && tail -1 <<<"$out" | grep -q "^HEALTH: green"'
 fi
 
 if want i158; then
