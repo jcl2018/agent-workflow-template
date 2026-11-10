@@ -148,6 +148,8 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
         if only and stone != only:
             continue
         key, group, mark = key_of(item), item["family"], evidence_of(item)
+        if key in current:  # two findings with one identity (same kind and evidence) are one issue
+            continue
         current.add(key)
         issue = issues.get(key) or next((issues[k] for k in legacy(item) if k in issues), None)
         current.update(k for k in legacy(item) if k in issues)  # a migrated issue is updated, never closed
@@ -164,10 +166,11 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
             out.append(dict(act, kind="same", why="closed by the owner, evidence unchanged"))
             continue
         if closed:
-            out.append(dict(act, kind="reopen"))
+            out.append(dict(act, kind="reopen", unclose="health:closed" in (issue.get("labels") or [])))
         if issue.get("milestone") not in (None, BACKLOG, stone):  # the owner moved it: it stays there
             act["milestone"] = issue["milestone"]
-        if (issue.get("body") or "") != act["body"] or act["tag"] not in (issue.get("labels") or []) or issue.get("milestone") != act["milestone"]:
+        if (issue.get("body") or "") != act["body"] or act["tag"] not in (issue.get("labels") or []) or \
+                issue.get("milestone") != act["milestone"] or act["stale"]:
             out.append(dict(act, kind="update"))
         elif not closed:
             out.append(dict(act, kind="same"))
@@ -175,6 +178,8 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
         family, _, rest = key.partition(":")
         family = G.ALIASES.get(family, family)
         rule = G.rule_of({"family": family, "rule": rest.rsplit(":", 1)[-1], "subject": rest.rsplit(":", 1)[0]})
+        if family == "mine":  # a private rule closes only when that same rule ran here
+            rule = "mine:" + rest.rsplit(":", 1)[0]
         if key in current or family not in groups or issue.get("state", "").lower() != "open" or only:
             continue
         savings = ":judge:saves-" in key
@@ -251,6 +256,6 @@ def apply(acts, root, groups):
                 LINK % (act["key"], act["evidence"]), act["body"].split("\n\n")[1])], root)
         else:
             done = run(args_of(act), root)
-            if act["kind"] == "reopen" and not done.returncode:  # the owner's close no longer holds
+            if act["kind"] == "reopen" and act.get("unclose") and not done.returncode:  # the owner's close no longer holds
                 run(["issue", "edit", act["number"], "--remove-label", "health:closed"], root)
         print(("FAILED %s: %s" % (words(act), done.stderr.strip()[:160])) if done.returncode else "DONE " + words(act))

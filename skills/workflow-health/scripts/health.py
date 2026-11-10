@@ -255,7 +255,7 @@ def gather(root, family, ran_rules=None):
             got = mine_rows(root)
             rows += got
             if ran_rules is not None and not any(i["state"] == "UNREAD" for i in got) and any(i["state"] != "INFO" for i in got):
-                ran_rules.update(i["rule"] for i in got)
+                ran_rules.update("mine:" + i["subject"] for i in got)
             continue
         if name == "controls":
             rows += controls_rows(root)
