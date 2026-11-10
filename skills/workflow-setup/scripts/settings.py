@@ -163,6 +163,22 @@ def fill_private(path=None):
     return added
 
 
+def fill_repo(path):
+    """Add each missing repo setting, with its default and _help line, to the config at path; never changes a value set.
+    Keeps the config's key order, new keys last. Returns what was added (update's repo half calls it too)."""
+    held = load(path)
+    if "criteria_max" in held and (isinstance(held["criteria_max"], bool) or not isinstance(held["criteria_max"], int)
+                                   or not 1 <= held["criteria_max"] <= 50):
+        sys.exit("REFUSED: criteria_max is %r in %s. Fix: a whole number from 1 to 50." % (held["criteria_max"], path))
+    check_depth(held, path)
+    added = [k for k in repo_defaults() if k not in held]
+    merged = dict(held, **{k: v for k, v in repo_defaults().items() if k not in held})
+    merged["_help"] = repo_help(held)
+    if merged != held:
+        write_json(path, merged)
+    return added
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -185,16 +201,7 @@ def main():
     elif args.command == "fill-repo":
         top = subprocess.run(["git", "-C", args.repo, "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
         path = os.path.join(top or args.repo, ".loop", "config.json")
-        held = load(path)
-        if "criteria_max" in held and (isinstance(held["criteria_max"], bool) or not isinstance(held["criteria_max"], int)
-                                       or not 1 <= held["criteria_max"] <= 50):
-            sys.exit("REFUSED: criteria_max is %r in %s. Fix: a whole number from 1 to 50." % (held["criteria_max"], path))
-        check_depth(held, path)
-        added = [k for k in repo_defaults() if k not in held]
-        merged = dict(repo_defaults(), **held)
-        merged["_help"] = repo_help(held)
-        write_json(path, merged)
-        print("FILLED %s: %s" % (path, ", ".join(added) or "nothing missing"))
+        print("FILLED %s: %s" % (path, ", ".join(fill_repo(path)) or "nothing missing"))
     else:
         added = fill_private(args.file or None)
         print("FILLED %s: %s" % (args.file or private_path(), ", ".join(added) or "nothing missing"))

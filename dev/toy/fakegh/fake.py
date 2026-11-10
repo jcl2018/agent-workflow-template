@@ -47,7 +47,8 @@ elif args[:2] == ["issue", "list"]:
     print(json.dumps(pick))
 elif args[:2] == ["issue", "create"]:
     number = len(issues) + 1
-    issues.append({"number": number, "title": flag("--title"), "body": flag("--body"), "state": "OPEN",
+    body = open(flag("--body-file")).read() if flag("--body-file") else flag("--body")
+    issues.append({"number": number, "title": flag("--title"), "body": body, "state": "OPEN", "repo": flag("--repo"),
                    "labels": [{"name": n} for n in flags("--label")],
                    "milestone": {"title": flag("--milestone")} if flag("--milestone") else None,
                    "createdAt": "2026-01-01T00:00:00Z"})
