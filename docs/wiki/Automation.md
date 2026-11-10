@@ -52,6 +52,8 @@ Routines run in GitHub Actions. Every routine runs as a GitHub Actions workflow 
 Regression on a schedule. The full regression suite runs on the schedule; a failing test opens or updates one GitHub issue labeled defect, linked to the test and the feature it guards, and it closes by itself when the test passes again.
 
 - Given a failing test, when the scheduled regression runs, then one issue labelled defect opens, naming the test, the feature and the requirement it guards. — [aut-defect-issue](../../.loop/regression.tsv), requirement, guards AUT-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given an open failing-test issue without the defect label, when the test fails again, then the issue gains the defect label. — [aut-old-issue-relabel](../../.loop/regression.tsv), requirement, guards AUT-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given the issues cannot be read, when the scheduled regression runs, then it changes no issue rather than open duplicates. — [aut-issue-list-fails](../../.loop/regression.tsv), requirement, guards AUT-2, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### AUT-3
 
@@ -59,6 +61,7 @@ Health on a schedule. The health check runs on the schedule and files its findin
 
 - Given no agent key secret, when the scheduled health runs, then the judge is skipped and the report says so. — [aut-judge-no-secret](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given the secret but no judge program on the runner, when the scheduled health runs, then the judge is skipped and the report names the setting to fix. — [aut-judge-no-program](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a repo without a Backlog milestone, when the scheduled health files findings, then it makes the milestone first. — [aut-backlog-milestone](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### AUT-4
 
@@ -71,6 +74,8 @@ A digest through GitHub notifications. After each scheduled round, one comment o
 - Given an issue whose title holds instructions, when the digest is written, then the request names the issue only by number and link. — [aut-digest-no-title](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a repo owned by an organisation, when the digest is written, then it says no one is notified and how to set digest_owner. — [aut-digest-org](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given the repo cannot pin another issue, when the first round ends, then it warns and still posts the digest. — [aut-digest-pin-fails](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a round whose digest comment fails, when the run ends, then no state is saved, so its rerun posts the comment. — [aut-digest-comment-fails](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given gh cannot list the issues, when a round ends, then the digest posts nothing and says why. — [aut-digest-list-fails](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### AUT-5
 
@@ -84,3 +89,6 @@ Under my control. Each routine can be turned off or rescheduled in one setting, 
 - Given no token in the digest step, when it runs in Actions, then it says what is missing and writes nothing. — [aut-digest-no-token](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a judge_secret that is not a secret name, when the health workflow is written, then it is refused. — [aut-secret-name](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given the scheduled workflows, when they are written, then neither pushes nor has write access to the repo's contents. — [aut-no-push](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a routine set off, when someone starts it by hand, then it still runs. — [aut-by-hand-runs](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a cron setting with anything but plain cron fields, when a workflow is written, then it is refused. — [aut-cron-check](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given regression_cron off, when its workflow is written, then it has no schedule and keeps its by-hand trigger. — [aut-regression-off-written](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
