@@ -21,6 +21,7 @@ template keeps every gate until its owner turns one off.
 ## Usage
 
 - "start a goal to add caching", or `/workflow-delivery go "goal" --done "line"`, freezes a goal and its done lines; from the operation session, `/workflow-monitoring go "goal" --done "line"` hands it to a background worker instead.
+- With no skill suite of your own, setup's flow file maps idea, plan, review, qa and ship to `built-in`, delivery's own routine for each step; name your own skill for any step in `~/.workflow-loop/flow.json` and it replaces that routine.
 - `/workflow-delivery step SLUG STEP` runs the idea, plan, review, qa or ship step unattended until it stops printing `RUNNING`; `/workflow-delivery record SLUG STEP` then records it.
 - A decision a step leaves for the owner shows under Issues on the live board until it is answered.
 - A slip in a step's reply (a missing DEPTH or STEP line, a format rule added after the step started) is refused without costing a try; the goal keeps running and the refusal says what to fix and which release added the rule. Ten refusals in a row put the goal in waiting for the owner, and the answer starts the count again.

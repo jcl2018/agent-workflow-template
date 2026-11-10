@@ -5,9 +5,11 @@ agent takes it through your own skill suite's flow, unattended: your idea, plan,
 frozen done lines and the repo's checks around them. You review the pull request. One session governs and the others
 build.
 
-**Delivery needs a configured skill suite.** You bring the skills; a private file outside the repo,
-`~/.workflow-loop/flow.json`, names them and how to run them in their own unattended mode. With no flow file, delivery
-refuses with one line saying how to set it. See [the file contract](skills/loop-files.md).
+**Delivery runs standalone, or with your own skill suite.** A private file outside the repo,
+`~/.workflow-loop/flow.json`, names a skill for each step and how to run it in its own unattended mode. Setup fills it
+with `built-in` steps, which run delivery's own routine for idea, plan, review, qa and ship; name your own skill for any
+step and it replaces that routine. With no flow file, delivery refuses with one line saying how to set it. See
+[the file contract](skills/loop-files.md).
 
 **Status: early. Copy the `skills/` folders into your agent's skills folder, or run `dev/install-local.sh` for Claude
 Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md) for the features and the

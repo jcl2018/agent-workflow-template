@@ -56,8 +56,8 @@ TABLE = [
     ("command", PRIVATE, ["claude", "-p"], "Flow file: the agent command that runs each flow step unattended."),
     ("allowed_tools", PRIVATE, [], "Flow file: tools a step's agent may use, passed as --allowedTools; empty adds nothing."),
     ("model", PRIVATE, "", "Flow file: the model a step's agent uses, passed as --model; empty keeps the command's own."),
-    ("suite", PRIVATE, {"idea": "", "plan": "", "review": "", "qa": "", "ship": ""},
-     "Flow file: the default skill for each step; empty until you name your own."),
+    ("suite", PRIVATE, {"idea": "built-in", "plan": "built-in", "review": "built-in", "qa": "built-in", "ship": "built-in"},
+     "Flow file: the skill for each step; built-in runs delivery's own routine until you name your own."),
     ("steps", PRIVATE, {}, "Flow file: a skill for any one step, replacing the suite's."),
     ("overrides", PRIVATE, {}, "Flow file: per step {skill, model, allowed_tools} that replace the defaults above."),
     ("env", PRIVATE, {}, "Flow file: environment that puts the skills in their unattended mode."),
@@ -143,6 +143,10 @@ def fill_private(path=None):
             new[key] = default
         if key in FLOW_KEYS and key not in help_:
             help_[key] = text.split(": ", 1)[-1]
+    suite = new.get("suite")
+    if isinstance(suite, dict) and not any(suite.values()) and not new.get("steps"):  # never configured: the built-in flow
+        new["suite"] = dict((key, "built-in") for key in ("idea", "plan", "review", "qa", "ship"))
+        added.append("suite")
     new["_help"] = help_
     if new != held:
         write_json(path, new, 0o600)
