@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.21.1 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- dev/toy: every toy test reaps the processes it started (issue 100)
+- dev/toy: defect test for issue 100, no toy test leaves a process running
+- regression: toy-no-leftovers seen red 2026-11-09 (reaper stubbed out)
+- dev/toy: reaper judges a hidden-env process by its nearest known ancestor
+- Merge origin/main (review-depth, v0.12.1) into loop/toy-cleanup: both regression rows kept, test-review-depth.sh sources reap.sh
+- fix(qa): sweep stops a dead test's system-binary child; reap.py rejects bad options
+- Merge origin/main (board-estimates and earlier) into loop/toy-cleanup: both rows kept, the 8 new toy tests source reap.sh, test-narrow uses toy_on_exit
+- test-no-leftovers.sh declares # reads: dev/toy/ (main's lanes header rule)
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- test-automation.sh (new on main) sources reap.sh
+- Merge origin/main (loop-guards, v0.21.0) into loop/toy-cleanup: both rows kept, test-guards.sh sources reap.sh
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.21.0 - 2026-11-10
 
 - loop-guards: guards.py (rules per step start, no-try refusals, resume, touches, finished findings), worker refusal text, bind worktree/--cwd, pool lock, toy test
