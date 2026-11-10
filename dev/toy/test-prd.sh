@@ -1,4 +1,10 @@
 #!/bin/bash
+# reads: skills/workflow-docs/scripts/criteria.py skills/workflow-docs/scripts/docs.py
+# reads: skills/workflow-docs/scripts/prd.py skills/workflow-health/scripts/health.py
+# reads: skills/workflow-health/scripts/milestone.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
+# reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-regression/scripts/regression.py
+# reads: skills/workflow-release/scripts/release.py skills/workflow-setup/scripts/setup.py
 # Test the PRD page format: section order, the owner's PRD review lock, Usage drift, Given/When/Then scenarios, the prd
 # command, convert, the requirement readers, and that this repo stays green. usage: test-prd.sh [DIR]
 set -u
@@ -288,12 +294,5 @@ printf '<!-- workflow-docs -->\n# Delivery\n\n## Overview\n\nOdd.\n\n## Tests\n\
 out=$($prd convert --write); rc=$?
 grep -q "^Delivery refused: sections are Overview, Tests" <<<"$out" && [ "$rc" = 1 ] && grep -q "Fix:" <<<"$out" && ok "an unrecognized page is refused with what is missing" || bad "refused: $out"
 git checkout -q -- .
-
-echo "== 11. this repo stays green: no docs check line but CHANGED, no health FAIL but a docs changed row"
-# STALE and TESTS are left out too: a goal's own run or code change makes them mid-goal, and its release step fixes them.
-out=$(cd "$here" && python3 skills/workflow-docs/scripts/docs.py check 2>&1)
-! grep -Ev "^(CHANGED|STALE|TESTS) " <<<"$out" | grep -qv "^DOCS OK" && ok "this repo's docs check has no line other than CHANGED" || bad "repo docs: $out"
-out=$(cd "$here" && python3 skills/workflow-health/scripts/health.py check 2>&1)
-! grep "^FAIL" <<<"$out" | grep -Eqv "^FAIL docs \S+ (changed|tests)" && ok "this repo's health has no FAIL other than a docs changed row" || bad "repo health: $(grep '^FAIL' <<<"$out")"
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

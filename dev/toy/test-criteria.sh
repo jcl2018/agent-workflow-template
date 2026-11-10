@@ -1,4 +1,8 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/goal.py skills/workflow-docs/scripts/criteria.py
+# reads: skills/workflow-docs/scripts/docs.py skills/workflow-health/scripts/health.py
+# reads: skills/workflow-monitoring/scripts/monitor.py skills/workflow-regression/scripts/regression.py
+# reads: skills/workflow-release/scripts/release.py skills/workflow-setup/scripts/setup.py
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Test the criteria contract across workflow-docs, workflow-regression and workflow-release. usage: test-criteria.sh [DIR]
 unset LOOP_BATCH

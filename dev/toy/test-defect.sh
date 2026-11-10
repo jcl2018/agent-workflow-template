@@ -1,4 +1,8 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/goal.py
+# reads: skills/workflow-docs/scripts/criteria.py skills/workflow-docs/scripts/docs.py
+# reads: skills/workflow-health/scripts/health.py skills/workflow-regression/scripts/regression.py
+# reads: skills/workflow-setup/scripts/setup.py
 # Prove the defect-tests goal's done lines, and guard the known defects. usage: test-defect.sh [CASE]
 # With a CASE it exits non-zero if that case fails (regression rows call it so); with none it prints one PASS per case.
 set -u

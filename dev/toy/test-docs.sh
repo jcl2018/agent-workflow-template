@@ -1,4 +1,6 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/goal.py skills/workflow-docs/scripts/docs.py
+# reads: skills/workflow-release/scripts/release.py skills/workflow-setup/scripts/setup.py
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Test workflow-docs on a throwaway toy repo with a bare wiki. usage: test-docs.sh [DIR]
 unset LOOP_BATCH
