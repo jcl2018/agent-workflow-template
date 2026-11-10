@@ -11,9 +11,8 @@ queued range, the 90th-percentile error, the share underestimated and the per-st
 the board uses and why, and the gap between the two lowest scores. --json prints the same as one JSON object.
 Refusals (exit 1): NO_REPO (DIR is not inside a git repo), RUNS_UNREADABLE (the runs folder cannot be read). A run file
 that cannot be parsed is skipped with a BAD_RUN line on stderr.
-
-example: python3 skills/workflow-monitoring/scripts/board_report.py --root .
 """
+EXAMPLE = "example: python3 skills/workflow-monitoring/scripts/board_report.py --root ."
 import argparse
 import datetime
 import json
@@ -135,7 +134,7 @@ def text(out):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(description=__doc__, epilog=EXAMPLE, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", help="a folder inside the repo (default: the current repo)")
     parser.add_argument("--json", action="store_true", help="print one JSON object and nothing else")
     args = parser.parse_args()
