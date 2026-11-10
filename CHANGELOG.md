@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.18.0 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/narrow-rows
+- narrow-rows: # reads: headers, narrow closure (narrow.py), lanes_cli.py, check-reads.sh, test-tree.sh; REG-6 rows
+- narrow-rows: the LANES_WIDE parity check compares a path where wide and narrow differ
+- narrow-rows: real-repo header checks live in test-tree.sh; headers only in shell files; docs for # reads:
+- narrow-rows: repo-level docs/health checks move to test-tree.sh; split /skills/ paths seen; lanes_cli.py prompt guard; trace fixes
+- narrow-rows: rows seen red and run; REG-6 scenarios rendered
+- narrow-rows: a table edit reruns its own rows and the rows that read this repo's table, not every row reaching regression.py
+- narrow-rows: check-reads resolves the real interpreter (nested traces); Tests re-rendered
+- narrow-rows review fixes: root-running scripts always; recursive reads need the folder; import lists; table readers through wrappers; deletions anywhere; check-reads per-pid hooks, pyc and copy mapping, group-killing timeout; narrow tests in test-narrow.sh
+- narrow-rows: toy broad row declares skills/k/
+- narrow-rows: lanes-table toy row that reaches regression.py without reading the table
+- narrow-rows: a skill folder read as a whole (literally or via a variable) needs the folder declared; MD deletions; trace fixtures use run-time Python reads
+- narrow-rows: whole-folder reads decided per command (cd/mkdir/PYTHONPATH/sys.path name only), cd-then-list, $d/sub, folder variables from sourced files; docs
+- Merge remote-tracking branch 'origin/main' into loop/narrow-rows
+- narrow-rows: # reads: headers for the scripts main added; workflow-regression SKILL.md back under 150 lines
+- Wiki: update pages for narrow-rows
+- Wiki: update pages for narrow-rows
+
+### How to verify
+
+1. In this repo, run `python3 skills/workflow-regression/scripts/lanes_cli.py check`.
+   Expect: no output and exit status 0 (every test script a row names has a valid `# reads:` header).
+2. Run `python3 skills/workflow-regression/scripts/lanes_cli.py affected skills/workflow-monitoring/scripts/batch.py`.
+   Expect: `AFFECTED 81 of 225 rows (...)`, under half the land rows; with `LANES_WIDE=1` in front, all 225.
+3. Run `python3 skills/workflow-regression/scripts/lanes_cli.py deps "bash dev/toy/test-live-board.sh 2>&1" --why skills/workflow-health/scripts/judge.py`.
+   Expect: one chain of files from `dev/toy/test-live-board.sh` to `judge.py` (the live board runs health.py).
+4. Delete the `# reads:` lines from `dev/toy/test-health.sh` and run step 1 again, then restore the file.
+   Expect: `LANES-DECL-NONE dev/toy/test-health.sh:1: ...` and a `fix:` line, exit status 1.
+
 ## v0.17.0 - 2026-11-10
 
 - Health keeps itself honest and the repo lean (HLT-6)
