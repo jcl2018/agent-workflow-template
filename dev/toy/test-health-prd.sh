@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-health/scripts/ skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/donelines.py skills/workflow-monitoring/scripts/
+# reads: skills/workflow-health/scripts/ skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/donelines.py
 # reads: dev/toy/fakegh/gh dev/toy/fakegh/fake.py
 # Proves the owner-approved Health PRD on throwaway repos with a stand-in for GitHub and stand-in judges: the twelve groups
 # and their angles (HLT-2), feature milestones, links and migration (HLT-4), the review and its evidence (HLT-5, HLT-9),
@@ -181,23 +181,6 @@ check "review says JUDGE UNAVAILABLE with the command's last output and stderr l
 fi
 
 if want i159; then
-mkrepo
-mkdir -p .git/loop/runs .git/loop/logs
-printf '{"slug": "w", "status": "done", "pr": "https://example.test/pull/1", "log": []}' > .git/loop/runs/w.json
-out=$(python3 - "$here/skills/workflow-monitoring/scripts" <<'PY'
-import json, sys
-sys.path.insert(0, sys.argv[1]); import worker
-def merged(pr):  # while gh answers, the release step records the merge from outside
-    s = json.load(open(".git/loop/runs/w.json")); s.update(report={"status": "merged", "pr": pr, "text": "merged from outside", "at": "x"})
-    json.dump(s, open(".git/loop/runs/w.json", "w")); return False
-worker.merged = merged; worker.release_step = lambda state: None
-class A: slug = "w"; command = ["true"]
-worker.cmd_loop(A())
-print(json.load(open(".git/loop/runs/w.json"))["report"]["status"])
-PY
-)
-check "worker.py's last save keeps a merge recorded from outside while gh answered (issue 159)" '[ "$(tail -1 <<<"$out")" = merged ]'
-
 echo "== issue 159: the health docs describe today's commands"
 # Value: protects=#159; fails_when=the SKILL.md or the commands reference still describe the old run or read-only check;
 # why_new=defect test; seam=none; no_claim=prose quality

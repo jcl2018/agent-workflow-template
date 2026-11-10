@@ -45,7 +45,7 @@ grep -q "^[A-Z]* cost " <<<"$out" && bad "cost leaked into a line" || ok "no lin
 lone="$d/lone/skills/workflow-health"; mkdir -p "$lone"; cp -R "$here/skills/workflow-health/scripts" "$lone/"
 out=$(python3 "$lone/scripts/health.py" check --group docs); rc=$?
 grep -q "^UNREAD docs docs check: " <<<"$out" && ! grep -q "^PASS docs" <<<"$out" && [ $rc = 1 ] && ok "a rule that cannot read its data is UNREAD, never pass" || bad "unread"
-$health check --group nothing 2>&1 | grep -q "^REFUSED: unknown group" && ok "an unknown group is refused" || bad "unknown group"
+$health check --group nothing >"$d/ug" 2>&1; ug=$?; grep -q "^REFUSED\[group\]: unknown group" "$d/ug" && [ $ug = 2 ] && ok "an unknown group is refused (REFUSED[group], exit 2)" || bad "unknown group"
 # Value: protects=a docs check problem of any kind is never also shown as a passing docs check; fails_when=rule_of maps
 #   only some docs kinds to check, so complete() pads PASS docs check beside a FAIL; why_new=the report test only had a
 #   missing page, which was mapped; seam=none; no_claim=none beyond protects

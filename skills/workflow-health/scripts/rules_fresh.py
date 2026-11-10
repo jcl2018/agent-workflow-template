@@ -182,7 +182,7 @@ def f_skipped(root):
 
 def f_network(root):
     c = _c(); c.repo(root)
-    c.write(root, ".loop/regression.tsv", "# id\tlevel\tcommand\nr1\tland\tcurl https://example.invalid\n")
+    c.write(root, ".loop/regression.tsv", "# id\tlevel\tcommand\nr1\tland\tcurl https://example.test\n")
 
 
 def f_config(root):

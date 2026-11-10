@@ -12,6 +12,7 @@ Rows carry no temporary path and no time, so two runs print the same lines. run(
 only the run command line loads it, for its rule functions.
 """
 import hashlib
+import importlib
 import json
 import os
 import subprocess
@@ -191,7 +192,7 @@ CONTROLS = {
 for _module in ("rules_trace", "rules_fresh", "rules_guard"):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     try:
-        CONTROLS.update(__import__(_module).CONTROLS)
+        CONTROLS.update(importlib.import_module(_module).CONTROLS)
     except ImportError:
         pass
     finally:

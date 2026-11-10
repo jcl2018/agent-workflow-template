@@ -282,7 +282,8 @@ def groups_of(text):
     names = [G.ALIASES.get(n.strip(), n.strip()) for n in (text or "").split(",") if n.strip()]
     bad = [n for n in names if n not in FAMILY]
     if bad:
-        sys.exit("REFUSED: unknown group %s. Groups: %s." % (", ".join(bad), ", ".join(NAMES)))
+        print("REFUSED[group]: unknown group %s. Groups: %s." % (", ".join(bad), ", ".join(NAMES)))
+        sys.exit(2)
     return list(dict.fromkeys(names)) or None  # a repeated name (cost,performance) runs once
 
 
