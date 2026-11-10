@@ -8,6 +8,9 @@ unset LOOP_ROLE LOOP_SESSION LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_FLOW
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
 only=${1:-}
+case "$only" in ""|update|propose|board) ;;  # an unknown part would run nothing and still say ALL PASS
+  *) echo "test-sync-update.sh: no part '$only'; usage: test-sync-update.sh [update|propose|board]" >&2; exit 2 ;;
+esac
 T=$(mktemp -d); toy_on_exit 'rm -rf "$T"'
 export HOME="$T/home" LOOP_BOARD_HEALTH=green; mkdir -p "$HOME"
 fails=0
