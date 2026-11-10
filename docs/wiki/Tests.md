@@ -413,12 +413,12 @@
 | <a id="t-list-kind-filter"></a>list-kind-filter | requirement | REG-1 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-one-format-everywhere"></a>one-format-everywhere | requirement | REG-2 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-defect-owed-branch-proved"></a>defect-owed-branch-proved | requirement | REG-1 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-flaky-marked"></a>flaky-marked | requirement | REG-9 | not run | - | local | no |
-| <a id="t-flaky-no-false-mark"></a>flaky-no-false-mark | requirement | REG-9 | not run | - | local | no |
-| <a id="t-suite-time-recorded"></a>suite-time-recorded | requirement | REG-7 | not run | - | local | no |
-| <a id="t-ci-target-input"></a>ci-target-input | requirement | REG-4 | not run | - | local | no |
-| <a id="t-ci-bad-target"></a>ci-bad-target | requirement | REG-4 | not run | - | local | no |
-| <a id="t-ci-levels-setting"></a>ci-levels-setting | requirement | REG-4 | not run | - | local | no |
+| <a id="t-flaky-marked"></a>flaky-marked | requirement | REG-9 | not run | - | local | 2026-11-10 |
+| <a id="t-flaky-no-false-mark"></a>flaky-no-false-mark | requirement | REG-9 | not run | - | local | 2026-11-10 |
+| <a id="t-suite-time-recorded"></a>suite-time-recorded | requirement | REG-7 | not run | - | local | 2026-11-10 |
+| <a id="t-ci-target-input"></a>ci-target-input | requirement | REG-4 | not run | - | local | 2026-11-10 |
+| <a id="t-ci-bad-target"></a>ci-bad-target | requirement | REG-4 | not run | - | local | 2026-11-10 |
+| <a id="t-ci-levels-setting"></a>ci-levels-setting | requirement | REG-4 | not run | - | local | 2026-11-10 |
 
 ## Setup
 
