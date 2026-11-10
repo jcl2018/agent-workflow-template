@@ -1,1 +1,2 @@
-operate-all	https://github.com/jcl2018/agent-workflow-template/issues/126 operate-all fails on main v0.12.0
+# id	reason
+operate-all	fails on main v0.12.0 (test-operate timing), issue 126

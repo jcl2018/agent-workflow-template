@@ -1,5 +1,103 @@
 # Changelog
 
+## v0.14.0 - 2026-11-10
+
+- docs check: close the four count gaps (issues 104-107)
+- docs-count-gaps: record the four defect tests as seen failing
+- docs count review fixes: workflow-ready only, code after a heading or fence, thematic breaks, a wrong defect count fails
+- Merge remote-tracking branch 'origin/main' into loop/docs-count-gaps
+- Documentation: the check bullet says a stated defect tests count is checked
+
+### How to verify
+
+1. In a scratch copy of the repo, add the line `The repo has twenty workflow-ready skills.` to README.md and run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: a line `COUNT README.md: says twenty workflow-ready skills, the repo has 7` (the real number of skills).
+2. Replace that line with a blank line followed by `    The repo has twenty skills.` (four leading spaces) and run the check again.
+   Expect: no COUNT line for README.md.
+3. Run `bash dev/toy/test-criteria.sh | grep "(10[4-7])"`.
+   Expect: four PASS lines, one per issue 104 to 107.
+
+## v0.13.1 - 2026-11-10
+
+- regression-all: record every row, move slow rows to nightly, fix two failing rows
+- regression-all: review fixes for the workflow timeout, dash dates and test waits
+- regression-all: the longest-chain check now compares the finish time with the chain
+- regression-all: set row levels from measured suite times, and give the workflow room
+- regression-all: re-record every row, and bring three wiki pages up to date
+- regression-all: second review pass fixes
+- regression-all: wiki pages follow the second review pass
+- regression-all: third review pass fixes to the workflow runner and seen dates
+- regression-all: wiki pages follow the third review pass
+- Merge remote-tracking branch 'origin/main' into loop/regression-all
+- Merge remote-tracking branch 'origin/main' into loop/regression-all
+- regression-all: re-record every row on the code merged with v0.12.0
+- fix: pre-landing review fixes
+- docs: regression skill docs give the date-only seen rule and the workflow runner limits
+- Merge remote-tracking branch 'origin/main' into loop/regression-all
+
+### How to verify
+
+1. Open `docs/wiki/Regression.md` and `docs/wiki/Documentation.md` and read the Tests tables.
+   Expect: every row shows its level (`both` or `nightly`) and a last result of `PASS` with a date, and no row says `not enforced`.
+2. Open `.loop/regression.tsv`.
+   Expect: every row of the suites that take 20 seconds or more (for example `operate-all`, `frozen-done-lines`, `no-pid-left-alone`) is at level `nightly`, faster ones such as `auto-release` stay `land`, and none was removed.
+3. On GitHub, open Actions, then the `regression` workflow, and run it on this branch with "Run workflow".
+   Expect: the run finishes green and its summary table lists every row as PASS.
+
+## v0.13.0 - 2026-11-10
+
+- Health: formal report, preview and file by group
+- Health: guard, tests table
+- Health: clean group still closes its issues
+- Merge origin/main into loop/health-report
+- List the preview and file commands; regression run log
+- Merge origin/main into loop/health-report
+- Render the wiki Tests tables after the merge
+- fix: pre-landing review fixes
+- fix: adversarial and targeted review fixes
+- docs: health preview, file and report wording after review
+- fix: pre-existing test failure in every-row-described
+- fix: pre-existing test failure in dev/toy/test-operate.sh
+- fix: pre-existing race in dev/toy/test-operate.sh
+- Merge origin/main (v0.11.0) into loop/health-report
+- Merge origin/main (v0.12.0, PRD pages) into loop/health-report
+- docs: the toy gh keeps issue labels (Documentation page)
+- docs: Health success metric counts only the groups the owner files
+- docs: design guide rows for health filing and PRD pages
+- Merge origin/main (v0.12.1) into loop/health-report
+
+### How to verify
+
+1. Run `python3 skills/workflow-health/scripts/health.py check`.
+   Expect: line 2 reads `groups run: ...; skipped: ...`, then each group with every rule and a state, the Cost group titled `performance`, and one `HEALTH:` line last.
+2. Run `python3 skills/workflow-health/scripts/health.py preview`.
+   Expect: `WOULD open/update/close/reopen ... [health:<group>]` lines and a `PREVIEW:` line; no issue changes on GitHub.
+3. Run `python3 skills/workflow-health/scripts/health.py file`.
+   Expect: `REFUSED: file needs --group ...` and nothing written.
+4. Open `docs/wiki/Health.md`.
+   Expect: HLT-3 and HLT-4 carry the new wording marked `Reviewed 2026-11-08`, and Usage lists the four agent requests.
+
+## v0.12.1 - 2026-11-10
+
+- review_depth: full by default; every step states its depth, record checks it, the board and PR show it; setup writes it
+- Rows link to criteria; Monitoring and Setup pages name review_depth
+- Review (full) fixes: fill-repo keeps _help, setting read from the base branch, markers from both flow files and malformed ones refuse, skips not held to full, DEPTH a line of its own, rerun clears depth, setup validates, docs
+- review-depth rows seen red; Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/review-depth
+- Merge origin/main (test-lanes, v0.11.0) into loop/review-depth: lane and depth in the step prompt, both row sets, goal.py's in-session check moved to role.py to stay under its size limit
+- Merge origin/main (prd-format, v0.12.0) into loop/review-depth: main's PRD pages and Given/When/Then rows kept, depth rows and page sentences re-added, tables re-rendered
+
+### How to verify
+
+1. Run `python3 skills/workflow-setup/scripts/settings.py reference | grep review_depth`.
+   Expect: one row, `review_depth`, default `full`, with a one-line explanation.
+2. Open `.loop/config.json`.
+   Expect: `"review_depth": "full"` and its explanation under `_help`.
+3. On the next goal, run `python3 skills/workflow-monitoring/scripts/live_board.py` while it runs.
+   Expect: under its `worker:` line, a `depth:` line listing each recorded step's depth and `(setting full)`.
+4. Open that goal's pull request.
+   Expect: under Result, each step ends with `(depth full)`.
+
 ## v0.12.0 - 2026-11-09
 
 - workflow-docs: PRD page contract, review lock and prd command

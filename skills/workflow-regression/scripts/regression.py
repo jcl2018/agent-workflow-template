@@ -44,6 +44,7 @@ if not sys.stdin or not sys.stdin.isatty():
 LEVELS = ("land", "nightly", "draft", "covered")
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$")
 FIELDS = ("id", "level", "command", "goal", "seen_red", "description", "category", "link")
+SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date; "", "-" or any other text is never seen failing
 HEADER = "# " + "\t".join(FIELDS) + "\n"
 CRON = "17 9 * * *"
 MARK = "<!-- loop-regression %s -->"
@@ -192,7 +193,7 @@ def cmd_sync(args):
     drafts = [row["id"] for row in rows.values() if row["level"] == "draft"]
     for key in drafts:
         print("DRAFT %s: not run until it has a command and level" % key)
-    never = [row["id"] for row in rows.values() if row["level"] in ("land", "nightly") and not row["seen_red"]]
+    never = [row["id"] for row in rows.values() if row["level"] in ("land", "nightly") and not SEEN.match(row["seen_red"])]
     for key in never:
         print("UNPROVEN %s: never seen failing. Run red." % key)
     bare = [row["id"] for row in rows.values() if row["level"] != "covered" and not row["description"]]
@@ -376,7 +377,7 @@ def cmd_run(args):
         lanes.save(record, root, "regression.py run %s%s" % (args.target, " --reuse" if args.reuse else ""), results,
                    head, datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                    fresh=bool(args.reuse and why))
-    never = [row["id"] for row in picked if not row["seen_red"]]
+    never = [row["id"] for row in picked if not SEEN.match(row["seen_red"])]
     for key in never:
         print("UNPROVEN %s: never seen failing. Fix: python3 %s red %s --break \"<a command that breaks it>\"" % (
             key, os.path.abspath(__file__), key))

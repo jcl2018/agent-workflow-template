@@ -33,8 +33,8 @@ If the user gave no done lines, write them and show them before you start. Each 
 request, by a test or by what a person can see.
 
 **Run each step through `flow.py`.** In a worker session (the default) it prints `IN SESSION`, the skill and a reply path:
-run the skill yourself, unattended (recommended answers, approve nothing, never push), write its reply ending in `STEP:`
-there, run `flow.py` again for `NEXT` (or `goal.py record --in-session` with any reply file), and message the operation session at each change. No session: a headless agent.
+run the skill yourself, unattended (recommended answers, approve nothing, never push) and at the depth `review_depth`
+sets (`full`: never condense), write its reply ending in `DEPTH:` then `STEP:` there, run `flow.py` again for `NEXT` (or `goal.py record --in-session` with any reply file), and message the operation session at each change. No session: a headless agent.
 
 ```text
 freeze -> idea -> plan -> build -> review -> qa -> ship -> pr -> release
@@ -114,7 +114,7 @@ This repo has both on. Say so whenever you report a goal here.
 
 ## When a goal stops
 
-A flow step that failed or gave no `STEP:` line, each cost a try. After 3, the script files a finding
+A flow step that failed, gave no `STEP:` line or was refused for its depth, each cost a try. After 3, the script files a finding
 in `.loop/findings.md` and stops with exit code 3. Stop, report it, and leave the done lines as they are.
 
 If you need an answer only the user can give:

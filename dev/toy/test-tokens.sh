@@ -21,7 +21,7 @@ mkdir -p "$T/bin"
 cat > "$T/bin/claude" <<'SH'
 #!/bin/bash
 echo "noise on stderr" >&2
-printf '{"type":"result","result":"PENDING: a choice\\nSTEP: done","usage":{"input_tokens":100,"output_tokens":50,"cache_creation_input_tokens":25,"cache_read_input_tokens":9000}}\n'
+printf '{"type":"result","result":"PENDING: a choice\\nDEPTH: full\\nSTEP: done","usage":{"input_tokens":100,"output_tokens":50,"cache_creation_input_tokens":25,"cache_read_input_tokens":9000}}\n'
 SH
 chmod +x "$T/bin/claude"
 python3 - "$T" <<'PY'
