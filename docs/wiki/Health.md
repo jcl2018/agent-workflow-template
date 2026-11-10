@@ -46,6 +46,7 @@ One command, run by group; fixed rules; same answer twice; changes nothing.
 
 - Given an unchanged repo, when health runs twice, then both runs print the same lines. — [same-lines](../../.loop/regression.tsv), requirement, guards HLT-1, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a repo, when the health check runs, then it writes no file and makes no commit. — [check-writes-nothing](../../.loop/regression.tsv), requirement, guards HLT-1, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given an unchanged repo, when health checks it twice, then both print the same lines and no file changes. — [hlt1-same-answer](../../.loop/regression.tsv), requirement, guards HLT-1, both, not run, seen failing 2026-11-10
 
 #### HLT-2
 
@@ -57,6 +58,7 @@ The rules. Health checks exactly these rules: Size (every script stays under 20 
 - Given a closed issue or finding with no defect test, when health runs, then it is flagged. — [defect-health](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a goal over its time budget, when health runs, then it is a Cost warning naming its slowest steps. — [cost-time-warn](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-08
 - Given no tokens recorded, when the Performance rule runs, then it prints INFO and leaves the token check out, never red. — [cost-unread-tokens](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a repo, when health checks it, then it runs exactly the twelve groups plus Mine, each heading with its angle, and every rule's negative control fires. — [hlt2-twelve-groups](../../.loop/regression.tsv), requirement, guards HLT-2, both, not run, seen failing 2026-11-10
 
 #### HLT-3
 
@@ -76,6 +78,7 @@ Findings become tagged issues, under my control. Each finding can be filed as on
 - Given a rule that could not be read, when health runs, then none of its issues are closed. — [unread-closes-none](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given findings in several groups, when health preview runs, then it lists each issue it would open, update, close or reopen with its tag and makes no write call. — [preview-writes-nothing](../../.loop/regression.tsv), requirement, guards HLT-4, both, not run, seen failing 2026-11-09
 - Given open issues in several groups, when health files only the docs group, then only the docs issue is closed and no other group's issue changes. — [file-one-group](../../.loop/regression.tsv), requirement, guards HLT-4, both, not run, seen failing 2026-11-09
+- Given findings about a feature and about none, when they are previewed and filed, then each lands on its feature milestone or Backlog with its tag; a repeat updates, a fix closes, a return reopens, an old marker moves, and an open issue that names the subject is linked once instead of duplicated. — [hlt4-feature-milestones](../../.loop/regression.tsv), requirement, guards HLT-4, both, not run, seen failing 2026-11-10
 
 #### HLT-5
 
@@ -84,6 +87,7 @@ Judge and next steps. After the rules, a separate judge section, marked as sugge
 - Given the judge, when it runs, then it prints its three reviews in a section marked as suggestions. — [judge-section-format](../../.loop/regression.tsv), requirement, guards HLT-5, both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a failing or garbage judge, when health runs, then the verdict and exit code are unchanged. — [judge-verdict-unchanged](../../.loop/regression.tsv), requirement, guards HLT-5, both, PASS 2026-11-09, seen failing 2026-11-08
 - Given suggested criterion wording, when the board is printed, then it is listed under Needs you for the owner to apply. — [judge-needs-you](../../.loop/regression.tsv), requirement, guards HLT-5, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a judge that answers with good and unverifiable citations, when review runs, then each finding names its feature, angle and evidence, an unverifiable one is dropped and counted, and nothing is written. — [hlt5-review-evidence](../../.loop/regression.tsv), requirement, guards HLT-5, both, not run, seen failing 2026-11-10
 
 #### HLT-6
 
@@ -101,4 +105,11 @@ Health keeps itself honest and the repo lean. Every health rule has a negative c
 - Given stale worktrees and branches, when health check runs, then nothing is removed. — [hlt6-removes-nothing](../../.loop/regression.tsv), requirement, guards HLT-6, both, not run, seen failing 2026-11-10
 - Given no stale worktree or branch, when health check runs, then both rules pass. — [hlt6-clean-quiet](../../.loop/regression.tsv), requirement, guards HLT-6, both, not run, seen failing 2026-11-10
 - Given stale worktrees, when health previews the hygiene group, then no test-time, worktree or branch row would be filed. — [hlt6-never-filed](../../.loop/regression.tsv), requirement, guards HLT-6, both, not run, seen failing 2026-11-10
+- Given every rule and a stale loop worktree, when health checks, then each control fires and the worktree is flagged with the command that removes it, which health never runs. — [hlt6-controls-lean](../../.loop/regression.tsv), requirement, guards HLT-6, both, not run, seen failing 2026-11-10
 - **not enforced**: no passing test
+
+### Defect tests
+
+- Given goals that predate token recording and done lines from before adoption, when health and sync run, then neither keeps the repo red. — [health-tokens-124](../../.loop/regression.tsv), defect, guards [#124](https://github.com/jcl2018/agent-workflow-template/issues/124) state unknown, both, not run, seen failing 2026-11-10
+- Given the health skill's docs, when they are read, then they describe check's twelve groups, review, filing and triage, and no stale run chart. — [health-docs-159](../../.loop/regression.tsv), defect, guards [#159](https://github.com/jcl2018/agent-workflow-template/issues/159) state unknown, both, not run, seen failing 2026-11-10
+- Given a judge command that fails, when review runs, then JUDGE UNAVAILABLE names the command's last output and stderr lines. — [judge-cause-158](../../.loop/regression.tsv), defect, guards [#158](https://github.com/jcl2018/agent-workflow-template/issues/158) state unknown, both, not run, seen failing 2026-11-10
