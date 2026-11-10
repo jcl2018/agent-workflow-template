@@ -182,8 +182,8 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
     stuck, other = [], []
     if why:
         other += ["- the session pool can't be read (%s)" % plain(why, 120),
-                  "    fix: check it with python3 -m json.tool <git common dir>/loop/session-pool.json, then repair it or move it "
-                  "aside; nothing was started or changed, and the next pass retries"]
+                  "    fix: check it with python3 -m json.tool <git common dir>/loop/session-pool.json, then repair it (moved aside, "
+                  "every held goal is forgotten); nothing was started or changed, and the next pass retries"]
     for run in runs:
         slug, report = run["slug"], (run.get("report") or {}).get("text", "")
         if run.get("status") in bs.ASKING:

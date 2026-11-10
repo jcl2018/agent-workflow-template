@@ -107,11 +107,11 @@ The board reads the run records and the session pool (`<git common dir>/loop/ses
 |---|---|---|---|
 | running | A worker (session or process) has the goal | none | the next line moves as it reports |
 | freezing | A session was handed the goal before it was frozen (a busy pool entry, no run yet) | the worker runs `goal.py new <slug> --here` in its worktree, then `sessions.py bind <slug> <id>` | it shows as running |
-| stale freezing | Freezing for longer than the quiet time | look at the session; once it has stopped, `sessions.py free <slug>`, then start a new session in the worktree and bind, or `git worktree remove <path>` and let `watch.py watch` start it | it leaves the board, or shows as running |
+| stale freezing | Freezing for longer than the quiet time | look at the session; once it has stopped, `sessions.py free <slug>`, then start a new session in the worktree and bind, or `git worktree remove <path>` and start it again with `watch.py go --slug <slug>` (a handoff has no queue line, so `watch` never restarts it on its own) | it leaves the board, or shows as running |
 | held | Running, but no busy session and no process has it (session reassigned, worktree kept); listed under Queued goals | `sessions.py bind <slug> ID` | it shows as running |
 | held, worktree gone | Held, and its worktree folder is missing | `git worktree add <common>/loop/worktrees/<slug> loop/<slug>`, then bind (`watch.py resume` takes only failed or stopped goals) | it shows as running |
 | held, holds a slot | A held session goal still counts toward `parallel` | bind it, or once its old session has stopped, `sessions.py free <slug>` | the slot is free |
-| pool unreadable | The pool file can't be trusted: nothing is called held or freezing, and `watch` starts nothing | `python3 -m json.tool <path>`, then repair it or move it aside | the next pass reads it |
+| pool unreadable | The pool file can't be trusted: nothing is called held or freezing, and `watch` starts nothing | `python3 -m json.tool <path>`, then repair it (moving it aside forgets which goals sessions hold: free or bind each again first) | the next pass reads it |
 | done | The pull request is open; a later session report is only recorded (issue 108) | the release step merges it | it leaves the board |
 | tries used up | A stopped goal was brought back by a bind or mend | look at its finding | the next try counts from there |
 
@@ -136,7 +136,7 @@ start a new session in the worktree and bind it, or remove the worktree and let 
 | `NOTHING TO FREE for <slug>: ...` | no busy session and no session run | check the goal name |
 | `KEPT done for <slug>: ...` | a report on a done goal was recorded, nothing else changed | none |
 | `REFUSED: bad goal name '<slug>'` | the name isn't lowercase letters, digits and hyphens | use the goal's slug |
-| `REFUSED: the session pool <path> can't be read (...)` | the pool is unreadable; nothing was changed | `python3 -m json.tool <path>`, repair or move it aside |
+| `REFUSED: the session pool <path> can't be read (...)` | the pool is unreadable; nothing was changed | `python3 -m json.tool <path>`, repair it (moving it aside forgets which goals sessions hold) |
 | `REFUSED: session <id> was freed from <slug> ...` | a late bind of a freed session | `--force`, once no other worker has the goal |
 | `REFUSED: <slug> is assigned to session <name> but not frozen yet` | report or send before the goal is frozen | the worker freezes it first |
 | `REFUSED: <slug> is waiting on the owner (...)` | free on a waiting goal | answer it first |

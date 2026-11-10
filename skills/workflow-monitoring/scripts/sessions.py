@@ -154,6 +154,7 @@ def assign(state, prompt, cfg):
     if not command:
         return False
     found, to = pool(), os.environ.get("LOOP_OPERATION_SESSION", "")
+    before = ((load(slug) or state).get("session") or {}).get("id")  # an earlier try's session, not a new bind
     text = SEND.format(slug=slug, tree=state.get("worktree") or "its worktree", to=" (%s)" % to if to else "") + prompt
     free = sorted(s for s, item in found.items() if item.get("state") == "free")[:FREE_TRIES]
     sid, reused = None, False
@@ -182,8 +183,12 @@ def assign(state, prompt, cfg):
     if not sid:
         return False
     with locked():  # an operator's bind during the send wins: never overwrite it
-        entry, current = pool().get(sid) or {}, load(slug) or state
-        if entry.get("slug") != slug or entry.get("state") != "busy" or (current.get("session") or {}).get("id") not in (None, sid):
+        found = pool()
+        entry, current = found.get(sid) or {}, load(slug) or state
+        if entry.get("slug") != slug or entry.get("state") != "busy" or (current.get("session") or {}).get("id") not in (None, sid, before):
+            if entry.get("slug") == slug and entry.get("state") == "busy":
+                entry["state"] = "free"
+                save_pool(found)
             print("HANDED %s elsewhere during the send; session %s keeps no claim" % (slug, sid))
             return True
         current.update(worker="session", worker_why="", session={"id": sid, "name": name_of(slug)}, pid=None,
@@ -406,7 +411,7 @@ def main():
         return globals()["cmd_" + args.cmd](args)
     except PoolUnreadable as error:
         sys.exit("REFUSED: the session pool %s can't be read (%s). Fix: check it with python3 -m json.tool %s, then "
-                 "repair it or move it aside, and run this again. Nothing was changed." % (pool_path(), error, pool_path()))
+                 "repair it (moved aside, every held goal is forgotten), and run this again. Nothing was changed." % (pool_path(), error, pool_path()))
 
 
 if __name__ == "__main__":

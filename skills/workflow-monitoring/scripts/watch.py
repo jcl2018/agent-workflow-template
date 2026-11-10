@@ -435,7 +435,9 @@ def cmd_watch(args):
     interval = args.interval or float(cfg.get("watch_interval", 20))
     while True:
         found, why = pool()
-        if found is None:  # unknown ownership: no mend, start or assign this pass
+        if found is None:  # unknown ownership: no mend, start or assign this pass; dead pids and questions still show
+            refresh()
+            tell(seen, told)
             print(graph.pool_fix(why), flush=True)
             if args.once:
                 break
