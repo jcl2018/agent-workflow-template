@@ -244,3 +244,36 @@ Status: built and proven: Print the run record. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests.
 
+## Moved from SKILL.md
+
+Detail the skill's SKILL.md points to, kept word for word so no instruction is lost.
+
+### Step tokens
+
+`flow.py` records each step's tokens itself, from the agent's JSON output (input + output + cache-creation
+tokens, no cache reads); report a step it didn't run with `goal.py step <slug> <name> --tokens N`.
+
+### The regression lane
+
+**The regression lane.** The full suite runs once per goal, in qa. Before your qa skill starts, `flow.py qa` runs the
+lane, `python3 <workflow-regression>/scripts/regression.py run land --reuse`, in the background (`RUNNING` until it
+ends). It runs through your flow file's `test_record` prefix when you set one (a receipt recorder, so your ship skill's
+own check of recorded test runs can reuse it), and tests the committed HEAD only: an unclean tree fails it (`LANE_DIRTY`).
+A failing or never-seen-failing row fails the qa step before your skill runs, and `goal.py record <slug> qa` refuses
+until a qa lane passed on HEAD (`LANE_MISSING`; start one with `role.py lane <slug> qa`), except for a reply whose last
+`STEP:` line is `failed` and that has no `PENDING:` line, which records as a failed try. `flow.py ship` and `goal.py pr`
+run the same lane: on unchanged content it prints `REUSED` and runs nothing, and after a commit or a base merge it reruns
+only the rows the change can affect. The release step itself (merge.py) doesn't rerun it; GitHub Actions still runs the
+full suite.
+
+### Pull request: version and push
+
+With `pr_bumps_version` on, it moves the last number of the version file once on this branch first, unless the
+branch already changed it. It retries a failed push twice, then prints git's full error.
+
+### Switches that remove gates
+
+Two keys in `.loop/config.json` remove gates, and each is off unless the owner turns it on:
+
+- `"auto_approve": true`: `record` approves what a step leaves for the owner, logs it as auto-approved, and goes on.
+- `"auto_merge": true`: after `pr`, the release step runs the `routines` from `.loop/config.json`, merges the pull request, bumps the version once and publishes a GitHub release with a CHANGELOG entry.

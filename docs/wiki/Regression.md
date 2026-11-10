@@ -12,10 +12,11 @@ Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.l
 ## Usage
 
 - `/workflow-regression add ID --level land --command "cmd" --goal DEL-1` adds a test row; `--category defect --link URL` makes it a defect test.
-- `/workflow-regression red ID --break "cmd"` records that the test fails on broken code.
-- `/workflow-regression run land` runs the rows and opens, updates or closes one issue per failing row.
+- `/workflow-regression red ID --break "cmd"` records that the test fails on broken code. Only a real date counts as seen failing; `-` or any other text counts as never.
+- `/workflow-regression run land` runs the rows and opens, updates or closes one issue per failing row. A row whose suite takes 20 seconds or more is `nightly`, so it runs only in the nightly and full runs.
 - `/workflow-regression run land --reuse` reuses the branch's last recorded run and reruns only the rows a change can affect; it opens no issue. Delivery's qa step runs it once per goal, and ship and the pull request reuse that run. Each run records every row's time and the total, which health's test-time rule reads.
-- `/workflow-regression sync` lists criteria with no row and rows never seen failing; `/workflow-regression workflow` writes the GitHub Actions workflow.
+- `/workflow-regression sync` lists criteria with no row and rows never seen failing; `/workflow-regression workflow` writes the GitHub Actions workflow. It runs each row in its own process group with a 15-minute limit, inside a 90-minute job: a row starts only if its full limit still fits, one that doesn't is skipped and fails with an issue, results reach the summary as each row ends, and rows run with no GitHub token in their environment or in the checkout's git config.
+- To give a slow repo's GitHub run more time, ask for the workflow step's `REGRESSION_ROW_SECONDS` (each row's limit, 900 by default) or `REGRESSION_JOB_SECONDS` (the job's budget, 88 minutes by default) to be raised; a budget past 88 minutes also needs the job's 90-minute limit raised, a value that isn't a positive whole number keeps the default, and writing the workflow again resets both.
 
 ## Requirements
 
@@ -61,7 +62,7 @@ Test format. Every test is listed in one fixed format: its category (criterion o
 - Given a test row with a description, when the Tests are rendered, then it appears under its requirement's heading and words as a Given/When/Then scenario with its result and seen-failing date. — [tests-row-shape](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a test row with no description, when the check runs, then it is flagged. — [describe-needed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a row with a seen-failing date, when a description is added, then the date is kept. — [keeps-seen-red](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given this repo's test rows, when they are checked, then every row has a description. — [every-row-described](../../.loop/regression.tsv), both, FAIL 2026-11-09, seen failing 2026-11-08
+- Given this repo's test rows, when they are checked, then every row has a description. — [every-row-described](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given the test rows, when they are checked, then every row has a category, defect rows link their issue, and the page shows defect tests apart. — [defect-categories](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-08
 
 #### REG-3
@@ -90,11 +91,10 @@ Failures go to GitHub: one issue per failing test, updated, closed on pass; know
 
 Temporary, until the PRD format replaces the criteria pages: a goal runs the full suite once, in qa; ship and release reuse qa's recorded run when no code changed since it, and otherwise run only the rows for the files changed after it.
 
-- Given a first run on unchanged content, when a second run happens, then it reuses the first and runs no test. — [lanes-reuse](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given a change, when tests run again, then only the tests that read the changed files run. — [lanes-affected](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given a run with a failing test, when a later run happens, then it is never reused. — [lanes-failing](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given no recorded run, when tests run, then every test runs. — [lanes-missing](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given nothing changed since the qa run, when ship runs, then it reuses the qa run. — [lanes-ship-reuses](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given the qa step, when it runs the tests, then it records the run with the exact command ship checks. — [lanes-qa-record](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given the base merged before the pull request, when tests run, then only the affected tests rerun. — [lanes-pr-affected](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- **not enforced**: no passing test
+- Given a first run on unchanged content, when a second run happens, then it reuses the first and runs no test. — [lanes-reuse](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a change, when tests run again, then only the tests that read the changed files run. — [lanes-affected](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a run with a failing test, when a later run happens, then it is never reused. — [lanes-failing](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given no recorded run, when tests run, then every test runs. — [lanes-missing](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given nothing changed since the qa run, when ship runs, then it reuses the qa run. — [lanes-ship-reuses](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given the qa step, when it runs the tests, then it records the run with the exact command ship checks. — [lanes-qa-record](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given the base merged before the pull request, when tests run, then only the affected tests rerun. — [lanes-pr-affected](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
