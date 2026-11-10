@@ -32,16 +32,16 @@ default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (
 - **Problem** (`problem`, DOC-8): 1 to `problem_lines` bullets (`- `), the user's problem in their words, at least one
   in the first person (I, my, me). No backticks, no path (`/x/`), no file extension (`.py`, `.sh`, `.json`, `.tsv`,
   `.md`) and no word from `problem_banned` (whole word, any case).
-- **Usage** (optional, `usage`, DOC-6): an API reference. Only `` ### `<syntax>` `` entries, one per command, each
-  followed by a `- Prints:` and a `- Refuses:` bullet (`- Does:` and `- Arguments:` optional), and nothing else but
-  blank lines. The command's first word (or a `/skill verb`, or the routine after python3) must be in that skill's
+- **Usage** (optional, `usage`, DOC-6): an API reference. One entry per command, each a single bullet
+  ``- `<syntax>` — <what it does>``: the exact syntax, what it prints on success (a backticked output, or "prints"/
+  "ends with"), and each refusal with its message and exit code, and nothing else but blank lines. The command's first word (or a `/skill verb`, or the routine after python3) must be in that skill's
   `## Command map`, either column. Left out when nothing applies; never empty.
 - **Requirements** (`bullets`, DOC-7): grouped under exactly the `requirement_groups` headings, in order:
   `### Functional` (what it does), then `### Non-functional` (qualities and limits: privacy, safety, reliability,
   performance, size and time limits), with nothing before the first. A group with no requirement holds the single line
   `None`. Up to the repo's limit (`criteria_max` in `.loop/config.json`, default 10) counted over both groups, one
   line each, `- ID: **Unreviewed** text` or `- ID: **Reviewed DATE** text`, and under each at least one sub-bullet:
-  exactly two spaces, `  - `, one sentence (no `[.!?] ` followed by a capital) of at most 30 words. An Unreviewed line
+  exactly two spaces, `  - `, each one checkable behavior. An Unreviewed line
   is a title of at most 20 words; a Reviewed line's wording is locked (DOC-2), and its stamp covers the line only, never
   its sub-bullets. Words are whitespace tokens after `[text](url)` becomes text and backticks are stripped. An orphan
   or deeper-nested sub-bullet is always refused. No script names.
@@ -91,11 +91,7 @@ Review: **Unreviewed**
 
 ## Usage
 
-### `/billing charge`
-
-- Does: charges every card that is due.
-- Prints: one CHARGED line per card.
-- Refuses: nothing.
+- `/billing charge` — Charges every card that is due. Prints one `CHARGED <card>` line per card. Refuses nothing.
 
 ## Requirements
 

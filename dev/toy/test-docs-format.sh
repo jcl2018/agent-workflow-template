@@ -75,11 +75,7 @@ Review: **Unreviewed**
 
 ## Usage
 
-### `/toy median LIST`
-
-- Does: works out the median.
-- Prints: the median of the list.
-- Refuses: an empty list.
+- `/toy median LIST` — Works out the median and prints it (`MEDIAN 2`). Refuses an empty list (exit 1, `REFUSED: no numbers`).
 
 ## Requirements
 
@@ -137,17 +133,16 @@ And a second intro line."; has "^FORMAT README:[0-9]*: How to use: DOC-5 only on
 check | grep -q "^FORMAT README" && bad "good README" || ok "DOC-5 a front door of quoted phrases passes"
 
 echo "== DOC-6 Usage"
-edit $P "- Refuses: an empty list." ""; has "^FORMAT Delivery:[0-9]*: Usage: DOC-6 each entry has a '- Refuses:' bullet" && ok "DOC-6 a Usage entry with no Refuses fails naming the page, Usage and DOC-6" || bad "usage refuses"; reset
-edit $P "- Does: works out the median." "It works out the median."; has "^FORMAT Delivery:[0-9]*: Usage: DOC-6 only ### .syntax. entries" && ok "DOC-6 a prose line in Usage fails" || bad "usage prose"; reset
-edit $P '### `/toy median LIST`' '### `/toy mode LIST`'; has "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map (got '/toy mode LIST')" && ok "DOC-6 a command missing from the Command map fails" || bad "usage map"; reset
-edit $P '### `/toy median LIST`' '### `calc.py median LIST`'; check | grep -q "^FORMAT Delivery:[0-9]*: Usage" && bad "usage routine" || ok "DOC-6 a routine named in the Command map passes"; reset
+edit $P " and prints it (\`MEDIAN 2\`). Refuses an empty list (exit 1, \`REFUSED: no numbers\`)." "."; has "^FORMAT Delivery:[0-9]*: Usage: DOC-6 each entry says what it prints" && ok "DOC-6 a Usage entry that says nothing printed fails naming the page, Usage and DOC-6" || bad "usage prints"; reset
+edit $P "Refuses an empty list" "Refuses an empty list
+It works out the median"; has "^FORMAT Delivery:[0-9]*: Usage: DOC-6 only .- .syntax. — what it does. entries" && ok "DOC-6 a prose line in Usage fails" || bad "usage prose"; reset
+edit $P '- `/toy median LIST`' '- `/toy mode LIST`'; has "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map (got '/toy mode LIST')" && ok "DOC-6 a command missing from the Command map fails" || bad "usage map"; reset
+edit $P '- `/toy median LIST`' '- `calc.py median LIST`'; check | grep -q "^FORMAT Delivery:[0-9]*: Usage" && bad "usage routine" || ok "DOC-6 a routine named in the Command map passes"; reset
 check | grep -q "^FORMAT Delivery:[0-9]*: Usage" && bad "good usage" || ok "DOC-6 Usage of API entries passes"
 
 echo "== DOC-7 Requirements: sub-bullets"
 edit $P "  - The median of the numbers given is printed.
 " ""; has "^FORMAT Delivery:[0-9]*: Requirements: DOC-7 DEL-1 has at least one sub-bullet" && ok "DOC-7 a requirement with no sub-bullet fails naming the page, Requirements and DOC-7" || bad "no sub-bullet"; reset
-edit $P "  - The median of the numbers given is printed." "  - The median is printed. It is exact."; has "^FORMAT Delivery:[0-9]*: Requirements: DOC-7 a sub-bullet is one sentence of at most 30 words (got '7 words, 2 sentences')" && ok "DOC-7 a two-sentence sub-bullet fails" || bad "two sentences"; reset
-edit $P "  - The median of the numbers given is printed." "  - $(printf 'word %.0s' $(seq 31))"; has "^FORMAT Delivery:[0-9]*: Requirements: DOC-7 a sub-bullet is one sentence of at most 30 words (got '31 words" && ok "DOC-7 a sub-bullet over 30 words fails" || bad "long sub-bullet"; reset
 edit $P "The calculator prints a median." "The calculator prints a median $(printf 'and more %.0s' $(seq 9))."; has "^FORMAT Delivery:[0-9]*: Requirements: DOC-7 an Unreviewed requirement line is at most 20 words" && ok "DOC-7 an Unreviewed line over 20 words fails" || bad "long line"; reset
 edit $P "### Functional
 " "### Functional

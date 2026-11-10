@@ -261,32 +261,17 @@ setmax true
 $docs check 2>&1 | grep -q "REFUSED: criteria_max is True" && ok "a true criteria_max refuses" || bad "bool cap"
 setmax unset; good
 mkdir -p skills/toy; printf '## Command map\n\n| Ask | Runs |\n|---|---|\n| `/toy median` | `python3 scripts/calc.py median` |\n' > skills/toy/SKILL.md
-usage_page '### `/toy median 1 2 3`
-
-- Does: prints the median of the numbers given.
-- Prints: the median.
-- Refuses: nothing.'
+usage_page '- `/toy median 1 2 3` — Prints the median of the numbers given (`2`). Refuses nothing.'
 $docs check | grep -q "DOCS OK" && ok "a Usage of API entries passes" || bad "usage passes: $($docs check)"
-usage_page '### `calc.py median LIST`
-
-- Prints: the median.
-- Refuses: an empty list.'
+usage_page '- `calc.py median LIST` — Prints the median (`2`). Refuses an empty list (exit 1).'
 $docs check | grep -q "DOCS OK" && ok "a Usage entry naming a routine from the Command map passes" || bad "usage routine"
-usage_page '### `/toy median 1 2 3`
-
-- Prints: the median.'
-$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 each entry has a '- Refuses:' bullet" && ok "a Usage entry with no Refuses fails" || bad "usage refuses"
-usage_page '- `/toy median 1 2 3` prints the median.'
-$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 only ### .syntax. entries" && ok "a prose Usage line fails" || bad "usage prose"
-usage_page '### `other.py run`
-
-- Prints: x.
-- Refuses: nothing.'
+usage_page '- `/toy median 1 2 3` — Works it out.'
+$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 each entry says what it prints" && ok "a Usage entry that says nothing printed fails" || bad "usage prints"
+usage_page 'It prints the median.'
+$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 only .- .syntax. — what it does. entries" && ok "a prose Usage line fails" || bad "usage prose"
+usage_page '- `other.py run` — Prints `x`.'
 $docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map (got 'other.py run')" && ok "a routine missing from the Command map fails" || bad "usage routine missing"
-usage_page '### `/toy nosuch`
-
-- Prints: x.
-- Refuses: nothing.'
+usage_page '- `/toy nosuch` — Prints `x`.'
 $docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map (got '/toy nosuch')" && ok "a verb missing from the Command map fails" || bad "usage verb"
 usage_page ''
 $docs check | grep -q "^USAGE Delivery: has an empty Usage" && ok "an empty Usage section fails" || bad "empty usage"

@@ -6,39 +6,76 @@ Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 Review: **Unreviewed**
 
 ## Problem
-
-Skill: `workflow-docs`. Keeps wiki pages in `docs/wiki/` (reviewed in pull requests; `wiki_dir` in `.loop/config.json` changes the folder) and finds stale ones. Each feature has a GitHub milestone named for its page, plus a Backlog, made by `skills/workflow-health/scripts/milestone.py`; a goal's pull request goes in its feature's milestone. The docs check accepts any page listed in `.loop/docs.tsv`; the six built-in names keep their prefixes and any other page takes its own.
-
-One command, `/workflow-docs audit` (the `docs.py audit` routine), checks every page against the template sheet (`skills/workflow-docs/references/template.md`), fixes the mechanical (the Tests tables, with defect tests in their own part), lists wording to rewrite (a defect test's link is shown with its issue number) and Reviewed criteria with no test, and the release step runs it on every goal and refreshes every page `docs.py check` calls stale, not only those mapped to the goal's paths. A Usage line is written as what the owner asks the agent and the check fails one that names a `.py` or `.sh` file. Commands, flows and how-tos: `skills/workflow-docs/references/commands.md` (which also keeps, word for word, the PRD page list, review locks, test rules and new-and-old-page steps that `SKILL.md` points to, so it stays under 150 lines) and `skills/workflow-health/references/milestones.md`.
-
-The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a release, for the release tests, and keeps the labels an issue is created or edited with, for the health filing tests. Publishing to the wiki commits with a fallback author when git has none, as on a GitHub runner; `dev/toy/ci-env.sh` runs the toy tests that way.
+- I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
+- Pages drift from the code, and each repo writes them its own way, so reviewing them takes too long.
+- I need my approved requirements to stay exactly as I wrote them, while the loop keeps tests, Usage and milestones up to date for me.
 
 ## Usage
-
-- `/workflow-docs audit` checks every page against the template, fixes the mechanical and lists the wording to rewrite; it exits 1 while any is left. In the Tests, each line carries workflow-regression's one test format after its Given/When/Then words: the row, its kind, what it guards (the requirement, or the issue link with its recorded state), when it runs, its last result and date, and when it was seen failing; a seen-failing value that is not a real date shows as `no`. If that tests.py is missing, broken or too old, the lines keep the older shape and a NOTE says so. The template sheet's example Tests line shows the same shape.
-- `/workflow-docs check` lists missing, stale, unmapped and unwritten pages, counts the repo doesn't match (fenced and indented code, quoted code, comments, limits such as "up to 6" and parts such as "two delivery skills" are skipped, a page's tests count includes its defect tests and a stated defect tests count is checked against them, and a wrapped sentence is read whole; mark a line (the mark covers only that line) `<!-- not-a-count -->` when its number isn't one), and broken criteria; `/workflow-docs criteria PAGE` prints the format and the next free id.
-- `/workflow-docs review PAGE` marks the whole PRD Reviewed, and `/workflow-docs review ID` one requirement, only on the owner's words; `/workflow-docs unreview PAGE` lifts the lock; PAGE is the exact feature page name, such as Delivery (a wrong case or a path is refused); `/workflow-docs render` rewrites the Tests.
-- `/workflow-docs prd NAME "<idea>" --paths A,B` drafts a new feature's PRD, Unreviewed; `/workflow-docs convert` turns old Summary/Criteria pages into PRD pages, keeps a page's first heading when it has no title, and adds a missing Non-goals before Success metrics.
-- `/workflow-docs publish` copies the pages to the GitHub wiki, and `/workflow-docs restore` undoes the last publish.
-- `/workflow-docs milestones` makes each feature's milestone and the Backlog; running it again creates nothing.
+- `/workflow-docs audit [--base REF] [--dry-run]` — Checks every page against the template, fixes the mechanical (the Tests tables) and lists wording to rewrite; on a Reviewed page it lists each requirement with no passing test as `UNTESTED ID: <why>`. Ends with `DOCS OK: N pages`, or `DOCS: N to do` and exit 1 while any is left.
+- `/workflow-docs check [--base REF]` — Prints one line per problem (`STALE page: ...`, `MISSING`, `UNWRITTEN`, `UNMAPPED`, `SECTIONS`, `LOCKED`, `CHANGED` and others), then exits 1; prints `DOCS OK: N pages` when clean. With no pages mapped it prints `NO PAGES: run add first` (exit 1).
+- `/workflow-docs criteria PAGE` — Prints the requirement format (`FORMAT ...`) and the next free ID (`NEXT DEL-7`). Refuses a page with no requirements (exit 1, `REFUSED: PAGE has no criteria. Fix: use a page listed in .loop/docs.tsv, not Home.`).
+- `/workflow-docs review PAGE|ID [--date D]` — Only on the owner's own words. Marks the whole PRD, or one requirement, Reviewed with a date. Prints `REVIEWED PAGE Delivery` or `REVIEWED DEL-1`. Refuses, changing nothing (exit 1): without the owner's words (`REFUSED: only the owner changes a review. Fix: pass --user when their own words said to.`), a future or malformed date, an unknown ID (`REFUSED: no requirement X ... Nothing was changed.`), or a name that isn't a feature page.
+- `/workflow-docs unreview PAGE|ID` — Lifts the owner's review lock. Prints `UNREVIEWED PAGE Delivery` or `UNREVIEWED DEL-1`. Same refusals as review.
+- `/workflow-docs render` — Rewrites each page's Tests from the regression rows. Prints `RENDERED <page>` per page changed, or `TABLES OK`.
+- `/workflow-docs prd NAME "IDEA" --paths A,B` — Drafts a new feature's PRD, Unreviewed, and maps it. Prints `DRAFTED <page>: Review **Unreviewed**, requirement XX-1`, then `NEXT` lines for what is left. Refuses (exit 1) with no --paths, no idea, a bad name, a page that already exists, or no free ID prefix.
+- `/workflow-docs convert` — Turns old Summary/Criteria pages into PRD pages, keeping IDs and Reviewed stamps. A preview prints `DRY RUN: nothing written.` Refuses a page without the needed sections (`REFUSED N page(s). ...`).
+- `/workflow-docs publish [--dry-run] [--adopt PAGE]` — Copies the pages to the GitHub wiki and prints `PUBLISHED <wiki link>`. Never deletes a page. Refuses (exit 1) while the check finds problems other than CHANGED (`REFUSED: fix the pages above first.`), when a page lost its marker, when the wiki has a page this tool didn't write and it isn't named with --adopt (`REFUSED: the wiki already has X, and this tool didn't write it. Nothing was published.`), or when the push fails.
+- `/workflow-docs restore` — Reverts the last publish and prints `RESTORED the wiki: reverted <pages>`. Refuses (exit 1) with no publish on record (`REFUSED: no publish on record.`) or when the wiki changed since (`REFUSED: the wiki changed after the last publish, so nothing was reverted.`).
+- `/workflow-docs milestones` — Makes each feature's milestone and the Backlog. Prints `CREATED <name>`, `EXISTS <name>` or `LINKED <page> to its milestone`, and `WOULD create milestone <name>` when it can't write to GitHub; running it again creates nothing. Refuses when GitHub can't be read or a milestone can't be made (exit 1, `REFUSED: could not read the milestones: ...`).
 
 ## Requirements
 
-- DOC-1: **Reviewed 2026-11-08** PRD template. One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Usage (the commands and how to use each, left out when nothing applies); Requirements (up to the repo's limit, default 6, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes). Nothing else goes on the page. <!-- reviewed 8a8b477d -->
-- DOC-2: **Reviewed 2026-11-08** The PRD is mine. I review the PRD as a whole (Problem, Usage, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that. After it, nothing in Problem, Requirements, Non-goals or Success metrics changes unless I un-review it; Usage updates with the commands, and any change to it shows as changed since my review, under Needs you, until I review it again. <!-- reviewed e3f09268 -->
-- DOC-3: **Reviewed 2026-11-08** Tests follow on their own. Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes; I never write or manage tests. <!-- reviewed ffdc90c7 -->
-- DOC-4: **Unreviewed** One command enforces it: checks all required docs against the template, code and tests, fixes what's mechanical, lists wording to rewrite; the release step runs it on every goal before merging; I can run it myself. It never deletes a page, never overwrites a page it didn't write unless I name it, and the last publish can be undone.
-- DOC-5: **Unreviewed** Required docs: every repo keeps up to date one wiki page per feature, one GitHub milestone per feature linked from its page plus a Backlog milestone, and a release note for every release; each goal's pull request lands in its feature's milestone.
-- DOC-6: **Unreviewed** A feature page's Usage is written as what the owner asks the agent, a skill command or a plain request, and names no script file.
+### Functional
+- DOC-1: **Reviewed 2026-11-08** PRD template <!-- reviewed 077e9a63 -->
+  - One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Usage (the commands and how to use each, left out when nothing applies); Requirements (up to the repo's limit, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes).
+  - Nothing else goes on the page.
+- DOC-2: **Reviewed 2026-11-08** The PRD is mine <!-- reviewed 5a698534 -->
+  - I review the PRD as a whole (Problem, Usage, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that.
+  - After it, nothing in Problem, Requirements, Non-goals or Success metrics changes unless I un-review it.
+  - Usage updates with the commands, and any change to it shows as changed since my review, under Needs you, until I review it again.
+- DOC-3: **Reviewed 2026-11-08** Tests follow on their own <!-- reviewed 672fcb30 -->
+  - Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes.
+  - I never write or manage tests.
+- DOC-4: **Reviewed 2026-11-10** Home is one table <!-- reviewed 04ed0a31 -->
+  - Home holds one table with four columns: Feature, What it does, How to use (a link to the README section), Milestone.
+  - Nothing else is on Home.
+- DOC-5: **Reviewed 2026-11-10** The front door is natural language <!-- reviewed 9ec08d2d -->
+  - Every feature has a README "How to use" table: what I say to the agent, and what happens.
+  - The table holds plain phrases, with no command syntax.
+- DOC-6: **Reviewed 2026-11-10** Usage is an API reference <!-- reviewed 7005fe06 -->
+  - Usage lists only commands, one entry each.
+  - Each entry gives the exact syntax, what it prints on success, and each refusal with its message and exit code.
+- DOC-7: **Reviewed 2026-11-10** Requirements are bullets <!-- reviewed faa2cc53 -->
+  - Requirements are bullets, grouped under two sub-headings: Functional (what it does) and Non-functional (qualities and limits).
+  - IDs never change in the regroup.
+  - An empty group reads "None".
+  - The docs check enforces both headings.
+- DOC-8: **Reviewed 2026-11-10** Problem is the user's problem <!-- reviewed 708f4e8a -->
+  - Problem is written from the user's side ("I ..."): what they can't do today and why it matters.
+  - It names no code internals.
+- DOC-9: **Reviewed 2026-11-10** Tests are a table <!-- reviewed 3dd400b8 -->
+  - Tests is a table: Test, Kind, Guards, Checks, Last result.
+  - Each test name links to its entry on the full Tests page.
+  - Every requirement and every defect has at least one row.
+- DOC-10: **Reviewed 2026-11-10** One Tests page, every issue on a milestone, every release noted <!-- reviewed 9ecf8f8e -->
+  - One full Tests page is generated, listing every test with its latest result.
+  - Every open issue is on its feature's milestone, or on Backlog only when it fits no feature.
+  - Every release has a release note.
+
+### Non-functional
+- DOC-11: **Reviewed 2026-11-10** Safe publish <!-- reviewed 65b85b43 -->
+  - Publishing never deletes a wiki page and never overwrites one it didn't write unless I name it.
+  - The last publish can be undone.
+- DOC-12: **Reviewed 2026-11-10** Fast check <!-- reviewed 66d142af -->
+  - The docs check finishes in under 30 seconds on this repo.
+- DOC-13: **Reviewed 2026-11-10** Same answer every time <!-- reviewed 3a988bfc -->
+  - The docs check is deterministic: the same pages and rows give the same result, with no AI judgment.
 
 ## Non-goals
-
 - It never writes or reviews the owner's PRD for them: only the owner marks a PRD or a requirement Reviewed.
-- It never deletes a wiki page, and never overwrites a wiki page it didn't write unless the owner names it.
 - It keeps docs only in the repo's wiki folder and its GitHub wiki, nowhere else.
 
 ## Success metrics
-
 - The docs check prints DOCS OK on the main branch after every merge.
 - Every requirement shows at least one passing Given/When/Then test, or is marked not enforced.
 - No reviewed PRD or requirement changes on the main branch without the owner un-reviewing it first.

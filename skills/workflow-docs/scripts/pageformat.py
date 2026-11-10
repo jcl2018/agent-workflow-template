@@ -18,8 +18,7 @@ RULE = re.compile(r"^\|(\s*:?-+:?\s*\|)+$")
 PATH = re.compile(r"(?<![\w/])/[\w.-]+/")
 EXT = re.compile(r"\.(py|sh|json|tsv|md)\b")
 ME = re.compile(r"\b(I|[Mm]y|[Mm]e)\b")
-ENTRY = re.compile(r"^### `([^`]+)`$")
-LABEL = re.compile(r"^- (Prints|Refuses|Does|Arguments): \S")
+ENTRY = re.compile(r"^- `([^`]+)` — (\S.*)$")
 
 
 def bad(page, line, section, rule, what, got, fix):
@@ -188,32 +187,23 @@ def known(syntax, maps, own):
 
 
 def usage(page, name, lines, maps, own):
-    """DOC-6: only '### `syntax`' entries, each with '- Prints:' and '- Refuses:' ('- Does:' and '- Arguments:'
-    optional), nothing else but blank lines; each command is in its skill's Command map."""
-    out, entry = [], None
-
-    def close():
-        if entry:
-            for label in ("Prints", "Refuses"):
-                if label not in entry[2]:
-                    out.append(bad(page, entry[0], name, 6, "each entry has a '- %s:' bullet" % label, short(entry[1]),
-                                   "add '- %s: ...' under it" % label))
+    """DOC-6: one '- `syntax` — what it does' bullet per command, nothing else but blank lines. Each names what it
+    prints (a backticked output after the dash, or 'prints'/'ends with'), and its command is in its skill's Command map."""
+    out = []
     for number, line in lines:
         if not line.strip():
             continue
-        head, label = ENTRY.match(line), LABEL.match(line)
-        if head:
-            close()
-            entry = (number, head.group(1), set())
-            if not known(head.group(1), maps, own):
-                out.append(bad(page, number, name, 6, "the command is in its skill's Command map", short(head.group(1)),
-                               "use a command from the skill's ## Command map"))
-        elif label and entry:
-            entry[2].add(label.group(1))
-        else:
-            out.append(bad(page, number, name, 6, "only ### `syntax` entries and Prints/Refuses/Does/Arguments bullets",
-                           short(line), "write it as one of those, or remove it"))
-    close()
+        head = ENTRY.match(line)
+        if not head:
+            out.append(bad(page, number, name, 6, "only '- `syntax` — what it does' entries, one per command", short(line),
+                           "write it as one entry, or remove it"))
+            continue
+        if not known(head.group(1), maps, own):
+            out.append(bad(page, number, name, 6, "the command is in its skill's Command map", short(head.group(1)),
+                           "use a command from the skill's ## Command map"))
+        if "`" not in head.group(2) and not re.search(r"\b(prints|ends with)\b", head.group(2), re.I):
+            out.append(bad(page, number, name, 6, "each entry says what it prints", short(head.group(1)),
+                           "add what it prints on success, in backticks"))
     return out
 
 
@@ -223,7 +213,7 @@ GROUPS = ["Functional", "Non-functional"]
 def bullets(page, name, lines, line_re, strict, groups_want=GROUPS):
     """DOC-7: Requirements is '### Functional' then '### Non-functional', each holding requirement lines with their
     '  - ' sub-bullets, or the single line 'None'. An orphan or deeper sub-bullet is always refused; with strict, the
-    groups are checked, each requirement has a sub-bullet of one sentence of at most 30 words, and an Unreviewed line
+    groups are checked, each requirement has at least one sub-bullet, and an Unreviewed line
     is at most 20 words (a Reviewed one is locked by DOC-2)."""
     out, held, groups = [], [], []
     say = lambda number, what, got, fix: out.append(bad(page, number, name, 7, what, short(got), fix))
@@ -260,10 +250,6 @@ def bullets(page, name, lines, line_re, strict, groups_want=GROUPS):
         if match.group(2) == "Unreviewed" and len(words(match.group(4))) > 20:
             say(number, "an Unreviewed requirement line is at most 20 words", "%d words" % len(words(match.group(4))),
                 "make it a title and move the detail into sub-bullets")
-        for at, text in subs:
-            if len(words(text)) > 30 or sentences(text) > 1:
-                say(at, "a sub-bullet is one sentence of at most 30 words", "%d words, %d sentences" % (len(words(text)), sentences(text)),
-                    "split it into more bullets")
     return out
 
 
