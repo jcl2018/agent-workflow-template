@@ -570,8 +570,8 @@ def run(args, root):
         return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
     return real(args, root)
 file.run = run
-key = 'size:skills/workflow-health/scripts/automation.py:limit'
-issues = {key: dict(number=11, state='OPEN', labels=[{'name': 'health:size'}], milestone={'title': 'Backlog'}, placed='Backlog', body='old')}
+held = 'size:skills/workflow-health/scripts/automation.py:limit'
+issues = {held: dict(number=11, state='OPEN', labels=[{'name': 'health:size'}], milestone={'title': 'Backlog'}, placed='Backlog', body='old')}
 row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/automation.py', rule='limit', detail='big', fix='')
 acts = file.plan([row], issues, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
 bodies = [a[a.index('--body') + 1] for a in seen if a[:3] == ['issue', 'edit', '11'] and '--body' in a]
@@ -592,8 +592,8 @@ def run(args, root):
         return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
     return real(args, root)
 file.run = run
-key = 'size:skills/workflow-health/scripts/automation.py:limit'
-issues = {key: dict(number=12, state='OPEN', labels=[{'name': 'health:size'}], milestone={'title': 'Automation'}, placed='Automation', body='x')}
+held = 'size:skills/workflow-health/scripts/automation.py:limit'
+issues = {held: dict(number=12, state='OPEN', labels=[{'name': 'health:size'}], milestone={'title': 'Automation'}, placed='Automation', body='x')}
 row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/automation.py', rule='limit', detail='big', fix='')
 new = dict(row, subject='skills/workflow-health/scripts/rounds.py')
 acts = file.plan([row, new], issues, ['size'], root='$r')
