@@ -20,34 +20,34 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a
 ## Requirements
 
 ### Functional
-- SET-1: **Reviewed 2026-11-10** One command adopts a repo <!-- reviewed a9e4a8da -->
+- SET-1: **Reviewed 2026-11-10** One command adopts a repo <!-- reviewed 890df4f8 -->
   - One command sets up a new or existing repo: the loop config, PRD feature pages in the docs format, the Home table and README How to use, a milestone per feature plus Backlog, the nightly regression in GitHub Actions, the health groups, and every setting with its default.
   - It shows what it found and would change first, then applies it on a branch through the loop, adapting what is there instead of overwriting.
   - It never blocks: what doesn't fit is listed and filed as issues on the right milestone, and the rest is adopted.
   - Health is the first and last step: before adopting, a health check records where the repo starts; after adopting, the full health check (every group, Adoption included) must come back green or name each gap with its fix, and that verdict is the adoption result, because if health works, the rest works.
-- SET-2: **Reviewed 2026-11-10** Layered settings <!-- reviewed 8434a638 -->
+- SET-2: **Reviewed 2026-11-10** Layered settings <!-- reviewed 4adab145 -->
   - Settings come in three layers: the template's defaults, the repo's settings (committed and shared), and my local settings (private, outside the repo); a later layer overrides an earlier one.
   - Every setting has a default and a one-line explanation; I can see each setting's value and which layer it came from, and change any of them at any time.
-- SET-4: **Reviewed 2026-11-10** Updates flow both ways <!-- reviewed c1b324d2 -->
+- SET-4: **Reviewed 2026-11-10** Updates flow both ways <!-- reviewed 22b1453a -->
   - An adopted repo can check for a newer template version, see what's new and update, keeping its own config, pages, rules and local settings.
   - The operation session flags any governed repo running an older template version.
   - A fix made in an adopted repo that belongs in the template is proposed back to the template as an issue.
-- SET-5: **Reviewed 2026-11-10** A self-describing workspace <!-- reviewed 87315bb3 -->
+- SET-5: **Reviewed 2026-11-10** A self-describing workspace <!-- reviewed 5cce9f58 -->
   - Every adopted repo has one entry point that any new session reads first: how the loop, release, operation and workers, docs, regression, health and settings fit together, and which features exist and how to use them.
   - It is generated from the PRD pages and settings, so it is never stale.
-- SET-6: **Reviewed 2026-11-10** Adoption is proven <!-- reviewed 886e53ab -->
+- SET-6: **Reviewed 2026-11-10** Adoption is proven <!-- reviewed 48224f33 -->
   - Adoption is proven on test repos shaped like real ones (existing checks, CI tests, a blocking .gitignore, a bare agent command, features that aren't folders), and every adoption defect found in a real repo adds a test repo that reproduces it.
-- SET-9: **Reviewed 2026-11-10** Learn from a repo already set up <!-- reviewed b90f6086 -->
+- SET-9: **Reviewed 2026-11-10** Learn from a repo already set up <!-- reviewed c1f9b120 -->
   - Setup can take an adopted repo as its model: it borrows that repo's settings shape, flow, milestone layout and private rules (never private values) and adapts them to the new repo.
-- SET-10: **Reviewed 2026-11-10** The right format for every agent <!-- reviewed 2e008709 -->
+- SET-10: **Reviewed 2026-11-10** The right format for every agent <!-- reviewed 06345b05 -->
   - The same skills are wired into each agent's own entry files (for example CLAUDE.md and AGENTS.md), so Claude Code, Codex and other SKILL.md agents run the same loop the same way.
 
 ### Non-functional
-- SET-3: **Reviewed 2026-11-10** Versioned, portable package <!-- reviewed ae9acc97 -->
+- SET-3: **Reviewed 2026-11-10** Versioned, portable package <!-- reviewed c120e2e9 -->
   - Shipped as a versioned package of separate skills in the Agensi format, every script self-contained and under 20 KB. It works out of the box with a built-in default flow, and is proven to run in both Claude Code and Codex on a clean test repo with no private settings.
-- SET-7: **Reviewed 2026-11-10** Safe and repeatable <!-- reviewed fcc17618 -->
+- SET-7: **Reviewed 2026-11-10** Safe and repeatable <!-- reviewed fb39932b -->
   - A dry run lists everything before any write; running setup twice changes nothing the second time; nothing existing is overwritten.
-- SET-8: **Reviewed 2026-11-10** Private stays private <!-- reviewed 2114990e -->
+- SET-8: **Reviewed 2026-11-10** Private stays private <!-- reviewed 22a16ae7 -->
   - Local settings and private values are never written into the repo, and setup refuses to commit a file that holds one.
 
 ## Non-goals

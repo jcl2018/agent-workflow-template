@@ -7,6 +7,7 @@ unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a rea
 # Test the criteria contract across workflow-docs, workflow-regression and workflow-release. usage: test-criteria.sh [DIR]
 unset LOOP_BATCH
 set -e
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
@@ -174,6 +175,15 @@ $docs check | grep -q "^LOCKED Delivery: DEL-1 was reviewed" && ok "changing a r
 $mon report | grep -A1 "^REVIEWED CRITERIA CHANGED" | grep -q "DEL-1 (Delivery): The calculator prints a mean" && ok "report names a changed reviewed criterion" || bad "report"
 git checkout -q -- docs/wiki/Delivery.md
 $docs check | grep -q "^LOCKED" && bad "restored text still locked" || ok "restoring the wording clears the lock"
+sub 's/  - It holds for every toy run\./  - It holds for most toy runs./'
+$docs check | grep -q "^LOCKED Delivery: DEL-1 was reviewed and its wording or sub-bullets changed" && ok "changing a sub-bullet of a reviewed requirement is LOCKED" || bad "sub-bullet lock: $($docs check)"
+changed=$($mon report | grep -A1 "^REVIEWED CRITERIA CHANGED"); git checkout -q -- docs/wiki/Delivery.md
+grep -q "DEL-1 (Delivery): The calculator prints a median" <<<"$changed" && $mon report | grep -A1 "^REVIEWED CRITERIA CHANGED" | grep -qx "(none)" \
+  && ok "report names a reviewed criterion whose sub-bullet changed, and not once it is restored" || bad "report sub-bullet: $changed"
+$cri unreview DEL-1 --user >/dev/null; sub '/  - It holds for every toy run\./d'; $cri review DEL-1 --user >/dev/null
+python3 -c "import hashlib, re, sys; m = re.search(r'^- DEL-1: \*\*Reviewed [0-9-]*\*\* (.*) <!-- reviewed (\w+) -->$', open(sys.argv[1]).read(), re.M); sys.exit(m.group(2) != hashlib.sha256(m.group(1).encode()).hexdigest()[:8])" docs/wiki/Delivery.md \
+  && ok "a reviewed requirement with no sub-bullets keeps its old seal, the hash of its text alone" || bad "old seal: $(grep DEL-1 docs/wiki/Delivery.md)"
+git checkout -q -- docs/wiki/Delivery.md
 sub 's/^- DEL-1: \*\*Reviewed [0-9-]*\*\*/- DEL-1: **Unreviewed**/'
 sub 's/prints a median\./prints a mean./'
 $docs check | grep -q "^LOCKED" && bad "unreviewed criterion locked" || ok "after Unreviewed the wording may change"

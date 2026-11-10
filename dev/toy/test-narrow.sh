@@ -6,6 +6,7 @@
 # cannot work out reruns every time, a table edit reruns only what reads the table, and check-reads.sh fails a run
 # that read a skill file outside its row's closure. No model is called. usage: test-narrow.sh [DIR]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION GH_TOKEN GITHUB_TOKEN
 here=$(cd "$(dirname "$0")/../.." && pwd)
 export HOME=$(mktemp -d)

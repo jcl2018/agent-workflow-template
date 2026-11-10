@@ -186,6 +186,8 @@ def known(syntax, maps, own):
     if ask:
         return bool(re.search(r"`/%s %s[ `]" % (re.escape(ask.group(1)), re.escape(ask.group(2))), maps.get(ask.group(1), "")))
     tokens = syntax.split()
+    if not tokens:  # backticks holding only spaces name no command
+        return False
     word = tokens[1] if tokens[0] in ("python3", "python", "bash", "sh") and len(tokens) > 1 else tokens[0]
     word = word.rsplit("/", 1)[-1]
     texts = [maps[k] for k in own if k in maps] or list(maps.values())
@@ -268,7 +270,7 @@ def problem(page, name, lines, most, banned):
         if not line.startswith("- "):
             out.append(bad(page, number, name, 8, "each line is a '- ' bullet", short(line), "write it as a bullet"))
         hit = ("`" in line and "`") or (PATH.search(line) or EXT.search(line) or [None])[0] or next(
-            (w for w in banned if re.search(r"\b%s\b" % re.escape(w), line, re.I)), None)
+            (w for w in banned if re.search(r"\b%ss?\b" % re.escape(w), line, re.I)), None)
         if hit:
             out.append(bad(page, number, name, 8, "the problem is said without code internals", short(hit),
                            "say what goes wrong for the person, not how the code works"))

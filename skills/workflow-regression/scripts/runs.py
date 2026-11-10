@@ -1,8 +1,8 @@
 """Read and write .loop/regression-runs.tsv: each row's last run as id, status, date, run.
 
-run is the GitHub Actions run URL when GITHUB_SERVER_URL, GITHUB_REPOSITORY and GITHUB_RUN_ID are all set, else the
-full commit sha the run was recorded on. A 3-column file from before the run column still reads, with run empty, and
-is rewritten with 4 columns on the next write. A row not rerun keeps its cells.
+run is the GitHub Actions run URL when GITHUB_SERVER_URL, GITHUB_REPOSITORY and GITHUB_RUN_ID are all set, else
+empty, so same-day runs on two branches write identical lines and merge cleanly. A 3-column file from before the run
+column still reads, with run empty, and is rewritten with 4 columns on the next write. A row not rerun keeps its cells.
 """
 import os
 
@@ -24,10 +24,10 @@ def read(root):
     return {cells[0]: (cells + [""] * 4)[:4] for cells in rows}
 
 
-def where(sha):
-    """The run cell: the Actions run URL in CI, else the commit sha."""
+def where(sha=None):
+    """The run cell: the Actions run URL in CI, else empty (sha is unused, kept for callers)."""
     parts = [os.environ.get(key, "") for key in ("GITHUB_SERVER_URL", "GITHUB_REPOSITORY", "GITHUB_RUN_ID")]
-    return "%s/%s/actions/runs/%s" % tuple(parts) if all(parts) else sha
+    return "%s/%s/actions/runs/%s" % tuple(parts) if all(parts) else ""
 
 
 def write(root, results, date, sha):

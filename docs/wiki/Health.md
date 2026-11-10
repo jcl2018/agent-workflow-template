@@ -20,7 +20,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
 ## Requirements
 
 ### Functional
-- HLT-2: **Reviewed 2026-11-10** The rules <!-- reviewed e3954c7e -->
+- HLT-2: **Reviewed 2026-11-10** The rules <!-- reviewed 268500bd -->
   - Health checks exactly these groups, each with the angle its tests take:
   - Requirements (my angle: is every promise I approved proven?): every Reviewed requirement has a test seen failing and passing now; done lines have tests; none stays not enforced over 7 days.
   - Traceability (an auditor's angle: can I follow any work end to end?): requirement to test to last run; issue to milestone to feature; pull request to goal to done lines; release to the issues it fixed.
@@ -36,13 +36,13 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
   - Controls (the checker's own angle: can each rule fire?): every rule has a negative control run against a deliberately broken copy.
   - Mine (my private angle): rules I add in a private setting.
   - At most 12 groups plus Mine; adding one means retiring one or raising the cap on purpose.
-- HLT-3: **Reviewed 2026-11-10** Formal report <!-- reviewed 4e3bfe43 -->
+- HLT-3: **Reviewed 2026-11-10** Formal report <!-- reviewed a5cc0046 -->
   - A header listing every group it ran (and any skipped), then each group with every rule marked pass, warn, fail or unread with its fix, then one verdict. A rule that can't read its data is never shown as passing.
-- HLT-4: **Reviewed 2026-11-10** Findings become issues on their feature's milestone <!-- reviewed 75d4950b -->
+- HLT-4: **Reviewed 2026-11-10** Findings become issues on their feature's milestone <!-- reviewed 2ab4d59e -->
   - Each finding, from a rule or from the review, is one GitHub issue on the milestone of the feature it's about (Backlog only when it fits none), tagged with its group or kind.
   - A preview lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups or features to file.
   - A repeat updates its issue, a fix closes it, a return reopens it, and an existing open issue that already covers a finding is linked, not duplicated.
-- HLT-5: **Reviewed 2026-11-10** Repo review <!-- reviewed 4799d6cc -->
+- HLT-5: **Reviewed 2026-11-10** Repo review <!-- reviewed 28f88bd6 -->
   - A reviewer, separate from the rules and never part of the verdict, reads every PRD page, the README, milestones, open issues, tests and code, feature by feature, and reports:
   - Conflicts: two requirements that contradict each other, or a page that breaks a reviewed rule (for example DOC-1's Problem length).
   - Gaps: a feature with no non-functional requirement where one is expected (performance, safety, privacy), an untested requirement, an open issue that fits no requirement, a done line with no test.
@@ -50,18 +50,18 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
   - Weak tests: a test that doesn't really prove what it claims, misses a case or tests the wrong thing.
   - Savings: where skill steps, prompts, scripts, waits and retries could cut time or tokens, ranked by size.
   - It ends with ranked next steps per feature. Wording changes it suggests are only applied by me.
-- HLT-6: **Reviewed 2026-11-10** Health keeps itself honest and the repo lean <!-- reviewed 7b0bba49 -->
+- HLT-6: **Reviewed 2026-11-10** Health keeps itself honest and the repo lean <!-- reviewed 25886c54 -->
   - Every health rule has a negative control that proves it can fire; the check flags a land test run over its time budget and names the slowest rows to move to nightly; and it flags stale worktrees and branches that exist only on this machine.
-- HLT-8: **Reviewed 2026-11-10** Triage <!-- reviewed 4ffbef3c -->
+- HLT-8: **Reviewed 2026-11-10** Triage <!-- reviewed 6ae689c8 -->
   - Open findings are shown per feature with their kind, age and count, so I can see where the repo is weakest.
   - When I close a batch (for example "won't fix the docs findings older than a week"), each is closed with my words as the reason, and the review doesn't refile it unless the evidence changes.
 
 ### Non-functional
-- HLT-1: **Reviewed 2026-11-10** Deterministic and read-only <!-- reviewed 9ca13d91 -->
+- HLT-1: **Reviewed 2026-11-10** Deterministic and read-only <!-- reviewed 3dd44499 -->
   - The rule check gives the same answer twice on an unchanged repo and changes nothing; only file writes, and only GitHub issues.
-- HLT-7: **Reviewed 2026-11-10** Fast check <!-- reviewed 66d142af -->
+- HLT-7: **Reviewed 2026-11-10** Fast check <!-- reviewed 4a290e53 -->
   - The rule check without controls finishes in under 60 seconds.
-- HLT-9: **Reviewed 2026-11-10** Evidence or nothing <!-- reviewed 0d1e5383 -->
+- HLT-9: **Reviewed 2026-11-10** Evidence or nothing <!-- reviewed 43ca94e2 -->
   - Every review finding names its feature and cites its evidence (a page and requirement ID, a file and line, a test row or an issue link); a finding without evidence is dropped, and nothing is filed twice.
 
 ## Non-goals
@@ -84,6 +84,8 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
 | [defect-health](Tests#t-defect-health) | requirement | HLT-2 | Given a closed issue or finding with no defect test, when health runs, then it is flagged. | PASS 2026-11-10 |
 | [cost-time-warn](Tests#t-cost-time-warn) | requirement | HLT-2 | Given a goal over its time budget, when health runs, then it is a Cost warning naming its slowest steps. | PASS 2026-11-10 |
 | [cost-unread-tokens](Tests#t-cost-unread-tokens) | requirement | HLT-2 | Given no tokens recorded, when the Cost rule runs, then it prints UNREAD. | PASS 2026-11-10 |
+| [health-not-enforced-warn](Tests#t-health-not-enforced-warn) | requirement | HLT-2 | Given a Reviewed requirement with no test, when health runs within 7 days of its Reviewed date, then it warns as not enforced. | not run |
+| [health-not-enforced-fail](Tests#t-health-not-enforced-fail) | requirement | HLT-2 | Given a Reviewed requirement with no test for 8 days, when health runs, then it fails. | not run |
 | [unread-not-green](Tests#t-unread-not-green) | requirement | HLT-3 | Given a health rule that cannot be read, when health runs, then it is never shown green. | PASS 2026-11-10 |
 | [report-header](Tests#t-report-header) | requirement | HLT-3 | Given a repo with findings in several groups, when health check runs, then the report header names every group it ran and the one it skipped. | PASS 2026-11-10 |
 | [no-token-would](Tests#t-no-token-would) | requirement | HLT-4 | Given no token and no --live flag, when health previews its findings, then it prints only WOULD lines and writes nothing. | PASS 2026-11-10 |
@@ -113,3 +115,4 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
 | [check-writes-nothing](Tests#t-check-writes-nothing) | requirement | HLT-1 | Given a repo, when the health check runs, then it writes no file and makes no commit. | PASS 2026-11-10 |
 | - | requirement | HLT-7 | no passing test | not enforced |
 | - | requirement | HLT-9 | no passing test | not enforced |
+| [health-unreviewed-warn-issue-118](Tests#t-health-unreviewed-warn-issue-118) | defect | [#118](https://github.com/jcl2018/agent-workflow-template/issues/118) state unknown | Given an Unreviewed requirement with no test, when health runs, then it warns and never fails. | not run |

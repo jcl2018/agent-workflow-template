@@ -45,6 +45,8 @@ jobs:
           fi
       - name: Health check
         if: steps.routine.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}  # the issue-milestone rule reads the open issues
         run: |
           python3 skills/workflow-health/scripts/health.py check --group size,criteria,docs > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
           { echo "## Health"; echo; echo '```'; cat "$RUNNER_TEMP/health-report.txt"; echo '```'; echo

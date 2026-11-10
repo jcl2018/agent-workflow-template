@@ -141,6 +141,7 @@ It works out the median"; has "^FORMAT Delivery:[0-9]*: Usage: DOC-6 only .- .sy
 edit $P '- `/toy median LIST`' '- `/toy mode LIST`'; has "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map (got '/toy mode LIST')" && ok "DOC-6 a command missing from the Command map fails" || bad "usage map"; reset
 edit $P '- `/toy median LIST`' '- `calc.py median LIST`'; check | grep -q "^FORMAT Delivery:[0-9]*: Usage" && bad "usage routine" || ok "DOC-6 a routine named in the Command map passes"; reset
 check | grep -q "^FORMAT Delivery:[0-9]*: Usage" && bad "good usage" || ok "DOC-6 Usage of API entries passes"
+edit $P '- `/toy median LIST`' '- `   `'; out=$(check); grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map" <<<"$out" && ! grep -q Traceback <<<"$out" && ok "DOC-6 a Usage entry whose backticks hold only spaces fails without a crash" || bad "usage blank: $out"; reset
 
 echo "== DOC-7 Requirements: sub-bullets"
 edit $P "  - The median of the numbers given is printed.
@@ -183,7 +184,7 @@ edit $P "  - It prints within a second for a short list." "  - It prints within 
   - A long list takes longer."
 edit $P "  - The median of the numbers given is printed." "  - The median of the numbers given is printed.
   - An even list prints the mean of the middle two."
-out=$(check); grep -q "^- DEL-2: \*\*Reviewed $day\*\*" $P && ! grep -q "^LOCKED\|^CRITERION" <<<"$out" && ok "DOC-7 a requirement under either group is read, and its reviewed stamp holds with sub-bullets added" || bad "stamp: $out"
+out=$(check); grep -q "^- DEL-2: \*\*Reviewed $day\*\*" $P && grep -q "^LOCKED Delivery: DEL-1 was reviewed and its wording or sub-bullets changed" <<<"$out" && grep -q "^LOCKED Delivery: DEL-2 was reviewed" <<<"$out" && ! grep -q "^CRITERION" <<<"$out" && ok "DOC-7 a requirement under either group is read, and adding a sub-bullet to a reviewed one is LOCKED" || bad "stamp: $out"
 $cri unreview DEL-1 DEL-2 --user | grep -c "^UNREVIEWED DEL-" | grep -q 2 && grep -q "^- DEL-2: \*\*Unreviewed\*\* It answers quickly.$" $P && grep -q "^  - A long list takes longer.$" $P && ok "DOC-7 review and unreview work on a page with sub-bullets and keep them" || bad "unreview"; reset
 $cri review Delivery --user >/dev/null; edit $P "  - It prints within a second for a short list." "  - It prints within two seconds for a short list."
 has "^LOCKED Delivery: the reviewed PRD changed in Requirements" && ok "DOC-7 a sub-bullet change on a reviewed PRD is LOCKED by its fingerprint" || bad "prd seal"; reset
@@ -220,6 +221,10 @@ edit $P "without working it out by hand." "without working it out by hand.
 - Three.
 - Four."; has "^FORMAT Delivery:[0-9]*: Problem: DOC-8 1 to 3 bullets (got 4 lines)" && ok "DOC-8 a Problem over problem_lines bullets fails" || bad "problem lines"; reset
 check | grep -q "Problem: DOC-8" && bad "good problem" || ok "DOC-8 a first-person Problem with no code passes"
+python3 -X dev -W always::ResourceWarning "$here/skills/workflow-docs/scripts/docs.py" check 2>&1 | grep -q ResourceWarning && bad "unclosed files" || ok "docs check closes every file it opens"
+edit $P "without working it out by hand." "without working it out by hand, via scripts."; has "^FORMAT Delivery:[0-9]*: Problem: DOC-8 the problem is said without code internals (got 'script')" && ok "DOC-8 a Problem with a banned word in the plural fails" || bad "problem plural"; reset
+edit $P "<!-- workflow-docs -->" "<!-- workflow-docs -->
+<!-- workflow-docs guide -->"; has "^FORMAT Delivery: DOC-1 a guide page holds no requirement or Review line (got 'Review: " && ok "DOC-1 the guide marker on a page with requirement or Review lines is refused naming the page" || bad "guide marker: $(check)"; reset
 
 echo "== DOC-9 Tests table"
 grep -qxF "| [del-1a](Tests#t-del-1a) | requirement | DEL-1 | Given 1 2 3, when the median is asked, then it prints 2. | PASS $day |" $P && head -n 99 $P | grep -qxF "| Test | Kind | Guards | Checks | Last result |" && ok "DOC-9 render writes one Tests table with the test link, kind, guards, checks and last result" || bad "table: $(sed -n '/^## Tests/,$p' $P)"
@@ -236,9 +241,9 @@ rm $T; has "^STALE Tests: no docs/wiki/Tests.md. Fix: /workflow-docs render" && 
 out=$($cri render); grep -qxF "WROTE docs/wiki/Tests.md" <<<"$out" && [ "$($cri render)" = "TABLES OK" ] && [ -z "$(git status --porcelain docs)" ] && ok "DOC-10 render writes each file with WROTE and a second render changes nothing" || bad "idempotent: $out"
 printf '# id\tstatus\tdate\ndel-1a\tPASS\t%s\ndel-2a\tPASS\t%s\n' "$day" "$day" > .loop/regression-runs.tsv; $cri render >/dev/null
 grep -q '^| <a id="t-del-1a"></a>del-1a | .* | local | ' $T && ok "DOC-10 a 3-column runs file shows the run as local" || bad "3 columns: $(grep del-1a $T)"
-printf '# id\tstatus\tdate\trun\ndel-1a\tPASS\t%s\thttps://github.com/toy/repo/actions/runs/42\ndel-2a\tPASS\t%s\t0123456789abcdef0123456789abcdef01234567\n' "$day" "$day" > .loop/regression-runs.tsv
+printf '# id\tstatus\tdate\trun\ndel-1a\tPASS\t%s\thttps://github.com/toy/repo/actions/runs/42\ndel-2a\tPASS\t%s\t\n' "$day" "$day" > .loop/regression-runs.tsv
 git remote set-url origin https://github.com/toy/repo.git; $cri render >/dev/null; git remote set-url origin "$d/origin.git"
-grep -qF "| [run](https://github.com/toy/repo/actions/runs/42) |" $T && grep -qF "| [0123456](https://github.com/toy/repo/commit/0123456789abcdef0123456789abcdef01234567) |" $T && ok "DOC-10 a 4-column runs file links the Actions run or the commit" || bad "4 columns: $(grep 'del-' $T)"; reset
+grep -qF "| [run](https://github.com/toy/repo/actions/runs/42) |" $T && grep -qF "| [CI $day](https://github.com/toy/repo/actions/workflows/regression.yml?query=created%3A$day) |" $T && ok "DOC-10 a 4-column runs file links the Actions run, or for an empty cell that day's CI runs" || bad "4 columns: $(grep 'del-' $T)"; reset
 
 echo "== DOC-1 the cap default is 10 in criteria and setup"
 python3 - "$here" <<'PY' && ok "DOC-1 the cap default of 10 is the same in criteria and setup" || bad "cap default"

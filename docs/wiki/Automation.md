@@ -19,24 +19,24 @@ Review: **Reviewed 2026-11-10** <!-- prd P=2f4bd05a R=759415cb N=d6d10cdd M=dad3
 ## Requirements
 
 ### Functional
-- AUT-1: **Reviewed 2026-11-10** Routines run in GitHub Actions <!-- reviewed b6d1385c -->
+- AUT-1: **Reviewed 2026-11-10** Routines run in GitHub Actions <!-- reviewed ee1fe20e -->
   - Every routine runs as a GitHub Actions workflow on a schedule set in the repo's config, every few hours by default, and I can also start it by hand from the Actions tab; each run shows its report in the run summary.
-- AUT-2: **Reviewed 2026-11-10** Regression every few hours <!-- reviewed 8311faf0 -->
+- AUT-2: **Reviewed 2026-11-10** Regression every few hours <!-- reviewed a9d85df6 -->
   - The full regression suite runs on the schedule (every 4 hours by default) and on every release.
   - A failing test opens or updates one issue labeled defect, on the milestone of the feature it guards, naming the test and the requirement; it closes by itself when the test passes again.
-- AUT-3: **Reviewed 2026-11-10** Health every few hours <!-- reviewed 9e6028de -->
+- AUT-3: **Reviewed 2026-11-10** Health every few hours <!-- reviewed b9abc41d -->
   - The health check runs on the schedule, after regression, with all its rule groups, and the repo review too when an agent key is set as a secret (otherwise skipped, and the report says so).
   - Every finding becomes one issue tagged with its group, on the milestone of the feature it is about (Backlog only when none fits), updated, closed or reopened as things change, never duplicated.
-- AUT-4: **Reviewed 2026-11-10** A digest by email <!-- reviewed 40124745 -->
+- AUT-4: **Reviewed 2026-11-10** A digest by email <!-- reviewed f06a9042 -->
   - After each round, one email goes to the address I set: what ran and its results, then the new, still-open and fixed issues grouped by feature, each with its link and the request to give the agent to fix it.
   - The same digest is also posted as one comment on a pinned Automation digest issue.
 
 ### Non-functional
-- AUT-5: **Reviewed 2026-11-10** Under my control <!-- reviewed f9052b71 -->
+- AUT-5: **Reviewed 2026-11-10** Under my control <!-- reviewed ede1ff25 -->
   - Each routine can be turned off or rescheduled in one setting, and without the secrets it needs a routine runs but writes nothing and says what is missing.
-- AUT-6: **Reviewed 2026-11-10** Private address <!-- reviewed a08e7723 -->
+- AUT-6: **Reviewed 2026-11-10** Private address <!-- reviewed eb8f1a34 -->
   - The email address and the mail key live only in GitHub secrets, never in the repo, logs, issues or the digest comment.
-- AUT-7: **Reviewed 2026-11-10** Bounded cost <!-- reviewed 4f0c2731 -->
+- AUT-7: **Reviewed 2026-11-10** Bounded cost <!-- reviewed bacaa5cb -->
   - A round finishes within 45 minutes, and the run summary shows its Actions minutes, so I can slow the schedule if it costs too much.
 
 ## Non-goals

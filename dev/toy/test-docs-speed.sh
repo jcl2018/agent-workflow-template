@@ -4,6 +4,7 @@
 # Test DOC-12 and DOC-13 on this repo: the docs check finishes in under 30 seconds, and two runs on the same pages and
 # rows print the same result. A slow or varying check fails. LIMIT (seconds) may be lowered to prove the failure.
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 here=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$here" || exit 1
 limit=${LIMIT:-30}

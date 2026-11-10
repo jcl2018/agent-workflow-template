@@ -179,6 +179,8 @@ git switch -q main; git merge -q --no-ff --no-edit other; printf '\n# owner\n' >
 git switch -q side; edit $P "- No charts." "- No charts.
 - No tables."; git commit -qam "Branch page" >/dev/null
 git merge -q --no-edit main >/dev/null 2>&1 || { git checkout -q --ours $P; git add -A; git commit -qm "Merge main" >/dev/null; }
+$docs check --base "$fork" 2>&1 | grep -q "^STALE Delivery: .* Owner code on main" && ok "base-branch commits only in a local main, not on origin, still stale the page (only origin's base is read)" || bad "local base read"
+git push -q origin main
 out=$($docs check --base "$fork" 2>&1)
 ! grep -q "^STALE Delivery" <<<"$out" && ok "after merging the base branch, its commits don't make the branch's page stale (issue 156)" || bad "merged base: $out"
 printf '\n# branch\n' >> calc.py; git commit -qam "Branch code" >/dev/null

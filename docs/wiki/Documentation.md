@@ -26,49 +26,49 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=219479d7 N=81dd3484 M=4599
 ## Requirements
 
 ### Functional
-- DOC-1: **Reviewed 2026-11-08** PRD template <!-- reviewed 077e9a63 -->
+- DOC-1: **Reviewed 2026-11-08** PRD template <!-- reviewed 6cbab853 -->
   - One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Usage (the commands and how to use each, left out when nothing applies); Requirements (up to the repo's limit, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes).
   - Nothing else goes on the page.
-- DOC-2: **Reviewed 2026-11-08** The PRD is mine <!-- reviewed 5a698534 -->
+- DOC-2: **Reviewed 2026-11-08** The PRD is mine <!-- reviewed caa2882e -->
   - I review the PRD as a whole (Problem, Usage, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that.
   - After it, nothing in Problem, Requirements, Non-goals or Success metrics changes unless I un-review it.
   - Usage updates with the commands, and any change to it shows as changed since my review, under Needs you, until I review it again.
-- DOC-3: **Reviewed 2026-11-08** Tests follow on their own <!-- reviewed 672fcb30 -->
+- DOC-3: **Reviewed 2026-11-08** Tests follow on their own <!-- reviewed 2e9e1c3f -->
   - Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes.
   - I never write or manage tests.
-- DOC-4: **Reviewed 2026-11-10** Home is one table <!-- reviewed 04ed0a31 -->
+- DOC-4: **Reviewed 2026-11-10** Home is one table <!-- reviewed 4ee8099b -->
   - Home holds one table with four columns: Feature, What it does, How to use (a link to the README section), Milestone.
   - Nothing else is on Home.
-- DOC-5: **Reviewed 2026-11-10** The front door is natural language <!-- reviewed 9ec08d2d -->
+- DOC-5: **Reviewed 2026-11-10** The front door is natural language <!-- reviewed 885694d1 -->
   - Every feature has a README "How to use" table: what I say to the agent, and what happens.
   - The table holds plain phrases, with no command syntax.
-- DOC-6: **Reviewed 2026-11-10** Usage is an API reference <!-- reviewed 7005fe06 -->
+- DOC-6: **Reviewed 2026-11-10** Usage is an API reference <!-- reviewed 0d3ab52b -->
   - Usage lists only commands, one entry each.
   - Each entry gives the exact syntax, what it prints on success, and each refusal with its message and exit code.
-- DOC-7: **Reviewed 2026-11-10** Requirements are bullets <!-- reviewed faa2cc53 -->
+- DOC-7: **Reviewed 2026-11-10** Requirements are bullets <!-- reviewed 7de6dae3 -->
   - Requirements are bullets, grouped under two sub-headings: Functional (what it does) and Non-functional (qualities and limits).
   - IDs never change in the regroup.
   - An empty group reads "None".
   - The docs check enforces both headings.
-- DOC-8: **Reviewed 2026-11-10** Problem is the user's problem <!-- reviewed 708f4e8a -->
+- DOC-8: **Reviewed 2026-11-10** Problem is the user's problem <!-- reviewed b623f09d -->
   - Problem is written from the user's side ("I ..."): what they can't do today and why it matters.
   - It names no code internals.
-- DOC-9: **Reviewed 2026-11-10** Tests are a table <!-- reviewed 3dd400b8 -->
+- DOC-9: **Reviewed 2026-11-10** Tests are a table <!-- reviewed df9c63f7 -->
   - Tests is a table: Test, Kind, Guards, Checks, Last result.
   - Each test name links to its entry on the full Tests page.
   - Every requirement and every defect has at least one row.
-- DOC-10: **Reviewed 2026-11-10** One Tests page, every issue on a milestone, every release noted <!-- reviewed 9ecf8f8e -->
+- DOC-10: **Reviewed 2026-11-10** One Tests page, every issue on a milestone, every release noted <!-- reviewed 4ea5bba8 -->
   - One full Tests page is generated, listing every test with its latest result.
   - Every open issue is on its feature's milestone, or on Backlog only when it fits no feature.
   - Every release has a release note.
 
 ### Non-functional
-- DOC-11: **Reviewed 2026-11-10** Safe publish <!-- reviewed 65b85b43 -->
+- DOC-11: **Reviewed 2026-11-10** Safe publish <!-- reviewed f33a3310 -->
   - Publishing never deletes a wiki page and never overwrites one it didn't write unless I name it.
   - The last publish can be undone.
-- DOC-12: **Reviewed 2026-11-10** Fast check <!-- reviewed 66d142af -->
+- DOC-12: **Reviewed 2026-11-10** Fast check <!-- reviewed f069101b -->
   - The docs check finishes in under 30 seconds on this repo.
-- DOC-13: **Reviewed 2026-11-10** Same answer every time <!-- reviewed 3a988bfc -->
+- DOC-13: **Reviewed 2026-11-10** Same answer every time <!-- reviewed 0f4743ac -->
   - The docs check is deterministic: the same pages and rows give the same result, with no AI judgment.
 
 ## Non-goals

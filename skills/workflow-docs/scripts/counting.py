@@ -73,13 +73,18 @@ def prose(text):
     return lines if fence is None else None
 
 
+def text_of(path):
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        return handle.read()
+
+
 def counts(root, folder, rows, on):
     """Numbers the docs state that the repo can check, as (COUNT, file, detail) rows. `folder` is the wiki folder,
     `rows` the page map (.loop/docs.tsv) and `on` the criteria setting."""
     real_root = os.path.realpath(root)
     skills = len(glob.glob(os.path.join(root, "skills", "*", "SKILL.md")))
     pages = [p for p in rows if p != "Home" and p not in pageformat.GENERATED and os.path.exists(os.path.join(root, folder, p + ".md"))
-             and not pageformat.is_guide(open(os.path.join(root, folder, p + ".md"), encoding="utf-8", errors="replace").read())]
+             and not pageformat.is_guide(text_of(os.path.join(root, folder, p + ".md")))]
     linked = criteria.test_rows(root)[0] if on else {}
     defects = criteria.defect_rows(root) if on else {}
     names = ["README.md"]

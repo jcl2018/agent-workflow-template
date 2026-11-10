@@ -1,5 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-health/scripts/enforce.py skills/workflow-health/scripts/health.py
+# reads: skills/workflow-health/scripts/
 # Test the not-enforced grace (HLT-2, REG-1, DOC-1; issue 118): a requirement with no regression row warns when it is
 # Unreviewed or Reviewed at most 7 days ago, and fails once it has stayed not enforced longer.
 set -u

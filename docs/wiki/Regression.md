@@ -23,34 +23,34 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf
 ## Requirements
 
 ### Functional
-- REG-1: **Reviewed 2026-11-10** Three kinds of tests <!-- reviewed d265cd72 -->
+- REG-1: **Reviewed 2026-11-10** Three kinds of tests <!-- reviewed a26a0b86 -->
   - Requirement tests: one or more for every Reviewed requirement, functional and non-functional alike.
   - Workflow tests: end-to-end runs of a whole flow on a toy repo (for example a goal from freeze to release), proving the steps work together.
   - Defect tests: one for every issue, finding or bug that gets fixed, proving it stays fixed.
   - A requirement with no passing test shows as not enforced; a fix isn't finished until its defect test exists and passes.
-- REG-2: **Reviewed 2026-11-10** Test format <!-- reviewed 6b6fd406 -->
+- REG-2: **Reviewed 2026-11-10** Test format <!-- reviewed cb11400e -->
   - Every test is listed in one fixed format, grouped by feature, wherever tests are shown (the wiki, the GitHub run summary, the health report): its kind, what it guards (the requirement, the workflow, or the issue with its state), what it checks in one plain line, when it runs, its last result and date, and whether it has been seen failing once.
-- REG-3: **Reviewed 2026-11-10** One command, three places <!-- reviewed b7c7b59e -->
+- REG-3: **Reviewed 2026-11-10** One command, three places <!-- reviewed 6fb19e03 -->
   - One command runs the suite the same way for me, the loop and GitHub Actions.
-- REG-4: **Reviewed 2026-11-10** When tests run <!-- reviewed f5d2eeed -->
+- REG-4: **Reviewed 2026-11-10** When tests run <!-- reviewed b1a6fd25 -->
   - In the loop, each goal runs only the rows affected by its changes plus its own new rows, at qa; ship and release reuse that run when no code changed since.
   - Before a pull request merges, the affected rows run again on the merged result.
   - The full suite (every requirement, workflow and defect test) runs in GitHub Actions on the Automation schedule (every few hours by default) and on every release, never on every goal.
   - I can run the full suite or any part of it at any time.
-- REG-5: **Reviewed 2026-11-10** Failures go to GitHub <!-- reviewed ed6bdd34 -->
+- REG-5: **Reviewed 2026-11-10** Failures go to GitHub <!-- reviewed b2d968db -->
   - One labeled issue per failing test, updated while it fails and closed when it passes; known failures don't block; with no token it only previews.
-- REG-6: **Reviewed 2026-11-10** Every fixed issue leaves a test <!-- reviewed 76b072a5 -->
+- REG-6: **Reviewed 2026-11-10** Every fixed issue leaves a test <!-- reviewed 9f5b8594 -->
   - A goal that fixes an issue adds that issue's defect test, seen failing on the old code and passing on the fix, before the issue closes.
   - Each release note lists the issues it fixed, each with its defect test, so every version carries the regressions for what it fixed.
   - A reopened issue's test is marked failing until it passes again.
 
 ### Non-functional
-- REG-7: **Reviewed 2026-11-10** Fast in the loop <!-- reviewed 9c4df1af -->
+- REG-7: **Reviewed 2026-11-10** Fast in the loop <!-- reviewed 0643c29e -->
   - A goal's affected-rows run finishes in under 10 minutes; the full suite finishes in under 30 minutes; health flags either when it doesn't.
-- REG-8: **Reviewed 2026-11-10** Controllable <!-- reviewed fd9da141 -->
+- REG-8: **Reviewed 2026-11-10** Controllable <!-- reviewed e39ec809 -->
   - Which levels run where, the GitHub schedule, the time limits and how many test lanes run at once are settings.
   - Lanes running side by side never share files or ports or time each other out, and a lane over its limit says so.
-- REG-9: **Reviewed 2026-11-10** Honest results <!-- reviewed 8f8d8133 -->
+- REG-9: **Reviewed 2026-11-10** Honest results <!-- reviewed 194b357d -->
   - Every test has been seen failing once, or shows as unproven.
   - A test that fails then passes on the same commit is marked flaky, never silently retried.
 

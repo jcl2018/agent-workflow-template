@@ -27,51 +27,51 @@ Review: **Reviewed 2026-11-10** <!-- prd P=41bfc9ae R=ede201f5 N=839ce3ce M=0fde
 ## Requirements
 
 ### Functional
-- MON-1: **Reviewed 2026-11-08** Roles, start and planning. One command starts the operation session and drives the whole process the same way every time. The operation session plans queued goals as a dependency graph and gives every goal whose dependencies are met its own worker session in the app, renamed worker · <goal>, running in parallel; it never builds. A goal waits only on goals it truly depends on; sharing files is not a reason to wait. When a worker session finishes, the operation session gives it the next ready goal, renaming it again. <!-- reviewed b4d6beac -->
+- MON-1: **Reviewed 2026-11-08** Roles, start and planning. One command starts the operation session and drives the whole process the same way every time. The operation session plans queued goals as a dependency graph and gives every goal whose dependencies are met its own worker session in the app, renamed worker · <goal>, running in parallel; it never builds. A goal waits only on goals it truly depends on; sharing files is not a reason to wait. When a worker session finishes, the operation session gives it the next ready goal, renaming it again. <!-- reviewed b9787a35 -->
   - One command starts the operation session and drives the whole process the same way every time.
   - The operation session plans queued goals as a dependency graph and gives every goal whose dependencies are met its own worker session in the app, renamed worker · <goal>, running in parallel; it never builds.
   - A goal waits only on goals it truly depends on; sharing files is not a reason to wait.
   - When a worker session finishes, the operation session gives it the next ready goal, renaming it again.
-- MON-2: **Reviewed 2026-11-08** Live communication. Operation and workers talk through session messages: a worker reports each change of step or status as it happens, and its result when it ends (merged, failed or waiting, with the pull request); the operation session sends a worker its answer or a follow-up. Background processes are used only when the app can't start or reach a session, and the board says so. <!-- reviewed 3c99a1c2 -->
+- MON-2: **Reviewed 2026-11-08** Live communication. Operation and workers talk through session messages: a worker reports each change of step or status as it happens, and its result when it ends (merged, failed or waiting, with the pull request); the operation session sends a worker its answer or a follow-up. Background processes are used only when the app can't start or reach a session, and the board says so. <!-- reviewed 53b98768 -->
   - Operation and workers talk through session messages: a worker reports each change of step or status as it happens, and its result when it ends (merged, failed or waiting, with the pull request); the operation session sends a worker its answer or a follow-up.
   - Background processes are used only when the app can't start or reach a session, and the board says so.
-- MON-3: **Reviewed 2026-11-08** Board view: the board shows everything in one fixed template: what needs me, each running goal's progress bar and current step, what's next, roadmap progress, done lines met. <!-- reviewed b45361d0 -->
+- MON-3: **Reviewed 2026-11-08** Board view: the board shows everything in one fixed template: what needs me, each running goal's progress bar and current step, what's next, roadmap progress, done lines met. <!-- reviewed bf84c371 -->
   - the board shows everything in one fixed template: what needs me, each running goal's progress bar and current step, what's next, roadmap progress, done lines met.
-- MON-4: **Reviewed 2026-11-10** Live board <!-- reviewed d83caacf -->
+- MON-4: **Reviewed 2026-11-10** Live board <!-- reviewed 8ab44e30 -->
   - `report`, `dashboard` and "Where do things stand?" print the live board in one fixed format: Issues first (only what is open now, each with its fix in plain words); then Running goals with progress bar, time left, step flow with the current step marked and the next step; then Queued goals; then dependency arrows; then one finish time.
   - Merged work, history and totals are left out; a stuck worker stays at the top of Issues until I answer.
   - Check-ins don't print this board; they follow MON-5.
-- MON-5: **Reviewed 2026-11-09** Cadence and reply format. The operation session updates the board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new, and prints the full board every time. Every check-in reply has the same layout: one headline line; All sessions, one table of every session across my repos with what it is for, its status, progress, time left, tokens left and latest report; Dependencies, a drawn graph marking what is running, holding, queued or stuck; Needs you, each question numbered with its options and a recommended answer, or Nothing needs you; and last, Coming up, the next expected events and what I will need to do. A hook that setup installs blocks a reply that doesn't follow this layout, saying what is missing; it never checks worker sessions or other repos, and one setting turns it off. <!-- reviewed ba57bf9b -->
+- MON-5: **Reviewed 2026-11-09** Cadence and reply format. The operation session updates the board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new, and prints the full board every time. Every check-in reply has the same layout: one headline line; All sessions, one table of every session across my repos with what it is for, its status, progress, time left, tokens left and latest report; Dependencies, a drawn graph marking what is running, holding, queued or stuck; Needs you, each question numbered with its options and a recommended answer, or Nothing needs you; and last, Coming up, the next expected events and what I will need to do. A hook that setup installs blocks a reply that doesn't follow this layout, saying what is missing; it never checks worker sessions or other repos, and one setting turns it off. <!-- reviewed 04ef65d5 -->
   - The operation session updates the board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new, and prints the full board every time.
   - Every check-in reply has the same layout: one headline line;
   - All sessions, one table of every session across my repos with what it is for, its status, progress, time left, tokens left and latest report;
   - Dependencies, a drawn graph marking what is running, holding, queued or stuck;
   - Needs you, each question numbered with its options and a recommended answer, or Nothing needs you; and last, Coming up, the next expected events and what I will need to do.
   - A hook that setup installs blocks a reply that doesn't follow this layout, saying what is missing; it never checks worker sessions or other repos, and one setting turns it off.
-- MON-6: **Reviewed 2026-11-10** Clean up after every goal <!-- reviewed cae219fe -->
+- MON-6: **Reviewed 2026-11-10** Clean up after every goal <!-- reviewed deb6802e -->
   - When a goal merges, its worker session is given the next ready goal or archived, and its worktree and branch are removed.
   - A merged report always frees the session (issue 175).
-- MON-10: **Reviewed 2026-11-10** Re-plan at every check-in <!-- reviewed 0b2f0c0b -->
+- MON-10: **Reviewed 2026-11-10** Re-plan at every check-in <!-- reviewed f6c13026 -->
   - At each check-in the operation session re-reads every goal's progress and re-plans the graph to finish soonest.
   - It starts every goal whose dependencies are met in a free or freed session, up to the slot limit, so no ready goal sits idle.
   - It merges goals that do the same thing or touch the same files for the same PRD, splits a goal that blocks others when part of it is ready, and reorders the merge line so the critical path goes first.
   - It never stops or restarts a running goal to re-plan, and every change is logged with its reason and shown in the check-in.
-- MON-11: **Reviewed 2026-11-10** Full auto mode <!-- reviewed 39cf285a -->
+- MON-11: **Reviewed 2026-11-10** Full auto mode <!-- reviewed eff5c29d -->
   - A setting, on by default. When it is on, the operation session answers each worker decision with that decision's recommended option, logs the question, the answer and why, and lists them in the next check-in.
   - It never auto-answers a decision that is destructive (deletes data, a page, a repo or a deployment), that contradicts something I said, that spends money, or that changes a security or access setting; those wait under Needs you.
   - Turning it off takes effect at the next decision.
 
-- MON-12: **Reviewed 2026-11-10** Session pool <!-- reviewed cc697d58 -->
+- MON-12: **Reviewed 2026-11-10** Session pool <!-- reviewed 7a470c28 -->
   - The operation session keeps a pool of idle worker sessions, sized by a setting (default 20), and hands each ready goal one from the pool instead of starting a new session.
   - Because sessions can only be created from the desktop app, whenever the pool runs low the operation session asks me, at the desktop, to fill it, and it creates every missing session in one step on my word.
   - A finished goal's session goes back to the pool (MON-6), the board shows the pool as free, busy and total, and a goal that finds the pool empty waits under Needs you with the one action that fixes it.
 
 ### Non-functional
-- MON-7: **Reviewed 2026-11-10** Govern only <!-- reviewed dcb260f6 -->
+- MON-7: **Reviewed 2026-11-10** Govern only <!-- reviewed da6f1852 -->
   - A check-in never edits code, commits or pushes from the operation session; only merges and the post-merge steps change the repo.
-- MON-8: **Reviewed 2026-11-10** No silent worker <!-- reviewed 5c691837 -->
+- MON-8: **Reviewed 2026-11-10** No silent worker <!-- reviewed 68d94ecf -->
   - A worker with no report for 30 minutes shows under Needs you.
-- MON-9: **Reviewed 2026-11-10** Fast board <!-- reviewed e88e7580 -->
+- MON-9: **Reviewed 2026-11-10** Fast board <!-- reviewed 29aa63ec -->
   - The board builds in under 10 seconds.
 
 ## Non-goals

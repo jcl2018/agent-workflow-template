@@ -181,11 +181,15 @@ def tests_table(ids, linked, defects, rows, fields, ran):
     return pageformat.table(TESTS, shown) if shown else []
 
 
-def run_cell(value, repo):
+def run_cell(value, repo, day=""):
+    """A URL is its Actions run; an empty cell links that day's CI runs of the regression workflow; an old sha cell
+    links its commit; else local."""
     if re.match(r"^https?://\S+$", value):
         return "[run](%s)" % value
-    if re.match(r"^[0-9a-f]{7,40}$", value):
+    if re.match(r"^[0-9a-f]{7,40}$", value):  # an old cell, from before empty run cells
         return "[%s](https://github.com/%s/commit/%s)" % (value[:7], repo, value) if repo else value[:7]
+    if not value and repo and re.match(r"^\d{4}-\d\d-\d\d$", day):
+        return "[CI %s](https://github.com/%s/actions/workflows/regression.yml?query=created%%3A%s)" % (day, repo, day)
     return "local"
 
 
@@ -199,7 +203,8 @@ def full_page(groups, runs, repo):
             result = re.match(r"^(\S+) (\d{4}-\d\d-\d\d)$", x[5])
             guard = x[2].split(": ", 1)[0] if x[1] == "requirement" else x[2]  # the ID; its words are on its page
             rows.append(['<a id="t-%s"></a>%s' % (test_slug(x[0]), x[0]), x[1], guard, result.group(1) if result else x[5],
-                         result.group(2) if result else "-", run_cell(runs.get(x[0], ""), repo), x[6]])
+                         result.group(2) if result else "-", run_cell(runs.get(x[0], ""), repo,
+                         result.group(2) if result else ""), x[6]])
         out += ["## " + feature, ""] + pageformat.table(FULL, rows) + [""]
     return "\n".join(out if groups else out + ["No tests yet.", ""])
 

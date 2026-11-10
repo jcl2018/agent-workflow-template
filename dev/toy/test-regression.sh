@@ -4,6 +4,7 @@
 # reads: skills/workflow-regression/scripts/regression.py skills/workflow-setup/scripts/setup.py
 # Test workflow-regression on a throwaway toy repo with a fake gh. usage: test-regression.sh [DIR]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
@@ -125,6 +126,12 @@ python3 -c 'import yaml; yaml.safe_load(open(".github/workflows/regression.yml")
 touch BROKEN; git add -A; git commit -qm "Break it" >/dev/null
 python3 ci-block.py; rc=$?
 [ $rc = 1 ] && [ "$(calls '^issue create')" = 1 ] && ok "CI block fails and opens an issue" || bad "CI block"
+# Value: protects=a regression issue goes on Backlog when the repo has that milestone, and carries no flag when it has
+#   none; fails_when=the CI block drops the --milestone flag or always adds it; why_new=no test had a Backlog milestone
+nomile=$(grep -c -- '--milestone' "$FAKE_GH_DIR/calls.log"); : > "$FAKE_GH_DIR/calls.log"; echo '[{"number": 1, "title": "Backlog", "state": "open"}]' > "$FAKE_GH_DIR/milestones.json"
+python3 ci-block.py >/dev/null 2>&1; [ "$nomile" = 0 ] && [ "$(calls '^issue create')" = 1 ] && grep -q -- "--milestone Backlog$" "$FAKE_GH_DIR/calls.log" \
+  && ok "the CI block opens a regression issue on Backlog when it exists, with no milestone flag otherwise" || bad "backlog milestone: $nomile"
+rm -f "$FAKE_GH_DIR/milestones.json" "$FAKE_GH_DIR/issues.json"
 nap="31.$((RANDOM % 9000 + 1000))"  # a sleep no other run on this machine uses
 printf 'hang\tland\techo started-hang; sleep %s & sleep %s\t-\t2026-01-01\tA row that hangs.\tcriterion\t\n' "$nap" "$nap" >> .loop/regression.tsv
 printf 'own-124\tland\techo own-exit; exit 124\t-\t2026-01-01\tA row that exits 124 itself.\tcriterion\t\n' >> .loop/regression.tsv

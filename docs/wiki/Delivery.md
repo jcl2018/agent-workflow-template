@@ -20,35 +20,35 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7884b325 R=ed81bf41 N=9f4c33da M=f8cd
 ## Requirements
 
 ### Functional
-- DEL-1: **Reviewed 2026-11-08** The loop <!-- reviewed 85f5dae6 -->
+- DEL-1: **Reviewed 2026-11-08** The loop <!-- reviewed b5b65da9 -->
   - I give one sentence and its done lines; a worker runs it unattended.
   - Steps, in order: freeze, idea, plan, build, review, qa, ship, pull request, release.
   - Review is the only gate.
   - Each step maps to a skill I choose, in a private setting outside the repo.
   - It won't start without the flow set up, and stops with a reason after 3 failed tries.
-- DEL-3: **Reviewed 2026-11-08** Decisions <!-- reviewed cfa6a08a -->
+- DEL-3: **Reviewed 2026-11-08** Decisions <!-- reviewed 48b4ed7f -->
   - A decision for me waits under Needs you, or, where the repo allows, is auto-approved and logged.
-- DEL-4: **Reviewed 2026-11-08** The pull request <!-- reviewed cb834f6e -->
+- DEL-4: **Reviewed 2026-11-08** The pull request <!-- reviewed 7cc0d031 -->
   - Carries the done lines, the plan, how to verify by hand, and each step's result.
-- DEL-5: **Reviewed 2026-11-10** Release <!-- reviewed e020e3c6 -->
+- DEL-5: **Reviewed 2026-11-10** Release <!-- reviewed 17f0ff96 -->
   - Every goal ends with release, fully automatic, with no draft step.
   - It bumps the version, writes the release note, and refuses to merge while a page is stale.
   - The bump is patch by default; minor or major only when the goal says so.
   - It runs my routines, merges where allowed and publishes the wiki.
   - Any failure shows under Needs you.
-- DEL-6: **Reviewed 2026-11-10** Review depth fits the goal <!-- reviewed b0b5f7cf -->
+- DEL-6: **Reviewed 2026-11-10** Review depth fits the goal <!-- reviewed e7ac89a1 -->
   - Small goals (up to 3 done lines, one skill) run a condensed plan and review.
   - Larger goals run full depth; I can override it per goal.
   - Tests never shrink: every goal runs its full test lane.
 
 ### Non-functional
-- DEL-2: **Reviewed 2026-11-08** Frozen done lines <!-- reviewed d4af4532 -->
+- DEL-2: **Reviewed 2026-11-08** Frozen done lines <!-- reviewed c810cac8 -->
   - Done lines can't change once the goal starts; a change means a new goal.
-- DEL-7: **Reviewed 2026-11-10** Resumable <!-- reviewed 1d58f68b -->
+- DEL-7: **Reviewed 2026-11-10** Resumable <!-- reviewed 0f9f447b -->
   - A stopped or crashed goal resumes from its last recorded step, never from the start.
-- DEL-8: **Reviewed 2026-11-10** Budgeted <!-- reviewed 9d4cf4ea -->
+- DEL-8: **Reviewed 2026-11-10** Budgeted <!-- reviewed a3d6e1fb -->
   - Each goal has a time and token budget, and going over shows on the board.
-- DEL-9: **Reviewed 2026-11-10** Nothing private ships <!-- reviewed d44ee28a -->
+- DEL-9: **Reviewed 2026-11-10** Nothing private ships <!-- reviewed ad7ed0f0 -->
   - Every commit and pull request passes the private-name scan before it is pushed.
 
 ## Non-goals

@@ -217,7 +217,7 @@ def from_base(root, base):
     if not base:
         return []
     name = config(root).get("base") or "main"
-    tips = [t for t in ("origin/" + name, name) if git("rev-parse", "--verify", "--quiet", t, cwd=root, check=False)
+    tips = [t for t in ("origin/" + name,) if git("rev-parse", "--verify", "--quiet", t, cwd=root, check=False)
             and run(["git", "merge-base", "--is-ancestor", "HEAD", t], cwd=root).returncode]  # not on the base branch itself
     out = []
     for line in git("rev-list", "--merges", "--first-parent", "--parents", "HEAD", "^" + base, cwd=root, check=False).splitlines():
@@ -233,6 +233,13 @@ def guide(root, page):
             return pageformat.is_guide(handle.read())
     except OSError:
         return False
+
+
+def guarded(root, page):
+    """The first requirement or Review line on a page, shortened; '' when it has none."""
+    with open(os.path.join(root, wiki_dir(root), page + ".md")) as handle:
+        hit = next((x for x in handle.read().splitlines() if criteria.LINE.match(x) or x.startswith("Review: ")), "")
+    return pageformat.short(hit) if hit else ""
 
 
 def feature_pages(root):
@@ -255,6 +262,10 @@ def contract(root):
     for page in sorted(read_map(root)):
         if not PAGE.match(page):
             found.append(("PAGE", page, "not a page name. Fix: letters, digits and hyphens, or remove its .loop/docs.tsv row"))
+        elif guide(root, page) and guarded(root, page):
+            found.append(("FORMAT", page, "DOC-1 a guide page holds no requirement or Review line (got %s). Fix: remove "
+                          "the line %s and use the feature page format, or move them to a feature page"
+                          % (guarded(root, page), pageformat.GUIDE)))
     return found + criteria.contract(root, names, {}) + render.front(root, names)
 
 

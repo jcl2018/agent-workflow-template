@@ -16,8 +16,8 @@ usage: criteria.py <command> [options]
 A feature page is a short PRD (references/template.md): a Review line, then Problem, an optional Usage, Requirements,
 Non-goals, Success metrics and Tests. Requirements hold up to criteria_max lines (default CRITERIA_MAX_DEFAULT,
 .loop/config.json). A requirement is '- ID: **Unreviewed** text' or '- ID: **Reviewed DATE** text', with '  - '
-sub-bullets under it that are not requirements; a Reviewed line ends with <!-- reviewed HASH -->, a hash of its own text
-(never its sub-bullets), and docs.py check fails when the text no longer matches. An argument shaped like an ID (two to
+sub-bullets under it that are not requirements; a Reviewed line ends with <!-- reviewed HASH -->, seal_of its text and
+sub-bullets, and docs.py check fails when either changes. An argument shaped like an ID (two to
 five capitals, a dash, a number) is a requirement; any other is a page, whose PRD review prd.py writes. A regression row
 whose goal column is '-' proves no requirement yet and is left out. render writes each page's Tests table and the full
 Tests page (render.py), each to a temp file renamed into place, printing WROTE per file.
@@ -91,6 +91,21 @@ def git(*args, check=True):
 
 def seal(text):
     return hashlib.sha256(text.encode()).hexdigest()[:8]
+
+
+def subs(lines, number):
+    """The indented lines (sub-bullets) under line `number`."""
+    out = []
+    for line in lines[number + 1:]:
+        if not line.strip() or not line[:1].isspace():
+            break
+        out.append(line.rstrip())
+    return out
+
+
+def seal_of(text, below=()):
+    """A requirement's seal: of its text and sub-bullet lines joined by newlines (no sub-bullets: the old seal)."""
+    return seal("\n".join([text] + list(below)))
 
 
 def folder_of(root):
@@ -169,7 +184,12 @@ def cmd_render(args):
 def criteria_of(lines):
     """(line, LINE match or None) per requirement line: indented lines (sub-bullets) belong to the line above, and the
     group headings (### Functional, ### Non-functional) and a group's 'None' are not requirements."""
-    return [(line, LINE.match(line)) for line in lines
+    return [(line, match) for line, match, _ in blocks(lines)]
+
+
+def blocks(lines):
+    """criteria_of, with each line's sub-bullets."""
+    return [(line, LINE.match(line), subs(lines, number)) for number, line in enumerate(lines)
             if line.strip() and not line[:1].isspace() and not line.startswith("### ") and line.strip() != "None"]
 
 
@@ -205,7 +225,7 @@ def contract(root, names, seen):
         if rule["usage"] in body:
             if not [x for x in body[rule["usage"]] if x.strip()]:
                 found.append(("USAGE", page, "has an empty %s section. Fix: list its commands, or remove the section" % rule["usage"]))
-        for line, match in criteria_of(body[head[1]]):
+        for line, match, below in blocks(body[head[1]]):
             if not match:
                 found.append(("CRITERION", page, "not one line '- ID: **Unreviewed** text' under %s: %s" % (head[1], line.strip()[:60])))
                 continue
@@ -218,8 +238,8 @@ def contract(root, names, seen):
             named = SCRIPT_FILE.findall(text)
             if named:
                 found.append(("SCRIPT", page, "%s names %s. Fix: say what it does, not the file" % (key, ", ".join(named))))
-            if mark != "Unreviewed" and mine != seal(text):
-                found.append(("LOCKED", page, "%s was reviewed and its wording changed. Fix: restore the reviewed text (git log "
+            if mark != "Unreviewed" and mine != seal_of(text, below):
+                found.append(("LOCKED", page, "%s was reviewed and its wording or sub-bullets changed. Fix: restore the reviewed text (git log "
                               "-p), or the owner un-reviews it (/workflow-docs unreview %s --user) and reviews it again" % (key, key)))
         if len(ids) > limit:
             found.append(("CAP", page, "has %d requirements, over the limit of %d (criteria_max in .loop/config.json). Fix: merge "
@@ -247,7 +267,7 @@ def contract(root, names, seen):
 
 
 def rewrite(root, change):
-    """Run change(match) over every criterion line. It returns a new line, or None to leave it."""
+    """Run change(match, subs) over every criterion line. It returns a new line, or None to leave it."""
     touched, names = [], []
     for rel in pages(root):
         with open(os.path.join(root, rel)) as handle:
@@ -255,7 +275,7 @@ def rewrite(root, change):
         lines = text.split("\n")
         for number, line in enumerate(lines):
             match = LINE.match(line)
-            fresh = change(match) if match else None
+            fresh = change(match, subs(lines, number)) if match else None
             if fresh:
                 lines[number] = fresh
                 names.append(match.group(1))
@@ -289,7 +309,7 @@ def mark_all(args, make, page_change):
     root = git("rev-parse", "--show-toplevel")
     keys = [key for key in args.ids if ID.match(key)]
     names = [key for key in args.ids if not ID.match(key)]
-    touched, found = rewrite(root, lambda match: make(match, day) if match.group(1) in keys else None)
+    touched, found = rewrite(root, lambda match, below: make(match, day, below) if match.group(1) in keys else None)
     missing = sorted(set(keys) - set(found))
     if missing:
         sys.exit("REFUSED: no requirement %s (an ID matches ^[A-Z]{2,5}-\\d+$). Nothing was changed. Fix: use an ID "
@@ -320,8 +340,8 @@ def mark_all(args, make, page_change):
 
 def cmd_review(args):
     import prd
-    keys, names = mark_all(args, lambda m, day: "- %s: **Reviewed %s** %s <!-- reviewed %s -->" % (
-        m.group(1), day, m.group(4), seal(m.group(4))), prd.review_text)
+    keys, names = mark_all(args, lambda m, day, below: "- %s: **Reviewed %s** %s <!-- reviewed %s -->" % (
+        m.group(1), day, m.group(4), seal_of(m.group(4), below)), prd.review_text)
     for key in keys:
         print("REVIEWED " + key)
     for name in names:
@@ -331,7 +351,7 @@ def cmd_review(args):
 
 def cmd_unreview(args):
     import prd
-    keys, names = mark_all(args, lambda m, day: "- %s: **Unreviewed** %s" % (m.group(1), m.group(4)),
+    keys, names = mark_all(args, lambda m, day, below: "- %s: **Unreviewed** %s" % (m.group(1), m.group(4)),
                            lambda text, day, name: prd.unreview_text(text, name))
     for key in keys:
         print("UNREVIEWED " + key)
