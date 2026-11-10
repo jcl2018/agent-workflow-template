@@ -121,8 +121,10 @@ check "a run reruns a declared row whose imported module changed, and the broad 
 # narrow table rule goes back to every row reaching regression.py, or drops root-running scripts; why_new=the old rule
 # reran nearly every row on any goal's table edit; seam=none; no_claim=toy scripts that name a toy .loop/regression.tsv
 printf '#!/bin/bash\n# reads: skills/k/scripts/k.py\nhere=.; (cd "$here" && true); printf "t\\n" >> "$TOY_LOG"\n' > dev/t.sh  # lanes: no read (toy repo file)
-printf 't\tland\tbash dev/t.sh\tX-1\t2026-01-01\tT.\tcriterion\t\n' >> .loop/regression.tsv
-git add -A; git commit -qm "Row t"; $reg run land --reuse >/dev/null
+mkdir -p skills/workflow-regression/scripts; printf 'print(1)\n' > skills/workflow-regression/scripts/regression.py
+printf '#!/bin/bash\n# reads: skills/workflow-regression/scripts/regression.py\ncd "$TOY_LOG.d" 2>/dev/null; printf "r\\n" >> "$TOY_LOG"\n' > dev/r.sh  # lanes: no read (toy repo file)
+printf 't\tland\tbash dev/t.sh\tX-1\t2026-01-01\tT.\tcriterion\t\nr\tland\tbash dev/r.sh\tX-1\t2026-01-01\tR.\tcriterion\t\n' >> .loop/regression.tsv
+git add -A; git commit -qm "Rows t and r"; $reg run land --reuse >/dev/null
 awk -F'\t' 'BEGIN {OFS = FS} $1 == "k" {$6 = "K again."} {print}' .loop/regression.tsv > "$d/rows" && cat "$d/rows" > .loop/regression.tsv
 git commit -qam "Edit row k"
 fresh; out=$($reg run land --reuse); echo "$out"
