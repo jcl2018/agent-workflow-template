@@ -114,12 +114,12 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
 | [hlt6-clean-quiet](Tests#t-hlt6-clean-quiet) | requirement | HLT-6 | Given no stale worktree or branch, when health check runs, then both rules pass. | PASS 2026-11-10 |
 | [hlt6-never-filed](Tests#t-hlt6-never-filed) | requirement | HLT-6 | Given stale worktrees, when health previews the hygiene group, then no test-time, worktree or branch row would be filed. | PASS 2026-11-10 |
 | [hlt6-controls-lean](Tests#t-hlt6-controls-lean) | requirement | HLT-6 | Given every rule and a stale loop worktree, when health checks, then each control fires and the worktree is flagged with the command that removes it, which health never runs. | not run |
-| - | requirement | HLT-8 | no passing test | not enforced |
+| [hlt8-triage](Tests#t-hlt8-triage) | requirement | HLT-8 | Given open health findings, when triage runs, then it lists them per feature by kind, count and age, and a closed batch carries the owner's words and is not refiled until its evidence changes. | PASS 2026-11-10 |
 | [same-lines](Tests#t-same-lines) | requirement | HLT-1 | Given an unchanged repo, when health runs twice, then both runs print the same lines. | PASS 2026-11-10 |
 | [check-writes-nothing](Tests#t-check-writes-nothing) | requirement | HLT-1 | Given a repo, when the health check runs, then it writes no file and makes no commit. | PASS 2026-11-10 |
 | [hlt1-same-answer](Tests#t-hlt1-same-answer) | requirement | HLT-1 | Given an unchanged repo, when health checks it twice, then both print the same lines and no file changes. | not run |
-| - | requirement | HLT-7 | no passing test | not enforced |
-| - | requirement | HLT-9 | no passing test | not enforced |
+| [hlt7-fast-check](Tests#t-hlt7-fast-check) | requirement | HLT-7 | Given this repo, when health checks it without controls, then it finishes in under 60 seconds, and a check past 60 seconds warns. | PASS 2026-11-10 |
+| [hlt9-evidence-or-nothing](Tests#t-hlt9-evidence-or-nothing) | requirement | HLT-9 | Given review findings, when they are checked and filed, then each names its feature and cited evidence, one with no verifiable evidence is dropped, and nothing is filed twice. | PASS 2026-11-10 |
 | [health-tokens-124](Tests#t-health-tokens-124) | defect | [#124](https://github.com/jcl2018/agent-workflow-template/issues/124) state unknown | Given goals that predate token recording and done lines from before adoption, when health and sync run, then neither keeps the repo red. | not run |
 | [health-unreviewed-warn-issue-118](Tests#t-health-unreviewed-warn-issue-118) | defect | [#118](https://github.com/jcl2018/agent-workflow-template/issues/118) state unknown | Given an Unreviewed requirement with no test, when health runs, then it warns and never fails. | PASS 2026-11-10 |
 | [health-docs-159](Tests#t-health-docs-159) | defect | [#159](https://github.com/jcl2018/agent-workflow-template/issues/159) state unknown | Given the health skill's docs, when they are read, then they describe check's twelve groups, review, filing and triage, and no stale run chart. | not run |
