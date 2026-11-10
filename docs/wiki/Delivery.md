@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/1
 
-Review: **Reviewed 2026-11-10** <!-- prd P=7884b325 R=ed81bf41 N=9f4c33da M=f8cd4612 U=3f8aeb85 -->
+Review: **Reviewed 2026-11-10** <!-- prd P=7884b325 R=ed81bf41 N=9f4c33da M=f8cd4612 U=0c2c3b5a -->
 
 ## Problem
 - I have more changes to make than time to babysit them: I want to hand over one sentence and walk away.
@@ -15,7 +15,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7884b325 R=ed81bf41 N=9f4c33da M=f8cd
 - `flow.py SLUG STEP` — Runs one step (idea, plan, review, qa, ship). In a worker session prints `IN SESSION` and the skill to run. Prints `RUNNING` until it ends.
 - `goal.py record SLUG STEP --in-session` — Records a finished step. Refuses a reply with no `DEPTH:` line, and a qa step with no passing lane on HEAD (`LANE_MISSING`).
 - `goal.py pr SLUG` — Merges the latest main, reruns the affected tests, pushes and opens the pull request. Prints the PR link. Never merges.
-- `merge.py SLUG` — The release step: docs check, merge (where auto_merge is on), version bump, changelog, GitHub release, wiki publish. Refuses while a page is stale.
+- `merge.py SLUG` — The release step: docs check, merge (where auto_merge is on), version bump, changelog, GitHub release, wiki publish. Prints `MERGED <pr> into main`, `RELEASED vX.Y.Z <release link> (<bump> bump)` and `PUBLISHED <wiki link>`. Refuses while a page is stale.
 
 ## Requirements
 
