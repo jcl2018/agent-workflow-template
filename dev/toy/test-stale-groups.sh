@@ -6,6 +6,7 @@
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd); root=${1:-$here}
+. "$here/dev/toy/reap.sh"
 cd "$root" || exit 1
 bad=0
 no() { echo "FAIL: $1"; bad=1; }
@@ -34,7 +35,7 @@ for g in $removed; do
 done
 
 # the milestone list and the board, even when the old milestones exist on GitHub
-export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR=$(mktemp -d); trap 'rm -rf "$FAKE_GH_DIR"' EXIT
+export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR=$(mktemp -d); toy_on_exit 'rm -rf "$FAKE_GH_DIR"'
 out=$(python3 "$here/skills/workflow-health/scripts/milestone.py" features; python3 "$here/skills/workflow-health/scripts/milestone.py" new --all 2>&1)
 for g in $removed; do grep -qiE "(^|milestone )$g( |	|$)" <<<"$out" && no "the milestone list has $g"; done
 for g in $groups; do grep -q "$g" <<<"$out" || no "the milestone list lacks $g"; done

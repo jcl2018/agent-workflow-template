@@ -140,3 +140,4 @@ Temporary, until the PRD format replaces the criteria pages: a goal runs the ful
 ### Defect tests
 
 - Given a row that writes to the run summary, env or outputs like a toy test, when the GitHub run runs it, then nothing it writes reaches the real summary, env or outputs. — [summary-only-real-rows](../../.loop/regression.tsv), defect, guards [#92](https://github.com/jcl2018/agent-workflow-template/issues/92) open (2026-11-09), both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a toy test that starts stand-in agents, when it passes, fails, is interrupted or its pipe closes, then no process it started is left running. — [toy-no-leftovers](../../.loop/regression.tsv), defect, guards [#100](https://github.com/jcl2018/agent-workflow-template/issues/100) state unknown, both, not run, seen failing 2026-11-09

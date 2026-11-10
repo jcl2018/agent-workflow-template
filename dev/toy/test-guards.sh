@@ -9,6 +9,7 @@
 set -u
 unset LOOP_ROLE LOOP_SESSION LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # this script acts as the operation unless told
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 d=${1:-$(mktemp -d)}; part=${2:-all}; rm -rf "${d:?}"; mkdir -p "$d"
 export HOME="$d/home"; mkdir -p "$HOME"
 "$here/dev/toy/make.sh" "$d" >/dev/null || exit 1
