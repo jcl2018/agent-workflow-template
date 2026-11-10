@@ -254,7 +254,7 @@ def render(root=None, at=None):
     waits = lambda deps: [d for d in deps if d not in gone]
     lines = {g["slug"]: g for g in bs.queued(root, runs)}
     queue = [g for g in lines.values() if g["slug"] not in {f["slug"] for f in freezing}]
-    items = bs.board_items(live, queue, freezing, lines, runs, at, root, waits)
+    items = bs.board_items(live, queue, freezing, lines, runs, at, root, waits, None if taken is None else {r["slug"] for r in runs if is_held(r, taken)})
     names = {item["slug"] for item in items}
     setting = "condensed" if (bs.read_json(os.path.join(root, ".loop", "config.json")) or {}).get("review_depth") == "condensed" else "full"
     head = "LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root))
@@ -296,7 +296,7 @@ def render(root=None, at=None):
     missing = status_graph.unknown(items) or any(i["partial"] for i in items) or held or freezing
     finish = "nothing left" if not items else "no estimate yet" if not seconds else "%sfinish about %s" % (
         "at least " if missing else "", graph.clock(at + datetime.timedelta(seconds=seconds)))
-    return fit(out + ["", "Finish", finish])
+    return fit(out + ["", "Finish", finish, bs.accuracy_text(runs, at, root)])
 
 
 def fragment(lines):

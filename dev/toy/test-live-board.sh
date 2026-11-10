@@ -66,7 +66,7 @@ check "the other running goal shows its own flow" 'grep -qx "    idea✓ > \[pla
 check "each running goal has a one-line next step" '[ "$(grep -c "^    next: " "$T/board")" = 2 ]'
 check "Queued goals list gamma, delta and eps with what they wait on" 'sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep -q "^- gamma .*waits on alpha$" && sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep -q "^- delta .*waits on gamma, beta$" && sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep -Eq "^- eps  [^ ].*$" && ! sed -n "/^Queued goals/,/^Dependencies/p" "$T/board" | grep eps | grep -q waits'
 check "Dependencies are arrows between running and queued goals" 'sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -qx "alpha --> gamma" && sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -qx "gamma --> delta" && sed -n "/^Dependencies/,/^Finish/p" "$T/board" | grep -qx "beta --> delta"'
-check "one finish time closes the board" 'tail -2 "$T/board" | head -1 | grep -qx Finish && tail -1 "$T/board" | grep -Eq "^(at least )?finish about [0-9]{2}:[0-9]{2} "'
+check "one finish time closes the board" 'tail -3 "$T/board" | head -1 | grep -qx Finish && tail -2 "$T/board" | head -1 | grep -Eq "^(at least )?finish about [0-9]{2}:[0-9]{2} " && tail -1 "$T/board" | grep -q "^estimates: "'
 check "merged work, history, totals, milestones, tokens and done lines are left out" '! grep -Eiq "merged|hist|closed|milestone|tokens|total|done lines|longest|Roadmap|Needs you|level [0-9]" "$T/board"'
 
 echo "== the same board everywhere"
