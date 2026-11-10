@@ -2,6 +2,7 @@
 # reads: skills/
 # Adopt a fresh toy repo, then update its skills. usage: test-adopt.sh [SET-1..SET-5]   no ID runs every part. No model is called.
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd); only=${1:-}
 . "$here/dev/toy/reap.sh"

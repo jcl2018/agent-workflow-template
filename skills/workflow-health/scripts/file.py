@@ -25,7 +25,7 @@ GROUPS = ("size", "criteria", "docs", "hygiene", "cost", "mine")
 TAG = {"cost": "performance"}
 DEFAULT = ("size", "criteria", "docs", "hygiene", "cost")  # a preview with no group names these, never mine
 BAD = ("WARN", "FAIL", "UNREAD")
-REPORT_ONLY = ("test-time", "worktrees", "local-branches", "control")  # local paths and names, and controls: shown, never filed
+REPORT_ONLY = ("test-time", "worktrees", "local-branches", "control", "milestone")  # local, controls, issue milestones: never filed
 
 
 def tag_of(group):
