@@ -12,22 +12,24 @@ import re
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 LIVE = ("running", "waiting")
+LAST_BAD = {}  # pool path -> the malformed entries read_pool set aside on its last read
 
 
 def parse(line):
-    """One '- slug: ...' queue line as a dict: slug, goal, touches, depends, done, release. None when it isn't a goal line."""
+    """One '- slug: ...' queue line as a dict: slug, goal, touches, depends, done, release, prd (the PRD it builds, e.g.
+    "Monitoring MON-4") and parts (ready parts a split could start first). None when it isn't a goal line."""
     if not line.startswith("- slug:"):
         return None
-    item = {"done": [], "touches": [], "depends": [], "release": "", "goal": "", "slug": ""}
+    item = {"done": [], "touches": [], "depends": [], "parts": [], "release": "", "goal": "", "slug": "", "prd": ""}
     for part in line.strip()[2:].split("|"):
         key, _, value = part.partition(":")
         key, value = key.strip(), " ".join(value.split())
         if key == "done" and value:
             item["done"].append(value)
-        elif key in ("touches", "depends", "depends-on"):
-            name = "touches" if key == "touches" else "depends"
+        elif key in ("touches", "depends", "depends-on", "parts"):
+            name = key if key in ("touches", "parts") else "depends"
             item[name] += [x.strip() for x in re.split(r"[,\s]+", value) if x.strip() and x.strip() not in item[name]]
-        elif key in ("slug", "goal", "release"):
+        elif key in ("slug", "goal", "release", "prd"):
             item[key] = value
     return item
 
@@ -49,8 +51,9 @@ def unmet(goal, records, queued):
 
 
 def read_pool(path):
-    """The session pool as (entries, ""), or (None, reason) when it can't be trusted: unreadable, not JSON, not an
-    object, an entry that isn't an object, or a busy entry without a valid goal. A missing file is an empty pool."""
+    """The session pool as (entries, ""), or (None, reason) when it can't be trusted: unreadable, not JSON or not an
+    object. An entry that isn't an object, or a busy entry without a valid goal, is left out and kept in LAST_BAD
+    (pool.quarantine moves it to a side file). A missing file is an empty pool."""
     try:
         with open(path) as handle:
             found = json.load(handle)
@@ -62,11 +65,11 @@ def read_pool(path):
         return None, "bad JSON: %s" % error
     if not isinstance(found, dict):
         return None, "it is not a JSON object"
-    for key, item in found.items():
-        if not isinstance(item, dict):
-            return None, "entry %s is not an object" % key
-        if item.get("state") == "busy" and not (isinstance(item.get("slug"), str) and SLUG.match(item["slug"])):
-            return None, "busy entry %s has no valid goal" % key
+    bad = {key: item for key, item in found.items() if not isinstance(item, dict) or (
+        item.get("state") == "busy" and not (isinstance(item.get("slug"), str) and SLUG.match(item["slug"])))}
+    if bad:  # one bad entry no longer blocks the pool (issue 122): it is set aside, and pool.py keeps it in a side file
+        LAST_BAD[path] = bad
+        found = {key: item for key, item in found.items() if key not in bad}
     return found, ""
 
 
