@@ -324,6 +324,7 @@ tests-row-shape	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-seen-failing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-table-columns	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-table-stale	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+two-lanes-toy-435	PASS	2026-11-10	
 unproven-blocks	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 unread-closes-none	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 unread-not-green	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
