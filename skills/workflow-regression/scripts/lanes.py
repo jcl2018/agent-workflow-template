@@ -3,7 +3,7 @@
 
 Imported by regression.py (`run ... --reuse`) and lanes_cli.py (`affected`, `deps`, `check`). The record lives in
 <git common dir>/loop/tests/<branch>-<sha8>.json: {schema, runner, worktree, command, at, commit,
-rows: {id: {status: PASS|FAIL|KNOWN, seconds, commit}}}. A row is reused only when it passed (or is a known failure)
+rows: {id: {status: PASS|FAIL|KNOWN, seconds, commit, clean, host, python, flaky}}} (flaky.py). A row is reused only when it passed (or is a known failure)
 on HEAD or an ancestor of HEAD and nothing it reads changed since; anything this file can't map reruns everything.
 A test script whose leading comment block has `# reads: <path>...` lines is mapped narrowly (declared entry points plus
 what they reach, no folder widening); a script without one keeps the wide mapping; LANES_WIDE=1 forces wide everywhere.
@@ -98,6 +98,7 @@ def save(path, root, command, results, head, at, fresh, base=None):
         for item in results:
             rows[item["id"]] = {"status": item["state"], "seconds": item["seconds"], "commit": head,
                                 "pid": item.get("pid"), "rc": item.get("rc"), "signal": item.get("signal")}
+            rows[item["id"]].update({k: item[k] for k in ("clean", "host", "python", "flaky") if k in item})  # flaky.py
         data = {"schema": SCHEMA, "runner": runner(), "worktree": root, "command": command, "at": at,
                 "commit": head, "merge_base": base, "rows": rows, "total_seconds": round(sum(r.get("seconds") or 0 for r in rows.values()), 1)}
         temp = "%s.%d.tmp" % (path, os.getpid())
@@ -310,7 +311,7 @@ def plan(root, selected, record, current_tsv, current_known):
             gone = deleted(root, prior["commit"]) if kin[prior["commit"]] else []
             if gone:
                 return every, [], notes, "deleted %s" % " ".join(gone[:5])
-        if always or not prior or not kin[prior["commit"]]:
+        if always or not prior or prior.get("flaky") or not kin[prior["commit"]]:  # a flaky row is never reused
             run.append(rid)
             continue
         if prior["commit"] not in since:

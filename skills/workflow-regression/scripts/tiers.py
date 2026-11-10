@@ -4,7 +4,8 @@
 Imported by regression.py, not run. A goal lane plans from the branch's lane record only when that record's merge-base
 with the base branch equals the current one, else from the merge-base. It runs the rows whose closure reaches a file
 changed since then (lanes.py's closure), the rows added or changed in .loop/regression.tsv since then, the rows that
-run tools on the repo root (lanes.ROOT_RUN, when anything changed), and a usable record's FAIL rows. After a base merge
+run tools on the repo root (lanes.ROOT_RUN, when anything changed), a usable record's FAIL rows and any flaky row
+(flaky.py: never reused). After a base merge
 the record is not usable, and the rows the merge changed (since each row's recorded commit) run too. A path no row
 maps, or a deleted one, is a Note at qa and ship (the scheduled full run covers it) and makes the pr lane FULL; with no
 merge-base the lane is FULL. A FULL goal lane takes a lane slot and gets full_suite_minutes (repo setting, default 30)
@@ -94,7 +95,9 @@ def reason(root, row, old, ok, base, cache, memo):
     found = next((p for p in paths if hit(root, row, p, at, cache, memo)), None)
     if found:
         return "reaches " + found
-    return "root runner" if paths and lanes.closure(root, row["command"], cache)[1] else ""
+    if paths and lanes.closure(root, row["command"], cache)[1]:
+        return "root runner"
+    return "failure rerun (flaky: never reused)" if (old or {}).get("rows", {}).get(row["id"], {}).get("flaky") else ""
 
 
 def quiet(path, gone):

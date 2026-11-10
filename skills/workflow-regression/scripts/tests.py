@@ -17,7 +17,8 @@ usage: tests.py <command> [--root DIR]
 
 A feature is the wiki page that holds the requirement a row guards (its goal, or its id); a row that guards none is in
 Other. Each test shows: test, kind (requirement, workflow or defect), what it guards (the requirement's ID and words, or the
-issue's link and state), what it checks, when it runs, its last result and date, and when it was seen failing.
+issue's link and state), what it checks, when it runs, its last result and date (then FLAKY when that result flipped on
+one clean commit, REG-9), and when it was seen failing.
 Stdlib only and self-contained: the regression workflow carries a copy of this file.
 """
 import argparse
@@ -113,12 +114,12 @@ def guard(row, found, issues, markdown):
 def fields(row, found, ran, issues, markdown=False, raw=False):
     """The one fixed format for one row (all 8 columns of regression.tsv): test, kind, guards, checks, runs, last
     result and date, seen failing."""
-    status, day = ran.get(row[0], ("not run", ""))
+    status, day, flag = (tuple(ran.get(row[0], ("not run", ""))) + ("",))[:3]  # a caller's (status, date) has no flag
     known = issues.get(row[7], ()) if row[6] == "defect" else ()
     if len(known) > 2 and known[2] and known[0] == "open" and not (status == "PASS" and day > known[2][:10]):
         status, day = "failing (issue reopened)", known[2][:10]  # REG-6: until the issue closes or a later day passes
     return [cell(item, raw) for item in (row[0], KIND.get(row[6] or "criterion", row[6]), guard(row, found, issues, markdown),
-                                    row[5] or "-", RUNS.get(row[1], row[1] or "-"), (status + " " + day).strip(),
+                                    row[5] or "-", RUNS.get(row[1], row[1] or "-"), (status + " " + day).strip() + flag,
                                     row[4] if SEEN.match(row[4]) else "no")]
 
 
@@ -126,9 +127,10 @@ def entries(root, results=None, markdown=False, raw=False):
     """[(feature, [fields])] in page order, then Other; rows in file order, draft rows left out. With results, only
     the rows that run reported, each with that run's state."""
     titles, found = features(root)
-    ran = {row[0]: (row[1], row[2] if len(row) > 2 else "") for row in tsv(root, "regression-runs.tsv") if len(row) > 1}
+    ran = {row[0]: ((row + [""] * 5)[1:3] + [" FLAKY" if (row + [""] * 5)[4] else ""]) for row in tsv(root, "regression-runs.tsv")
+           if len(row) > 1}  # REG-9: a 5th cell (the commit a result flipped on) adds FLAKY after the raw result
     if results is not None:
-        ran = {name: (state, "") for name, state in results.items()}
+        ran = {name: (state, "", "") for name, state in results.items()}
     issues, groups = issues_of(root), {}
     rows = {row[0]: (row + [""] * 8)[:8] for row in tsv(root, "regression.tsv")}
     order = [name for name in rows if rows[name][1] != "draft"] if results is None else list(results)

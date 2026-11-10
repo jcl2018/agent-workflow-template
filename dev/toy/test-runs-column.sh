@@ -3,7 +3,7 @@
 # reads: skills/workflow-regression/scripts/lanes.py skills/workflow-regression/scripts/actions.py
 # Proves the run column of .loop/regression-runs.tsv on a throwaway repo with a fake gh: empty outside CI, so two
 # branches write identical lines, the Actions run URL when all three GITHUB_* vars are set, a 3-column file upgraded,
-# a row not rerun kept.
+# a row not rerun kept, and the flaky column (5th) empty unless a row flipped (flaky.py).
 # usage: test-runs-column.sh
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
@@ -25,18 +25,18 @@ url=https://github.example/o/r/actions/runs/42
 
 echo "== outside CI the run column is empty"
 $reg run a1 >/dev/null 2>&1
-head -1 .loop/regression-runs.tsv | grep -qxF "# id	status	date	run" && grep -qxF "a1	PASS	$day	" .loop/regression-runs.tsv \
+head -1 .loop/regression-runs.tsv | grep -qxF "# id	status	date	run	flaky" && grep -qxF "a1	PASS	$day		" .loop/regression-runs.tsv \
   && ok "the 4th column is empty outside CI" || bad "empty column: $(cat .loop/regression-runs.tsv)"
 
 echo "== in CI the run column is the Actions run URL"
 GITHUB_SERVER_URL=https://github.example GITHUB_REPOSITORY=o/r GITHUB_RUN_ID=42 $reg run b1 >/dev/null 2>&1
-grep -qxF "b1	FAIL	$day	$url" .loop/regression-runs.tsv && ok "with all three GITHUB_* vars set the Actions URL is written" \
+grep -qxF "b1	FAIL	$day	$url	" .loop/regression-runs.tsv && ok "with all three GITHUB_* vars set the Actions URL is written" \
   || bad "url column: $(cat .loop/regression-runs.tsv)"
-grep -qxF "a1	PASS	$day	" .loop/regression-runs.tsv && ok "a row not rerun keeps its run cell" || bad "kept cell: $(cat .loop/regression-runs.tsv)"
+grep -qxF "a1	PASS	$day		" .loop/regression-runs.tsv && ok "a row not rerun keeps its run cell" || bad "kept cell: $(cat .loop/regression-runs.tsv)"
 
 echo "== with only some GITHUB_* vars set the run column is empty"
 GITHUB_SERVER_URL=https://github.example GITHUB_RUN_ID=42 $reg run b1 >/dev/null 2>&1
-grep -qxF "b1	FAIL	$day	" .loop/regression-runs.tsv && ok "with only some GITHUB_* vars set the cell is empty" \
+grep -qxF "b1	FAIL	$day		" .loop/regression-runs.tsv && ok "with only some GITHUB_* vars set the cell is empty" \
   || bad "partial vars: $(cat .loop/regression-runs.tsv)"
 
 echo "== two branches running the same rows on the same day write identical files"
@@ -48,10 +48,10 @@ cmp -s .loop/regression-runs.tsv "$r.other" && ok "two branches running the same
 echo "== a 3-column file is read and upgraded"
 printf '# id\tstatus\tdate\na1\tPASS\t2026-11-01\nold\tFAIL\t2026-11-02\n' > .loop/regression-runs.tsv
 $reg run b1 >/dev/null 2>&1
-head -1 .loop/regression-runs.tsv | grep -qxF "# id	status	date	run" && grep -qxF "a1	PASS	2026-11-01	" .loop/regression-runs.tsv \
-  && grep -qxF "old	FAIL	2026-11-02	" .loop/regression-runs.tsv && grep -qxF "b1	FAIL	$day	" .loop/regression-runs.tsv \
-  && [ "$(awk -F'\t' '!/^#/ && NF != 4' .loop/regression-runs.tsv | wc -l | tr -d ' ')" = 0 ] \
-  && ok "a 3-column file is read and upgraded to 4 columns" || bad "upgrade: $(cat .loop/regression-runs.tsv)"
+head -1 .loop/regression-runs.tsv | grep -qxF "# id	status	date	run	flaky" && grep -qxF "a1	PASS	2026-11-01		" .loop/regression-runs.tsv \
+  && grep -qxF "old	FAIL	2026-11-02		" .loop/regression-runs.tsv && grep -qxF "b1	FAIL	$day		" .loop/regression-runs.tsv \
+  && [ "$(awk -F'\t' '!/^#/ && NF != 5' .loop/regression-runs.tsv | wc -l | tr -d ' ')" = 0 ] \
+  && ok "a 3-column file is read and upgraded to 5 columns" || bad "upgrade: $(cat .loop/regression-runs.tsv)"
 
 echo "$pass passed, $fail failed"
 [ "$fail" = 0 ] && echo "ALL PASS" || exit 1

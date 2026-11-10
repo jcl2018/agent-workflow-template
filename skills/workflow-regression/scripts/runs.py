@@ -1,13 +1,17 @@
-"""Read and write .loop/regression-runs.tsv: each row's last run as id, status, date, run.
+"""Read and write .loop/regression-runs.tsv: each row's last run as id, status, date, run, flaky.
 
 run is the GitHub Actions run URL when GITHUB_SERVER_URL, GITHUB_REPOSITORY and GITHUB_RUN_ID are all set, else
-empty, so same-day runs on two branches write identical lines and merge cleanly. A 3-column file from before the run
-column still reads, with run empty, and is rewritten with 4 columns on the next write. A row not rerun keeps its cells.
+empty, so same-day runs on two branches write identical lines and merge cleanly. flaky is empty, or the commit a row's
+result flipped on (flaky.py, REG-9); status stays the raw PASS or FAIL. The per-result evidence (commit, clean, host,
+python) lives in the branch's lane record in the git common dir, never here: a commit cell would differ on every
+branch and turn each same-day merge of this file into a conflict. Files from before the run or flaky column still
+read, with those cells empty, and are rewritten with 5 columns on the next write. A row not rerun keeps its cells, and
+a result with no flaky field (a dirty tree) keeps the row's flaky cell.
 """
 import os
 
 NAME = "regression-runs.tsv"
-HEADER = "# id\tstatus\tdate\trun\n"
+HEADER = "# id\tstatus\tdate\trun\tflaky\n"
 
 
 def path(root):
@@ -15,13 +19,13 @@ def path(root):
 
 
 def read(root):
-    """Return {id: [id, status, date, run]}; missing cells read as ""."""
+    """Return {id: [id, status, date, run, flaky]}; missing cells read as ""."""
     try:
         with open(path(root)) as handle:
             rows = [line.rstrip("\n").split("\t") for line in handle if line.strip() and line[0] != "#"]
     except OSError:
         return {}
-    return {cells[0]: (cells + [""] * 4)[:4] for cells in rows}
+    return {cells[0]: (cells + [""] * 5)[:5] for cells in rows}
 
 
 def where(sha=None):
@@ -31,11 +35,12 @@ def where(sha=None):
 
 
 def write(root, results, date, sha):
-    """Merge results ([{"id", "state"}]) into the file; nothing is written when results is empty."""
+    """Merge results ([{"id", "state", "flaky"?}]) into the file; nothing is written when results is empty."""
     if not results:
         return
     ran, run = read(root), where(sha)
     for item in results:
-        ran[item["id"]] = [item["id"], "PASS" if item["state"] == "PASS" else "FAIL", date, run]
+        flag = item["flaky"] if "flaky" in item else ran.get(item["id"], [""] * 5)[4]
+        ran[item["id"]] = [item["id"], "PASS" if item["state"] == "PASS" else "FAIL", date, run, flag[:12]]
     with open(path(root), "w") as handle:
         handle.write(HEADER + "".join("\t".join(ran[key]) + "\n" for key in sorted(ran)))

@@ -36,7 +36,8 @@ def tests_format(held={}):
 
 
 def ran_of(root):
-    return {row[0]: (row[1], row[2]) for row in criteria.tsv(root, "regression-runs.tsv")}
+    """{row: (status, date, " FLAKY" when its 5th cell names the commit a result flipped on, REG-9)}."""
+    return {row[0]: (row[1], row[2], " FLAKY" if (row + [""] * 5)[4] else "") for row in criteria.tsv(root, "regression-runs.tsv")}
 
 
 def table(root, ids, linked):
@@ -159,7 +160,7 @@ def checks_cell(text):
 
 def plain(row, ran):
     """The fields tests.py would give, for when it is missing: test, kind, guards, checks, runs, result, seen."""
-    status, day = ran.get(row[0], ("not run", ""))
+    status, day = ran.get(row[0], ("not run", ""))[:2]
     guard = row[7] if row[6] == "defect" else row[3]
     return [row[0], row[6] if row[6] in ("defect", "workflow") else "requirement", guard or "-", row[5] or "-", row[1], (status + " " + day).strip(),
             row[4] if re.match(r"^\d{4}-\d\d-\d\d$", row[4]) else "no"]
