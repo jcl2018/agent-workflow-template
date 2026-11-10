@@ -25,6 +25,16 @@ GIT_ENV = {"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1", "GIT_AUT
 OLD = "2026-01-01T00:00:00Z"
 
 
+class Leaked(Exception):
+    """A row showed text a control planted as private."""
+
+
+def clear_cache():
+    module = sys.modules.get("ghcache")
+    if module:
+        module.CACHE.clear()
+
+
 class Unbuilt(Exception):
     """A fixture could not be built: the command, its exit code and the last line it printed on stderr."""
 
@@ -149,21 +159,44 @@ def f_local_branches(root):
     git(root, "checkout", "-q", "main")
 
 
-# rule name in health.RULES -> (group, the rule label report.rule_of gives its rows, fixture)
+def f_proof(root):
+    repo(root)
+    write(root, ".loop/regression.tsv", "# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\n"
+          "d1\tdraft\techo write a test\t-\t-\ta draft\tcriterion\t\n")
+
+
+def f_seen_red(root):
+    repo(root)
+    write(root, ".loop/regression.tsv", "# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\n"
+          "r1\tland\ttrue\t-\t-\tnever red\tcriterion\t\n")
+
+
+# rule name in groups.RULES -> (group, the rule groups.rule_of gives its rows, fixture); the rule modules add theirs
 CONTROLS = {
-    "size": ("size", "limit", f_size),
-    "criteria-rows": ("criteria", "rows", f_criteria_rows),
-    "criteria-done": ("criteria", "done-lines", f_criteria_done),
-    "defect-tests": ("criteria", "defect-tests", f_defect_tests),
-    "docs-check": ("docs", "check", f_docs_check),
+    "scripts": ("size", "scripts", f_size),
+    "rows": ("requirements", "rows", f_criteria_rows),
+    "proof": ("requirements", "proof", f_proof),
+    "done": ("requirements", "done", f_criteria_done),
+    "seen-red": ("tests", "seen-red", f_seen_red),
+    "defect-tests": ("traceability", "defect-tests", f_defect_tests),
+    "docs-check": ("docs", "docs-check", f_docs_check),
     "findings": ("hygiene", "findings", f_findings),
     "waiting": ("hygiene", "waiting", f_waiting),
     "branches": ("hygiene", "branches", f_branches),
-    "cost": ("cost", "cost", f_cost),
-    "test-time": ("hygiene", "test-time", f_test_time),
+    "cost": ("performance", "cost", f_cost),
+    "test-time": ("performance", "test-time", f_test_time),
     "worktrees": ("hygiene", "worktrees", f_worktrees),
     "local-branches": ("hygiene", "local-branches", f_local_branches),
 }
+for _module in ("rules_trace", "rules_fresh", "rules_guard"):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        CONTROLS.update(__import__(_module).CONTROLS)
+    except ImportError:
+        pass
+    finally:
+        sys.path.pop(0)
+LEAK = "PLANTED-SECRET"  # the private rule's control plants this text; no row may show it
 
 
 def label(item, here):
@@ -188,18 +221,26 @@ def one(rule, function, here, keep=False):
     root = os.path.join(folder, "repo")
     os.makedirs(root)
     saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("GIT_")}  # all restored in finally
+    kept = {k: os.environ.get(k) for k in ("LOOP_FLOW", "LOOP_HEALTH_GH_FIXTURE", "LOOP_HEALTH_T0", "CI", "GITHUB_ACTIONS")}
+    os.environ.pop("LOOP_HEALTH_GH_FIXTURE", None)
+    os.environ.pop("LOOP_HEALTH_T0", None)
+    clear_cache()
     os.environ.update(GIT_ENV)
     try:
         fixture(root)
         found = function(root)
         fired = any(item["state"] in ("WARN", "FAIL") and item["family"] == group and label(item, here) == wanted
                     for item in found)
+        if any(LEAK in "%s %s %s" % (i.get("subject"), i.get("detail"), i.get("evidence")) for i in found):
+            raise Leaked()
         mine = [item for item in found if item["family"] == group]
         blind = mine and all(item["state"] == "UNREAD" for item in mine)
         result = row("PASS", rule, "fires on its fixture") if fired else row(
             "UNREAD", rule, "its rule could not read its data on the fixture", "install the skills it reads beside it") if blind else row(
             "FAIL", rule, "cannot fire: it reported nothing on a fixture made to break it",
             "run: python3 controls.py run %s --keep, then fix the rule or its control" % rule)
+    except Leaked:
+        result = row("FAIL", rule, "a row shows the matched private text", "show file:line and the pattern number only")
     except Unbuilt as error:
         result = row("UNREAD", rule, "the control could not build its fixture: %s" % str(error).replace(os.path.realpath(folder), "<fixture>").replace(folder, "<fixture>"),
                      "run: python3 controls.py run %s --keep" % rule)
@@ -209,6 +250,11 @@ def one(rule, function, here, keep=False):
         for key in GIT_ENV:
             os.environ.pop(key, None)
         os.environ.update(saved)
+        for key, value in kept.items():
+            os.environ.pop(key, None)
+            if value is not None:
+                os.environ[key] = value
+        clear_cache()
         if not keep:
             subprocess.run(["rm", "-rf", folder], capture_output=True)
             if os.path.exists(folder):

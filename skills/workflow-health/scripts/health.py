@@ -1,26 +1,18 @@
 #!/usr/bin/env python3
-"""Check a repo's health with fixed rules. Same repo, same answer. Read-only: it writes no file and calls no model.
+"""Check a repo's health with fixed rules. Same repo, same answer. check writes no file and calls no model.
 
-usage: health.py check [--json] [--group NAME] [--skip NAME]
-       health.py preview [--group NAME[,NAME]]
-       health.py file --group NAME[,NAME]
-       health.py judge
+usage: health.py check [--json] [--group NAME[,NAME]] [--skip NAME[,NAME]]
+       health.py review [--feature NAME] [--json]          (review.py; judge and suggest are aliases)
+       health.py preview [--group NAME[,NAME]] [--feature NAME] [--review FILE]
+       health.py file --group NAME[,NAME] [--feature NAME] [--review FILE]
+       health.py triage [--feature NAME] [--close --kind K --why WORDS [--older DAYS] [--yes] [--max N]]
 
-check prints the formal report (report.py): the groups run and skipped, every rule of each group, then one verdict
-line, HEALTH: green or not green. Only FAIL and UNREAD (a rule that could not read its data) turn it red (exit 1).
-judge (alias suggest) adds a section of suggestions (judge.py) and never changes the verdict. --json prints the rows.
-
-Rules (at most MAX_RULES; retire one before adding another):
-  size      scripts under skills/*/scripts against 20 KB: WARN from 90%, FAIL over
-  criteria  regression.py sync: a criterion with no row, or a draft or never-failed row, FAILs; done lines with
-            no row WARN; a closed issue or finding with no defect test FAILs (defects.py)
-  docs      composes docs.py check: a stale page WARNs, any other gap FAILs
-  hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches; lean.py: test time, stale
-            worktrees and local branches
-  cost      a finished goal over time_budget_minutes or token_budget WARNs (cost.py); no tokens is UNREAD
-  controls  each rule's negative control (controls.py) must fire; a rule with none makes health.py refuse (exit 2)
-
-preview lists what file would do, writing nothing; file --group NAME[,NAME] files those groups as issues (file.py).
+check prints the formal report (report.py): the twelve groups of groups.py, each under a heading with its angle, every
+rule marked pass, warn, fail or unread with its fix, then one verdict, HEALTH: green or not green. Only FAIL and UNREAD
+turn it red (exit 1). Every rule has a negative control (controls.py); a rule with none makes health.py refuse (exit 2).
+preview lists what file would do and writes nothing; file writes GitHub issues on each finding's feature milestone
+(file.py, feature.py); triage lists and closes them in batches (triage.py). Rules live here and in rules_trace.py,
+rules_fresh.py and rules_guard.py; --json prints the rows.
 """
 import argparse
 import datetime
@@ -31,25 +23,26 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
+HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import groups as G  # noqa: E402
+
 LIMIT = 20 * 1024
 WARN_AT = LIMIT * 9 // 10
 FINDINGS_WARN = 5
 WAITING_HOURS = 24
-RULES = ("size", "criteria-rows", "criteria-done", "defect-tests", "docs-check", "findings", "waiting", "branches", "cost",
-         "test-time", "worktrees", "local-branches")
-MAX_RULES = 12  # raised on purpose: 9 for cost, 12 for HLT-6
-assert len(RULES) <= MAX_RULES, "too many rules: retire one first"
-FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene", "cost": "cost", "mine": "mine",
-          "controls": "controls"}
-ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine", "controls")  # the fixed order of the groups in the report
-NAMES = sorted(FAMILY) + ["performance"]  # performance is the Cost group's name in the report and its tag
-HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
+RULES = G.RULES  # every rule of the twelve groups; each needs a negative control
+FAMILY = {name: name for name in G.ORDER}
+ORDER = G.ORDER
+NAMES = list(G.ORDER) + sorted(G.ALIASES)
+T0 = [float(os.environ.get("LOOP_HEALTH_T0") or 0) or None]  # check-time's start (set in cmd_check)
 
 
 def run(args, cwd):
@@ -75,43 +68,44 @@ def size_rows(root):
             continue
         size, name = os.path.getsize(path), os.path.relpath(path, root)
         if size > LIMIT:
-            rows.append(row("FAIL", "size", name, "limit", "%d bytes, over %d" % (size, LIMIT), "split it into modules"))
+            rows.append(row("FAIL", "size", name, "scripts", "%d bytes, over %d" % (size, LIMIT), "split it into modules"))
         elif size >= WARN_AT:
-            rows.append(row("WARN", "size", name, "limit", "%d bytes, %d%% of %d" % (size, size * 100 // LIMIT, LIMIT),
+            rows.append(row("WARN", "size", name, "scripts", "%d bytes, %d%% of %d" % (size, size * 100 // LIMIT, LIMIT),
                             "trim or split before it passes the limit"))
         else:
             good += 1
     if not rows:
-        rows.append(row("PASS", "size", "scripts", "limit", "%d scripts under %d bytes" % (good, WARN_AT)))
+        rows.append(row("PASS", "size", "scripts", "scripts", "%d scripts under %d bytes" % (good, WARN_AT)))
     return rows
 
 
 def criteria_rows(root):
     script = sibling("workflow-regression", "regression.py")
     if not script:
-        return [row("UNREAD", "criteria", "regression", "sync", "regression.py is not installed beside this skill")]
+        return [row("UNREAD", "requirements", "regression", "rows", "regression.py is not installed beside this skill")]
     done = run([sys.executable, script, "sync"], root)
     lines = done.stdout.splitlines()
     if not lines and done.returncode:
-        return [row("UNREAD", "criteria", "regression", "sync", (done.stderr.strip() or "no output")[:120])]
+        return [row("UNREAD", "requirements", "regression", "rows", (done.stderr.strip() or "no output")[:120])]
     rows, loose = [], 0
     for line in lines:
         gap = re.match(r"^GAP (\S+) (.*)$", line)
         if gap and re.match(r"^[A-Za-z0-9-]+:\d+$", gap.group(1)):
             loose += 1
         elif gap and "criterion has no regression row" in gap.group(2):
-            rows.append(row("FAIL", "criteria", gap.group(1), "rows", "criterion has no regression row",
+            rows.append(row("FAIL", "requirements", gap.group(1), "rows", "criterion has no regression row",
                             "add a row with regression.py add"))
         elif line.startswith(("DRAFT ", "UNPROVEN ")):
             word, key = line.split()[:2]
-            rows.append(row("FAIL", "criteria", key.rstrip(":"), "proof", "a draft row, or one never seen failing"
-                            if word == "DRAFT" else "never seen failing", "run regression.py red"))
+            rows.append(row("FAIL", "requirements", key.rstrip(":"), "proof", "a draft row: no command or level yet",
+                            "give it a command and level") if word == "DRAFT" else
+                        row("FAIL", "tests", key.rstrip(":"), "seen-red", "never seen failing", "run regression.py red"))
     if loose:
-        rows.append(row("WARN", "criteria", "done-lines", "rows", "%d done lines have no regression row" % loose,
+        rows.append(row("WARN", "requirements", "done-lines", "done", "%d done lines have no regression row" % loose,
                         "regression.py sync --write drafts rows"))
     if not rows and not any(line.startswith("SYNC OK") for line in lines):
-        return [row("UNREAD", "criteria", "regression", "sync", (done.stderr.strip() or "no SYNC OK line")[:120])]
-    return rows or [row("PASS", "criteria", "rows", "sync", "every criterion and done line has a proven row")]
+        return [row("UNREAD", "requirements", "regression", "rows", (done.stderr.strip() or "no SYNC OK line")[:120])]
+    return rows
 
 
 def docs_rows(root):
@@ -130,6 +124,8 @@ def docs_rows(root):
     for line in lines:
         kind, _, rest = line.partition(" ")
         page, _, detail = rest.partition(": ")
+        if kind == "CAP":  # the requirement limit belongs to Size requirements-per-page
+            continue
         rows.append(row("WARN" if kind == "STALE" else "FAIL", "docs", page, kind.lower(), detail[:120],
                         "update the page with workflow-docs"))
     return rows
@@ -138,8 +134,8 @@ def docs_rows(root):
 def defect_rows(root):
     defects = sibling_module("defects")
     if not defects:
-        return [row("UNREAD", "criteria", "defects", "defect-tests", "defects.py is not installed beside health.py")]
-    return [row("FAIL", "criteria", ref, "defect-tests", "closed by %s with no defect test" % source,
+        return [row("UNREAD", "traceability", "defects", "defect-tests", "defects.py is not installed beside health.py")]
+    return [row("FAIL", "traceability", ref, "defect-tests", "closed by %s with no defect test" % source,
                 "regression.py add --category defect --link ...") for ref, source in defects.missing(root)]
 
 
@@ -183,8 +179,7 @@ def hygiene_rows(root):
             if line.startswith("  ") and name.startswith("loop/"):
                 rows.append(row("WARN", "hygiene", name, "branch", "already merged into %s" % base,
                                 "worker.py cleanup"))
-    lean = sibling_module("lean")
-    return rows + (lean.rows(root) if lean else [row("UNREAD", "hygiene", "lean.py", r, "lean.py is missing") for r in RULES[-3:]])
+    return rows  # lean.py's test-time, worktrees and local-branches are rules of their own (rule_functions)
 
 
 def sibling_module(name):
@@ -198,21 +193,36 @@ def sibling_module(name):
 
 
 def rule_functions():
-    """Each rule -> the function its control calls."""
-    lean = sibling_module("lean")
-    groups = {"size": size_rows, "criteria-rows": criteria_rows, "criteria-done": criteria_rows, "defect-tests": defect_rows,
-              "docs-check": docs_rows, "findings": hygiene_rows, "waiting": hygiene_rows, "branches": hygiene_rows,
-              "cost": cost_rows}
+    """Each rule -> the function that checks it (and that its control calls)."""
+    lean, extra = sibling_module("lean"), {}
+    for name in ("rules_trace", "rules_fresh", "rules_guard"):
+        module = sibling_module(name)
+        extra.update(module.FUNCTIONS if module else {})
+    found = {"scripts": size_rows, "rows": criteria_rows, "proof": criteria_rows, "done": criteria_rows,
+             "seen-red": criteria_rows, "defect-tests": defect_rows, "docs-check": docs_rows, "findings": hygiene_rows,
+             "waiting": hygiene_rows, "branches": hygiene_rows, "cost": cost_rows}
     if lean:
-        groups.update({"test-time": lean.test_rows, "worktrees": lean.worktree_rows, "local-branches": lean.branch_rows})
-    return {name: groups[name] for name in RULES if name in groups}
+        found.update({"test-time": lean.test_rows, "worktrees": lean.worktree_rows, "local-branches": lean.branch_rows})
+    found.update(extra)
+    return {name: found[name] for name in RULES if name in found}
+
+
+MOVED = {"criteria": "requirements", "cost": "performance"}  # older family names some modules still return
+
+
+def placed(item):
+    """A row with its family set to its rule's group (lean's test-time row reports in Performance)."""
+    family = MOVED.get(item["family"], item["family"])
+    if item["rule"] in G.GROUP_OF and family not in ("mine", "controls"):
+        family = G.GROUP_OF[item["rule"]]
+    return dict(item, family=family)
 
 
 def controls_rows(root):
     controls = sibling_module("controls")
     if controls is None:
         return [row("UNREAD", "controls", "controls.py", "control", "controls.py is missing")]
-    return controls.run(rule_functions(), HERE)
+    return controls.run({name: (lambda root, fn=fn: [placed(i) for i in fn(root)]) for name, fn in rule_functions().items()}, HERE)
 
 
 def mine_rows(root):
@@ -225,29 +235,49 @@ def cost_rows(root):
     return cost.cost_rows(root, HERE) if cost else [row("UNREAD", "cost", "cost.py", "cost", "cost.py is not installed beside health.py")]
 
 
-def gather(root, family):
-    rules = {"size": size_rows, "criteria": lambda root: criteria_rows(root) + defect_rows(root), "docs": docs_rows, "hygiene": hygiene_rows,
-             "cost": cost_rows, "mine": mine_rows, "controls": controls_rows}
-    rows = []
-    for name in (family or ORDER):
-        rows += rules[name](root)
+def gather(root, family, ran_rules=None):
+    """The rows of the groups asked (all when None), each rule function run once. A function that raises gives UNREAD
+    rows for its rules; ran_rules (a set) collects the rules whose function ran."""
+    asked = family or ORDER
+    funcs, done, rows = rule_functions(), {}, []
+    for name in asked:
+        if name == "mine":
+            rows += mine_rows(root)
+            continue
+        if name == "controls":
+            rows += controls_rows(root)
+            continue
+        for rule in G.RULES_OF[name]:
+            fn = funcs.get(rule)
+            if fn is None:
+                rows.append(row("UNREAD", name, rule, rule, "no function checks this rule", "install the whole skill"))
+                continue
+            if fn not in done:
+                try:
+                    done[fn] = [placed(item) for item in fn(root)]
+                except Exception as error:  # a broken rule is unread, never a pass
+                    done[fn] = [row("UNREAD", name, rule, rule, "%s: %s" % (type(error).__name__, str(error)[:100]))]
+            if ran_rules is not None and not any(i["state"] == "UNREAD" and i["rule"] == rule for i in done[fn]):
+                ran_rules.add(rule)
+    for got in done.values():
+        rows += [item for item in got if item["family"] in asked]
     return rows
 
 
 def groups_of(text):
     """Group names from a --group value (performance is cost), or None for all."""
-    names = [{"performance": "cost"}.get(n.strip(), n.strip()) for n in (text or "").split(",") if n.strip()]
+    names = [G.ALIASES.get(n.strip(), n.strip()) for n in (text or "").split(",") if n.strip()]
     bad = [n for n in names if n not in FAMILY]
     if bad:
         sys.exit("REFUSED: unknown group %s. Groups: %s." % (", ".join(bad), ", ".join(NAMES)))
     return list(dict.fromkeys(names)) or None  # a repeated name (cost,performance) runs once
 
 
-def report(rows, asked=None):
+def report(rows, asked=None, ran_rules=None):
     """The formal report from report.py; a lone health.py prints the bare rows and a verdict."""
     formal = sibling_module("report")
     if formal:
-        built = formal.build(rows, asked)
+        built = formal.build(rows, asked, ran_rules)
         return built[:4] + (built[6],)  # the rows the report shows, so --json rows agree with its counts
     counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
     green = not counts["FAIL"] and not counts["UNREAD"]
@@ -271,7 +301,9 @@ def cmd_check(args):
     if asked == []:
         print("REFUSED: --skip leaves no group to check")
         return 2
-    text, counts, green, verdict, rows = report(gather(root, asked), asked)
+    T0[0] = T0[0] or time.time()
+    ran = set()
+    text, counts, green, verdict, rows = report(gather(root, asked, ran), asked, ran)
     if args.json:
         print(json.dumps({"green": green, "counts": counts, "rows": rows, "verdict": verdict}, indent=2))
     else:

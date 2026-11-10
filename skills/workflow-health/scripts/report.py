@@ -1,55 +1,46 @@
-"""The formal health report: pure formatting, no I/O. Used by health.py check and judge.
+"""The formal health report: pure formatting, no I/O. Used by health.py check, judge and review.
 
-The report is a header naming every group run and any skipped, each group in a fixed order with every rule it checked
-(PASS, WARN, FAIL or UNREAD, a fix on each line that is not a pass), then one verdict. A rule that gave no row is a
-pass only when its group ran; a rule that could not read its data is UNREAD, never a pass. The Cost group is shown
-as performance. Internal family names (cost) are unchanged: only the display differs.
+A header naming every group run and any skipped, then each group in the fixed order (groups.py) under a heading that
+states its angle, with every rule it checked (PASS, WARN, FAIL or UNREAD, a fix on each line that is not a pass), then
+one verdict. A rule that gave no row passes only when its function ran; a rule whose source could not be read, or whose
+function did not run, is UNREAD, never a pass (HLT-3).
 """
+import groups as G
 
-ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine", "controls")  # the fixed order of the groups in the report
-SHOWN = {"cost": "performance", "mine": "Mine"}
-LINE = {"cost": "performance"}  # a line names its group; only Cost is renamed
-# The rules each group checks. A row's rule label says which of them it speaks for (RULE_OF); a rule with no row passes.
-RULES = {"size": ("limit",), "criteria": ("rows", "done-lines", "defect-tests"), "docs": ("check",),
-         "hygiene": ("findings", "waiting", "branches", "test-time", "worktrees", "local-branches"), "cost": ("cost",), "mine": (),
-         "controls": ()}
-RULE_OF = {"sync": "rows", "proof": "rows", "stale": "check", "missing": "check", "open": "findings", "run": "waiting",
-           "merged": "branches", "branch": "branches", "time": "cost", "tokens": "cost"}
+ORDER = G.ORDER
+RULES = dict(G.RULES_OF)
+SOURCE = {"rows": "sync", "proof": "sync", "done": "sync", "seen-red": "sync"}  # rules read from one source
 
 
 def shown(name):
-    return SHOWN.get(name, name)
-
-
-SHARED = {("criteria", "rows"): ("done-lines",)}  # rules read from the same source: an unread source reads none of them
+    return G.TITLE.get(name, name)
 
 
 def rule_of(item):
-    if item["family"] in ("docs", "size"):  # one rule each: every row of the group speaks for it
-        return RULES[item["family"]][0]
-    if item["family"] == "criteria" and item["subject"] == "done-lines":
-        return "done-lines"
-    return RULE_OF.get(item["rule"], item["rule"])
+    return G.rule_of(item)
 
 
 def line_of(item):
-    text = "%s %s %s %s: %s" % (item["state"], LINE.get(item["family"], item["family"]), item["subject"], item["rule"], item["detail"])
+    text = "%s %s %s %s: %s" % (item["state"], item["family"], item["subject"], item["rule"], item["detail"])
     return text + (" -> fix: " + item["fix"] if item["fix"] else "")
 
 
-def complete(rows, ran):
-    """Rows plus a row for each rule of a group that ran and gave none: PASS, or UNREAD when its source could not be read."""
+def complete(rows, ran, ran_rules=None):
+    """Rows plus one for each rule of a group that ran and gave none: PASS when its function ran, UNREAD when its source
+    could not be read or it did not run."""
     out = list(rows)
+    blind = {SOURCE[rule_of(item)] for item in rows if item["state"] == "UNREAD" and rule_of(item) in SOURCE}
     for name in ran:
         seen = {rule_of(item) for item in rows if item["family"] == name}
-        unread = {r for item in rows if item["family"] == name and item["state"] == "UNREAD"
-                  for r in SHARED.get((name, rule_of(item)), ())}
-        for rule in RULES[name]:
+        for rule in RULES.get(name, ()):
             if rule in seen:
                 continue
-            if rule in unread:
+            if SOURCE.get(rule) in blind:
                 out.append({"state": "UNREAD", "family": name, "subject": rule, "rule": rule,
                             "detail": "its source could not be read", "fix": "see the UNREAD line above"})
+            elif ran_rules is not None and rule not in ran_rules:
+                out.append({"state": "UNREAD", "family": name, "subject": rule, "rule": rule,
+                            "detail": "the rule did not run", "fix": "see the error above"})
             else:
                 out.append({"state": "PASS", "family": name, "subject": rule, "rule": rule, "detail": "no problem found", "fix": ""})
     return out
@@ -69,10 +60,10 @@ def groups(rows, asked):
     return ran, skipped
 
 
-def build(rows, asked=None):
-    """(lines, counts, green, verdict, ran, skipped) for the fixed template."""
+def build(rows, asked=None, ran_rules=None):
+    """(lines, counts, green, verdict, ran, skipped, rows) for the fixed template."""
     ran, skipped = groups(rows, asked)
-    rows = complete(rows, [name for name in ran if name != "mine"])
+    rows = complete(rows, [name for name in ran if name != "mine"], ran_rules)
     counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
     green = not counts["FAIL"] and not counts["UNREAD"]
     verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % (
@@ -83,6 +74,6 @@ def build(rows, asked=None):
     for name in ORDER:
         group = [item for item in rows if item["family"] == name]
         if group:
-            out.append("== %s%s ==" % (shown(name), " (skipped)" if name not in ran else ""))
+            out.append(G.heading(name, name not in ran))
             out += [line_of(item) for item in group]
     return out + [verdict], counts, green, verdict, [shown(n) for n in ran], [shown(n) for n, _ in skipped], rows
