@@ -874,6 +874,8 @@ The run stopped at its final gate (gate_rev 1, rec_hash 12d0ddc2af1a), which thi
 d1 nightly read-trace check (recommended: build it), d2 defer batching rows per script, d3 defer no-effect docs,
 d4 include LANES_WIDE and `--why`, d5 computed lanes-repo-narrow, d6 no hard runtime threshold, p1 plan approval
 (pending). The build follows the recommendations unless the owner replies otherwise.
+Answered 2026-11-09: the owner approved the plan in the operation session, which relayed their words: "Approve the
+barrow rows" (voice typing for "narrow-rows"). p1 is approved; d1-d6 take the recommendations.
 Cycle: 29 min (CEO 13, DX 6, Eng 10). Coverage: CEO, DX and Eng each had a completed native reviewer and a completed
 Codex outside voice (gpt-6-astra); design skipped (no UI scope).
 
@@ -881,15 +883,15 @@ Codex outside voice (gpt-6-astra); design skipped (no UI scope).
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
-| CEO Review | `/plan-ceo-review` (via /autoplan) | Scope & strategy | 1 | ISSUES OPEN (not logged: gate unapproved) | 5 proposals, 1 accepted, 2 deferred; 4 more accepted from dual voices |
+| CEO Review | `/plan-ceo-review` (via /autoplan) | Scope & strategy | 1 | CLEAR (gate approved 2026-11-09) | 5 proposals, 1 accepted, 2 deferred; 4 more accepted from dual voices |
 | Outside Review | codex (gpt-6-astra), CEO/DX/Eng | Independent 2nd opinion | 3 | completed | 22 findings; all resolved or recorded as taste decisions |
-| Eng Review | `/plan-eng-review` (via /autoplan) | Architecture & tests (required) | 1 | ISSUES OPEN (not logged: gate unapproved) | 10 issues, 0 critical gaps |
+| Eng Review | `/plan-eng-review` (via /autoplan) | Architecture & tests (required) | 1 | CLEAR (gate approved 2026-11-09) | 10 issues, 0 critical gaps |
 | Design Review | `/plan-design-review` | UI/UX gaps | 0 | skipped (no UI scope) | — |
-| DX Review | `/plan-devex-review` (via /autoplan) | Developer experience gaps | 1 | ISSUES OPEN (not logged: gate unapproved) | score 4/10 → 7/10, TTHW none → ~3 min |
+| DX Review | `/plan-devex-review` (via /autoplan) | Developer experience gaps | 1 | CLEAR (gate approved 2026-11-09) | score 4/10 → 7/10, TTHW none → ~3 min |
 
 - **OUTSIDE COVERAGE:** codex completed in CEO (6 findings), DX (8) and Eng (8); design phase skipped.
 - **CROSS-MODEL:** CEO 4/6 confirmed (disagreements: rival cost cause, template adopters); DX 6/6; Eng 5/6 (security covered by native only).
-- **VERDICT:** no review CLEAR until the owner answers the gate; eng review required.
+- **VERDICT:** gate answered 2026-11-09 (p1 approved, d1-d6 as recommended); eng review required and done.
 
 **UNRESOLVED DECISIONS:**
-- p1: plan approval (owner gate, gate_rev 1)
+- none: p1 (plan approval, gate_rev 1) approved 2026-11-09, "Approve the barrow rows" (voice typing for "narrow-rows").
