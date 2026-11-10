@@ -81,8 +81,8 @@ def wire(repo, dry=False):
                 raw = handle.read()
         except OSError:
             raw = ""
-        if (OPEN in raw) != (CLOSE in raw) or (OPEN in raw and raw.index(CLOSE) < raw.index(OPEN)):
-            refused.append("REFUSED: %s has one workflow-loop marker without the other (AGENTS_MARKER). Fix: remove the "
+        if (OPEN in raw or CLOSE in raw) and (raw.count(OPEN) != 1 or raw.count(CLOSE) != 1 or raw.index(CLOSE) < raw.index(OPEN)):
+            refused.append("REFUSED: %s has a stray workflow-loop marker (AGENTS_MARKER). Fix: remove the "
                            "stray marker, then run agents.py wire again" % name)
             continue
         new = wired(raw, text)

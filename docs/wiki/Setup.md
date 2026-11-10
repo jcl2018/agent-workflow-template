@@ -28,7 +28,7 @@ Skill: `workflow-setup`. Adopts a repo into this template's format: loop config,
       PREVIEW: nothing written. Ask for workflow-setup update to apply
 
 - `/workflow-setup update --propose` previews an issue proposing each LOCAL FIX back to the template (the diff and the version it was made on, never the repo's name); `--file-issue` files it once. The live board lists each governed repo whose `template_version` is older than your installed skills, with the fix.
-- `/workflow-docs entry` writes `.loop/START.md` (`check` says whether it is stale); `/workflow-setup agents` writes the same workflow-loop block into CLAUDE.md and AGENTS.md (`agent_files` picks the files; `[]` turns it off). Setup does both.
+- `/workflow-docs entry` writes `.loop/START.md` (`check` says whether it is stale); `/workflow-setup agents` writes the same workflow-loop block into CLAUDE.md and AGENTS.md (`agent_files` picks the files; `[]` turns it off; a file with a stray or second marker is refused, never rewritten). Setup does both.
 
 ## Requirements
 

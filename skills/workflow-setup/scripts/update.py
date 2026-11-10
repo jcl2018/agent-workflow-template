@@ -303,7 +303,8 @@ def main():
             apply_skills(skills, manifest, read, old, fixes, args.take, where)
         # The repo half runs the sync.py just written, so the new version's settings and rules apply, not this run's.
         new = os.path.join(skills, "workflow-setup", "scripts", "sync.py")
-        if repo and os.path.isfile(new):
+        if repo and os.path.isfile(new) and "workflow-setup/scripts/sync.py" not in set(fixes) - set(args.take):
+            sys.stdout.flush()
             return subprocess.run([sys.executable, new, "--repo", repo, "--version", target, "--wrote-skills"]).returncode
     return sync.apply_repo(repo, base_cfg, target, wrote) if repo else 0
 
