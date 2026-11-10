@@ -43,6 +43,9 @@ judge   (alias: suggest)
   tests and savings as candidate goals, then ranked next steps. It asks `judge_command` from `.loop/config.json` and
   reads only tagged lines (`CRITERION`, `TEST`, `SAVES`); any failure prints `JUDGE UNAVAILABLE`. It never changes the
   verdict or the exit code, and `check` itself calls no model.
+- The full `check` and `judge` reports print a `TESTS` block just before the `HEALTH:` line: every test, grouped by
+  feature, in workflow-regression's one test format (`tests.py list`). It never changes the verdict, and it is left out
+  for a single group and for `--json`.
 
 - `preview` lists exactly what `file` would do: each issue it would open, update, close or reopen, with its
   `health:<group>` tag. It has no write path, even with a token. With no `--group` it covers every group except `mine`;

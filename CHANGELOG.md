@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.16.0 - 2026-11-10
+
+- fix: rows never write into the real GitHub run summary (issue 92)
+- feat: every test in one format grouped by feature, in the run summary, the wiki and the health report
+- docs: REG-2 in the owner's approved words (2026-11-08), rows proven failing once
+- test: REG-2 wording and row descriptions seen failing once
+- docs: tests.py, the grouped run summary and the row environment in the regression skill and page
+- test: record the new rows' results; PRD scenarios show them
+- fix: pre-landing review fixes (package heading, summary step isolation, bytecode, criteria row env, issue-state churn, nan)
+- test: review rows seen failing once, results recorded
+- docs: the health page says the full report lists the tests before its verdict
+- docs: the documentation page describes the Tests line fields
+- fix: review pass 2 (issue refresh time limit, pull-requests read, issues file kept whole, raw tsv, broken tests.py falls back)
+- docs: the regression page states the row environment's limit and the issue-state refresh
+- docs: the documentation page says what happens without tests.py
+- Merge remote-tracking branch 'origin/main' into loop/regression-summary
+- fix: keep the regression SKILL.md under 150 lines; tests.py detail moves to its references (issue 116 rule)
+- test: coverage for local row env, tsv, empty list, unknown result, no-row issue refresh and health fallbacks
+- test: coverage rows seen failing once, results recorded
+- fix: ship review (issue refresh fits the time left, started is a number, older tests.py falls back, own temp name per writer, no table escaping in wiki lines)
+- Merge remote-tracking branch 'origin/main' into loop/regression-summary
+- docs: the regression page says the issue refresh fits the time left
+- docs: the documentation page covers a too-old tests.py
+- fix: only tests.py issues --write records issue states; a live run no longer dirties the checkout (ship review pass 2)
+- docs: the regression page says only the issues command records issue states
+- docs: references describe the Tests line kind and guards, the health TESTS block, the issue-state rule and .loop/regression-issues.tsv
+- Wiki: update pages for regression-summary
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.15.0 - 2026-11-10
 
 - reply-hook: a Stop hook keeps the operation session's reply format; setup.py --reply-hook installs it; MON-5 proposed Unreviewed

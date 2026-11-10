@@ -96,7 +96,9 @@
     "update",
     "owed",
     "convert",
-    "skeleton"
+    "skeleton",
+    "summary",
+    "issues"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
