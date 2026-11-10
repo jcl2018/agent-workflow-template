@@ -6,9 +6,9 @@
 # reads: skills/workflow-release/scripts/wiki.py skills/workflow-setup/scripts/setup.py
 # reads: skills/workflow-release/SKILL.md skills/workflow-release/references/commands.md
 # The release half of delivery-prd (DEL-5, DEL-9, issues 129, 134, 154, 170) on a throwaway toy repo, with a
-# test-local gh shim around dev/toy/fakegh and a pre-receive hook in the toy origin that stands in for a protected main.
+# test-local gh shim (dev/toy/release-gh.py) around dev/toy/fakegh and a pre-receive hook in the toy origin that stands in for a protected main.
 # usage: test-delivery-release.sh [CASE]   CASE: patch removed bump protected rules review pending nomatch crash
-#        private wikiname firstpage docs (default: all). Prints PASS:/FAIL: lines; exits non-zero on any FAIL.
+#        dirty mismatch exists latebump private wikiname firstpage docs (default: all). Prints PASS:/FAIL: lines; exits non-zero on any FAIL.
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_BATCH LOOP_PRIVATE_NAMES TOY_PROTECT TOY_PR_MODE
 set -u
 export LOOP_ROLE=worker
@@ -19,62 +19,7 @@ d=$(mktemp -d); toy_on_exit 'rm -rf "$d" "$HOME"'
 "$here/dev/toy/make.sh" "$d" >/dev/null || { echo "FAIL: toy repo"; exit 1; }
 export LOOP_FLOW="$d/flow.json" FAKE_GH_DIR="$d/gh" FAKE_GH_ORIGIN="$d/origin.git" TOY_FAKEGH="$here/dev/toy/fakegh/gh"
 mkdir -p "$d/shim" "$d/gh"
-cat > "$d/shim/gh.py" <<'PY'
-"""Test-local gh: the release PR, the rules endpoint and releases. Everything else goes to dev/toy/fakegh."""
-import json, os, subprocess, sys, tempfile
-d, a = os.environ["FAKE_GH_DIR"], sys.argv[1:]
-def log(): open(os.path.join(d, "calls.log"), "a").write(" ".join(a) + "\n")
-def flag(n): return a[a.index(n) + 1] if n in a else None
-def load(n):
-    try: return json.load(open(os.path.join(d, n)))
-    except (OSError, ValueError): return {} if n == "rpr.json" else []
-def save(n, v): json.dump(v, open(os.path.join(d, n), "w"))
-def out(v): print(json.dumps(v)); sys.exit(0)
-def real(): os.execvp(os.environ["TOY_FAKEGH"], [os.environ["TOY_FAKEGH"]] + a)
-if a[:1] == ["api"] and "/rules/branches/" in a[1]:
-    log()
-    if os.path.exists(os.path.join(d, "rules.json")): print(open(os.path.join(d, "rules.json")).read()); sys.exit(0)
-    sys.exit(print("gh: Not Found (HTTP 404)", file=sys.stderr) or 1)
-prs = load("rpr.json")
-if a[:2] == ["pr", "create"] and (flag("--head") or "").startswith("release/"):
-    log(); n = str(101 + len(prs))
-    prs[n] = {"number": int(n), "url": "https://example.test/pull/" + n, "head": flag("--head"), "title": flag("--title"),
-              "body": flag("--body"), "state": "OPEN", "mergeStateStatus": "CLEAN", "reviewDecision": "", "statusCheckRollup": []}
-    save("rpr.json", prs); print(prs[n]["url"]); sys.exit(0)
-if a[:1] == ["pr"] and len(a) > 2 and a[1] in ("view", "merge", "close"):
-    key = a[2].rstrip("/").split("/")[-1]
-    pr = prs.get(key) or next((p for p in prs.values() if p["head"] == a[2] and p["state"] == "OPEN"), None)
-    if not pr:
-        if a[1] == "merge": os.environ["TOY_SERVER_MERGE"] = "1"
-        real()
-    log()
-    if a[1] == "view": out({k: pr.get(k) for k in ("state", "mergeStateStatus", "reviewDecision", "mergeCommit", "statusCheckRollup", "url", "number")})
-    if a[1] == "close": pr["state"] = "CLOSED"
-    elif "--admin" in a: sys.exit("no --admin in a test")
-    else:
-        mode = os.environ.get("TOY_PR_MODE", "ok")
-        if mode == "review": pr.update(mergeStateStatus="BLOCKED", reviewDecision="REVIEW_REQUIRED")
-        elif mode == "pending": pr.update(mergeStateStatus="BLOCKED", statusCheckRollup=[{"status": "IN_PROGRESS"}])
-        else:
-            t = tempfile.mkdtemp(); env = dict(os.environ, TOY_SERVER_MERGE="1")
-            sh = lambda *c: subprocess.run(list(c), cwd=t, env=env, capture_output=True, text=True, check=True).stdout.strip()
-            sh("git", "clone", "-q", os.environ["FAKE_GH_ORIGIN"], ".")
-            sh("git", "-c", "user.email=t@example.test", "-c", "user.name=Toy", "merge", "-q", "--no-ff", "--no-edit", "origin/" + pr["head"])
-            sh("git", "push", "-q", "origin", "HEAD:main")
-            pr.update(state="MERGED", mergeCommit={"oid": sh("git", "rev-parse", "HEAD")})
-    save("rpr.json", prs)
-    sys.exit(0 if pr["state"] != "OPEN" else print("merge blocked", file=sys.stderr) or 1)
-if a[:2] == ["release", "create"]:
-    log(); rel = load("releases.json"); rel.append({"tag": a[2], "target": flag("--target")}); save("releases.json", rel)
-    if os.environ.get("TOY_CRASH_CREATE") and not os.path.exists(os.path.join(d, "crashed")):
-        open(os.path.join(d, "crashed"), "w").close(); sys.exit("connection reset after create")
-    print("https://example.test/releases/" + a[2]); sys.exit(0)
-if a[:2] == ["release", "view"]:
-    log(); found = [r for r in load("releases.json") if r["tag"] == a[2]]
-    if found: out({"targetCommitish": found[0]["target"], "url": "https://example.test/releases/" + a[2]})
-    sys.exit(print("release not found", file=sys.stderr) or 1)
-real()
-PY
+cp "$here/dev/toy/release-gh.py" "$d/shim/gh.py"  # the test-local gh shim
 printf '#!/bin/bash\nexec python3 "%s/shim/gh.py" "$@"\n' "$d" > "$d/shim/gh"; chmod +x "$d/shim/gh"
 export PATH="$d/shim:$PATH"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
@@ -228,6 +173,46 @@ if want crash; then
   out=$(PRS=MERGED merge crsh); echo "$out" | tail -2
   grep -q "^ADOPTED" <<<"$out" && grep -q "^RELEASED v$x" <<<"$out" && [ "$(releases "v$x")" = 1 ] \
     && ok "DEL-5: a crash after release create is adopted on the rerun, one release" || bad "DEL-5: crash adopted"
+fi
+
+if want dirty; then
+  echo "== DEL-5: a release PR behind a moved VERSION is closed and restarted once"
+  finish drty; x=$(bumped "$(remote_file VERSION)" patch)
+  out=$(TOY_PROTECT=1 TOY_PR_MODE=dirty merge drty); echo "$out" | tail -2
+  first=$(grep -m1 "^pr close " "$d/gh/calls.log")
+  grep -q "^RESTART the release pull request: .*behind the base" <<<"$out" && [ -n "$first" ] && grep -q "^RELEASED v$x" <<<"$out" \
+    && [ "$(releases "v$x")" = 1 ] && ok "DEL-5: a conflicting release PR is closed and restarted once, one release" || bad "DEL-5: dirty restart"
+fi
+
+if want mismatch; then
+  echo "== DEL-5: a merged release PR whose VERSION is not vX makes no release"
+  finish mism; x=$(bumped "$(remote_file VERSION)" patch)
+  out=$(TOY_PROTECT=1 TOY_PR_MODE=mismatch merge mism); rc=$?; echo "$out" | tail -1
+  [ $rc -ne 0 ] && grep -q "(RELEASE_VERSION_MISMATCH)" <<<"$(state mism release_error)" && [ "$(releases "v$x")" = 0 ] \
+    && ok "DEL-5: VERSION mismatch at the merge commit records RELEASE_VERSION_MISMATCH, no release" || bad "DEL-5: mismatch"
+  git switch -q main; git pull -q origin main; echo "$x" > VERSION; git commit -qam "VERSION by hand"; TOY_SERVER_MERGE=1 git push -q origin main
+  out=$(TOY_PROTECT=1 PRS=MERGED merge mism); echo "$out" | tail -1
+  grep -q "^RELEASED v$x" <<<"$out" && [ "$(releases "v$x" "$(origin_main)")" = 1 ] \
+    && ok "DEL-5: after the owner sets VERSION on the base, the rerun releases at its tip" || bad "DEL-5: mismatch fix"
+fi
+
+if want exists; then
+  echo "== DEL-5: a release vX made elsewhere is never replaced"
+  finish exst; x=$(bumped "$(remote_file VERSION)" patch)
+  python3 -c "import json,os,sys;p='$d/gh/releases.json';r=json.load(open(p)) if os.path.exists(p) else [];r.append({'tag':'v$x','target':'0000000'});json.dump(r,open(p,'w'))"
+  out=$(merge exst); rc=$?; echo "$out" | tail -1
+  [ $rc -ne 0 ] && grep -q "(RELEASE_EXISTS)" <<<"$(state exst release_error)" && [ "$(releases "v$x")" = 1 ] && [ "$(releases "v$x" 0000000)" = 1 ] \
+    && ok "DEL-5: an existing release vX at another commit records RELEASE_EXISTS and stays the only one" || bad "DEL-5: exists"
+fi
+
+if want latebump; then
+  echo "== DEL-5: a bump set after a refused merge.py still binds"
+  finish late "# owner: late-secret-zz"; list "late-secret-zz"; merge late >/dev/null
+  rm -f "$HOME/.workflow-loop/private-names"; v=$(remote_file VERSION)
+  python3 -c "import json,os;p='$R/late.extra.json';x=json.load(open(p)) if os.path.exists(p) else {};x.setdefault('set',{})['bump']='minor';json.dump(x,open(p,'w'))"
+  out=$(merge late); echo "$out" | tail -1
+  [ "$(state late release_part)" = minor ] && [ "$(remote_file VERSION)" = "$(bumped "$v" minor)" ] \
+    && ok "DEL-5: goal.py set --bump after a refused merge.py releases the bump set" || bad "DEL-5: late bump"
 fi
 
 if want private; then

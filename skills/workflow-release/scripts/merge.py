@@ -44,9 +44,13 @@ def missing_ids(top, cfg):
         cells = line[1:].split("\t") if line.startswith("+") and not line.startswith("+++") else []
         if len(cells) > 3 and (cells[6:7] in ([], [""], ["criterion"])) and re.match(r"^[A-Z]{2,5}-\d+$", cells[3]):
             ids.add(cells[3])
+    if not ids:
+        return [], []
     names = run(["git", "ls-tree", "--name-only", base, folder + "/"], cwd=top).stdout.split()
     text = "\n".join(run(["git", "show", "%s:%s" % (base, name)], cwd=top).stdout for name in names if name.endswith(".md"))
-    gone = sorted(i for i in ids if not re.search(r"\b%s\b" % re.escape(i), text))
+    mine = run(["git", "ls-tree", "--name-only", "HEAD", folder + "/"], cwd=top).stdout.split()  # a page this goal adds or edits counts too
+    own = "\n".join(run(["git", "show", "HEAD:" + name], cwd=top).stdout for name in mine if name.endswith(".md"))
+    gone = sorted(i for i in ids if not re.search(r"\b%s\b" % re.escape(i), text + "\n" + own))
     held = [i for i in gone if names and re.search(r"\b%s\d+\b" % re.escape(i.split("-")[0] + "-"), text)]
     return held, [i for i in gone if i not in held]
 

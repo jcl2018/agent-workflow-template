@@ -5,7 +5,8 @@ live_board.py; not run.
   line(run, cfg, at, runs)  budget: 35m of 120m, 0.4M of 3.0M tokens[, OVER time][, OVER tokens]
                             "budget: none set" when both halves are 0; only the set half when one is 0
   depth(run, setting, runs) "condensed (small: 1 done line, one area)": the depth the goal is held to, and why
-  issues(root, runs)        a missing private-name list, and each finding a scan kept local (finding_error)
+  issues(root, runs)        a missing private-name list, each finding a scan kept local (finding_error) and each
+                            release pull request waiting on its checks (release_pr_waiting)
 
 Time is the sum of board_status.seconds_by_step(run, at) and tokens are fit.spent_tokens(run): the same numbers health's
 cost rule reads. The budget is the one the goal carries (even 0), else the repo settings (fit.budget), with the owner's
@@ -88,6 +89,10 @@ def issues(root, runs=()):
         out += ["- no private-name list: nothing is scanned (create %s; a file holding only comments says off on purpose)" % SHOWN,
                 "    fix: write one pattern per line to %s (or point $LOOP_PRIVATE_NAMES at a file)" % SHOWN]
     for run in runs:
+        wait = " ".join(str(run.get("release_pr_waiting") or "").split())
+        if wait and not run.get("release_url"):  # nothing reruns merge.py by itself once the goal's PR merged
+            out += ["- %s: the release pull request waits: %s" % (run["slug"], wait[:200]),
+                    "    fix: run merge.py %s again once its checks pass; it merges the release PR and creates the release" % run["slug"]]
         text = " ".join(str(run.get("finding_error") or "").split())
         if text:
             said, _, fix = text.partition(". Fix: ")

@@ -122,6 +122,9 @@ if want issues; then
   board
   check "a private-name list holding only comments hides the issue" '! issues | grep -q "no private-name list"'
   rm -rf "$HOME/.workflow-loop"
+  edit i1 "s.update(release_pr_waiting='checks pending on https://example.test/pull/7 (#7)')"
+  board
+  check "a release pull request waiting on its checks shows under Issues with the merge.py fix" 'issues | grep -q -- "- i1: the release pull request waits: checks pending on https://example.test/pull/7 (#7) fix: run merge.py i1 again"'
   LOOP_PRIVATE_NAMES="$d/names" board
   check "an unset list named by LOOP_PRIVATE_NAMES still shows the issue" 'issues | grep -q "no private-name list"'
 fi

@@ -21,7 +21,7 @@ show SLUG
   `gh api repos/{owner}/{repo}/rules/branches/<base>`, or a push refused with GH006, GH013, "protected branch", "through
   a pull request" or "rule violations") it goes through a release PR: branch `release/vX-<slug>`, title
   `Release vX (<slug>)`, the release notes as its body. The loop merges it itself with `gh pr merge --merge`, never
-  `--admin`; pending checks wait (`release_pr_waiting`, the next `merge` retries); a required review records
+  `--admin`; pending checks wait (`release_pr_waiting`, shown under the board's Issues; the next `merge` retries); a required review records
   `RELEASE_PR_BLOCKED` with your command. The release targets the release PR's merge commit. Any other push refusal
   keeps the three tries. Before merging it scans the branch and release notes for private names.
 - Bump rule: patch by default; minor or major only when the operation recorded the goal's bump with

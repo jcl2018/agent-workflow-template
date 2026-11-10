@@ -139,7 +139,9 @@ def stage_notes(top, state, cfg):
 
 
 def stage_part(top, state):
-    if not state.get("release_part"):
+    """The bump, read again on every run until the release commit exists, so a goal.py set --bump after a refused
+    merge.py still binds."""
+    if not state.get("release_part") or not (state.get("release_pushed") or state.get("release_pr")):
         state["release_part"], state["release_reason"] = need_of(top, state)
         release.save(state)
 

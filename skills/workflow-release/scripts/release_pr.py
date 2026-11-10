@@ -88,6 +88,10 @@ def advance(top, cfg, state, again=False):
         oid = (seen.get("mergeCommit") or {}).get("oid") or ""
         autorelease.sh(["git", "fetch", "-q", "origin", cfg.get("base", "main")], cwd=top)
         found = autorelease.sh(["git", "show", "%s:%s" % (oid, cfg.get("version_file") or "VERSION")], cwd=top)
+        if oid and found.stdout.strip() != version:  # the owner set VERSION on the base by hand: release at its tip
+            tip = autorelease.sh(["git", "rev-parse", "origin/" + cfg.get("base", "main")], cwd=top).stdout.strip()
+            fixed = autorelease.sh(["git", "show", "origin/%s:%s" % (cfg.get("base", "main"), cfg.get("version_file") or "VERSION")], cwd=top)
+            oid, found = (tip, fixed) if tip and fixed.stdout.strip() == version else (oid, found)
         if not oid or found.stdout.strip() != version:
             autorelease.fail(state, "the release PR %s merged, but VERSION at its merge commit %s is %r, not %s; no "
                              "release was created. Fix: set VERSION on the base by hand, then run merge.py %s "
