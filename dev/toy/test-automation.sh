@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/
 # Test the Automation routines with a stub gh: the digest, defect labels, the off switch, the judge gate. usage: test-automation.sh
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
@@ -213,6 +214,22 @@ import sys
 sys.path.insert(0, sys.argv[1] + "/skills/workflow-regression/scripts"); import actions
 text = open(sys.argv[1] + "/.github/workflows/regression.yml").read()
 assert "if k not in %r}" % (actions.ROW_DROP,) in text and "env=actions.row_env()" in open(sys.argv[1] + "/skills/workflow-regression/scripts/regression.py").read()
+PY
+
+python3 - "$here" <<'PY' && ok "judge_setup runs without the agent key; a non-string judge_env or digest_owner is refused or named, not a crash" || bad "review fixes"
+import sys, types
+sys.path.insert(0, sys.argv[1] + "/skills/workflow-health/scripts"); import automation
+text = open(sys.argv[1] + "/.github/workflows/health.yml").read()
+assert 'env -u ANTHROPIC_API_KEY sh -c "$setup"' in text
+automation.config = lambda root: {"judge_env": 5}
+try:
+    automation.settings(".")
+except SystemExit as e:
+    assert str(e).startswith("REFUSED"), e
+else:
+    raise AssertionError("no refusal")
+login, note = automation.owner_of(types.SimpleNamespace(owner=None), {"digest_owner": 5})
+assert login == "" and note.startswith("No owner"), (login, note)
 PY
 
 echo "== $pass passed, $fail failed"

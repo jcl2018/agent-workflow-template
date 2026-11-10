@@ -97,7 +97,7 @@ jobs:
           set -o pipefail
           if [ -z "$ANTHROPIC_API_KEY" ]; then echo "JUDGE: skipped, no @SECRET@ secret is set." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
           setup=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("judge_setup") or "")')
-          [ -z "$setup" ] || sh -c "$setup"
+          [ -z "$setup" ] || env -u ANTHROPIC_API_KEY sh -c "$setup"
           prog=$(python3 -c 'import json; c = json.load(open(".loop/config.json")).get("judge_command"); print(c[0] if isinstance(c, list) and c else "")')
           if [ -z "$prog" ] || ! command -v "$prog" >/dev/null; then
             echo "JUDGE: skipped, the runner has no ${prog:-judge_command}; set judge_setup in .loop/config.json." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
@@ -134,7 +134,7 @@ def settings(root):
     cron, secret = cfg.get("health_cron") or CRON, cfg.get("judge_env") or KEY_NAME
     if cron != "off" and not (isinstance(cron, str) and re.fullmatch(r"[0-9A-Za-z*/,\- ]+", cron) and len(cron.split()) == 5):
         sys.exit("REFUSED: health_cron is not five cron fields or off. Fix: edit .loop/config.json.")
-    if not re.match(r"^[A-Z_][A-Z0-9_]*$", secret):
+    if not isinstance(secret, str) or not re.fullmatch(r"[A-Z_][A-Z0-9_]*", secret):
         sys.exit("REFUSED: judge_env %r is not a secret name (capitals, digits, _). Fix: edit .loop/config.json." % secret)
     return cron, secret
 
@@ -183,7 +183,7 @@ def owner_of(args, cfg):
     login = args.owner or cfg.get("digest_owner") or os.environ.get("DIGEST_REPO_OWNER") or ""
     if not login:
         login = gh("repo", "view", "--json", "owner", "-q", ".owner.login").stdout.strip()
-    if not re.match(r"^[A-Za-z0-9-]{1,39}$", login):
+    if not isinstance(login, str) or not re.fullmatch(r"[A-Za-z0-9-]{1,39}", login):
         return "", "No owner to mention: set digest_owner in .loop/config.json."
     kind = gh("api", "users/" + login, "-q", ".type").stdout.strip()
     if kind == "Organization":

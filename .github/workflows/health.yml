@@ -65,7 +65,7 @@ jobs:
           set -o pipefail
           if [ -z "$ANTHROPIC_API_KEY" ]; then echo "JUDGE: skipped, no ANTHROPIC_API_KEY secret is set." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
           setup=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("judge_setup") or "")')
-          [ -z "$setup" ] || sh -c "$setup"
+          [ -z "$setup" ] || env -u ANTHROPIC_API_KEY sh -c "$setup"
           prog=$(python3 -c 'import json; c = json.load(open(".loop/config.json")).get("judge_command"); print(c[0] if isinstance(c, list) and c else "")')
           if [ -z "$prog" ] || ! command -v "$prog" >/dev/null; then
             echo "JUDGE: skipped, the runner has no ${prog:-judge_command}; set judge_setup in .loop/config.json." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
