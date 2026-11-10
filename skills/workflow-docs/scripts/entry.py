@@ -121,7 +121,10 @@ def features(root, cfg):
         if not (section(text, "Problem") and re.search(r"^## Requirements", text, re.M)):
             continue
         mile = re.search(r"^Milestone:\s*(\S.*)$", text, re.M)
-        problem = " ".join(section(text, "Problem").split("\n\n")[0].split())
+        first = section(text, "Problem").split("\n\n")[0]
+        if first.startswith("- "):  # a Problem written as bullets: the first bullet says what the feature is for
+            first = re.split(r"\n(?=- )", first)[0][2:]
+        problem = " ".join(first.split())
         usage, items, code, blank = section(text, "Usage"), [], False, False
         for line in usage.splitlines():  # an indented block after a blank line is example output, never a sub-bullet
             code = bool(line.strip()) and re.match(r"^ {4}", line) is not None and (blank or code) or (code and not line.strip())

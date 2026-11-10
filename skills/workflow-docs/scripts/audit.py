@@ -7,7 +7,7 @@ It checks the pages against the template sheet (references/template.md), the cod
 Tests, rows not
 written as Given/When/Then, and which Reviewed requirements have no test or tests that no longer match), and the required docs (each feature
 page's Milestone line, the Backlog milestone, a release note per tag). It fixes the mechanical trouble itself (the
-Tests tables and a missing Milestone line) and prints the rest as REWRITE lines for a person or agent. It never
+Tests tables, the full Tests page and a missing Milestone line) and prints the rest as REWRITE lines for a person or agent. It never
 deletes a page and never changes a criterion's wording. --dry-run only says what it would fix. Exit 0 only when
 nothing is left. UNTESTED lines are written to untested.tsv (id, reason) in the repo's .git/loop folder for the loop to queue goals from, and
 do not fail the audit. It runs git and gh, and nothing else.
@@ -30,7 +30,7 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
-REWRITE = {"CAP", "SCRIPT", "STALE", "UNWRITTEN", "PROBLEM", "SECTIONS", "CRITERION", "NONGOALS", "METRICS", "REVIEW", "SCENARIO"}
+REWRITE = {"CAP", "SCRIPT", "STALE", "UNWRITTEN", "PROBLEM", "SECTIONS", "CRITERION", "NONGOALS", "METRICS", "REVIEW", "SCENARIO", "FORMAT"}
 TITLE = re.compile(r"^# .*$", re.M)
 
 
@@ -51,8 +51,19 @@ def milestone_line(text, label, url):
     return TITLE.sub(lambda m: "%s\n\n%s: %s" % (m.group(0), label, url), text, 1)
 
 
+def milestone_of(page, text, held, label):
+    """The url of the page's milestone: the one its own '<label>: <url>' line names (by url or number), else the one
+    titled like the page, hyphens read as spaces and case ignored; None when there is none."""
+    loose = lambda name: " ".join(name.replace("-", " ").lower().split())
+    line = re.search(r"^%s: (\S+)" % re.escape(label), text.partition("\n## ")[0], re.M)
+    if line:
+        number = re.search(r"/milestone/(\d+)/?$", line.group(1))
+        return next((url for url in held.values() if url == line.group(1) or (number and url.endswith("/milestone/" + number.group(1)))), None)
+    return held.get(page) or next((url for title, url in held.items() if loose(title) == loose(page)), None)
+
+
 def features(root):
-    return [page for page in sorted(docs.read_map(root)) if page != "Home"]
+    return docs.feature_pages(root)
 
 
 def milestone_trouble(root, fix):
@@ -68,12 +79,13 @@ def milestone_trouble(root, fix):
         rel = os.path.join(root, docs.wiki_dir(root), page + ".md")
         if not os.path.exists(rel):
             continue
-        if page not in held:
-            found.append(("MILESTONE", page, "no milestone. Fix: milestone.py new %s --live" % page))
-            continue
         with open(rel) as handle:
             text = handle.read()
-        fresh = milestone_line(text, label, held[page])
+        url = milestone_of(page, text, held, label)
+        if not url:
+            found.append(("MILESTONE", page, "no milestone. Fix: milestone.py new %s --live" % page))
+            continue
+        fresh = milestone_line(text, label, url)
         if fresh is not None:
             fixed.append("%s: add the %s line" % (page, label))
             if fix:
@@ -138,7 +150,7 @@ def render(check):
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         criteria.cmd_render(argparse.Namespace(check=check))
-    return [line.split(" ", 1)[1] for line in out.getvalue().splitlines() if line.startswith(("STALE ", "RENDERED "))]
+    return [line.split(" ", 1)[1] for line in out.getvalue().splitlines() if line.startswith(("STALE ", "WROTE "))]
 
 
 def audit(root, base, dry):
@@ -163,7 +175,7 @@ def audit(root, base, dry):
     found = [item for item in found if item[0] != "CHANGED"]  # Usage drift waits on the owner, not on a goal
     found += scenarios(root) if config_criteria(root) else []
     if dry:
-        found = [item for item in found if item[0] != "TESTS"]
+        found = [item for item in found if item[0] != "TESTS" and item[:2] != ("STALE", "Tests")]  # render fixes these
     for kind, page, detail in found:
         print("%s %s: %s" % ("REWRITE" if kind in REWRITE else kind, page, "%s %s" % (kind, detail) if kind in REWRITE else detail))
     todo = untested(root) if config_criteria(root) else []

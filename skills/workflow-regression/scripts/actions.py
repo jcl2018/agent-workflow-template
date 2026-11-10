@@ -114,6 +114,11 @@ jobs:
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           gh("label", "create", "defect", "--description", "A test that guards it is failing")  # an existing one keeps its colour
           guards = {cells[1]: cells for cells in rows(os.environ.get("REGRESSION_MAP") or os.devnull) if len(cells) > 4}
+          miles = gh("api", "repos/{owner}/{repo}/milestones?state=open&per_page=100")
+          try:  # a new issue goes on Backlog when the repo has one, never unmilestoned by choice
+              backlog = ["--milestone", "Backlog"] if "Backlog" in [m.get("title") for m in json.loads(miles.stdout)] else []
+          except (ValueError, TypeError, AttributeError):
+              backlog = []
           out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body,labels")
           issues = json.loads(out.stdout or "[]") if out.returncode == 0 else None  # unread: change no issue, or each would repeat
           if issues is None:
@@ -148,7 +153,7 @@ jobs:
                                                                  said[-1500:].replace("`" * 3, "'" * 3))
                   if not hit:
                       gh("issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect",
-                         "--body", body)
+                         "--body", body, *backlog)
                   else:
                       if hit["state"] != "OPEN":
                           gh("issue", "reopen", str(hit["number"]))

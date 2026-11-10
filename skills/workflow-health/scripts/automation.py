@@ -77,6 +77,8 @@ jobs:
           fi
       - name: Health check
         if: steps.routine.outputs.on == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}  # the issue-milestone rule reads the open issues
         run: |
           python3 skills/workflow-health/scripts/health.py check --group @GROUPS@ > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
           { echo "## Health"; echo; echo '```'; cat "$RUNNER_TEMP/health-report.txt"; echo '```'; echo
@@ -158,6 +160,15 @@ def gh(*args):
         return subprocess.run(("gh",) + args, capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.SubprocessError) as err:
         return subprocess.CompletedProcess(args, 1, "", str(err))
+
+
+def backlog():
+    """['--milestone', 'Backlog'] when the repo has an open Backlog milestone, else []."""
+    try:
+        miles = json.loads(gh("api", "repos/{owner}/{repo}/milestones?state=open&per_page=100").stdout)
+        return ["--milestone", "Backlog"] if "Backlog" in [m.get("title") for m in miles] else []
+    except (ValueError, TypeError, AttributeError):
+        return []
 
 
 def loads(done, default):
@@ -274,7 +285,7 @@ def cmd_digest(args):
     if number is None:
         gh("label", "create", "automation", "--description", "The Automation digest")  # an existing one keeps its colour
         made = gh("issue", "create", "--title", TITLE, "--label", "automation", "--body",
-                  intro + "<!-- automation-digest open= run=none -->")  # this round's state only once its comment is posted
+                  intro + "<!-- automation-digest open= run=none -->", *backlog())  # its state only once its comment is posted
         number = (re.findall(r"/issues/(\d+)", made.stdout) or [None])[-1]
         if made.returncode or not number:
             print("DIGEST: couldn't create the digest issue: %s" % (made.stderr.strip()[:200] or "no issue number"))

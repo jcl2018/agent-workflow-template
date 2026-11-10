@@ -3,112 +3,103 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/1
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-10** <!-- prd P=7884b325 R=ed81bf41 N=9f4c33da M=f8cd4612 U=0c2c3b5a -->
 
 ## Problem
-
-Skill: `workflow-delivery`, with `workflow-release` as its last step. Takes one sentence to a pull request by running your own skill suite's flow unattended, with frozen done lines, a 3-try stop, review as the only gate and a manual verify section, then the release step runs the docs audit and refuses while it finds trouble (any page `docs.py check` calls stale, whether or not the goal touched its paths), runs the `routines` in `.loop/config.json`, merges where the repo allows it, bumps the version once, writes the CHANGELOG entry and a published GitHub release, and publishes the wiki. A failure is recorded as `release_error` and shows under Needs you.
-
-Delivery needs a configured skill suite: a private file outside the repo, `~/.workflow-loop/flow.json`, names your skills and proves their unattended mode, and the repo never names them. A flow step can run with its own allowed tools and model (`overrides`), and `max_tries`, `step_limit` and `token_budget` in `.loop/config.json` set the try cap, the step time limit and a token cap, all read fresh each run (every setting is listed in `skills/workflow-setup/references/settings.md`). The ship step never pushes, so delivery's own `pr` does. A goal that fixes an issue or finding cannot open its pull request until its defect test exists, was seen failing, and passes. In an operation session `go` runs in a background agent, not in that session: goal steps (`step`, `check`, `record`, `pr`, `flow.py`) refuse outside a worker. The full regression suite runs once per goal, as the regression lane (`regression.py run land --reuse`): `flow.py qa` runs it in the background before the qa skill starts, through the flow file's optional `test_record` prefix (a receipt recorder, so your ship skill's own check can reuse the run), and `goal.py record SLUG qa` refuses until a qa lane passed on HEAD (`LANE_MISSING`). A failing or never-seen-failing row, or an unclean tree (`LANE_DIRTY`), fails the qa step before the skill runs. `flow.py ship` and `goal.py pr` run the same lane: on unchanged content it prints `REUSED` and runs no test, and after a commit or a base merge it reruns only the rows the change can affect. Before its pull request a goal merges the latest base branch and reruns the affected rows if that changed anything; only a real conflict costs it a try. A goal's step label changes when `flow.py` starts a step and moves on when `record` records it, so a finished step is never shown as current. `flow.py` runs a `claude` command with JSON output and records each step's tokens from it (input, output and cache-creation tokens, no cache reads), so the Cost rule and the status block show real numbers. Usage here is what you ask the agent, and each skill's `## Command map` names the routine behind it. Commands, flows and how-tos: `skills/workflow-delivery/references/commands.md` (which also keeps, word for word, the lane rules, step tokens (and how to report a step `flow.py` did not run), version and push retries and gate switches that `SKILL.md` points to, so it stays under 150 lines) and `skills/workflow-release/references/commands.md`. In a worker session, the default worker, `flow.py` starts no headless agent: it prints `IN SESSION` with the skill to invoke in that session and the reply path, then the `goal.py record` line once a reply written after that is there (a reply left by an earlier try is moved aside, never recorded again), and `goal.py record --in-session` records a step the goal's worker session ran, stamped "in session", refusing a goal whose run names no session; a headless agent runs a step only with no worker session. How deeply the plan and review steps run is the repo setting `review_depth`, `full` by default and read from the base branch, so a worker can't lower it: the step prompt asks for the skill's whole pipeline, every reply states `DEPTH: full` or `DEPTH: condensed` on a line of its own before its `STEP:` line, and record refuses a condensed plan or review under `full` (auto-approve included), a reply with no depth line, or a full one missing a private `full_markers` string from the flow file (the error never shows the string; a skipped step is held to neither). Each recorded step is stamped `(depth full)` or `(depth condensed)`, which the pull request body lists and the live board shows.
-
-**This repo runs with no gates.** Its `.loop/config.json` turns on `auto_approve` and `auto_merge`. Review is the only gate: delivery runs no check step. What the skills leave for the
-owner is approved automatically and logged as auto-approved, in the goal's log and on the board. The release step then
-merges the pull request into `main` by itself. The skills' own built-in refusals still apply, and the private-name leak
-scan still guards every commit. The risk is plain: a broken or wrong change can reach `main` with nobody looking, and
-the only check left is the regression workflow on GitHub, which reports and never blocks. A repo set up from this
-template keeps every gate until its owner turns one off.
+- I have more changes to make than time to babysit them: I want to hand over one sentence and walk away.
+- Without a loop, a change stalls at whatever step I stopped watching: no review, no tests, no release.
+- I need every change to arrive the same way: reviewed, tested, documented and released, with a record of what happened.
 
 ## Usage
-
-- "start a goal to add caching", or `/workflow-delivery go "goal" --done "line"`, freezes a goal and its done lines; from the operation session, `/workflow-monitoring go "goal" --done "line"` hands it to a background worker instead.
-- With no skill suite of your own, setup's flow file maps idea, plan, review, qa and ship to `built-in`, delivery's own routine for each step; name your own skill for any step in `~/.workflow-loop/flow.json` and it replaces that routine.
-- `/workflow-delivery step SLUG STEP` runs the idea, plan, review, qa or ship step unattended until it stops printing `RUNNING`; `/workflow-delivery record SLUG STEP` then records it.
-- A decision a step leaves for the owner shows under Issues on the live board until it is answered.
-- A slip in a step's reply (a missing DEPTH or STEP line, a format rule added after the step started) is refused without costing a try; the goal keeps running and the refusal says what to fix and which release added the rule. Ten refusals in a row put the goal in waiting for the owner, and the answer starts the count again.
-- From the operation session, "resume goal board-held, the usage limit passed" brings a stopped or failed goal back in the session that owns it, logging who asked and why; "let goal board-held touch skills/workflow-health, because the board reads it" widens what a goal may touch; a finding on a goal that is done or merged is only noted, never a stop.
-- `/workflow-delivery pr SLUG` merges the latest base branch, pushes and opens the pull request; it never merges. A goal that fixes an issue or finding needs a defect test with a real seen-failing date first; anything that is not a date does not count.
-- `/workflow-release merge SLUG` is the release step: it brings the docs up to date, merges where `auto_merge` is on, bumps the version and writes the release note. `/workflow-release ask SLUG`, `/workflow-release cut SLUG` and `/workflow-release leave SLUG` are the manual path.
+- `goal.py new "GOAL" --done "LINE" [--done "LINE" ...] [--here]` — Freezes a goal and its done lines. Prints `FROZEN slug`. Refuses with no done line (exit 2, `REFUSED: a goal needs at least one done line`) or with no skill flow set up (exit 2).
+- `flow.py SLUG STEP` — Runs one step (idea, plan, review, qa, ship). In a worker session prints `IN SESSION` and the skill to run. Prints `RUNNING` until it ends.
+- `goal.py record SLUG STEP --in-session` — Records a finished step. Refuses a reply with no `DEPTH:` line, and a qa step with no passing lane on HEAD (`LANE_MISSING`).
+- `goal.py pr SLUG` — Merges the latest main, reruns the affected tests, pushes and opens the pull request. Prints the PR link. Never merges.
+- `merge.py SLUG` — The release step: docs check, merge (where auto_merge is on), version bump, changelog, GitHub release, wiki publish. Prints `MERGED <pr> into main`, `RELEASED vX.Y.Z <release link> (<bump> bump)` and `PUBLISHED <wiki link>`. Refuses while a page is stale.
 
 ## Requirements
 
-- DEL-1: **Reviewed 2026-11-08** The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries. <!-- reviewed 46d7806a -->
-- DEL-2: **Reviewed 2026-11-08** The done lines are frozen once the goal starts; changing one means a new goal. <!-- reviewed 7eb4f867 -->
-- DEL-3: **Reviewed 2026-11-08** A decision left for me waits under Needs you, or, where the repo allows it, is auto-approved and logged. <!-- reviewed c76ab2fe -->
-- DEL-4: **Reviewed 2026-11-08** Every pull request carries the done lines, the plan, how to verify it by hand, and each step's result. <!-- reviewed 85dc7a9a -->
-- DEL-5: **Reviewed 2026-11-08** Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you. <!-- reviewed c2490e55 -->
+### Functional
+- DEL-1: **Reviewed 2026-11-08** The loop <!-- reviewed b5b65da9 -->
+  - I give one sentence and its done lines; a worker runs it unattended.
+  - Steps, in order: freeze, idea, plan, build, review, qa, ship, pull request, release.
+  - Review is the only gate.
+  - Each step maps to a skill I choose, in a private setting outside the repo.
+  - It won't start without the flow set up, and stops with a reason after 3 failed tries.
+- DEL-3: **Reviewed 2026-11-08** Decisions <!-- reviewed 48b4ed7f -->
+  - A decision for me waits under Needs you, or, where the repo allows, is auto-approved and logged.
+- DEL-4: **Reviewed 2026-11-08** The pull request <!-- reviewed 7cc0d031 -->
+  - Carries the done lines, the plan, how to verify by hand, and each step's result.
+- DEL-5: **Reviewed 2026-11-10** Release <!-- reviewed 17f0ff96 -->
+  - Every goal ends with release, fully automatic, with no draft step.
+  - It bumps the version, writes the release note, and refuses to merge while a page is stale.
+  - The bump is patch by default; minor or major only when the goal says so.
+  - It runs my routines, merges where allowed and publishes the wiki.
+  - Any failure shows under Needs you.
+- DEL-6: **Reviewed 2026-11-10** Review depth fits the goal <!-- reviewed e7ac89a1 -->
+  - Small goals (up to 3 done lines, one skill) run a condensed plan and review.
+  - Larger goals run full depth; I can override it per goal.
+  - Tests never shrink: every goal runs its full test lane.
+
+### Non-functional
+- DEL-2: **Reviewed 2026-11-08** Frozen done lines <!-- reviewed c810cac8 -->
+  - Done lines can't change once the goal starts; a change means a new goal.
+- DEL-7: **Reviewed 2026-11-10** Resumable <!-- reviewed 0f9f447b -->
+  - A stopped or crashed goal resumes from its last recorded step, never from the start.
+- DEL-8: **Reviewed 2026-11-10** Budgeted <!-- reviewed a3d6e1fb -->
+  - Each goal has a time and token budget, and going over shows on the board.
+- DEL-9: **Reviewed 2026-11-10** Nothing private ships <!-- reviewed ad7ed0f0 -->
+  - Every commit and pull request passes the private-name scan before it is pushed.
 
 ## Non-goals
-
-- It does not decide what to build: the owner gives the sentence and the done lines.
-- It never changes a done line once the goal starts; a wrong one needs a new goal.
-- It does not plan or govern several goals at once; workflow-monitoring does that.
+- It doesn't decide what to build.
+- It never changes a done line once started.
+- It doesn't run several goals at once (Monitoring does).
 
 ## Success metrics
-
-- Every merged goal's pull request carries its done lines, plan, verify steps and each step's result.
-- A goal that fails three tries stops and says why instead of trying again.
+- Every merged pull request carries its done lines, plan, verify steps and step results.
+- A goal that fails three tries stops and says why.
 - No goal merges while a wiki page is stale.
 
 ## Tests
 
-#### DEL-1
-
-The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries.
-
-- Given a goal with no done line, when it is started, then it is refused. — [no-done-line-refused](../../.loop/regression.tsv), requirement, guards DEL-1, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given no skill flow is set, when a goal is started, then it does not start. — [no-flow-refused](../../.loop/regression.tsv), requirement, guards DEL-1, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a goal, when three tries fail, then the goal stops and files a finding. — [stop-after-3-tries](../../.loop/regression.tsv), requirement, guards DEL-1, nightly, PASS 2026-11-09, seen failing 2026-11-07
-- Given a flow step not yet done, when a pull request is opened, then it is refused. — [pr-needs-flow](../../.loop/regression.tsv), requirement, guards DEL-1, nightly, PASS 2026-11-09, seen failing 2026-11-07
-- Given a new goal, when it starts, then it starts at the idea step. — [starts-at-idea](../../.loop/regression.tsv), requirement, guards DEL-1, nightly, PASS 2026-11-09, seen failing 2026-11-07
-- Given a step reply, when it is recorded, then it is accepted only if the flow ran that step. — [steps-through-flow](../../.loop/regression.tsv), requirement, guards DEL-1, nightly, PASS 2026-11-09, seen failing 2026-11-07
-- Given any tool, when it runs, then it never waits on a terminal prompt. — [no-prompts](../../.loop/regression.tsv), requirement, guards DEL-1, both, PASS 2026-11-10, seen failing 2026-11-07
-- Given the flow, when it is checked, then it has no checks step and every step can be mapped, with a default suite and overrides. — [defect-flow-steps](../../.loop/regression.tsv), requirement, guards DEL-1, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given review_depth full, when a plan or review reply says it ran condensed, then it is refused with no try used. — [depth-condensed-refused](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
-- Given review_depth full and auto-approve on, when a condensed review leaves a gate, then it is refused, not approved. — [depth-auto-approve-gate](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
-- Given private evidence markers, when a full review reply lacks one, then it is refused with no try used, without showing the marker. — [depth-markers](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
-- Given the default setting, when a goal runs its steps, then every recorded step names the depth it ran. — [depth-recorded](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
-- Given review_depth condensed on the base branch, when a review runs condensed, then it is recorded as condensed. — [depth-condensed-when-set](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
-- Given review_depth full on the base branch, when a worker sets condensed in its own worktree, then it is still held to full. — [depth-base-branch](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
-- Given markers in the default flow file, when LOOP_FLOW points elsewhere, then the markers still apply. — [depth-loop-flow](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
-- Given a stopped or waiting goal, when answer, record or a second reservation comes in, then answer refuses a stopped goal, a waiting goal can't advance, and two goals can't take one session. — [guards-extra](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-10
-
-#### DEL-2
-
-The done lines are frozen once the goal starts; changing one means a new goal.
-
-- Given a running goal, when a frozen done line is changed, then the goal stops. — [frozen-done-lines](../../.loop/regression.tsv), requirement, guards DEL-2, nightly, PASS 2026-11-09, seen failing 2026-11-07
-
-#### DEL-3
-
-A decision left for me waits under Needs you, or, where the repo allows it, is auto-approved and logged.
-
-- Given a step that leaves a decision for the owner, when it ends, then the goal stops and waits. — [pending-waits](../../.loop/regression.tsv), requirement, guards DEL-3, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given an auto-approved step, when it ends, then it is logged and nothing waits. — [auto-approved](../../.loop/regression.tsv), requirement, guards DEL-3, nightly, PASS 2026-11-09, seen failing 2026-11-07
-
-#### DEL-4
-
-Every pull request carries the done lines, the plan, how to verify it by hand, and each step's result.
-
-- Given no Verify by hand steps, when a release is cut, then it is refused. — [cut-needs-verify](../../.loop/regression.tsv), requirement, guards DEL-4, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a pull request, when its body is written, then it carries the goal, the done lines, the verify steps and each step's result. — [pr-body-criterion](../../.loop/regression.tsv), requirement, guards DEL-4, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a goal whose steps are recorded, when its pull request opens, then the body lists every step with its depth. — [depth-in-pr-body](../../.loop/regression.tsv), requirement, guards DEL-4, both, not run, seen failing 2026-11-09
-
-#### DEL-5
-
-Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you.
-
-- Given auto_merge is off, when goals finish, then nothing is merged. — [never-merges](../../.loop/regression.tsv), requirement, guards DEL-5, nightly, PASS 2026-11-09, seen failing 2026-11-07
-- Given a merged goal, when the release runs, then its wiki pages are published, even when python leaves cache files behind. — [wiki-release](../../.loop/regression.tsv), requirement, guards DEL-5, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given auto-release is on, when a goal merges, then it is released automatically. — [auto-release](../../.loop/regression.tsv), requirement, guards DEL-5, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a page no touched path maps to, when the release step runs, then it refreshes the page and refuses to merge while it is stale. — [wiki-unmapped-stale](../../.loop/regression.tsv), requirement, guards DEL-5, both, PASS 2026-11-09, seen failing 2026-11-09
-
-### Defect tests
-
-- Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. — [scripts-no-hang](../../.loop/regression.tsv), defect, guards [#35](https://github.com/jcl2018/agent-workflow-template/issues/35) closed (2026-11-09), both, PASS 2026-11-10, seen failing 2026-11-08
-- Given a reply-format rule added after a step started, when that step is recorded, then the rule doesn't bind it, and a step started after it is refused naming the rule and the release that added it. — [guards-rule-start](../../.loop/regression.tsv), defect, guards [#147](https://github.com/jcl2018/agent-workflow-template/issues/147) state unknown, both, not run, seen failing 2026-11-10
-- Given a record refused for format (no DEPTH or STEP line) or a wrong HEAD, when it is refused, then no try is used, the goal keeps running and the fix is printed. — [guards-no-try](../../.loop/regression.tsv), defect, guards [#148](https://github.com/jcl2018/agent-workflow-template/issues/148) state unknown, both, not run, seen failing 2026-11-10
-- Given a goal that needs more touches, or a finished goal with a finding, when the operation runs goal.py touches or finding, then touches widen with a logged reason and the finished goal is not stopped. — [guards-touches-finding](../../.loop/regression.tsv), defect, guards [#157](https://github.com/jcl2018/agent-workflow-template/issues/157) state unknown, both, not run, seen failing 2026-11-10
-- Given a flow file whose steps are built-in and no probe, when a goal starts and its steps run, then delivery runs its own routine for each step, and with no flow file it still refuses. — [builtin-flow](../../.loop/regression.tsv), defect, guards [#47](https://github.com/jcl2018/agent-workflow-template/issues/47) state unknown, both, not run, seen failing 2026-11-10
-- Given a pull request, when its body is written, then it says nothing about checks and lists each step's result. — [pr-body-no-checks](../../.loop/regression.tsv), defect, guards [PR 62](https://github.com/jcl2018/agent-workflow-template/pull/62) merged (2026-11-09), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given python leaves cache files behind, when a goal merges, then its wiki pages are still published. — [wiki-release-pycache](../../.loop/regression.tsv), defect, guards [#58](https://github.com/jcl2018/agent-workflow-template/issues/58) closed (2026-11-09), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a worker that ends with its pull request waiting, when it finishes, then it runs the release step itself. — [worker-runs-release](../../.loop/regression.tsv), defect, guards [PR 61](https://github.com/jcl2018/agent-workflow-template/pull/61) merged (2026-11-09), both, PASS 2026-11-09, seen failing 2026-11-08
+| Test | Kind | Guards | Checks | Last result |
+|---|---|---|---|---|
+| [no-done-line-refused](Tests#t-no-done-line-refused) | requirement | DEL-1 | Given a goal with no done line, when it is started, then it is refused. | PASS 2026-11-10 |
+| [no-flow-refused](Tests#t-no-flow-refused) | requirement | DEL-1 | Given no skill flow is set, when a goal is started, then it does not start. | PASS 2026-11-10 |
+| [stop-after-3-tries](Tests#t-stop-after-3-tries) | requirement | DEL-1 | Given a goal, when three tries fail, then the goal stops and files a finding. | PASS 2026-11-09 |
+| [pr-needs-flow](Tests#t-pr-needs-flow) | requirement | DEL-1 | Given a flow step not yet done, when a pull request is opened, then it is refused. | PASS 2026-11-09 |
+| [starts-at-idea](Tests#t-starts-at-idea) | requirement | DEL-1 | Given a new goal, when it starts, then it starts at the idea step. | PASS 2026-11-09 |
+| [steps-through-flow](Tests#t-steps-through-flow) | requirement | DEL-1 | Given a step reply, when it is recorded, then it is accepted only if the flow ran that step. | PASS 2026-11-09 |
+| [no-prompts](Tests#t-no-prompts) | requirement | DEL-1 | Given any tool, when it runs, then it never waits on a terminal prompt. | PASS 2026-11-10 |
+| [defect-flow-steps](Tests#t-defect-flow-steps) | requirement | DEL-1 | Given the flow, when it is checked, then it has no checks step and every step can be mapped, with a default suite and overrides. | PASS 2026-11-10 |
+| [depth-condensed-refused](Tests#t-depth-condensed-refused) | requirement | DEL-1 | Given review_depth full, when a plan or review reply says it ran condensed, then it is refused with no try used. | PASS 2026-11-10 |
+| [depth-auto-approve-gate](Tests#t-depth-auto-approve-gate) | requirement | DEL-1 | Given review_depth full and auto-approve on, when a condensed review leaves a gate, then it is refused, not approved. | PASS 2026-11-10 |
+| [depth-markers](Tests#t-depth-markers) | requirement | DEL-1 | Given private evidence markers, when a full review reply lacks one, then it is refused with no try used, without showing the marker. | PASS 2026-11-10 |
+| [depth-recorded](Tests#t-depth-recorded) | requirement | DEL-1 | Given the default setting, when a goal runs its steps, then every recorded step names the depth it ran. | PASS 2026-11-10 |
+| [depth-condensed-when-set](Tests#t-depth-condensed-when-set) | requirement | DEL-1 | Given review_depth condensed on the base branch, when a review runs condensed, then it is recorded as condensed. | PASS 2026-11-10 |
+| [depth-base-branch](Tests#t-depth-base-branch) | requirement | DEL-1 | Given review_depth full on the base branch, when a worker sets condensed in its own worktree, then it is still held to full. | PASS 2026-11-10 |
+| [depth-loop-flow](Tests#t-depth-loop-flow) | requirement | DEL-1 | Given markers in the default flow file, when LOOP_FLOW points elsewhere, then the markers still apply. | PASS 2026-11-10 |
+| [guards-extra](Tests#t-guards-extra) | requirement | DEL-1 | Given a stopped or waiting goal, when answer, record or a second reservation comes in, then answer refuses a stopped goal, a waiting goal can't advance, and two goals can't take one session. | PASS 2026-11-10 |
+| [pending-waits](Tests#t-pending-waits) | requirement | DEL-3 | Given a step that leaves a decision for the owner, when it ends, then the goal stops and waits. | PASS 2026-11-10 |
+| [auto-approved](Tests#t-auto-approved) | requirement | DEL-3 | Given an auto-approved step, when it ends, then it is logged and nothing waits. | PASS 2026-11-09 |
+| [cut-needs-verify](Tests#t-cut-needs-verify) | requirement | DEL-4 | Given no Verify by hand steps, when a release is cut, then it is refused. | PASS 2026-11-10 |
+| [pr-body-criterion](Tests#t-pr-body-criterion) | requirement | DEL-4 | Given a pull request, when its body is written, then it carries the goal, the done lines, the verify steps and each step's result. | PASS 2026-11-10 |
+| [depth-in-pr-body](Tests#t-depth-in-pr-body) | requirement | DEL-4 | Given a goal whose steps are recorded, when its pull request opens, then the body lists every step with its depth. | PASS 2026-11-10 |
+| [never-merges](Tests#t-never-merges) | requirement | DEL-5 | Given auto_merge is off, when goals finish, then nothing is merged. | PASS 2026-11-09 |
+| [wiki-release](Tests#t-wiki-release) | requirement | DEL-5 | Given a merged goal, when the release runs, then its wiki pages are published, even when python leaves cache files behind. | PASS 2026-11-10 |
+| [auto-release](Tests#t-auto-release) | requirement | DEL-5 | Given auto-release is on, when a goal merges, then it is released automatically. | PASS 2026-11-10 |
+| [wiki-unmapped-stale](Tests#t-wiki-unmapped-stale) | requirement | DEL-5 | Given a page no touched path maps to, when the release step runs, then it refreshes the page and refuses to merge while it is stale. | PASS 2026-11-10 |
+| - | requirement | DEL-6 | no passing test | not enforced |
+| [frozen-done-lines](Tests#t-frozen-done-lines) | requirement | DEL-2 | Given a running goal, when a frozen done line is changed, then the goal stops. | PASS 2026-11-09 |
+| - | requirement | DEL-7 | no passing test | not enforced |
+| - | requirement | DEL-8 | no passing test | not enforced |
+| - | requirement | DEL-9 | no passing test | not enforced |
+| [scripts-no-hang](Tests#t-scripts-no-hang) | defect | [#35](https://github.com/jcl2018/agent-workflow-template/issues/35) closed (2026-11-09) | Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. | PASS 2026-11-10 |
+| [guards-rule-start](Tests#t-guards-rule-start) | defect | [#147](https://github.com/jcl2018/agent-workflow-template/issues/147) state unknown | Given a reply-format rule added after a step started, when that step is recorded, then the rule doesn't bind it, and a step started after it is refused naming the rule and the release that added it. | PASS 2026-11-10 |
+| [guards-no-try](Tests#t-guards-no-try) | defect | [#148](https://github.com/jcl2018/agent-workflow-template/issues/148) state unknown | Given a record refused for format (no DEPTH or STEP line) or a wrong HEAD, when it is refused, then no try is used, the goal keeps running and the fix is printed. | PASS 2026-11-10 |
+| [guards-touches-finding](Tests#t-guards-touches-finding) | defect | [#157](https://github.com/jcl2018/agent-workflow-template/issues/157) state unknown | Given a goal that needs more touches, or a finished goal with a finding, when the operation runs goal.py touches or finding, then touches widen with a logged reason and the finished goal is not stopped. | PASS 2026-11-10 |
+| [builtin-flow](Tests#t-builtin-flow) | defect | [#47](https://github.com/jcl2018/agent-workflow-template/issues/47) state unknown | Given a flow file whose steps are built-in and no probe, when a goal starts and its steps run, then delivery runs its own routine for each step, and with no flow file it still refuses. | not run |
+| [pr-body-no-checks](Tests#t-pr-body-no-checks) | defect | [PR 62](https://github.com/jcl2018/agent-workflow-template/pull/62) merged (2026-11-09) | Given a pull request, when its body is written, then it says nothing about checks and lists each step's result. | PASS 2026-11-10 |
+| [wiki-release-pycache](Tests#t-wiki-release-pycache) | defect | [#58](https://github.com/jcl2018/agent-workflow-template/issues/58) closed (2026-11-09) | Given python leaves cache files behind, when a goal merges, then its wiki pages are still published. | PASS 2026-11-10 |
+| [worker-runs-release](Tests#t-worker-runs-release) | defect | [PR 61](https://github.com/jcl2018/agent-workflow-template/pull/61) merged (2026-11-09) | Given a worker that ends with its pull request waiting, when it finishes, then it runs the release step itself. | PASS 2026-11-10 |
