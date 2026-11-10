@@ -154,7 +154,8 @@ def assign(state, prompt, cfg):
     if not command:
         return False
     found, to = pool(), os.environ.get("LOOP_OPERATION_SESSION", "")
-    before = ((load(slug) or state).get("session") or {}).get("id")  # an earlier try's session, not a new bind
+    start = load(slug) or state  # a failed or stopped try's session is replaceable; a running one is a bind
+    before = (start.get("session") or {}).get("id") if start.get("status") in ("failed", "stopped", "queued", "", None) else None
     text = SEND.format(slug=slug, tree=state.get("worktree") or "its worktree", to=" (%s)" % to if to else "") + prompt
     free = sorted(s for s, item in found.items() if item.get("state") == "free")[:FREE_TRIES]
     sid, reused = None, False
