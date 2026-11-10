@@ -47,7 +47,7 @@ def complete(rows, ran):
     """Rows plus a row for each rule of a group that ran and gave none: PASS, or UNREAD when its source could not be read."""
     out = list(rows)
     for name in ran:
-        seen = {rule_of(item) for item in rows if item["family"] == name and (name, item["rule"]) not in SOFT}  # never a pass
+        seen = {rule_of(item) for item in rows if item["family"] == name and counted(item)}  # a soft UNREAD is never a pass
         unread = {r for item in rows if item["family"] == name and item["state"] == "UNREAD"
                   for r in SHARED.get((name, rule_of(item)), ())}
         for rule in RULES[name]:

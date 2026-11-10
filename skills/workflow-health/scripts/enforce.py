@@ -16,12 +16,14 @@ GRACE = 7  # days a Reviewed requirement may stay not enforced (HLT-2: "none sta
 def stamp(root, key):
     """('Reviewed', date), ('Unreviewed', None), or (None, None) when no page holds the requirement."""
     try:
-        folder = json.load(open(os.path.join(root, ".loop", "config.json"))).get("wiki_dir", "docs/wiki")
+        with open(os.path.join(root, ".loop", "config.json")) as handle:
+            folder = json.load(handle).get("wiki_dir", "docs/wiki")
     except (OSError, ValueError):
         folder = "docs/wiki"
     line = re.compile(r"^- %s: \*\*(Unreviewed|Reviewed (\d{4}-\d\d-\d\d))\*\*" % re.escape(key), re.M)
     for page in sorted(glob.glob(os.path.join(root, folder, "*.md"))):
-        found = line.search(open(page).read())
+        with open(page) as handle:
+            found = line.search(handle.read())
         if found:
             return ("Unreviewed", None) if found.group(1) == "Unreviewed" else ("Reviewed", found.group(2))
     return None, None
@@ -34,7 +36,10 @@ def row(root, key, make, today=None):
     if mark == "Unreviewed":
         return make("WARN", "criteria", key, "rows", "not enforced: no regression row yet (Unreviewed)", fix)
     if mark == "Reviewed":
-        age = ((today or datetime.date.today()) - datetime.date.fromisoformat(day)).days
+        try:
+            age = ((today or datetime.date.today()) - datetime.date.fromisoformat(day)).days
+        except ValueError:
+            return make("FAIL", "criteria", key, "rows", "Reviewed date %s is not a real date" % day, "fix the date on its line")
         if age <= GRACE:
             return make("WARN", "criteria", key, "rows", "not enforced, %d days since Reviewed %s (fails after %d)"
                         % (age, day, GRACE), fix)
