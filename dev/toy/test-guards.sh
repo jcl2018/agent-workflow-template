@@ -1,8 +1,6 @@
 #!/bin/bash
-# reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/guards.py
-# reads: skills/workflow-delivery/scripts/role.py skills/workflow-delivery/scripts/flow.py
-# reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/board.py
-# reads: skills/workflow-monitoring/scripts/watch.py skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-delivery/scripts/ skills/workflow-monitoring/scripts/
+# reads: skills/workflow-setup/scripts/setup.py
 # Proves the loop guards: goals stop only for real failures. A format rule binds only steps started after it (147); a
 # refusal that changes nothing costs no try (148); the operation resumes a stopped session goal (149); touches widen
 # and a finished goal's finding is only noted (157); the worker refusal says exactly how (121); bind hands over the

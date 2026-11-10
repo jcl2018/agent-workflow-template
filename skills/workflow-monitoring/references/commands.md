@@ -394,3 +394,31 @@ Status: built and proven: Issues: stuck, waiting and failed workers, with the fi
 Stops for the owner: none.
 Proof: toy tests (dev/toy/test-live-board.sh).
 
+
+#### `sessions.py bind` and `reserve`
+
+`bind SLUG ID [--name N] [--cwd DIR]` records a session started with the app's own tools for a goal. It prints two lines
+and, with a session tool set, sends them to the session:
+
+```text
+WORKER board-held: run goal steps as LOOP_ROLE=worker python3 <package>/workflow-delivery/scripts/goal.py ... (and flow.py, role.py lane)
+WORKTREE board-held: <git common dir>/loop/worktrees/board-held
+```
+
+No process can set another's environment, so this is how binding gives a session the worker role. A goal step run
+without it is refused with the exact command for that session (`NOT_WORKER`). `--cwd DIR` is the session's folder, and a
+folder outside the goal worktree is refused before the pool or run record changes (`CWD_OUTSIDE`: "start or move the
+session in PATH, then bind again"). A worker binding itself is checked against its own folder. With no folder known
+(the operation binding from the main checkout), only the WORKTREE hint is printed. This doesn't change the desktop app's
+own edit guard, which keys on the folder a session started in.
+
+bind revives a failed or stopped goal, resetting the same fields as `goal.py resume` (status, tries, refusals, finding,
+waiting, note, report). A worker binding itself only attaches and says to ask the operation session to resume.
+`reserve SLUG ID [--undo]` takes a free session, or one already this goal's, for `goal.py resume`; a session serving
+another goal is refused (`SESSION_TAKEN`). Every read-modify-write of the pool (assign, bind, reserve, a report that
+ends a goal) holds `session-pool.lock`, so two goals can't take one session. A failed tool call keeps its first stderr
+line ("cannot start ..." or "timed out after N s" otherwise) for the NOTE that follows.
+
+Status: built and proven: bind prints WORKER and WORKTREE; refuses an outside folder; reserve under the pool lock. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests (dev/toy/test-guards.sh).
