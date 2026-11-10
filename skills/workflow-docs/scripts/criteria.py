@@ -54,6 +54,7 @@ def rules():
             block = re.search(r"^```rules\n(.*?)^```", handle.read(), re.M | re.S)
         found = dict(line.split(":", 1) for line in block.group(1).splitlines() if ":" in line)
         found = {key.strip(): value.strip() for key, value in found.items()}
+        import deployments
         import pageformat
         listed = lambda key, default: [x.strip() for x in found.get(key, default).split(",") if x.strip()]
         on = listed("format", ",".join(pageformat.CHECKS))
@@ -65,8 +66,8 @@ def rules():
                 "banned": listed("problem_banned", pageformat.BANNED),
                 "groups": listed("requirement_groups", ", ".join(pageformat.GROUPS)),
                 "deploy": found.get("deployments_section", "Deployments"), "access": listed("deployments_access", "public, sign-in"),
-                "page_cols": listed("deployments_page", ", ".join(pageformat.PAGE_COLS)),
-                "delivery_cols": listed("deployments_delivery", ", ".join(pageformat.DELIVERY_COLS))}
+                "page_cols": listed("deployments_page", ", ".join(deployments.PAGE_COLS)),
+                "delivery_cols": listed("deployments_delivery", ", ".join(deployments.DELIVERY_COLS))}
     except (OSError, AttributeError, KeyError, ValueError):
         sys.exit("REFUSED: the rules block of skills/workflow-docs/references/template.md is missing or broken.")
 
@@ -198,6 +199,7 @@ def blocks(lines):
 
 def contract(root, names, seen):
     """Page contract trouble for these feature pages, as (kind, page, detail). `seen` maps ids to their page."""
+    import deployments
     import pageformat as pf
     import prd
     import render
@@ -256,7 +258,7 @@ def contract(root, names, seen):
         if "usage" in on and rule["usage"] in numbered:
             found += pf.usage(page, rule["usage"], numbered[rule["usage"]][1], held, owns.get(page, []))
         if "deployments" in on and rule["deploy"] in numbered:
-            found += pf.deployments(page, rule["deploy"], numbered[rule["deploy"]][1], rule["page_cols"], rule["delivery_cols"], rule["access"])
+            found += deployments.deployments(page, rule["deploy"], numbered[rule["deploy"]][1], rule["page_cols"], rule["delivery_cols"], rule["access"])
         if "problem" in on:
             found += pf.problem(page, head[0], numbered[head[0]][1], rule["problem_lines"], rule["banned"])
         if "tests" in on:
