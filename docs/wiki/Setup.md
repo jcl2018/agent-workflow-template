@@ -78,4 +78,4 @@ Carries the design logic: the package explains how the loop and its release step
 
 ### Defect tests
 
-- Given the package's skills, when each SKILL.md is counted, then every one is under 150 lines, so test-board passes. — [#116](https://github.com/jcl2018/agent-workflow-template/issues/116), [skill-size-116](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
+- Given the package's skills, when each SKILL.md is counted, then every one is under 150 lines, so test-board passes. — [#116](https://github.com/jcl2018/agent-workflow-template/issues/116), [skill-size-116](../../.loop/regression.tsv), both, FAIL 2026-11-10, seen failing 2026-11-09

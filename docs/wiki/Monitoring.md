@@ -19,7 +19,7 @@ A failed release is recorded as `release_error` and lists under Issues beside `w
 - `/workflow-monitoring go "goal" --done "line"` queues and starts a goal; `/workflow-monitoring watch` keeps goals moving; `/workflow-monitoring resume SLUG` restarts one.
 - `/workflow-monitoring report` and `/workflow-monitoring dashboard` show where every goal stands.
 - `/workflow-monitoring met SLUG N` marks a done line met; `/workflow-monitoring cleanup` deletes merged `loop/*` branches ("list them first" previews).
-- `/workflow-monitoring reply-check FILE` prints what an operation-session reply is missing; `/workflow-monitoring reply-status` says whether the reply hook (installed by `/workflow-setup reply-hook`) is on in this repo.
+- `/workflow-monitoring reply-check FILE` prints what an operation-session reply is missing; `/workflow-monitoring reply-status` says whether the reply hook (installed by `/workflow-setup reply-hook`) is installed and on in this repo.
 
 ## Requirements
 
