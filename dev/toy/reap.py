@@ -5,6 +5,7 @@ usage: reap.py list VAR=VALUE                 print "<pid> <ppid> <argv>" for ea
        reap.py reap VAR=VALUE [--label NAME]   TERM, then KILL, up to 5 rounds; exit 1 with a REAP line if any is left
        reap.py sweep [--dry-run] [--marker V]  stop processes whose TOY_REAP_ID names a test shell that is gone
        reap.py format LABEL MARKER PID:ARGV... print the REAP line for those survivors (used by the defect test)
+Any other command or option, or an option missing its value, prints this text and exits 2.
 
 Only processes of the current user are looked at. The marker must be a whole environment entry: the same text
 in a command line or inside another variable's value never matches. The caller and its ancestors are never
@@ -190,10 +191,30 @@ def entry_is(want):
     return lambda env: want in env
 
 
+def usage():
+    sys.stderr.write(__doc__)
+    sys.exit(2)
+
+
+def options(args, flags, valued):
+    """{option: value} for args made only of FLAGS and VALUED options (each with a value); else a usage error."""
+    out, i = {}, 0
+    while i < len(args):
+        if args[i] in flags:
+            out[args[i]] = True
+        elif args[i] in valued and i + 1 < len(args) and not args[i + 1].startswith("--"):
+            out[args[i]] = args[i + 1]
+            i += 1
+        else:
+            usage()
+        i += 1
+    return out
+
+
 def main(argv):
     signal.signal(signal.SIGPIPE, signal.SIG_IGN)
     if not argv:
-        sys.exit(__doc__)
+        usage()
     cmd, args = argv[0], argv[1:]
     try:
         if cmd == "list" and len(args) == 1 and "=" in args[0]:
@@ -204,7 +225,7 @@ def main(argv):
                 print("UNREADABLE %d %s" % (pid, why))
             return 3 if unread else 0
         if cmd == "reap" and args and "=" in args[0]:
-            label = args[args.index("--label") + 1] if "--label" in args else "toy test"
+            label = options(args[1:], (), ("--label",)).get("--label", "toy test")
             left = stop(entry_is(args[0]))
             if left:
                 sys.stderr.write(reap_line(label, args[0], [(p, short(a)) for p, _s, a, _q in left]) + "\n")
@@ -214,10 +235,11 @@ def main(argv):
             print(reap_line(args[0], args[1], [tuple(x.split(":", 1)) for x in args[2:]]))
             return 0
         if cmd == "sweep":
-            return sweep("--dry-run" in args, args[args.index("--marker") + 1] if "--marker" in args else None)
+            opts = options(args, ("--dry-run",), ("--marker",))
+            return sweep(opts.get("--dry-run", False), opts.get("--marker"))
     except BrokenPipeError:
         return 1
-    sys.exit(__doc__)
+    usage()
 
 
 def owner_gone(env, only):
@@ -234,14 +256,28 @@ def owner_gone(env, only):
 
 
 def sweep(dry, only):
+    procs = table()
     hits, _ = find(lambda env: any(re.match(r"TOY_REAP_ID=toy-\d+-", e) and
-                                   (only is None or e == "TOY_REAP_ID=" + only) for e in env))
-    targets = []
-    for pid, start, _a, ppid in hits:
+                                   (only is None or e == "TOY_REAP_ID=" + only) for e in env), procs)
+    verdict, hidden, targets = {}, [], []
+    for pid, _s, _a, _q in hits:
         try:
-            marker = owner_gone(procargs(pid)[1], only)
+            env = procargs(pid)[1]
         except OSError:
             continue
+        if env:
+            verdict[pid] = owner_gone(env, only)
+        else:
+            hidden.append(pid)
+    for pid in hidden:  # a hidden-env hit (see find) takes the verdict of its nearest marked ancestor
+        up, seen = procs.get(pid, (0,))[0], 0
+        while up > 1 and seen < 64 and up not in verdict:
+            up, seen = procs.get(up, (0,))[0], seen + 1
+        verdict[pid] = verdict.get(up)
+    for pid, start, _a, ppid in hits:
+        if pid not in verdict:
+            continue
+        marker = verdict[pid]
         if marker:
             targets.append((pid, start, marker))
         else:

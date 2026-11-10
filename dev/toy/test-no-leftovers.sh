@@ -245,7 +245,23 @@ gone "$a5" && ! gone "$s5" && ok "a system binary under another marker's process
   || bad "reaping one marker stopped a system binary started under another marker"
 $R reap "TOY_REAP_ID=$mo-inner" >/dev/null 2>&1; wait "$a5" 2>/dev/null
 gone "$s5" || bad "the inner marker's reap left its system binary"
+# Regression: ISSUE-001 (qa) - the sweep stopped a dead test's process but skipped its system-binary child
+mg="toy-$dead-sys-$$"; rm -f "$T/sys"
+env "TOY_REAP_ID=$mg" python3 -c 'import subprocess, sys, time
+p = subprocess.Popen(["/bin/sleep", "120"]); open(sys.argv[1], "w").write(str(p.pid)); time.sleep(120)' "$T/sys" & a6=$!
+waitfor "$T/sys" 5; sleep 0.2; s6=$(cat "$T/sys" 2>/dev/null || echo 1)
+sw6=$($R sweep --marker "$mg")
+waitfor "$a6" 5 && waitfor "$s6" 5 && echo "$sw6" | grep -q "^SWEPT 2$" \
+  && ok "--sweep-dead also stops a dead test's system-binary child" || bad "sweep left a system binary: [$sw6]"
+kill -9 "$a6" "$s6" 2>/dev/null; wait "$a6" 2>/dev/null
 fi
+# Regression: ISSUE-002 (qa) - a mistyped or incomplete option ran a real sweep or crashed
+u1=$($R sweep --dryrun --marker "toy-1-none-$$" 2>&1); r1=$?
+u2=$($R sweep --dry-run --marker 2>&1); r2=$?
+u3=$($R reap "TOY_REAP_ID=none-$$" --label 2>&1); r3=$?
+[ "$r1" = 2 ] && [ "$r2" = 2 ] && [ "$r3" = 2 ] && ! echo "$u1$u2$u3" | grep -q "SWEPT\|Traceback" \
+  && ok "an unknown or incomplete reap.py option is a usage error (exit 2), never a sweep" \
+  || bad "reap.py options: sweep --dryrun=$r1 [$u1] --marker=$r2 --label=$r3 [$(echo "$u2$u3" | tail -1)]"
 
 # ---- real tests
 budget=600 start=$SECONDS
