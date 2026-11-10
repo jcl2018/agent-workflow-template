@@ -82,7 +82,7 @@ a=$($health check); b=$($health check); rc_check=$?
 out=$($health judge); rc=$?; echo "$out"
 [ $rc = $rc_check ] && ok "stand-in judge: same exit code as check" || bad "exit code with judge"
 [ -e "$JUDGE_CALLS" ] && ok "judge calls the judge command" || bad "judge not called"
-[ "$(sed -n '1,/^$/p' <<<"$out" | sed '$d')" = "$a" ] && ok "the rules and the verdict print first, as check prints them" || bad "rules first"
+[ "$(head -n "$(wc -l <<<"$a")" <<<"$out")" = "$a" ] && ok "the rules and the verdict print first, as check prints them" || bad "rules first"
 sec=$(sed -n '/^JUDGE (suggestions, never part of the verdict)$/,$p' <<<"$out")
 [ -n "$sec" ] && ok "the judge section is marked as suggestions" || bad "judge heading"
 for h in "criteria quality" "test quality" "performance and tokens, ranked by savings" "Needs you" "candidate goals" "next steps"; do

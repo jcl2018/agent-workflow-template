@@ -42,43 +42,43 @@ Skill: `workflow-health`. A check of the repo's health with fixed rules, so the 
 
 One command, run by group; fixed rules; same answer twice; changes nothing.
 
-- Given an unchanged repo, when health runs twice, then both runs print the same lines. — [same-lines](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a repo, when the health check runs, then it writes no file and makes no commit. — [check-writes-nothing](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given an unchanged repo, when health runs twice, then both runs print the same lines. — [same-lines](../../.loop/regression.tsv), requirement, guards HLT-1, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a repo, when the health check runs, then it writes no file and makes no commit. — [check-writes-nothing](../../.loop/regression.tsv), requirement, guards HLT-1, both, PASS 2026-11-09, seen failing 2026-11-07
 
 #### HLT-2
 
 The rules. Health checks exactly these rules: Size (every script stays under 20 KB, with a warning from 90%); Criteria (every criterion has a test seen failing once and passing now; done lines with no test are a warning); Docs (every required doc matches the template and the code; a stale page is a warning, any other gap fails); Hygiene (no more than 5 open findings, no goal waiting on me over 24 hours, no leftover merged branches); Cost (a goal over its time or token budget is a warning, naming the slowest or costliest steps); Mine (any rules I add of my own, named in a private setting). Adding a rule means retiring one or raising the cap on purpose. A rule may run an existing command to get its data.
 
-- Given a script over 20 KB, when health runs, then it is a FAIL with a fix. — [size-fail](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a stale wiki page, when health runs, then it shows as a docs row naming the page. — [stale-page-row](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a criterion with no test row, when health runs, then it is a FAIL. — [no-row-fail](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a closed issue or finding with no defect test, when health runs, then it is flagged. — [defect-health](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a goal over its time budget, when health runs, then it is a Cost warning naming its slowest steps. — [cost-time-warn](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given no tokens recorded, when the Cost rule runs, then it prints UNREAD. — [cost-unread-tokens](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a script over 20 KB, when health runs, then it is a FAIL with a fix. — [size-fail](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a stale wiki page, when health runs, then it shows as a docs row naming the page. — [stale-page-row](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a criterion with no test row, when health runs, then it is a FAIL. — [no-row-fail](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a closed issue or finding with no defect test, when health runs, then it is flagged. — [defect-health](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a goal over its time budget, when health runs, then it is a Cost warning naming its slowest steps. — [cost-time-warn](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given no tokens recorded, when the Cost rule runs, then it prints UNREAD. — [cost-unread-tokens](../../.loop/regression.tsv), requirement, guards HLT-2, both, PASS 2026-11-09, seen failing 2026-11-08
 
 #### HLT-3
 
 Formal report. Health prints one formal report: a header listing every rule group it ran (and any skipped), then each group in a fixed order with every rule it checked, marked pass, warn, fail or unread, each non-pass line with its fix, then one verdict. A rule that can't read its data is never shown as passing.
 
-- Given a health rule that cannot be read, when health runs, then it is never shown green. — [unread-not-green](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a repo with findings in several groups, when health check runs, then the report header names every group it ran and the one it skipped. — [report-header](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
+- Given a health rule that cannot be read, when health runs, then it is never shown green. — [unread-not-green](../../.loop/regression.tsv), requirement, guards HLT-3, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a repo with findings in several groups, when health check runs, then the report header names every group it ran and the one it skipped. — [report-header](../../.loop/regression.tsv), requirement, guards HLT-3, both, not run, seen failing 2026-11-09
 
 #### HLT-4
 
 Findings become tagged issues, under my control. Each finding can be filed as one GitHub issue on the Backlog milestone, tagged with its group: health:size, health:criteria, health:docs, health:hygiene, health:performance (the Cost rule and the judge's savings), health:mine. A preview first lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups to file. A repeat updates its issue, a fix closes it, a return reopens it.
 
-- Given no token and no --live flag, when health previews its findings, then it prints only WOULD lines and writes nothing. — [no-token-would](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given an existing health issue, when a later health run happens, then it updates that issue and opens no other. — [update-in-place](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a finding with an open issue, when the finding is fixed, then its issue is closed. — [fixed-closes](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a finding with an open issue, when the finding repeats, then no second issue is opened. — [repeat-no-second](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a rule that could not be read, when health runs, then none of its issues are closed. — [unread-closes-none](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given findings in several groups, when health preview runs, then it lists each issue it would open, update, close or reopen with its tag and makes no write call. — [preview-writes-nothing](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given open issues in several groups, when health files only the docs group, then only the docs issue is closed and no other group's issue changes. — [file-one-group](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
+- Given no token and no --live flag, when health previews its findings, then it prints only WOULD lines and writes nothing. — [no-token-would](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given an existing health issue, when a later health run happens, then it updates that issue and opens no other. — [update-in-place](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a finding with an open issue, when the finding is fixed, then its issue is closed. — [fixed-closes](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a finding with an open issue, when the finding repeats, then no second issue is opened. — [repeat-no-second](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a rule that could not be read, when health runs, then none of its issues are closed. — [unread-closes-none](../../.loop/regression.tsv), requirement, guards HLT-4, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given findings in several groups, when health preview runs, then it lists each issue it would open, update, close or reopen with its tag and makes no write call. — [preview-writes-nothing](../../.loop/regression.tsv), requirement, guards HLT-4, both, not run, seen failing 2026-11-09
+- Given open issues in several groups, when health files only the docs group, then only the docs issue is closed and no other group's issue changes. — [file-one-group](../../.loop/regression.tsv), requirement, guards HLT-4, both, not run, seen failing 2026-11-09
 
 #### HLT-5
 
 Judge and next steps. After the rules, a separate judge section, marked as suggestions and never part of the verdict, reviews three things: criteria quality (whether each criterion is clear, testable and high-level enough, whether any conflict or overlap, and whether a feature is missing one, suggesting better wording that only I can apply); test quality (whether each criterion's tests and each defect's test really prove what they claim, or are weak, miss cases or test the wrong thing, suggesting stronger or missing tests for both categories); and performance and tokens (where the framework's skill steps, prompts, scripts, waits and retries could cut delivery time or token use, ranked by the savings). It ends with ranked next steps from the judgments, the warnings and the failures.
 
-- Given the judge, when it runs, then it prints its three reviews in a section marked as suggestions. — [judge-section-format](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a failing or garbage judge, when health runs, then the verdict and exit code are unchanged. — [judge-verdict-unchanged](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given suggested criterion wording, when the board is printed, then it is listed under Needs you for the owner to apply. — [judge-needs-you](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given the judge, when it runs, then it prints its three reviews in a section marked as suggestions. — [judge-section-format](../../.loop/regression.tsv), requirement, guards HLT-5, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a failing or garbage judge, when health runs, then the verdict and exit code are unchanged. — [judge-verdict-unchanged](../../.loop/regression.tsv), requirement, guards HLT-5, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given suggested criterion wording, when the board is printed, then it is listed under Needs you for the owner to apply. — [judge-needs-you](../../.loop/regression.tsv), requirement, guards HLT-5, both, PASS 2026-11-09, seen failing 2026-11-08

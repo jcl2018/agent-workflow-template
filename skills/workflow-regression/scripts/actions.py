@@ -9,7 +9,8 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
-ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE")
+ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
+            "REGRESSION_RESULTS")
 
 
 def row_env():
@@ -45,6 +46,7 @@ jobs:
       - name: Run the rows, and keep one issue per failing row
         env:
           GH_TOKEN: ${{ github.token }}
+          REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv  # the runner's own file; no row sees its path
         run: |
           python3 - <<'PY'
           import json, os, subprocess, sys, tempfile, time
@@ -82,14 +84,15 @@ jobs:
               if timed_out:
                   return 124, out + "\ntimed out after %d s" % ROW_SECONDS
               return child.returncode, out
-          def summary(text):  # written as each row ends, so a job that runs out of time keeps what finished
-              with open(os.environ.get("GITHUB_STEP_SUMMARY") or os.devnull, "a") as handle:
-                  handle.write(text + "\n")
+          def result(name, state):  # written as each row ends, so a job that runs out of time keeps what finished
+              with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "a") as handle:
+                  handle.write("%s\t%s\n" % (name, state))
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body")
           issues = json.loads(out.stdout or "[]")
           red, start = [], time.time()
-          summary("## Regression rows\n\n| Row | Result |\n|---|---|")
+          with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
+              handle.write("# started %d\n" % start)
           for row in rows(".loop/regression.tsv"):
               if len(row) < 3 or row[1] not in ("land", "nightly"):
                   continue
@@ -100,9 +103,9 @@ jobs:
               mark = "<!-- loop-regression %s -->" % row[0]
               hits = [item for item in issues if mark in item["body"]]
               hit = next((item for item in hits if item["state"] == "OPEN"), hits[0] if hits else None)
-              state = "PASS" if code == 0 else "SKIPPED" if skipped else "FAIL"
+              state = "PASS" if code == 0 else "SKIPPED" if skipped else "KNOWN" if row[0] in known else "FAIL"
               print(state, row[0])
-              summary("| %s | %s |" % (row[0], state))
+              result(row[0], state)
               if code == 0:
                   for item in hits:
                       if item["state"] == "OPEN":
@@ -119,12 +122,40 @@ jobs:
                       gh("issue", "comment", str(hit["number"]), "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
           sys.exit(1 if red else 0)
           PY
+      - name: Write the run summary, one table per feature
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv
+        run: |
+          cat > "$RUNNER_TEMP/tests.py" <<'TESTS_PY_EOF'
+@TESTS@
+          TESTS_PY_EOF
+          python3 "$RUNNER_TEMP/tests.py" issues --write >/dev/null || true
+          started=$(sed -n 's/^# started //p' "$REGRESSION_RESULTS" 2>/dev/null)
+          took=$(( $(date +%s) - ${started:-$(date +%s)} ))
+          python3 "$RUNNER_TEMP/tests.py" summary --results "$REGRESSION_RESULTS" --took "$took" >> "$GITHUB_STEP_SUMMARY" || {
+            printf '## Regression\n\nThe grouped summary could not be written; see this step'"'"'s log.\n\n| Test | Result |\n|---|---|\n'
+            grep -v '^#' "$REGRESSION_RESULTS" 2>/dev/null | awk -F'\t' '{print "| " $1 " | " $2 " |"}'
+          } >> "$GITHUB_STEP_SUMMARY"
 """
 
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "TESTS_PY_EOF")  # what Actions or this writer would read as its own
+
+
 def render(cron):
-    """The workflow text for this cron: what write() saves and the tests compare."""
-    return WORKFLOW.replace("@CRON@", cron).replace("@ROWDROP@", repr(ROW_DROP))
+    """The workflow text for this cron: what write() saves and the tests compare. It carries tests.py, the one
+    test format, because the GitHub job has only the repo's own checkout."""
+    with open(os.path.join(HERE, "tests.py")) as handle:
+        source = handle.read()
+    bad = [token for token in UNSAFE if token in source]
+    if bad:
+        sys.exit("REFUSED: tests.py contains %s, which the workflow can't carry. Fix: reword that line" % bad[0])
+    body = "\n".join(("          " + line).rstrip() for line in source.rstrip("\n").split("\n"))
+    return WORKFLOW.replace("@CRON@", cron).replace("@ROWDROP@", repr(ROW_DROP)).replace("@TESTS@", body)
 
 
 def write(root, default):

@@ -52,55 +52,55 @@ template keeps every gate until its owner turns one off.
 
 The loop. I give one sentence and the done lines, and a worker runs it unattended through these steps, in order: freeze the done lines, office-hours (shape the idea), plan, build, review, qa, ship, pull request, release. Review is the only gate. Each step can be mapped to any skill or plugin I choose, in a private setting outside the repo, and my preferred skill suite is the default; each step runs that skill in its unattended mode. It won't start without the flow set up, and it stops and says why after 3 failed tries.
 
-- Given a goal with no done line, when it is started, then it is refused. — [no-done-line-refused](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given no skill flow is set, when a goal is started, then it does not start. — [no-flow-refused](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a goal, when three tries fail, then the goal stops and files a finding. — [stop-after-3-tries](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
-- Given a flow step not yet done, when a pull request is opened, then it is refused. — [pr-needs-flow](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
-- Given a new goal, when it starts, then it starts at the idea step. — [starts-at-idea](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
-- Given a step reply, when it is recorded, then it is accepted only if the flow ran that step. — [steps-through-flow](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
-- Given any tool, when it runs, then it never waits on a terminal prompt. — [no-prompts](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given the flow, when it is checked, then it has no checks step and every step can be mapped, with a default suite and overrides. — [defect-flow-steps](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given review_depth full, when a plan or review reply says it ran condensed, then the try fails. — [depth-condensed-refused](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given review_depth full and auto-approve on, when a condensed review leaves a gate, then it is refused, not approved. — [depth-auto-approve-gate](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given private evidence markers, when a full review reply lacks one, then the try fails without showing the marker. — [depth-markers](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given the default setting, when a goal runs its steps, then every recorded step names the depth it ran. — [depth-recorded](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given review_depth condensed on the base branch, when a review runs condensed, then it is recorded as condensed. — [depth-condensed-when-set](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given review_depth full on the base branch, when a worker sets condensed in its own worktree, then it is still held to full. — [depth-base-branch](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
-- Given markers in the default flow file, when LOOP_FLOW points elsewhere, then the markers still apply. — [depth-loop-flow](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
+- Given a goal with no done line, when it is started, then it is refused. — [no-done-line-refused](../../.loop/regression.tsv), requirement, guards DEL-1, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given no skill flow is set, when a goal is started, then it does not start. — [no-flow-refused](../../.loop/regression.tsv), requirement, guards DEL-1, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a goal, when three tries fail, then the goal stops and files a finding. — [stop-after-3-tries](../../.loop/regression.tsv), requirement, guards DEL-1, nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a flow step not yet done, when a pull request is opened, then it is refused. — [pr-needs-flow](../../.loop/regression.tsv), requirement, guards DEL-1, nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a new goal, when it starts, then it starts at the idea step. — [starts-at-idea](../../.loop/regression.tsv), requirement, guards DEL-1, nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a step reply, when it is recorded, then it is accepted only if the flow ran that step. — [steps-through-flow](../../.loop/regression.tsv), requirement, guards DEL-1, nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given any tool, when it runs, then it never waits on a terminal prompt. — [no-prompts](../../.loop/regression.tsv), requirement, guards DEL-1, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given the flow, when it is checked, then it has no checks step and every step can be mapped, with a default suite and overrides. — [defect-flow-steps](../../.loop/regression.tsv), requirement, guards DEL-1, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given review_depth full, when a plan or review reply says it ran condensed, then the try fails. — [depth-condensed-refused](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
+- Given review_depth full and auto-approve on, when a condensed review leaves a gate, then it is refused, not approved. — [depth-auto-approve-gate](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
+- Given private evidence markers, when a full review reply lacks one, then the try fails without showing the marker. — [depth-markers](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
+- Given the default setting, when a goal runs its steps, then every recorded step names the depth it ran. — [depth-recorded](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
+- Given review_depth condensed on the base branch, when a review runs condensed, then it is recorded as condensed. — [depth-condensed-when-set](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
+- Given review_depth full on the base branch, when a worker sets condensed in its own worktree, then it is still held to full. — [depth-base-branch](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
+- Given markers in the default flow file, when LOOP_FLOW points elsewhere, then the markers still apply. — [depth-loop-flow](../../.loop/regression.tsv), requirement, guards DEL-1, both, not run, seen failing 2026-11-09
 
 #### DEL-2
 
 The done lines are frozen once the goal starts; changing one means a new goal.
 
-- Given a running goal, when a frozen done line is changed, then the goal stops. — [frozen-done-lines](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a running goal, when a frozen done line is changed, then the goal stops. — [frozen-done-lines](../../.loop/regression.tsv), requirement, guards DEL-2, nightly, PASS 2026-11-09, seen failing 2026-11-07
 
 #### DEL-3
 
 A decision left for me waits under Needs you, or, where the repo allows it, is auto-approved and logged.
 
-- Given a step that leaves a decision for the owner, when it ends, then the goal stops and waits. — [pending-waits](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given an auto-approved step, when it ends, then it is logged and nothing waits. — [auto-approved](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a step that leaves a decision for the owner, when it ends, then the goal stops and waits. — [pending-waits](../../.loop/regression.tsv), requirement, guards DEL-3, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given an auto-approved step, when it ends, then it is logged and nothing waits. — [auto-approved](../../.loop/regression.tsv), requirement, guards DEL-3, nightly, PASS 2026-11-09, seen failing 2026-11-07
 
 #### DEL-4
 
 Every pull request carries the done lines, the plan, how to verify it by hand, and each step's result.
 
-- Given no Verify by hand steps, when a release is cut, then it is refused. — [cut-needs-verify](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a pull request, when its body is written, then it carries the goal, the done lines, the verify steps and each step's result. — [pr-body-criterion](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a goal whose steps are recorded, when its pull request opens, then the body lists every step with its depth. — [depth-in-pr-body](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
+- Given no Verify by hand steps, when a release is cut, then it is refused. — [cut-needs-verify](../../.loop/regression.tsv), requirement, guards DEL-4, both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a pull request, when its body is written, then it carries the goal, the done lines, the verify steps and each step's result. — [pr-body-criterion](../../.loop/regression.tsv), requirement, guards DEL-4, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a goal whose steps are recorded, when its pull request opens, then the body lists every step with its depth. — [depth-in-pr-body](../../.loop/regression.tsv), requirement, guards DEL-4, both, not run, seen failing 2026-11-09
 
 #### DEL-5
 
 Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you.
 
-- Given auto_merge is off, when goals finish, then nothing is merged. — [never-merges](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
-- Given a merged goal, when the release runs, then its wiki pages are published, even when python leaves cache files behind. — [wiki-release](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given auto-release is on, when a goal merges, then it is released automatically. — [auto-release](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a page no touched path maps to, when the release step runs, then it refreshes the page and refuses to merge while it is stale. — [wiki-unmapped-stale](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given auto_merge is off, when goals finish, then nothing is merged. — [never-merges](../../.loop/regression.tsv), requirement, guards DEL-5, nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a merged goal, when the release runs, then its wiki pages are published, even when python leaves cache files behind. — [wiki-release](../../.loop/regression.tsv), requirement, guards DEL-5, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given auto-release is on, when a goal merges, then it is released automatically. — [auto-release](../../.loop/regression.tsv), requirement, guards DEL-5, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a page no touched path maps to, when the release step runs, then it refreshes the page and refuses to merge while it is stale. — [wiki-unmapped-stale](../../.loop/regression.tsv), requirement, guards DEL-5, both, PASS 2026-11-09, seen failing 2026-11-09
 
 ### Defect tests
 
-- Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. — [#35](https://github.com/jcl2018/agent-workflow-template/issues/35), [scripts-no-hang](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a pull request, when its body is written, then it says nothing about checks and lists each step's result. — [#62](https://github.com/jcl2018/agent-workflow-template/pull/62), [pr-body-no-checks](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given python leaves cache files behind, when a goal merges, then its wiki pages are still published. — [#58](https://github.com/jcl2018/agent-workflow-template/issues/58), [wiki-release-pycache](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a worker that ends with its pull request waiting, when it finishes, then it runs the release step itself. — [#61](https://github.com/jcl2018/agent-workflow-template/pull/61), [worker-runs-release](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. — [scripts-no-hang](../../.loop/regression.tsv), defect, guards [#35](https://github.com/jcl2018/agent-workflow-template/issues/35) closed (2026-11-09), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a pull request, when its body is written, then it says nothing about checks and lists each step's result. — [pr-body-no-checks](../../.loop/regression.tsv), defect, guards [PR 62](https://github.com/jcl2018/agent-workflow-template/pull/62) merged (2026-11-09), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given python leaves cache files behind, when a goal merges, then its wiki pages are still published. — [wiki-release-pycache](../../.loop/regression.tsv), defect, guards [#58](https://github.com/jcl2018/agent-workflow-template/issues/58) closed (2026-11-09), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given a worker that ends with its pull request waiting, when it finishes, then it runs the release step itself. — [worker-runs-release](../../.loop/regression.tsv), defect, guards [PR 61](https://github.com/jcl2018/agent-workflow-template/pull/61) merged (2026-11-09), both, PASS 2026-11-09, seen failing 2026-11-08

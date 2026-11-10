@@ -43,6 +43,7 @@ SCENARIO = re.compile(r"^Given .+, when .+, then .+", re.I)
 DAY = re.compile(r"^\d{4}-\d\d-\d\d$")
 SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
 SHEET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "template.md")
+FORMAT = os.path.join(os.path.dirname(SHEET), "..", "..", "workflow-regression", "scripts", "tests.py")  # the one test format
 
 
 def rules():
@@ -157,12 +158,28 @@ RUNS = {"land": "both", "nightly": "nightly", "covered": "by a person"}
 SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date; anything else shows "no"
 
 
-def scenario(row, ran, link, cell=""):
-    """One Tests line: the row's Given/When/Then description, the row, when it runs, its last result and seen failing."""
+def tests_format():
+    """workflow-regression's tests.py, which owns the test format; None, with a NOTE, when it isn't installed."""
+    import importlib.util
+    if not os.path.exists(FORMAT):
+        sys.stderr.write("NOTE: %s not found; Tests lines use the old shape\n" % os.path.normpath(FORMAT))
+        return None
+    spec = importlib.util.spec_from_file_location("regression_tests", FORMAT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def scenario(row, ran, link, cell="", fmt=None, issues=None):
+    """One Tests line: the row's Given/When/Then description, then tests.py's fields: the row, its kind, what it
+    guards, when it runs, its last result and when it was seen failing."""
     status, date = ran.get(row[0], ("not run", ""))
     words = row[5] or "-"
     if not SCENARIO.match(words):
         words += " (not yet Given/When/Then)"
+    if fmt:
+        f = fmt.fields((row + [""] * 8)[:8], {}, ran, issues or {}, True)
+        return "- %s — [%s](%s), %s, guards %s, %s, %s, seen failing %s" % (words, row[0], link, *f[1:3], *f[4:])
     return "- %s — %s[%s](%s), %s, %s, seen failing %s" % (words, cell, row[0], link, RUNS.get(row[1], row[1]),
                                                        (status + " " + date).strip(), row[4] if SEEN.match(row[4]) else "no")
 
@@ -173,13 +190,14 @@ def table(root, ids, linked):
     ran = {row[0]: (row[1], row[2]) for row in tsv(root, "regression-runs.tsv")}
     rows = {row[0]: row for row in tsv(root, "regression.tsv")}
     link = "../" * (folder_of(root).count("/") + 1) + ".loop/regression.tsv"
-    out = []
+    out, fmt = [], tests_format()
+    issues = fmt.issues_of(root) if fmt else {}
     for key, text in ids:
         out += ["#### " + key, "", text, ""]
         passing = False
         for name in linked.get(key, []):
             passing = passing or ran.get(name, ("",))[0] == "PASS"
-            out.append(scenario(rows[name], ran, link))
+            out.append(scenario(rows[name], ran, link, "", fmt, issues))
         if not passing:
             out.append("- **not enforced**: no passing test")
         out.append("")
@@ -188,7 +206,7 @@ def table(root, ids, linked):
     if names:
         out += ["### Defect tests", ""]
     for name in names:
-        out.append(scenario(rows[name], ran, link, issue_cell(rows[name][7]) + ", "))
+        out.append(scenario(rows[name], ran, link, issue_cell(rows[name][7]) + ", ", fmt, issues))
     return out[:-1] if out and out[-1] == "" else out
 
 

@@ -267,8 +267,24 @@ def cmd_check(args):
     if args.json:
         print(json.dumps({"green": green, "counts": counts, "rows": rows, "verdict": verdict}, indent=2))
     else:
-        print("\n".join(text))
+        print("\n".join(with_tests(text, root) if asked is None else text))
     return 0 if green else 1
+
+
+def with_tests(text, root):
+    """The report with the test list just before its verdict, so the verdict stays the last line."""
+    last = len(text) - 1 if text and text[-1].startswith("HEALTH:") else len(text)
+    return text[:last] + tests_block(root) + text[last:]
+
+
+def tests_block(root):
+    """Every test in workflow-regression's one format, grouped by feature, before the verdict; read-only."""
+    script = sibling("workflow-regression", "tests.py")
+    done = run([sys.executable, script, "list", "--root", root], root) if script else None
+    if not done or done.returncode:
+        return ["", "NOTE: the test list is unavailable (%s)" % ("tests.py is not installed beside this skill" if not done
+                                                                 else (done.stderr.strip() or "no output")[:120]), ""]
+    return ["", "TESTS"] + done.stdout.rstrip("\n").splitlines() + [""]
 
 
 def cmd_judge(args):
@@ -276,7 +292,7 @@ def cmd_judge(args):
     root = repo_root()
     rows = gather(root, None)
     text, _, green, _, _ = report(rows)
-    print("\n".join(text))
+    print("\n".join(with_tests(text, root)))
     print()
     sys.path.insert(0, HERE)
     try:
