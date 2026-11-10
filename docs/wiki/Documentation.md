@@ -15,7 +15,7 @@ The toy `gh` double (`dev/toy/fakegh`) can also merge a branch and fail a releas
 
 ## Usage
 
-- `/workflow-docs audit` checks every page against the template, fixes the mechanical and lists the wording to rewrite; it exits 1 while any is left.
+- `/workflow-docs audit` checks every page against the template, fixes the mechanical and lists the wording to rewrite; it exits 1 while any is left. In the Tests, a seen-failing value that is not a real date shows as `no`.
 - `/workflow-docs check` lists missing, stale, unmapped and unwritten pages, counts the repo doesn't match (code, quoted code, comments and limits such as "up to 6" are skipped, and a wrapped sentence is read whole; mark a line (the mark covers only that line) `<!-- not-a-count -->` when its number isn't one), and broken criteria; `/workflow-docs criteria PAGE` prints the format and the next free id.
 - `/workflow-docs review PAGE` marks the whole PRD Reviewed, and `/workflow-docs review ID` one requirement, only on the owner's words; `/workflow-docs unreview PAGE` lifts the lock; PAGE is the exact feature page name, such as Delivery (a wrong case or a path is refused); `/workflow-docs render` rewrites the Tests.
 - `/workflow-docs prd NAME "<idea>" --paths A,B` drafts a new feature's PRD, Unreviewed; `/workflow-docs convert` turns old Summary/Criteria pages into PRD pages, keeps a page's first heading when it has no title, and adds a missing Non-goals before Success metrics.
@@ -97,7 +97,7 @@ One command enforces it: checks all required docs against the template, code and
 - Given trouble in the docs, when the release step runs, then it reads the docs command and sees the trouble. — [release-runs-audit](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a page stating the wrong number of skills, when the docs check runs, then it fails naming the file, the stated number and the real one. — [docs-count-mismatch](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a page whose Usage changed since the owner's review, when the docs audit, the release fixes or publish run, then none of them stops on it or changes Usage. — [prd-audit-ignores-changed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
-- Given this repo, when its docs check and health run, then nothing fails but a page whose Usage changed since the owner's review. — [prd-repo-green](../../.loop/regression.tsv), both, FAIL 2026-11-09, seen failing 2026-11-09
+- Given this repo, when its docs check and health run, then nothing fails but a page whose Usage changed since the owner's review. — [prd-repo-green](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 
 #### DOC-5
 

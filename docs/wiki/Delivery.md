@@ -23,7 +23,7 @@ template keeps every gate until its owner turns one off.
 - "start a goal to add caching", or `/workflow-delivery go "goal" --done "line"`, freezes a goal and its done lines; from the operation session, `/workflow-monitoring go "goal" --done "line"` hands it to a background worker instead.
 - `/workflow-delivery step SLUG STEP` runs the idea, plan, review, qa or ship step unattended until it stops printing `RUNNING`; `/workflow-delivery record SLUG STEP` then records it.
 - A decision a step leaves for the owner shows under Issues on the live board until it is answered.
-- `/workflow-delivery pr SLUG` merges the latest base branch, pushes and opens the pull request; it never merges.
+- `/workflow-delivery pr SLUG` merges the latest base branch, pushes and opens the pull request; it never merges. A goal that fixes an issue or finding needs a defect test with a real seen-failing date first; anything that is not a date does not count.
 - `/workflow-release merge SLUG` is the release step: it brings the docs up to date, merges where `auto_merge` is on, bumps the version and writes the release note. `/workflow-release ask SLUG`, `/workflow-release cut SLUG` and `/workflow-release leave SLUG` are the manual path.
 
 ## Requirements
@@ -54,10 +54,10 @@ The loop. I give one sentence and the done lines, and a worker runs it unattende
 
 - Given a goal with no done line, when it is started, then it is refused. — [no-done-line-refused](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
 - Given no skill flow is set, when a goal is started, then it does not start. — [no-flow-refused](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a goal, when three tries fail, then the goal stops and files a finding. — [stop-after-3-tries](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a flow step not yet done, when a pull request is opened, then it is refused. — [pr-needs-flow](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a new goal, when it starts, then it starts at the idea step. — [starts-at-idea](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a step reply, when it is recorded, then it is accepted only if the flow ran that step. — [steps-through-flow](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a goal, when three tries fail, then the goal stops and files a finding. — [stop-after-3-tries](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a flow step not yet done, when a pull request is opened, then it is refused. — [pr-needs-flow](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a new goal, when it starts, then it starts at the idea step. — [starts-at-idea](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
+- Given a step reply, when it is recorded, then it is accepted only if the flow ran that step. — [steps-through-flow](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
 - Given any tool, when it runs, then it never waits on a terminal prompt. — [no-prompts](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
 - Given the flow, when it is checked, then it has no checks step and every step can be mapped, with a default suite and overrides. — [defect-flow-steps](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given review_depth full, when a plan or review reply says it ran condensed, then the try fails. — [depth-condensed-refused](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
@@ -72,14 +72,14 @@ The loop. I give one sentence and the done lines, and a worker runs it unattende
 
 The done lines are frozen once the goal starts; changing one means a new goal.
 
-- Given a running goal, when a frozen done line is changed, then the goal stops. — [frozen-done-lines](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given a running goal, when a frozen done line is changed, then the goal stops. — [frozen-done-lines](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
 
 #### DEL-3
 
 A decision left for me waits under Needs you, or, where the repo allows it, is auto-approved and logged.
 
 - Given a step that leaves a decision for the owner, when it ends, then the goal stops and waits. — [pending-waits](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given an auto-approved step, when it ends, then it is logged and nothing waits. — [auto-approved](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given an auto-approved step, when it ends, then it is logged and nothing waits. — [auto-approved](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
 
 #### DEL-4
 
@@ -93,7 +93,7 @@ Every pull request carries the done lines, the plan, how to verify it by hand, a
 
 Release is the last step, fully automatic: every goal ends with release, which bumps the version, writes the release note, brings the docs up to date with the docs command (DOC-4) and refuses to merge while a page is stale, runs my own routines, then merges where the repo allows it and publishes the wiki. No draft step and no question, even for a breaking change. Anything that fails shows under Needs you.
 
-- Given auto_merge is off, when goals finish, then nothing is merged. — [never-merges](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given auto_merge is off, when goals finish, then nothing is merged. — [never-merges](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
 - Given a merged goal, when the release runs, then its wiki pages are published, even when python leaves cache files behind. — [wiki-release](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given auto-release is on, when a goal merges, then it is released automatically. — [auto-release](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a page no touched path maps to, when the release step runs, then it refreshes the page and refuses to merge while it is stale. — [wiki-unmapped-stale](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
