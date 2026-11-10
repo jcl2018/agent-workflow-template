@@ -3,12 +3,12 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/9
 
-Review: **Reviewed 2026-11-10** <!-- prd P=646c356f R=a1dcdd47 N=9c385754 M=471a58c6 U=fa5c5b02 -->
+Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a58c6 U=fa5c5b02 -->
 
 ## Problem
-- I want this toolset to be a workspace I can drop into any repo, for any agent: one install gives Claude Code, Codex or any SKILL.md agent the same loop, docs, monitoring and settings, in the right format for each.
+- I want this toolset to be a workspace I can drop into any repo, for any agent: one install gives Claude Code, Codex or any agent that reads skills the same loop, docs, monitoring and settings, in the right format for each.
 - Adopting a repo should never block: it should look at what is there, borrow what fits, learn from a repo I've already set up, and list what doesn't fit instead of refusing.
-- Any new session should see the design logic, the docs and every function at once, and an improvement in one repo, or in the template, should reach the others.
+- Any new session should see the design logic, the docs and every command at once, and an improvement in one repo, or in the template, should reach the others.
 
 ## Usage
 

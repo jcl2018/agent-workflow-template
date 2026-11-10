@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
-Review: **Reviewed 2026-11-10** <!-- prd P=41bfc9ae R=742aab89 N=839ce3ce M=0fde98a8 U=d08e482b -->
+Review: **Reviewed 2026-11-10** <!-- prd P=41bfc9ae R=ede201f5 N=839ce3ce M=0fde98a8 U=d08e482b -->
 
 ## Problem
 - I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
@@ -60,6 +60,11 @@ Review: **Reviewed 2026-11-10** <!-- prd P=41bfc9ae R=742aab89 N=839ce3ce M=0fde
   - A setting, on by default. When it is on, the operation session answers each worker decision with that decision's recommended option, logs the question, the answer and why, and lists them in the next check-in.
   - It never auto-answers a decision that is destructive (deletes data, a page, a repo or a deployment), that contradicts something I said, that spends money, or that changes a security or access setting; those wait under Needs you.
   - Turning it off takes effect at the next decision.
+
+- MON-12: **Reviewed 2026-11-10** Session pool <!-- reviewed cc697d58 -->
+  - The operation session keeps a pool of idle worker sessions, sized by a setting (default 20), and hands each ready goal one from the pool instead of starting a new session.
+  - Because sessions can only be created from the desktop app, whenever the pool runs low the operation session asks me, at the desktop, to fill it, and it creates every missing session in one step on my word.
+  - A finished goal's session goes back to the pool (MON-6), the board shows the pool as free, busy and total, and a goal that finds the pool empty waits under Needs you with the one action that fixes it.
 
 ### Non-functional
 - MON-7: **Reviewed 2026-11-10** Govern only <!-- reviewed dcb260f6 -->
@@ -142,6 +147,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=41bfc9ae R=742aab89 N=839ce3ce M=0fde
 | - | requirement | MON-6 | no passing test | not enforced |
 | - | requirement | MON-10 | no passing test | not enforced |
 | - | requirement | MON-11 | no passing test | not enforced |
+| - | requirement | MON-12 | no passing test | not enforced |
 | - | requirement | MON-7 | no passing test | not enforced |
 | - | requirement | MON-8 | no passing test | not enforced |
 | - | requirement | MON-9 | no passing test | not enforced |
