@@ -35,8 +35,8 @@ import rounds  # noqa: E402
 
 # Cloudflare Email REST API, read 2026-11-10:
 CF_API = "https://api.cloudflare.com/client/v4"
-CF_PATH = "/accounts/%s/email/sending/send"  # POST {to, from, subject, text, html}, Authorization: Bearer <token>
-CF_RETRY = (429, 503)  # 10004 throttled, 10100 auth upstream: the mail was not accepted, so one retry is safe
+CF_PATH = "/accounts/%s/email/sending/send"  # POST JSON, Bearer token
+CF_RETRY = (429, 503)  # not accepted: one retry is safe
 ADDR = ("DIGEST_TO", "DIGEST_FROM")
 SENDERS = {"cloudflare": ("CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_EMAIL_TOKEN"), "smtp": ("DIGEST_SMTP_USER", "DIGEST_SMTP_PASSWORD")}
 ALL = ADDR + SENDERS["cloudflare"] + SENDERS["smtp"]
@@ -57,11 +57,12 @@ def say(text, code):
 
 
 def scrub(text):
-    """Every secret value (raw, stripped or escaped) and the owner's address and local part become ***, any case."""
+    """Every secret (raw, trimmed or escaped) and the owner's local part become ***, any case."""
     out = str(text)
     raw = [os.environ.get(name) or "" for name in ALL]
-    values = [v.strip() for v in raw] + raw + [v.encode("unicode_escape").decode() for v in raw]
-    owner = values[0].split("@")[0] if "@" in values[0] else ""  # the owner's address alone: its local part too
+    values = [f(v) for v in raw for f in (str, str.strip, lambda s: s.encode("unicode_escape").decode(),
+                                          lambda s: s.strip().encode("unicode_escape").decode())]
+    owner = values[0].split("@")[0] if "@" in values[0] else ""
     values += [owner] if len(owner) > 3 else []
     for value in sorted(set(v for v in values if len(v) > 2), key=len, reverse=True):
         out = re.sub(re.escape(value), "***", out, flags=re.I)
@@ -108,17 +109,17 @@ def settings(root):
 
 
 def secrets(mode, test):
-    """The needed secrets, or Stop: none set at all is 'not set up' (exit 0 for send), any gap names the missing ones."""
+    """The needed secrets (trimmed), or Stop naming the missing or bad ones; none at all is 'not set up'."""
     need = ADDR + SENDERS[mode]
-    missing = [name for name in need if not os.environ.get(name)]
-    if not missing:
-        keys = {name: os.environ[name].strip() for name in need}  # a trailing newline is fine
-        bad = [name for name in need if re.search(r"\s", keys[name])]
+    keys = {name: (os.environ.get(name) or "").strip() for name in need}  # a trailing newline is fine
+    missing = [name for name in need if not keys[name]]
+    if not missing:  # an SMTP password may hold spaces (Gmail)
+        bad = [n for n in need if not keys[n].isascii() or re.search(r"[\r\n]" if n == "DIGEST_SMTP_PASSWORD" else r"\s", keys[n])]
         if bad:
-            raise Stop("MAIL_SECRETS", "%snot sent: %s holds a space or line break; nothing was written. Fix: %s"
+            raise Stop("MAIL_SECRETS", "%snot sent: %s holds a space, line break or non-ASCII; nothing was written. Fix: %s"
                        % ("test " if test else "", ", ".join(bad), FIX_SECRETS % "; ".join("gh secret set " + n for n in bad)))
         return keys
-    if not any(os.environ.get(name) for name in ALL) and not test:
+    if not any((os.environ.get(name) or "").strip() for name in ALL) and not test:
         raise Stop("MAIL_NOT_SET_UP", "not set up: no mail secret is set, so nothing was sent or written. Fix: to get the "
                    "round's mail, " + FIX_SECRETS % "; ".join("gh secret set " + n for n in need), status=0)
     raise Stop("MAIL_SECRETS", "%snot sent: missing secrets %s; nothing was written. Fix: %s"
@@ -126,13 +127,16 @@ def secrets(mode, test):
 
 
 def send_cloudflare(keys, subject, text, page, api):
-    """('ok'|'retry'|'refused'|'unknown', detail): retry only when nothing can have reached Cloudflare."""
+    """('ok'|'retry'|'refused'|'unknown', detail): retry only if nothing reached it."""
     data = json.dumps({"to": keys["DIGEST_TO"], "from": keys["DIGEST_FROM"], "subject": subject, "text": text, "html": page}).encode()
     request = urllib.request.Request(api + CF_PATH % keys["CLOUDFLARE_ACCOUNT_ID"], data=data, method="POST", headers={
         "Authorization": "Bearer " + keys["CLOUDFLARE_EMAIL_TOKEN"], "Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(request, timeout=30) as reply:
-            raw = reply.read() or b"{}"
+            try:
+                raw = reply.read() or b"{}"
+            except Exception as err:  # noqa: BLE001 - it answered: maybe sent
+                return "unknown", "%s reading the reply" % type(err).__name__
     except urllib.error.HTTPError as err:
         try:
             first = (json.loads(err.read() or b"{}").get("errors") or [{}])[0]
@@ -145,7 +149,7 @@ def send_cloudflare(keys, subject, text, page, api):
     except urllib.error.URLError as err:
         if isinstance(err.reason, ssl.SSLError):  # TLS failed before any request went out
             return "refused", "TLS failed: %s" % type(err.reason).__name__
-        if isinstance(err.reason, (ConnectionRefusedError, socket.gaierror)):  # no connection: nothing reached Cloudflare
+        if isinstance(err.reason, (ConnectionRefusedError, socket.gaierror)):  # nothing reached Cloudflare
             return "retry", "couldn't connect: %s" % type(err.reason).__name__
         return "unknown", "the connection failed while sending (%s)" % type(err.reason).__name__
     except (ValueError, http.client.InvalidURL) as err:  # a bad header or URL: no connection made
@@ -163,7 +167,7 @@ def send_cloudflare(keys, subject, text, page, api):
 
 
 def send_smtp(keys, subject, text, page, host, port):
-    """Like send_cloudflare. TLS always verifies the server's certificate; nothing before DATA can have sent the mail."""
+    """Like send_cloudflare. TLS always verifies the certificate."""
     mail = EmailMessage()
     mail["Subject"], mail["From"], mail["To"] = subject, keys["DIGEST_FROM"], keys["DIGEST_TO"]
     mail.set_content(text)
@@ -171,7 +175,7 @@ def send_smtp(keys, subject, text, page, host, port):
     started = sent = False
     try:
         if os.environ.get("DIGEST_SMTP_TEST_PORT"):
-            server = smtplib.SMTP(host, port, timeout=30)  # local test server only (settings checks the host)
+            server = smtplib.SMTP(host, port, timeout=30)  # local test server only
         elif port == 465:
             server = smtplib.SMTP_SSL(host, port, timeout=30, context=ssl.create_default_context())
         else:
@@ -184,7 +188,7 @@ def send_smtp(keys, subject, text, page, host, port):
             server.send_message(mail)
             sent = True
     except (smtplib.SMTPException, OSError) as err:
-        return ("ok", "") if sent else smtp_outcome(err, started)  # once the server took the message, a QUIT error is no failure
+        return ("ok", "") if sent else smtp_outcome(err, started)  # a QUIT error after it
     return "ok", ""
 
 
@@ -198,11 +202,11 @@ def smtp_outcome(err, started):
         return "unknown", "%s after the message started" % type(err).__name__
     if isinstance(err, (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, ConnectionError, socket.gaierror, TimeoutError)):
         return "retry", "couldn't connect: %s" % type(err).__name__
-    return "refused", "%s before the message started" % type(err).__name__  # TLS, certificate, STARTTLS or auth method
+    return "refused", "%s before the message started" % type(err).__name__  # TLS or auth method
 
 
 def deliver(mode, keys, subject, text, page, opts):
-    """(outcome, detail, retried): one retry, only when the provider cannot have accepted the mail."""
+    """(outcome, detail, retried): one retry, only when nothing was accepted."""
     host, port, wait, api = opts
     for attempt in (0, 1):
         if mode == "cloudflare":
@@ -257,7 +261,7 @@ def cmd_send(args):
     if comment is False:
         raise Stop("MAIL_GH", "gh couldn't read the digest comments, so nothing was sent. Fix: rerun this job (safe: nothing was sent)")
     body_state = rounds.parse(body)
-    if body_state and rounds.order(body_state["run"]) > rounds.order(run):  # a later round posted: its mail is the news
+    if body_state and rounds.order(body_state["run"]) > rounds.order(run):
         raise Stop("MAIL_STALE", "run %s is older than the round on the digest issue (run %s), so it has nothing to mail"
                    % (run, body_state["run"]), status=0)
     if not comment:
@@ -319,7 +323,7 @@ def main():
         ours = [f for f in frames if os.path.basename(f.filename) in ("mail.py", "rounds.py")]
         frame = (ours or frames)[-1]
         say("failed: %s: %s at %s:%d in %s. Fix: rerun this job; if it fails again, report this line"
-            % (type(err).__name__, str(err)[:200], os.path.basename(frame.filename), frame.lineno, frame.name), "MAIL_FAILED")
+            % (type(err).__name__, scrub(err)[:200], os.path.basename(frame.filename), frame.lineno, frame.name), "MAIL_FAILED")
         return 1
 
 

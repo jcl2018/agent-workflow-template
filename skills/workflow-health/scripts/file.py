@@ -156,7 +156,7 @@ def plan(rows, issues, groups, extra=(), judged=False, root=None):
 def words(act):
     tag, kind = tag_of(act["group"]), act["kind"]
     if kind == "open":
-        return "open issue %r on %s [%s]" % (act["title"], act.get("milestone") or BACKLOG, tag)
+        return "open issue %r on %s [%s]" % (act["title"], act.get("milestone", BACKLOG) or "no milestone", tag)
     if kind == "move":
         return "move #%s to %s [%s]" % (act["number"], act["milestone"], tag)
     return "%s #%s %s [%s]" % (kind, act["number"], act["key"], tag) + (", no longer found" if kind == "close" else "")
@@ -238,7 +238,8 @@ def apply(acts, root, groups):
         if act["kind"] in ("open", "move") and not act.get("milestone"):
             args = args[:args.index("--milestone")] + args[args.index("--milestone") + 2:]
         done = run(args, root) if args[:2] != ["issue", "edit"] or len(args) > 3 else subprocess.CompletedProcess(args, 0, "", "")
-        if done.returncode and miles is None and act["kind"] == "open" and act.get("milestone"):  # placed by title, unmade
+        if done.returncode and miles is None and act["kind"] == "open" and act.get("milestone") and "milestone" in done.stderr.lower():
+            print("NOTE: milestone %s couldn't be set, so the issue goes on no milestone" % act["milestone"])  # placed by title, unmade
             act = dict(act, milestone="", body=re.sub(r" placed=\S* -->", " placed= -->", act["body"], count=1))
             args = args_of(act)
             done = run(args[:args.index("--milestone")] + args[args.index("--milestone") + 2:], root)

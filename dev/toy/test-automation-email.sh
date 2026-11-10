@@ -296,8 +296,24 @@ sys.exit(mail.main())" 2>&1); rc=$?
     && ok "a token saved with a trailing newline is trimmed, sends, and is never printed" || bad "newline token"
   reset; rm -f "$G/comments.json"; comment 201
   out=$(cf_env CLOUDFLARE_ACCOUNT_ID="acct 123" DIGEST_RUN=201 $mail send 2>&1); rc=$?
-  [ $rc = 1 ] && grep -q "CLOUDFLARE_ACCOUNT_ID holds a space or line break" <<<"$out" && [ "$(cfreq)" = 0 ] && ! flags_of 0 | grep -q mailing \
+  [ $rc = 1 ] && grep -q "CLOUDFLARE_ACCOUNT_ID holds a space, line break or non-ASCII" <<<"$out" && [ "$(cfreq)" = 0 ] && ! flags_of 0 | grep -q mailing \
     && ok "a secret with a space inside is refused by name before anything is marked or sent" || bad "space secret"
+  # Value: protects=Gmail's spaced app password still logs in, and a blank secret counts as missing; fails_when=the whitespace rule covers the SMTP password or missing is judged before trimming; why_new=no case had either; seam=none; no_claim=Gmail's own handling of spaces
+  out=$(cd "$S" && env -i PATH="$PATH" DIGEST_TO=a@b.test DIGEST_FROM=c@d.test DIGEST_SMTP_USER=u DIGEST_SMTP_PASSWORD='abcd efgh ijkl mnop' python3 -B -c "
+import mail; print(mail.secrets('smtp', False)['DIGEST_SMTP_PASSWORD'])
+try:
+    import os; os.environ['DIGEST_TO'] = '\n'; mail.secrets('smtp', False); print('accepted')
+except mail.Stop as stop: print(stop.code, stop.text)" 2>&1)
+  grep -qx "abcd efgh ijkl mnop" <<<"$out" && grep -q "^MAIL_SECRETS .*missing secrets DIGEST_TO" <<<"$out" \
+    && ok "an SMTP password with spaces is kept, and a secret that is only a line break counts as missing" || bad "spaced password and blank secret"
+  out=$(cd "$S" && cf_env python3 -B -c "
+import mail, os
+pad = 'x' * 195
+os.environ['DIGEST_RUN'] = '201'
+def boom(*a): raise RuntimeError(pad + os.environ['CLOUDFLARE_EMAIL_TOKEN'])
+mail.cmd_send = lambda args: boom()
+import sys; sys.argv = ['mail.py', 'send', '--root', '$r']; sys.exit(mail.main())" 2>&1)
+  grep -q "(MAIL_FAILED)" <<<"$out" && ! grep -q "${TOKEN:0:5}" <<<"$out" && ok "MAIL_FAILED scrubs before cutting, so no secret prefix is printed" || bad "scrub before cut"
   # Value: protects=an unexpected error during the send keeps the round marked mailing and says how to recover; fails_when=the crash goes to the generic MAIL_FAILED 'rerun' advice; why_new=no test crashed inside deliver; seam=none; no_claim=which errors happen in production
   reset; rm -f "$G/comments.json"; comment 201
   out=$(cd "$S" && cf_env python3 -B -c "
@@ -383,6 +399,17 @@ for fn in (bad_url, bad_header):
     print(mail.send_cloudflare(keys, 's', 't', '<p/>', 'https://api.example.test')[0])
 ")
   [ "$(tr '\n' ' ' <<<"$out")" = "refused refused " ] && ok "a request that can't be built (bad URL or header) is refused, not unknown" || bad "unbuildable request"
+  out=$(cd "$S" && python3 -B -c "
+import urllib.request, mail
+keys = {'DIGEST_TO': 'a@b.test', 'DIGEST_FROM': 'c@d.test', 'CLOUDFLARE_ACCOUNT_ID': 'x', 'CLOUDFLARE_EMAIL_TOKEN': 't'}
+class Reply:
+    def __enter__(self): return self
+    def __exit__(self, *a): pass
+    def read(self): raise ValueError('invalid literal for int() with base 16')
+urllib.request.urlopen = lambda *a, **k: Reply()
+print(mail.send_cloudflare(keys, 's', 't', '<p/>', 'https://api.example.test')[0])
+")
+  [ "$out" = unknown ] && ok "an error reading Cloudflare's reply is unknown, never refused, so the mark stays" || bad "reply read error"
   cfg '{"digest_mail": "cloudflare", "smtp_port": 25}'; out=$(cd "$S" && python3 -B -c "import mail; print(mail.settings('$r')[0])" 2>&1)
   cfg '{"digest_mail": "smtp", "smtp_port": "587"}'; out2=$(cd "$S" && python3 -B -c "import mail; print(mail.settings('$r')[2])" 2>&1); cfg '{"digest_mail": "cloudflare"}'
   [ "$out" = cloudflare ] && [ "$out2" = 587 ] && ok "smtp_port is checked only when smtp sends, and a quoted port is read as a number" || bad "smtp settings"
@@ -647,8 +674,24 @@ acts = file.plan([row], {}, ['size'], root='$r'); file.apply(acts, '$r', ['size'
 made = [a for a in seen if a[:2] == ['issue', 'create']]
 print(len(made), '--milestone' in made[-1], 'placed= -->' in made[-1][made[-1].index('--body') + 1])
 " ) > "$G/blind2.out" 2>&1
-  grep -q "^2 False True$" "$G/blind2.out" && grep -q "^DONE open issue" "$G/blind2.out" \
+  grep -q "^2 False True$" "$G/blind2.out" && grep -q "^NOTE: milestone Health couldn't be set" "$G/blind2.out" && grep -q "^DONE open issue .* on no milestone" "$G/blind2.out" \
     && ok "when milestones can't be read and the feature has none, the finding is still filed, on no milestone" || bad "health blind create"
+  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
+import file, subprocess
+real, seen = file.run, []
+def run(args, root):
+    seen.append(args)
+    if args[:2] == ['api', '--paginate'] and any('milestones' in a for a in args):
+        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
+    if args[:2] == ['issue', 'create']:
+        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502: Bad Gateway')
+    return real(args, root)
+file.run = run
+row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/rounds.py', rule='limit', detail='big', fix='')
+acts = file.plan([row], {}, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
+print('creates', len([a for a in seen if a[:2] == ['issue', 'create']]))
+" ) > "$G/blind3.out" 2>&1
+  grep -q "^creates 1$" "$G/blind3.out" && ok "a create that fails for another reason is not retried, so a timeout can't file twice" || bad "retry only on milestone"
   rm -f .loop/docs.tsv; unset FAKE_GH_DIR
 fi
 
