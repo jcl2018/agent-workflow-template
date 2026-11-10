@@ -1,7 +1,7 @@
 # Template updates flow both ways, every repo has a self-describing entry point, and every agent gets the same loop in its own format (owner, 2026-11-10: "Approve 1, 2, 3.")
 
 - Slug: setup-sync
-- Touches: skills/workflow-setup, skills/workflow-monitoring/scripts/board_status.py, skills/workflow-docs, skills/loop-files.md, dev/toy, .loop/regression.tsv, docs/wiki/Setup.md, README.md
+- Touches: skills/workflow-setup, skills/workflow-monitoring/scripts/board_status.py, skills/workflow-docs, skills/loop-files.md, dev/toy, .loop/regression.tsv, docs/wiki/Setup.md, README.md, skills/workflow-delivery, skills/workflow-monitoring/scripts/watch.py, skills/workflow-monitoring/scripts/live_board.py, dev/package.py, listing.json, docs/wiki/Delivery.md, docs/wiki/Monitoring.md, CLAUDE.md, AGENTS.md, .loop/START.md
 
 ## Done lines
 
@@ -18,7 +18,7 @@ Frozen. A wrong done line needs a new goal.
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
 
 1. In this repo, open `.loop/START.md`.
-   Expect: a "First five minutes" list, one part each for Loop, Release, Operation and workers, Docs, Regression, Health and Settings, a Features table naming all eight feature pages with how to use each, and a Settings table with every repo setting and its value.
+   Expect: a "First five minutes" list, one part each for Loop, Release, Operation and workers, Docs, Regression, Health and Settings, a Features table naming all seven feature pages (Home is not one) with how to use each, and a Settings table with every repo setting and its value.
 2. Open `CLAUDE.md` and `AGENTS.md` side by side.
    Expect: the same `<!-- workflow-loop -->` block in both, telling a session to read `.loop/START.md` first and listing the seven workflow skills.
 3. Change one Usage bullet's first sentence in `docs/wiki/Setup.md`, then run `python3 skills/workflow-docs/scripts/docs.py check`.
