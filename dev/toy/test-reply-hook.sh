@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/
 # Proves the operation session's reply-format Stop hook (reply_hook.py) and its installer (setup.py --reply-hook) with
 # made-up transcripts shaped like real Claude Code ones. No model is called and no real session is touched.
 # usage: test-reply-hook.sh [DIR]

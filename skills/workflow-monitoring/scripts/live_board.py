@@ -4,8 +4,11 @@
 usage: live_board.py [--html]
 
 LIVE BOARD header (repo, local time, version, health), then Issues (only what is open now, a stuck worker first, each with its
-fix in plain words), Running goals (10-cell bar with percent and time left, the step flow with done steps ticked and the current
-step in brackets, the worker: its session name or background, each recorded step's depth, one next step), Queued goals, Dependencies (arrows between running and queued goals) and one Finish time.
+fix in plain words), Running goals (10-cell bar with percent, time left and the try count, the step flow with done steps ticked
+and the current step in brackets, the worker: its session name or background, each recorded step's depth, one next step; a goal a session was handed
+before it was frozen shows as [freezing]), Queued goals (held goals among them, marked held: running, but no worker has
+them), Dependencies (arrows between running and queued goals) and one Finish time. The session pool is read with
+graph.read_pool; when it can't be read, nothing is called held or freezing and Issues says so.
 Merged work, history and totals are left out. Estimates and the finish come from board_status.py and status_graph.py.
 Health is workflow-health's verdict, or "unknown"; LOOP_BOARD_HEALTH replaces it (tests). Imported by board_status.py.
 """
@@ -63,25 +66,63 @@ def version(root):
         return "unknown"
 
 
+def loop_dir(root):
+    return os.path.join(os.path.abspath(os.path.join(root, bs.git("rev-parse", "--git-common-dir", cwd=root))), "loop")
+
+
 def load(root):
-    folder = os.path.join(os.path.abspath(os.path.join(root, bs.git("rev-parse", "--git-common-dir", cwd=root))), "loop", "runs")
+    folder = os.path.join(loop_dir(root), "runs")
     runs = [bs.read_json(os.path.join(folder, name)) for name in sorted(os.listdir(folder)) if name.endswith(".json")] if os.path.isdir(folder) else []
     return [run for run in runs if isinstance(run, dict) and run.get("slug") and run.get("status") != "retired"]
 
 
+def run_files(root):
+    """Every goal with a run file on disk, retired ones included: a busy pool entry for one of these is not freezing."""
+    folder = os.path.join(loop_dir(root), "runs")
+    return {name[:-5] for name in os.listdir(folder) if name.endswith(".json")} if os.path.isdir(folder) else set()
+
+
+def parse_at(text):
+    """A recorded time as an aware UTC datetime (naive counts as UTC), or None when it is missing or bad."""
+    try:
+        found = datetime.datetime.fromisoformat(str(text).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return found if found.tzinfo else found.replace(tzinfo=datetime.timezone.utc)
+
+
+def age(text, at):
+    """How long ago a recorded time was: Nm under an hour, Nh under two days, else Nd; '' when the time is unknown."""
+    then = parse_at(text)
+    if not then or not at:
+        return ""
+    minutes = max(0, int((at - then).total_seconds() // 60))
+    return "%dm" % minutes if minutes < 60 else "%dh" % (minutes // 60) if minutes < 48 * 60 else "%dd" % (minutes // 1440)
+
+
 def current(run):
-    """Index of the step a goal is on: a finished, unmerged goal waits at release."""
+    """Index of the step a goal is on: a finished, unmerged goal waits at release. A step outside the flow (a check,
+    say) keeps the last known flow step: the newest report naming one, else the furthest step in the run's flow record."""
     if run.get("status") == "done":
         return FLOW.index("release")
-    return FLOW.index(run["step"]) if run.get("step") in FLOW else 0
+    if run.get("step") in FLOW:
+        return FLOW.index(run["step"])
+    for item in reversed(run.get("reports") if isinstance(run.get("reports"), list) else []):
+        if isinstance(item, dict) and item.get("step") in FLOW:
+            return FLOW.index(item["step"])
+    known = [FLOW.index(step) for step in (run.get("flow") or {}) if step in FLOW]
+    return max(known) if known else 0
 
 
 def flow_lines(run, over=0):
     """The step flow, indented four, packed into lines of at most WIDTH that break at the " > " joints (steps stay whole).
     The current step reads "[build over by 12m]" when it ran a minute or more past its usual time."""
-    here = current(run)
-    steps = ["[%s%s]" % (step, " over by " + status_graph.span(over) if over >= 60 else "") if i == here
-             else step + "✓" if i < here else step for i, step in enumerate(FLOW)]
+    if run.get("status") == "freezing":
+        steps = ["[freezing]"] + list(FLOW)
+    else:
+        here = current(run)
+        steps = ["[%s%s]" % (step, " over by " + status_graph.span(over) if over >= 60 else "") if i == here
+                 else step + "✓" if i < here else step for i, step in enumerate(FLOW)]
     lines, line = [], "    "
     for i, step in enumerate(steps):
         piece = step + (" >" if i < len(steps) - 1 else "")
@@ -103,21 +144,56 @@ def fit(lines, width=WIDTH):
     return out
 
 
+def latest_report(run):
+    """The newer of the run's report and its last session report (a tie or a missing time: the last report), unless it
+    is older than the run's bound_at, when a new worker took the goal."""
+    report = run.get("report") if isinstance(run.get("report"), dict) else {}
+    last = run.get("reports")[-1] if isinstance(run.get("reports"), list) and run.get("reports") else {}
+    last = last if isinstance(last, dict) else {}
+    when, then = parse_at(report.get("at")), parse_at(last.get("at"))
+    pick = report if report.get("text") and (not last.get("text") or (when and then and when > then)) else last
+    bound, said = parse_at(run.get("bound_at")), parse_at(pick.get("at"))
+    return "" if bound and said and said < bound else pick.get("text") or ""
+
+
 def next_line(run):
-    text = plain((run.get("report") or {}).get("text") or run.get("next") or "", 120)
+    if run.get("status") == "done":
+        return plain((run.get("report") or {}).get("text") or "merge the pull request", 120)
+    text = plain(latest_report(run) or run.get("next") or "", 120)
     if text:
         return text
-    here = current(run)
     if run.get("status") == "waiting":
         return "answer the question under Issues"
-    return "merge the pull request" if run.get("status") == "done" else "finish %s, then %s" % (FLOW[here], FLOW[min(here + 1, len(FLOW) - 1)])
+    here = current(run)
+    return "finish release" if here == len(FLOW) - 1 else "finish %s, then %s" % (FLOW[here], FLOW[here + 1])
 
 
-def worker_of(run):
-    """Which worker has the goal: its app session by name, or a background process (the fallback) and why."""
+def worker_of(run, taken=None):
+    """Which worker has the goal: its app session by name (from the run, or the pool), or a background process and why."""
     if run.get("worker") == "session" or run.get("session"):
         return "session %s" % ((run.get("session") or {}).get("name") or "worker · " + run["slug"])
+    if taken and run["slug"] in taken:
+        return "session %s" % (taken[run["slug"]].get("name") or taken[run["slug"]]["id"])
     return "background" + (" (%s)" % plain(run["worker_why"], 80) if run.get("worker_why") else "")
+
+
+def is_held(run, taken):
+    """Running with no worker: the pool is known, no busy session names it, and it has no pid (a dead pid is watch's)."""
+    return run.get("status") == "running" and taken is not None and run["slug"] not in taken and not run.get("pid")
+
+
+def tries(run, most):
+    done = run.get("tries") or 0
+    if not isinstance(done, int) or done <= 0:
+        return ""
+    return "  try %d of %d" % (done + 1, most) if done < most else "  tries used up (%d of %d)" % (done, most)
+
+
+def max_tries(root):
+    try:
+        return max(1, int((bs.read_json(os.path.join(root, ".loop", "config.json")) or {}).get("max_tries") or 3))
+    except (TypeError, ValueError, AttributeError):
+        return 3
 
 
 def depth_of(run, setting):
@@ -127,8 +203,12 @@ def depth_of(run, setting):
     return "%s (setting %s)" % (done or "none recorded yet", setting)
 
 
-def issues(runs, gone, root, at=None):
+def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
     stuck, other = [], []
+    if why:
+        other += ["- the session pool can't be read (%s)" % plain(why, 120),
+                  "    fix: check it with python3 -m json.tool <git common dir>/loop/session-pool.json, then repair it (moved aside, "
+                  "every held goal is forgotten); nothing was started or changed, and the next pass retries"]
     for run in runs:
         slug, report = run["slug"], (run.get("report") or {}).get("text", "")
         if run.get("status") in bs.ASKING:
@@ -139,14 +219,23 @@ def issues(runs, gone, root, at=None):
         if run.get("release_error") and bs.error_open(run, gone, "release failed"):
             other += ["- %s: the release failed: %s" % (slug, plain(run["release_error"])), '    fix: look at the problem, then type "resume %s"' % slug]
     for run in runs:
-        try:
-            last = datetime.datetime.fromisoformat(str(run.get("updated")).replace("Z", "+00:00"))
-        except ValueError:
-            last = None
-        if at and run.get("worker") == "session" and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET:
+        last = parse_at(run.get("updated"))
+        quiet = bool(at and last and (at - last).total_seconds() >= QUIET)
+        if quiet and is_held(run, taken) and graph.holds_slot(run):
+            other += ["- %s: held %s and holds a slot" % (run["slug"], age(run.get("updated"), at)),
+                      "    fix: give it a session with sessions.py bind %s ID, or, once its old session has stopped, "
+                      "sessions.py free %s to give the slot back" % (run["slug"], run["slug"])]
+        elif quiet and run.get("worker") == "session" and run.get("status") == "running" and not is_held(run, taken):
             name = (run.get("session") or {}).get("name") or "worker · " + run["slug"]
             other += ["- %s: its session %s has sent nothing for %dm" % (run["slug"], name, (at - last).total_seconds() // 60),
                       '    fix: look at the session %s; when it answers, record it with sessions.py report %s' % (name, run["slug"])]
+    for entry in freezing:
+        since = parse_at(entry.get("since"))
+        if at and since and (at - since).total_seconds() >= QUIET:
+            name = entry.get("name") or entry["id"]
+            other += ["- %s: assigned to session %s %s ago and still not frozen" % (entry["slug"], name, age(entry["since"], at)),
+                      "    fix: look at the session %s; once it has stopped, drop the assignment with sessions.py free %s"
+                      % (name, entry["slug"])]
     found = bs.wiki_check(root)
     parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]
     for run in runs:
@@ -162,17 +251,25 @@ def render(root=None, at=None):
     root = root or bs.git("rev-parse", "--show-toplevel")
     at = at or datetime.datetime.now(datetime.timezone.utc)
     runs = load(root)
+    pool, why = graph.read_pool(os.path.join(loop_dir(root), "session-pool.json"))
+    taken = graph.assigned(pool)
+    on_disk = run_files(root)
+    freezing = [dict(entry, slug=slug) for slug, entry in sorted((taken or {}).items()) if slug not in on_disk]
     states = bs.pr_states(runs, root)
     gone = {r["slug"] for r in runs if graph.merged(r) or states.get(r["slug"]) == "MERGED"}
     shut = {r["slug"] for r in runs if r["slug"] not in gone and states.get(r["slug"]) == "CLOSED"}
     live = [r for r in runs if r["slug"] not in gone | shut]
-    running = [r for r in live if r.get("status") in ("running", "waiting", "done")]
+    held = [r for r in live if is_held(r, taken)]
+    running = [r for r in live if r.get("status") in ("running", "waiting", "done") and r not in held]
     waits = lambda deps: [d for d in deps if d not in gone]
-    queue = bs.queued(root, runs)
+    lines = {g["slug"]: g for g in bs.queued(root, runs)}
+    queue = [g for g in lines.values() if g["slug"] not in {f["slug"] for f in freezing}]
     items = [dict(slug=r["slug"], mark=status_graph.mark(r.get("status")), depends=waits(r.get("waits_on") or []), stage=0,
                   left=bs.left_time(r, runs, at)) for r in live]
     items += [dict(slug=g["slug"], mark="queued", depends=waits(g["depends"]), stage=0,
                    left=bs.left_time({"slug": g["slug"], "status": "queued"}, runs, at)) for g in queue]
+    items += [dict(slug=f["slug"], mark=status_graph.mark("running"), depends=waits((lines.get(f["slug"]) or {}).get("depends") or []),
+                   stage=0, left=bs.left_time({"slug": f["slug"], "status": "queued"}, runs, at)) for f in freezing]
     names = {item["slug"] for item in items}
     setting = "condensed" if (bs.read_json(os.path.join(root, ".loop", "config.json")) or {}).get("review_depth") == "condensed" else "full"
     head = "LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root))
@@ -181,24 +278,38 @@ def render(root=None, at=None):
         out = [head, tail, "", "Issues"]
     else:
         out = [head, "", "Issues"]
-    out += issues([r for r in runs if r["slug"] not in shut], gone, root, at) + ["", "Running goals"]
+    out += issues([r for r in runs if r["slug"] not in shut], gone, root, at, taken, why, freezing) + ["", "Running goals"]
+    most = max_tries(root)
+    bar = lambda run, done, end="": "- %s  [%s%s] %d%%  %s%s%s" % (
+        run["slug"], "#" * round(10 * done / len(FLOW)), "-" * (10 - round(10 * done / len(FLOW))), round(100 * done / len(FLOW)),
+        "no estimate yet" if left_of(run) is None else "%s left" % status_graph.span(left_of(run)), tries(run, most), end)
+    left_of = lambda run: next(i["left"] for i in items if i["slug"] == run["slug"])
     for run in running:
-        done = current(run)
-        full = round(10 * done / len(FLOW))
-        left = next(i["left"] for i in items if i["slug"] == run["slug"])
-        out += ["- %s  [%s%s] %d%%  %s" % (run["slug"], "#" * full, "-" * (10 - full), round(100 * done / len(FLOW)),
-                                         "no estimate yet" if left is None else "%s left" % status_graph.span(left)),
-                *flow_lines(run, bs.overrun(run, runs, at)), "    worker: " + worker_of(run), "    depth: " + depth_of(run, setting), "    next: " + next_line(run)]
-    out += ([] if running else ["- (none)"]) + ["", "Queued goals"]
+        out += [bar(run, current(run)), *flow_lines(run, bs.overrun(run, runs, at)), "    worker: " + worker_of(run, taken),
+                "    depth: " + depth_of(run, setting), "    next: " + next_line(run)]
+    for entry in freezing:
+        name, ago = entry.get("name") or entry["id"], age(entry.get("since"), at)
+        out += [bar(dict(entry, status="freezing"), 0), *flow_lines({"status": "freezing"}), "    worker: session " + name,
+                "    next: the worker freezes it (goal.py new %s --here in its worktree), binds again, then idea%s"
+                % (entry["slug"], " (assigned %s ago)" % ago if ago else "")]
+    out += ([] if running or freezing else ["- (none)"]) + ["", "Queued goals"]
+    for run in held:
+        tree = run.get("worktree") and os.path.isdir(run["worktree"])
+        ago = age(run.get("updated"), at)
+        state = ", ".join(x for x in ("held", "last change %s ago" % ago if ago else "", "worktree kept" if tree else "worktree gone",
+                                       "holds a slot" if graph.holds_slot(run) else "") if x)
+        fix = "" if tree else "; make its worktree again first (git worktree add <common>/loop/worktrees/%s loop/%s)" % (run["slug"], run["slug"])
+        out += [bar(run, current(run), "  held"), *flow_lines(run), "    worker: none (%s)" % state, "    depth: " + depth_of(run, setting),
+                "    next: give it a worker session (sessions.py bind %s ID, where ID is the session's id from the app)%s" % (run["slug"], fix)]
     for goal in queue:
         left = next(i["left"] for i in items if i["slug"] == goal["slug"])
         out.append("- %s  %s%s" % (goal["slug"], "no estimate yet" if left is None else "%s left" % status_graph.span(left),
                                    "  waits on " + ", ".join(waits(goal["depends"])) if waits(goal["depends"]) else ""))
-    out += ([] if queue else ["- (none)"]) + ["", "Dependencies"]
+    out += ([] if queue or held else ["- (none)"]) + ["", "Dependencies"]
     edges = ["%s --> %s" % (dep, item["slug"]) for item in items for dep in item["depends"] if dep in names]
     out += edges or ["- (none)"]
     seconds, _, _ = status_graph.chain(items)
-    missing = status_graph.unknown(items)
+    missing = status_graph.unknown(items) or held or freezing
     finish = "nothing left" if not items else "no estimate yet" if not seconds else "%sfinish about %s" % (
         "at least " if missing else "", graph.clock(at + datetime.timedelta(seconds=seconds)))
     return fit(out + ["", "Finish", finish])

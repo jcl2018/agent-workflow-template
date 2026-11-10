@@ -1,5 +1,75 @@
 # Changelog
 
+## v0.19.0 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/board-held
+- board-held: build in progress (graph pool reader, board held/freezing, sessions free/bind, watch fail-closed)
+- Merge remote-tracking branch 'origin/main' into loop/board-held
+- board-held: test-board-held.sh; watch texts back in watch.py so watch.py runs alone
+- board-held: Monitoring page, commands reference (board states, handoff, messages), SKILL.md
+- board-held: review fixes (assign claims a session under the lock, report saves before release, bind/free save under the lock, board crash guards, free wording) and review tests
+- board-held: review cycle 2 (assign keeps an operator's bind, report says when a session wasn't freed, rebind restores a failed run, bind checks pid liveness, a merged goal keeps its evidence against late reports, board guards a malformed reports field) and tests
+- board-held: review cycle 3 (assign rechecks its claim is still busy and saves onto the current run, mend refuses on an unreadable pool, commands doc names no removed flag), Monitoring page
+- board-held: session_tool.py sets the no-terminal guard like every script that starts processes
+- board-held: merge origin/main (review_depth); held goals show their depth line too
+- board-held: Monitoring page names held goals' depth line and the session tool's no-terminal guard
+- board-held: listing.json names the new free command (package disclosure rule)
+- board-held: render the Setup Tests tables
+- fix: pre-landing review fixes (assign gives a failed goal to its new session instead of misreading HANDED, watch still reports dead pids and questions on an unreadable pool, pool-fix and stale-freezing wording, listing names the lock file and mend)
+- test: board-held coverage (mend and assign races, report saved but not freed, Finish, pool-only slot, failed-goal reassign, waiting bind, forced lock interleave), exit 1 on failure, held-all row
+- test: held-all seen red on the pre-fix assign
+- fix: assign treats only a failed or stopped try's session as replaceable; tests for a HANDED assign's freed claim, a bind back to the old session, and a goal running in a session
+- fix: a manual assign refuses a goal that already has a worker; assign's final check sees a bind made during the send by its bound_at
+- board-held: Monitoring page names assign's refusal and HANDED
+- Merge remote-tracking branch 'origin/main' into loop/board-held
+- board-held: # reads: header for test-board-held.sh (narrow-rows check from main)
+
+### How to verify
+
+1. In the main checkout after the merge, start a session with the app's own tools for a goal that isn't frozen yet, run
+   `python3 skills/workflow-monitoring/scripts/sessions.py bind <new-slug> <session-id>`, then print the live board
+   (`python3 skills/workflow-monitoring/scripts/board_status.py`).
+   Expect: the bind prints `ASSIGNED ... not frozen yet`, and the board shows `<new-slug>` under Running goals at once,
+   with `[freezing]` and `worker: session worker · <new-slug>`.
+2. Look at a goal you put on hold (its session reassigned, its worktree kept) on the same board.
+   Expect: it is listed under Queued goals ending in `held`, with `worker: none (held, ...)` and a `sessions.py bind`
+   line naming it. It is not under Running goals and not called background.
+3. Look at a session goal that failed once and was bound again, after its worker sent a new report.
+   Expect: its next line is the newest report, not the old failure, and its bar line ends `try 2 of 3`.
+4. After a goal's pull request opens, send `python3 skills/workflow-monitoring/scripts/sessions.py report <slug> --status running`.
+   Expect: it prints `KEPT done for <slug>: ...`, and the goal still reads `next: merge the pull request` (or its merged report).
+
+## v0.18.0 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/narrow-rows
+- narrow-rows: # reads: headers, narrow closure (narrow.py), lanes_cli.py, check-reads.sh, test-tree.sh; REG-6 rows
+- narrow-rows: the LANES_WIDE parity check compares a path where wide and narrow differ
+- narrow-rows: real-repo header checks live in test-tree.sh; headers only in shell files; docs for # reads:
+- narrow-rows: repo-level docs/health checks move to test-tree.sh; split /skills/ paths seen; lanes_cli.py prompt guard; trace fixes
+- narrow-rows: rows seen red and run; REG-6 scenarios rendered
+- narrow-rows: a table edit reruns its own rows and the rows that read this repo's table, not every row reaching regression.py
+- narrow-rows: check-reads resolves the real interpreter (nested traces); Tests re-rendered
+- narrow-rows review fixes: root-running scripts always; recursive reads need the folder; import lists; table readers through wrappers; deletions anywhere; check-reads per-pid hooks, pyc and copy mapping, group-killing timeout; narrow tests in test-narrow.sh
+- narrow-rows: toy broad row declares skills/k/
+- narrow-rows: lanes-table toy row that reaches regression.py without reading the table
+- narrow-rows: a skill folder read as a whole (literally or via a variable) needs the folder declared; MD deletions; trace fixtures use run-time Python reads
+- narrow-rows: whole-folder reads decided per command (cd/mkdir/PYTHONPATH/sys.path name only), cd-then-list, $d/sub, folder variables from sourced files; docs
+- Merge remote-tracking branch 'origin/main' into loop/narrow-rows
+- narrow-rows: # reads: headers for the scripts main added; workflow-regression SKILL.md back under 150 lines
+- Wiki: update pages for narrow-rows
+- Wiki: update pages for narrow-rows
+
+### How to verify
+
+1. In this repo, run `python3 skills/workflow-regression/scripts/lanes_cli.py check`.
+   Expect: no output and exit status 0 (every test script a row names has a valid `# reads:` header).
+2. Run `python3 skills/workflow-regression/scripts/lanes_cli.py affected skills/workflow-monitoring/scripts/batch.py`.
+   Expect: `AFFECTED 81 of 225 rows (...)`, under half the land rows; with `LANES_WIDE=1` in front, all 225.
+3. Run `python3 skills/workflow-regression/scripts/lanes_cli.py deps "bash dev/toy/test-live-board.sh 2>&1" --why skills/workflow-health/scripts/judge.py`.
+   Expect: one chain of files from `dev/toy/test-live-board.sh` to `judge.py` (the live board runs health.py).
+4. Delete the `# reads:` lines from `dev/toy/test-health.sh` and run step 1 again, then restore the file.
+   Expect: `LANES-DECL-NONE dev/toy/test-health.sh:1: ...` and a `fix:` line, exit status 1.
+
 ## v0.17.0 - 2026-11-10
 
 - Health keeps itself honest and the repo lean (HLT-6)

@@ -198,6 +198,8 @@ def relaunch(state, prompt, cfg, note):
             sessions.release(state["slug"])
         except ImportError:
             pass
+        except sessions.PoolUnreadable as error:  # unknown ownership: say so and restart nothing
+            sys.exit("REFUSED: %s not restarted: the session pool can't be read (%s)" % (state["slug"], error))
         state.update(worker="background", worker_why="restarted as a background process", session=None)
     save(state, note)
     launch(state, prompt, cfg)

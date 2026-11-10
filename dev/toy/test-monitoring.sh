@@ -1,4 +1,8 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/goal.py skills/workflow-monitoring/scripts/board.py
+# reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-monitoring/scripts/graph.py
+# reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/monitor.py
+# reads: skills/workflow-monitoring/scripts/watch.py skills/workflow-setup/scripts/setup.py
 # Proves workflow-monitoring on a throwaway toy repo with a fake agent. No model is called and gh is faked.
 # usage: test-monitoring.sh [DIR]
 # test-goal.sh covers go, watch, mend and usage limits. This covers what it doesn't: a killed agent, overlapping goals,

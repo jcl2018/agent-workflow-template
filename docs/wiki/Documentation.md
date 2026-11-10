@@ -97,7 +97,7 @@ One command enforces it: checks all required docs against the template, code and
 - Given trouble in the docs, when the release step runs, then it reads the docs command and sees the trouble. — [release-runs-audit](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a page stating the wrong number of skills, when the docs check runs, then it fails naming the file, the stated number and the real one. — [docs-count-mismatch](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a page whose Usage changed since the owner's review, when the docs audit, the release fixes or publish run, then none of them stops on it or changes Usage. — [prd-audit-ignores-changed](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-09
-- Given this repo, when its docs check and health run, then nothing fails but a page whose Usage changed since the owner's review. — [prd-repo-green](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-09, seen failing 2026-11-09
+- Given this repo, when its docs check and health run, then nothing fails but a page whose Usage changed since the owner's review. — [prd-repo-green](../../.loop/regression.tsv), requirement, guards DOC-4, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### DOC-5
 

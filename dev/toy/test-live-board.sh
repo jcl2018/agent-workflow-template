@@ -1,4 +1,10 @@
 #!/bin/bash
+# reads: skills/workflow-monitoring/scripts/board.py skills/workflow-monitoring/scripts/board_page.py
+# reads: skills/workflow-monitoring/scripts/board_runs.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
+# reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/operate.py
+# reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/status_graph.py
+# reads: skills/workflow-monitoring/scripts/watch.py skills/workflow-monitoring/scripts/worker.py
 # Proves the live board line by line with a made-up repo: two running goals, queued and chained goals and one open issue (a stuck
 # worker). No model is called. usage: test-live-board.sh [DIR]
 set -u

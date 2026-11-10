@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/workflow-health/scripts/ skills/workflow-setup/scripts/setup.py
 # Test the Cost rule and the judge of workflow-health with a stand-in judge. usage: test-health-judge.sh [DIR]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool

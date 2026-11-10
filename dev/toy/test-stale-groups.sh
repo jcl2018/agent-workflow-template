@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/design-guide.md skills/loop-files.md skills/workflow-health/scripts/milestone.py
 # Defect test for issue 89: a removed feature group name must not come back. No model is called.
 # The groups are the page names in .loop/docs.tsv (minus Home) plus Backlog; Release and Milestones are gone, and the
 # docs feature is "Documentation", not "Criteria and tests". usage: test-stale-groups.sh [ROOT]
