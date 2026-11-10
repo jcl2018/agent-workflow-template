@@ -93,9 +93,10 @@ EOF
   python3 $S/workflow-docs/scripts/docs.py audit >/dev/null 2>&1
   check "docs.py audit regenerates it mechanically, and the check passes again" "$E check >/dev/null && grep -q 'engine run' .loop/START.md"
   rm .loop/START.md
-  check "a missing entry point fails the check (ENTRY_MISSING)" "$E check | grep -q '^MISSING .loop/START.md'"
-  git checkout -q .loop/START.md 2>/dev/null; $E write >/dev/null
-  python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['template_version']='0.0.1';json.dump(d,open(p,'w'),indent=2)"; $E write >/dev/null
+  check "a repo set up before the entry point existed (no template_version) is not failed for lacking one" "$E check >/dev/null"
+  python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['template_version']='0.0.1';json.dump(d,open(p,'w'),indent=2)"
+  check "a stamped repo with no entry point fails the check (ENTRY_MISSING)" "$E check | grep -q '^MISSING .loop/START.md'"
+  $E write >/dev/null
   mkdir -p "$T/inst"; cp -R "$S/." "$T/inst/"; find "$T/inst" -name __pycache__ -prune -exec rm -rf {} +
   echo '{"version": "9.9.9", "files": {}}' > "$T/inst/workflow-package.json"
   sed -i.bak 's/One session governs and the others build:/One session governs; the others build:/' "$T/inst/workflow-docs/references/start.md"
