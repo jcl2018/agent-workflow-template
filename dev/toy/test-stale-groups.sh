@@ -20,7 +20,7 @@ for g in $removed; do
 done
 for f in docs/wiki/*.md; do
   n=$(basename "$f" .md)
-  [ "$n" = Home ] || grep -qx "$n" <<<"$groups" || no "wiki page $n is not a feature group"
+  [ "$n" = Home ] || [ "$n" = Tests ] || grep -qx "$n" <<<"$groups" || no "wiki page $n is not a feature group"
 done
 
 # the old name of the Documentation group, in the places that list groups

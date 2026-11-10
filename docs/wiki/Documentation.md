@@ -84,81 +84,78 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=219479d7 N=81dd3484 M=4599
 
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
-| [stale-found](Tests#t-stale-found) | requirement | DOC-1 | Given a wiki page behind the code it covers, when the docs check runs, then the page is reported as stale. | PASS 2026-11-09 |
-| [publish-refused-stale](Tests#t-publish-refused-stale) | requirement | DOC-1 | Given a stale wiki page, when the wiki is published, then publishing is refused. | PASS 2026-11-09 |
-| [stale-merge-order](Tests#t-stale-merge-order) | requirement | DOC-1 | Given two docs merges, when they merge in either order, then no page is left stale. | PASS 2026-11-09 |
-| [page-shape](Tests#t-page-shape) | requirement | DOC-1 | Given a wiki page with a Commands section, when the check runs, then it fails. | PASS 2026-11-09 |
-| [criteria-no-scripts](Tests#t-criteria-no-scripts) | requirement | DOC-1 | Given a criterion that names a script, when the check runs, then it fails. | PASS 2026-11-09 |
-| [tests-not-enforced](Tests#t-tests-not-enforced) | requirement | DOC-1 | Given a criterion with no passing test, when the page is shown, then it shows as not enforced. | PASS 2026-11-09 |
-| [tests-last-run](Tests#t-tests-last-run) | requirement | DOC-1 | Given recorded runs, when the Tests table is shown, then it shows each test's last result and date. | PASS 2026-11-09 |
-| [tests-table-stale](Tests#t-tests-table-stale) | requirement | DOC-1 | Given a Tests table behind the last run, when the check runs, then it is reported stale. | PASS 2026-11-09 |
-| [template-sheet](Tests#t-template-sheet) | requirement | DOC-1 | Given a changed template sheet, when the docs check runs, then it reads the page rules from the sheet, so the check changes with it. | PASS 2026-11-09 |
-| [docs-audit](Tests#t-docs-audit) | requirement | DOC-1 | Given rewording left in the docs, when the docs command runs, then it fixes the Tests table, lists wording to rewrite and exits 1 while any is left. | PASS 2026-11-09 |
-| [release-runs-audit](Tests#t-release-runs-audit) | requirement | DOC-1 | Given trouble in the docs, when the release step runs, then it reads the docs command and sees the trouble. | PASS 2026-11-09 |
-| [criteria-max-config](Tests#t-criteria-max-config) | requirement | DOC-1 | Given criteria_max in the config, when a page has more criteria than it allows, then the check fails. | PASS 2026-11-09 |
-| [usage-section-allowed](Tests#t-usage-section-allowed) | requirement | DOC-1 | Given a Usage section of API entries between Problem and Requirements, when the check runs, then it passes. | PASS 2026-11-09 |
-| [usage-optional](Tests#t-usage-optional) | requirement | DOC-1 | Given a page with no commands and no Usage section, when the check runs, then it passes. | PASS 2026-11-09 |
-| [docs-count-mismatch](Tests#t-docs-count-mismatch) | requirement | DOC-1 | Given a page stating the wrong number of skills, when the docs check runs, then it fails naming the file, the stated number and the real one. | PASS 2026-11-09 |
-| [prd-section-order](Tests#t-prd-section-order) | requirement | DOC-1 | Given a PRD page with swapped sections, an unknown section or stray text before the first one, when the docs check runs, then it fails with SECTIONS. | PASS 2026-11-09 |
-| [prd-nongoals-metrics](Tests#t-prd-nongoals-metrics) | requirement | DOC-1 | Given a PRD page with empty Non-goals or four Success metrics lines, when the docs check runs, then it fails naming the section. | PASS 2026-11-09 |
-| [prd-audit-ignores-changed](Tests#t-prd-audit-ignores-changed) | requirement | DOC-1 | Given a page whose Usage changed since the owner's review, when the docs audit, the release fixes or publish run, then none of them stops on it or changes Usage. | PASS 2026-11-09 |
-| [prd-new](Tests#t-prd-new) | requirement | DOC-1 | Given a one-line idea, when prd new runs with --paths, then it drafts a mapped, Unreviewed PRD page that stays UNWRITTEN until its drafts are written. | PASS 2026-11-09 |
-| [prd-convert](Tests#t-prd-convert) | requirement | DOC-1 | Given old Summary and Criteria pages, when convert runs, then they become PRD pages with the same IDs and stamps, a half-converted page is completed, and a second run changes nothing. | PASS 2026-11-09 |
-| [prd-repo-green](Tests#t-prd-repo-green) | requirement | DOC-1 | Given this repo, when its docs check and health run, then nothing fails but a page whose Usage changed since the owner's review. | PASS 2026-11-10 |
-| [cap-default-10](Tests#t-cap-default-10) | requirement | DOC-1 | Given no criteria_max in the config, when the cap is read, then it is 10 in both the docs check and setup. | not run |
-| [format-key](Tests#t-format-key) | requirement | DOC-1 | Given a template rules block whose format key leaves out problem, when the docs check runs, then the Problem check is off. | not run |
-| [review-dated](Tests#t-review-dated) | requirement | DOC-2 | Given a criterion, when it is reviewed, then it is marked Reviewed with the date. | PASS 2026-11-09 |
-| [review-owner-only](Tests#t-review-owner-only) | requirement | DOC-2 | Given a criterion, when a review is attempted, then it is reviewed only with the owner's words. | PASS 2026-11-09 |
-| [reviewed-lock](Tests#t-reviewed-lock) | requirement | DOC-2 | Given a reviewed criterion, when it is changed, then the check fails. | PASS 2026-11-09 |
-| [unreview-lifts](Tests#t-unreview-lifts) | requirement | DOC-2 | Given a reviewed criterion, when it is unreviewed, then its lock is lifted. | PASS 2026-11-09 |
-| [lock-in-report](Tests#t-lock-in-report) | requirement | DOC-2 | Given a reviewed criterion that changed, when the report is printed, then it names that criterion. | PASS 2026-11-09 |
-| [prd-lock-four](Tests#t-prd-lock-four) | requirement | DOC-2 | Given a PRD the owner reviewed, when Problem, Requirements, Non-goals or Success metrics changes, then the docs check fails with LOCKED naming each changed section. | PASS 2026-11-09 |
-| [prd-usage-changed](Tests#t-prd-usage-changed) | requirement | DOC-2 | Given a PRD the owner reviewed, when only its Usage is edited, added or removed, then the docs check fails with CHANGED and the board lists the page. | PASS 2026-11-09 |
-| [prd-review-args](Tests#t-prd-review-args) | requirement | DOC-2 | Given review or unreview with no --user, a bad ID, a bad page or a bad date, when it runs, then it refuses and changes nothing. | PASS 2026-11-09 |
-| [prd-stamps-free](Tests#t-prd-stamps-free) | requirement | DOC-2 | Given a PRD the owner reviewed, when a requirement is reviewed or unreviewed, or the owner un-reviews and reviews the PRD again, then no lock trips. | PASS 2026-11-09 |
-| [untested-listed](Tests#t-untested-listed) | requirement | DOC-3 | Given a Reviewed criterion with no test or a test that no longer matches, when the check runs, then it is listed. | PASS 2026-11-09 |
-| [prd-scenarios](Tests#t-prd-scenarios) | requirement | DOC-3 | Given regression rows linked to a requirement, when the Tests are rendered, then each row is a Given/When/Then scenario with its test, result and date, and a plain description is flagged. | PASS 2026-11-09 |
-| [prd-untested](Tests#t-prd-untested) | requirement | DOC-3 | Given a PRD the owner reviewed whose requirement has no test, when the docs audit runs, then it lists that requirement as UNTESTED. | PASS 2026-11-09 |
-| [format-home](Tests#t-format-home) | requirement | DOC-4 | Given a Home page with a line outside its Features table, when the docs check runs, then it fails naming Home, Features and DOC-4. | not run |
-| - | requirement | DOC-4 | no passing test | not enforced |
-| [format-frontdoor](Tests#t-format-frontdoor) | requirement | DOC-5 | Given a README How to use table with a command in You say, when the docs check runs, then it fails naming README, the section and DOC-5. | not run |
-| - | requirement | DOC-5 | no passing test | not enforced |
-| [usage-no-script](Tests#t-usage-no-script) | requirement | DOC-6 | Given a Usage entry whose command is not in the skill's Command map, when the docs check runs, then it fails. | PASS 2026-11-09 |
-| [usage-agent-requests](Tests#t-usage-agent-requests) | requirement | DOC-6 | Given a Usage written as API entries with syntax, output and refusals, when the docs check runs, then it passes. | PASS 2026-11-09 |
-| [format-usage-api](Tests#t-format-usage-api) | requirement | DOC-6 | Given a Usage entry that does not say what it prints, when the docs check runs, then it fails naming the page, Usage and DOC-6. | not run |
-| [format-bullets](Tests#t-format-bullets) | requirement | DOC-7 | Given a requirement with no sub-bullet, when the docs check runs, then it fails naming the page, Requirements and DOC-7. | not run |
-| [format-orphan-bullet](Tests#t-format-orphan-bullet) | requirement | DOC-7 | Given a sub-bullet with no requirement above it, when the docs check runs, then it is refused. | not run |
-| [format-groups](Tests#t-format-groups) | requirement | DOC-7 | Given Requirements without the Functional or Non-functional heading, when the docs check runs, then it fails. | not run |
-| [format-groups-read](Tests#t-format-groups-read) | requirement | DOC-7 | Given a reviewed requirement under either group, when sub-bullets are added, then it is still read and its stamp holds. | not run |
-| - | requirement | DOC-7 | no passing test | not enforced |
-| [format-problem](Tests#t-format-problem) | requirement | DOC-8 | Given a Problem that names code internals, when the docs check runs, then it fails naming the page, Problem and DOC-8. | not run |
-| - | requirement | DOC-8 | no passing test | not enforced |
-| [format-tests-table](Tests#t-format-tests-table) | requirement | DOC-9 | Given a hand-edited Tests table, when the docs check runs, then it fails naming the page, Tests and DOC-9. | not run |
-| - | requirement | DOC-9 | no passing test | not enforced |
-| [milestones-once](Tests#t-milestones-once) | requirement | DOC-10 | Given milestones already created, when milestones runs again, then nothing new is created. | PASS 2026-11-09 |
-| [pr-in-milestone](Tests#t-pr-in-milestone) | requirement | DOC-10 | Given a pull request, when milestones runs, then the pull request goes into its milestone. | PASS 2026-11-09 |
-| [milestone-links](Tests#t-milestone-links) | requirement | DOC-10 | Given a feature page, when the check runs, then it links to its GitHub milestone and a missing Backlog is found. | PASS 2026-11-09 |
-| [release-note-found](Tests#t-release-note-found) | requirement | DOC-10 | Given a release with no release note, when the check runs, then it is found. | PASS 2026-11-09 |
-| [tests-page-stale](Tests#t-tests-page-stale) | requirement | DOC-10 | Given a full Tests page behind the runs, when the docs check runs, then it is reported stale with its first differing line. | not run |
-| [tests-page-run-link](Tests#t-tests-page-run-link) | requirement | DOC-10 | Given a runs file with a run column, when the Tests page is rendered, then each result links its Actions run or its commit. | not run |
-| [runs-sha](Tests#t-runs-sha) | requirement | DOC-10 | Given no GITHUB_* vars, when a row runs, then its run cell is the HEAD sha. | not run |
-| [runs-url](Tests#t-runs-url) | requirement | DOC-10 | Given all three GITHUB_* vars, when a row runs, then its run cell is the Actions run URL. | not run |
-| [runs-partial](Tests#t-runs-partial) | requirement | DOC-10 | Given only some GITHUB_* vars, when a row runs, then the sha is written. | not run |
-| [runs-upgrade](Tests#t-runs-upgrade) | requirement | DOC-10 | Given an old 3-column runs file, when a row runs, then every row has 4 columns and old rows have an empty run. | not run |
-| [runs-keep](Tests#t-runs-keep) | requirement | DOC-10 | Given a recorded row, when only another row runs, then its run cell is unchanged. | not run |
-| [issue-no-milestone-fails](Tests#t-issue-no-milestone-fails) | requirement | DOC-10 | Given an open issue with no milestone, when health checks, then a FAIL row names it. | not run |
-| [issue-milestone-passes](Tests#t-issue-milestone-passes) | requirement | DOC-10 | Given an open issue on a milestone, when health checks, then no row names it. | not run |
-| [issue-gh-fail-unread](Tests#t-issue-gh-fail-unread) | requirement | DOC-10 | Given gh fails, when health checks, then one UNREAD row shows and the verdict is unchanged. | not run |
-| [issue-truncated-unread](Tests#t-issue-truncated-unread) | requirement | DOC-10 | Given 1000 open issues come back, when health checks, then it reads UNREAD truncated. | not run |
-| [issue-closed-ignored](Tests#t-issue-closed-ignored) | requirement | DOC-10 | Given a closed issue with no milestone, when health checks, then no row names it. | not run |
-| [refuse-replace](Tests#t-refuse-replace) | requirement | DOC-11 | Given a wiki page the tool did not write, when the tool writes pages, then that page is never overwritten. | PASS 2026-11-09 |
-| [publish-restore](Tests#t-publish-restore) | requirement | DOC-11 | Given a publish that adopted a page someone else wrote, when restore runs, then the original page is back. | not run |
-| [docs-check-speed](Tests#t-docs-check-speed) | requirement | DOC-12 | Given this repo, when the docs check runs, then it finishes in under 30 seconds. | not run |
-| - | requirement | DOC-12 | no passing test | not enforced |
-| [docs-check-same](Tests#t-docs-check-same) | requirement | DOC-13 | Given the same pages and rows, when the docs check runs twice, then it prints the same result. | not run |
-| - | requirement | DOC-13 | no passing test | not enforced |
-| [docs-counts-issue-39](Tests#t-docs-counts-issue-39) | defect | [#39](https://github.com/jcl2018/agent-workflow-template/issues/39) closed (2026-11-09) | Given counts in the docs that drift from the code, when the docs check runs, then it fails (issue 39). | PASS 2026-11-09 |
+| [stale-found](Tests#t-stale-found) | requirement | DOC-1 | Given a wiki page behind the code it covers, when the docs check runs, then the page is reported as stale. | PASS 2026-11-10 |
+| [publish-refused-stale](Tests#t-publish-refused-stale) | requirement | DOC-1 | Given a stale wiki page, when the wiki is published, then publishing is refused. | PASS 2026-11-10 |
+| [stale-merge-order](Tests#t-stale-merge-order) | requirement | DOC-1 | Given two docs merges, when they merge in either order, then no page is left stale. | PASS 2026-11-10 |
+| [page-shape](Tests#t-page-shape) | requirement | DOC-1 | Given a wiki page with a Commands section, when the check runs, then it fails. | PASS 2026-11-10 |
+| [criteria-no-scripts](Tests#t-criteria-no-scripts) | requirement | DOC-1 | Given a criterion that names a script, when the check runs, then it fails. | PASS 2026-11-10 |
+| [tests-not-enforced](Tests#t-tests-not-enforced) | requirement | DOC-1 | Given a criterion with no passing test, when the page is shown, then it shows as not enforced. | PASS 2026-11-10 |
+| [tests-last-run](Tests#t-tests-last-run) | requirement | DOC-1 | Given recorded runs, when the Tests table is shown, then it shows each test's last result and date. | PASS 2026-11-10 |
+| [tests-table-stale](Tests#t-tests-table-stale) | requirement | DOC-1 | Given a Tests table behind the last run, when the check runs, then it is reported stale. | PASS 2026-11-10 |
+| [template-sheet](Tests#t-template-sheet) | requirement | DOC-1 | Given a changed template sheet, when the docs check runs, then it reads the page rules from the sheet, so the check changes with it. | PASS 2026-11-10 |
+| [docs-audit](Tests#t-docs-audit) | requirement | DOC-1 | Given rewording left in the docs, when the docs command runs, then it fixes the Tests table, lists wording to rewrite and exits 1 while any is left. | PASS 2026-11-10 |
+| [release-runs-audit](Tests#t-release-runs-audit) | requirement | DOC-1 | Given trouble in the docs, when the release step runs, then it reads the docs command and sees the trouble. | PASS 2026-11-10 |
+| [criteria-max-config](Tests#t-criteria-max-config) | requirement | DOC-1 | Given criteria_max in the config, when a page has more criteria than it allows, then the check fails. | PASS 2026-11-10 |
+| [usage-section-allowed](Tests#t-usage-section-allowed) | requirement | DOC-1 | Given a Usage section of API entries between Problem and Requirements, when the check runs, then it passes. | PASS 2026-11-10 |
+| [usage-optional](Tests#t-usage-optional) | requirement | DOC-1 | Given a page with no commands and no Usage section, when the check runs, then it passes. | PASS 2026-11-10 |
+| [docs-count-mismatch](Tests#t-docs-count-mismatch) | requirement | DOC-1 | Given a page stating the wrong number of skills, when the docs check runs, then it fails naming the file, the stated number and the real one. | PASS 2026-11-10 |
+| [prd-section-order](Tests#t-prd-section-order) | requirement | DOC-1 | Given a PRD page with swapped sections, an unknown section or stray text before the first one, when the docs check runs, then it fails with SECTIONS. | PASS 2026-11-10 |
+| [prd-nongoals-metrics](Tests#t-prd-nongoals-metrics) | requirement | DOC-1 | Given a PRD page with empty Non-goals or four Success metrics lines, when the docs check runs, then it fails naming the section. | PASS 2026-11-10 |
+| [prd-audit-ignores-changed](Tests#t-prd-audit-ignores-changed) | requirement | DOC-1 | Given a page whose Usage changed since the owner's review, when the docs audit, the release fixes or publish run, then none of them stops on it or changes Usage. | PASS 2026-11-10 |
+| [prd-new](Tests#t-prd-new) | requirement | DOC-1 | Given a one-line idea, when prd new runs with --paths, then it drafts a mapped, Unreviewed PRD page that stays UNWRITTEN until its drafts are written. | PASS 2026-11-10 |
+| [prd-convert](Tests#t-prd-convert) | requirement | DOC-1 | Given old Summary and Criteria pages, when convert runs, then they become PRD pages with the same IDs and stamps, a half-converted page is completed, and a second run changes nothing. | PASS 2026-11-10 |
+| [prd-repo-green](Tests#t-prd-repo-green) | requirement | DOC-1 | Given this repo, when its docs check and health run, then nothing fails but a page whose Usage changed since the owner's review. | FAIL 2026-11-10 |
+| [cap-default-10](Tests#t-cap-default-10) | requirement | DOC-1 | Given no criteria_max in the config, when the cap is read, then it is 10 in both the docs check and setup. | PASS 2026-11-10 |
+| [format-key](Tests#t-format-key) | requirement | DOC-1 | Given a template rules block whose format key leaves out problem, when the docs check runs, then the Problem check is off. | PASS 2026-11-10 |
+| [review-dated](Tests#t-review-dated) | requirement | DOC-2 | Given a criterion, when it is reviewed, then it is marked Reviewed with the date. | PASS 2026-11-10 |
+| [review-owner-only](Tests#t-review-owner-only) | requirement | DOC-2 | Given a criterion, when a review is attempted, then it is reviewed only with the owner's words. | PASS 2026-11-10 |
+| [reviewed-lock](Tests#t-reviewed-lock) | requirement | DOC-2 | Given a reviewed criterion, when it is changed, then the check fails. | PASS 2026-11-10 |
+| [unreview-lifts](Tests#t-unreview-lifts) | requirement | DOC-2 | Given a reviewed criterion, when it is unreviewed, then its lock is lifted. | PASS 2026-11-10 |
+| [lock-in-report](Tests#t-lock-in-report) | requirement | DOC-2 | Given a reviewed criterion that changed, when the report is printed, then it names that criterion. | PASS 2026-11-10 |
+| [prd-lock-four](Tests#t-prd-lock-four) | requirement | DOC-2 | Given a PRD the owner reviewed, when Problem, Requirements, Non-goals or Success metrics changes, then the docs check fails with LOCKED naming each changed section. | PASS 2026-11-10 |
+| [prd-usage-changed](Tests#t-prd-usage-changed) | requirement | DOC-2 | Given a PRD the owner reviewed, when only its Usage is edited, added or removed, then the docs check fails with CHANGED and the board lists the page. | PASS 2026-11-10 |
+| [prd-review-args](Tests#t-prd-review-args) | requirement | DOC-2 | Given review or unreview with no --user, a bad ID, a bad page or a bad date, when it runs, then it refuses and changes nothing. | PASS 2026-11-10 |
+| [prd-stamps-free](Tests#t-prd-stamps-free) | requirement | DOC-2 | Given a PRD the owner reviewed, when a requirement is reviewed or unreviewed, or the owner un-reviews and reviews the PRD again, then no lock trips. | PASS 2026-11-10 |
+| [untested-listed](Tests#t-untested-listed) | requirement | DOC-3 | Given a Reviewed criterion with no test or a test that no longer matches, when the check runs, then it is listed. | PASS 2026-11-10 |
+| [prd-scenarios](Tests#t-prd-scenarios) | requirement | DOC-3 | Given regression rows linked to a requirement, when the Tests are rendered, then each row is a Given/When/Then scenario with its test, result and date, and a plain description is flagged. | PASS 2026-11-10 |
+| [prd-untested](Tests#t-prd-untested) | requirement | DOC-3 | Given a PRD the owner reviewed whose requirement has no test, when the docs audit runs, then it lists that requirement as UNTESTED. | PASS 2026-11-10 |
+| [format-home](Tests#t-format-home) | requirement | DOC-4 | Given a Home page with a line outside its Features table, when the docs check runs, then it fails naming Home, Features and DOC-4. | PASS 2026-11-10 |
+| [format-frontdoor](Tests#t-format-frontdoor) | requirement | DOC-5 | Given a README How to use table with a command in You say, when the docs check runs, then it fails naming README, the section and DOC-5. | PASS 2026-11-10 |
+| [usage-no-script](Tests#t-usage-no-script) | requirement | DOC-6 | Given a Usage entry whose command is not in the skill's Command map, when the docs check runs, then it fails. | PASS 2026-11-10 |
+| [usage-agent-requests](Tests#t-usage-agent-requests) | requirement | DOC-6 | Given a Usage written as API entries with syntax, output and refusals, when the docs check runs, then it passes. | PASS 2026-11-10 |
+| [format-usage-api](Tests#t-format-usage-api) | requirement | DOC-6 | Given a Usage entry that does not say what it prints, when the docs check runs, then it fails naming the page, Usage and DOC-6. | PASS 2026-11-10 |
+| [format-bullets](Tests#t-format-bullets) | requirement | DOC-7 | Given a requirement with no sub-bullet, when the docs check runs, then it fails naming the page, Requirements and DOC-7. | PASS 2026-11-10 |
+| [format-orphan-bullet](Tests#t-format-orphan-bullet) | requirement | DOC-7 | Given a sub-bullet with no requirement above it, when the docs check runs, then it is refused. | PASS 2026-11-10 |
+| [format-groups](Tests#t-format-groups) | requirement | DOC-7 | Given Requirements without the Functional or Non-functional heading, when the docs check runs, then it fails. | PASS 2026-11-10 |
+| [format-groups-read](Tests#t-format-groups-read) | requirement | DOC-7 | Given a reviewed requirement under either group, when sub-bullets are added, then it is still read and its stamp holds. | PASS 2026-11-10 |
+| [format-problem](Tests#t-format-problem) | requirement | DOC-8 | Given a Problem that names code internals, when the docs check runs, then it fails naming the page, Problem and DOC-8. | PASS 2026-11-10 |
+| [format-tests-table](Tests#t-format-tests-table) | requirement | DOC-9 | Given a hand-edited Tests table, when the docs check runs, then it fails naming the page, Tests and DOC-9. | PASS 2026-11-10 |
+| [milestones-once](Tests#t-milestones-once) | requirement | DOC-10 | Given milestones already created, when milestones runs again, then nothing new is created. | PASS 2026-11-10 |
+| [pr-in-milestone](Tests#t-pr-in-milestone) | requirement | DOC-10 | Given a pull request, when milestones runs, then the pull request goes into its milestone. | PASS 2026-11-10 |
+| [milestone-links](Tests#t-milestone-links) | requirement | DOC-10 | Given a feature page, when the check runs, then it links to its GitHub milestone and a missing Backlog is found. | PASS 2026-11-10 |
+| [release-note-found](Tests#t-release-note-found) | requirement | DOC-10 | Given a release with no release note, when the check runs, then it is found. | PASS 2026-11-10 |
+| [tests-page-stale](Tests#t-tests-page-stale) | requirement | DOC-10 | Given a full Tests page behind the runs, when the docs check runs, then it is reported stale with its first differing line. | PASS 2026-11-10 |
+| [tests-page-run-link](Tests#t-tests-page-run-link) | requirement | DOC-10 | Given a runs file with a run column, when the Tests page is rendered, then each result links its Actions run or its commit. | PASS 2026-11-10 |
+| [runs-sha](Tests#t-runs-sha) | requirement | DOC-10 | Given no GITHUB_* vars, when a row runs, then its run cell is the HEAD sha. | PASS 2026-11-10 |
+| [runs-url](Tests#t-runs-url) | requirement | DOC-10 | Given all three GITHUB_* vars, when a row runs, then its run cell is the Actions run URL. | FAIL 2026-11-10 |
+| [runs-partial](Tests#t-runs-partial) | requirement | DOC-10 | Given only some GITHUB_* vars, when a row runs, then the sha is written. | FAIL 2026-11-10 |
+| [runs-upgrade](Tests#t-runs-upgrade) | requirement | DOC-10 | Given an old 3-column runs file, when a row runs, then every row has 4 columns and old rows have an empty run. | PASS 2026-11-10 |
+| [runs-keep](Tests#t-runs-keep) | requirement | DOC-10 | Given a recorded row, when only another row runs, then its run cell is unchanged. | PASS 2026-11-10 |
+| [issue-no-milestone-fails](Tests#t-issue-no-milestone-fails) | requirement | DOC-10 | Given an open issue with no milestone, when health checks, then a FAIL row names it. | PASS 2026-11-10 |
+| [issue-milestone-passes](Tests#t-issue-milestone-passes) | requirement | DOC-10 | Given an open issue on a milestone, when health checks, then no row names it. | PASS 2026-11-10 |
+| [issue-gh-fail-unread](Tests#t-issue-gh-fail-unread) | requirement | DOC-10 | Given gh fails, when health checks, then one UNREAD row shows and the verdict is unchanged. | PASS 2026-11-10 |
+| [issue-truncated-unread](Tests#t-issue-truncated-unread) | requirement | DOC-10 | Given 1000 open issues come back, when health checks, then it reads UNREAD truncated. | PASS 2026-11-10 |
+| [issue-closed-ignored](Tests#t-issue-closed-ignored) | requirement | DOC-10 | Given a closed issue with no milestone, when health checks, then no row names it. | PASS 2026-11-10 |
+| [refuse-replace](Tests#t-refuse-replace) | requirement | DOC-11 | Given a wiki page the tool did not write, when the tool writes pages, then that page is never overwritten. | PASS 2026-11-10 |
+| [publish-restore](Tests#t-publish-restore) | requirement | DOC-11 | Given a publish that adopted a page someone else wrote, when restore runs, then the original page is back. | PASS 2026-11-10 |
+| [docs-check-speed](Tests#t-docs-check-speed) | requirement | DOC-12 | Given this repo, when the docs check runs, then it finishes in under 30 seconds. | PASS 2026-11-10 |
+| [docs-check-same](Tests#t-docs-check-same) | requirement | DOC-13 | Given the same pages and rows, when the docs check runs twice, then it prints the same result. | PASS 2026-11-10 |
+| [docs-counts-issue-39](Tests#t-docs-counts-issue-39) | defect | [#39](https://github.com/jcl2018/agent-workflow-template/issues/39) closed (2026-11-09) | Given counts in the docs that drift from the code, when the docs check runs, then it fails (issue 39). | PASS 2026-11-10 |
 | [docs-count-word-gap-issue-104](Tests#t-docs-count-word-gap-issue-104) | defect | [#104](https://github.com/jcl2018/agent-workflow-template/issues/104) closed (2026-11-10) | Given a wrong skills count with a word such as "workflow-ready" or an extra space before the noun, when the docs check runs, then it fails, and a part such as "other" is not read. | PASS 2026-11-10 |
 | [docs-count-indented-code-issue-105](Tests#t-docs-count-indented-code-issue-105) | defect | [#105](https://github.com/jcl2018/agent-workflow-template/issues/105) closed (2026-11-10) | Given a count inside a 4-space indented code block, when the docs check runs, then it is skipped while the same indent inside a list item is still read. | PASS 2026-11-10 |
 | [docs-count-defect-tests-issue-106](Tests#t-docs-count-defect-tests-issue-106) | defect | [#106](https://github.com/jcl2018/agent-workflow-template/issues/106) closed (2026-11-10) | Given a page with one criterion test and one defect test, when the docs check runs, then a tests count of both passes. | PASS 2026-11-10 |
 | [docs-count-other-id-issue-107](Tests#t-docs-count-other-id-issue-107) | defect | [#107](https://github.com/jcl2018/agent-workflow-template/issues/107) closed (2026-11-10) | Given a line naming another page's criterion, when the docs check runs, then its skills count is still checked and its tests count is not. | PASS 2026-11-10 |
+| [docs-guide-page-issue-125](Tests#t-docs-guide-page-issue-125) | defect | [#125](https://github.com/jcl2018/agent-workflow-template/issues/125) state unknown | Given a guide-marked wiki page, when docs check runs, then it passes with no PRD sections, Home row or README section. | PASS 2026-11-10 |
+| [docs-merged-base-issue-156](Tests#t-docs-merged-base-issue-156) | defect | [#156](https://github.com/jcl2018/agent-workflow-template/issues/156) state unknown | Given a branch that merged the base branch, when docs check runs with --base, then the base's commits don't make its page stale. | PASS 2026-11-10 |
+| [docs-locked-hint-issue-133](Tests#t-docs-locked-hint-issue-133) | defect | [#133](https://github.com/jcl2018/agent-workflow-template/issues/133) state unknown | Given a reviewed requirement whose wording changed, when docs check runs, then its LOCKED hint says restore or unreview, never review. | PASS 2026-11-10 |
+| [docs-milestone-line-issue-130](Tests#t-docs-milestone-line-issue-130) | defect | [#130](https://github.com/jcl2018/agent-workflow-template/issues/130) state unknown | Given a page whose Milestone line names a milestone with another title, when the audit runs, then it reports no missing milestone. | PASS 2026-11-10 |

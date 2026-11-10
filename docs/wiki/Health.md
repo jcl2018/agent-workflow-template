@@ -78,39 +78,38 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
 
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
-| [size-fail](Tests#t-size-fail) | requirement | HLT-2 | Given a script over 20 KB, when health runs, then it is a FAIL with a fix. | PASS 2026-11-09 |
-| [stale-page-row](Tests#t-stale-page-row) | requirement | HLT-2 | Given a stale wiki page, when health runs, then it shows as a docs row naming the page. | PASS 2026-11-09 |
-| [no-row-fail](Tests#t-no-row-fail) | requirement | HLT-2 | Given a criterion with no test row, when health runs, then it is a FAIL. | PASS 2026-11-09 |
-| [defect-health](Tests#t-defect-health) | requirement | HLT-2 | Given a closed issue or finding with no defect test, when health runs, then it is flagged. | PASS 2026-11-09 |
-| [cost-time-warn](Tests#t-cost-time-warn) | requirement | HLT-2 | Given a goal over its time budget, when health runs, then it is a Cost warning naming its slowest steps. | PASS 2026-11-09 |
-| [cost-unread-tokens](Tests#t-cost-unread-tokens) | requirement | HLT-2 | Given no tokens recorded, when the Cost rule runs, then it prints UNREAD. | PASS 2026-11-09 |
-| [unread-not-green](Tests#t-unread-not-green) | requirement | HLT-3 | Given a health rule that cannot be read, when health runs, then it is never shown green. | PASS 2026-11-09 |
-| [report-header](Tests#t-report-header) | requirement | HLT-3 | Given a repo with findings in several groups, when health check runs, then the report header names every group it ran and the one it skipped. | not run |
-| [no-token-would](Tests#t-no-token-would) | requirement | HLT-4 | Given no token and no --live flag, when health previews its findings, then it prints only WOULD lines and writes nothing. | PASS 2026-11-09 |
-| [update-in-place](Tests#t-update-in-place) | requirement | HLT-4 | Given an existing health issue, when a later health run happens, then it updates that issue and opens no other. | PASS 2026-11-09 |
-| [fixed-closes](Tests#t-fixed-closes) | requirement | HLT-4 | Given a finding with an open issue, when the finding is fixed, then its issue is closed. | PASS 2026-11-09 |
-| [repeat-no-second](Tests#t-repeat-no-second) | requirement | HLT-4 | Given a finding with an open issue, when the finding repeats, then no second issue is opened. | PASS 2026-11-09 |
-| [unread-closes-none](Tests#t-unread-closes-none) | requirement | HLT-4 | Given a rule that could not be read, when health runs, then none of its issues are closed. | PASS 2026-11-09 |
-| [preview-writes-nothing](Tests#t-preview-writes-nothing) | requirement | HLT-4 | Given findings in several groups, when health preview runs, then it lists each issue it would open, update, close or reopen with its tag and makes no write call. | not run |
-| [file-one-group](Tests#t-file-one-group) | requirement | HLT-4 | Given open issues in several groups, when health files only the docs group, then only the docs issue is closed and no other group's issue changes. | not run |
-| [judge-section-format](Tests#t-judge-section-format) | requirement | HLT-5 | Given the judge, when it runs, then it prints its three reviews in a section marked as suggestions. | PASS 2026-11-09 |
-| [judge-verdict-unchanged](Tests#t-judge-verdict-unchanged) | requirement | HLT-5 | Given a failing or garbage judge, when health runs, then the verdict and exit code are unchanged. | PASS 2026-11-09 |
-| [judge-needs-you](Tests#t-judge-needs-you) | requirement | HLT-5 | Given suggested criterion wording, when the board is printed, then it is listed under Needs you for the owner to apply. | PASS 2026-11-09 |
-| [hlt6-controls-fire](Tests#t-hlt6-controls-fire) | requirement | HLT-6 | Given every health rule, when health check runs its controls, then each rule's negative control makes it fire. | not run |
-| [hlt6-cannot-fire](Tests#t-hlt6-cannot-fire) | requirement | HLT-6 | Given a rule broken so it can never report, when health check runs its controls, then that rule is reported as one that cannot fire, with how to look. | not run |
-| [hlt6-refused](Tests#t-hlt6-refused) | requirement | HLT-6 | Given a new rule with no negative control, when health.py starts, then it refuses before any report and names the control to add. | not run |
-| [hlt6-test-time](Tests#t-hlt6-test-time) | requirement | HLT-6 | Given a land lane recorded over test_budget_seconds, when health check runs, then it warns and names the slowest rows and scripts to move to nightly. | not run |
-| [hlt6-test-quiet](Tests#t-hlt6-test-quiet) | requirement | HLT-6 | Given a land lane within test_budget_seconds, when health check runs, then the test-time rule passes. | not run |
-| [hlt6-run-times](Tests#t-hlt6-run-times) | requirement | HLT-6 | Given a regression run, when it saves its lane record, then the record holds each row's time and the total. | not run |
-| [hlt6-judge-time](Tests#t-hlt6-judge-time) | requirement | HLT-6 | Given a lane record, when the judge gathers its facts, then its performance review sees the land lane's total and slowest rows as well as tokens. | not run |
-| [hlt6-worktrees](Tests#t-hlt6-worktrees) | requirement | HLT-6 | Given a loop worktree no live goal names, when health check runs, then it lists it with the command that removes it, and leaves a live goal's worktree alone. | not run |
-| [hlt6-branches](Tests#t-hlt6-branches) | requirement | HLT-6 | Given a local branch on no remote older than stale_branch_days, when health check runs, then it lists it with a quoted delete and a data-loss warning, and leaves a young branch alone. | not run |
-| [hlt6-removes-nothing](Tests#t-hlt6-removes-nothing) | requirement | HLT-6 | Given stale worktrees and branches, when health check runs, then nothing is removed. | not run |
-| [hlt6-clean-quiet](Tests#t-hlt6-clean-quiet) | requirement | HLT-6 | Given no stale worktree or branch, when health check runs, then both rules pass. | not run |
-| [hlt6-never-filed](Tests#t-hlt6-never-filed) | requirement | HLT-6 | Given stale worktrees, when health previews the hygiene group, then no test-time, worktree or branch row would be filed. | not run |
-| - | requirement | HLT-6 | no passing test | not enforced |
+| [size-fail](Tests#t-size-fail) | requirement | HLT-2 | Given a script over 20 KB, when health runs, then it is a FAIL with a fix. | PASS 2026-11-10 |
+| [stale-page-row](Tests#t-stale-page-row) | requirement | HLT-2 | Given a stale wiki page, when health runs, then it shows as a docs row naming the page. | PASS 2026-11-10 |
+| [no-row-fail](Tests#t-no-row-fail) | requirement | HLT-2 | Given a criterion with no test row, when health runs, then it is a FAIL. | PASS 2026-11-10 |
+| [defect-health](Tests#t-defect-health) | requirement | HLT-2 | Given a closed issue or finding with no defect test, when health runs, then it is flagged. | PASS 2026-11-10 |
+| [cost-time-warn](Tests#t-cost-time-warn) | requirement | HLT-2 | Given a goal over its time budget, when health runs, then it is a Cost warning naming its slowest steps. | PASS 2026-11-10 |
+| [cost-unread-tokens](Tests#t-cost-unread-tokens) | requirement | HLT-2 | Given no tokens recorded, when the Cost rule runs, then it prints UNREAD. | PASS 2026-11-10 |
+| [unread-not-green](Tests#t-unread-not-green) | requirement | HLT-3 | Given a health rule that cannot be read, when health runs, then it is never shown green. | PASS 2026-11-10 |
+| [report-header](Tests#t-report-header) | requirement | HLT-3 | Given a repo with findings in several groups, when health check runs, then the report header names every group it ran and the one it skipped. | PASS 2026-11-10 |
+| [no-token-would](Tests#t-no-token-would) | requirement | HLT-4 | Given no token and no --live flag, when health previews its findings, then it prints only WOULD lines and writes nothing. | PASS 2026-11-10 |
+| [update-in-place](Tests#t-update-in-place) | requirement | HLT-4 | Given an existing health issue, when a later health run happens, then it updates that issue and opens no other. | PASS 2026-11-10 |
+| [fixed-closes](Tests#t-fixed-closes) | requirement | HLT-4 | Given a finding with an open issue, when the finding is fixed, then its issue is closed. | PASS 2026-11-10 |
+| [repeat-no-second](Tests#t-repeat-no-second) | requirement | HLT-4 | Given a finding with an open issue, when the finding repeats, then no second issue is opened. | PASS 2026-11-10 |
+| [unread-closes-none](Tests#t-unread-closes-none) | requirement | HLT-4 | Given a rule that could not be read, when health runs, then none of its issues are closed. | PASS 2026-11-10 |
+| [preview-writes-nothing](Tests#t-preview-writes-nothing) | requirement | HLT-4 | Given findings in several groups, when health preview runs, then it lists each issue it would open, update, close or reopen with its tag and makes no write call. | PASS 2026-11-10 |
+| [file-one-group](Tests#t-file-one-group) | requirement | HLT-4 | Given open issues in several groups, when health files only the docs group, then only the docs issue is closed and no other group's issue changes. | PASS 2026-11-10 |
+| [judge-section-format](Tests#t-judge-section-format) | requirement | HLT-5 | Given the judge, when it runs, then it prints its three reviews in a section marked as suggestions. | PASS 2026-11-10 |
+| [judge-verdict-unchanged](Tests#t-judge-verdict-unchanged) | requirement | HLT-5 | Given a failing or garbage judge, when health runs, then the verdict and exit code are unchanged. | PASS 2026-11-10 |
+| [judge-needs-you](Tests#t-judge-needs-you) | requirement | HLT-5 | Given suggested criterion wording, when the board is printed, then it is listed under Needs you for the owner to apply. | PASS 2026-11-10 |
+| [hlt6-controls-fire](Tests#t-hlt6-controls-fire) | requirement | HLT-6 | Given every health rule, when health check runs its controls, then each rule's negative control makes it fire. | PASS 2026-11-10 |
+| [hlt6-cannot-fire](Tests#t-hlt6-cannot-fire) | requirement | HLT-6 | Given a rule broken so it can never report, when health check runs its controls, then that rule is reported as one that cannot fire, with how to look. | PASS 2026-11-10 |
+| [hlt6-refused](Tests#t-hlt6-refused) | requirement | HLT-6 | Given a new rule with no negative control, when health.py starts, then it refuses before any report and names the control to add. | PASS 2026-11-10 |
+| [hlt6-test-time](Tests#t-hlt6-test-time) | requirement | HLT-6 | Given a land lane recorded over test_budget_seconds, when health check runs, then it warns and names the slowest rows and scripts to move to nightly. | PASS 2026-11-10 |
+| [hlt6-test-quiet](Tests#t-hlt6-test-quiet) | requirement | HLT-6 | Given a land lane within test_budget_seconds, when health check runs, then the test-time rule passes. | PASS 2026-11-10 |
+| [hlt6-run-times](Tests#t-hlt6-run-times) | requirement | HLT-6 | Given a regression run, when it saves its lane record, then the record holds each row's time and the total. | PASS 2026-11-10 |
+| [hlt6-judge-time](Tests#t-hlt6-judge-time) | requirement | HLT-6 | Given a lane record, when the judge gathers its facts, then its performance review sees the land lane's total and slowest rows as well as tokens. | PASS 2026-11-10 |
+| [hlt6-worktrees](Tests#t-hlt6-worktrees) | requirement | HLT-6 | Given a loop worktree no live goal names, when health check runs, then it lists it with the command that removes it, and leaves a live goal's worktree alone. | PASS 2026-11-10 |
+| [hlt6-branches](Tests#t-hlt6-branches) | requirement | HLT-6 | Given a local branch on no remote older than stale_branch_days, when health check runs, then it lists it with a quoted delete and a data-loss warning, and leaves a young branch alone. | PASS 2026-11-10 |
+| [hlt6-removes-nothing](Tests#t-hlt6-removes-nothing) | requirement | HLT-6 | Given stale worktrees and branches, when health check runs, then nothing is removed. | PASS 2026-11-10 |
+| [hlt6-clean-quiet](Tests#t-hlt6-clean-quiet) | requirement | HLT-6 | Given no stale worktree or branch, when health check runs, then both rules pass. | PASS 2026-11-10 |
+| [hlt6-never-filed](Tests#t-hlt6-never-filed) | requirement | HLT-6 | Given stale worktrees, when health previews the hygiene group, then no test-time, worktree or branch row would be filed. | PASS 2026-11-10 |
 | - | requirement | HLT-8 | no passing test | not enforced |
-| [same-lines](Tests#t-same-lines) | requirement | HLT-1 | Given an unchanged repo, when health runs twice, then both runs print the same lines. | PASS 2026-11-09 |
-| [check-writes-nothing](Tests#t-check-writes-nothing) | requirement | HLT-1 | Given a repo, when the health check runs, then it writes no file and makes no commit. | PASS 2026-11-09 |
+| [same-lines](Tests#t-same-lines) | requirement | HLT-1 | Given an unchanged repo, when health runs twice, then both runs print the same lines. | PASS 2026-11-10 |
+| [check-writes-nothing](Tests#t-check-writes-nothing) | requirement | HLT-1 | Given a repo, when the health check runs, then it writes no file and makes no commit. | PASS 2026-11-10 |
 | - | requirement | HLT-7 | no passing test | not enforced |
 | - | requirement | HLT-9 | no passing test | not enforced |
