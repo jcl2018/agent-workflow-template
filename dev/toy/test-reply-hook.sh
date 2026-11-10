@@ -6,6 +6,7 @@
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_ROLE LOOP_REPLY_HOOK  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 H="$here/skills/workflow-monitoring/scripts/reply_hook.py"
 SETUP="$here/skills/workflow-setup/scripts/setup.py"

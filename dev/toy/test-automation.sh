@@ -3,6 +3,7 @@
 # Test the Automation routines with a stub gh: the digest, defect labels, the off switch, the judge gate. usage: test-automation.sh
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 auto="python3 -B $here/skills/workflow-health/scripts/automation.py"
 reg="python3 -B $here/skills/workflow-regression/scripts/regression.py"
 unset GH_TOKEN GITHUB_TOKEN GITHUB_ACTIONS GITHUB_STEP_SUMMARY GITHUB_OUTPUT DIGEST_RUN DIGEST_REPO_OWNER HEALTH_REPORT
