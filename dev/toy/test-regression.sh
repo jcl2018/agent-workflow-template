@@ -95,6 +95,7 @@ Frozen.
 
 ## Plan
 G
+mkdir -p "$(git rev-parse --git-common-dir)/loop/runs"; echo '{"status": "running"}' > "$(git rev-parse --git-common-dir)/loop/runs/add-median.json"  # done lines count while the goal runs (issue 143)
 $reg sync > "$d/o5"; rc=$?; cat "$d/o5"
 [ $rc = 1 ] && [ "$(grep -c '^GAP' "$d/o5")" = 2 ] && ok "two gaps" || bad "gaps"
 $reg sync --write >/dev/null

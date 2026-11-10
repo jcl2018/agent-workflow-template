@@ -133,12 +133,24 @@ def done_lines(path):
     return re.findall(r"^(\d+)\.\s+(.+)$", part, re.M)
 
 
+def active(root, slug):
+    """A goal still being built: its run record (git common dir) exists and is not done, failed, retired or stopped."""
+    common = os.path.join(root, git("rev-parse", "--git-common-dir", cwd=root) or ".git")
+    try:
+        with open(os.path.join(common, "loop", "runs", slug + ".json")) as handle:
+            return json.load(handle).get("status") not in ("done", "failed", "retired", "stopped")
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
 def gaps(root):
     rows = read_rows(root)
     covered = {row["goal"] for row in rows.values() if row["goal"]}
     out = []
     for path in sorted(glob.glob(path_of(root, "goals/*.md"))):
         slug = os.path.basename(path)[:-3]
+        if not active(root, slug):  # issue 143: a finished goal's done lines are history, its criteria rows guard them
+            continue
         for number, line in done_lines(path):
             if "%s:%s" % (slug, number) not in covered:
                 out.append((slug, number, line))
