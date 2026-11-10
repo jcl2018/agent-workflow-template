@@ -170,6 +170,7 @@ def compose(login, note, ran, now_open, before, run_id, titles=None):
     out += ["| %s | %s |" % (name, said.replace("|", "\\|")) for name, said in ran] + [""]
     home = {n: now_open[n][1] for n in now_open}
     home.update({n: before[n] for n in fixed})
+    home = {n: m if m in titles else 0 for n, m in home.items()}  # one No milestone section, unknown ones included
     def rank(m):  # features by title, then Backlog, then issues with no (or an unknown) milestone
         title = titles.get(m) if m else None
         return (2, "") if not title else (1, "") if title == "Backlog" else (0, title.lower())
@@ -224,7 +225,7 @@ def cmd_digest(args):
     cost = rounds.round_cost(run_id, state["run"] if state else None) if live and in_actions else None
     ran = [("regression", regression_line() if live else "not read (dry run)"),
            ("health", health_line(os.environ.get("HEALTH_REPORT") or "")),
-           ("round cost", rounds.line(cost) if cost else "not read (dry run)" if not live else rounds.line({"error": "no run id"})),
+           ("round cost", rounds.line(cost) if cost else "not read (dry run)" if not live else rounds.line({"error": "only read in Actions"})),
            ("email", email_line(cfg, previous))]
     titles = rounds.milestone_titles() if live else {}
     if titles is None:
@@ -251,6 +252,8 @@ def cmd_digest(args):
     if posted.returncode:
         print("DIGEST: couldn't comment on #%s: %s" % (number, posted.stderr.strip()[:200]))
         return 1
+    if run_id == "local" and state and state["run"].isdigit():  # a local digest keeps the last Actions run on the issue
+        marker = rounds.marker(state["run"], {n: now_open[n][1] for n in now_open})
     if gh("issue", "edit", str(number), "--body", INTRO + marker).returncode:  # the state the next round compares with
         print("DIGEST: posted on #%s, but couldn't save its state; a rerun repairs it from the comment" % number)
         return 1

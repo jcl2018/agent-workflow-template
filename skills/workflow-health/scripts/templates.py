@@ -1,6 +1,7 @@
 """The workflow texts automation.py writes: health.yml (the round) and mail-test.yml (one test mail, by hand only).
 
-The mail secrets reach only the Email the digest step and the mail-test job; the digest step gets three true/false
+The mail secrets reach only the mail job (its own runner and fresh checkout, after the health job, so no earlier step
+such as the judge can touch its files or environment) and the mail-test job; the digest step gets three true/false
 values, never a secret. Nothing here pushes.
 """
 GROUPS = "size,criteria,docs"  # what a runner can read: cost, Mine and two hygiene checks need this machine's run records
@@ -23,6 +24,8 @@ jobs:
   health:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      on: ${{ steps.routine.outputs.on }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -94,8 +97,19 @@ jobs:
           MAIL_CF_SET: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' && secrets.CLOUDFLARE_EMAIL_TOKEN != '' }}
           MAIL_SMTP_SET: ${{ secrets.DIGEST_SMTP_USER != '' && secrets.DIGEST_SMTP_PASSWORD != '' }}
         run: python3 skills/workflow-health/scripts/automation.py digest
+  mail:
+    needs: health
+    if: always() && needs.health.outputs.on == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Email the digest
-        if: always() && steps.routine.outputs.on == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           DIGEST_RUN: ${{ github.run_id }}

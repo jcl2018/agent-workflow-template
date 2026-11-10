@@ -60,6 +60,8 @@ elif a[:2] == ["repo", "view"]:
     print("toy-owner")
 elif a[0] == "api" and a[1].startswith("users/"):
     print("User")
+elif a[0] == "api" and "PATCH" in a and os.environ.get("STUB_ISSUE_PATCH_FAIL") and "/issues/comments/" not in " ".join(a):
+    sys.stderr.write("HTTP 502\n"); sys.exit(1)
 elif a[0] == "api" and "PATCH" in a and "/issues/comments/" in " ".join(a):
     n = load("patches.json", 0) + 1; save("patches.json", n)
     if str(n) in (os.environ.get("STUB_PATCH_FAIL") or "").split(","):
@@ -320,6 +322,36 @@ mail.send_smtp(keys, 's', 't', '<p>t</p>', 'smtp.example.test', 465); print(call
 mail.send_smtp(keys, 's', 't', '<p>t</p>', 'smtp.example.test', 587); print(calls)")
   head -1 <<<"$out" | grep -q "('open', 'SSL', 465), 'verified', 'login', 'send'" && tail -1 <<<"$out" | grep -q "('open', 'Plain', 587), 'starttls verified', 'login', 'send'" \
     && ok "port 465 uses TLS from the start and 587 calls STARTTLS before login, both verifying the server's certificate" || bad "tls choice"
+  out=$(cd "$S" && python3 -B -c "
+import smtplib, ssl, socket, io, json, urllib.request, urllib.error, mail
+class Quit:
+    def __init__(self, *a, **k): pass
+    def __enter__(self): return self
+    def __exit__(self, *a): raise smtplib.SMTPServerDisconnected('gone at QUIT')
+    def starttls(self, context=None): pass
+    def login(self, u, p): pass
+    def send_message(self, m): pass
+smtplib.SMTP = Quit
+keys = {'DIGEST_TO': 'a@b.test', 'DIGEST_FROM': 'c@d.test', 'DIGEST_SMTP_USER': 'u', 'DIGEST_SMTP_PASSWORD': 'p',
+        'CLOUDFLARE_ACCOUNT_ID': 'x', 'CLOUDFLARE_EMAIL_TOKEN': 't'}
+print('quit', mail.send_smtp(keys, 's', 't', '<p/>', 'smtp.example.test', 587)[0])
+def answer(fn):
+    urllib.request.urlopen = fn
+    return mail.send_cloudflare(keys, 's', 't', '<p/>', 'https://api.example.test')[0]
+def tls(*a, **k): raise urllib.error.URLError(ssl.SSLError('bad cert'))
+def slow(*a, **k): raise socket.timeout('timed out')
+class Reply(io.BytesIO):
+    def __enter__(self): return self
+    def __exit__(self, *a): pass
+def bounce(*a, **k): return Reply(json.dumps({'success': True, 'result': {'permanent_bounces': ['a@b.test']}}).encode())
+print('tls', answer(tls)); print('timeout', answer(slow)); print('bounce', answer(bounce))
+")
+  grep -q "^quit ok$" <<<"$out" && ok "an SMTP error at QUIT after the server took the message counts as sent" || bad "smtp quit"
+  grep -q "^tls refused$" <<<"$out" && grep -q "^timeout unknown$" <<<"$out" && grep -q "^bounce refused$" <<<"$out" \
+    && ok "Cloudflare: a TLS failure is refused, a timeout after sending is unknown, a permanent bounce is refused" || bad "cloudflare outcomes"
+  cfg '{"digest_mail": "cloudflare", "smtp_port": 25}'; out=$(cd "$S" && python3 -B -c "import mail; print(mail.settings('$r')[0])" 2>&1)
+  cfg '{"digest_mail": "smtp", "smtp_port": "587"}'; out2=$(cd "$S" && python3 -B -c "import mail; print(mail.settings('$r')[2])" 2>&1); cfg '{"digest_mail": "cloudflare"}'
+  [ "$out" = cloudflare ] && [ "$out2" = 587 ] && ok "smtp_port is checked only when smtp sends, and a quoted port is read as a number" || bad "smtp settings"
 fi
 
 if want mailtest; then
@@ -381,6 +413,20 @@ PY
   cfg '{"digest_mail": "off"}'; reset; issue "<!-- automation-digest run=204 open=12:10 -->"
   out=$(dg DIGEST_RUN=206 MAIL_ADDR_SET=false); c=$(python3 -c "import json;print(json.load(open('$G/comments.json'))[-1]['body'])"); cfg '{"digest_mail": "cloudflare"}'
   grep -qF "| email | off (digest_mail in .loop/config.json) |" <<<"$c" && ok "with mail off and no secrets the email row says off, not missing" || bad "email off row"
+  reset; rm -f "$G/comments.json"; issue "<!-- automation-digest run=206 open=12:10 -->"
+  out=$(env GH_TOKEN=x DIGEST_REPO_OWNER=toy-owner $auto digest); c=$(python3 -c "import json;print(json.load(open('$G/comments.json'))[-1]['body'])")
+  grep -q "run=206 open=" "$G/body-77.md" && grep -q "run=local open=" <<<"$c" && grep -qF "| round cost | not read (only read in Actions) (ROUND_UNREAD) |" <<<"$c" \
+    && ok "a digest run by hand keeps the last Actions run on the issue and says the cost is only read in Actions" || bad "local digest"
+  python3 -B -c "
+import sys; sys.path.insert(0, '$S'); import automation, mail_render
+c, _ = automation.compose('', '', [], {3: ('u3', 99), 4: ('u4', 0), 5: ('u5', 10)}, {}, '7', {10: 'Automation'})
+heads = [l for l in c.splitlines() if l.startswith('### ')]
+assert heads == ['### Automation', '### No milestone'], heads
+assert '**New** (2): [#3](u3), [#4](u4)' in c.split('### No milestone')[1]
+c, _ = automation.compose('', '', [('health', 'a | b')], {}, {}, '7', {})
+page = mail_render.to_html(c)
+assert '<td>a | b</td>' in page, page
+" && ok "an unknown milestone joins the one No milestone section, and an escaped pipe stays in its cell" || bad "no milestone section"
   python3 -B -c "
 import sys; sys.path.insert(0, '$S'); import rounds
 a = rounds.parse('x <!-- automation-digest open=5,9 run=7 -->'); b = rounds.parse('<!-- automation-digest mailed open=5:2 run=8 -->')
@@ -414,6 +460,11 @@ PY
   out=$(rc 300 250); grep -q "regression still running, partial 42 min" <<<"$out" && ok "a regression run still going is counted as partial" || bad "partial"
   python3 - "$G/runs.json" <<'PY'
 import json, sys
+d = json.load(open(sys.argv[1])); d["299"]["jobs"][0]["completedAt"] = "0001-01-01T00:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
+PY
+  out=$(rc 300 250); grep -q "regression still running, partial 42 min" <<<"$out" && ok "gh's year-1 completedAt for an unfinished job counts to now, not as negative time" || bad "zero time"
+  python3 - "$G/runs.json" <<'PY'
+import json, sys
 d = json.load(open(sys.argv[1])); del d["299"]; json.dump(d, open(sys.argv[1], "w"))
 PY
   out=$(rc 300 250); grep -q "^round 11 min of job time (regression 1 min" <<<"$out" && ok "a by-hand or tag regression run inside the window is the round's run" || bad "other run"
@@ -422,7 +473,7 @@ import json, sys
 d = json.load(open(sys.argv[1])); del d["298"]; json.dump(d, open(sys.argv[1], "w"))
 PY
   out=$(rc 300 250); grep -q "regression: no run found" <<<"$out" && ok "with no regression run in the window the round is health only" || bad "no regression"
-  out=$(rc local ""); grep -q "^round cost: not read (no run id) (ROUND_UNREAD)" <<<"$out" && ok "outside Actions the cost says why it wasn't read" || bad "unread"
+  out=$(rc local ""); grep -q "^not read (no run id) (ROUND_UNREAD)" <<<"$out" && ok "outside Actions the cost says why it wasn't read" || bad "unread"
 fi
 
 if want file; then
@@ -464,6 +515,29 @@ assert i[3]["milestone"]["title"] == "Automation", i[3]
 PY
   out=$(fl skills/old/z.py)
   grep -q "^api -X PATCH repos/{owner}/{repo}/issues/4 -F milestone=3" "$FAKE_GH_DIR/calls.log" && ok "a finding for a feature whose milestone is closed is set on it by number" || bad "closed milestone"
+  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
+import file, subprocess
+real, seen = file.run, []
+def run(args, root):
+    seen.append(args)
+    if args[:3] == ['api', '-X', 'PATCH']:
+        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
+    return real(args, root)
+file.run = run
+row = dict(state='WARN', family='size', subject='skills/old/w.py', rule='limit', detail='big', fix='')
+issues, why = file.held('$r'); acts = file.plan([row], issues, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
+print([a for a in seen if a[:2] == ['issue', 'edit']])
+" ) > "$G/patch.out" 2>&1
+  grep -q "placed= -->" "$G/patch.out" && grep -q "^FAILED open issue" "$G/patch.out" \
+    && ok "a new issue whose closed-milestone set fails gets placed= empty, so the next run places it" || bad "closed patch failure"
+  python3 -c "import json; d=json.load(open('$FAKE_GH_DIR/milestones.json')); json.dump([m for m in d if m['title'] != 'Backlog'], open('$FAKE_GH_DIR/milestones.json', 'w'))"
+  out=$(fl skills/nowhere/v.py)
+  python3 - "$FAKE_GH_DIR/issues.json" "$FAKE_GH_DIR/milestones.json" <<'PY2' && ok "a missing Backlog is made once for a finding no feature claims" || bad "backlog made"
+import json, sys
+i = [x for x in json.load(open(sys.argv[1])) if "nowhere/v.py" in x["title"]]
+assert len(i) == 1 and i[0]["milestone"]["title"] == "Backlog" and "placed=Backlog -->" in i[0]["body"], i
+assert [m["title"] for m in json.load(open(sys.argv[2]))].count("Backlog") == 1
+PY2
   python3 - "$FAKE_GH_DIR/issues.json" <<'PY2'
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -554,6 +628,10 @@ SH
   grep -q "^issue create --title Regression: red .*placed=Alpha -->" "$G/calls.log" && ! grep -qx " --milestone Alpha" "$G/calls.log" \
     && grep -q "^api -X PATCH repos/{owner}/{repo}/issues/77 -F milestone=8" "$G/calls.log" \
     && ok "a failing row whose feature milestone is closed is set on it by number and records placed=Alpha" || bad "regression closed milestone"
+  printf '[{"number": 41, "state": "OPEN", "body": "<!-- loop-regression red placed= -->", "labels": [{"name": "defect"}], "milestone": null}]\n' > "$G/regression.json"
+  out=$(STUB_ISSUE_PATCH_FAIL=1 rows); cp "$G/calls.log" "$G/calls.log.prev"; printf '[]\n' > "$G/regression.json"; out2=$(STUB_ISSUE_PATCH_FAIL=1 rows); rc=$?
+  grep -q "^issue edit 41 --body <!-- loop-regression red placed= -->$" "$G/calls.log.prev" && grep -q "^issue edit 77 --body <!-- loop-regression red placed= -->" "$G/calls.log" && [ $rc = 1 ] \
+    && ok "a closed-milestone set that fails puts back the old placed= on a moved issue and an empty one on a new issue" || bad "by_number failure"
   rm -f "$G/milestones.json"; printf '#!/bin/bash\ncase "$*" in *milestones*) [ "$2" = "--paginate" ] && { echo "HTTP 502" >&2; exit 1; };; esac\nexec "$STUB/gh.real" "$@"\n' > "$G/gh.ms"
   chmod +x "$G/gh.ms"; cp "$G/gh" "$G/gh.keep"; cp "$G/gh.ms" "$G/gh"; out=$(rows); cp "$G/gh.keep" "$G/gh"
   ! grep -q -- "-X POST repos/{owner}/{repo}/milestones" "$G/calls.log" && grep -qx " --milestone Alpha" "$G/calls.log" \

@@ -359,7 +359,7 @@ jobs:
                   data = None
               if not isinstance(data, list):
                   return None  # unreadable: create nothing, let gh place issues by title
-              flat = [m for page in data for m in (page if isinstance(page, list) else [page])] if isinstance(data, list) else []
+              flat = [m for page in data for m in (page if isinstance(page, list) else [page])]
               return {m["title"]: (m.get("number"), m.get("state") or "open") for m in flat if isinstance(m, dict) and m.get("title")}
           MILES = milestones() if issues is not None else {}
           READ = MILES is not None
@@ -369,19 +369,23 @@ jobs:
               if title not in MILES and not READ:
                   return title, None
               if title not in MILES:
-                  made = write("milestone " + title, "api", "-X", "POST", "repos/{owner}/{repo}/milestones", "-f", "title=" + title)
+                  made = gh("api", "-X", "POST", "repos/{owner}/{repo}/milestones", "-f", "title=" + title)
                   try:
                       MILES[title] = (json.loads(made.stdout)["number"], "open")
                   except (ValueError, KeyError, TypeError):
                       MILES.update(milestones() or {})  # made meanwhile (422 already exists): read again
                       if title not in MILES:
-                          return "", None
+                          failed.append("milestone " + title)
+                          print("FAILED milestone %s: %s (FILE_FAILED)" % (title, made.stderr.strip()[:160]))
+                          MILES[title] = (None, "failed")  # once per run
               number, state = MILES[title]
+              if state == "failed":
+                  return "", None
               return title, (number if state == "closed" else None)  # gh --milestone finds open ones; a closed one is set by number
-          def by_number(number, closed, body):  # a closed milestone by number; on failure clear placed= so the next run retries
+          def by_number(number, closed, body):  # a closed milestone by number; on failure write back body (the placed= it had) so the next run retries
               if closed and number and write("milestone of #%s" % number, "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/%s" % number,
                                              "-F", "milestone=%s" % closed).returncode:
-                  write("placed of #%s" % number, "issue", "edit", str(number), "--body", FOUND.sub(lambda m: m.group(0).split(" placed=")[0] + " placed= -->", body, count=1))
+                  write("placed of #%s" % number, "issue", "edit", str(number), "--body", body)
           FOUND = re.compile(r"<!-- loop-regression (\S+?)(?: placed=(\S*))? -->")
           def marked(body):
               match = FOUND.search(body or "")
@@ -419,7 +423,7 @@ jobs:
                   if not hit:
                       made = write("issue for " + row[0], "issue", "create", "--title", "Regression: " + row[0], "--label", "regression",
                                    "--label", "defect", "--body", body, *(["--milestone", title] if title else []))
-                      by_number((re.findall(r"/issues/(\d+)", made.stdout) or [""])[-1], closed, body)
+                      by_number((re.findall(r"/issues/(\d+)", made.stdout) or [""])[-1], closed, FOUND.sub(lambda m: m.group(0).split(" placed=")[0] + " placed= -->", body, count=1))
                   else:
                       n = str(hit["number"])
                       if hit["state"] != "OPEN":
@@ -430,7 +434,7 @@ jobs:
                       if now == marked(hit["body"])[1] and where and where != now:  # still where the automation put it
                           old = FOUND.search(hit["body"]).group(0)
                           write("move #" + n, "issue", "edit", n, "--body", hit["body"].replace(old, mark), *(["--milestone", title] if title else []))
-                          by_number(n, closed, hit["body"].replace(old, mark))
+                          by_number(n, closed, hit["body"])
                       write("comment #" + n, "issue", "comment", n, "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
           if failed:
               print("FILED %d issue writes; FAILED %d: %s (FILE_FAILED)" % (filed[0], len(failed), ", ".join(failed)))

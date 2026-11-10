@@ -86,8 +86,12 @@ def settings(root):
     if mode not in ("cloudflare", "smtp", "off"):
         raise Stop("MAIL_SETTING", "digest_mail is %r; it must be cloudflare, smtp or off. Fix: edit .loop/config.json" % mode)
     host, port = cfg.get("smtp_host") or "smtp.gmail.com", cfg.get("smtp_port") or 465
+    if isinstance(port, str) and port.isdigit():
+        port = int(port)
     test_port = os.environ.get("DIGEST_SMTP_TEST_PORT") or ""
-    if test_port:
+    if mode != "smtp":
+        pass  # the smtp rows only matter when smtp sends
+    elif test_port:
         if host not in LOCAL or not test_port.isdigit():
             raise Stop("MAIL_SETTING", "DIGEST_SMTP_TEST_PORT is for local tests only (smtp_host 127.0.0.1 or localhost). "
                        "Fix: unset it")
@@ -136,6 +140,8 @@ def send_cloudflare(keys, subject, text, page, api):
             return "retry", detail
         return ("unknown" if err.code >= 500 else "refused"), detail
     except urllib.error.URLError as err:
+        if isinstance(err.reason, ssl.SSLError):  # TLS failed before any request went out
+            return "refused", "TLS failed: %s" % type(err.reason).__name__
         if isinstance(err.reason, (ConnectionRefusedError, socket.gaierror)):  # no connection: nothing reached Cloudflare
             return "retry", "couldn't connect: %s" % type(err.reason).__name__
         return "unknown", "the connection failed while sending (%s)" % type(err.reason).__name__
@@ -157,7 +163,7 @@ def send_smtp(keys, subject, text, page, host, port):
     mail["Subject"], mail["From"], mail["To"] = subject, keys["DIGEST_FROM"], keys["DIGEST_TO"]
     mail.set_content(text)
     mail.add_alternative(page, subtype="html")
-    started = False
+    started = sent = False
     try:
         if os.environ.get("DIGEST_SMTP_TEST_PORT"):
             server = smtplib.SMTP(host, port, timeout=30)  # local test server only (settings checks the host)
@@ -171,18 +177,23 @@ def send_smtp(keys, subject, text, page, host, port):
                 server.login(keys["DIGEST_SMTP_USER"], keys["DIGEST_SMTP_PASSWORD"])
             started = True
             server.send_message(mail)
-    except smtplib.SMTPAuthenticationError as err:
+            sent = True
+    except (smtplib.SMTPException, OSError) as err:
+        return ("ok", "") if sent else smtp_outcome(err, started)  # once the server took the message, a QUIT error is no failure
+    return "ok", ""
+
+
+def smtp_outcome(err, started):
+    if isinstance(err, smtplib.SMTPAuthenticationError):
         return "refused", "login refused (%s)" % err.smtp_code
-    except (smtplib.SMTPSenderRefused, smtplib.SMTPRecipientsRefused, smtplib.SMTPHeloError) as err:
+    if isinstance(err, (smtplib.SMTPSenderRefused, smtplib.SMTPRecipientsRefused, smtplib.SMTPHeloError)):
         code = getattr(err, "smtp_code", 0) or min([c for c, _ in getattr(err, "recipients", {}).values()] or [500])
         return ("retry" if 400 <= code < 500 else "refused"), "%s %s" % (type(err).__name__, code)
-    except (smtplib.SMTPDataError, smtplib.SMTPServerDisconnected, smtplib.SMTPException, OSError) as err:
-        if started:
-            return "unknown", "%s after the message started" % type(err).__name__
-        if isinstance(err, (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, ConnectionError, socket.gaierror, TimeoutError)):
-            return "retry", "couldn't connect: %s" % type(err).__name__
-        return "refused", "%s before the message started" % type(err).__name__  # TLS, certificate, STARTTLS or auth method
-    return "ok", ""
+    if started:
+        return "unknown", "%s after the message started" % type(err).__name__
+    if isinstance(err, (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, ConnectionError, socket.gaierror, TimeoutError)):
+        return "retry", "couldn't connect: %s" % type(err).__name__
+    return "refused", "%s before the message started" % type(err).__name__  # TLS, certificate, STARTTLS or auth method
 
 
 def deliver(mode, keys, subject, text, page, opts):

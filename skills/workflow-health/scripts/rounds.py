@@ -22,6 +22,7 @@ BOTS = ("github-actions[bot]", "app/github-actions", "github-actions")  # REST l
 BUDGET_MINUTES = 45  # fixed by AUT-7, no setting
 WINDOW = datetime.timedelta(hours=6)
 RUN_LIMIT = 200
+REG_LOOKBACK = 20  # regression runs searched for the round's own
 JOB_READS = 30  # runs whose jobs the spend reads; more since the last round make it a lower bound
 MARK = re.compile(r"<!-- automation-digest ([^<>]*?) -->")
 RUN = re.compile(r"[0-9]+|none|local")
@@ -100,10 +101,12 @@ def digest_issue():
 
 
 def stamp(text):
+    """A timestamp, or None; gh prints an unfinished job's completedAt as year 1, which is no time at all."""
     try:
-        return datetime.datetime.fromisoformat((text or "").replace("Z", "+00:00"))
+        when = datetime.datetime.fromisoformat((text or "").replace("Z", "+00:00"))
     except ValueError:
         return None
+    return when if when.year >= 1970 else None
 
 
 def created(run):
@@ -178,7 +181,7 @@ def round_cost(run, previous=None, now=None):
     health = jobs(run, now)
     if start is None or health is None:
         return {"error": "gh couldn't read run %s" % run}
-    listed = runs("regression.yml", 20)
+    listed = runs("regression.yml", REG_LOOKBACK)
     if listed is None:
         return {"error": "gh couldn't list the regression runs"}
     own = [r for r in listed if stamp(r.get("createdAt")) and start - WINDOW <= stamp(r["createdAt"]) < start]
@@ -203,13 +206,13 @@ def spend(run, reg, health, reg_jobs, previous, now, cost):
     own = sum(m for _, m in health) + sum(m for _, m in reg_jobs)
     if after is None:
         return own, True
-    total, read, unread = 0, 0, 0
+    total, read, unread, notes = 0, 0, 0, []
     for workflow in ("regression.yml", "health.yml"):
         listed = runs(workflow, RUN_LIMIT, after)
         if listed is None:
             return own, True
         if len(listed) >= RUN_LIMIT:
-            cost["note"] = "NOTE: more than %d runs since the last round; the spend is a lower bound" % RUN_LIMIT
+            notes.append("NOTE: more than %d runs since the last round; the spend is a lower bound" % RUN_LIMIT)
         for item in listed:
             when = stamp(item.get("createdAt"))
             if when is None or when <= after or str(item.get("databaseId")) == str(previous):
@@ -219,7 +222,8 @@ def spend(run, reg, health, reg_jobs, previous, now, cost):
             unread += counted is None
             total += sum(m for _, m in counted or [])
     if unread:
-        cost["note"] = "NOTE: %d runs since the last round weren't read; the spend is a lower bound" % unread
+        notes.append("NOTE: %d runs since the last round weren't read; the spend is a lower bound" % unread)
+    cost["note"] = "; ".join(notes)
     return total, False
 
 
@@ -229,7 +233,7 @@ def minutes(seconds):
 
 def line(cost):
     if not cost or cost.get("error"):
-        return "round cost: not read (%s) (ROUND_UNREAD)" % ((cost or {}).get("error") or "no data")
+        return "not read (%s) (ROUND_UNREAD)" % ((cost or {}).get("error") or "no data")
     if cost["regression"] is None:
         reg = "regression: no run found"
     elif cost["running"]:

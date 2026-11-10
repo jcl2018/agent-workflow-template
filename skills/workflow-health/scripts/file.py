@@ -117,6 +117,8 @@ def plan(rows, issues, groups, extra=(), judged=False, root=None):
     ran = set(groups) - unread - idle  # a clean group gives no rows, so it ran unless a rule in it could not read
     out, current = [], set()
     miles = milestones(root) if root and found else {}
+    if miles is None:  # unreadable: Backlog, which the workflow made just before, as before this change
+        miles = {BACKLOG: (None, "open")}
     for item in found:
         key, group = key_of(item), item["family"]
         current.add(key)
@@ -180,13 +182,15 @@ def preview(acts):
 
 
 def milestones(root):
-    """{title: (number, state)} of every milestone, open or closed; {} when gh can't read them."""
+    """{title: (number, state)} of every milestone, open or closed; None when gh can't read them."""
     done = run(["api", "--paginate", "--slurp", "repos/{owner}/{repo}/milestones?state=all&per_page=100"], root)
     try:
-        data = json.loads(done.stdout) if done.returncode == 0 else []
+        data = json.loads(done.stdout) if done.returncode == 0 else None
     except ValueError:
-        data = []
-    flat = [m for page in data for m in (page if isinstance(page, list) else [page])] if isinstance(data, list) else []
+        data = None
+    if not isinstance(data, list):
+        return None
+    flat = [m for page in data for m in (page if isinstance(page, list) else [page])]
     return {m["title"]: (m.get("number"), m.get("state") or "open") for m in flat if isinstance(m, dict) and m.get("title")}
 
 
@@ -194,13 +198,13 @@ def placed(act, miles):
     """The act with a milestone that exists: its feature's, else Backlog with a NOTE, else none. Returns (act, number of a
     closed milestone to set by REST, or None)."""
     title = act.get("milestone") or BACKLOG
-    if not miles:  # milestones unreadable: let gh place it by title, as before
+    if miles is None:  # milestones unreadable: let gh place it by title, as before
         return dict(act, milestone=title), None
     if title not in miles:
         fallback = BACKLOG if BACKLOG in miles else ""
         print("NOTE: milestone %s doesn't exist, so the issue goes on %s" % (title, fallback or "no milestone"))
         act = dict(act, milestone=fallback, body=act["body"].replace(" placed=%s " % urllib.parse.quote(title, safe=""),
-                                                                     " placed=%s " % urllib.parse.quote(fallback or BACKLOG, safe="")))
+                                                                     " placed=%s " % urllib.parse.quote(fallback, safe="")))
         title = fallback
     number, state = miles.get(title, (None, ""))
     if title and state == "closed":  # gh's --milestone finds open ones only: set this one by number after the write
@@ -211,6 +215,13 @@ def placed(act, miles):
 def apply(acts, root, groups):
     """Carry out the plan. The caller has already limited the plan to the named groups."""
     miles = milestones(root) if any(act["kind"] in ("open", "move") for act in acts) else {}
+    if miles is not None and BACKLOG not in miles and any(act["kind"] in ("open", "move") and (act.get("milestone") or BACKLOG)
+                                                          not in miles for act in acts):  # the fallback, made once
+        made = run(["api", "-X", "POST", "repos/{owner}/{repo}/milestones", "-f", "title=" + BACKLOG], root)
+        try:
+            miles[BACKLOG] = (json.loads(made.stdout)["number"], "open")
+        except (ValueError, KeyError, TypeError):
+            pass  # placed() then notes no milestone
     unmoved = set()
     for name in sorted({act["group"] for act in acts} | set(groups)):
         run(["label", "create", tag_of(name), "--description", "Filed by health.py file: the %s group" % TAG.get(name, name), "--force"], root)
@@ -231,6 +242,8 @@ def apply(acts, root, groups):
         if not done.returncode and closed:
             number = act.get("number") or (re.findall(r"/issues/(\d+)", done.stdout) or [""])[-1]
             done = run(["api", "-X", "PATCH", "repos/{owner}/{repo}/issues/%s" % number, "-F", "milestone=%s" % closed], root)
+            if done.returncode and act["kind"] == "open":  # on no milestone now: placed= empty, so the next run places it
+                run(["issue", "edit", number, "--body", re.sub(r" placed=\S* -->", " placed= -->", act["body"], count=1)], root)
         if done.returncode and act["kind"] == "move":
             unmoved.add(act["number"])
         print(("FAILED %s: %s" % (words(act), done.stderr.strip()[:160])) if done.returncode else "DONE " + words(act))

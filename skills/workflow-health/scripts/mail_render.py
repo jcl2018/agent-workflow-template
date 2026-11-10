@@ -39,7 +39,7 @@ def to_html(text):
             items.clear()
     for line in text.splitlines():
         if line.startswith("|"):
-            cells = [c for c in line.strip().strip("|").split("|")]
+            cells = [c.replace("\\|", "|") for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
             if not all(re.fullmatch(r"\s*-+\s*", c) for c in cells):
                 table.append(cells)
             continue
