@@ -1,34 +1,29 @@
 #!/usr/bin/env python3
 """Check a repo's health with fixed rules. Same repo, same answer. Read-only: it writes no file and calls no model.
 
-usage: health.py check [--json] [--group NAME]
+usage: health.py check [--json] [--group NAME] [--skip NAME]
        health.py preview [--group NAME[,NAME]]
        health.py file --group NAME[,NAME]
        health.py judge
 
-check prints the formal report (see report.py): a header naming the groups run and skipped, each group (size, criteria,
-docs, hygiene, performance, Mine) with every rule it checked, then the verdict. performance is the Cost rule. Mine runs the owner's own rules from ~/.workflow-loop/health.json (see mine.py); one that cannot run is UNREAD.
-judge (alias suggest) prints the check report, then a judge section of suggestions (see judge.py). check stays model-free
-and gives the same answer twice; the judge never changes the verdict or the exit code.
-
-One line per finding:  STATE family subject rule: detail -> fix: what to run
-STATE is PASS, WARN, FAIL, UNREAD (a rule could not read its data) or INFO. The last line is
-  HEALTH: green (...)  or  HEALTH: not green (...)
-Only FAIL and UNREAD turn it red, and the exit code is then 1. --json prints the same rows as records.
+check prints the formal report (report.py): the groups run and skipped, every rule of each group, then one verdict
+line, HEALTH: green or not green. Only FAIL and UNREAD (a rule that could not read its data) turn it red (exit 1).
+judge (alias suggest) adds a section of suggestions (judge.py) and never changes the verdict. --json prints the rows.
 
 Rules (at most MAX_RULES, asserted when the script loads; retire one before adding another):
   size      scripts under skills/*/scripts against 20 KB: WARN from 90%, FAIL over
   criteria  composes regression.py sync: a criterion with no row FAILs, a draft or never-failed row FAILs,
             done lines with no row WARN as one row; a closed issue or finding with no defect test FAILs (defects.py)
   docs      composes docs.py check: a stale page WARNs, any other gap FAILs
-  hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches nobody has checked out
+  hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches; lean.py: the land lane over
+            test_budget_seconds, stale loop worktrees and local branches (each with its removal command, never run)
   cost      a finished goal over time_budget_minutes or token_budget in .loop/config.json WARNs, naming its slowest or
             costliest steps (cost.py); no tokens recorded is UNREAD
+  controls  each rule's negative control (controls.py) must fire, or it is FAIL "cannot fire"; a rule with no
+            control makes health.py refuse to load (exit 2). Mine runs the owner's rules (mine.py).
 
-preview lists each issue a finding would open, update, close or reopen, with its health:<group> tag, and writes nothing.
-file --group NAME[,NAME] writes only the named groups, one issue per finding on the Backlog milestone, labelled
-health:<group> (see file.py): a repeat updates it, a fix closes it, a return reopens it. With no --group it refuses.
-run is a deprecated alias of preview. It runs git, gh and the sibling scripts, and nothing else.
+preview lists what file would open, update, close or reopen, writing nothing; file --group NAME[,NAME] files only
+those groups as issues on the Backlog milestone (file.py). run is an alias of preview. It runs git, gh and its siblings.
 """
 import argparse
 import datetime
@@ -48,11 +43,13 @@ LIMIT = 20 * 1024
 WARN_AT = LIMIT * 9 // 10
 FINDINGS_WARN = 5
 WAITING_HOURS = 24
-RULES = ("size", "criteria-rows", "criteria-done", "defect-tests", "docs-check", "findings", "waiting", "branches", "cost")
-MAX_RULES = 9  # raised from 8 on purpose, for cost
+RULES = ("size", "criteria-rows", "criteria-done", "defect-tests", "docs-check", "findings", "waiting", "branches", "cost",
+         "test-time", "worktrees", "local-branches")
+MAX_RULES = 12  # raised on purpose: 9 for cost, 12 for HLT-6's test time and stale worktrees and branches
 assert len(RULES) <= MAX_RULES, "too many rules: retire one first"
-FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene", "cost": "cost", "mine": "mine"}
-ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine")  # the fixed order of the groups in the report
+FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene", "cost": "cost", "mine": "mine",
+          "controls": "controls"}
+ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine", "controls")  # the fixed order of the groups in the report
 NAMES = sorted(FAMILY) + ["performance"]  # performance is the Cost group's name in the report and its tag
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 
@@ -141,13 +138,9 @@ def docs_rows(root):
 
 
 def defect_rows(root):
-    sys.path.insert(0, HERE)
-    try:
-        import defects
-    except ImportError:
+    defects = sibling_module("defects")
+    if not defects:
         return [row("UNREAD", "criteria", "defects", "defect-tests", "defects.py is not installed beside health.py")]
-    finally:
-        sys.path.pop(0)
     return [row("FAIL", "criteria", ref, "defect-tests", "closed by %s with no defect test" % source,
                 "regression.py add --category defect --link ...") for ref, source in defects.missing(root)]
 
@@ -192,34 +185,51 @@ def hygiene_rows(root):
             if line.startswith("  ") and name.startswith("loop/"):
                 rows.append(row("WARN", "hygiene", name, "branch", "already merged into %s" % base,
                                 "worker.py cleanup"))
-    return rows
+    lean = sibling_module("lean")
+    return rows + (lean.rows(root) if lean else [row("UNREAD", "hygiene", "lean.py", "test-time", "lean.py is not installed beside health.py")])
+
+
+def sibling_module(name):
+    sys.path.insert(0, HERE)
+    try:
+        return __import__(name)
+    except ImportError:
+        return None
+    finally:
+        sys.path.pop(0)
+
+
+def rule_functions():
+    """Each rule in RULES -> the function that gives its group's rows for a repo root (what its control calls)."""
+    lean = sibling_module("lean")
+    groups = {"size": size_rows, "criteria-rows": criteria_rows, "criteria-done": criteria_rows, "defect-tests": defect_rows,
+              "docs-check": docs_rows, "findings": hygiene_rows, "waiting": hygiene_rows, "branches": hygiene_rows,
+              "cost": cost_rows}
+    if lean:
+        groups.update({"test-time": lean.test_rows, "worktrees": lean.worktree_rows, "local-branches": lean.branch_rows})
+    return {name: groups[name] for name in RULES if name in groups}
+
+
+def controls_rows(root):
+    controls = sibling_module("controls")
+    if controls is None:
+        return [row("UNREAD", "controls", "controls.py", "control", "controls.py is not installed beside health.py")]
+    return controls.run(rule_functions(), HERE)
 
 
 def mine_rows(root):
-    sys.path.insert(0, HERE)
-    try:
-        import mine
-    except ImportError:
-        return [row("UNREAD", "mine", "mine.py", "mine", "mine.py is not installed beside health.py")]
-    finally:
-        sys.path.pop(0)
-    return mine.mine_rows(root)
+    mine = sibling_module("mine")
+    return mine.mine_rows(root) if mine else [row("UNREAD", "mine", "mine.py", "mine", "mine.py is not installed beside health.py")]
 
 
 def cost_rows(root):
-    sys.path.insert(0, HERE)
-    try:
-        import cost
-    except ImportError:
-        return [row("UNREAD", "cost", "cost.py", "cost", "cost.py is not installed beside health.py")]
-    finally:
-        sys.path.pop(0)
-    return cost.cost_rows(root, HERE)
+    cost = sibling_module("cost")
+    return cost.cost_rows(root, HERE) if cost else [row("UNREAD", "cost", "cost.py", "cost", "cost.py is not installed beside health.py")]
 
 
 def gather(root, family):
     rules = {"size": size_rows, "criteria": lambda root: criteria_rows(root) + defect_rows(root), "docs": docs_rows, "hygiene": hygiene_rows,
-             "cost": cost_rows, "mine": mine_rows}
+             "cost": cost_rows, "mine": mine_rows, "controls": controls_rows}
     rows = []
     for name in (family or ORDER):
         rows += rules[name](root)
@@ -237,15 +247,10 @@ def groups_of(text):
 
 def report(rows, asked=None):
     """The formal report from report.py; a lone health.py prints the bare rows and a verdict."""
-    sys.path.insert(0, HERE)
-    try:
-        import report as formal
+    formal = sibling_module("report")
+    if formal:
         built = formal.build(rows, asked)
         return built[:4] + (built[6],)  # the rows the report shows, so --json rows agree with its counts
-    except ImportError:
-        pass
-    finally:
-        sys.path.pop(0)
     counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
     green = not counts["FAIL"] and not counts["UNREAD"]
     verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % ("green" if green else "not green", *counts.values())
@@ -263,6 +268,8 @@ def repo_root():
 def cmd_check(args):
     root = repo_root()
     asked = groups_of(args.group)
+    skipped = groups_of(args.skip) or []
+    asked = [name for name in (asked or ORDER) if name not in skipped] if skipped else asked
     text, counts, green, verdict, rows = report(gather(root, asked), asked)
     if args.json:
         print(json.dumps({"green": green, "counts": counts, "rows": rows, "verdict": verdict}, indent=2))
@@ -278,14 +285,10 @@ def cmd_judge(args):
     text, _, green, _, _ = report(rows)
     print("\n".join(text))
     print()
-    sys.path.insert(0, HERE)
-    try:
-        import judge
-    except ImportError:
+    judge = sibling_module("judge")
+    if not judge:
         print("JUDGE UNAVAILABLE: judge.py is not installed beside health.py")
         return 0 if green else 1
-    finally:
-        sys.path.pop(0)
     try:
         answer, why = judge.ask(judge.gather(root, HERE, rows), root)
         found = judge.parse(answer)
@@ -300,13 +303,7 @@ def cmd_judge(args):
 
 def plan_for(root, asked, with_judge):
     """(file module, acts, groups) for the groups asked, or exit when file.py or gh cannot be used."""
-    sys.path.insert(0, HERE)
-    try:
-        import file as filing
-    except ImportError:
-        sys.exit("REFUSED: file.py is not installed beside health.py")
-    finally:
-        sys.path.pop(0)
+    filing = sibling_module("file") or sys.exit("REFUSED: file.py is not installed beside health.py")
     groups = asked or list(filing.DEFAULT)
     rows = gather(root, None)
     judged, extra = False, []
@@ -346,6 +343,7 @@ def main():
     item = sub.add_parser("check", help="run the fixed rules")
     item.add_argument("--json", action="store_true")
     item.add_argument("--group", "--family", dest="group", help="one of: " + ", ".join(NAMES))
+    item.add_argument("--skip", default="", help="NAME[,NAME]: groups to leave out, such as controls")
     item.set_defaults(func=cmd_check)
     for name in ("judge", "suggest"):
         item = sub.add_parser(name, help="the check report, then a judge section of suggestions")
@@ -360,4 +358,9 @@ def main():
 
 
 if __name__ == "__main__":
+    _controls = sibling_module("controls")
+    if _controls and _controls.missing(RULES):  # a new rule must come with its negative control
+        print("REFUSED: rule %s has no negative control. Fix: add CONTROLS[\"%s\"] in controls.py" % (
+            ", ".join(_controls.missing(RULES)), _controls.missing(RULES)[0]))
+        sys.exit(2)
     sys.exit(main())
