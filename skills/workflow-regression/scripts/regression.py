@@ -281,7 +281,7 @@ def sync_issues(results, live):
     day = today()
     for item in results:
         mark = MARK % item["id"]
-        hits = [issue for issue in issues if mark in issue.get("body", "")]
+        hits = [issue for issue in issues if re.search(r"<!-- loop-regression %s(?: placed=\S*)? -->" % re.escape(item["id"]), issue.get("body", ""))]
         hit = next((issue for issue in hits if issue.get("state") == "OPEN"), hits[0] if hits else None)
         number = str(hit["number"]) if hit else ""
         if item["state"] == "FAIL":

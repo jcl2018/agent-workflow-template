@@ -21,6 +21,7 @@ import sys
 import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import board_lag  # noqa: E402
 import board_status as bs  # noqa: E402
 import dep_graph  # noqa: E402
 import goal_state  # noqa: E402
@@ -32,7 +33,7 @@ import status_graph  # noqa: E402
 # No terminal, no waiting: a prompt from git or gh must fail, not block (board_status sets the rest).
 os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")
 
-FLOW = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
+FLOW = bs.FLOW
 WIDTH = 60   # a phone screen
 HEALTH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-health", "scripts", "health.py")
 
@@ -98,18 +99,7 @@ def age(text, at):
     return "%dm" % minutes if minutes < 60 else "%dh" % (minutes // 60) if minutes < 48 * 60 else "%dd" % (minutes // 1440)
 
 
-def current(run):
-    """Index of the step a goal is on: a finished, unmerged goal waits at release. A step outside the flow (a check,
-    say) keeps the last known flow step: the newest report naming one, else the furthest step in the run's flow record."""
-    if run.get("status") == "done":
-        return FLOW.index("release")
-    if run.get("step") in FLOW:
-        return FLOW.index(run["step"])
-    for item in reversed(run.get("reports") if isinstance(run.get("reports"), list) else []):
-        if isinstance(item, dict) and item.get("step") in FLOW:
-            return FLOW.index(item["step"])
-    known = [FLOW.index(step) for step in (run.get("flow") or {}) if step in FLOW]
-    return max(known) if known else 0
+current = bs.current
 
 
 def flow_lines(run, over=0):
@@ -240,6 +230,8 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
                       % (name, entry["slug"])]
     for key in sorted(graph.LAST_BAD.get(os.path.join(loop_dir(root), "session-pool.json"), {})):
         other += ["- pool entry %s is malformed and was set aside" % key, "    fix: look at session-pool.bad.json, then delete it"]
+    other += board_lag.template_lag(root)
+    other += bs.stall_lines(runs, at, root, {r["slug"] for r in runs if is_held(r, taken)})
     found = bs.wiki_check(root)
     parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]
     for run in runs:
@@ -268,12 +260,7 @@ def render(root=None, at=None):
     waits = lambda deps: [d for d in deps if d not in gone]
     lines = {g["slug"]: g for g in bs.queued(root, runs)}
     queue = [g for g in lines.values() if g["slug"] not in {f["slug"] for f in freezing}]
-    items = [dict(slug=r["slug"], mark=status_graph.mark(r.get("status")), depends=waits(r.get("waits_on") or []), stage=0,
-                  left=bs.left_time(r, runs, at)) for r in live]
-    items += [dict(slug=g["slug"], mark="queued", depends=waits(g["depends"]), stage=0,
-                   left=bs.left_time({"slug": g["slug"], "status": "queued"}, runs, at)) for g in queue]
-    items += [dict(slug=f["slug"], mark=status_graph.mark("running"), depends=waits((lines.get(f["slug"]) or {}).get("depends") or []),
-                   stage=0, left=bs.left_time({"slug": f["slug"], "status": "queued"}, runs, at)) for f in freezing]
+    items = bs.board_items(live, queue, freezing, lines, runs, at, root, waits)
     setting = "condensed" if (bs.read_json(os.path.join(root, ".loop", "config.json")) or {}).get("review_depth") == "condensed" else "full"
     head = "LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root))
     if len(head) > WIDTH:
@@ -285,10 +272,10 @@ def render(root=None, at=None):
     most = max_tries(root)
     bar = lambda run, done, end="": "- %s  [%s%s] %d%%  %s%s%s" % (
         run["slug"], "#" * round(10 * done / len(FLOW)), "-" * (10 - round(10 * done / len(FLOW))), round(100 * done / len(FLOW)),
-        "no estimate yet" if left_of(run) is None else "%s left" % status_graph.span(left_of(run)), tries(run, most), end)
-    left_of = lambda run: next(i["left"] for i in items if i["slug"] == run["slug"])
+        bs.estimate_text(est_of(run)), tries(run, most), end)
+    est_of = lambda run: next(i["est"] for i in items if i["slug"] == run["slug"])
     for run in running:
-        out += [bar(run, current(run)), *flow_lines(run, bs.overrun(run, runs, at)), "    worker: " + worker_of(run, taken),
+        out += [bar(run, current(run)), *flow_lines(run, bs.overrun(run, runs, at, root)), "    worker: " + worker_of(run, taken),
                 "    depth: " + depth_of(run, setting), "    next: " + next_line(run)]
     for entry in freezing:
         name, ago = entry.get("name") or entry["id"], age(entry.get("since"), at)
@@ -307,13 +294,12 @@ def render(root=None, at=None):
         out += [bar(run, current(run), "  held"), *flow_lines(run), "    worker: none (%s)" % state, "    depth: " + depth_of(run, setting),
                 "    next: give it a worker session (sessions.py bind %s ID, where ID is the session's id from the app)%s" % (run["slug"], fix)]
     for goal in queue:
-        left = next(i["left"] for i in items if i["slug"] == goal["slug"])
-        out.append("- %s  %s%s" % (goal["slug"], "no estimate yet" if left is None else "%s left" % status_graph.span(left),
+        out.append("- %s  %s%s" % (goal["slug"], bs.estimate_text(next(i["est"] for i in items if i["slug"] == goal["slug"])),
                                    "  waits on " + ", ".join(waits(goal["depends"])) if waits(goal["depends"]) else ""))
     out += ([] if queue or held else ["- (none)"]) + ["", "Dependencies"]
     out += dep_graph.render([dict(i, mark="held" if i["slug"] in {r["slug"] for r in held} else i["mark"]) for i in items])
     seconds, _, _ = status_graph.chain(items)
-    missing = status_graph.unknown(items) or held or freezing
+    missing = status_graph.unknown(items) or any(i["partial"] for i in items) or held or freezing
     finish = "nothing left" if not items else "no estimate yet" if not seconds else "%sfinish about %s" % (
         "at least " if missing else "", graph.clock(at + datetime.timedelta(seconds=seconds)))
     return fit(out + ["", "Finish", issue_lines.paused(live) or finish])

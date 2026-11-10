@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/7
 
-Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf897b U=53ff20fc -->
+Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf897b U=391e5104 -->
 
 ## Problem
 - I can't trust a requirement or a fix unless a test proves it, and every fix I've ever shipped should stay fixed without me re-checking it.
@@ -16,7 +16,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf
 - `/workflow-regression red ID --break "cmd"` — Copies HEAD, runs the break command on the copy, and records that the row's test fails there. Prints `SEEN RED <id> on <YYYY-MM-DD>`, or `STILL GREEN <id>: the test passed on broken code, so it proves nothing.` with exit 1. Refuses (exit 1) `REFUSED: no row <id>. Fix: add it first.` and `REFUSED: the break command failed: ...`
 - `/workflow-regression run land` — Runs the land rows, records each result, and opens, updates or closes one issue per failing row. Prints `PASS <id>`, `FAIL <id>` or `KNOWN <id> (<reason>)` per row, `OPENED issue for <id>` or `WOULD open or update the issue for <id>`, and `RESULT <n> passed, <n> known, <n> failed, <n> unproven`. Refuses (exit 1) `REFUSED: no row or level called <target>.`, and `NO ROWS: run add first` when there are none.
 - `/workflow-regression sync` — Lists done lines and criteria with no row, plus draft, never-seen-failing and undescribed rows. Prints `GAP <slug>:<n> <line>`, `DRAFT <id>: ...`, `UNPROVEN <id>: never seen failing. Run red.`, `NODESC <id>: ...`, or `SYNC OK: <n> rows`. Refuses nothing.
-- `/workflow-regression workflow` — Writes the GitHub Actions regression workflow on the schedule in regression_cron. Prints `WROTE <repo>/.github/workflows/regression.yml`. Refuses (exit 1) `REFUSED: regression_cron is not five cron fields. ...`, `REFUSED: <path> exists, and this tool didn't write it. Fix: merge by hand.` and `REFUSED: tests.py contains <token>, which the workflow can't carry. ...`
+- `/workflow-regression workflow` — Writes the GitHub Actions regression workflow on the schedule in regression_cron; its run files each failing row's `defect` issue on the milestone of the feature the row guards (Backlog when none, made once if missing; an issue you moved stays) and fails the step after the last row when an issue write failed (`FILED <n> issue writes; FAILED <m>: ... (FILE_FAILED)`). Prints `WROTE <repo>/.github/workflows/regression.yml`. Refuses (exit 1) `REFUSED: regression_cron is not five cron fields. ...`, `REFUSED: <path> exists, and this tool didn't write it. Fix: merge by hand.` and `REFUSED: tests.py contains <token>, which the workflow can't carry. ...`
 - `/workflow-regression list` — Lists every regression test from the recorded runs, grouped by feature. Prints `FEATURE <title>`, then `<test> | <kind> | <guards> | <checks> | <runs> | <last result> | seen failing <date|no>` per test, or `NO TESTS`. Refuses nothing.
 - `/workflow-regression issues` — Reads each defect test's issue or pull request state from GitHub and records it. Prints `ISSUE <link> <state>`. Refuses (exit 1) `ISSUES: cannot read issues (gh: <cause>). Fix: gh auth login, or set GH_TOKEN`
 

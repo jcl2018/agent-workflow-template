@@ -55,6 +55,20 @@ def features(root):
     return found
 
 
+def page_of(root, subject):
+    """The feature page a path belongs to: the page whose path is the longest prefix of subject (the path itself or a
+    folder above it), else the page whose name is the subject (any case), else ""."""
+    best, size = "", -1
+    for page, paths in features(root).items():
+        for path in paths + ["docs/wiki/%s.md" % page]:
+            path = path.rstrip("/")
+            if (subject == path or subject.startswith(path + "/")) and len(path) > size:
+                best, size = page, len(path)
+    if best:
+        return best
+    return next((page for page in features(root) if page.lower() == (subject or "").lower()), "")
+
+
 def live(args):
     return bool(args.live or os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
 

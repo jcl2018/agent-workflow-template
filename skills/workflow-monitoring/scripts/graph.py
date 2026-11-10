@@ -34,6 +34,24 @@ def parse(line):
     return item
 
 
+def area(path):
+    """The area a touched path belongs to: skills/<name> for a skill (a file directly in skills/ is just skills), else its first folder, else the root file itself.
+    Backticks, a leading ./ and a trailing / are dropped first, and a segment with * ends the fold before it."""
+    parts = [x for x in str(path).strip().strip("`").strip().removeprefix("./").rstrip("/").split("/") if x]
+    parts = parts[:next((i for i, x in enumerate(parts) if "*" in x), len(parts))]
+    if not parts:
+        return ""
+    if parts[0] == "skills" and (len(parts) > 2 or len(parts) == 2 and "." not in parts[1]):
+        return "/".join(parts[:2])
+    return parts[0]
+
+
+def size(done, touches):
+    """(done lines, distinct touched areas) of a goal, or None when either is missing."""
+    areas = {area(path) for path in touches or []} - {""}
+    return (len(done), len(areas)) if done and areas else None
+
+
 def merged(run):
     """A goal is merged once its run is done and either merge.py or the worker's report says its pull request landed."""
     return bool(run) and run.get("status") == "done" and (run.get("release") in ("merged", "cut") or (run.get("report") or {}).get("status") == "merged")

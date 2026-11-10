@@ -32,6 +32,7 @@ import tempfile
 
 import counting
 import criteria
+import entry
 import pageformat
 
 # No terminal, no waiting.
@@ -296,8 +297,10 @@ def cmd_check(args):
     if not read_map(root):
         print("NO PAGES: run add first")
         return 1
-    found = problems(root, args.base) + contract(root) + counts(root)
-    for kind, page, detail in found:
+    point = entry.problems(root)
+    notes = [item for item in point if item[0] in ("LAG", "SKIPPED")]  # said, never a failure
+    found = problems(root, args.base) + contract(root) + counts(root) + [i for i in point if i not in notes]
+    for kind, page, detail in found + notes:
         print("%s %s: %s" % (kind, page, detail))
     if found:
         return 1

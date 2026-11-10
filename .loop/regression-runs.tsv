@@ -21,6 +21,15 @@ aut-digest-org	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-digest-pin-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-digest-rerun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-digest-rounds	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-email-digest	PASS	2026-11-10
+aut-email-file	PASS	2026-11-10
+aut-email-mail	PASS	2026-11-10
+aut-email-regression	PASS	2026-11-10
+aut-email-retry	PASS	2026-11-10
+aut-email-rounds	PASS	2026-11-10
+aut-email-secrets	PASS	2026-11-10
+aut-email-test	PASS	2026-11-10
+aut-email-upgrade	PASS	2026-11-10
 aut-foreign-workflow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-health-off	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-health-schedule	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a

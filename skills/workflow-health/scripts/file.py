@@ -1,9 +1,12 @@
 """File health findings as issues, by group, under the owner's control. Used by health.py preview and file.
 
-plan() works out what each finding would do to its issue: open, update, close or reopen, each with its health:<group>
-tag. preview prints the plan and writes nothing (it has no write path). file --group NAME[,NAME] carries out the plan for
-the named groups only: it opens, updates, closes and reopens only those groups' issues, on the Backlog milestone, labelled
-health:<group> (and the old plain health label, so older issues are still found). A returning finding reopens its issue,
+plan() works out what each finding would do to its issue: open, update, close, reopen or move, each with its
+health:<group> tag. preview prints the plan and writes nothing (it has no write path). file --group NAME[,NAME] carries
+out the plan for the named groups only: it opens, updates, closes and reopens only those groups' issues, labelled
+health:<group> (and the old plain health label, so older issues are still found), on the milestone of the feature the
+finding is about (milestone.page_of: the docs.tsv page whose path is the longest prefix of its subject), Backlog when
+none fits. The marker remembers where the automation placed an issue (placed=); it moves an issue only while it is still
+there, so an issue the owner moved elsewhere, Backlog included, stays. A returning finding reopens its issue,
 a fixed one closes it, a rule that could not be read closes none. The judge's savings (performance) are filed only when
 performance is named, because the judge calls a model. mine is filed only when named. It runs gh and nothing else.
 """
@@ -13,13 +16,15 @@ import os
 import re
 import subprocess
 import sys
+import urllib.parse
 
 # No terminal, no waiting: a prompt from gh or the judge must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
-MARK = "<!-- loop-health %s -->"
+MARK = "<!-- loop-health %s placed=%s -->"
+FOUND = re.compile(r"<!-- loop-health (\S+?)(?: placed=(\S*))? -->")
 BACKLOG = "Backlog"
 GROUPS = ("size", "criteria", "docs", "hygiene", "cost", "mine")
 TAG = {"cost": "performance"}
@@ -41,11 +46,22 @@ def line_of(item):
     return text + (" -> fix: " + item["fix"] if item["fix"] else "")
 
 
-def body_of(item):
+def feature_of(root, item):
+    if not root:
+        return BACKLOG
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        import milestone
+        return milestone.page_of(root, item["subject"]) or BACKLOG
+    finally:
+        sys.path.pop(0)
+
+
+def body_of(item, placed=BACKLOG):
     # A mine rule's output, fix and settings path are private: the issue names the rule and its state only.
     line = line_of(item) if item["family"] != "mine" else "%s mine %s %s: details stay local; run health.py check --group mine" % (
         item["state"], item["subject"], item["rule"])
-    return "%s\n\n%s\n\n%s\n" % (MARK % key_of(item), line,
+    return "%s\n\n%s\n\n%s\n" % (MARK % (key_of(item), urllib.parse.quote(placed, safe="")), line,
                                     "Filed by health.py file. Move it to a feature with milestone.py move.")
 
 
@@ -76,21 +92,23 @@ def saves(root, here, rows):
 
 def held(root):
     """The existing health issues by marker key, or None when gh cannot be read."""
-    got = run(["issue", "list", "--label", "health", "--state", "all", "--limit", "500", "--json", "number,state,body,labels"], root)
+    got = run(["issue", "list", "--label", "health", "--state", "all", "--limit", "500", "--json", "number,state,body,labels,milestone"], root)
     try:
         issues = json.loads(got.stdout)
     except ValueError:
         return None, (got.stderr.strip() or "no answer")[:200]
     found = {}
     for issue in sorted(issues, key=lambda one: one["number"]):
-        match = re.search(r"<!-- loop-health (\S+) -->", issue.get("body") or "")
-        if match:
+        match = FOUND.search(issue.get("body") or "")
+        if match:  # an issue filed before placed= was recorded was placed on Backlog
+            issue["placed"] = urllib.parse.unquote(match.group(2)) if match.group(2) is not None else BACKLOG
             found.setdefault(match.group(1), issue)
     return found, ""
 
 
-def plan(rows, issues, groups, extra=(), judged=False):
-    """Actions for the named groups: dicts with kind (open, update, reopen, close, same), group, key, title, body, number."""
+def plan(rows, issues, groups, extra=(), judged=False, root=None):
+    """Actions for the named groups: dicts with kind (open, update, reopen, move, close, same), group, key, title, body,
+    number and milestone."""
     found = [item for item in list(rows) + list(extra)
              if item["state"] in BAD and item["family"] in groups and item["rule"] not in REPORT_ONLY]
     unread = {item["family"] for item in rows if item["state"] == "UNREAD" and item["rule"] not in REPORT_ONLY}
@@ -98,15 +116,26 @@ def plan(rows, issues, groups, extra=(), judged=False):
     idle = {g for g in groups if any(i["family"] == g for i in rows) and all(i["state"] == "INFO" for i in rows if i["family"] == g)}
     ran = set(groups) - unread - idle  # a clean group gives no rows, so it ran unless a rule in it could not read
     out, current = [], set()
+    miles = milestones(root) if root and found else {}
+    blind = miles is None  # unreadable: keep each home by title and move nothing this run
     for item in found:
         key, group = key_of(item), item["family"]
         current.add(key)
-        issue, body = issues.get(key), body_of(item)
-        act = {"group": group, "key": key, "body": body, "title": "health: %s %s %s" % (group, item["subject"], item["rule"])}
+        issue, home = issues.get(key), feature_of(root, item)
+        if not blind and miles and home not in miles:  # its milestone isn't there: Backlog, so placed= matches where it really goes
+            home = BACKLOG
+        act = {"group": group, "key": key, "body": body_of(item, home), "milestone": home,
+               "title": "health: %s %s %s" % (group, item["subject"], item["rule"])}
         if not issue:
             out.append(dict(act, kind="open"))
             continue
         act["number"] = str(issue["number"])
+        now = (issue.get("milestone") or {}).get("title") or ""
+        moving = not blind and now == issue.get("placed") and home != now  # still where the automation put it
+        body = act["body"] = body_of(item, home if moving else issue.get("placed", BACKLOG))
+        if moving:  # if the move fails, the update keeps the old placed= so the next run tries again
+            act["keep_body"] = body_of(item, issue.get("placed", BACKLOG))
+            out.append(dict(act, kind="move"))
         names = {label.get("name") for label in issue.get("labels") or [] if isinstance(label, dict)}
         if issue["state"].upper() != "OPEN":
             out.append(dict(act, kind="reopen"))
@@ -127,14 +156,17 @@ def plan(rows, issues, groups, extra=(), judged=False):
 def words(act):
     tag, kind = tag_of(act["group"]), act["kind"]
     if kind == "open":
-        return "open issue %r on %s [%s]" % (act["title"], BACKLOG, tag)
+        return "open issue %r on %s [%s]" % (act["title"], act.get("shown") or act.get("milestone", BACKLOG) or "no milestone", tag)
+    if kind == "move":
+        return "move #%s to %s [%s]" % (act["number"], act.get("shown") or act["milestone"], tag)
     return "%s #%s %s [%s]" % (kind, act["number"], act["key"], tag) + (", no longer found" if kind == "close" else "")
 
 
 def args_of(act):
     tag, n = tag_of(act["group"]), act.get("number")
     return {"open": ["issue", "create", "--title", act["title"], "--body", act["body"], "--label", "health", "--label", tag,
-                     "--milestone", BACKLOG],
+                     "--milestone", act.get("milestone") or BACKLOG],
+            "move": ["issue", "edit", n, "--milestone", act.get("milestone") or BACKLOG],
             "update": ["issue", "edit", n, "--body", act["body"], "--add-label", tag],
             "reopen": ["issue", "reopen", n],
             "close": ["issue", "close", n, "--comment", "No longer found by health.py file."]}[act["kind"]]
@@ -148,8 +180,48 @@ def preview(acts):
     return len([act for act in acts if act["kind"] != "same"])
 
 
+def milestones(root):
+    """{title: (number, state)} of every milestone, open or closed; None when gh can't read them."""
+    done = run(["api", "--paginate", "--slurp", "repos/{owner}/{repo}/milestones?state=all&per_page=100"], root)
+    try:
+        data = json.loads(done.stdout) if done.returncode == 0 else None
+    except ValueError:
+        data = None
+    if not isinstance(data, list):
+        return None
+    flat = [m for page in data for m in (page if isinstance(page, list) else [page])]
+    return {m["title"]: (m.get("number"), m.get("state") or "open") for m in flat if isinstance(m, dict) and m.get("title")}
+
+
+def placed(act, miles):
+    """The act with a milestone that exists: its feature's, else Backlog with a NOTE, else none. Returns (act, number of a
+    closed milestone to set by REST, or None)."""
+    title = act.get("milestone") or BACKLOG
+    if miles is None:  # milestones unreadable: let gh place it by title, as before
+        return dict(act, milestone=title), None
+    if title not in miles:
+        fallback = BACKLOG if BACKLOG in miles else ""
+        print("NOTE: milestone %s doesn't exist, so the issue goes on %s" % (title, fallback or "no milestone"))
+        act = dict(act, milestone=fallback, body=act["body"].replace(" placed=%s " % urllib.parse.quote(title, safe=""),
+                                                                     " placed=%s " % urllib.parse.quote(fallback, safe="")))
+        title = fallback
+    number, state = miles.get(title, (None, ""))
+    if title and state == "closed":  # gh's --milestone finds open ones only: set this one by number after the write
+        return dict(act, milestone="", shown=title), number
+    return act, None
+
+
 def apply(acts, root, groups):
     """Carry out the plan. The caller has already limited the plan to the named groups."""
+    miles = milestones(root) if any(act["kind"] in ("open", "move") for act in acts) else {}
+    if miles is not None and BACKLOG not in miles and any(act["kind"] in ("open", "move") and (act.get("milestone") or BACKLOG)
+                                                          not in miles for act in acts):  # the fallback, made once
+        made = run(["api", "-X", "POST", "repos/{owner}/{repo}/milestones", "-f", "title=" + BACKLOG], root)
+        try:
+            miles[BACKLOG] = (json.loads(made.stdout)["number"], "open")
+        except (ValueError, KeyError, TypeError):
+            pass  # placed() then notes no milestone
+    unmoved = set()
     for name in sorted({act["group"] for act in acts} | set(groups)):
         run(["label", "create", tag_of(name), "--description", "Filed by health.py file: the %s group" % TAG.get(name, name), "--force"], root)
     run(["label", "create", "health", "--description", "Filed by health.py file", "--force"], root)
@@ -157,5 +229,25 @@ def apply(acts, root, groups):
         if act["kind"] == "same":
             print("SAME #%s %s" % (act["number"], act["key"]))
             continue
-        done = run(args_of(act), root)
+        closed = None
+        if act["kind"] == "update" and act.get("number") in unmoved and act.get("keep_body"):
+            act = dict(act, body=act["keep_body"])
+        if act["kind"] in ("open", "move"):
+            act, closed = placed(act, miles)
+        args = args_of(act)
+        if act["kind"] in ("open", "move") and not act.get("milestone"):
+            args = args[:args.index("--milestone")] + args[args.index("--milestone") + 2:]
+        done = run(args, root) if args[:2] != ["issue", "edit"] or len(args) > 3 else subprocess.CompletedProcess(args, 0, "", "")
+        if done.returncode and miles is None and act["kind"] == "open" and act.get("milestone") and done.returncode != 127 and "milestone" in done.stderr.lower():
+            print("NOTE: milestone %s couldn't be set, so the issue goes on no milestone" % act["milestone"])  # placed by title, unmade
+            act = dict(act, milestone="", body=re.sub(r" placed=\S* -->", " placed= -->", act["body"], count=1))
+            args = args_of(act)
+            done = run(args[:args.index("--milestone")] + args[args.index("--milestone") + 2:], root)
+        if not done.returncode and closed:
+            number = act.get("number") or (re.findall(r"/issues/(\d+)", done.stdout) or [""])[-1]
+            done = run(["api", "-X", "PATCH", "repos/{owner}/{repo}/issues/%s" % number, "-F", "milestone=%s" % closed], root)
+            if done.returncode and act["kind"] == "open":  # on no milestone now: placed= empty, so the next run places it
+                run(["issue", "edit", number, "--body", re.sub(r" placed=\S* -->", " placed= -->", act["body"], count=1)], root)
+        if done.returncode and act["kind"] == "move":
+            unmoved.add(act["number"])
         print(("FAILED %s: %s" % (words(act), done.stderr.strip()[:160])) if done.returncode else "DONE " + words(act))

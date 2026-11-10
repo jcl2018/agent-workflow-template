@@ -265,7 +265,9 @@ def manifest(root, files, version):
         log = "\n".join(part.rstrip() for part in re.split(r"(?m)^(?=## v)", log)[1:4])
     except OSError:
         log = ""
-    return {"version": version, "files": dict(sorted(hashes.items())), "changelog": log[:6000]}
+    url = subprocess.run(["git", "-C", root, "remote", "get-url", "origin"], capture_output=True, text=True).stdout.strip()
+    found = re.search(r"github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$", url)  # update.py reads releases from this repo
+    return {"version": version, "files": dict(sorted(hashes.items())), "changelog": log[:6000], "repo": found.group(1) if found else ""}
 
 
 def build(root, files, out, version):

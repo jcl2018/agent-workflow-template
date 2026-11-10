@@ -1,5 +1,115 @@
 # Changelog
 
+## v0.24.0 - 2026-11-10
+
+- Mail one digest per round, file issues on feature milestones, show round cost
+- Rows for the round's mail, milestones and cost; Automation wiki; Verify by hand
+- Keep the milestone title when milestones can't be read; settings reference; test expectations for feature placement
+- Review fixes: verify SMTP TLS, find placed issues locally, keep placement on failed moves, no milestone POSTs on unreadable lists, stale reruns mail nothing
+- Review pass 2: mail in its own job, keep placement on failed sets, make Backlog when missing
+- Review pass 3: fix the spend's run listing, keep placement when milestones can't be read
+- Disclose the mail hosts: api.cloudflare.com and the smtp_host
+- QA lane: rounds.py turns prompts off; the mail test declares the files it reads
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- test-automation-email.sh sources reap.sh (main's toy-cleanup rule) instead of its own trap
+- test: name the held-issue key so the secret scan doesn't read it as a credential
+- Rename templates.py to workflows.py: it holds the workflow texts, and a temp* name reads as scratch
+- test: setup plans mail-test.yml beside health.yml (ship coverage audit)
+- fix: a secret with a trailing newline neither leaks nor sticks a round; health still files when milestones can't be read
+- fix: review pass 2 on the secret fixes; leave the Automation page for the owner to re-review
+- fix: fix-check findings: owner local part from the trimmed address, no retry after a timeout, DONE names a closed milestone
+- docs: feature milestones, the mail job and mail-test.yml across the health, regression and setup docs
+- test: the mail test declares seed.py, which its setup case runs
+- Merge origin/main (v0.22.0, docs-format) into loop/automation-email
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- docs: Documentation Tests re-rendered for the ci-issue-backlog row
+- docs: Tests re-rendered after the merges
+- docs: Tests render matches the recorded runs
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- Wiki: update pages for automation-email
+
+### How to verify
+
+1. Pick a sender and add its secrets in Settings, Secrets and variables, Actions: DIGEST_TO, DIGEST_FROM and either
+   CLOUDFLARE_ACCOUNT_ID with CLOUDFLARE_EMAIL_TOKEN (a domain onboarded to Cloudflare Email Sending), or
+   DIGEST_SMTP_USER with DIGEST_SMTP_PASSWORD plus `"digest_mail": "smtp"` in `.loop/config.json`. Time how long it takes.
+   Expect: under five minutes once the domain or app password exists.
+2. In the Actions tab, run the mail-test workflow.
+   Expect: its log ends `MAIL: test sent (MAIL_SENT)`, and a mail titled "Automation digest: test from <owner/repo>"
+   arrives within a minute.
+3. Run the health workflow by hand.
+   Expect: a new comment on the pinned Automation digest issue, grouped under milestone headings, with `round cost` and
+   `email` rows; the run summary has a `## Round` line; one mail arrives with the same text as the comment.
+4. Re-run that same health run (Re-run all jobs).
+   Expect: no second comment and no second mail; the Email the digest step says `already sent for run ... (MAIL_ALREADY)`.
+5. Open the health and regression issues on GitHub.
+   Expect: each sits on its feature's milestone (Backlog only when no feature fits). Move one to Backlog by hand, run the
+   health workflow again, and it stays on Backlog.
+6. Search the run logs, the digest comment and the issues for your address.
+   Expect: it appears nowhere.
+
+## v0.23.0 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/setup-sync
+- Built-in default flow: steps mapped to built-in run delivery's own routine (issue 47)
+- Entry point (entry.py, START.md) and agent files (agents.py), wired by setup; agent_files and template_repo settings
+- update both ways: --check, the release source archive, the repo half (sync.py) on workflow-update-vX, local fixes and propose (propose.py); fake gh serves archives and issues
+- Board lag line for governed repos on an older template; test-sync parts for entry, agents, update, propose, board; MISSING only for stamped repos; no-hang guards
+- Rows for SET-4, SET-5 and SET-10
+- Docs: Setup SET-4, SET-5, SET-10 (approved wording, reviewed 2026-11-10), Usage with a sample; Monitoring, Documentation, Home, README, loop-files, skill pages; this repo's START.md, CLAUDE.md and AGENTS.md
+- Verify by hand steps; Usage sample as an indented block
+- update.py: shorter docstring
+- Split test-sync: narrow builtin/entry/agents keep exact # reads:, wide update/propose/board move to test-sync-update.sh; operate-fit-3 scopes its wiki assertion
+- entry.py write: splice the matched block (a stray close marker no longer multiplies the file), keep CRLF, accept a block at end of file; check reports stray markers (ENTRY_MARKER); docs check renders once
+- agents.py apply: say wire's refusals and a failed entry write, stage only files inside the repo and outside .git
+- update: a failed repo half no longer leaves an empty workflow-update-vX that reads as merged; a local fix matching the new copy is stamped, a dropped one is kept without holding check at behind; the repo half runs the sync.py just written; a checkout with no VERSION stamps nothing; PARTIAL whenever the skills were written
+- test-adopt SET-4: the update branch changes only config, START.md and the agent files; a linked skills folder is left alone
+- Docs: Setup and Documentation Usage for the review fixes (dropped local fix kept, a failed repo half safe to rerun, stray markers left for you)
+- agents.py wire refuses any file without exactly one block (the rule entry.py write follows); update flushes before the repo half and runs it in-process when sync.py itself is a kept local fix
+- test-sync-update: reset template_repo after the redirect check, so a full run passes
+- fix(qa): ISSUE-001 — test-sync.sh update/board ran nothing and said ALL PASS; forward them to test-sync-update.sh, refuse an unknown part (exit 2)
+- fix(qa): ISSUE-002 — entry.py read an indented example output's '- ' line as a Usage sub-bullet
+- Docs: Documentation notes the Features table leaves an indented example block out
+- test-sync.sh points update, propose and board at test-sync-update.sh instead of running it, so its rows stay narrow; Verify step 4 names that script
+- builtin-flow: watch's suite check moves to test-builtin-watch.sh so test-sync.sh stays narrow
+- test-sync.sh declares exact files; entry-adopt (same command as adopt-set-5) runs nightly, keeping a one-file change under half the land rows
+- Merge origin/main (v0.22.0 docs-format) into loop/setup-sync: both sides' rows kept, docs-format's reviewed pages win with this goal's Usage entries re-added; entry.py reads a bullet Problem
+- README front door rows for update, propose and agents; Home and Monitoring name the built-in routine and the lag line; workflow-docs SKILL.md back under 150 lines
+- Documentation: entry names what it reads from each PRD page
+- Merge origin/main (v0.22.1 estimate-model): both sides' rows kept, live board keeps the stall and lag lines; the lag line moves to board_lag.py so board_status.py stays under 20 KB
+
+### How to verify
+
+1. In this repo, open `.loop/START.md`.
+   Expect: a "First five minutes" list, one part each for Loop, Release, Operation and workers, Docs, Regression, Health and Settings, a Features table naming all seven feature pages (Home is not one) with how to use each, and a Settings table with every repo setting and its value.
+2. Open `CLAUDE.md` and `AGENTS.md` side by side.
+   Expect: the same `` block in both, telling a session to read `.loop/START.md` first and listing the seven workflow skills.
+3. Change one Usage bullet's first sentence in `docs/wiki/Setup.md`, then run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: `STALE .loop/START.md: ... (ENTRY_STALE)` and exit 1; `python3 skills/workflow-docs/scripts/docs.py audit` rewrites it, and the check is back to `DOCS OK`. Undo the edit.
+4. Run `bash dev/toy/test-sync-update.sh update` and `bash dev/toy/test-sync-update.sh board`.
+   Expect: `ALL PASS (update)` (check shows what is new, apply lands `workflow-update-v1.1.0` and keeps the repo's data) and `ALL PASS (board)` (the live board lists `oldharbor runs template v1.0.0, older than v1.1.0`).
+5. Run `bash dev/toy/test-sync.sh builtin`.
+   Expect: `ALL PASS (builtin)`: a goal with a flow file whose steps are all `built-in` and no probe runs every step through delivery's own routine.
+
+## v0.22.1 - 2026-11-10
+
+- estimate-model: estimates from goal size and similar finished goals, ranges, pace, stalled goals under Issues
+- estimate-model: docs name the estimate model; MON-4 scenarios rendered; rows seen failing once
+- estimate-model: narrow test-estimates reads header so test-tree's one-file narrowing check passes
+- test: status-graph comment matches the new step-time rule
+- fix(qa): a goal at an off-flow step after a done entry sits at the next step
+- docs: Monitoring Tests list est-offflow-done
+- Merge remote-tracking branch 'origin/main' into loop/estimate-model
+- test: estimate checks for worktree goal files, unlogged similar steps and held goals
+- test: record the three new estimate rows seen failing; Monitoring Tests list
+- docs: estimate rules in the Monitoring summary and monitoring references match the code
+- fix: test-estimates.sh sources reap.sh like every toy test
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.22.0 - 2026-11-10
 
 - docs-format: DOC-4, DOC-5 and DOC-6 back to Unreviewed for rewording

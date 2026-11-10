@@ -43,5 +43,6 @@
   "full_auto": true,
   "pool_size": 20,
   "silent_minutes": 30,
-  "govern_hook": true
+  "govern_hook": true,
+  "digest_mail": "cloudflare"
 }
