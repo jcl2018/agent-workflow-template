@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.14.1 - 2026-11-10
+
+- skill-size: office-hours design
+- skill-size: plan after review
+- skill-size: move SKILL.md detail into references; tests for issue 116
+- skill-size: red dates, Setup Tests, verify steps
+- skill-size: Delivery and Documentation pages name the moved detail
+- skill-size: review: the tokens pointer says when to read it
+- Merge remote-tracking branch 'origin/main' into loop/skill-size
+- skill-size: Delivery page names the token rule SKILL.md points to
+
+### How to verify
+
+1. Run `wc -l skills/workflow-delivery/SKILL.md skills/workflow-docs/SKILL.md`.
+   Expect: each is under 150 lines.
+2. Run `bash dev/toy/test-board.sh | tail -1`.
+   Expect: it prints ALL PASS, with no "over 150 lines" line above it.
+3. Open `skills/workflow-docs/references/commands.md` and go to "Moved from SKILL.md".
+   Expect: the six-item PRD page list, Review locks, Tests follow on their own and New and old pages, each in full.
+
 ## v0.14.0 - 2026-11-10
 
 - docs check: close the four count gaps (issues 104-107)
