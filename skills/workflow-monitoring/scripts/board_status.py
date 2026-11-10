@@ -3,8 +3,8 @@
 
 usage: board_status.py [--html]
 
-Prints the live board as text, or with --html as the fragment board-artifact.html embeds. Estimates come from the median of other
-runs' steps, read from their logs, and read "no estimate yet" when there is none.
+Prints the live board as text, or with --html as the fragment board-artifact.html embeds. Estimates come from finished goals of a
+similar size (done lines and touched areas), as a range, and read "no estimate yet" when there is no history at all.
 """
 import argparse
 import datetime

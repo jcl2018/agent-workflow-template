@@ -145,8 +145,7 @@ Every check-in prints the live board, and the dashboard and `board-artifact.html
    sum. It reads `at least` when a goal has no estimate yet.
 
 Merged and closed work, history, milestones, duplicate totals, token tables and done-line lists are left out. A worker still
-marks a done line met with `worker.py met SLUG N`. Estimates are the median of other finished runs' steps, read from their logs;
-a step with none reads `no estimate yet`. A goal's step label changes when `flow.py` starts the step, and moves on when
+marks a done line met with `worker.py met SLUG N`. Estimates come from finished goals like this one: a goal's size is its done lines and touched areas (a skill folder, else its first folder, else the root file), and per step the estimate is the median of the times of finished goals within one done line and one area of it, when there are 5 or more, else of every finished goal; a whole-goal lift (at least a minute per extra done line or area) makes a larger goal always longer. The board shows a range, the 25th to 75th percentile summed over the steps left (`20m to 45m left`), with `, rough` when fewer than 5 goals are similar, the size is unknown or a step has no history (the finish then reads `at least`). A running goal's pace over its finished steps (held between half and double) scales the rest; a step whose time outlasts 3 times its estimate shows under Issues as stalled, with how long it has run. Without any history it reads `no estimate yet`. A goal's step label changes when `flow.py` starts the step, and moves on when
 `goal.py record` records it, so the board never shows a finished step as current. A current step past its estimate has its
 time left re-estimated as half the time it has run (at least a minute), so the goal's time left and the finish time grow while
 it runs; a minute or more past, it reads `[build over by 12m]`. Every line fits 60 characters: the step flow wraps at its ` > `
