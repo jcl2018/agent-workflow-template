@@ -89,7 +89,9 @@ def merged(repo, old):
     version = survey.version_habit(repo, files)[0]
     if version and "version_file" not in old:
         config["version_file"] = version
+    settings.check_depth(old, ".loop/config.json")
     config.update(old)
+    config["_help"] = settings.repo_help(old)
     return config
 
 
