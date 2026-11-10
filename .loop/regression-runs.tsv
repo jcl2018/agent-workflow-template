@@ -100,7 +100,7 @@ lanes-missing	PASS	2026-11-09
 lanes-narrow-wide	PASS	2026-11-10
 lanes-pr-affected	PASS	2026-11-09
 lanes-qa-record	PASS	2026-11-09
-lanes-repo-narrow	PASS	2026-11-10
+lanes-repo-narrow	FAIL	2026-11-10
 lanes-reuse	PASS	2026-11-09
 lanes-ship-reuses	PASS	2026-11-09
 lanes-table	PASS	2026-11-10
@@ -242,7 +242,7 @@ unread-closes-none	PASS	2026-11-09
 unread-not-green	PASS	2026-11-09
 unreview-lifts	PASS	2026-11-09
 untested-listed	PASS	2026-11-09
-update-in-place	PASS	2026-11-09
+update-in-place	PASS	2026-11-10
 usage-agent-requests	PASS	2026-11-09
 usage-no-script	PASS	2026-11-09
 usage-optional	PASS	2026-11-09
