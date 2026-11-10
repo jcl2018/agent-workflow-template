@@ -25,6 +25,7 @@ GROUPS = ("size", "criteria", "docs", "hygiene", "cost", "mine")
 TAG = {"cost": "performance"}
 DEFAULT = ("size", "criteria", "docs", "hygiene", "cost")  # a preview with no group names these, never mine
 BAD = ("WARN", "FAIL", "UNREAD")
+REPORT_ONLY = ("test-time", "worktrees", "local-branches", "control")  # local paths and names, and controls: shown, never filed
 
 
 def tag_of(group):
@@ -90,8 +91,9 @@ def held(root):
 
 def plan(rows, issues, groups, extra=(), judged=False):
     """Actions for the named groups: dicts with kind (open, update, reopen, close, same), group, key, title, body, number."""
-    found = [item for item in list(rows) + list(extra) if item["state"] in BAD and item["family"] in groups]
-    unread = {item["family"] for item in rows if item["state"] == "UNREAD"}
+    found = [item for item in list(rows) + list(extra)
+             if item["state"] in BAD and item["family"] in groups and item["rule"] not in REPORT_ONLY]
+    unread = {item["family"] for item in rows if item["state"] == "UNREAD" and item["rule"] not in REPORT_ONLY}
     # A group whose only rows are INFO (mine with no private rules) did not run, as the report says.
     idle = {g for g in groups if any(i["family"] == g for i in rows) and all(i["state"] == "INFO" for i in rows if i["family"] == g)}
     ran = set(groups) - unread - idle  # a clean group gives no rows, so it ran unless a rule in it could not read

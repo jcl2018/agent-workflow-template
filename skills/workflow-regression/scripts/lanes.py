@@ -97,7 +97,7 @@ def save(path, root, command, results, head, at, fresh):
         for item in results:
             rows[item["id"]] = {"status": item["state"], "seconds": item["seconds"], "commit": head}
         data = {"schema": SCHEMA, "runner": runner(), "worktree": root, "command": command, "at": at,
-                "commit": head, "rows": rows}
+                "commit": head, "rows": rows, "total_seconds": round(sum(r.get("seconds") or 0 for r in rows.values()), 1)}
         temp = "%s.%d.tmp" % (path, os.getpid())
         with open(temp, "w") as handle:
             json.dump(data, handle, indent=1, sort_keys=True)

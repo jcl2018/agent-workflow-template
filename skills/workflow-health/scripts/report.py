@@ -6,12 +6,13 @@ pass only when its group ran; a rule that could not read its data is UNREAD, nev
 as performance. Internal family names (cost) are unchanged: only the display differs.
 """
 
-ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine")  # the fixed order of the groups in the report
+ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine", "controls")  # the fixed order of the groups in the report
 SHOWN = {"cost": "performance", "mine": "Mine"}
 LINE = {"cost": "performance"}  # a line names its group; only Cost is renamed
 # The rules each group checks. A row's rule label says which of them it speaks for (RULE_OF); a rule with no row passes.
 RULES = {"size": ("limit",), "criteria": ("rows", "done-lines", "defect-tests"), "docs": ("check",),
-         "hygiene": ("findings", "waiting", "branches"), "cost": ("cost",), "mine": ()}
+         "hygiene": ("findings", "waiting", "branches", "test-time", "worktrees", "local-branches"), "cost": ("cost",), "mine": (),
+         "controls": ()}
 RULE_OF = {"sync": "rows", "proof": "rows", "stale": "check", "missing": "check", "open": "findings", "run": "waiting",
            "merged": "branches", "branch": "branches", "time": "cost", "tokens": "cost"}
 

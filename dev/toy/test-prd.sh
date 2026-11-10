@@ -216,9 +216,9 @@ for r in rows:
 open(p, "w").write("\n".join("\t".join(r) for r in rows))
 PY
 $reg run del-1a >/dev/null || true; $cri render >/dev/null
-grep -q "^- Given 1 2 3, when the median is asked, then it prints 2\. — \[del-1a\](../../.loop/regression.tsv), both, PASS $day, seen failing no$" $P && ok "a row renders as a scenario with its test, result and date" || bad "scenario line"
+grep -q "^- Given 1 2 3, when the median is asked, then it prints 2\. — \[del-1a\](../../.loop/regression.tsv), requirement, guards DEL-1, both, PASS $day, seen failing no$" $P && ok "a row renders as a scenario with its test, result and date" || bad "scenario line"
 grep -A6 "^#### DEL-2$" $P | grep -q "^- It exits 0\. (not yet Given/When/Then) — \[del-2a\]" && grep -A6 "^#### DEL-2$" $P | grep -q "^- \*\*not enforced\*\*" && ok "a plain description renders flagged, and a requirement with no passing row is not enforced" || bad "flagged"
-grep -A3 "^### Defect tests" $P | grep -q "^- Empty input crashes\. (not yet Given/When/Then) — \[#7\](https://example.test/issues/7), \[bug-1\]" && ok "defect tests render in the same scenario form" || bad "defect scenario"
+grep -A3 "^### Defect tests" $P | grep -q "^- Empty input crashes\. (not yet Given/When/Then) — \[bug-1\](.*), defect, guards \[#7\](https://example.test/issues/7) state unknown, " && ok "defect tests render in the same scenario form" || bad "defect scenario"
 out=$($docs audit --dry-run)
 grep -q "^REWRITE regression: SCENARIO row del-2a: 'It exits 0.' is not 'Given ..., when ..., then ...'. Fix:" <<<"$out" && grep -q "SCENARIO row bug-1" <<<"$out" && ! grep -q "SCENARIO row del-1a" <<<"$out" && ok "audit lists each plain row, defect rows too, as SCENARIO" || bad "scenario audit: $out"
 check | grep -q "SCENARIO" && bad "SCENARIO failed the docs check" || ok "SCENARIO is not a docs check failure"

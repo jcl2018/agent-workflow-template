@@ -34,8 +34,13 @@ workflow
 - `workflow` writes `.github/workflows/regression.yml` (nightly, on `v*` tags, by hand). The job has 90 minutes; each
   row runs in its own process group with a 15-minute limit and starts only if that limit still fits an 88-minute
   budget (`REGRESSION_ROW_SECONDS` and `REGRESSION_JOB_SECONDS` in the step's environment override them). A row that
-  doesn't fit is skipped (`SKIPPED`) and fails with an issue; each result reaches the run summary as the row ends; rows
-  run with no GitHub token in their environment, and the checkout uses `persist-credentials: false`.
+  doesn't fit is skipped (`SKIPPED`) and fails with an issue. Each result is saved as the row ends, and a last step
+  that always runs writes the run summary: one header with totals and the run time, then one table per feature, or the
+  plain results if that fails. Rows run with no GitHub token and none of the runner's own files in their environment
+  (`regression.py run` too), and the checkout uses `persist-credentials: false`.
+- `tests.py list` prints every test in one fixed format, grouped by feature (`--markdown` tables, `--tsv` lines);
+  `summary` writes the GitHub run summary from a run's results; `issues --write` records each defect test's issue or
+  pull request state. The wiki Tests lines and the health report use the same fields.
 
 ### Example
 
@@ -147,6 +152,25 @@ flowchart LR
 Status: built and proven: Refuse to replace another workflow; Write the nightly workflow; Workflow runs in CI. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests run its inline block. On this repo a manual run on GitHub passed all 64 rows; the first run failed 2 and opened 2 issues, and the passing run closed them. The nightly and tag triggers haven't fired yet.
+
+#### `tests.py`: `list [--markdown|--tsv]`, `summary`, `issues [--write]`
+
+```bash
+python3 scripts/tests.py list
+```
+
+Every test in one fixed format, grouped by feature: the wiki page that holds the requirement a row guards, in page
+order, then `Other` for rows that guard none. Each test shows its name, kind (`requirement` or `defect`), what it guards
+(the requirement's ID and words, or the issue or pull request link with its recorded state and date, or the finding),
+what it checks, when it runs (`both`, `nightly`, `by a person`), its last result and date, and when it was seen failing.
+Plain output has one `FEATURE <name>` line per group; `--markdown` gives one table per feature; `--tsv` gives one line
+per test for scripts. The wiki Tests lines, the health report and the GitHub run summary all use this format.
+
+`summary --results FILE --took S` writes the GitHub run summary from a run's results (`id<TAB>state` lines, states
+`PASS`, `FAIL`, `SKIPPED`, `KNOWN`); a malformed file or run time is refused with the line to fix. `issues --write`
+reads each defect test's issue or pull request state with `gh` into `.loop/regression-issues.tsv`; if `gh` can't sign
+in it says so and writes nothing, and a single link it can't read keeps its last recorded state. Only this command writes that file (no run does, so a state change on GitHub never
+dirties a checkout); commit it with the re-rendered wiki Tests (`criteria.py render`).
 
 ## Narrow rows
 

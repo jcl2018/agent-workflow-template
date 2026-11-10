@@ -1,5 +1,138 @@
 # Changelog
 
+## v0.17.0 - 2026-11-10
+
+- Health keeps itself honest and the repo lean (HLT-6)
+- HLT-6 on the Health page, Unreviewed; settings, skill and reference docs for test time, stale worktrees and controls
+- HLT-6 Reviewed 2026-11-09 by the owner
+- Toy test and regression rows for HLT-6
+- HLT-6 rows seen failing; Tests tables; verify by hand
+- docs: test times on the Regression page, the two health settings on the Setup page; importlib in health.py
+- Health page summary for HLT-6; existing health tests follow the controls group and the judge's test time
+- health-hygiene: review fixes (queued liveness, configured base, UNREAD over crashes, exact lane record, --skip refusal)
+- health-hygiene: lean.py no-prompt guard (DEL-10); finding on flow.py starting a lane unasked
+- health-hygiene: re-render the Delivery Tests table
+- health-hygiene: re-render the Regression Tests table
+- Merge origin/main into loop/health-hygiene
+- docs: Health page covers UNREAD controls, own lane record and live goals
+- Merge origin/main (v0.16.0) into loop/health-hygiene
+- health-hygiene: ship review fixes (prompt env restored, NaN and non-object config are UNREAD, unreadable run record blocks removals, borrowed record never warns, controls never filed, --skip keeps the tests list)
+- docs: health and regression references cover controls UNREAD, queued liveness, test time and lane record seconds (ship doc audit)
+- Wiki: update pages for health-hygiene
+
+### How to verify
+
+1. Run `python3 skills/workflow-health/scripts/health.py check --group controls`.
+   Expect: a `controls` group with one `PASS ... control: fires on its fixture` line per rule (twelve), then a green verdict.
+2. Run `python3 skills/workflow-health/scripts/health.py check --group hygiene`.
+   Expect: a `test-time` line with the land lane's seconds against `test_budget_seconds` (and, when it is over, the slowest rows and scripts), and `worktrees` and `local-branches` lines, each stale one with the exact command that removes it; nothing is removed.
+3. Run `python3 skills/workflow-health/scripts/health.py preview --group hygiene`.
+   Expect: no line for test time, worktrees or local branches.
+
+## v0.16.0 - 2026-11-10
+
+- fix: rows never write into the real GitHub run summary (issue 92)
+- feat: every test in one format grouped by feature, in the run summary, the wiki and the health report
+- docs: REG-2 in the owner's approved words (2026-11-08), rows proven failing once
+- test: REG-2 wording and row descriptions seen failing once
+- docs: tests.py, the grouped run summary and the row environment in the regression skill and page
+- test: record the new rows' results; PRD scenarios show them
+- fix: pre-landing review fixes (package heading, summary step isolation, bytecode, criteria row env, issue-state churn, nan)
+- test: review rows seen failing once, results recorded
+- docs: the health page says the full report lists the tests before its verdict
+- docs: the documentation page describes the Tests line fields
+- fix: review pass 2 (issue refresh time limit, pull-requests read, issues file kept whole, raw tsv, broken tests.py falls back)
+- docs: the regression page states the row environment's limit and the issue-state refresh
+- docs: the documentation page says what happens without tests.py
+- Merge remote-tracking branch 'origin/main' into loop/regression-summary
+- fix: keep the regression SKILL.md under 150 lines; tests.py detail moves to its references (issue 116 rule)
+- test: coverage for local row env, tsv, empty list, unknown result, no-row issue refresh and health fallbacks
+- test: coverage rows seen failing once, results recorded
+- fix: ship review (issue refresh fits the time left, started is a number, older tests.py falls back, own temp name per writer, no table escaping in wiki lines)
+- Merge remote-tracking branch 'origin/main' into loop/regression-summary
+- docs: the regression page says the issue refresh fits the time left
+- docs: the documentation page covers a too-old tests.py
+- fix: only tests.py issues --write records issue states; a live run no longer dirties the checkout (ship review pass 2)
+- docs: the regression page says only the issues command records issue states
+- docs: references describe the Tests line kind and guards, the health TESTS block, the issue-state rule and .loop/regression-issues.tsv
+- Wiki: update pages for regression-summary
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.15.0 - 2026-11-10
+
+- reply-hook: a Stop hook keeps the operation session's reply format; setup.py --reply-hook installs it; MON-5 proposed Unreviewed
+- reply-hook: MON-5 rows seen failing and passing; Tests rendered; Setup page names --reply-hook
+- reply-hook: check the owner's check-in layout (issue 123); review fixes: incremental classifier, latest signal wins, stale and synthetic messages skipped, tracked settings refused
+- MON-5 Reviewed 2026-11-09 by the owner ("Approve MON-5")
+- reply-hook: rows re-seen red and green on the check-in layout; Tests rendered; Setup page
+- reply-hook: review cycle 2: refusal is the first output line only, calls whose result lands after a stop are kept, exact subcommands, bash -c and uv run, case-insensitive headings, fenced lines never headings
+- reply-hook: review cycle 3: a denied call did not run; one-line fences and clock times no longer fool the layout check
+- reply-hook: the hook keeps the no-prompt guard and answers --help, so it packages and runs alone
+- Merge origin/main (v0.12.1: review-depth, operate-all known failure) into loop/reply-hook
+- docs/wiki: Monitoring and Setup describe the reply hook as built
+- docs/wiki: Monitoring keeps its Problem to three paragraphs
+- Merge origin/main (v0.14.1) into reply-hook
+- reply-hook: defect row for issue 123, Closes #123 in the goal
+- reply-hook: issue 123 defect row seen red
+- reply-hook: keep workflow-monitoring SKILL.md under the 150-line limit
+- reply-hook: wiki Tests re-rendered; Monitoring Usage names install and on
+
+### How to verify
+
+1. Copy the example reply from `skills/workflow-monitoring/references/operation.md` (the block under "A reply that passes")
+   into a file and run `python3 skills/workflow-monitoring/scripts/reply_hook.py check FILE`.
+   Expect: it prints nothing and exits 0.
+2. Run `echo "all quiet" | python3 skills/workflow-monitoring/scripts/reply_hook.py check -`.
+   Expect: `it is not in the check-in layout (no All sessions, Dependencies, Needs you or Coming up section)`, exit 1.
+3. In a scratch clone that has `.loop/config.json`, run `python3 skills/workflow-setup/scripts/setup.py --reply-hook` twice.
+   Expect: `HOOK: added` and a NOTE the first time, `HOOK: already installed` the second; `.claude/settings.local.json` holds
+   one Stop hook naming reply_hook.py, and `git status` does not list it.
+4. In that clone, run `python3 skills/workflow-monitoring/scripts/reply_hook.py status`, then
+   `python3 skills/workflow-setup/scripts/setup.py --reply-hook --remove`.
+   Expect: `REPLY HOOK: installed, setting on, script found, ...`, then `HOOK: removed`.
+5. Open the Monitoring wiki page.
+   Expect: MON-5 reads `**Reviewed 2026-11-09**` with the check-in layout sentence the owner approved.
+
+## v0.14.1 - 2026-11-10
+
+- skill-size: office-hours design
+- skill-size: plan after review
+- skill-size: move SKILL.md detail into references; tests for issue 116
+- skill-size: red dates, Setup Tests, verify steps
+- skill-size: Delivery and Documentation pages name the moved detail
+- skill-size: review: the tokens pointer says when to read it
+- Merge remote-tracking branch 'origin/main' into loop/skill-size
+- skill-size: Delivery page names the token rule SKILL.md points to
+
+### How to verify
+
+1. Run `wc -l skills/workflow-delivery/SKILL.md skills/workflow-docs/SKILL.md`.
+   Expect: each is under 150 lines.
+2. Run `bash dev/toy/test-board.sh | tail -1`.
+   Expect: it prints ALL PASS, with no "over 150 lines" line above it.
+3. Open `skills/workflow-docs/references/commands.md` and go to "Moved from SKILL.md".
+   Expect: the six-item PRD page list, Review locks, Tests follow on their own and New and old pages, each in full.
+
+## v0.14.0 - 2026-11-10
+
+- docs check: close the four count gaps (issues 104-107)
+- docs-count-gaps: record the four defect tests as seen failing
+- docs count review fixes: workflow-ready only, code after a heading or fence, thematic breaks, a wrong defect count fails
+- Merge remote-tracking branch 'origin/main' into loop/docs-count-gaps
+- Documentation: the check bullet says a stated defect tests count is checked
+
+### How to verify
+
+1. In a scratch copy of the repo, add the line `The repo has twenty workflow-ready skills.` to README.md and run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: a line `COUNT README.md: says twenty workflow-ready skills, the repo has 7` (the real number of skills).
+2. Replace that line with a blank line followed by `    The repo has twenty skills.` (four leading spaces) and run the check again.
+   Expect: no COUNT line for README.md.
+3. Run `bash dev/toy/test-criteria.sh | grep "(10[4-7])"`.
+   Expect: four PASS lines, one per issue 104 to 107.
+
 ## v0.13.1 - 2026-11-10
 
 - regression-all: record every row, move slow rows to nightly, fix two failing rows
