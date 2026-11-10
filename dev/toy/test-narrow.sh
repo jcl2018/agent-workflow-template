@@ -109,7 +109,7 @@ check "with no headers, affected is the same with and without LANES_WIDE (wide m
 # edits; why_new=no deletion case existed; seam=none; no_claim=renames outside skills/ and dev/
 mkdir -p skills/k/scripts; printf 'import kh\n' > skills/k/scripts/k.py; printf 'Z = 1\n' > skills/k/scripts/kh.py
 printf '#!/bin/bash\n# reads: skills/k/scripts/k.py\nprintf "k\\n" >> "$TOY_LOG"\n' > dev/k.sh  # lanes: no read (toy repo file)
-printf '#!/bin/bash\n# reads: skills/\nfor f in skills/*; do :; done; printf "w\\n" >> "$TOY_LOG"\n' > dev/w.sh  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/k/\nfor f in skills/k/*; do :; done; printf "w\\n" >> "$TOY_LOG"\n' > dev/w.sh  # lanes: no read (toy repo file)
 printf 'k\tland\tbash dev/k.sh\tX-1\t2026-01-01\tK.\tcriterion\t\nw\tland\tbash dev/w.sh\tX-1\t2026-01-01\tW.\tcriterion\t\n' >> .loop/regression.tsv
 git add -A; git commit -qm "Rows k and w"; $reg run land --reuse >/dev/null
 fresh; out=$($reg run land --reuse); echo "$out"
