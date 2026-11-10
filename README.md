@@ -177,11 +177,14 @@ From install to one finished goal.
    folder. Then allow the
    tools a background agent needs in `agent_command` (for example
    `["claude", "-p", "--allowedTools=Bash,Read,Write,Edit"]`; you choose the list), and review and merge the branch
-   yourself. The other skills read the config from the base branch.
+   yourself. The other skills read the config from the base branch. Setup also writes `.loop/START.md`, the entry point
+   any new session reads first, and the same workflow-loop block into `CLAUDE.md` and `AGENTS.md`, so Claude Code and
+   Codex run the same loop.
 3. **Start a goal.** From the main checkout, on the base branch:
    `/workflow-monitoring go "add result caching" --done "repeat searches are served from the cache"`. Done lines are
    frozen once the goal starts, so make each one provable before the pull request, by a test or by what a person
-   can see (see [Delivery](docs/wiki/Delivery.md)). Set up your skill flow first, in `~/.workflow-loop/flow.json`.
+   can see (see [Delivery](docs/wiki/Delivery.md)). Setup filled `~/.workflow-loop/flow.json` with `built-in` steps,
+   so this works with no skill suite; name your own skill for any step there and it replaces that step's routine.
 4. **Watch it.** `/workflow-monitoring watch` starts queued goals in their own worktrees, prints what changed, and ends
    with what waits on you. Use `report` for a snapshot.
 5. **Answer what waits on you**, in the exact words `watch` prints.
@@ -189,6 +192,9 @@ From install to one finished goal.
    `--release ask`; then it waits for `cut <slug>` or `leave <slug>` (see [Delivery](docs/wiki/Delivery.md)). With
    `"release_auto": true`, it decides from its diff and may cut a draft instead. Answer before you merge, because `cut`
    commits on the goal's branch. Review and merge the pull request yourself; nothing here merges unless `auto_merge` is on.
+7. **Keep it current.** `/workflow-setup update --check` shows what a newer template version brings;
+   `/workflow-setup update` applies it and puts this repo's generated files on a `workflow-update-vX` branch for you to
+   merge. A skill you fixed here is kept, and `/workflow-setup update --propose` sends the fix back to the template.
 
 ## File reference
 

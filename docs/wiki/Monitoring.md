@@ -17,7 +17,7 @@ A failed release is recorded as `release_error` and lists under Issues beside `w
 
 - `/workflow-monitoring operate` is the operation session: it plans queued goals, starts a worker for each ready one and prints the live board; `/workflow-monitoring send SLUG "text"` gives a worker an answer.
 - `/workflow-monitoring go "goal" --done "line"` queues and starts a goal; `/workflow-monitoring watch` keeps goals moving; `/workflow-monitoring resume SLUG` restarts one.
-- `/workflow-monitoring report` and `/workflow-monitoring dashboard` show where every goal stands.
+- `/workflow-monitoring report` and `/workflow-monitoring dashboard` show where every goal stands. The live board's Issues also list each followed repo whose `template_version` is older than your installed skills (`workflow-package.json`, or a checkout's `VERSION`), or unknown, with the fix: ask for workflow-setup update in that repo.
 - "bind session s7 to goal board-held" records a session started with the app's tools and prints the worker command (`LOOP_ROLE=worker ...`) and the goal worktree to work in; a session folder outside that worktree is refused, and a stopped goal it revives gets the same reset as a resume.
 - `/workflow-monitoring met SLUG N` marks a done line met; `/workflow-monitoring cleanup` deletes merged `loop/*` branches ("list them first" previews).
 - `/workflow-monitoring reply-check FILE` prints what an operation-session reply is missing; `/workflow-monitoring reply-status` says whether the reply hook (installed by `/workflow-setup reply-hook`) is installed and on in this repo.

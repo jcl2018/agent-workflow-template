@@ -40,6 +40,19 @@ publish [--dry-run] [--adopt PAGE]   copy the pages to the GitHub wiki, commit a
 restore                         revert the last publish, if nothing came after it
 ```
 
+`entry.py write|check|render|block` builds `.loop/START.md`, the entry point every new session reads first, and the
+workflow-loop block for the agent files, from the PRD pages, `.loop/config.json` and `references/start.md`. `check`
+(also run by `docs.py check`) prints `STALE` when either differs from a fresh render and `MISSING` when a stamped repo
+(it holds `template_version`, or is the template's own checkout) has none; both fail. While the installed skills are
+newer than the repo's `template_version`, a difference only in the parts built from the skills prints `LAG` and does
+not fail. `docs.py audit` rewrites a stale entry point and stale blocks itself.
+
+| Code | Means | Fix |
+|---|---|---|
+| `ENTRY_STALE` | START.md or an agent block differs from its sources | `docs.py audit`, or `entry.py write` |
+| `ENTRY_MISSING` | a stamped repo has no START.md, or an agent file has no block | `entry.py write`; ask for workflow-setup agents |
+| `ENTRY_LAG` | the installed skills are newer than the repo's template_version | ask for workflow-setup update |
+
 `.loop/docs.tsv` maps each page to the paths it describes. `check` prints `STALE`, `MISSING`, `UNWRITTEN` or
 `UNMAPPED`, `NO PAGES` if the map is empty, and `DOCS OK` when clean. `STALE` means a commit touched a mapped path and
 no later commit to the page has it in its history. Merge commits don't count, so a page gives the same answer before and

@@ -295,7 +295,7 @@ def main():
     changed, dropped = check(skills, manifest, old, fixes, ours) if not tree else ([], [])
     if not args.apply:
         up = not changed and not dropped and not behind and not args.take and (tree or manifest["version"] == ours)
-        print("UP TO DATE" if up else "PREVIEW: nothing written. Ask for workflow-setup update (update.py --apply) to apply")
+        print("UP TO DATE" if up else "PREVIEW: nothing written. Ask for workflow-setup update to apply")
         return 0 if up else 1
     if not tree and (changed or dropped or args.take or manifest["version"] != ours):  # a version bump alone moves the stamp
         with locked(skills):
