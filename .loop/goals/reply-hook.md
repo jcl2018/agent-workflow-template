@@ -28,3 +28,10 @@ Frozen. A wrong done line needs a new goal.
    Expect: `REPLY HOOK: installed, setting on, script found, ...`, then `HOOK: removed`.
 5. Open the Monitoring wiki page.
    Expect: MON-5 reads `**Reviewed 2026-11-09**` with the check-in layout sentence the owner approved.
+
+## Issues
+
+Closes #123
+
+Issue 123's check-in layout (one headline, All sessions, Dependencies, Needs you, Coming up last) supersedes done line 1's
+"decisions line + board" wording: the hook checks that layout, and MON-5 (reviewed by the owner) says so.
