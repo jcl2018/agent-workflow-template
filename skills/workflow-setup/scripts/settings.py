@@ -33,18 +33,22 @@ TABLE = [
     ("version_file", REPO, "VERSION", "The file that holds the version; a release bumps it and writes the changelog."),
     ("routines", REPO, [], "Commands the release step runs on the base branch before it merges."),
     ("regression_cron", REPO, "17 9 * * *", "Five cron fields: when the nightly regression runs in GitHub Actions."),
+    ("review_depth", REPO, "full", "full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run."),
     ("criteria", REPO, True, "true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests)."),
     ("criteria_max", REPO, 6, "Most criteria a wiki page may hold, 1 to 50; docs check and health fail a page over it."),
     ("wiki_dir", REPO, "docs/wiki", "The folder of wiki pages."),
     ("risky_paths", REPO, RISKY, "Regexes for paths whose goals need extra care."),
     ("step_limit", REPO, 0, "Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit."),
     ("token_budget", REPO, 0, "Tokens a goal may spend over all steps before no new step starts; 0 means no budget."),
+    ("test_budget_seconds", REPO, 600, "Seconds the land test lane may take before health warns and names its slowest rows."),
+    ("stale_branch_days", REPO, 14, "Days a local branch on no remote may sit before health lists it with its removal command."),
     ("mend", REPO, False, "true lets watch start a fresh agent for a failed goal."),
     ("mend_wait", REPO, 120, "Seconds a failed goal waits before a mender starts."),
     ("max_tries", REPO, 3, "Failed tries a goal gets before it stops and files a finding."),
     ("resume_on_limit", REPO, False, "true lets watch resume a goal that hit a usage limit."),
     ("limit_wait", REPO, 1800, "Seconds to wait after a usage limit before resuming."),
     ("watch_interval", REPO, 20, "Seconds between rounds of watch."),
+    ("reply_hook", REPO, True, "false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session."),
     ("command", PRIVATE, ["claude", "-p"], "Flow file: the agent command that runs each flow step unattended."),
     ("allowed_tools", PRIVATE, [], "Flow file: tools a step's agent may use, passed as --allowedTools; empty adds nothing."),
     ("model", PRIVATE, "", "Flow file: the model a step's agent uses, passed as --model; empty keeps the command's own."),
@@ -56,11 +60,13 @@ TABLE = [
     ("probe", PRIVATE, [], "Flow file: a command that prints probe_expect when the skills run unattended."),
     ("probe_expect", PRIVATE, "unattended", "Flow file: the word the probe must print."),
     ("leak_prefixes", PRIVATE, [], "Flow file: case-insensitive regexes the package scan blocks in any file or file name, as your leak hook does."),
+    ("full_markers", PRIVATE, {}, "Flow file: per step, strings a full plan or review reply must contain, e.g. {\"review\": [\"...\"]}; none checked when empty."),
     ("limit", PRIVATE, 2700, "Flow file: seconds one flow step may run."),
     ("rules", PRIVATE, [], "Health file: your own health rules, each {name, command, fix}."),
     ("repos", PRIVATE, [], "Followed repos: one path a line in the repos file, shown on the board."),
 ]
-FLOW_KEYS = ("command", "allowed_tools", "model", "suite", "steps", "overrides", "env", "probe", "probe_expect", "limit")
+FLOW_KEYS = ("command", "allowed_tools", "model", "suite", "steps", "overrides", "env", "probe", "probe_expect", "full_markers", "limit")
+DEPTHS = ("full", "condensed")
 
 
 def keys(home):
@@ -103,6 +109,18 @@ def load(path):
 
 def repo_defaults():
     return {k: d for k, _, d, _ in keys(REPO)}
+
+
+def check_depth(held, path):
+    """Refuse an unknown review_depth: anything but full or condensed would silently count as full."""
+    if "review_depth" in held and held["review_depth"] not in DEPTHS:
+        sys.exit("REFUSED: review_depth is %r in %s. Fix: full or condensed." % (held["review_depth"], path))
+
+
+def repo_help(held):
+    """The config's _help map: review_depth's one-line explanation added when missing, anything already there kept."""
+    found = held.get("_help") if isinstance(held.get("_help"), dict) else {}
+    return dict({"review_depth": next(t for k, _, _, t in TABLE if k == "review_depth")}, **found)
 
 
 def private_path():
@@ -161,8 +179,11 @@ def main():
         if "criteria_max" in held and (isinstance(held["criteria_max"], bool) or not isinstance(held["criteria_max"], int)
                                        or not 1 <= held["criteria_max"] <= 50):
             sys.exit("REFUSED: criteria_max is %r in %s. Fix: a whole number from 1 to 50." % (held["criteria_max"], path))
+        check_depth(held, path)
         added = [k for k in repo_defaults() if k not in held]
-        write_json(path, dict(repo_defaults(), **held))
+        merged = dict(repo_defaults(), **held)
+        merged["_help"] = repo_help(held)
+        write_json(path, merged)
         print("FILLED %s: %s" % (path, ", ".join(added) or "nothing missing"))
     else:
         added = fill_private(args.file or None)

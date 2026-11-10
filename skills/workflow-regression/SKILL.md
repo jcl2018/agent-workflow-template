@@ -12,7 +12,7 @@ Rows live in `.loop/regression.tsv`: id, level, command, goal, and the date it w
 
 | Level | Runs in |
 |---|---|
-| `land` | `run land` and `run nightly`. Keep these to seconds |
+| `land` | `run land` and `run nightly`. Keep these to seconds: a row whose suite takes 20 seconds or more is `nightly` |
 | `nightly` | `run nightly` |
 | `draft` | Nothing, until you give it a real command and level |
 | `covered` | Nothing. The done line is proved elsewhere; say where in the command |
@@ -40,7 +40,8 @@ command, or mark it `covered`.
 
 ## `red <id> --break "<command>"`
 
-A test must be seen failing once before it counts.
+A test must be seen failing once before it counts. Only a date (`YYYY-MM-DD`) in the row's seen-failing column counts:
+an empty cell, `-` or any other text counts as never seen failing.
 
 ```bash
 python3 scripts/regression.py red check-1 --break "sed -i.bak 's/return a + b/return a - b/' calc.py"
@@ -79,7 +80,7 @@ python3 scripts/regression.py run land --reuse
 ```
 
 Reuses this branch's last run, kept outside the worktree in `<git common dir>/loop/tests/<branch>-<sha8>.json` (each
-row's result and the commit it ran on). A row is reused only when it passed, or is a known failure, on HEAD or an
+row's result, its seconds and the commit it ran on, and the run's `total_seconds`, which health's test-time rule reads). A row is reused only when it passed, or is a known failure, on HEAD or an
 ancestor, and no file it reads changed since. What a row reads is every repo path its command names, followed through
 the files they name (a skill folder counts as a whole). It prints one of:
 
@@ -105,7 +106,20 @@ python3 scripts/regression.py workflow
 ```
 
 Writes `.github/workflows/regression.yml`, which runs the rows nightly, on `v*` tags and by hand, and keeps the same
-issues. It refuses to replace a workflow it didn't write.
+issues. It refuses to replace a workflow it didn't write. The job has 90 minutes. Each row runs in its own process group
+with a 15-minute limit, and starts only if that full limit still fits the job's time; a row that doesn't fit is
+skipped, reported `SKIPPED`, and fails with an issue. Each row's result is saved as it ends, and a last step that
+always runs writes the run summary: one header with totals and the run time, then one table per feature (`tests.py
+summary`). If that fails, the plain results still reach the summary. Rows run with no GitHub token and none of the
+runner's own files (`GITHUB_STEP_SUMMARY`, `GITHUB_ENV`, `GITHUB_OUTPUT`, `GITHUB_PATH`, `GITHUB_STATE`) in their
+environment, so no row inherits the real summary (rows run as the same user, so this stops accidents like a toy test's
+fixture tables, not a hostile row), and the checkout keeps no token in its git config.
+`regression.py run` gives its rows the same environment.
+
+## Test listing
+
+`scripts/tests.py` prints every test in one fixed format, grouped by feature (`list`, `summary`, `issues`); the
+wiki Tests lines, the health report and the GitHub run summary use it. See `references/commands.md`.
 
 ## Rules
 
@@ -126,3 +140,5 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-regression run land` | `python3 scripts/regression.py run land` |
 | `/workflow-regression sync` | `python3 scripts/regression.py sync` |
 | `/workflow-regression workflow` | `python3 scripts/regression.py workflow` |
+| `/workflow-regression list` | `python3 scripts/tests.py list` |
+| `/workflow-regression issues` | `python3 scripts/tests.py issues --write` |

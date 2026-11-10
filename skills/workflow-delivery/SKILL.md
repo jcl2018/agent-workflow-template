@@ -33,8 +33,8 @@ If the user gave no done lines, write them and show them before you start. Each 
 request, by a test or by what a person can see.
 
 **Run each step through `flow.py`.** In a worker session (the default) it prints `IN SESSION`, the skill and a reply path:
-run the skill yourself, unattended (recommended answers, approve nothing, never push), write its reply ending in `STEP:`
-there, run `flow.py` again for `NEXT` (or `goal.py record --in-session` with any reply file), and message the operation session at each change. No session: a headless agent.
+run the skill yourself, unattended (recommended answers, approve nothing, never push) and at the depth `review_depth`
+sets (`full`: never condense), write its reply ending in `DEPTH:` then `STEP:` there, run `flow.py` again for `NEXT` (or `goal.py record --in-session` with any reply file), and message the operation session at each change. No session: a headless agent.
 
 ```text
 freeze -> idea -> plan -> build -> review -> qa -> ship -> pr -> release
@@ -69,22 +69,14 @@ Run it again until it stops printing `RUNNING`: a step can take many minutes. Th
 
 Goal steps (`step`, `record`, `pr`, `flow.py`) refuse outside a worker (`LOOP_ROLE=worker`), naming
 `batch.py start NAME`. In a worker they print any message from the operation session once; treat it as the owner's answer
-or follow-up. `flow.py` records each step's tokens itself, from the agent's JSON output (input + output + cache-creation
-tokens, no cache reads); report a step it didn't run with `goal.py step <slug> <name> --tokens N`.
+or follow-up. How steps report tokens (and how to report a step `flow.py` didn't run): `references/commands.md`.
 
 The idea step writes the design and the plan step reviews it into a plan, both in your skills' own files. Commit
 anything they put in the worktree.
 
-**The regression lane.** The full suite runs once per goal, in qa. Before your qa skill starts, `flow.py qa` runs the
-lane, `python3 <workflow-regression>/scripts/regression.py run land --reuse`, in the background (`RUNNING` until it
-ends). It runs through your flow file's `test_record` prefix when you set one (a receipt recorder, so your ship skill's
-own check of recorded test runs can reuse it), and tests the committed HEAD only: an unclean tree fails it (`LANE_DIRTY`).
-A failing or never-seen-failing row fails the qa step before your skill runs, and `goal.py record <slug> qa` refuses
-until a qa lane passed on HEAD (`LANE_MISSING`; start one with `role.py lane <slug> qa`), except for a reply whose last
-`STEP:` line is `failed` and that has no `PENDING:` line, which records as a failed try. `flow.py ship` and `goal.py pr`
-run the same lane: on unchanged content it prints `REUSED` and runs nothing, and after a commit or a base merge it reruns
-only the rows the change can affect. The release step itself (merge.py) doesn't rerun it; GitHub Actions still runs the
-full suite.
+**The regression lane.** The full suite runs once per goal, in qa: `flow.py qa` runs it on the committed HEAD before
+your skill starts, and `flow.py ship` and `goal.py pr` reuse it (`REUSED`). `references/commands.md` (The regression
+lane) has its rules: the `test_record` prefix, `LANE_DIRTY`, `LANE_MISSING` and the failed-try exception.
 
 ### 3. Build
 
@@ -106,10 +98,8 @@ Run `goal.py pr <slug>`. It first merges the latest base branch, and only a real
 merge: merge the base yourself, commit, and run `pr` again). It refuses until every flow step is done or skipped, and
 while the issue or finding the goal fixes ("fixes #N", "fixes finding:SLUG") has no defect test: a regression row of
 category defect, linked to it, seen failing on the old code and passing now (`regression.py add --category defect
---link ...`, then `red`). The
-ship step never pushes, so this is what pushes the branch and opens the pull request, whose body lists each step's
-result. With `pr_bumps_version` on, it moves the last number of the version file once on this branch first, unless the
-branch already changed it. It retries a failed push twice, then prints git's full error. Never merge it yourself.
+--link ...`, then `red`). The ship step never pushes, so this is what pushes the branch and opens the pull request,
+whose body lists each step's result (version bump and push retries: `references/commands.md`). Never merge it yourself.
 
 ### 5. Release
 
@@ -118,16 +108,13 @@ stale pages it lists and commit them on the goal's branch; after the merge it pu
 
 ## Switches that remove gates
 
-Two keys in `.loop/config.json` remove gates, and each is off unless the owner turns it on:
-
-- `"auto_approve": true`: `record` approves what a step leaves for the owner, logs it as auto-approved, and goes on.
-- `"auto_merge": true`: after `pr`, the release step runs the `routines` from `.loop/config.json`, merges the pull request, bumps the version once and publishes a GitHub release with a CHANGELOG entry.
-
+Two keys in `.loop/config.json` remove gates, each off unless the owner turns it on: `auto_approve` (record approves
+a step's pending gate) and `auto_merge` (the release step merges and releases); `references/commands.md` (Switches).
 This repo has both on. Say so whenever you report a goal here.
 
 ## When a goal stops
 
-A flow step that failed or gave no `STEP:` line, each cost a try. After 3, the script files a finding
+A flow step that failed, gave no `STEP:` line or was refused for its depth, each cost a try. After 3, the script files a finding
 in `.loop/findings.md` and stops with exit code 3. Stop, report it, and leave the done lines as they are.
 
 If you need an answer only the user can give:

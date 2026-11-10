@@ -18,7 +18,7 @@ move ISSUE FEATURE|backlog [--live]
 - `move` puts an issue in a feature's milestone, or back on the `Backlog`.
 
 Each one prints what it would do and writes nothing unless you pass `--live` or set `GH_TOKEN` or `GITHUB_TOKEN`. None
-of them closes, deletes or merges anything. The `run` command of [Health](Health) files findings on the `Backlog`.
+of them closes, deletes or merges anything. The `file --group` command of [Health](Health) files findings on the `Backlog`.
 
 ### Stage charts
 

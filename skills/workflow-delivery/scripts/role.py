@@ -100,12 +100,76 @@ def begin(record, step):
     except (OSError, ValueError):
         return
     state["step"] = step
+    (state.get("depth") or {}).pop(step, None)  # a rerun step's earlier depth no longer stands
     state["updated"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     state.setdefault("log", []).append("%s start %s" % (state["updated"], step))
     temp = record + ".%d.tmp" % os.getpid()
     with open(temp, "w") as handle:
         json.dump(state, handle, indent=2)
     os.replace(temp, record)
+
+
+DEPTH = re.compile(r"^[ \t*_]*DEPTH:\s*(full|condensed)[ \t*_.]*$", re.M | re.I)  # a line of its own, never prose or a quote
+STEP = re.compile(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", re.M | re.I)
+
+
+def depth_of(cfg):
+    """review_depth from the base branch's .loop/config.json, which a worker's worktree can't change: condensed only
+    when the base branch says so, full otherwise (the default). cfg is the worktree's config, read for its base name."""
+    base = (cfg or {}).get("base") or "main"
+    for ref in ("origin/" + base, base):
+        done = git("show", "%s:.loop/config.json" % ref)
+        if done.returncode == 0:
+            try:
+                return "condensed" if json.loads(done.stdout).get("review_depth") == "condensed" else "full"
+            except ValueError:
+                return "full"
+    return "condensed" if (cfg or {}).get("review_depth") == "condensed" else "full"
+
+
+def markers(step):
+    """(markers, error): the private strings a full plan or review reply must carry, from full_markers in the flow file
+    at its default place and at $LOOP_FLOW (both, so pointing LOOP_FLOW elsewhere can't drop them). Malformed is an error."""
+    found = []
+    for path in dict.fromkeys(os.path.expanduser(p) for p in ("~/.workflow-loop/flow.json", os.environ.get("LOOP_FLOW") or "~/.workflow-loop/flow.json")):
+        try:
+            with open(path) as handle:
+                spec = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        held = spec.get("full_markers") if isinstance(spec, dict) else None
+        items = held.get(step) if isinstance(held, dict) else None
+        if items is None:
+            continue
+        if not isinstance(items, list) or not all(isinstance(m, str) and m.strip() for m in items):
+            return [], "full_markers for %s in the flow file is not a list of non-empty strings. Fix: the owner corrects it" % step
+        found += items
+    return found, ""
+
+
+def record_depth(state, step, text, cfg, result):
+    """(stamp, error) for a step that advances. Every step states its depth on a DEPTH: line of its own before its STEP
+    line; under review_depth full, plan and review may not run condensed, and a full one carries every private marker.
+    A skipped step is held to neither: it ran nothing."""
+    setting = depth_of(cfg)
+    ends = list(STEP.finditer(text))
+    body = text[:ends[-1].start()] if ends else text
+    found = DEPTH.findall(body)
+    if not found:
+        return "", "no DEPTH line. Fix: write 'DEPTH: full' or 'DEPTH: condensed' on a line of its own just before the STEP line"
+    depth = found[-1].lower()
+    if step in ("plan", "review") and result != "skipped":
+        if depth == "condensed" and setting == "full":
+            return "", "the %s step ran condensed while review_depth is full. Fix: rerun the %s step at full depth" % (step, step)
+        if depth == "full":
+            wanted, bad = markers(step)
+            if bad:
+                return "", bad
+            rest = "\n".join(line for line in body.splitlines() if not DEPTH.match(line)).lower()
+            if any(m.lower() not in rest for m in wanted):
+                return "", "a configured full_markers evidence string for %s is missing from the reply. Fix: rerun the %s step at full depth" % (step, step)
+    state.setdefault("depth", {})[step] = depth
+    return " (depth %s%s)" % (depth, ", skipped" if result == "skipped" else ""), ""
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -279,3 +343,21 @@ if __name__ == "__main__":
     else:
         print("usage: role.py lane SLUG qa|ship|pr   start or poll a goal's regression lane by hand")
         sys.exit(0 if sys.argv[1:] in ([], ["-h"], ["--help"]) else 2)
+
+
+def session_reply(state, slug, step, path, runs, flow):
+    """The reply file a worker session hands to goal.py record --in-session, put where record reads it, with the
+    step's ran marker; refused when the run names no worker session or an earlier step isn't recorded."""
+    import shutil
+    if state.get("worker") != "session" or not (state.get("session") or {}).get("id"):
+        sys.exit("REFUSED: %s names no worker session. Fix: sessions.py bind %s ID, or run the step with flow.py." % (slug, slug))
+    early = [s for s in flow[:flow.index(step)] if not str((state.get("flow") or {}).get(s, "")).startswith(("done", "skipped"))]
+    if early:
+        sys.exit("REFUSED: %s comes before %s: record %s first." % (", ".join(early), step, early[0]))
+    base = os.path.join(runs, "%s.%s" % (slug, step))
+    if os.path.exists(base + ".asked"):
+        os.remove(base + ".asked")
+    if os.path.realpath(path) != os.path.realpath(base + ".txt"):
+        shutil.copyfile(path, base + ".txt")
+    open(base + ".ran", "w").close()
+    return base + ".txt"

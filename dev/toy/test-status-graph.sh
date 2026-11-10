@@ -61,7 +61,12 @@ check "merged goals are left out; a running goal has its bar and time left" '! g
 check "the finish is the longest chain b > c > d, not the sum" 'grep -q "^finish about " "$T/block" && ! grep -q "at least" "$T/block" && python3 -c "
 import re,sys
 t=open(\"$T/block\").read()
-sys.exit(0 if re.search(r\"finish about \\d\\d:\\d\\d\", t) else 1)"'
+mins=lambda s: sum(int(n)*(60 if u==\"h\" else 1) for n,u in re.findall(r\"(\\d+)([hm])\", s))
+left={g: mins(m) for g,m in re.findall(r\"^- (\\w+)  (?:\\[.*?\\] \\d+%  )?(\\d+h\\d+m|\\d+h|\\d+m) left\", t, re.M)}
+h=re.search(r\"^LIVE BOARD  \\S+  (\\d\\d):(\\d\\d)\", t, re.M); f=re.search(r\"finish about (\\d\\d):(\\d\\d)\", t)
+gap=(int(f[1])*60+int(f[2])-int(h[1])*60-int(h[2]))%1440
+chain=left[\"b\"]+left[\"c\"]+left[\"d\"]
+assert abs(gap-chain)<=1 and abs(gap-sum(left.values()))>1, (gap, chain, left)"'
 check "a running goal shows its step flow with the current step in brackets" 'grep -qx "    idea✓ > \[plan\] > build > review > qa > ship > pr >" "$T/block"'
 
 echo "== the pure graph"

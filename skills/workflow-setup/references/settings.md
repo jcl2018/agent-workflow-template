@@ -18,18 +18,22 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `version_file` | `VERSION` | The file that holds the version; a release bumps it and writes the changelog. |
 | `routines` | `[]` | Commands the release step runs on the base branch before it merges. |
 | `regression_cron` | `17 9 * * *` | Five cron fields: when the nightly regression runs in GitHub Actions. |
+| `review_depth` | `full` | full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run. |
 | `criteria` | `true` | true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests). |
 | `criteria_max` | `6` | Most criteria a wiki page may hold, 1 to 50; docs check and health fail a page over it. |
 | `wiki_dir` | `docs/wiki` | The folder of wiki pages. |
 | `risky_paths` | `["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]` | Regexes for paths whose goals need extra care. |
 | `step_limit` | `0` | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. |
 | `token_budget` | `0` | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
+| `test_budget_seconds` | `600` | Seconds the land test lane may take before health warns and names its slowest rows. |
+| `stale_branch_days` | `14` | Days a local branch on no remote may sit before health lists it with its removal command. |
 | `mend` | `false` | true lets watch start a fresh agent for a failed goal. |
 | `mend_wait` | `120` | Seconds a failed goal waits before a mender starts. |
 | `max_tries` | `3` | Failed tries a goal gets before it stops and files a finding. |
 | `resume_on_limit` | `false` | true lets watch resume a goal that hit a usage limit. |
 | `limit_wait` | `1800` | Seconds to wait after a usage limit before resuming. |
 | `watch_interval` | `20` | Seconds between rounds of watch. |
+| `reply_hook` | `true` | false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session. |
 
 ## Private settings
 
@@ -47,6 +51,7 @@ Outside the repo, never committed: `~/.workflow-loop/flow.json` (or `$LOOP_FLOW`
 | `probe` | `[]` | Flow file: a command that prints probe_expect when the skills run unattended. |
 | `probe_expect` | `unattended` | Flow file: the word the probe must print. |
 | `leak_prefixes` | `[]` | Flow file: case-insensitive regexes the package scan blocks in any file or file name, as your leak hook does. |
+| `full_markers` | `{}` | Flow file: per step, strings a full plan or review reply must contain, e.g. {"review": ["..."]}; none checked when empty. |
 | `limit` | `2700` | Flow file: seconds one flow step may run. |
 | `rules` | `[]` | Health file: your own health rules, each {name, command, fix}. |
 | `repos` | `[]` | Followed repos: one path a line in the repos file, shown on the board. |

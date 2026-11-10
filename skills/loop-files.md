@@ -14,6 +14,7 @@ The workflow skills share this contract. `design-guide.md` beside it explains ho
 | `.loop/config.json` key `session_command` | The session tool, as a list: called `start NAME` (prints the new session's id), `rename ID NAME` and `send ID TEXT`; a non-zero exit or 30 seconds means no session, so the goal falls back to a background process. `$LOOP_SESSION_TOOL` replaces it. The pool is `loop/session-pool.json` under the git common dir |
 | `.loop/config.json` key `criteria` | `true` makes `docs.py check` enforce the criteria contract on the wiki pages; each regression row links to one criterion by its goal or id; a reviewed line ends with a hash of its text, and `docs.py check` fails if the text changes; `criteria.py render` makes each page's Tests table |
 | `.loop/regression.tsv` | Each test row: id, level, command, goal, date seen failing |
+| `.loop/regression-issues.tsv` | Each defect test's issue or pull request: link, state, date; written only by `tests.py issues --write`, shown in the wiki Tests lines and the health report |
 | `.loop/regression-runs.tsv` | Each row's last run: id, PASS or FAIL, date; written by `regression.py run`, shown in the wiki Tests tables |
 | `.loop/regression-known.tsv` | Rows expected to fail, with a reason; they don't block |
 
@@ -39,9 +40,13 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
   (generated from `settings.py`). `setup.py` writes each repo setting into `config.json` and each private setting into the
   flow file, and keeps any value already set. Every script reads these files fresh on each run, so a change applies at once.
 - `parallel`: workers at once; `0` means unlimited, and it is the default.
-- `cadence`, `step_limit`, `token_budget`, `max_tries`, `routines` and `regression_cron` are optional repo settings; see the reference.
+- `cadence`, `step_limit`, `token_budget`, `max_tries`, `routines`, `regression_cron`, and health's `test_budget_seconds` and `stale_branch_days` are optional repo settings; see the reference.
 - `agent_command` runs a goal in the background; the prompt is its last argument.
 - `auto_approve` (default `false`): `true` approves what a flow step leaves for the owner, logged as auto-approved.
+- `review_depth` (default `full`): `full` makes the plan and review steps run their skill's whole pipeline and refuses a
+  condensed reply; `condensed` allows a shorter run. Every step's reply states `DEPTH: full|condensed`, record stamps it
+  on the step, and the board and the pull request body show it. The flow file's private `full_markers` (per step, strings)
+  must appear in a full plan or review reply. `config.json` carries its one-line explanation under `_help`.
 - `auto_merge` (default `false`): `true` lets the release step's `merge.py` merge a goal's pull request.
 - `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
 - `mend` and `resume_on_limit` let `watch` restart a goal. `limit_wait`, `mend_wait` and `watch_interval` are optional, in seconds.
@@ -118,7 +123,8 @@ loop/waits/<slug>         the goals that held a queued goal, one a line
 loop/cadence              minutes between check-ins (1 to 60), or off
 loop/handoff.md           the last handoff file
 loop/wiki.json            the last wiki publish, for restore
-loop/tests/<branch>-<sha8>.json   a branch's last regression run: each row's result and commit (regression.py --reuse); deleted when its rows leave uncommitted files
+loop/reply-hook/          the reply hook's state: <session>.kind (operation or worker), <session>.count (blocks this turn), log
+loop/tests/<branch>-<sha8>.json   a branch's last regression run: each row's result, seconds and commit, and the total (regression.py --reuse; health's test-time rule); deleted when its rows leave uncommitted files
 loop/runs/<slug>.qa-lane.*, ship-lane.*, pr-lane.*   a goal's regression lanes: job, exit status, output; qa-lane.ok
 ```
 

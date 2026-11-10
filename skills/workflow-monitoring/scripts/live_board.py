@@ -5,7 +5,7 @@ usage: live_board.py [--html]
 
 LIVE BOARD header (repo, local time, version, health), then Issues (only what is open now, a stuck worker first, each with its
 fix in plain words), Running goals (10-cell bar with percent and time left, the step flow with done steps ticked and the current
-step in brackets, the worker: its session name or background, one next step), Queued goals, Dependencies (arrows between running and queued goals) and one Finish time.
+step in brackets, the worker: its session name or background, each recorded step's depth, one next step), Queued goals, Dependencies (arrows between running and queued goals) and one Finish time.
 Merged work, history and totals are left out. Estimates and the finish come from board_status.py and status_graph.py.
 Health is workflow-health's verdict, or "unknown"; LOOP_BOARD_HEALTH replaces it (tests). Imported by board_status.py.
 """
@@ -120,6 +120,13 @@ def worker_of(run):
     return "background" + (" (%s)" % plain(run["worker_why"], 80) if run.get("worker_why") else "")
 
 
+def depth_of(run, setting):
+    """Each recorded step's depth, in flow order, and the current review_depth setting."""
+    got = run.get("depth") if isinstance(run.get("depth"), dict) else {}
+    done = ", ".join("%s %s" % (step, got[step]) for step in FLOW if step in got)
+    return "%s (setting %s)" % (done or "none recorded yet", setting)
+
+
 def issues(runs, gone, root, at=None):
     stuck, other = [], []
     for run in runs:
@@ -167,6 +174,7 @@ def render(root=None, at=None):
     items += [dict(slug=g["slug"], mark="queued", depends=waits(g["depends"]), stage=0,
                    left=bs.left_time({"slug": g["slug"], "status": "queued"}, runs, at)) for g in queue]
     names = {item["slug"] for item in items}
+    setting = "condensed" if (bs.read_json(os.path.join(root, ".loop", "config.json")) or {}).get("review_depth") == "condensed" else "full"
     head = "LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root))
     if len(head) > WIDTH:
         head, tail = head.rsplit("  ", 2)[0], "  ".join(head.rsplit("  ", 2)[1:])
@@ -180,7 +188,7 @@ def render(root=None, at=None):
         left = next(i["left"] for i in items if i["slug"] == run["slug"])
         out += ["- %s  [%s%s] %d%%  %s" % (run["slug"], "#" * full, "-" * (10 - full), round(100 * done / len(FLOW)),
                                          "no estimate yet" if left is None else "%s left" % status_graph.span(left)),
-                *flow_lines(run, bs.overrun(run, runs, at)), "    worker: " + worker_of(run), "    next: " + next_line(run)]
+                *flow_lines(run, bs.overrun(run, runs, at)), "    worker: " + worker_of(run), "    depth: " + depth_of(run, setting), "    next: " + next_line(run)]
     out += ([] if running else ["- (none)"]) + ["", "Queued goals"]
     for goal in queue:
         left = next(i["left"] for i in items if i["slug"] == goal["slug"])

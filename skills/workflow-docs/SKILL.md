@@ -47,7 +47,7 @@ python3 scripts/docs.py check [--base <ref>]
 | `MISSING` | A mapped page has no file | Write it, or remove its row |
 | `UNWRITTEN` | The page still has its placeholder, or almost no text | Write it |
 | `UNMAPPED` | A page has no row in `.loop/docs.tsv` | Run `add` |
-| `COUNT` | The README, a wiki page or a top-level doc in `skills/` states a count of skills, feature pages, or a feature page's criteria or tests that the repo doesn't match; all but skills need `"criteria": true`. Skipped: the word "one", a limit ("up to 6"), code and comments as Markdown renders them, a line naming a criterion on a page, and a line marked `<!-- not-a-count -->`; a code fence that never closes is itself a `COUNT` line. Wrapped lines are read as one paragraph. `publish` refuses only on wiki pages | Correct the number |
+| `COUNT` | The README, a wiki page or a top-level doc in `skills/` states a count of skills, feature pages, or a feature page's criteria or tests that the repo doesn't match; all but skills need `"criteria": true`. A feature page's tests count includes its defect tests. One word may sit between number and noun only if it means all of them ("eight workflow-ready skills"); "N defect tests" is checked against the defect tests. Skipped: the word "one", a limit ("up to 6"), a part or label ("two delivery skills"), fenced and indented code and comments as Markdown renders them, a line naming one of the page's own criteria, the criteria and tests counts on a line naming another page's criterion, and a line marked `<!-- not-a-count -->`; a code fence that never closes is itself a `COUNT` line. Wrapped lines are read as one paragraph. `publish` refuses only on wiki pages | Correct the number |
 
 Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to
 count only changes since that point. `cut` counts from the goal's base the same way. `publish` has no `--base`: it
@@ -72,18 +72,10 @@ release step runs it on every goal. It never deletes a page or edits a criterion
 With `"criteria": true` in `.loop/config.json`, every feature page (each page in `.loop/docs.tsv` but Home, which is
 free-form) is a short PRD and `check` enforces it, from the rules block of `references/template.md`:
 
-1. the title, a `Milestone:` line once the milestone exists, then `Review: **Unreviewed**` (or the owner's Reviewed line);
-2. `## Problem`: who it's for and what it solves, at most `problem_lines` lines;
-3. `## Usage` (optional): the commands, as `/skill verb` asks or plain requests;
-4. `## Requirements`: up to `criteria_max` (default 6) lines `- DEL-3: **Unreviewed** what must hold`, short and plain,
-   no script names; ids are stable: take the next free id (`criteria PAGE` prints it), never reuse or renumber one;
-5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
-6. `## Tests`: written by `criteria.py render`, never by hand: under each requirement, one Given/When/Then scenario per
-   regression row with its test, when it runs, its last result and date and when it was seen failing; **not enforced**
-   when no row passes; defect tests under `### Defect tests`.
-
-Lines: `SECTIONS` (wrong, extra or out-of-order sections, or text before the first one), `REVIEW`, `PROBLEM`,
-`NONGOALS`, `METRICS`, `CRITERION`, `CAP`, `SCRIPT`, `USAGE`, `TESTS` (run `render`), `LOCKED`, `CHANGED`.
+the title, `Milestone:` and `Review:` lines, then `## Problem`, `## Usage` (optional), `## Requirements` (up to
+`criteria_max` lines like `- DEL-3: **Unreviewed** what must hold`; take the next free id from `criteria PAGE`, never
+reuse or renumber one), `## Non-goals`, `## Success metrics` and `## Tests`, which only `criteria.py render` writes.
+The full list, and the lines `check` prints: `references/commands.md` (The PRD page).
 
 **The PRD is the owner's.** Only the owner reviews it, and only when their own words say so (`--user`):
 
@@ -94,25 +86,14 @@ python3 scripts/criteria.py render [--check]
 ```
 
 An argument like `DEL-3` is a requirement; any other is a page. Every argument is checked before anything is written.
-`review PAGE` stamps the Review line with a fingerprint each of Problem, Requirements, Non-goals, Success metrics and
-Usage. After it, a change to any of the first four is `LOCKED` (check, audit and release fail); a change to Usage alone
-is `CHANGED`: check exits 1 and the board lists it, the audit, release and publish ignore it, and only the owner's next
-`review PAGE` clears it. A reviewed requirement line is locked on its own as well. To edit a reviewed requirement the
-owner un-reviews that requirement and the PRD, then reviews both again. Never review or unreview on a goal's own
-initiative.
+`review PAGE` locks the PRD: after it, an edit shows as `LOCKED` or `CHANGED`; `references/commands.md` (Review
+locks) has the rules and how the owner edits a reviewed requirement. Never review or unreview on a goal's own initiative.
 
 **Tests follow on their own.** Write each new regression row's description as one scenario,
-`Given <context>, when <action>, then <outcome>.`; `audit` lists any other as `SCENARIO` and the release step blocks on
-it. Once a PRD is Reviewed, `audit` lists every requirement with no passing test as `UNTESTED` for the loop to queue.
-`regression.py sync` reports an id with no row, and `release.py cut` refuses while any of its rows is missing, a draft
-or failing.
+`Given <context>, when <action>, then <outcome>.`; what `audit`, `sync` and `cut` do with them: `references/commands.md`.
 
-**New and old pages.** `python3 scripts/prd.py new NAME "<idea>" --paths A,B` drafts a new feature's PRD, Unreviewed,
-maps it in `.loop/docs.tsv` and prints what is left: replace the Non-goals and Success metrics placeholders (the page
-is `UNWRITTEN` until then) and add its requirement's regression row in the same pull request (it needs one before the
-next release). `python3 scripts/prd.py convert` previews turning old Summary/Criteria pages into PRD pages, and
-`convert --write` does it (Summary becomes Problem, Criteria Requirements, every stamp kept, placeholder Non-goals and
-Success metrics added); then write the drafts, rewrite row descriptions as scenarios and run `render`.
+**New and old pages.** `python3 scripts/prd.py new NAME "<idea>" --paths A,B` drafts a new feature's PRD and
+`prd.py convert --write` turns old Summary/Criteria pages into PRD pages; what each leaves to do: `references/commands.md`.
 
 ## `publish`
 
