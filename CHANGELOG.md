@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.17.0 - 2026-11-10
+
+- Health keeps itself honest and the repo lean (HLT-6)
+- HLT-6 on the Health page, Unreviewed; settings, skill and reference docs for test time, stale worktrees and controls
+- HLT-6 Reviewed 2026-11-09 by the owner
+- Toy test and regression rows for HLT-6
+- HLT-6 rows seen failing; Tests tables; verify by hand
+- docs: test times on the Regression page, the two health settings on the Setup page; importlib in health.py
+- Health page summary for HLT-6; existing health tests follow the controls group and the judge's test time
+- health-hygiene: review fixes (queued liveness, configured base, UNREAD over crashes, exact lane record, --skip refusal)
+- health-hygiene: lean.py no-prompt guard (DEL-10); finding on flow.py starting a lane unasked
+- health-hygiene: re-render the Delivery Tests table
+- health-hygiene: re-render the Regression Tests table
+- Merge origin/main into loop/health-hygiene
+- docs: Health page covers UNREAD controls, own lane record and live goals
+- Merge origin/main (v0.16.0) into loop/health-hygiene
+- health-hygiene: ship review fixes (prompt env restored, NaN and non-object config are UNREAD, unreadable run record blocks removals, borrowed record never warns, controls never filed, --skip keeps the tests list)
+- docs: health and regression references cover controls UNREAD, queued liveness, test time and lane record seconds (ship doc audit)
+- Wiki: update pages for health-hygiene
+
+### How to verify
+
+1. Run `python3 skills/workflow-health/scripts/health.py check --group controls`.
+   Expect: a `controls` group with one `PASS ... control: fires on its fixture` line per rule (twelve), then a green verdict.
+2. Run `python3 skills/workflow-health/scripts/health.py check --group hygiene`.
+   Expect: a `test-time` line with the land lane's seconds against `test_budget_seconds` (and, when it is over, the slowest rows and scripts), and `worktrees` and `local-branches` lines, each stale one with the exact command that removes it; nothing is removed.
+3. Run `python3 skills/workflow-health/scripts/health.py preview --group hygiene`.
+   Expect: no line for test time, worktrees or local branches.
+
 ## v0.16.0 - 2026-11-10
 
 - fix: rows never write into the real GitHub run summary (issue 92)
