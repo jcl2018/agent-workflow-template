@@ -27,3 +27,13 @@ Frozen. A wrong done line needs a new goal.
    Expect: Reviewed, with the pages and deliveries wording.
 5. Pipe `git pull --ff-only` and then `git pull` into `python3 skills/workflow-monitoring/scripts/govern_hook.py check`.
    Expect: `PASS`, then `BLOCK: git pull`.
+
+## Owner's words
+
+- 2026-11-10, approving ("a"): "A feature page that ships something people can open has a Deployments section (optional otherwise): one row per public or private page, with its link, who can open it (public or sign-in), what it shows, and the live build (the sha in build.txt). A check fails when a listed public link doesn't answer or the live build isn't the promoted one."
+- 2026-11-10, widening: "the newsletter also gets a deployment for the delivery… send the attachment to that email" (relayed by the operation session: Delivery rows, recipients as a group, never an address).
+- DOC-14's title and sub-bullets were written by the worker from those words and stamped with the owner's "a" as the operation session asked; please confirm them in this review. The live-link and promoted-build check stays in the deploying repo for now.
+
+## Also closes
+
+Closes #495: the govern hook passes `git pull --ff-only` (also with `-C <dir>`) and still refuses plain pull and every other form, with negative-control rows.
