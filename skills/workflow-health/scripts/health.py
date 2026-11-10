@@ -7,14 +7,15 @@ usage: health.py check [--json] [--group NAME] [--skip NAME]
        health.py judge
 
 check prints the formal report (report.py): the groups run and skipped, every rule of each group, then one verdict
-line, HEALTH: green or not green. Only FAIL and UNREAD (a rule that could not read its data) turn it red (exit 1).
+line, HEALTH: green or not green. Only FAIL and UNREAD (a rule that could not read its data, bar the issue list)
+turn it red (exit 1).
 judge (alias suggest) adds a section of suggestions (judge.py) and never changes the verdict. --json prints the rows.
 
 Rules (at most MAX_RULES; retire one before adding another):
   size      scripts under skills/*/scripts against 20 KB: WARN from 90%, FAIL over
   criteria  regression.py sync: a criterion with no row, or a draft or never-failed row, FAILs; done lines with
             no row WARN; a closed issue or finding with no defect test FAILs (defects.py)
-  docs      composes docs.py check: a stale page WARNs, any other gap FAILs
+  docs      docs.py check: a stale page WARNs, any other gap FAILs; issues.py: an open issue with no milestone FAILs
   hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches; lean.py: test time, stale
             worktrees and local branches
   cost      a finished goal over time_budget_minutes or token_budget WARNs (cost.py); no tokens is UNREAD
@@ -45,10 +46,9 @@ RULES = ("size", "criteria-rows", "criteria-done", "defect-tests", "docs-check",
          "test-time", "worktrees", "local-branches")
 MAX_RULES = 12  # raised on purpose: 9 for cost, 12 for HLT-6
 assert len(RULES) <= MAX_RULES, "too many rules: retire one first"
-FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene", "cost": "cost", "mine": "mine",
-          "controls": "controls"}
 ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine", "controls")  # the fixed order of the groups in the report
-NAMES = sorted(FAMILY) + ["performance"]  # performance is the Cost group's name in the report and its tag
+FAMILY = dict(zip(ORDER, ORDER))
+NAMES = sorted(FAMILY) + ["performance"]  # the Cost group's name in the report and its tag
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 
@@ -100,8 +100,7 @@ def criteria_rows(root):
         if gap and re.match(r"^[A-Za-z0-9-]+:\d+$", gap.group(1)):
             loose += 1
         elif gap and "criterion has no regression row" in gap.group(2):
-            rows.append(row("FAIL", "criteria", gap.group(1), "rows", "criterion has no regression row",
-                            "add a row with regression.py add"))
+            rows.append(sibling_module("enforce").row(root, gap.group(1), row))
         elif line.startswith(("DRAFT ", "UNPROVEN ")):
             word, key = line.split()[:2]
             rows.append(row("FAIL", "criteria", key.rstrip(":"), "proof", "a draft row, or one never seen failing"
@@ -222,11 +221,13 @@ def mine_rows(root):
 
 def cost_rows(root):
     cost = sibling_module("cost")
-    return cost.cost_rows(root, HERE) if cost else [row("UNREAD", "cost", "cost.py", "cost", "cost.py is not installed beside health.py")]
+    return cost.cost_rows(root, HERE) if cost else [row("UNREAD", "cost", "cost.py", "cost", "cost.py is missing")]
 
 
 def gather(root, family):
-    rules = {"size": size_rows, "criteria": lambda root: criteria_rows(root) + defect_rows(root), "docs": docs_rows, "hygiene": hygiene_rows,
+    issues = sibling_module("issues")
+    rules = {"size": size_rows, "criteria": lambda root: criteria_rows(root) + defect_rows(root), "hygiene": hygiene_rows,
+             "docs": lambda root: docs_rows(root) + (issues.rows(root) if issues else []),
              "cost": cost_rows, "mine": mine_rows, "controls": controls_rows}
     rows = []
     for name in (family or ORDER):

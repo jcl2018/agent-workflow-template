@@ -7,10 +7,12 @@ unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a rea
 # Test the criteria contract across workflow-docs, workflow-regression and workflow-release. usage: test-criteria.sh [DIR]
 unset LOOP_BATCH
 set -e
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
+export LOOP_OWNER_WORDS='"review it" (the toy owner)'  # review --user with no terminal needs the owner's words
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d"
 export LOOP_FLOW="$d/flow.json"
@@ -32,7 +34,10 @@ day=$(date -u +%F)
 gwt="Given the toy calculator, when it runs, then it works."
 page() { # NAME CRITERIA-LINES: writes a page with an empty Tests section, then renders it unless NORENDER is set
   mkdir -p docs/wiki
-  printf '<!-- workflow-docs -->\n# %s\n\nReview: **Unreviewed**\n\n## Problem\n\nThe %s page of the toy calculator, written for this test.\n\n## Requirements\n\n%s\n\n## Non-goals\n\n- No other feature.\n\n## Success metrics\n\n- The toy run passes.\n\n## Tests\n\n' "$1" "$1" "$2" > "docs/wiki/$1.md"
+  local reqs; reqs=$(sed -E 's/^(- [A-Z]{2,5}-[0-9]+: .*)$/\1\
+  - It holds for every toy run./' <<<"$2")  # each requirement gets the sub-bullet DOC-7 asks for
+  reqs=$(printf '### Functional\n\n%s\n\n### Non-functional\n\nNone' "$reqs")  # and the two DOC-7 groups
+  printf '<!-- workflow-docs -->\n# %s\n\nReview: **Unreviewed**\n\n## Problem\n\n- I read the %s page of the toy calculator, written for this test.\n\n## Requirements\n\n%s\n\n## Non-goals\n\n- No other feature.\n\n## Success metrics\n\n- The toy run passes.\n\n## Tests\n\n' "$1" "$1" "$reqs" > "docs/wiki/$1.md"
   [ -n "${NORENDER:-}" ] || $cri render >/dev/null
 }
 python3 - <<'PY'
@@ -40,6 +45,8 @@ import json
 c = json.load(open(".loop/config.json")); c["criteria"] = True
 json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
+printf '\n## How to use\n\n### How to use Delivery\n\n| You say | What happens |\n|---|---|\n| "Give me the median" | The calculator prints it. |\n' >> README.md  # the DOC-5 front door
+git commit -qam "Front door"
 sub() { sed -i.bak "$1" docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak; }
 one="- DEL-1: **Unreviewed** The calculator prints a median."
 good() { rm -f .loop/regression.tsv .loop/regression-runs.tsv; page Delivery "$one"; }
@@ -72,17 +79,17 @@ $docs check | grep -q "^CRITERION Delivery" && ok "a criterion with no mark fail
 good; sub 's/\*\*Unreviewed\*\*/**Reviewed**/'
 $docs check | grep -q "^CRITERION Delivery" && ok "Reviewed with no date fails" || bad "no date"
 $docs criteria Delivery | grep -q "NEXT DEL-2" && ok "criteria prints the next free id" || bad "criteria"
-six=$(for n in 1 2 3 4 5 6; do echo "- DEL-$n: **Unreviewed** Point $n."; done)
-page Delivery "$six"; $docs check | grep -q "^CAP" && bad "six criteria over the limit" || ok "six criteria pass"
-page Delivery "$six
-- DEL-7: **Unreviewed** Point 7."; $docs check | grep -q "^CAP Delivery: has 7 requirements" && ok "a seventh criterion fails" || bad "cap"
+ten=$(for n in 1 2 3 4 5 6 7 8 9 10; do echo "- DEL-$n: **Unreviewed** Point $n."; done)
+page Delivery "$ten"; $docs check | grep -q "^CAP" && bad "ten criteria over the limit" || ok "ten criteria pass"
+page Delivery "$ten
+- DEL-11: **Unreviewed** Point 11."; $docs check | grep -q "^CAP Delivery: has 11 requirements" && ok "an eleventh criterion fails" || bad "cap"
 for name in calc.py run.sh skills/x/scripts/tool.py app.js; do
   page Delivery "- DEL-1: **Unreviewed** Runs $name for more."
   $docs check | grep -q "^SCRIPT Delivery: DEL-1 names $name" && ok "script name fails: $name" || bad "script name: $name"
 done
 page Delivery "- DEL-1: **Unreviewed** Reads README.md and docs.tsv."
 $docs check | grep -q "^SCRIPT" && bad "other file names failed" || ok "other file names pass"
-good; sed -i.bak 's/^The Delivery page of the toy calculator, written for this test\./The Problem may name run.sh freely./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+good; sed -i.bak 's/^- I read the Delivery page of the toy calculator, written for this test\./The Problem may name run.sh freely./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
 $docs check | grep -q "^SCRIPT" && bad "summary checked" || ok "only the criteria are checked for script names"
 
 echo "== docs check: counts on a feature page match its criteria and tests"
@@ -97,7 +104,7 @@ echo "This page has 2 tests." >> docs/wiki/Delivery.md
 $docs check | grep -q "^COUNT docs/wiki/Delivery.md: says 2 tests, the repo has 3$" && ok "a nonzero test count is checked, defect rows counted" || bad "nonzero tests count"
 sed -i.bak 's/This page has 2 tests\./This page has 3 tests./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
 nocount && ok "the right test count passes" || bad "the right test count failed"
-good; sed -i.bak 's/^The Delivery page of the toy calculator, written for this test\./- DEL-7: **Unreviewed** An example line, not a criterion. This page has 1 criterion./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
+good; sed -i.bak 's/^- I read the Delivery page of the toy calculator, written for this test\./- DEL-7: **Unreviewed** An example line, not a criterion. This page has 1 criterion./' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
 nocount && ok "only the Requirements section is counted" || bad "a requirement-like line outside Requirements counted"
 good; printf '\n~~~\n## Requirements\n- DEL-8: **Unreviewed** An example inside code.\n~~~\nThis page has 1 criterion and 2 criteria in its examples.\n' >> docs/wiki/Delivery.md
 $docs check | grep -q "says 2 criteria, the repo has 1" && ok "a Requirements heading inside a ~~~ block is not the section" || bad "fenced Requirements heading counted"
@@ -137,20 +144,20 @@ rm -rf skills/a
 good
 
 echo "== the Tests table: rows, last runs, and not enforced"
-good; grep -A4 '^#### DEL-1$' docs/wiki/Delivery.md | grep -q '^- \*\*not enforced\*\*' && ok "a criterion with no test shows as not enforced" || bad "not enforced"
+good; grep -qxF '| - | requirement | DEL-1 | no passing test | not enforced |' docs/wiki/Delivery.md && ok "a criterion with no test shows as not enforced" || bad "not enforced"
 $docs check | grep -q "DOCS OK" && ok "a rendered table passes" || bad "rendered table"
 $reg add del-1a --level land --command "true" --goal DEL-1 >/dev/null; $reg add del-1b --level land --command "false" --goal DEL-1 >/dev/null
 $cri render >/dev/null
-grep -q '^- .* — \[del-1a\](.*), requirement, guards DEL-1, both, not run, seen failing no$' docs/wiki/Delivery.md && grep -q '^- \*\*not enforced\*\*' docs/wiki/Delivery.md && ok "a test that never ran is not enforcing" || bad "not run"
+grep -qxF '| [del-1a](Tests#t-del-1a) | requirement | DEL-1 | - (not yet Given/When/Then) | not run |' docs/wiki/Delivery.md && grep -q '| not enforced |$' docs/wiki/Delivery.md && ok "a test that never ran is not enforcing" || bad "not run"
 $reg run land >/dev/null || true
 grep -q "^del-1a	PASS	$day" .loop/regression-runs.tsv && grep -q "^del-1b	FAIL	$day" .loop/regression-runs.tsv && ok "a run records each row's status and date" || bad "ledger"
 $docs check | grep -q "^TESTS Delivery" && ok "a table behind the last run is stale" || bad "stale after run"
 $cri render --check | grep -q "^STALE" && ok "render --check names the stale page" || bad "render check"
 $cri render >/dev/null
-grep -q "^- .* — \[del-1a\](.*), requirement, guards DEL-1, both, PASS $day, seen failing no$" docs/wiki/Delivery.md && grep -q "^- .* — \[del-1b\](.*), requirement, guards DEL-1, both, FAIL $day, seen failing no$" docs/wiki/Delivery.md && ok "render shows status and date" || bad "render shows"
-grep -q '^- \*\*not enforced' docs/wiki/Delivery.md && bad "one passing row still not enforced" || ok "one passing row is enough to be enforced"
+grep -q "^| \[del-1a\](Tests#t-del-1a) | requirement | DEL-1 | .* | PASS $day |$" docs/wiki/Delivery.md && grep -q "^| \[del-1b\](Tests#t-del-1b) | requirement | DEL-1 | .* | FAIL $day |$" docs/wiki/Delivery.md && ok "render shows status and date" || bad "render shows"
+grep -q '| not enforced |$' docs/wiki/Delivery.md && bad "one passing row still not enforced" || ok "one passing row is enough to be enforced"
 $reg add del-1a --level land --command "false" --goal DEL-1 >/dev/null; $reg run del-1a >/dev/null || true; $cri render >/dev/null
-grep -q '^- \*\*not enforced' docs/wiki/Delivery.md && ok "a criterion with no passing test shows as not enforced" || bad "all failing"
+grep -q '| not enforced |$' docs/wiki/Delivery.md && ok "a criterion with no passing test shows as not enforced" || bad "all failing"
 sub 's/FAIL/PASS/'
 $docs check | grep -q "^TESTS Delivery" && ok "a hand-edited table fails" || bad "hand edit"
 printf 'orphan\tland\ttrue\t\t\nDEL-9x\tland\ttrue\tDEL-9\t\n' >> .loop/regression.tsv
@@ -169,6 +176,15 @@ $docs check | grep -q "^LOCKED Delivery: DEL-1 was reviewed" && ok "changing a r
 $mon report | grep -A1 "^REVIEWED CRITERIA CHANGED" | grep -q "DEL-1 (Delivery): The calculator prints a mean" && ok "report names a changed reviewed criterion" || bad "report"
 git checkout -q -- docs/wiki/Delivery.md
 $docs check | grep -q "^LOCKED" && bad "restored text still locked" || ok "restoring the wording clears the lock"
+sub 's/  - It holds for every toy run\./  - It holds for most toy runs./'
+$docs check | grep -q "^LOCKED Delivery: DEL-1 was reviewed and its wording or sub-bullets changed" && ok "changing a sub-bullet of a reviewed requirement is LOCKED" || bad "sub-bullet lock: $($docs check)"
+changed=$($mon report | grep -A1 "^REVIEWED CRITERIA CHANGED"); git checkout -q -- docs/wiki/Delivery.md
+grep -q "DEL-1 (Delivery): The calculator prints a median" <<<"$changed" && $mon report | grep -A1 "^REVIEWED CRITERIA CHANGED" | grep -qx "(none)" \
+  && ok "report names a reviewed criterion whose sub-bullet changed, and not once it is restored" || bad "report sub-bullet: $changed"
+$cri unreview DEL-1 --user >/dev/null; sub '/  - It holds for every toy run\./d'; $cri review DEL-1 --user >/dev/null
+python3 -c "import hashlib, re, sys; m = re.search(r'^- DEL-1: \*\*Reviewed [0-9-]*\*\* (.*) <!-- reviewed (\w+) -->$', open(sys.argv[1]).read(), re.M); sys.exit(m.group(2) != hashlib.sha256(m.group(1).encode()).hexdigest()[:8])" docs/wiki/Delivery.md \
+  && ok "a reviewed requirement with no sub-bullets keeps its old seal, the hash of its text alone" || bad "old seal: $(grep DEL-1 docs/wiki/Delivery.md)"
+git checkout -q -- docs/wiki/Delivery.md
 sub 's/^- DEL-1: \*\*Reviewed [0-9-]*\*\*/- DEL-1: **Unreviewed**/'
 sub 's/prints a median\./prints a mean./'
 $docs check | grep -q "^LOCKED" && bad "unreviewed criterion locked" || ok "after Unreviewed the wording may change"
@@ -224,8 +240,8 @@ $reg add del-1c --level nightly --command "true" --goal DEL-1 --describe "Given 
 $reg red del-1c --break "true" >/dev/null || true
 printf 'del-1c\tnightly\ttrue\tDEL-1\t2026-01-02\tGiven a short list, when the median is asked, then it is printed.\n' > .loop/regression.tsv
 $reg run del-1c >/dev/null || true; $cri render >/dev/null
-grep -q "^- .* — \[del-1c\](../../.loop/regression.tsv), requirement, guards DEL-1, nightly, PASS $day, seen failing 2026-01-02$" docs/wiki/Delivery.md && ok "a scenario line carries the test, when it runs, its result and seen failing" || bad "scenario line fields"
-grep -A4 "^#### DEL-1$" docs/wiki/Delivery.md | tr '\n' '~' | grep -q "^#### DEL-1~~The calculator prints a median.~~- Given a short list, when the median is asked, then it is printed. — \[del-1c\]" && ok "a row shows under its requirement as a Given/When/Then scenario" || bad "row shape"
+grep -qxF "| [del-1c](Tests#t-del-1c) | requirement | DEL-1 | Given a short list, when the median is asked, then it is printed. | PASS $day |" docs/wiki/Delivery.md && ok "a Tests row carries the test link, its Given/When/Then words and its result" || bad "scenario line fields"
+grep -qE "^\| <a id=\"t-del-1c\"></a>del-1c \| requirement \| DEL-1 \| PASS \| $day \| ([0-9a-f]{7}|local) \| 2026-01-02 \|$" docs/wiki/Tests.md && ok "the full Tests page carries the row's anchor, result, date, run and seen failing" || bad "row shape: $(cat docs/wiki/Tests.md)"
 
 
 echo "== criteria_max and the Usage section"
@@ -240,14 +256,14 @@ json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
 }
 usage_page() { # USAGE-BODY: Delivery with a Usage section between Problem and Requirements
-  printf '<!-- workflow-docs -->\n# Delivery\n\nReview: **Unreviewed**\n\n## Problem\n\nThe Delivery page of the toy calculator, written for this test.\n\n## Usage\n\n%s\n\n## Requirements\n\n%s\n\n## Non-goals\n\n- No other feature.\n\n## Success metrics\n\n- The toy run passes.\n\n## Tests\n\n' "$1" "$one" > docs/wiki/Delivery.md
+  printf '<!-- workflow-docs -->\n# Delivery\n\nReview: **Unreviewed**\n\n## Problem\n\n- I read the Delivery page of the toy calculator, written for this test.\n\n## Usage\n\n%s\n\n## Requirements\n\n### Functional\n\n%s\n  - It holds for every toy run.\n\n### Non-functional\n\nNone\n\n## Non-goals\n\n- No other feature.\n\n## Success metrics\n\n- The toy run passes.\n\n## Tests\n\n' "$1" "$one" > docs/wiki/Delivery.md
   $cri render >/dev/null
 }
 good; setmax unset
 $docs check | grep -q "DOCS OK" && ok "a page with no commands passes without a Usage section" || bad "no usage passes"
 page Delivery "$one
 - DEL-2: **Unreviewed** The calculator prints a mean."
-$docs check | grep -q "^CAP" && bad "default limit rejects two criteria" || ok "no criteria_max means 6"
+$docs check | grep -q "^CAP" && bad "default limit rejects two criteria" || ok "no criteria_max means 10"
 setmax 1
 $docs check | grep -q "^CAP Delivery: has 2 requirements, over the limit of 1 (criteria_max in .loop/config.json)" && ok "criteria_max 1 fails a page of two" || bad "cap 1"
 python3 "$here/skills/workflow-health/scripts/health.py" check 2>&1 | grep -q "FAIL.*cap" && ok "health fails the same page" || bad "health cap"
@@ -257,17 +273,18 @@ setmax true
 $docs check 2>&1 | grep -q "REFUSED: criteria_max is True" && ok "a true criteria_max refuses" || bad "bool cap"
 setmax unset; good
 mkdir -p skills/toy; printf '## Command map\n\n| Ask | Runs |\n|---|---|\n| `/toy median` | `python3 scripts/calc.py median` |\n' > skills/toy/SKILL.md
-usage_page '- `/toy median 1 2 3` prints the median of the numbers given.
-- "print the median of 1 2 3" does the same in plain words.'
-$docs check | grep -q "DOCS OK" && ok "a Usage of agent requests passes" || bad "usage passes"
-usage_page '- `calc.py median` prints the median.'
-$docs check | grep -q "^USAGE Delivery: .calc.py median. names a script" && ok "a Usage naming a .py file fails" || bad "usage py"
-usage_page '- `run.sh` runs it.'
-$docs check | grep -q "^USAGE Delivery: .run.sh. names a script" && ok "a Usage naming a .sh file fails" || bad "usage sh"
-usage_page '- `python3 calc.py median` prints the median.'
-$docs check | grep -q "^USAGE Delivery: .python3 calc.py median. names a script" && ok "a python command in Usage fails" || bad "usage python"
-usage_page '- `/toy nosuch` does nothing.'
-$docs check | grep -q "^USAGE Delivery: .*/toy nosuch. is not in the Command map" && ok "a verb missing from the Command map fails" || bad "usage verb"
+usage_page '- `/toy median 1 2 3` — Prints the median of the numbers given (`2`). Refuses nothing.'
+$docs check | grep -q "DOCS OK" && ok "a Usage of API entries passes" || bad "usage passes: $($docs check)"
+usage_page '- `calc.py median LIST` — Prints the median (`2`). Refuses an empty list (exit 1).'
+$docs check | grep -q "DOCS OK" && ok "a Usage entry naming a routine from the Command map passes" || bad "usage routine"
+usage_page '- `/toy median 1 2 3` — Works it out.'
+$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 each entry says what it prints" && ok "a Usage entry that says nothing printed fails" || bad "usage prints"
+usage_page 'It prints the median.'
+$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 only .- .syntax. — what it does. entries" && ok "a prose Usage line fails" || bad "usage prose"
+usage_page '- `other.py run` — Prints `x`.'
+$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map (got 'other.py run')" && ok "a routine missing from the Command map fails" || bad "usage routine missing"
+usage_page '- `/toy nosuch` — Prints `x`.'
+$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map (got '/toy nosuch')" && ok "a verb missing from the Command map fails" || bad "usage verb"
 usage_page ''
 $docs check | grep -q "^USAGE Delivery: has an empty Usage" && ok "an empty Usage section fails" || bad "empty usage"
 good; sed -i.bak 's/^## Problem/## Commands/' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak

@@ -43,10 +43,12 @@ python3 scripts/docs.py check [--base <ref>]
 
 | Line | Means | Fix |
 |---|---|---|
-| `STALE` | A commit touched a mapped path, and no commit to the page has it in its history. Merge commits don't count | Update the page. If it's still true, edit a line: only a commit that changes the page clears this |
+| `STALE` | A commit touched a mapped path, and no commit to the page has it in its history. Merge commits don't count; with `--base`, neither do base-branch commits merged in since it | Update the page. If it's still true, edit a line: only a commit that changes the page clears this |
 | `MISSING` | A mapped page has no file | Write it, or remove its row |
 | `UNWRITTEN` | The page still has its placeholder, or almost no text | Write it |
-| `UNMAPPED` | A page has no row in `.loop/docs.tsv` | Run `add` |
+| `UNMAPPED` | A page has no row in `.loop/docs.tsv` (the generated `Tests` page never needs one) | Run `add` |
+| `FORMAT` | With `"criteria": true`, a page breaks a shape rule of `references/template.md` (DOC-4 Home, DOC-5 README front door, DOC-6 Usage, DOC-7 Requirements, DOC-8 Problem, DOC-9 Tests), printed as `FORMAT <Page>:<line>: <Section>: DOC-n <what> (got <value>). Fix: <how>`; the sheet's `format` key picks the rules | Do what the Fix says |
+| `STALE Tests` | The generated `docs/wiki/Tests.md` differs from a fresh render; the line names the first difference | Run `/workflow-docs render` |
 | `COUNT` | The README, a wiki page or a top-level doc in `skills/` states a count of skills, feature pages, or a feature page's criteria or tests that the repo doesn't match; all but skills need `"criteria": true`. A feature page's tests count includes its defect tests. One word may sit between number and noun only if it means all of them ("eight workflow-ready skills"); "N defect tests" is checked against the defect tests. Skipped: the word "one", a limit ("up to 6"), a part or label ("two delivery skills"), fenced and indented code and comments as Markdown renders them, a line naming one of the page's own criteria, the criteria and tests counts on a line naming another page's criterion, and a line marked `<!-- not-a-count -->`; a code fence that never closes is itself a `COUNT` line. Wrapped lines are read as one paragraph. `publish` refuses only on wiki pages | Correct the number |
 
 Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to
@@ -70,7 +72,8 @@ release step runs it on every goal. It never deletes a page or edits a criterion
 ## `criteria`: the PRD page
 
 With `"criteria": true` in `.loop/config.json`, every feature page (each page in `.loop/docs.tsv` but Home, which is
-free-form) is a short PRD and `check` enforces it, from the rules block of `references/template.md`:
+free-form, and a guide: a how-to page with the line `<!-- workflow-docs guide -->` under the marker, kept fresh but
+with no PRD, Home row or README section, and not stale on a `.loop/config.json` change) is a short PRD and `check` enforces it, from the rules block of `references/template.md`:
 
 the title, `Milestone:` and `Review:` lines, then `## Problem`, `## Usage` (optional), `## Requirements` (up to
 `criteria_max` lines like `- DEL-3: **Unreviewed** what must hold`; take the next free id from `criteria PAGE`, never
@@ -84,6 +87,9 @@ python3 scripts/criteria.py review <PAGE|ID> [...] --user [--date YYYY-MM-DD]
 python3 scripts/criteria.py unreview <PAGE|ID> [...] --user
 python3 scripts/criteria.py render [--check]
 ```
+
+Run from a session with no terminal, `review` and `unreview` refuse `--user` unless `LOOP_OWNER_WORDS` holds the
+owner's own message that said to, quoted exactly; each change is logged with those words in `.git/loop/reviews.tsv`.
 
 An argument like `DEL-3` is a requirement; any other is a page. Every argument is checked before anything is written.
 `review PAGE` locks the PRD: after it, an edit shows as `LOCKED` or `CHANGED`; `references/commands.md` (Review

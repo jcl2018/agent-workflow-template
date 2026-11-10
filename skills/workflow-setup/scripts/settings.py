@@ -39,7 +39,7 @@ TABLE = [
     ("digest_owner", REPO, "", "Who the digest comment mentions; empty means the repo owner (an organisation notifies no one)."),
     ("review_depth", REPO, "full", "full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run."),
     ("criteria", REPO, True, "true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests)."),
-    ("criteria_max", REPO, 6, "Most criteria a wiki page may hold, 1 to 50; docs check and health fail a page over it."),
+    ("criteria_max", REPO, 10, "Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it."),
     ("wiki_dir", REPO, "docs/wiki", "The folder of wiki pages."),
     ("risky_paths", REPO, RISKY, "Regexes for paths whose goals need extra care."),
     ("step_limit", REPO, 0, "Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit."),
@@ -126,9 +126,9 @@ def check_depth(held, path):
 
 
 def repo_help(held):
-    """The config's _help map: review_depth's one-line explanation added when missing, anything already there kept."""
+    """The config's _help map: review_depth's and criteria_max's explanations added when missing, the rest kept."""
     found = held.get("_help") if isinstance(held.get("_help"), dict) else {}
-    return dict({"review_depth": next(t for k, _, _, t in TABLE if k == "review_depth")}, **found)
+    return dict({k: t for k, _, _, t in TABLE if k in ("review_depth", "criteria_max")}, **found)
 
 
 def private_path():
@@ -186,7 +186,7 @@ def main():
         held = load(path)
         if "criteria_max" in held and (isinstance(held["criteria_max"], bool) or not isinstance(held["criteria_max"], int)
                                        or not 1 <= held["criteria_max"] <= 50):
-            sys.exit("REFUSED: criteria_max is %r in %s. Fix: a whole number from 1 to 50." % (held["criteria_max"], path))
+            sys.exit("REFUSED: criteria_max is %r in %s. Fix: a whole number from 1 to 50 (default 10)." % (held["criteria_max"], path))
         check_depth(held, path)
         added = [k for k in repo_defaults() if k not in held]
         merged = dict(repo_defaults(), **held)

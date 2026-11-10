@@ -3,6 +3,7 @@
 # Issue 93: an overrunning step moves time left and the finish time, and no board line passes 60 characters. A made-up repo with
 # one done run (idea 10m, build 30m) and one running run on build, sampled twice. No model is called. usage: test-board-estimates.sh [DIR]
 set -u
+unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 unset LOOP_ROLE
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"

@@ -24,7 +24,7 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `digest_owner` | `(empty)` | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). |
 | `review_depth` | `full` | full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run. |
 | `criteria` | `true` | true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests). |
-| `criteria_max` | `6` | Most criteria a wiki page may hold, 1 to 50; docs check and health fail a page over it. |
+| `criteria_max` | `10` | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. |
 | `wiki_dir` | `docs/wiki` | The folder of wiki pages. |
 | `risky_paths` | `["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]` | Regexes for paths whose goals need extra care. |
 | `step_limit` | `0` | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. |

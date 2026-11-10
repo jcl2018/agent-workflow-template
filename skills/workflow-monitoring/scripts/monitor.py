@@ -12,6 +12,7 @@ import argparse
 import datetime
 import hashlib
 import html
+import itertools
 import json
 import os
 import re
@@ -184,9 +185,12 @@ def returned():
     found = []
     for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
         with open(os.path.join(folder, name)) as handle:
-            for match in filter(None, map(CRITERION.match, handle.read().splitlines())):
+            lines = handle.read().splitlines()
+        for number, match in [(n, CRITERION.match(line)) for n, line in enumerate(lines)]:
+            if match:  # the seal covers the text and its indented sub-bullets, as criteria.py's seal_of
                 key, stage, text, mark = match.groups()
-                if stage != "Unreviewed" and mark != hashlib.sha256(text.encode()).hexdigest()[:8]:
+                below = [x.rstrip() for x in itertools.takewhile(lambda x: x.strip() and x[:1].isspace(), lines[number + 1:])]
+                if stage != "Unreviewed" and mark != hashlib.sha256("\n".join([text] + below).encode()).hexdigest()[:8]:
                     found.append((key, name[:-3], text))
     return found
 
