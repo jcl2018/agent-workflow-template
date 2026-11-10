@@ -1,7 +1,7 @@
 # The scheduled regression and health rounds file every issue on its feature's milestone and email the owner one digest per round (owner, 2026-11-10: "apply your recommended")
 
 - Slug: automation-email
-- Touches: skills/workflow-health, skills/workflow-regression, skills/workflow-setup, .github, .loop/config.json, .loop/regression.tsv, dev/toy, docs/wiki/Automation.md, .loop/docs.tsv, README.md
+- Touches: skills/workflow-health, skills/workflow-regression, skills/workflow-setup, .github, .loop/config.json, .loop/regression.tsv, dev/toy, docs/wiki/Automation.md, .loop/docs.tsv, README.md, listing.json
 
 ## Done lines
 
