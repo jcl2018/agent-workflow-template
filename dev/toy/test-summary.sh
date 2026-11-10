@@ -3,6 +3,7 @@
 # Test the regression run summary and the one test format on throwaway repos with a fake gh. usage: test-summary.sh
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR=$(mktemp -d)
 unset GH_TOKEN GITHUB_TOKEN GITHUB_STEP_SUMMARY GITHUB_ENV GITHUB_OUTPUT GITHUB_PATH GITHUB_STATE

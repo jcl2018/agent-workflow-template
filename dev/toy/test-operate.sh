@@ -15,6 +15,7 @@ set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE  # these tests act as the operation session; workers get LOOP_ROLE=worker where they need it
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 M="$here/skills/workflow-monitoring/scripts"; D="$here/skills/workflow-delivery/scripts"
 W="python3 $M/watch.py"; OP="python3 $M/operate.py"; BO="python3 $M/board.py"; BA="python3 $M/batch.py"
@@ -119,11 +120,11 @@ $OP send nosuch hi 2>&1 | grep -q "no run named nosuch" && ok "send refuses a go
 echo "== goal steps refuse outside a worker"
 for verb in "step c build" "record c idea --file x" "pr c"; do
   out=$(python3 "$D/goal.py" $verb 2>&1)
-  check "goal.py ${verb%% *} refuses, naming the worker command" '[ "$out" = "REFUSED: ${verb%% *} is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME" ]'
+  check "goal.py ${verb%% *} refuses, naming how to start or bind a worker" '[ "$out" = "REFUSED: ${verb%% *} is worker work. Fix: start a worker for c (batch.py start NAME), or bind a session (sessions.py bind c ID) and run it there as LOOP_ROLE=worker. (NOT_WORKER)" ]'
 done
 for step in idea plan review qa ship; do
   out=$(python3 "$D/flow.py" c $step 2>&1)
-  check "flow.py $step refuses, naming the worker command" '[ "$out" = "REFUSED: flow.py $step is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME" ]'
+  check "flow.py $step refuses, naming how to start or bind a worker" '[ "$out" = "REFUSED: flow.py $step is worker work. Fix: start a worker for c (batch.py start NAME), or bind a session (sessions.py bind c ID) and run it there as LOOP_ROLE=worker. (NOT_WORKER)" ]'
 done
 check "a worker is not refused" 'env LOOP_ROLE=worker python3 "$D/goal.py" step nosuch build 2>&1 | grep -q "no goal named nosuch"'
 

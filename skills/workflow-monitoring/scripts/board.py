@@ -185,6 +185,11 @@ def collect(name, path, base, at):
     for run in records:
         begun, last = started(run), stamp(run.get("updated"))
         note = run.get("note") or {}
+        extra = read_json(os.path.join(folder, run["slug"] + ".extra.json"))  # what only operation commands add
+        extra = extra if isinstance(extra, dict) else {}
+        found = [f for f in extra.get("findings") or [] if isinstance(f, dict)]
+        if found and run.get("status") in ("done", "merged"):
+            note = {"text": "finding after %s: %s" % (run["status"], found[-1].get("text", ""))}
         quiet = bool(not run.get("pid") and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET)
         pr = clean(run.get("pr"))
         get = lambda field, size=300: clean(run.get(field), size)
@@ -197,7 +202,7 @@ def collect(name, path, base, at):
             "waiting": run.get("waiting") if isinstance(run.get("waiting"), dict) else None, "finding": get("finding", 200),
             "elapsed": (at - begun).total_seconds() if begun else 0, "age": span((at - begun).total_seconds()) if begun else "0m",
             "took": (last - begun).total_seconds() if begun and last else 0, "last": run.get("updated") or "",
-            "waits_on": ", ".join(run.get("waits_on") or []), "touches": run.get("touches") or [],
+            "waits_on": ", ".join(run.get("waits_on") or []), "touches": list(dict.fromkeys(list(run.get("touches") or []) + list(extra.get("touches") or []))),
             "merged": graph.merged(run), "left": board_status and board_status.left_time(run, records, at),
             "eta": get("eta"), "next": get("next"), "branch": get("branch"), "reason": clean((run.get("retired") or {}).get("reason"))})
     by_slug = {r["slug"]: r for r in records}

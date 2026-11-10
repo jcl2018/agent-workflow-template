@@ -7,8 +7,9 @@ unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a rea
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 unset LOOP_BATCH
 here=$(cd "$(dirname "$0")/../.." && pwd); id=${1:?usage: test-rows.sh ID}
+. "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
-d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
+d=$(mktemp -d); toy_on_exit 'rm -rf "$d"'
 "$here/dev/toy/make.sh" "$d/toy" >/dev/null || exit 1
 export LOOP_FLOW="$d/toy/flow.json"
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
@@ -50,7 +51,7 @@ case "$id" in
     FAKE_SKILL_OUT='PENDING: approve the plan\nDEPTH: full\nSTEP: done' $F held plan --wait 5 >/dev/null; FAKE_SKILL_OUT='x' $F held plan --wait 10 >/dev/null
     $goal record held plan --file "$R/held.plan.txt" | grep -q "^WAITING held" || no "a pending decision didn't wait"
     python3 -c "import json,sys;s=json.load(open(sys.argv[1]));assert s['status']=='waiting' and s['flow']['plan']=='pending'" "$R/held.json" || no "pending was approved"
-    $goal pr held 2>&1 | grep -q "the flow hasn't finished: idea, plan" || no "pr went on with a decision pending";;
+    $goal pr held 2>&1 | grep -q "held waits for the owner: .*(WAITING_OWNER)" || no "pr went on with a decision pending";;
   DEL-10)
     mkdir -p "$d/bin"
     printf '#!/bin/bash\n[ "$GH_PROMPT_DISABLED" = 1 ] || { read -r _; echo prompted >> "%s/prompted"; }\nexit 1\n' "$d" > "$d/bin/gh"; chmod +x "$d/bin/gh"

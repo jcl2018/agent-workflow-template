@@ -4,7 +4,8 @@
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd); only=${1:-}
-d=$(mktemp -d); trap 'rm -rf "$d"' EXIT
+. "$here/dev/toy/reap.sh"
+d=$(mktemp -d); toy_on_exit 'rm -rf "$d"'
 no() { echo "FAIL ${only:-adopt}: $1"; exit 1; }
 want() { [ -z "$only" ] || [ "$only" = "$1" ]; }
 setup="python3 $here/skills/workflow-setup/scripts/setup.py"

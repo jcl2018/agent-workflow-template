@@ -1,5 +1,49 @@
 # Changelog
 
+## v0.21.1 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- dev/toy: every toy test reaps the processes it started (issue 100)
+- dev/toy: defect test for issue 100, no toy test leaves a process running
+- regression: toy-no-leftovers seen red 2026-11-09 (reaper stubbed out)
+- dev/toy: reaper judges a hidden-env process by its nearest known ancestor
+- Merge origin/main (review-depth, v0.12.1) into loop/toy-cleanup: both regression rows kept, test-review-depth.sh sources reap.sh
+- fix(qa): sweep stops a dead test's system-binary child; reap.py rejects bad options
+- Merge origin/main (board-estimates and earlier) into loop/toy-cleanup: both rows kept, the 8 new toy tests source reap.sh, test-narrow uses toy_on_exit
+- test-no-leftovers.sh declares # reads: dev/toy/ (main's lanes header rule)
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- Merge remote-tracking branch 'origin/main' into loop/toy-cleanup
+- test-automation.sh (new on main) sources reap.sh
+- Merge origin/main (loop-guards, v0.21.0) into loop/toy-cleanup: both rows kept, test-guards.sh sources reap.sh
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.21.0 - 2026-11-10
+
+- loop-guards: guards.py (rules per step start, no-try refusals, resume, touches, finished findings), worker refusal text, bind worktree/--cwd, pool lock, toy test
+- loop-guards: regression rows (7, seen red), wiki Usage and Tests, Monitoring commands, goal Closes and verify steps
+- loop-guards: review fixes (pool release locked, resume rechecks after reserve, exact undo, worker cwd always checked, null rules_at, marker rule gate, pr commits a synced goal file, exit 2 for no-try refusals, 10 refusals wait for the owner, touches path chars, slug check)
+- loop-guards: review cycle 2 (resume reserves and saves under the pool lock; bind saves inside it; pr checks waiting first; the qa lane refusal counts as a refusal)
+- loop-guards: qa fix: answer clears the refusal count after the owner wait
+- loop-guards: listing declares reserve (and touches); DEL-3 row expects the waiting gate pr now checks first
+- Merge remote-tracking branch 'origin/main' into loop/loop-guards
+- Wiki: update pages for loop-guards
+
+### How to verify
+
+1. In a toy repo (`bash dev/toy/test-guards.sh /tmp/guards g2` builds one and leaves it), record a step whose reply has no
+   DEPTH line: `LOOP_ROLE=worker python3 skills/workflow-delivery/scripts/goal.py record <slug> plan --file reply.txt --in-session`.
+   Expect: `REFUSED (no try used): plan refused: no DEPTH line (rule depth-line, added in v0.12.1)`, exit 2, and the
+   goal still running with tries 0 (`goal.py show <slug>`).
+2. Mark a session goal stopped, then run `python3 skills/workflow-delivery/scripts/goal.py resume <slug> --why "check"` from the main checkout.
+   Expect: `RESUMED <slug> at <step>`, status running, tries 0, and `resumed by operation session: check` in its log.
+3. Run `python3 skills/workflow-delivery/scripts/goal.py record <slug> idea --file x` without LOOP_ROLE.
+   Expect: a `REFUSED` line naming the goal's session, its worktree and `LOOP_ROLE=worker python3 .../goal.py record <slug> idea --file x`.
+4. Run `python3 skills/workflow-monitoring/scripts/sessions.py bind <slug> <id> --cwd /tmp`.
+   Expect: `REFUSED: session folder /tmp is outside the goal worktree ... (CWD_OUTSIDE)`; without `--cwd`, a `WORKTREE <slug>: <path>` line.
+
 ## v0.20.0 - 2026-11-10
 
 - feat: scheduled health and digest (automation.py), regression routine switch and defect labels, Automation PRD page, REG-4/5 reworded
