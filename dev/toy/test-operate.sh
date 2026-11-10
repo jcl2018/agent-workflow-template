@@ -119,11 +119,11 @@ $OP send nosuch hi 2>&1 | grep -q "no run named nosuch" && ok "send refuses a go
 echo "== goal steps refuse outside a worker"
 for verb in "step c build" "record c idea --file x" "pr c"; do
   out=$(python3 "$D/goal.py" $verb 2>&1)
-  check "goal.py ${verb%% *} refuses, naming the worker command" '[ "$out" = "REFUSED: ${verb%% *} is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME" ]'
+  check "goal.py ${verb%% *} refuses, naming how to start or bind a worker" '[ "$out" = "REFUSED: ${verb%% *} is worker work. Fix: start a worker for c (batch.py start NAME), or bind a session (sessions.py bind c ID) and run it there as LOOP_ROLE=worker. (NOT_WORKER)" ]'
 done
 for step in idea plan review qa ship; do
   out=$(python3 "$D/flow.py" c $step 2>&1)
-  check "flow.py $step refuses, naming the worker command" '[ "$out" = "REFUSED: flow.py $step is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME" ]'
+  check "flow.py $step refuses, naming how to start or bind a worker" '[ "$out" = "REFUSED: flow.py $step is worker work. Fix: start a worker for c (batch.py start NAME), or bind a session (sessions.py bind c ID) and run it there as LOOP_ROLE=worker. (NOT_WORKER)" ]'
 done
 check "a worker is not refused" 'env LOOP_ROLE=worker python3 "$D/goal.py" step nosuch build 2>&1 | grep -q "no goal named nosuch"'
 

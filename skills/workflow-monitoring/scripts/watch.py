@@ -262,6 +262,16 @@ def launch(state, prompt, cfg):
     save(state, "launched agent pid %d" % child.pid)
 
 
+def known_rules():
+    """The format rules a goal's first step starts under, from workflow-delivery's guards.py (a CLI, not an import)."""
+    tool = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-delivery", "scripts", "guards.py")
+    done = subprocess.run([sys.executable, tool, "known"], capture_output=True, text=True)
+    try:
+        return json.loads(done.stdout) if done.returncode == 0 else None
+    except ValueError:
+        return None
+
+
 def freeze(goal, cfg):
     slug, base = goal["slug"], cfg.get("base", "main")
     branch = "loop/" + slug
@@ -271,7 +281,7 @@ def freeze(goal, cfg):
              "branch": branch, "worktree": tree, "touches": goal["touches"], "pid": None, "pr": "", "batch": True,
              "done_sha": hashlib.sha256("\n".join(lines).encode()).hexdigest(),
              "release": goal.get("release", ""), "waiting": None, "finding": "", "log": [],
-             "waits_on": goal["depends"]}
+             "waits_on": goal["depends"], "rules_at": {"idea": known_rules()}}
     save(state, "queued")
     if git("rev-parse", "--verify", "--quiet", "refs/heads/" + branch, check=False):
         git("worktree", "add", tree, branch)
