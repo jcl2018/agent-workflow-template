@@ -6,6 +6,7 @@
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_ROLE
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=$(mktemp -d)
 export HOME="$T/home" LOOP_BOARD_HEALTH=green PYTHONDONTWRITEBYTECODE=1 PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh"
 mkdir -p "$HOME" "$T/gh"
