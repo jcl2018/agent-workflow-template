@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/workflow-monitoring/scripts/ skills/workflow-setup/scripts/setup.py
 # Proves issues 102 and 108 with a made-up repo and a stand-in session pool: the live board takes the latest session
 # report for the next line, lists held goals under Queued goals marked held, shows a goal handed to a session before it
 # is frozen as [freezing], keeps an off-flow step at the last flow step, and counts tries; sessions.py binds before
