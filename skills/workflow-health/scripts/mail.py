@@ -4,13 +4,10 @@
 usage: mail.py send   mail this run's digest comment (the Email the digest step; GH_TOKEN and DIGEST_RUN set)
        mail.py test   send one fixed test mail through the configured sender (the Mail test workflow)
 
-digest_mail in .loop/config.json picks the sender: cloudflare (default; Cloudflare Email Service's REST send API), smtp
-(smtp_host, default smtp.gmail.com, and smtp_port, 465 or 587) or off. The address and keys come only from the secrets
-DIGEST_TO, DIGEST_FROM, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_EMAIL_TOKEN, DIGEST_SMTP_USER, DIGEST_SMTP_PASSWORD; no line
-this prints ever holds their values. With no mail secret set at all, send says so and writes nothing (exit 0); with
-some but not all, it names the missing ones (exit 1). The mail is the comment by github-actions[bot] whose marker says
-run=DIGEST_RUN; the comment's marker gains `mailing` before the send and `mailed` after it, so no rerun sends twice.
-Every outcome is one `MAIL:` line ending in a code, also written to the run summary.
+digest_mail in .loop/config.json picks the sender: cloudflare (default, the REST send API), smtp (smtp_host, smtp_port
+465 or 587) or off. The address and keys come only from secrets (ALL below), and no printed line holds their values.
+The comment's marker gains `mailing` before the send and `mailed` after it, so no rerun sends twice. Every outcome is
+one `MAIL:` line ending in a code, also written to the run summary; codes and fixes are on the Automation wiki page.
 """
 import argparse
 import http.client
@@ -36,7 +33,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mail_render  # noqa: E402
 import rounds  # noqa: E402
 
-# Cloudflare Email Service REST API (its docs: Email Service, Send emails, REST API), read 2026-11-10:
+# Cloudflare Email REST API, read 2026-11-10:
 CF_API = "https://api.cloudflare.com/client/v4"
 CF_PATH = "/accounts/%s/email/sending/send"  # POST {to, from, subject, text, html}, Authorization: Bearer <token>
 CF_RETRY = (429, 503)  # 10004 throttled, 10100 auth upstream: the mail was not accepted, so one retry is safe
@@ -60,9 +57,10 @@ def say(text, code):
 
 
 def scrub(text):
-    """Every secret value and the owner's address (with its local part), case-insensitively, become ***."""
+    """Every secret value (raw, stripped or escaped) and the owner's address and local part become ***, any case."""
     out = str(text)
-    values = [os.environ.get(name) or "" for name in ALL]
+    raw = [os.environ.get(name) or "" for name in ALL]
+    values = [v.strip() for v in raw] + raw + [v.encode("unicode_escape").decode() for v in raw]
     owner = values[0].split("@")[0] if "@" in values[0] else ""  # the owner's address alone: its local part too
     values += [owner] if len(owner) > 3 else []
     for value in sorted(set(v for v in values if len(v) > 2), key=len, reverse=True):
@@ -114,7 +112,12 @@ def secrets(mode, test):
     need = ADDR + SENDERS[mode]
     missing = [name for name in need if not os.environ.get(name)]
     if not missing:
-        return {name: os.environ[name] for name in need}
+        keys = {name: os.environ[name].strip() for name in need}  # a trailing newline is fine
+        bad = [name for name in need if re.search(r"\s", keys[name])]
+        if bad:
+            raise Stop("MAIL_SECRETS", "%snot sent: %s holds a space or line break; nothing was written. Fix: %s"
+                       % ("test " if test else "", ", ".join(bad), FIX_SECRETS % "; ".join("gh secret set " + n for n in bad)))
+        return keys
     if not any(os.environ.get(name) for name in ALL) and not test:
         raise Stop("MAIL_NOT_SET_UP", "not set up: no mail secret is set, so nothing was sent or written. Fix: to get the "
                    "round's mail, " + FIX_SECRETS % "; ".join("gh secret set " + n for n in need), status=0)
@@ -145,6 +148,8 @@ def send_cloudflare(keys, subject, text, page, api):
         if isinstance(err.reason, (ConnectionRefusedError, socket.gaierror)):  # no connection: nothing reached Cloudflare
             return "retry", "couldn't connect: %s" % type(err.reason).__name__
         return "unknown", "the connection failed while sending (%s)" % type(err.reason).__name__
+    except (ValueError, http.client.InvalidURL) as err:  # a bad header or URL: no connection made
+        return "refused", "the request couldn't be built (%s)" % type(err).__name__
     except (OSError, http.client.HTTPException) as err:  # a timeout or reset after the request went out
         return "unknown", "%s after the request was sent" % type(err).__name__
     try:
@@ -226,7 +231,7 @@ def cmd_test(args):
                    ".loop/config.json, then run the Mail test workflow again")
     keys = secrets(mode, True)
     repo = os.environ.get("GITHUB_REPOSITORY") or "this repo"
-    text = "This is a test of the Automation digest mail for %s. The round's mail will look like the digest comment.\n" % repo
+    text = "A test of the Automation digest mail for %s. Each round's mail carries its digest comment.\n" % repo
     outcome, detail, retried = deliver(mode, keys, "Automation digest: test from %s" % repo, text, mail_render.to_html(text),
                                        (host, port, wait, api))
     if outcome != "ok":
@@ -265,11 +270,14 @@ def cmd_send(args):
         raise Stop("MAIL_UNKNOWN", "a mail for run %s may already have been sent: an earlier attempt stopped after sending "
                    "began (side effects: unknown). Fix: check your inbox for \"Automation digest\"; if none arrived, delete "
                    "the word mailing from the last line of %s and rerun this job" % (run, comment["url"]))
+    subject, text, page = mail_render.message(comment["body"], os.environ.get("GITHUB_REPOSITORY") or "this repo")
     if not rounds.save_comment(comment["id"], rounds.with_marker(comment["body"], state, {"mailing"})):
         raise Stop("MAIL_MARK", "couldn't mark run %s as sending on %s, so nothing was sent. Fix: rerun this job (safe: "
                    "nothing was sent)" % (run, comment["url"]))
-    subject, text, page = mail_render.message(comment["body"], os.environ.get("GITHUB_REPOSITORY") or "this repo")
-    outcome, detail, retried = deliver(mode, keys, subject, text, page, (host, port, wait, api))
+    try:
+        outcome, detail, retried = deliver(mode, keys, subject, text, page, (host, port, wait, api))
+    except Exception as err:  # noqa: BLE001 - unexpected, maybe mid-send: keep mailing
+        outcome, detail, retried = "unknown", "%s while sending" % type(err).__name__, 0
     if outcome == "refused":
         if not rounds.save_comment(comment["id"], rounds.with_marker(comment["body"], state, set())):
             raise Stop("MAIL_CLEAR_FAILED", "refused (%s) and couldn't clear the sending mark on %s. Fix: delete the word "

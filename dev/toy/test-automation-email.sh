@@ -289,6 +289,25 @@ sys.argv = ['mail.py', 'send', '--root', '$r']; import os; os.environ['DIGEST_RU
 sys.exit(mail.main())" 2>&1); rc=$?
   [ $rc = 1 ] && grep -q "(MAIL_FAILED)" <<<"$out" && grep -q "mail.py:[0-9]* in cmd_send" <<<"$out" && ! grep -q "Traceback" <<<"$out" && ! grep -qi "$ADDR" <<<"$out" \
     && ok "an unexpected error prints one scrubbed line with its frame, never a traceback" || bad "crash line"
+  # Value: protects=a token saved with a trailing newline neither leaks nor blocks the mail; fails_when=secrets() stops stripping or scrub() misses the escaped form; why_new=every fixture token had no newline; seam=none; no_claim=GitHub's own log masking
+  reset; rm -f "$G/comments.json"; comment 201
+  out=$(cf_env CLOUDFLARE_EMAIL_TOKEN="$TOKEN"$'\n' GITHUB_STEP_SUMMARY=$r/sum.md DIGEST_RUN=201 $mail send 2>&1); rc=$?
+  [ $rc = 0 ] && grep -q "(MAIL_SENT)" <<<"$out" && grep -q "\"auth\": \"Bearer $TOKEN\"" "$G/cf_requests.log" && ! grep -q "$TOKEN" <<<"$out" && ! grep -q "$TOKEN" "$r/sum.md" \
+    && ok "a token saved with a trailing newline is trimmed, sends, and is never printed" || bad "newline token"
+  reset; rm -f "$G/comments.json"; comment 201
+  out=$(cf_env CLOUDFLARE_ACCOUNT_ID="acct 123" DIGEST_RUN=201 $mail send 2>&1); rc=$?
+  [ $rc = 1 ] && grep -q "CLOUDFLARE_ACCOUNT_ID holds a space or line break" <<<"$out" && [ "$(cfreq)" = 0 ] && ! flags_of 0 | grep -q mailing \
+    && ok "a secret with a space inside is refused by name before anything is marked or sent" || bad "space secret"
+  # Value: protects=an unexpected error during the send keeps the round marked mailing and says how to recover; fails_when=the crash goes to the generic MAIL_FAILED 'rerun' advice; why_new=no test crashed inside deliver; seam=none; no_claim=which errors happen in production
+  reset; rm -f "$G/comments.json"; comment 201
+  out=$(cd "$S" && cf_env python3 -B -c "
+import sys, os, mail
+def boom(*a): raise RuntimeError('boom')
+mail.deliver = boom
+sys.argv = ['mail.py', 'send', '--root', '$r']; os.environ['DIGEST_RUN'] = '201'
+sys.exit(mail.main())" 2>&1); rc=$?
+  [ $rc = 1 ] && grep -q "(MAIL_UNKNOWN)" <<<"$out" && grep -q "delete the word mailing" <<<"$out" && flags_of 0 | grep -q " mailing -->" \
+    && ok "an error inside the send keeps the round marked mailing and gives the recovery steps" || bad "crash in send"
   for code in $(grep -o '"MAIL_[A-Z_]*"' "$S/mail.py" | tr -d '"' | sort -u); do grep -q "$code" "$here/docs/wiki/Automation.md" || { bads=2; echo "missing $code"; }; done
   [ "$bads" != 2 ] && ok "every MAIL code is in the wiki's troubleshooting table" || bad "codes documented"
 fi
@@ -354,6 +373,16 @@ print('tls', answer(tls)); print('timeout', answer(slow)); print('bounce', answe
   grep -q "^quit ok$" <<<"$out" && ok "an SMTP error at QUIT after the server took the message counts as sent" || bad "smtp quit"
   grep -q "^tls refused$" <<<"$out" && grep -q "^timeout unknown$" <<<"$out" && grep -q "^bounce refused$" <<<"$out" \
     && ok "Cloudflare: a TLS failure is refused, a timeout after sending is unknown, a permanent bounce is refused" || bad "cloudflare outcomes"
+  out=$(cd "$S" && python3 -B -c "
+import http.client, urllib.request, mail
+keys = {'DIGEST_TO': 'a@b.test', 'DIGEST_FROM': 'c@d.test', 'CLOUDFLARE_ACCOUNT_ID': 'x', 'CLOUDFLARE_EMAIL_TOKEN': 't'}
+def bad_url(*a, **k): raise http.client.InvalidURL('control character in URL')
+def bad_header(*a, **k): raise ValueError('Invalid header value')
+for fn in (bad_url, bad_header):
+    urllib.request.urlopen = fn
+    print(mail.send_cloudflare(keys, 's', 't', '<p/>', 'https://api.example.test')[0])
+")
+  [ "$(tr '\n' ' ' <<<"$out")" = "refused refused " ] && ok "a request that can't be built (bad URL or header) is refused, not unknown" || bad "unbuildable request"
   cfg '{"digest_mail": "cloudflare", "smtp_port": 25}'; out=$(cd "$S" && python3 -B -c "import mail; print(mail.settings('$r')[0])" 2>&1)
   cfg '{"digest_mail": "smtp", "smtp_port": "587"}'; out2=$(cd "$S" && python3 -B -c "import mail; print(mail.settings('$r')[2])" 2>&1); cfg '{"digest_mail": "cloudflare"}'
   [ "$out" = cloudflare ] && [ "$out2" = 587 ] && ok "smtp_port is checked only when smtp sends, and a quoted port is read as a number" || bad "smtp settings"
@@ -601,6 +630,25 @@ print(sorted((a['kind'], a.get('milestone')) for a in acts))
 " ) > "$G/blind.out" 2>&1
   grep -q "('open', 'Health'), ('update', 'Automation')" "$G/blind.out" && ! grep -q "'move'" "$G/blind.out" && ! grep -q "Backlog" "$G/blind.out" \
     && ok "when milestones can't be read a finding keeps its feature and no issue is moved" || bad "health blind"
+  # Value: protects=a finding is still filed when milestones can't be read and its feature milestone doesn't exist; fails_when=the create with --milestone fails and nothing retries; why_new=the regression filer has this, health didn't; seam=none; no_claim=gh's real error text
+  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
+import file, subprocess
+real, seen = file.run, []
+def run(args, root):
+    seen.append(args)
+    if args[:2] == ['api', '--paginate'] and any('milestones' in a for a in args):
+        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
+    if args[:2] == ['issue', 'create'] and '--milestone' in args:
+        return subprocess.CompletedProcess(args, 1, '', 'milestone not found')
+    return real(args, root)
+file.run = run
+row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/rounds.py', rule='limit', detail='big', fix='')
+acts = file.plan([row], {}, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
+made = [a for a in seen if a[:2] == ['issue', 'create']]
+print(len(made), '--milestone' in made[-1], 'placed= -->' in made[-1][made[-1].index('--body') + 1])
+" ) > "$G/blind2.out" 2>&1
+  grep -q "^2 False True$" "$G/blind2.out" && grep -q "^DONE open issue" "$G/blind2.out" \
+    && ok "when milestones can't be read and the feature has none, the finding is still filed, on no milestone" || bad "health blind create"
   rm -f .loop/docs.tsv; unset FAKE_GH_DIR
 fi
 

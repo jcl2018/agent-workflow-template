@@ -238,6 +238,10 @@ def apply(acts, root, groups):
         if act["kind"] in ("open", "move") and not act.get("milestone"):
             args = args[:args.index("--milestone")] + args[args.index("--milestone") + 2:]
         done = run(args, root) if args[:2] != ["issue", "edit"] or len(args) > 3 else subprocess.CompletedProcess(args, 0, "", "")
+        if done.returncode and miles is None and act["kind"] == "open" and act.get("milestone"):  # placed by title, unmade
+            act = dict(act, milestone="", body=re.sub(r" placed=\S* -->", " placed= -->", act["body"], count=1))
+            args = args_of(act)
+            done = run(args[:args.index("--milestone")] + args[args.index("--milestone") + 2:], root)
         if not done.returncode and closed:
             number = act.get("number") or (re.findall(r"/issues/(\d+)", done.stdout) or [""])[-1]
             done = run(["api", "-X", "PATCH", "repos/{owner}/{repo}/issues/%s" % number, "-F", "milestone=%s" % closed], root)

@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/10
 
-Review: **Reviewed 2026-11-10** <!-- prd P=9fba2846 R=f97d5503 N=d6d10cdd M=dad3088c U=ca0bc119 -->
+Review: **Reviewed 2026-11-10** <!-- prd P=9fba2846 R=f97d5503 N=d6d10cdd M=dad3088c U=bb1a6253 -->
 
 ## Problem
 
@@ -38,7 +38,7 @@ The address and keys live only in those secrets: the digest step gets three true
 | `MAIL_ALREADY` | This round's mail went out before (a rerun) | Nothing |
 | `MAIL_OFF` | `digest_mail` is off (the test fails on it) | Set `digest_mail` to cloudflare or smtp to mail |
 | `MAIL_NOT_SET_UP` | No mail secret is set, so nothing was sent or written | Follow the quickstart to get mail |
-| `MAIL_SECRETS` | Some secrets are set and some are missing (named) | `gh secret set NAME` for each, then rerun |
+| `MAIL_SECRETS` | Some secrets are set and some are missing, or one holds a space or line break inside (named) | `gh secret set NAME` for each, then rerun |
 | `MAIL_SETTING` | A bad `digest_mail`, `smtp_port` or test setting | Fix `.loop/config.json` as the line says |
 | `MAIL_TEST_URL` | A test-only server address was set outside a test | Unset `DIGEST_MAIL_API` |
 | `MAIL_STALE` | This run is older than the round on the digest issue (a late rerun), so there is nothing to mail | Nothing |
