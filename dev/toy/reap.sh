@@ -1,0 +1,55 @@
+#!/bin/bash
+# Stops every process a toy test started when the test ends: passed, failed, interrupted or its pipe closed.
+# Sourcing it exports TOY_REAP_ID (a fresh marker every child inherits, even one detached with setsid) and
+# installs the EXIT, INT, TERM, HUP and PIPE traps; on exit the test's callbacks run, then every own process
+# carrying the marker gets TERM, then KILL, up to 5 rounds (dev/toy/reap.py does the finding and the signals).
+#
+# Every dev/toy/test-*.sh starts with these two lines (test-no-leftovers.sh checks it):
+#   here=$(cd "$(dirname "$0")/../.." && pwd)
+#   . "$here/dev/toy/reap.sh"
+# Never set your own trap; register cleanup instead, run at exit in order, a failing one never stops the rest:
+#   toy_on_exit 'rm -rf "$d"'
+# Exit code: a test that would exit 0 exits 1 when processes are left after 5 rounds (a REAP: line says which);
+# INT exits 130, TERM 143, HUP 129, a closed pipe 141; any other status is kept. A signal sent only to the
+# shell is handled after its foreground child returns. A nested toy test reaps its own marker; one killed with
+# SIGKILL can't clean up, so its processes are left for:
+#   bash dev/toy/reap.sh --sweep-dead [--dry-run]   stop processes whose test shell is gone
+# Functions: toy_on_exit CMD, toy_list VAR VALUE (print matching processes), toy_reap VAR VALUE (stop them).
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  case "${1:-}" in
+    --sweep-dead) shift; exec python3 "$(cd "$(dirname "$0")" && pwd)/reap.py" sweep "$@" ;;
+    *) echo "usage: bash dev/toy/reap.sh --sweep-dead [--dry-run]  (or source it from a toy test)" >&2; exit 2 ;;
+  esac
+fi
+[ -z "${_toy_reap_on:-}" ] || return 0
+_toy_reap_on=1
+_toy_reap_py="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/reap.py"
+_toy_reap_label=$(basename "$0")
+_toy_reap_cbs=""
+_toy_reap_done=""
+TOY_REAP_ID="toy-$$-$(date +%s)-$RANDOM"
+export TOY_REAP_ID
+toy_on_exit() { _toy_reap_cbs="${_toy_reap_cbs}${1}
+"; }
+toy_list() { python3 "$_toy_reap_py" list "$1=$2"; }
+toy_reap() { python3 "$_toy_reap_py" reap "$1=$2" --label "$_toy_reap_label"; }
+_toy_reap_exit() {
+  local rc=$? cb
+  trap '' PIPE INT TERM HUP
+  [ -z "$_toy_reap_done" ] || return 0
+  _toy_reap_done=1
+  set +e
+  while IFS= read -r cb; do
+    [ -z "$cb" ] || eval "$cb" || true
+  done <<EOF_TOY_REAP
+$_toy_reap_cbs
+EOF_TOY_REAP
+  toy_reap TOY_REAP_ID "$TOY_REAP_ID" >/dev/null || { [ "$rc" != 0 ] || rc=1; }
+  exit "$rc"
+}
+_toy_reap_sig() { trap '' PIPE INT TERM HUP; exit "$1"; }
+trap '_toy_reap_exit' EXIT
+trap '_toy_reap_sig 130' INT
+trap '_toy_reap_sig 143' TERM
+trap '_toy_reap_sig 129' HUP
+trap '_toy_reap_sig 141' PIPE
