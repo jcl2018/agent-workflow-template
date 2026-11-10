@@ -13,16 +13,33 @@ import json
 import datetime
 import time
 
-REFUSE = "REFUSED: %s is worker work; the operation session only assigns, watches and reports. Use: batch.py start NAME"
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 TOKENS = re.compile(r"(\d[\d,]*) (?:total )?tokens", re.I)
 
 
-def guard(name):
-    """Goal steps run in a worker, which has LOOP_ROLE=worker; anywhere else they refuse, naming the worker command."""
-    if os.environ.get("LOOP_ROLE") != "worker":
-        sys.exit(REFUSE % name)
+def guard(name, slug=None):
+    """Goal steps run in a worker, which has LOOP_ROLE=worker; anywhere else they refuse. For a goal bound to a session the
+    refusal gives the exact command to run there (LOOP_ROLE is a role convention, not a security boundary); otherwise it
+    says how to start or bind a worker."""
+    if os.environ.get("LOOP_ROLE") == "worker":
+        return
+    state = {}
+    if slug and re.match(r"^[a-z0-9][a-z0-9-]{0,50}$", slug):
+        try:
+            with open(os.path.join(os.path.abspath(git("rev-parse", "--git-common-dir").stdout.strip()), "loop", "runs", slug + ".json")) as handle:
+                state = json.load(handle)
+        except (OSError, ValueError):
+            state = {}
+    state = state if isinstance(state, dict) else {}
+    session = (state.get("session") or {}) if state.get("worker") == "session" else {}
+    if session.get("id"):
+        command = " ".join(shlex.quote(part) for part in [os.path.abspath(sys.argv[0])] + sys.argv[1:])
+        sys.exit("REFUSED: %s is worker work and LOOP_ROLE is not worker here. Fix: in %s, in %s, run: LOOP_ROLE=worker "
+                 "python3 %s. The operation session doesn't run goal steps. (NOT_WORKER)" % (
+                     name, session.get("name") or session["id"], state.get("worktree") or "the goal's worktree", command))
+    sys.exit("REFUSED: %s is worker work. Fix: start a worker for %s (batch.py start NAME), or bind a session "
+             "(sessions.py bind %s ID) and run it there as LOOP_ROLE=worker. (NOT_WORKER)" % (name, slug or "the goal", slug or "SLUG"))
 
 
 def inbox(common, slug):
@@ -101,6 +118,8 @@ def begin(record, step):
         return
     state["step"] = step
     (state.get("depth") or {}).pop(step, None)  # a rerun step's earlier depth no longer stands
+    import guards  # lazily: guards imports role
+    guards.stamp(state, step)  # the format rules this step started under
     state["updated"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     state.setdefault("log", []).append("%s start %s" % (state["updated"], step))
     temp = record + ".%d.tmp" % os.getpid()
@@ -145,31 +164,6 @@ def markers(step):
             return [], "full_markers for %s in the flow file is not a list of non-empty strings. Fix: the owner corrects it" % step
         found += items
     return found, ""
-
-
-def record_depth(state, step, text, cfg, result):
-    """(stamp, error) for a step that advances. Every step states its depth on a DEPTH: line of its own before its STEP
-    line; under review_depth full, plan and review may not run condensed, and a full one carries every private marker.
-    A skipped step is held to neither: it ran nothing."""
-    setting = depth_of(cfg)
-    ends = list(STEP.finditer(text))
-    body = text[:ends[-1].start()] if ends else text
-    found = DEPTH.findall(body)
-    if not found:
-        return "", "no DEPTH line. Fix: write 'DEPTH: full' or 'DEPTH: condensed' on a line of its own just before the STEP line"
-    depth = found[-1].lower()
-    if step in ("plan", "review") and result != "skipped":
-        if depth == "condensed" and setting == "full":
-            return "", "the %s step ran condensed while review_depth is full. Fix: rerun the %s step at full depth" % (step, step)
-        if depth == "full":
-            wanted, bad = markers(step)
-            if bad:
-                return "", bad
-            rest = "\n".join(line for line in body.splitlines() if not DEPTH.match(line)).lower()
-            if any(m.lower() not in rest for m in wanted):
-                return "", "a configured full_markers evidence string for %s is missing from the reply. Fix: rerun the %s step at full depth" % (step, step)
-    state.setdefault("depth", {})[step] = depth
-    return " (depth %s%s)" % (depth, ", skipped" if result == "skipped" else ""), ""
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -287,20 +281,20 @@ def lane(runs, slug, name, spec, cfg, wait=90):
 
 
 def need_lane(runs, slug, reply):
-    """record qa refuses unless the qa lane passed on this HEAD. Only a reply goal.py record counts as a failed try (its
+    """(why, fix, code) when record qa must refuse because the qa lane hasn't passed on this HEAD, else None. Only a reply goal.py record counts as a failed try (its
     last STEP line is failed and it has no PENDING line, which record would wait on or auto-approve) skips the lane."""
     text = open(reply).read() if os.path.isfile(reply) else ""
     found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I)
     if found and found[-1].lower() == "failed" and not re.search(r"^\W*PENDING:", text, re.M):
-        return
+        return None
     head = git("rev-parse", "HEAD").stdout.strip()
     try:
         ok = open(os.path.join(runs, slug + ".qa-lane.ok")).read().strip()
     except OSError:
         ok = ""
     if ok != head:
-        sys.exit("REFUSED: the qa lane has not passed on %s (LANE_MISSING). Fix: python3 %s lane %s qa" % (
-            head[:12], os.path.abspath(__file__), slug))
+        return ("the qa lane has not passed on %s" % head[:12], "python3 %s lane %s qa" % (os.path.abspath(__file__), slug), "LANE_MISSING")
+    return None
 
 
 def lane_exec(rc, limit, argv):
@@ -330,11 +324,33 @@ def alive(pid):
         return False
 
 
+def bump_version(g, state, head):
+    """goal.py pr: bump the version file once per pull request where the repo asks for it (pr_bumps_version)."""
+    cfg = g.config()
+    name = cfg.get("version_file") or "VERSION"
+    path = os.path.join(g.root(), name)
+    if not cfg.get("pr_bumps_version") or not os.path.exists(path):
+        return head
+    version = g.read(path).strip()
+    if version != g.git("show", "%s:%s" % (g.base_ref(state), name), check=False).strip():
+        return head
+    if not re.match(r"^\d+(\.\d+)+$", version):
+        g.no("the version %r isn't numbers and dots. Fix: set it by hand." % version)
+    parts = version.split(".")
+    parts[-1] = str(int(parts[-1]) + 1)
+    g.write(path, ".".join(parts) + "\n")
+    g.git("add", "--", name)
+    g.git("commit", "-m", "Bump version to " + ".".join(parts), "--", name)
+    new = g.git("rev-parse", "HEAD")
+    g.save(state, "bumped %s to %s" % (name, ".".join(parts)))
+    return new
+
+
 if __name__ == "__main__":
     if sys.argv[1:2] == ["lane-exec"]:
         lane_exec(sys.argv[2], float(sys.argv[3]), sys.argv[5:])
     elif sys.argv[1:2] == ["lane"] and len(sys.argv) == 4:
-        guard("role.py lane")
+        guard("role.py lane", sys.argv[2])
         top = os.path.abspath(git("rev-parse", "--git-common-dir").stdout.strip())
         cfg = json.load(open(os.path.join(git("rev-parse", "--show-toplevel").stdout.strip(), ".loop", "config.json")))
         status, line, _ = lane(os.path.join(top, "loop", "runs"), sys.argv[2], sys.argv[3], flow_spec(), cfg)
