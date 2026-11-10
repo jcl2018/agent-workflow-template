@@ -29,6 +29,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import defect  # noqa: E402
+import prsteps  # noqa: E402
 import guards  # noqa: E402
 import role
 
@@ -274,7 +275,7 @@ def cmd_record(args):
     state = held(args.slug)
     guards.waiting_gate(sys.modules[__name__], state)
     lane = role.need_lane(state_dir(), args.slug, args.file, args.step) if args.step in ("qa", "ship") else None
-    if lane:  # record on the HEAD its lane passed
+    if lane:
         guards.refuse_no_try(state, *lane, save)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
     if args.in_session:  # the worker session ran the skill itself; its run record must name that session
@@ -372,6 +373,7 @@ def cmd_pr(args):
         failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
                    "fix the failing rows, commit, then run pr again")
         return 1
+    prsteps.record(state, config()["base"])
     state["step"] = "pr"
     save(state, "pr")
     for wait in (2, 5, 0):
@@ -406,7 +408,7 @@ def cmd_pr(args):
 
 def cmd_finding(args):
     state = load(args.slug)
-    if state.get("status") in ("done", "merged"):  # a finished goal keeps its status: the finding is only noted
+    if state.get("status") in ("done", "merged"):  # a finished goal keeps its status
         return guards.note_finding(state_dir(), state, args.text)
     fail_stop(state, args.text)
 

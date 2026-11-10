@@ -13,7 +13,7 @@ case "$1 $2" in
      n=$(( $(ls "$d"/pr-[0-9]* 2>/dev/null | wc -l) + 1 )); echo "$head" > "$d/pr-$n"; printf '%s\n' "$body" > "$d/body-$n"
      echo "https://example.test/pull/$n";;
   "pr view") n=${3##*/}; v="FAKE_GH_PR_STATE_$n"; [ -n "${!v:-}" ] && { echo "{\"state\": \"${!v}\"}"; exit 0; }
-     [ -n "${FAKE_GH_PR_STATE:-}" ] && { echo "{\"state\": \"$FAKE_GH_PR_STATE\"}"; exit 0; }
+     [ -n "${FAKE_GH_PR_STATE:-}" ] && { echo "{\"state\": \"$FAKE_GH_PR_STATE\"${FAKE_GH_PR_HEAD:+, \"headRefOid\": \"$FAKE_GH_PR_HEAD\"}}"; exit 0; }
      echo "no pull requests found" >&2; exit 1;;
   "pr merge") [ -n "${FAKE_GH_MERGE_FAIL:-}" ] && { echo "merge refused" >&2; exit 1; }; 
      if [ -n "${FAKE_GH_MERGE_BRANCH:-}" ]; then  # really merge the branch into origin/main

@@ -14,6 +14,7 @@ import datetime
 import json
 import os
 import subprocess
+import re
 import sys
 
 import autorelease
@@ -28,6 +29,49 @@ if not sys.stdin or not sys.stdin.isatty():
 
 def run(args, cwd=None):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+
+
+REACH = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-regression",
+                                       "scripts", "lanes_cli.py"))
+
+
+def reach(top, paths):
+    """The row ids a change to PATHS can affect, or None when it means every row (unmapped, deleted, no planner)."""
+    if not paths:
+        return set()
+    if not os.path.exists(REACH):
+        return None
+    out = run([sys.executable, REACH, "affected", "--root", top] + paths, cwd=top).stdout
+    if re.search(r"^(UNMAPPED|DELETED) ", out, re.M):
+        return None
+    found = re.search(r"^AFFECTED \d+ of \d+ rows \((.*)\)", out, re.M)
+    return set(found.group(1).split(", ")) if found and found.group(1) else set()
+
+
+def base_moved(state, cfg, top):
+    """None when the merge may go ahead, else (exit code, refusal): the base moved since the pr lane in paths this goal's
+    rows reach (2), or origin can't be fetched to tell (3). A move elsewhere only notes it. docs: Regression#lane-messages."""
+    base, was = cfg.get("base", "main"), state.get("pr_base")
+    if not was:  # a pull request opened before goal.py pr recorded its base
+        return None
+    try:
+        done = subprocess.run(["git", "fetch", "-q", "origin", base], cwd=top, capture_output=True, text=True, timeout=60)
+        why = (done.stderr.strip().splitlines() or ["exit %d" % done.returncode])[-1] if done.returncode else ""
+    except subprocess.TimeoutExpired:
+        why = "timed out after 60s"
+    if why:
+        return 3, "REFUSED (BASE_FETCH): cannot fetch origin/%s: %s. Fix: run merge.py %s again when the remote answers; " \
+                  "nothing merged" % (base, why, state.get("slug", "SLUG"))
+    now = run(["git", "rev-parse", "origin/" + base], cwd=top).stdout.strip()
+    if now == was:
+        return None
+    names = lambda a, b: [p for p in run(["git", "diff", "--name-only", a, b], cwd=top).stdout.split("\n") if p]  # noqa: E731
+    theirs, ours = reach(top, names(was, now)), reach(top, names(was, state.get("pr_head") or "HEAD"))
+    if theirs is None or ours is None or theirs & ours:
+        return 2, "REFUSED (BASE_MOVED): %s moved in paths this goal's rows reach (lane on %s, base now %s). Fix: goal.py " \
+                  "pr %s, then merge.py %s" % (base, was[:12], now[:12], state.get("slug", "SLUG"), state.get("slug", "SLUG"))
+    print("NOTE: %s moved in paths this goal's rows don't reach; merging" % base)
+    return None
 
 
 def main():
@@ -53,8 +97,9 @@ def main():
         sys.exit("REFUSED: no goal named %s." % args.slug)
     if state.get("status") != "done" or not state.get("pr"):
         sys.exit("REFUSED: %s has no finished pull request. Fix: run goal.py pr first." % args.slug)
-    view = run(["gh", "pr", "view", state["pr"], "--json", "state"])
-    known = json.loads(view.stdout).get("state") if view.returncode == 0 else ""
+    view = run(["gh", "pr", "view", state["pr"], "--json", "state,headRefOid"])
+    info = json.loads(view.stdout or "{}") if view.returncode == 0 else {}
+    known = info.get("state", "")
     if known != "MERGED":
         if wiki.top_of():
             stale = wiki.pending(top, cfg)
@@ -65,10 +110,19 @@ def main():
                 sys.exit("REFUSED: this branch's latest commit is not on origin. Fix: run wiki.py prepare %s --commit." % args.slug)
         if known != "OPEN":
             sys.exit("REFUSED: the pull request %s is %s, not open." % (state["pr"], known or "unknown"))
+        tested = state.get("pr_head")
+        if tested and info.get("headRefOid") and info["headRefOid"] != tested:
+            print("REFUSED (HEAD_MOVED): the pull request head moved since the pr lane passed (lane on %s, PR head %s). Fix: "
+                  "goal.py pr %s, then merge.py %s" % (tested[:12], info["headRefOid"][:12], args.slug, args.slug), file=sys.stderr)
+            return 4
+        moved = base_moved(state, cfg, top)
+        if moved:
+            print(moved[1], file=sys.stderr)
+            return moved[0]
         autorelease.run_routines(top, cfg, state)
         autorelease.stage_notes(top, state, cfg)
         autorelease.stage_part(top, state)
-        done = run(["gh", "pr", "merge", state["pr"], "--merge"])
+        done = run(["gh", "pr", "merge", state["pr"], "--merge"] + (["--match-head-commit", tested] if tested else []))
         if done.returncode:
             autorelease.fail(state, "gh could not merge %s: %s" % (state["pr"], done.stderr.strip()[-300:]))
     at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
