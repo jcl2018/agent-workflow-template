@@ -3,14 +3,12 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
-Review: **Reviewed 2026-11-10** <!-- prd P=4491b4fe R=742aab89 N=839ce3ce M=0fde98a8 U=d08e482b -->
+Review: **Reviewed 2026-11-10** <!-- prd P=41bfc9ae R=742aab89 N=839ce3ce M=0fde98a8 U=d08e482b -->
 
 ## Problem
-- I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale.
+- I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
 - I want one session that only governs: it starts every ready goal in its own worker session, passes my answers along, and never builds anything itself.
-- Without the same check-in every time, a stuck goal can sit unnoticed for hours.
-- I want the work to finish as fast as it safely can: the operation session should keep re-planning the graph from real progress and run as much as possible in parallel, not leave goals idle or start them in an arbitrary order.
-- I want it to run unattended: answer workers' routine questions with the recommended option, and only ask me for what's truly mine.
+- I want the work to finish as fast as it safely can and run unattended: re-plan the graph from real progress, run as much as possible in parallel, answer workers' routine questions with the recommended option, and only ask me for what's truly mine.
 
 ## Usage
 
