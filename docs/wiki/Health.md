@@ -3,46 +3,81 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/4
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c50b43 U=0aa84ec4 -->
 
 ## Problem
-
-Skill: `workflow-health`. A check of the repo's health with fixed rules, so the same repo always gets the same answer. `check` is read-only and prints one formal report; `preview` lists the issues it would file and writes nothing; `file --group NAME` files only the named groups as issues on the Backlog milestone, each tagged `health:<group>`. It runs `workflow-docs` and `workflow-regression` and reports on what they say, and adds closed issues and findings with no defect test, script size, old findings, stuck runs, merged branches and goals over their time or token budget (the performance group). It keeps itself honest: every rule has a negative control, a throwaway repo made to break it, and a rule that no longer fires on its control is reported as one that cannot fire (a rule with no control stops health from loading). It keeps the repo lean: the land test lane over `test_budget_seconds` is a warning naming the slowest rows to move to nightly, and stale loop worktrees and local branches on no remote are listed with the commands that remove them, which it never runs and never files. A control that breaks, or whose rule cannot read on it, is `UNREAD`, never "cannot fire"; test time is judged only from this branch's own lane record (another branch's is shown as information); and a live goal's worktree or branch, a queued one included, is never listed (a run record that cannot be read makes both rules `UNREAD`). The controls are shown and never filed. The merged-branch warning's fix is `worker.py cleanup`. A Mine group runs the owner's own rules from a private setting outside the repo. `check` prints a header naming the groups run and skipped, every rule of each group with its state and a fix on each non-pass line, and one `HEALTH:` line; the Cost rule is shown as performance. `judge` prints that report, then a separate judge section of suggestions on criteria quality, test quality and performance (test time, from the land lane's total and slowest rows, and tokens), with ranked next steps; it never changes the verdict. Like the other scripts, the health modules never wait on a terminal prompt. On Agensi a script can't reach its siblings, so the criteria and docs rules print `UNREAD`, and the verdict says so; a lone `health.py` prints the bare rows and verdict without the formal report, and `preview` and `file` refuse unless `file.py` is beside it. A filed Mine issue names only the rule and its state; the rule's output stays local.
+- My rules, requirements and standards are spread across many pages and sometimes conflict, and I can't see where the repo falls short of its own PRDs.
+- I want a reviewer that reads everything (every PRD page, the README, milestones, open issues, tests and code) and tells me per feature what conflicts, what's missing and what's slow, alongside fixed checks that give the same answer every time.
+- Its findings should land as issues on each feature's milestone, previewed first, so I can triage them in one place later.
 
 ## Usage
 
-- `/workflow-health check` prints the formal report ending in a `HEALTH:` line; "check only the docs health" limits it to one group. The full report also lists every test just before the verdict, under `TESTS`, grouped by feature in workflow-regression's one test format; it never changes the verdict, and a single group or `--json` leaves it out.
-- `/workflow-health preview` lists each issue it would open, update, close or reopen, with its tag, and writes nothing.
-- `/workflow-health file --group docs` writes only the named groups as issues on the Backlog; with no group it refuses.
-- `/workflow-health judge` adds the judge section of suggestions and ranked next steps; it never changes the verdict. Name `performance` to preview or file to include the judge's savings.
+- `/workflow-health check [--group NAME] [--skip controls] [--json]` — Runs the fixed rules and prints one line per finding, then the verdict. Prints `HEALTH REPORT`, then `<STATE> <group> <subject> <rule>: <detail>` per row, and last `HEALTH: green|not green (<p> pass, <w> warn, <f> fail, <u> unread)` (with `--json`, one object with green, counts, rows and verdict); exits 1 when not green. Refuses (exit 1) `REFUSED: unknown group <names>. Groups: ...` and `REFUSED: not inside a git repo.`; (exit 2) `REFUSED: --skip leaves no group to check` and `REFUSED: rule <name> has no negative control. ...`
+- `/workflow-health preview [--group NAME[,NAME]]` — Lists what file would do, and writes nothing. Prints `WOULD <open|update|reopen|close> ...` or `SAME #<n> <key> [<tag>]` per issue, then `PREVIEW: <count> to write, nothing written. ...`. Refuses (exit 1) `REFUSED: unknown group <names>. ...`, `REFUSED: not inside a git repo.`, `REFUSED: file.py is not installed beside health.py` and `REFUSED: could not read the health issues: <why>`; (exit 2) `REFUSED: rule <name> has no negative control. ...`
+- `/workflow-health file --group NAME[,NAME]` — Files the named groups' findings as GitHub issues. Prints `DONE <open|update|reopen|close> ...`, `FAILED <action>: <error>` or `SAME #<n> <key>` per issue. Refuses (exit 1) `REFUSED: file needs --group NAME[,NAME], one of ... Run preview first.`, `REFUSED: unknown group <names>. ...`, `REFUSED: not inside a git repo.`, `REFUSED: file.py is not installed beside health.py` and `REFUSED: could not read the health issues: <why>`; (exit 2) `REFUSED: rule <name> has no negative control. ...`
+- `/workflow-health judge` — Prints the check report, then a judge section of suggestions that never changes the verdict. Prints the report ending in `HEALTH: green|not green (...)`, then `JUDGE (suggestions, never part of the verdict)` with its sections through `== next steps ==`, or `JUDGE UNAVAILABLE: <why>`; exits 1 when not green. Refuses (exit 1) `REFUSED: not inside a git repo.`; (exit 2) `REFUSED: rule <name> has no negative control. ...`
 
 ## Requirements
 
-- HLT-1: **Reviewed 2026-11-08** One command, run by group; fixed rules; same answer twice; changes nothing. <!-- reviewed ea097218 -->
-- HLT-2: **Reviewed 2026-11-08** The rules. Health checks exactly these rules: Size (every script stays under 20 KB, with a warning from 90%); Criteria (every criterion has a test seen failing once and passing now; done lines with no test are a warning); Docs (every required doc matches the template and the code; a stale page is a warning, any other gap fails); Hygiene (no more than 5 open findings, no goal waiting on me over 24 hours, no leftover merged branches); Cost (a goal over its time or token budget is a warning, naming the slowest or costliest steps); Mine (any rules I add of my own, named in a private setting). Adding a rule means retiring one or raising the cap on purpose. A rule may run an existing command to get its data. <!-- reviewed ec941e9a -->
-- HLT-3: **Reviewed 2026-11-08** Formal report. Health prints one formal report: a header listing every rule group it ran (and any skipped), then each group in a fixed order with every rule it checked, marked pass, warn, fail or unread, each non-pass line with its fix, then one verdict. A rule that can't read its data is never shown as passing. <!-- reviewed 8ac60064 -->
-- HLT-4: **Reviewed 2026-11-08** Findings become tagged issues, under my control. Each finding can be filed as one GitHub issue on the Backlog milestone, tagged with its group: health:size, health:criteria, health:docs, health:hygiene, health:performance (the Cost rule and the judge's savings), health:mine. A preview first lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups to file. A repeat updates its issue, a fix closes it, a return reopens it. <!-- reviewed f81a6284 -->
-- HLT-5: **Reviewed 2026-11-08** Judge and next steps. After the rules, a separate judge section, marked as suggestions and never part of the verdict, reviews three things: criteria quality (whether each criterion is clear, testable and high-level enough, whether any conflict or overlap, and whether a feature is missing one, suggesting better wording that only I can apply); test quality (whether each criterion's tests and each defect's test really prove what they claim, or are weak, miss cases or test the wrong thing, suggesting stronger or missing tests for both categories); and performance and tokens (where the framework's skill steps, prompts, scripts, waits and retries could cut delivery time or token use, ranked by the savings). It ends with ranked next steps from the judgments, the warnings and the failures. <!-- reviewed 52d7f085 -->
-- HLT-6: **Reviewed 2026-11-09** Health keeps itself honest and the repo lean. Every health rule has a negative control that proves it can fire; the check flags a land test run over its time budget and names the slowest rows to move to nightly; and it flags stale worktrees and branches that exist only on this machine. <!-- reviewed 6dfdb920 -->
+### Functional
+- HLT-2: **Reviewed 2026-11-10** The rules <!-- reviewed e3954c7e -->
+  - Health checks exactly these groups, each with the angle its tests take:
+  - Requirements (my angle: is every promise I approved proven?): every Reviewed requirement has a test seen failing and passing now; done lines have tests; none stays not enforced over 7 days.
+  - Traceability (an auditor's angle: can I follow any work end to end?): requirement to test to last run; issue to milestone to feature; pull request to goal to done lines; release to the issues it fixed.
+  - Consistency (a reader's angle: do the pages agree?): IDs unique across pages; no reference to a missing ID; a command named the same in Usage and the README; no two requirements that contradict.
+  - Docs (a newcomer's angle: does each page match the template and the code?): template sections and limits; Usage matches the real commands and output; Home complete; every open issue on a milestone.
+  - Freshness (my angle when I come back: is anything out of date?): the nightly suite ran in the last 24 hours; no merged work unreleased over 3 days; pages updated after their code changed; no finding older than 30 days.
+  - Tests (a skeptic's angle: do the tests prove anything?): every row seen failing once; no flaky rows; no row skipped over 7 days; slowest rows named; no test touches the network.
+  - Performance (my clock's and my wallet's angle: is it fast and cheap enough?): goal runs and the full suite within their time limits; goals within their time and token budgets; the health check within its limit.
+  - Security and privacy (a leak's angle: can anything private escape?): no private names, paths, emails or keys in tracked files; secrets only in the environment or secrets; the commit scan hook installed; workflows with least permissions.
+  - Size (a maintainer's angle: can someone still read this?): scripts under 20 KB with a warning from 90%; SKILL.md under 150 lines; requirements per page within the limit.
+  - Hygiene (a janitor's angle: is anything left lying around?): open findings within the cap; no wait on me over 24 hours; no merged or stale branches or worktrees; no idle worker sessions.
+  - Adoption (another repo's angle: would this work installed fresh?): config valid; every check runs at least one test; template version current; scheduled workflows present and firing.
+  - Controls (the checker's own angle: can each rule fire?): every rule has a negative control run against a deliberately broken copy.
+  - Mine (my private angle): rules I add in a private setting.
+  - At most 12 groups plus Mine; adding one means retiring one or raising the cap on purpose.
+- HLT-3: **Reviewed 2026-11-10** Formal report <!-- reviewed 4e3bfe43 -->
+  - A header listing every group it ran (and any skipped), then each group with every rule marked pass, warn, fail or unread with its fix, then one verdict. A rule that can't read its data is never shown as passing.
+- HLT-4: **Reviewed 2026-11-10** Findings become issues on their feature's milestone <!-- reviewed 75d4950b -->
+  - Each finding, from a rule or from the review, is one GitHub issue on the milestone of the feature it's about (Backlog only when it fits none), tagged with its group or kind.
+  - A preview lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups or features to file.
+  - A repeat updates its issue, a fix closes it, a return reopens it, and an existing open issue that already covers a finding is linked, not duplicated.
+- HLT-5: **Reviewed 2026-11-10** Repo review <!-- reviewed 4799d6cc -->
+  - A reviewer, separate from the rules and never part of the verdict, reads every PRD page, the README, milestones, open issues, tests and code, feature by feature, and reports:
+  - Conflicts: two requirements that contradict each other, or a page that breaks a reviewed rule (for example DOC-1's Problem length).
+  - Gaps: a feature with no non-functional requirement where one is expected (performance, safety, privacy), an untested requirement, an open issue that fits no requirement, a done line with no test.
+  - Drift: code or Usage that does something its PRD doesn't say, or a requirement the code no longer meets.
+  - Weak tests: a test that doesn't really prove what it claims, misses a case or tests the wrong thing.
+  - Savings: where skill steps, prompts, scripts, waits and retries could cut time or tokens, ranked by size.
+  - It ends with ranked next steps per feature. Wording changes it suggests are only applied by me.
+- HLT-6: **Reviewed 2026-11-10** Health keeps itself honest and the repo lean <!-- reviewed 7b0bba49 -->
+  - Every health rule has a negative control that proves it can fire; the check flags a land test run over its time budget and names the slowest rows to move to nightly; and it flags stale worktrees and branches that exist only on this machine.
+- HLT-8: **Reviewed 2026-11-10** Triage <!-- reviewed 4ffbef3c -->
+  - Open findings are shown per feature with their kind, age and count, so I can see where the repo is weakest.
+  - When I close a batch (for example "won't fix the docs findings older than a week"), each is closed with my words as the reason, and the review doesn't refile it unless the evidence changes.
+
+### Non-functional
+- HLT-1: **Reviewed 2026-11-10** Deterministic and read-only <!-- reviewed 9ca13d91 -->
+  - The rule check gives the same answer twice on an unchanged repo and changes nothing; only file writes, and only GitHub issues.
+- HLT-7: **Reviewed 2026-11-10** Fast check <!-- reviewed 66d142af -->
+  - The rule check without controls finishes in under 60 seconds.
+- HLT-9: **Reviewed 2026-11-10** Evidence or nothing <!-- reviewed 0d1e5383 -->
+  - Every review finding names its feature and cites its evidence (a page and requirement ID, a file and line, a test row or an issue link); a finding without evidence is dropped, and nothing is filed twice.
 
 ## Non-goals
-
-- It changes nothing in the repo: check is read-only, preview writes nothing, and only file --group writes, as GitHub issues. It prints the commands that remove stale worktrees and branches and never runs them.
-- The judge's suggestions never change the verdict.
-- Its rules are fixed, not set per repo, apart from the owner's private Mine rules.
+- It never changes code, pages or requirements; it reports and files issues.
+- The review's suggestions never change the verdict.
+- It prints the commands that remove stale worktrees and branches and never runs them.
 
 ## Success metrics
-
-- Two runs on an unchanged repo print the same lines.
-- Every finding in a group the owner files is one issue on the Backlog milestone, tagged with its group, closed when it is fixed.
+- Two rule checks on an unchanged repo print the same lines.
+- After the first full review, every feature milestone holds that feature's findings as issues, each with its evidence, and none is a duplicate.
 - The verdict is never green while a rule could not be read.
 
 ## Tests
 
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
-| [same-lines](Tests#t-same-lines) | requirement | HLT-1 | Given an unchanged repo, when health runs twice, then both runs print the same lines. | PASS 2026-11-09 |
-| [check-writes-nothing](Tests#t-check-writes-nothing) | requirement | HLT-1 | Given a repo, when the health check runs, then it writes no file and makes no commit. | PASS 2026-11-09 |
 | [size-fail](Tests#t-size-fail) | requirement | HLT-2 | Given a script over 20 KB, when health runs, then it is a FAIL with a fix. | PASS 2026-11-09 |
 | [stale-page-row](Tests#t-stale-page-row) | requirement | HLT-2 | Given a stale wiki page, when health runs, then it shows as a docs row naming the page. | PASS 2026-11-09 |
 | [no-row-fail](Tests#t-no-row-fail) | requirement | HLT-2 | Given a criterion with no test row, when health runs, then it is a FAIL. | PASS 2026-11-09 |
@@ -74,3 +109,8 @@ Skill: `workflow-health`. A check of the repo's health with fixed rules, so the 
 | [hlt6-clean-quiet](Tests#t-hlt6-clean-quiet) | requirement | HLT-6 | Given no stale worktree or branch, when health check runs, then both rules pass. | not run |
 | [hlt6-never-filed](Tests#t-hlt6-never-filed) | requirement | HLT-6 | Given stale worktrees, when health previews the hygiene group, then no test-time, worktree or branch row would be filed. | not run |
 | - | requirement | HLT-6 | no passing test | not enforced |
+| - | requirement | HLT-8 | no passing test | not enforced |
+| [same-lines](Tests#t-same-lines) | requirement | HLT-1 | Given an unchanged repo, when health runs twice, then both runs print the same lines. | PASS 2026-11-09 |
+| [check-writes-nothing](Tests#t-check-writes-nothing) | requirement | HLT-1 | Given a repo, when the health check runs, then it writes no file and makes no commit. | PASS 2026-11-09 |
+| - | requirement | HLT-7 | no passing test | not enforced |
+| - | requirement | HLT-9 | no passing test | not enforced |
