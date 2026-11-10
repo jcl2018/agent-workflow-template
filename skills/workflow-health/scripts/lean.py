@@ -10,6 +10,7 @@ stale_branch_days (default 14). Each gets its removal command, shell-quoted; not
 hold machine-local paths and names, so file.py never files them.
 """
 import glob
+import hashlib
 import json
 import os
 import re
@@ -20,9 +21,8 @@ import time
 TEST_BUDGET = 600
 STALE_DAYS = 14
 SHOWN = 5
-LIVE = ("running", "waiting", "failed", "stopped")
+LIVE = ("queued", "running", "waiting", "failed", "stopped")
 LANDED = ("merged", "cut", "leave")
-REPORT_ONLY = ("test-time", "worktrees", "local-branches")
 
 
 def row(state, subject, rule, detail, fix=""):
@@ -30,7 +30,7 @@ def row(state, subject, rule, detail, fix=""):
 
 
 def git(root, *args):
-    done = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+    done = subprocess.run(["git", "--no-optional-locks", *args], cwd=root, capture_output=True, text=True)
     return done.returncode, done.stdout, done.stderr.strip()
 
 
@@ -62,58 +62,79 @@ def land_rows(root):
     return out
 
 
+def readable(data):
+    rows = data.get("rows") if isinstance(data, dict) else None
+    return isinstance(rows, dict) and data.get("at") and all(
+        isinstance(r, dict) and isinstance(r.get("seconds", 0), (int, float)) and not isinstance(r.get("seconds"), bool)
+        for r in rows.values())
+
+
 def lane_record(root):
-    """(record, path, why): the current branch's lane record, else the newest readable one."""
+    """(record, mine, why): the current branch's lane record (named as regression.py names it), else the newest
+    readable one (mine False). A damaged record of this branch is why, never read."""
     folder = os.path.join(common(root), "loop", "tests")
     branch = git(root, "symbolic-ref", "--quiet", "--short", "HEAD")[1].strip()
+    own = "%s-%s.json" % (re.sub(r"[^A-Za-z0-9._-]", "_", branch), hashlib.sha1(branch.encode()).hexdigest()[:8]) if branch else ""
     found = []
     for path in sorted(glob.glob(os.path.join(folder, "*.json"))):
         try:
             with open(path) as handle:
                 data = json.load(handle)
-            rows = data["rows"]
-            assert isinstance(rows, dict) and data.get("at")
-        except (OSError, ValueError, KeyError, AssertionError, TypeError):
+        except (OSError, ValueError):
+            data = None
+        if not readable(data):
+            if os.path.basename(path) == own:
+                return None, True, "this branch's lane record cannot be read: %s" % os.path.basename(path)
             continue
-        safe = re.sub(r"[^A-Za-z0-9._-]", "_", branch)
-        found.append((branch and os.path.basename(path).startswith(safe + "-"), str(data["at"]), path, data))
+        found.append((os.path.basename(path) == own, str(data["at"]), path, data))
     if not found:
-        return None, "", "no lane record yet"
+        return None, False, "no lane record yet"
     found.sort(key=lambda item: (item[0], item[1]))
-    return found[-1][3], found[-1][2], ""
+    return found[-1][3], found[-1][0], "" if found[-1][0] else os.path.basename(found[-1][2])
 
 
 def test_rows(root):
-    record, path, why = lane_record(root)
+    record, mine, why = lane_record(root)
     if record is None:
-        return [row("INFO", "lane", "test-time", why, "run regression.py run land --reuse")]
+        return [row("UNREAD" if mine else "INFO", "lane", "test-time", why, "run regression.py run land --reuse")]
+    whose = "" if mine else " (from another branch's record, %s)" % why
     land = land_rows(root)
     seconds = {key: float(item.get("seconds") or 0) for key, item in record["rows"].items() if key in land}
     total = sum(seconds.values())
     budget = setting(root, "test_budget_seconds", TEST_BUDGET)
     if total <= budget:
-        return [row("PASS", "lane", "test-time", "the land lane takes %d s, within test_budget_seconds=%d" % (total, budget))]
+        return [row("PASS" if mine else "INFO", "lane", "test-time",
+                    "the land lane takes %d s, within test_budget_seconds=%d%s" % (total, budget, whose))]
     slow = sorted(seconds.items(), key=lambda pair: (-pair[1], pair[0]))[:SHOWN]
     scripts = {}
     for key, value in seconds.items():
         scripts[land[key]] = scripts.get(land[key], 0) + value
     worst = sorted(scripts.items(), key=lambda pair: (-pair[1], pair[0]))[:3]
     return [row("WARN", "lane", "test-time", "the land lane takes %d s, over test_budget_seconds=%d in .loop/config.json; "
-                "slowest rows: %s; slowest scripts: %s" % (
-                    total, budget, ", ".join("%s %ds" % pair for pair in slow), ", ".join("%s %ds" % pair for pair in worst)),
+                "slowest rows: %s; slowest scripts: %s%s" % (
+                    total, budget, ", ".join("%s %ds" % pair for pair in slow), ", ".join("%s %ds" % pair for pair in worst), whose),
                 "move the slowest rows to nightly in .loop/regression.tsv, or raise test_budget_seconds")]
 
 
-def runs_by_tree(root):
-    out = {}
+def runs(root):
+    out = []
     for path in glob.glob(os.path.join(common(root), "loop", "runs", "*.json")):
         try:
             with open(path) as handle:
                 state = json.load(handle)
         except (OSError, ValueError):
             continue
-        if isinstance(state, dict) and state.get("worktree"):
-            out.setdefault(os.path.realpath(state["worktree"]), []).append(state)
+        if isinstance(state, dict):
+            out.append(dict(state, slug=state.get("slug") or os.path.basename(path)[:-5]))
+    return out
+
+
+def runs_by_tree(root):
+    """realpath of a run's worktree (its own field, else loop/worktrees/<slug>) -> its runs."""
+    out, folder = {}, os.path.join(common(root), "loop", "worktrees")
+    for state in runs(root):
+        tree = state.get("worktree") or os.path.join(folder, state["slug"])
+        out.setdefault(os.path.realpath(os.path.join(root, tree)), []).append(state)
     return out
 
 
@@ -148,10 +169,12 @@ def worktree_rows(root):
         if "\nprunable" in "\n" + block or not os.path.isdir(real):
             items.append((name, "its folder is gone", "git worktree prune"))
             continue
-        why = "no live goal"
+        why, (code, dirty, _) = "no live goal", git(real, "status", "--porcelain")
         if "\nlocked" in "\n" + block:
             why = "locked; unlock it first"
-        elif git(real, "status", "--porcelain")[1].strip():
+        elif code:
+            why = "its status cannot be read; look before removing it"
+        elif dirty.strip():
             why = "uncommitted changes; the command refuses until they are committed or dropped"
         items.append((name, why, "git worktree remove " + shlex.quote(path)))
     return summary("worktrees", items, "loop worktrees")
@@ -162,17 +185,29 @@ def branch_rows(root):
     code, out, err = git(root, "for-each-ref", "--format=" + fields, "refs/heads")
     if code:
         return [row("UNREAD", "local-branches", "local-branches", (err or "git for-each-ref failed")[:120])]
-    base = "origin/main" if git(root, "rev-parse", "--verify", "--quiet", "origin/main")[0] == 0 else "main"
+    try:
+        with open(os.path.join(root, ".loop", "config.json")) as handle:
+            name_of_base = json.load(handle).get("base") or "main"
+    except (OSError, ValueError, AttributeError):
+        name_of_base = "main"
+    base = next((ref for ref in ("origin/" + name_of_base, name_of_base) if git(root, "rev-parse", "--verify", "--quiet", ref)[0] == 0), "")
+    if not base:
+        return [row("UNREAD", "local-branches", "local-branches", "the base branch %s cannot be found" % name_of_base,
+                    "set base in .loop/config.json")]
     days = setting(root, "stale_branch_days", STALE_DAYS)
+    held = {r.get("branch") or "loop/" + r["slug"] for r in runs(root) if live([r])}
     items = []
     for line in sorted(out.splitlines()):
         name, upstream, track, when, tree, head = (line.split("\t") + [""] * 6)[:6]
-        if (upstream and track != "[gone]") or tree or head == "*" or name == base.split("/")[-1]:
+        if (upstream and track != "[gone]") or tree or head == "*" or name == name_of_base or name in held:
             continue
         if not when.isdigit() or time.time() - int(when) < days * 86400:
             continue
-        if git(root, "merge-base", "--is-ancestor", name, base)[0] == 0:
+        merged = git(root, "merge-base", "--is-ancestor", name, base)[0]
+        if merged == 0:
             continue  # merged: the branches rule names it
+        if merged != 1:
+            return [row("UNREAD", "local-branches", "local-branches", "cannot tell whether %s is merged" % name, "")]
         only = git(root, "rev-list", "--count", name, "--not", "--remotes")[1].strip() or "0"
         why = "%s commits exist only on this machine; push it first to keep them" % only if only != "0" else "every commit is on a remote"
         items.append((name, why, "git branch -D " + shlex.quote(name)))
@@ -186,6 +221,7 @@ def rows(root):
 def facts(root):
     """Judge input lines: the land lane's total and its slowest rows."""
     record, _, why = lane_record(root)
+    why = why if record is None else ""
     if record is None:
         return ["land lane: " + why]
     land = land_rows(root)

@@ -187,7 +187,8 @@ def hygiene_rows(root):
                 rows.append(row("WARN", "hygiene", name, "branch", "already merged into %s" % base,
                                 "worker.py cleanup"))
     lean = sibling_module("lean")
-    return rows + (lean.rows(root) if lean else [row("UNREAD", "hygiene", "lean.py", "test-time", "lean.py is not installed beside health.py")])
+    return rows + (lean.rows(root) if lean else [row("UNREAD", "hygiene", "lean.py", rule, "lean.py is not installed beside health.py")
+                                                 for rule in ("test-time", "worktrees", "local-branches")])
 
 
 def sibling_module(name):
@@ -271,6 +272,9 @@ def cmd_check(args):
     asked = groups_of(args.group)
     skipped = groups_of(args.skip) or []
     asked = [name for name in (asked or ORDER) if name not in skipped] if skipped else asked
+    if asked == []:
+        print("REFUSED: --skip leaves no group to check")
+        return 2
     text, counts, green, verdict, rows = report(gather(root, asked), asked)
     if args.json:
         print(json.dumps({"green": green, "counts": counts, "rows": rows, "verdict": verdict}, indent=2))
@@ -306,7 +310,7 @@ def plan_for(root, asked, with_judge):
     """(file module, acts, groups) for the groups asked, or exit when file.py or gh cannot be used."""
     filing = sibling_module("file") or sys.exit("REFUSED: file.py is not installed beside health.py")
     groups = asked or list(filing.DEFAULT)
-    rows = gather(root, None)
+    rows = gather(root, groups)
     judged, extra = False, []
     if with_judge and "cost" in groups:
         extra, judged = filing.saves(root, HERE, rows)

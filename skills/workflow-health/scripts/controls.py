@@ -171,7 +171,7 @@ def label(item, here):
         import report
         return report.rule_of(item)
     except ImportError:
-        return item["rule"]
+        raise Unbuilt("report.py is not installed beside controls.py")
     finally:
         sys.path.pop(0)
 
@@ -193,12 +193,17 @@ def one(rule, function, here, keep=False):
         found = function(root)
         fired = any(item["state"] in ("WARN", "FAIL") and item["family"] == group and label(item, here) == wanted
                     for item in found)
+        mine = [item for item in found if item["family"] == group]
+        blind = mine and all(item["state"] == "UNREAD" for item in mine)
         result = row("PASS", rule, "fires on its fixture") if fired else row(
+            "UNREAD", rule, "its rule could not read its data on the fixture", "install the skills it reads beside it") if blind else row(
             "FAIL", rule, "cannot fire: it reported nothing on a fixture made to break it",
             "run: python3 controls.py run %s --keep, then fix the rule or its control" % rule)
     except Unbuilt as error:
-        result = row("UNREAD", rule, "the control could not build its fixture: %s" % error,
+        result = row("UNREAD", rule, "the control could not build its fixture: %s" % str(error).replace(folder, "<fixture>"),
                      "run: python3 controls.py run %s --keep" % rule)
+    except Exception as error:  # one broken control is UNREAD, never a crash of the whole check
+        result = row("UNREAD", rule, "the control stopped with %s" % type(error).__name__, "run: python3 controls.py run %s --keep" % rule)
     finally:
         for key in GIT_ENV:
             os.environ.pop(key, None)

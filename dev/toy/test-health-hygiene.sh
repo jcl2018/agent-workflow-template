@@ -42,6 +42,19 @@ grep -q '^REFUSED: rule new-rule has no negative control. Fix: add CONTROLS\["ne
   && ! grep -q "^HEALTH" <<<"$out" && ok "a rule without a control is refused before any report" || bad "refused"
 out=$($health check --skip controls); ! grep -q "^== controls" <<<"$out" && grep -q "skipped: .*controls (not asked)" <<<"$out" \
   && ok "check --skip controls leaves the group out" || bad "skip"
+out=$($health check --skip size,criteria,docs,hygiene,performance,mine,controls); rc=$?
+grep -q "^REFUSED: --skip leaves no group to check" <<<"$out" && [ $rc = 2 ] && ok "a --skip that leaves nothing is refused" || bad "skip all"
+# Value: protects=a control that crashes or whose rule cannot read is UNREAD, never a crash or a false "cannot fire";
+#   fails_when=one control's exception stops the check; why_new=review finding; seam=none; no_claim=none beyond protects
+crash="$d/crash/skills/workflow-health"; mkdir -p "$crash"; cp -R "$here/skills/workflow-health/scripts" "$crash/"
+for s in workflow-docs workflow-regression workflow-monitoring; do ln -s "$here/skills/$s" "$d/crash/skills/$s"; done
+printf '\ndef f_findings(root):\n    raise RuntimeError("boom")\nCONTROLS["findings"] = ("hygiene", "findings", f_findings)\n' >> "$crash/scripts/controls.py"
+out=$(python3 "$crash/scripts/health.py" check --group controls 2>&1)
+grep -q "^UNREAD controls findings control: the control stopped with RuntimeError" <<<"$out" && grep -q "^PASS controls waiting control" <<<"$out" \
+  && ok "a control that crashes is UNREAD and the others still run" || bad "control crash"
+rm "$crash/../workflow-docs"
+out=$(python3 "$crash/scripts/health.py" check --group controls 2>&1)
+grep -q "^UNREAD controls docs-check control: its rule could not read its data" <<<"$out" && ok "a rule that cannot read on its fixture is UNREAD, not cannot fire" || bad "control blind"
 
 echo "== test time"
 out=$($health check --group hygiene)
@@ -53,7 +66,8 @@ open(".loop/regression.tsv", "a").write("".join("slow-%d\tland\tbash dev/toy/tes
 PY
 git add -A; git commit -qm "rows"
 mkdir -p "$C/loop/tests"
-python3 - "$C/loop/tests/main-12345678.json" <<'PY'
+OWN="$C/loop/tests/main-$(printf main | shasum | cut -c1-8).json"
+python3 - "$OWN" <<'PY'
 import json, sys
 rows = {"slow-%d" % n: {"status": "PASS", "seconds": 300 + n, "commit": "x"} for n in range(3)}
 rows.update({"quick": {"status": "PASS", "seconds": 5, "commit": "x"}, "night": {"status": "PASS", "seconds": 900, "commit": "x"},
@@ -68,6 +82,14 @@ grep -q "^WARN hygiene lane test-time: the land lane takes 908 s, over test_budg
 python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['test_budget_seconds']=1000;json.dump(d,open(p,'w'))"
 $health check --group hygiene | grep -q "^PASS hygiene lane test-time: the land lane takes 908 s, within test_budget_seconds=1000" \
   && ok "a lane within its budget stays quiet" || bad "test-time quiet"
+# Value: protects=another branch's record is never this branch's verdict, and a damaged own record is UNREAD;
+#   fails_when=a borrowed record passes or a damaged one is skipped; why_new=review finding; seam=none; no_claim=none
+mv "$OWN" "$C/loop/tests/other-abcdef12.json"
+$health check --group hygiene | grep -q "^INFO hygiene lane test-time: the land lane takes 908 s, within test_budget_seconds=1000 (from another branch's record, other-abcdef12.json)" \
+  && ok "another branch's record is INFO and named" || bad "borrowed record"
+echo '{"at": "x", "rows": {"a": {"seconds": "slow"}}}' > "$OWN"
+$health check --group hygiene | grep -q "^UNREAD hygiene lane test-time: this branch's lane record cannot be read" && ok "a damaged lane record of this branch is UNREAD" || bad "damaged record"
+mv "$C/loop/tests/other-abcdef12.json" "$OWN"
 git checkout -q -- .loop/config.json
 python3 -c "
 import sys; sys.path.insert(0, '$S'); import lean
@@ -79,9 +101,8 @@ print(judge.gather('.', '$S', []))" | grep -q "^## Test time (the land lane)" &&
 python3 "$here/skills/workflow-regression/scripts/regression.py" add tiny --level land --command "true" --describe "Given nothing, when it runs, then it passes" >/dev/null
 git add -A; git commit -qm "tiny"
 python3 "$here/skills/workflow-regression/scripts/regression.py" run tiny --reuse >/dev/null 2>&1
-rec=$(ls -t "$C"/loop/tests/main-*.json | grep -v 12345678 | head -1)
-python3 -c "import json,sys;d=json.load(open(sys.argv[1]));sys.exit(0 if 'total_seconds' in d else 1)" "$rec" && ok "each regression run records its total time and each row's time" || bad "total_seconds"
-rm -f "$rec"
+python3 -c "import json,sys;d=json.load(open(sys.argv[1]));sys.exit(0 if 'total_seconds' in d else 1)" "$OWN" && ok "each regression run records its total time and each row's time" || bad "total_seconds"
+rm -f "$OWN"
 
 echo "== stale worktrees and branches"
 mkdir -p "$C/loop/worktrees"
@@ -93,12 +114,20 @@ git checkout -q -b "odd\$name"; echo x > odd.txt; git add odd.txt
 GIT_COMMITTER_DATE="2026-01-01T00:00:00+0000" git commit -qm "only here"
 git checkout -q main
 git checkout -q -b fresh; echo y > fresh.txt; git add fresh.txt; git commit -qm "new"; git checkout -q main
+git checkout -q -b loop/held; echo z > held.txt; git add held.txt; GIT_COMMITTER_DATE="2026-01-01T00:00:00+0000" git commit -qm "held"; git checkout -q main
+for s in queued waiting failed stopped; do git worktree add -q -b "loop/s-$s" "$C/loop/worktrees/s-$s"; printf '{"status":"%s"}' "$s" > "$C/loop/runs/s-$s.json"; done
+git worktree add -q -b loop/s-open "$C/loop/worktrees/s-open"; printf '{"status":"done","release":"ask"}' > "$C/loop/runs/s-open.json"
+git worktree add -q -b loop/s-landed "$C/loop/worktrees/s-landed"; printf '{"status":"done","release":"merged"}' > "$C/loop/runs/s-landed.json"
+printf '{"status":"queued"}' > "$C/loop/runs/held.json"
 out=$($health check --group hygiene --json)
 wt=$(field worktrees detail <<<"$out"); br=$(field local-branches detail <<<"$out"); echo "$wt"; echo "$br"
 # Value: protects=a worktree no live goal names is listed with its removal command, a live one is not; fails_when=liveness
 #   ignores run records or the command is missing; why_new=new; seam=none; no_claim=none beyond protects
-grep -q "1 stale loop worktrees: old-goal (no live goal): git worktree remove .*/loop/worktrees/old-goal" <<<"$wt" && ! grep -q "live-goal" <<<"$wt" \
-  && ok "a worktree with no live goal is listed with its removal command, a live one is not" || bad "worktrees"
+grep -q "2 stale loop worktrees: old-goal (no live goal): git worktree remove .*/loop/worktrees/old-goal; s-landed (no live goal)" <<<"$wt" && ! grep -qE "live-goal|s-(queued|waiting|failed|stopped|open)" <<<"$wt" \
+  && ok "a worktree with no live goal is listed with its removal command; queued, waiting, failed, stopped and unreleased goals' are not" || bad "worktrees"
+! grep -q "loop/held" <<<"$br" && ok "a live goal's branch with no worktree is not listed" || bad "held branch"
+for s in queued waiting failed stopped open landed; do git worktree remove --force "$C/loop/worktrees/s-$s"; git branch -q -D "loop/s-$s"; rm "$C/loop/runs/s-$s.json"; done
+git branch -q -D loop/held; rm "$C/loop/runs/held.json"
 [ -d "$C/loop/worktrees/old-goal" ] && git rev-parse -q --verify "odd\$name" >/dev/null && ok "health removes nothing itself" || bad "something removed"
 # Value: protects=an old branch on no remote is listed with a quoted, warned delete; a young one is not; fails_when=the age,
 #   upstream or quoting is wrong; why_new=new; seam=none; no_claim=none beyond protects
@@ -106,6 +135,12 @@ grep -Eq "1 stale local branches: odd\\\$name \([0-9]+ commits exist only on thi
   && ! grep -q "fresh" <<<"$br" && ok "an old branch on no remote is listed with a quoted delete and a data-loss warning; a young one is not" || bad "branches"
 python3 -c "import json,sys;d=json.load(sys.stdin);r=[r for r in d['rows'] if r['rule']=='worktrees'][0];sys.exit(0 if r['items'][0]['name']=='old-goal' else 1)" <<<"$out" \
   && ok "the full list is in --json" || bad "json items"
+# Value: protects=the base comes from .loop/config.json and a missing one is UNREAD, never "not merged";
+#   fails_when=main is assumed; why_new=review finding; seam=none; no_claim=none beyond protects
+python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['base']='trunk';json.dump(d,open(p,'w'))"
+$health check --group hygiene | grep -q "^UNREAD hygiene local-branches local-branches: the base branch trunk cannot be found" \
+  && ok "a configured base that does not exist is UNREAD" || bad "base unread"
+git checkout -q -- .loop/config.json
 git worktree remove "$C/loop/worktrees/old-goal"; git branch -q -D "odd\$name"
 out=$($health check --group hygiene); grep -E "worktrees|local-branches" <<<"$out"
 [ "$(grep -cE "^PASS hygiene (worktrees|local-branches)" <<<"$out")" = 2 ] && ok "a clean repo stays quiet" || bad "clean quiet"
@@ -114,6 +149,11 @@ out=$($health check --group hygiene); grep -E "worktrees|local-branches" <<<"$ou
 git worktree add -q -b loop/old2 "$C/loop/worktrees/old2"
 out=$($health preview --group hygiene)
 grep -qE "worktrees|local-branches|test-time" <<<"$out" && bad "preview would file a local row" || ok "test time, worktree and branch rows are never filed"
+python3 -c "
+import sys; sys.path.insert(0, '$S'); import file
+rows = [{'state': 'UNREAD', 'family': 'hygiene', 'subject': 'lane', 'rule': 'test-time', 'detail': 'x', 'fix': ''}]
+print([a['kind'] for a in file.plan(rows, {'hygiene:x:findings': {'number': 7, 'state': 'OPEN'}}, ['hygiene'])])" | grep -qx "\['close'\]" \
+  && ok "an UNREAD report-only row never holds back closing a hygiene issue" || bad "report-only unread"
 
 echo "repo: $d/repo"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

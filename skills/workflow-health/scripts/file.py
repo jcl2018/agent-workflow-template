@@ -93,7 +93,7 @@ def plan(rows, issues, groups, extra=(), judged=False):
     """Actions for the named groups: dicts with kind (open, update, reopen, close, same), group, key, title, body, number."""
     found = [item for item in list(rows) + list(extra)
              if item["state"] in BAD and item["family"] in groups and item["rule"] not in REPORT_ONLY]
-    unread = {item["family"] for item in rows if item["state"] == "UNREAD"}
+    unread = {item["family"] for item in rows if item["state"] == "UNREAD" and item["rule"] not in REPORT_ONLY}
     # A group whose only rows are INFO (mine with no private rules) did not run, as the report says.
     idle = {g for g in groups if any(i["family"] == g for i in rows) and all(i["state"] == "INFO" for i in rows if i["family"] == g)}
     ran = set(groups) - unread - idle  # a clean group gives no rows, so it ran unless a rule in it could not read
