@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""The run-log and goal-file facts the live board's estimates are read from: which step a goal is on, how long each step
+took (flow_seconds) and a goal's size (done lines and touched areas, from its goal file). Imported by board_model.py and
+board_status.py; it imports only graph.py and the standard library.
+"""
+import datetime
+import json
+import os
+import re
+import subprocess
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import graph  # noqa: E402
+
+FLOW = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
+STEPS = FLOW[:-1]
+COMMON = {}
+
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
+
+def git(*args, cwd=None):
+    done = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
+    return done.stdout.strip() if done.returncode == 0 else ""
+
+
+def read_json(path):
+    try:
+        with open(path) as handle:
+            return json.load(handle)
+    except (OSError, ValueError):
+        return None
+
+
+def stamp(text):
+    try:
+        return datetime.datetime.fromisoformat(str(text).split(" ", 1)[0].replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+
+def current(run):
+    """Index in FLOW of the step a goal is on: a finished, unmerged goal waits at release. A step outside the flow (a check,
+    say) keeps the newest timestamped evidence naming a flow step (a report's at, a log entry; see after), else the furthest step in
+    the run's flow record, else idea."""
+    if run.get("status") == "done":
+        return FLOW.index("release")
+    if run.get("step") in FLOW:
+        return FLOW.index(run["step"])
+    seen = [(stamp(item.get("at")), item["step"]) for item in (run.get("reports") if isinstance(run.get("reports"), list) else [])
+            if isinstance(item, dict) and item.get("step") in FLOW and stamp(item.get("at"))]
+    seen += [(stamp(entry), after(entry)) for entry in run.get("log") or [] if after(entry) and stamp(entry)]
+    if seen:
+        return FLOW.index(max(seen, key=lambda pair: pair[0])[1])
+    known = [FLOW.index(step) for step in (run.get("flow") or {}) if step in FLOW]
+    return max(known) if known else 0
+
+
+def named(entry):
+    """The flow step a log entry names: its first word, or 'step X' in a session report; '' when none."""
+    parts = str(entry).split(" ", 2)
+    word = parts[1].rstrip(":") if len(parts) > 1 else ""
+    if word in FLOW:
+        return word
+    found = re.search(r"\bstep ([a-z]+)\b", parts[2] if len(parts) > 2 else "")
+    return found.group(1) if found and found.group(1) in FLOW else ""
+
+
+def after(entry):
+    """The flow step in force after a log entry: the step it names, or the next one when it says that step is done."""
+    word = named(entry)
+    done = word and re.search(r"\b(done|auto-approved|approved)\b", str(entry)) and FLOW.index(word) + 1 < len(FLOW)
+    return FLOW[FLOW.index(word) + 1] if done else word
+
+
+def flow_seconds(run, at):
+    """Time per step with one rule for past and live runs: a gap before an entry naming a step counts toward that step;
+    any other gap counts toward the step in force (the last one named, or the next after a finished one). A gap after a
+    stopped, failed or waiting entry is a pause and counts nothing; the time since the last entry counts while running."""
+    found, force, log = {}, None, run.get("log") or []
+    for before, entry in zip(log, log[1:]):
+        a, b, word = stamp(before), stamp(entry), named(entry)
+        pause = (str(before).split(" ", 2) + ["", ""])[1].rstrip(":") in ("stopped", "failed", "waiting")
+        step = word if word in STEPS and not re.search(r"\bstep [a-z]+, running", str(entry)) else force
+        if a and b and step in STEPS and not pause:
+            found[step] = found.get(step, 0) + max(0, (b - a).total_seconds())
+        force = after(entry) or force
+    last = stamp(log[-1]) if log else None
+    step = run.get("step") if run.get("step") in STEPS else force
+    if run.get("status") == "running" and step in STEPS and last:
+        found[step] = found.get(step, 0) + max(0, (at - last).total_seconds())
+    return found
+
+
+def goal_file(run, root):
+    """The goal file's text: in the run's worktree when it is one under <common>/loop/worktrees, else under root."""
+    slug = run.get("slug") or ""
+    if not graph.SLUG.match(slug):
+        return ""
+    if root and root not in COMMON:
+        COMMON[root] = os.path.realpath(os.path.join(root, git("rev-parse", "--git-common-dir", cwd=root) or ".git"))
+    common = COMMON.get(root, "")
+    tree = run.get("worktree") or ""
+    places = [tree] if tree and common and os.path.isdir(tree) and os.path.realpath(tree).startswith(os.path.join(common, "loop", "worktrees") + os.sep) else []
+    for base in places + ([root] if root else []):
+        goals = os.path.realpath(os.path.join(base, ".loop", "goals"))
+        path = os.path.realpath(os.path.join(goals, slug + ".md"))
+        if os.path.dirname(path) != goals:
+            continue
+        try:
+            with open(path) as handle:
+                return handle.read()
+        except OSError:
+            continue
+    return ""
+
+
+def size_of(run, root):
+    """(done lines, touched areas) of a goal, or None. The goal file wins for both; then the queue line's done and
+    touches, then the run record's touches. Done lines are the numbered lines under ## Done lines, outside code fences."""
+    text, done, touches, fenced, inside = goal_file(run, root), [], [], False, False
+    for line in text.splitlines():
+        fenced = not fenced if line.startswith("```") else fenced
+        if line.startswith("## "):
+            inside = line.strip() == "## Done lines"
+        elif inside and not fenced and re.match(r"\d+\. \S", line):
+            done.append(line)
+        found = re.match(r"- Touches: (.*)$", line)
+        if found and not touches:
+            touches = [x.strip() for x in found.group(1).split(",") if x.strip()]
+    return graph.size(done or run.get("done") or [], touches or run.get("touches") or [])
+
