@@ -29,6 +29,7 @@ are locked; a requirement line can also be reviewed on its own. Command detail a
 | Keep the docs, milestones and release notes in step | `workflow-docs` | [Documentation](Documentation) |
 | Keep tests visible and enforced | `workflow-regression` | [Regression](Regression) |
 | Check the repo's health | `workflow-health` | [Health](Health) |
+| Run regression and health on a schedule, with a digest | `workflow-health`, `workflow-regression` | [Automation](Automation) |
 | Adopt a repo into this format | `workflow-setup` | [Setup](Setup) |
 
 ## Reading the charts

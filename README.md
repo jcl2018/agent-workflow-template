@@ -56,6 +56,10 @@ ship skill, then the pull request and the release. Review is the only gate; each
 anything only you can decide under Waiting on you. Nothing is approved for you. The ship skill never pushes in that
 mode, so delivery opens the pull request itself, with each step's result in its body.
 
+Regression and health also run on a schedule in GitHub Actions (every 4 hours by default, `off` per routine in
+`.loop/config.json`), filing failing tests as `defect` issues and health findings as tagged issues, and posting one
+digest comment per round on a pinned `Automation digest` issue that GitHub emails you. These runs use Actions minutes.
+
 See where things stand, or pick up a failed goal:
 
 ```text
@@ -197,6 +201,8 @@ In the repo:
 | `.loop/docs.tsv` | Each wiki page and the paths it describes |
 | `.loop/regression.tsv` | Test rows |
 | `.loop/regression-known.tsv` | Rows expected to fail, with a reason |
+| `.loop/regression-runs.tsv`, `.loop/regression-issues.tsv` | Each row's last result; each defect test's issue state |
+| `.github/workflows/regression.yml`, `.github/workflows/health.yml` | The scheduled routines (written by setup) |
 | `docs/wiki/` | Wiki pages, each starting with `<!-- workflow-docs -->` |
 
 Outside the repo, run state lives in `<git common dir>/loop/`: `runs/<slug>.json`, `logs/<slug>.log`,

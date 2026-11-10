@@ -242,7 +242,7 @@ def main():
     with open(config_path, "w") as handle:
         handle.write(json.dumps({k: v for k, v in config.items() if k != "checks"}, indent=2) + "\n")
     seed.apply(repo, config, found, acts)
-    paths = [p for p in (".loop", found["wiki"], ".github/workflows/regression.yml") if os.path.exists(os.path.join(repo, p))]
+    paths = [p for p in (".loop", found["wiki"], ".github/workflows/regression.yml", ".github/workflows/health.yml") if os.path.exists(os.path.join(repo, p))]
     git(repo, "add", "-A", "--", *paths)
     git(repo, "commit", "-m", "Adopt the workflow loop", "--allow-empty")
     print("WROTE the adoption on branch %s at %s" % (args.branch, git(repo, "rev-parse", "--short", "HEAD")))

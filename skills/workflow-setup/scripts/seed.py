@@ -95,7 +95,11 @@ def decide(repo, config, found):
         if not any("regression.tsv" in a[1] for a in acts) and survey.read(repo, ".loop/regression.tsv") is None:
             acts.append(("add", ".loop/regression.tsv", "one land row per page's first criterion", "rows"))
         if survey.read(repo, ".github/workflows/regression.yml") is None:
-            acts.append(("add", ".github/workflows/regression.yml", "nightly run on " + config.get("regression_cron", ""), "workflow"))
+            acts.append(("add", ".github/workflows/regression.yml", "regression run on " + config.get("regression_cron", ""), "workflow"))
+        if survey.read(repo, ".github/workflows/health.yml") is None and survey.read(repo, "skills/workflow-health/scripts/health.py") is not None:
+            acts.append(("add", ".github/workflows/health.yml", "health and digest run on " + config.get("health_cron", ""), "health"))
+        elif survey.read(repo, ".github/workflows/health.yml") is None:  # its run needs the skill in the checkout
+            acts.append(("note", "health workflow", "not written: the workflow-health skill isn't in this repo, so a run could only fail", None))
     else:
         acts.append(("no fit", ".loop/regression.tsv", "no check command found, so no test row can be seeded", None))
     acts.append(("note", "milestones", "Backlog and one per page: python3 milestone.py new --all --live, when you are ready", None))
@@ -153,6 +157,8 @@ def apply(repo, config, found, acts):
         touched.append(".loop/regression.tsv")
         if any(a[3] == "workflow" for a in acts):
             tool(repo, "workflow-regression", "regression.py", "workflow")
+        if any(a[3] == "health" for a in acts):
+            tool(repo, "workflow-health", "automation.py", "workflow")
     tool(repo, "workflow-docs", "criteria.py", "render")
     return touched
 
