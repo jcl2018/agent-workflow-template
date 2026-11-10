@@ -100,7 +100,7 @@ python3 scripts/mail.py send
 python3 scripts/mail.py test
 ```
 
-`workflow` writes `.github/workflows/health.yml` (templates.py), which runs on `health_cron` (default every 4 hours;
+`workflow` writes `.github/workflows/health.yml` (workflows.py), which runs on `health_cron` (default every 4 hours;
 `off` makes a scheduled run write nothing) and by hand: check, file the groups a runner can read on their feature's
 milestone, the judge only with the `judge_env` secret, the digest, then the email. It also writes `mail-test.yml`, run
 by hand to send one test mail. `--check` names a workflow that is missing or older than the skills (each health run

@@ -29,7 +29,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rounds  # noqa: E402
-import templates  # noqa: E402
+import workflows  # noqa: E402
 
 CRON = "47 */4 * * *"
 KEY_NAME = "ANTHROPIC_API_KEY"  # the name of the Actions secret, not a secret
@@ -59,14 +59,14 @@ def settings(root):
 
 
 def render(cron, secret):
-    return templates.health(cron, secret)
+    return workflows.health(cron, secret)
 
 
 def wanted(root):
     cron, secret = settings(root)
     base = os.path.join(root, ".github", "workflows")
-    return [(os.path.join(base, "health.yml"), templates.health(cron, secret)),
-            (os.path.join(base, "mail-test.yml"), templates.mail_test())]
+    return [(os.path.join(base, "health.yml"), workflows.health(cron, secret)),
+            (os.path.join(base, "mail-test.yml"), workflows.mail_test())]
 
 
 def cmd_workflow(args):
@@ -74,7 +74,7 @@ def cmd_workflow(args):
     for path, text in wanted(args.root):
         rel = os.path.relpath(path, args.root)
         current = open(path).read() if os.path.exists(path) else None
-        if current is not None and not current.startswith(templates.HEADER):
+        if current is not None and not current.startswith(workflows.HEADER):
             if args.check:
                 print("NOT_OURS: %s was not written by automation.py, so it is never checked or rewritten (NOT_OURS)" % rel)
                 continue

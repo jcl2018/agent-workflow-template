@@ -275,7 +275,7 @@ if want secrets; then
   reset; out=$(cf_env DIGEST_MAIL_API=https://attacker.example.test DIGEST_RUN=201 $mail send); rc=$?
   [ $rc = 1 ] && grep -q "(MAIL_TEST_URL)" <<<"$out" && grep -q "https://attacker.example.test" <<<"$out" && [ "$(cfreq)" = 0 ] \
     && ok "a non-local DIGEST_MAIL_API is refused before anything is sent" || bad "test url"
-  ! grep -rq -e DIGEST_MAIL_API -e DIGEST_SMTP_TEST_PORT "$here/.github/workflows" "$S/templates.py" \
+  ! grep -rq -e DIGEST_MAIL_API -e DIGEST_SMTP_TEST_PORT "$here/.github/workflows" "$S/workflows.py" \
     && ! grep -E " (DIGEST_TO|DIGEST_FROM|CLOUDFLARE_ACCOUNT_ID|CLOUDFLARE_EMAIL_TOKEN|DIGEST_SMTP_USER|DIGEST_SMTP_PASSWORD):" "$here/.github/workflows/health.yml" "$here/.github/workflows/mail-test.yml" | grep -v '\${{ secrets\.' | grep -q . \
     && ok "the workflows hold the mail secrets only as secrets, and never set a test override" || bad "workflow secrets"
   bads=0; for c in '{"digest_mail": "pigeon"}' '{"digest_mail": "smtp", "smtp_port": 25}'; do
@@ -372,7 +372,7 @@ if want mailtest; then
   [ $rc = 1 ] && grep -q "(MAIL_OFF)" <<<"$out" && [ "$(cfreq)" = 0 ] && ok "a Mail test with digest_mail off fails and says why" || bad "test off"
   W=$here/.github/workflows/mail-test.yml
   grep -q "^  workflow_dispatch:" "$W" && ! grep -q "schedule:" "$W" && ! grep -q "issues: write" "$W" && grep -q "contents: read" "$W" \
-    && diff -q <(cd "$S" && python3 -B -c "import templates; print(templates.mail_test(), end='')") "$W" >/dev/null \
+    && diff -q <(cd "$S" && python3 -B -c "import workflows; print(workflows.mail_test(), end='')") "$W" >/dev/null \
     && ok "mail-test.yml is dispatch-only, read-only, and equals what automation.py writes" || bad "mail-test workflow"
 fi
 
@@ -693,7 +693,7 @@ if want upgrade; then
   [ $rc = 1 ] && grep -q "health.yml differs from what automation.py writes" <<<"$out" && ok "a stale health.yml is reported" || bad "stale"
   printf 'name: mine\n' > "$x/.github/workflows/mail-test.yml"; $auto workflow --root "$x" >/dev/null 2>&1; out=$($auto workflow --check --root "$x")
   grep -q "(NOT_OURS)" <<<"$out" && [ "$(cat "$x/.github/workflows/mail-test.yml")" = "name: mine" ] && ok "a hand-written workflow is never checked or rewritten" || bad "not ours"
-  T=$(mktemp -d); python3 -B -c "import sys; sys.path.insert(0, '$S'); import templates; open('$T/h.yml','w').write(templates.health('47 */4 * * *','ANTHROPIC_API_KEY'))"
+  T=$(mktemp -d); python3 -B -c "import sys; sys.path.insert(0, '$S'); import workflows; open('$T/h.yml','w').write(workflows.health('47 */4 * * *','ANTHROPIC_API_KEY'))"
   python3 - "$T/h.yml" "$T/check.sh" <<'PY'
 import sys
 text = open(sys.argv[1]).read()
