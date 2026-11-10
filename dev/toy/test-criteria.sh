@@ -163,6 +163,14 @@ $docs check | grep -q "^TESTS Delivery" && ok "a hand-edited table fails" || bad
 printf 'orphan\tland\ttrue\t\t\nDEL-9x\tland\ttrue\tDEL-9\t\n' >> .loop/regression.tsv
 out=$($docs check || true); grep -q "^LINK regression: row orphan links to no requirement" <<<"$out" && ok "a test with no criterion fails" || bad "orphan"
 grep -q "^LINK regression: rows link to DEL-9" <<<"$out" && ok "a test of an unknown criterion fails" || bad "dangling"
+# Value: protects=done-line rows coexist with criteria (issue 128); fails_when=a slug:N goal column reads as no requirement
+# or a missing done line passes; why_new=only requirement ids were accepted; seam=none; no_claim=none beyond protects
+mkdir -p .loop/goals; printf '# dl\n\n## Done lines\n\n1. it works\n' > .loop/goals/dl.md
+printf 'dl-ok\tland\ttrue\tdl:1\t\ndl-bad\tland\ttrue\tdl:3\t\n' >> .loop/regression.tsv
+out=$($docs check || true)
+! grep -q "row dl-ok links to no requirement" <<<"$out" && ok "a done-line row (goal slug:N) is accepted with criteria on" || bad "done-line row refused: $(grep dl-ok <<<"$out")"
+grep -q "^LINK regression: dl-bad: goal dl:3 names no done line (dl has 1). Fix:" <<<"$out" && ok "a done-line row naming no done line fails with its fix" || bad "bad done-line row: $(grep dl-bad <<<"$out")"
+rm -f .loop/goals/dl.md
 good
 
 echo "== a reviewed criterion is locked until the owner marks it Unreviewed"

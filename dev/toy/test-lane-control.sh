@@ -54,7 +54,7 @@ PY
 poll() { python3 "$T/h.py" "$S" "$RUNS" "$1" "$2" poll; }
 until_done() { for _ in $(seq 600); do out=$(poll "$1" "$2"); case "$(head -1 <<<"$out")" in running) sleep 0.3 ;; *) echo "$out"; return 0 ;; esac; done; return 1; }
 holder() { # SLOT-COUNT: hold one slot in the pool until killed; prints its pid
-  python3 - "$R" "$1" <<'PY' &
+  python3 - "$R" "$1" >/dev/null 2>&1 <<'PY' &  # no stdout: $(holder) must not wait for its 600 s sleep
 import os, sys, time
 sys.path.insert(0, sys.argv[1]); import slots
 pool = slots.lanes_dir(); slots.check(pool); fd, i = slots._slot(pool, int(sys.argv[2]), "toy/holder qa")
@@ -148,11 +148,11 @@ check "a late ended write never replaces a terminal pass" 'python3 -c "import js
 echo "== records check HEAD (168)"
 # Value: protects=record ship refuses a lane from before a merge or commit (168); fails_when=need_lane only checks qa; why_new=ship had no check; seam=none; no_claim=none beyond protects
 reply="$T/reply.txt"; printf 'DEPTH: full\nSTEP: done\n' > "$reply"
-out=$(cd "$S" && python3 -c "import role,sys;role.need_lane(sys.argv[1],'rs',sys.argv[2],'ship')" "$RUNS" "$reply" 2>&1)
-check "record ship with no ship lane refuses LANE_MISSING with the lane command" 'grep -q "REFUSED: the ship lane has not passed on .*(LANE_MISSING). Fix: python3 .*role.py lane rs ship" <<<"$out"'
+out=$(cd "$S" && python3 -c "import role,sys;r=role.need_lane(sys.argv[1],'rs',sys.argv[2],'ship');print('REFUSED (no try used): %s. Fix: %s (%s)' % r)" "$RUNS" "$reply" 2>&1)
+check "record ship with no ship lane refuses LANE_MISSING with the lane command" 'grep -q "REFUSED (no try used): the ship lane has not passed on .*. Fix: python3 .*role.py lane rs ship (LANE_MISSING)" <<<"$out"'
 git rev-parse HEAD > "$RUNS/rs.ship-lane.ok"; echo y >> README.md; git commit -qam "fix after the lane"
-out=$(cd "$T/repo" && python3 -c "import sys;sys.path.insert(0,sys.argv[3]);import role;role.need_lane(sys.argv[1],'rs',sys.argv[2],'ship')" "$RUNS" "$reply" "$S" 2>&1)
-check "record ship after a commit refuses: HEAD moved since the ship lane passed, with the rerun command" 'grep -q "REFUSED: HEAD moved since the ship lane passed (lane on .*, HEAD .*). Fix: python3 .*role.py lane rs ship (reruns only the rows the change can affect" <<<"$out"'
+out=$(cd "$T/repo" && python3 -c "import sys;sys.path.insert(0,sys.argv[3]);import role;r=role.need_lane(sys.argv[1],'rs',sys.argv[2],'ship');print('REFUSED (no try used): %s. Fix: %s (%s)' % r)" "$RUNS" "$reply" "$S" 2>&1)
+check "record ship after a commit refuses: HEAD moved since the ship lane passed, with the rerun command" 'grep -q "REFUSED (no try used): HEAD moved since the ship lane passed (lane on .*, HEAD .*). Fix: python3 .*role.py lane rs ship (reruns only the rows the change can affect.*(HEAD_MOVED)" <<<"$out"'
 git rev-parse HEAD > "$RUNS/rs.ship-lane.ok"
 check "after the rerun passes on HEAD, record ship goes through" 'python3 -c "import sys;sys.path.insert(0,sys.argv[3]);import role;role.need_lane(sys.argv[1],\"rs\",sys.argv[2],\"ship\")" "$RUNS" "$reply" "$S"'
 
