@@ -457,7 +457,7 @@ def cmd_watch(args):
         pending = keep_moving(cfg, args.skill_dir)
         begun, _ = start_round(args, cfg)
         tell(seen, told)
-        if args.once or not (begun or pending or any(state.get("status") == "running" and graph.holds_slot(state) for state in runs())):
+        if args.once or not (begun or pending or any(state.get("status") == "running" and graph.holds_slot(state, taken()) for state in runs())):
             break
         time.sleep(interval)
     _, held = plan(limit_of(args, cfg))

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Issues lines a phone can read (issue 97). A stopped or failed goal is shown by its cause in plain words, never by
 the agent's raw output, and goals stopped by one cause share one line: "usage limit: 4 goals paused until Nov 11
-16:00; they resume by themselves". While every live goal is paused by one cause, the finish says "paused until ...".
+16:00; they resume by themselves" (only where resume_on_limit is on). While every live goal is paused by one cause, the finish says "paused until ...".
 Pure functions; imported by live_board.py, not run.
 
   cause(run)          (key, words, until): the plain cause of a failed or stopped goal
@@ -35,8 +35,9 @@ def cause(run):
     return "other", "it %s; see its log" % (run.get("status") or "stopped"), ""
 
 
-def stuck(runs):
-    """Grouped lines: one per cause shared by two or more goals, one per goal otherwise. Each line pair stays short;
+def stuck(runs, auto_resume=False):
+    """Grouped lines: one per cause shared by two or more goals, one per goal otherwise. auto_resume is the repo's
+    resume_on_limit, so the fix says what really happens after a usage limit. Each line pair stays short;
     live_board.fit wraps anything over 60 columns at word boundaries."""
     groups = {}
     for run in runs:
@@ -50,8 +51,10 @@ def stuck(runs):
             when = " until " + until if until else " until the limit resets"
             out.append("- usage limit: %d goal%s paused%s" % (len(slugs), "" if len(slugs) == 1 else "s", when))
             out.append("    %s" % ", ".join(slugs))
-            out.append("    fix: none needed; they resume by themselves" if len(slugs) > 1 else
-                       '    fix: none needed, or type "resume %s" after it resets' % slugs[0])
+            if auto_resume:  # resume_on_limit is on: watch resumes them after limit_wait
+                out.append("    fix: none needed; they resume by themselves after the reset")
+            else:
+                out.append('    fix: after the reset, type "resume <goal>" for each (resume_on_limit is off)')
         elif len(slugs) > 1:
             out.append("- %d goals stopped: %s" % (len(slugs), words))
             out.append("    %s" % ", ".join(slugs))

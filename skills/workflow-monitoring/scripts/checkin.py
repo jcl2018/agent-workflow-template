@@ -69,8 +69,10 @@ def render(root=None, at=None, stamp=None):
         out.append("| - | %s | nothing running | - | - | - | - |" % os.path.basename(root))
     changes = replan.since(root, stamp)
     decided = auto.since(root, stamp)
-    if changes:
-        out += ["", "Re-plan (since the last check-in):"] + ["- " + line[21:] for line in changes[-8:]]
+    open_now = replan.open_proposals(root)
+    if changes or open_now:
+        out += ["", "Re-plan (since the last check-in, then proposals still open):"] + ["- " + line[21:] for line in changes[-8:]]
+        out += ["- open: %s" % line for line in open_now if not any(line in c for c in changes)][:6]
     if decided:
         out += ["", "Auto-answered (full auto):"]
         for line in decided[-8:]:
@@ -96,7 +98,7 @@ def render(root=None, at=None, stamp=None):
                 run["slug"], goal_state.silent_for(run, at) // 60))
         elif state == "held":
             needs.append("%s is held with no worker; give it a session (sessions.py bind %s ID)" % (run["slug"], run["slug"]))
-    stuck = issue_lines.stuck(live)
+    stuck = issue_lines.stuck(live, cfg.get("resume_on_limit") is True)
     needs += [" ".join(line.split()) for line in stuck if line.startswith("- ")]
     if found is not None:
         needs += [line[2:] for line in pl.ask_lines(found, cfg, len(ready)) if line.startswith("- ")]

@@ -26,6 +26,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import board_status as bs  # noqa: E402
+import goal_state  # noqa: E402
 import graph  # noqa: E402
 
 
@@ -115,8 +116,11 @@ def plan(top=None, at=None):
     seen_path = os.path.join(folder, "replan.json")
     seen = bs.read_json(seen_path) or {}
     seen = seen if isinstance(seen, dict) else {}
+    records = runs(folder)
+    found, _ = graph.read_pool(os.path.join(folder, "session-pool.json"))
+    goal_state.stamp_held(list(records.values()), graph.assigned(found), at, folder)  # true held time (issue 115)
     new = []
-    for kind, slugs, reason in proposals(queue(top), runs(folder)):
+    for kind, slugs, reason in proposals(queue(top), records):
         key = "%s %s" % (kind, slugs)
         if seen.get(key) != reason:
             seen[key] = reason
@@ -130,6 +134,12 @@ def plan(top=None, at=None):
             json.dump(seen, handle, indent=1, sort_keys=True)
         os.replace(tmp, seen_path)
     return new
+
+
+def open_proposals(top):
+    """Merge and split proposals still true now, as '<kind> <slugs>: <reason>', shown at every check-in until acted on."""
+    return ["%s %s: %s" % (kind, slugs, reason) for kind, slugs, reason in proposals(queue(top), runs(loop_dir(top)))
+            if kind in ("merge", "split")]
 
 
 def since(top, stamp):

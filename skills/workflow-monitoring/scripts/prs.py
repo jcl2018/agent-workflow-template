@@ -15,8 +15,8 @@ import subprocess
 import time
 
 TTL = int(os.environ.get("LOOP_PR_TTL", "60"))
-TIMEOUT = float(os.environ.get("LOOP_PR_TIMEOUT", "5"))
-WORKERS = 8
+TIMEOUT = float(os.environ.get("LOOP_PR_TIMEOUT", "3"))
+WORKERS = 16  # 16 calls of at most 3 s each: one wave, well inside MON-9's 10 seconds
 
 
 def cache_path(root):

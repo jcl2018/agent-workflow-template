@@ -9,12 +9,14 @@ handoff all ask here, so held, freezing, silent and slot-holding mean the same e
   freezing(taken, on_disk)       pool entries handed a goal that has no run record yet
   silent_for(run, at)            seconds since the worker last spoke (latest report, bind or change), or None
   held_since(run)                when the goal first read as held (held_at, issue 115), else its last change
-  stamp_held(run, taken, at)     set or clear held_at; True when it changed (the caller saves)
+  stamp_held(runs, taken, at, folder)  record when each goal first read held in <loop>/held.json (replan.py, each pass)
+  with_held(runs, folder)        fill held_at from that file
 
 The pool is the busy map from graph.assigned (None when the pool can't be read: then nothing is called held).
 `silent_minutes` in .loop/config.json (default 30) is MON-8's limit; LOOP_SESSION_QUIET (seconds) overrides it.
 """
 import datetime
+import json
 import os
 
 LIVE = ("running", "waiting")
@@ -86,17 +88,41 @@ def held_since(run):
     return parse_at(run.get("held_at")) or parse_at(run.get("updated"))
 
 
-def stamp_held(run, taken, at):
-    """held_at is set the first time the goal reads held and cleared once it has a worker again (issue 115)."""
-    if held(run, taken):
-        if not run.get("held_at"):
-            run["held_at"] = iso(at)
-            return True
+def held_file(folder):
+    return os.path.join(folder, "held.json")
+
+
+def with_held(runs, folder):
+    """The runs with held_at filled from <loop>/held.json (kept apart so stamping never races a worker's run write)."""
+    try:
+        with open(held_file(folder)) as handle:
+            found = json.load(handle)
+    except (OSError, ValueError):
+        found = {}
+    for run in runs:
+        if isinstance(found, dict) and found.get(run.get("slug")) and not run.get("held_at"):
+            run["held_at"] = found[run["slug"]]
+    return runs
+
+
+def stamp_held(runs, taken, at, folder):
+    """held_at is set the first time a goal reads held and dropped once it has a worker again (issue 115). Writes
+    held.json when anything changed; never touches a run file. Without the pool (taken None) nothing changes."""
+    if taken is None:
         return False
-    if run.get("held_at") and taken is not None:
-        run.pop("held_at")
-        return True
-    return False
+    try:
+        with open(held_file(folder)) as handle:
+            old = json.load(handle)
+    except (OSError, ValueError):
+        old = {}
+    new = {r["slug"]: old.get(r["slug"]) or iso(at) for r in runs if held(r, taken)}
+    if new == old:
+        return False
+    tmp = held_file(folder) + ".%d.tmp" % os.getpid()
+    with open(tmp, "w") as handle:
+        json.dump(new, handle, indent=1, sort_keys=True)
+    os.replace(tmp, held_file(folder))
+    return True
 
 
 def classify(run, taken=None, at=None, cfg=None):

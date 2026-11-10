@@ -85,10 +85,10 @@ def assigned(pool):
 
 
 def holds_slot(run, taken=None):
-    """A running goal uses a worker slot when a process or a worker session has it (in its run, or as a busy pool
-    entry while it is between freezing and its worker's bind); one with none of these uses none."""
-    return (run.get("status") != "running" or bool(run.get("pid")) or run.get("worker") == "session"
-            or bool(taken and run.get("slug") in taken))
+    """A live goal's worker slot, decided by goal_state.holds_slot (one rule for board, report and watch, issue 113): a
+    pid or a busy pool entry; with the pool known, a session goal whose session was freed holds none (issue 112)."""
+    import goal_state
+    return goal_state.holds_slot(run, taken)
 
 
 def parallel_of(cfg):

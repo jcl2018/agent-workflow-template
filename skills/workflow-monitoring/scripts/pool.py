@@ -55,6 +55,14 @@ def status_line(found, cfg):
     return "pool: %d free, %d busy, %d total (target %d)" % (free, busy, total, size_of(cfg))
 
 
+def board_line(found, root):
+    """The pool line under the live board's Running goals; '' if it can't be built (the board never fails for it)."""
+    try:
+        return status_line(found, se.read(os.path.join(root, ".loop", "config.json"), {}))
+    except Exception:
+        return ""
+
+
 def side_path():
     return os.path.join(se.base(), "pool.json")
 
@@ -94,6 +102,18 @@ def attempt_ok(state, attempt):
         return attempt in (None, "") or int(attempt) >= int(state.get("attempt") or 0)
     except (TypeError, ValueError):
         return True
+
+
+def stale(state, args):
+    """sessions.py report's guards: refuse a --recommend that isn't one of --words; record, not apply, a report from an
+    older attempt. True when the report is fully handled here."""
+    if args.recommend and args.recommend not in args.words:
+        sys.exit("REFUSED: --recommend %r is not one of --words. Fix: pass it as a --words too; nothing was changed." % args.recommend)
+    if attempt_ok(state, args.attempt):
+        return False
+    state.setdefault("reports", []).append({"at": se.now(), "step": args.step or "-", "status": "stale", "text": "attempt %s" % args.attempt})
+    se.save(state, "report from old attempt %s recorded, not applied (the run is on attempt %s)" % (args.attempt, state.get("attempt")))
+    return True
 
 
 def remember(item, slug):

@@ -9,11 +9,13 @@ usage: sessions.py <command> [options]
                             (ASSIGNED: the board shows it freezing), after goal.py new it binds (BOUND). --force: rebind
                             a session freed from the goal. Prints the WORKER command and the WORKTREE (session_bind.py)
   free SLUG                 give back a stopped session's goal and slot (FREED, NOTHING TO FREE)
-  report SLUG [--step S] [--status running|waiting|merged|failed] [--pr URL] [--ask Q --words W...] [--text T]
+  report SLUG [--step S] [--status running|waiting|merged|failed] [--pr URL] [--ask Q --words W... [--recommend W]
+              [--kind routine|destructive|money|security|owner]] [--attempt N] [--text T]
                             record a worker's session message: each step change, and its result when the goal ends.
                             merged is checked with gh; waiting with --ask is a question for the owner, without it the
-                            goal ended with its pull request waiting. A goal that ended frees its session. Done is
-                            final: a later report is only recorded (KEPT).
+                            goal ended with its pull request waiting (auto.py may answer a routine one). A goal that ended
+                            returns its session to the pool (pool.py). Done is final: a later report is only recorded
+                            (KEPT), but a merged one still frees the session.
   send SLUG TEXT            send a worker session the owner's answer or a follow-up (operate.py send does this)
   list                      the sessions this repo knows, with their goals
 
@@ -96,6 +98,7 @@ def pool():
     found, why = graph.read_pool(pool_path())
     if found is None:
         raise PoolUnreadable(why)
+    __import__("pool").quarantine()  # a malformed entry is set aside, not a block (issue 122)
     return found
 
 
@@ -290,6 +293,8 @@ def release_step(state):
 def cmd_report(args):
     state = held(args.slug)
     said = args.status
+    if __import__("pool").stale(state, args):  # a late report from an old worker is only recorded (issue 114)
+        return 0
     if state.get("status") == "done" and (said in ("", "running", "failed") or (said == "waiting" and args.ask) or graph.merged(state)):
         # done is final (issue 108): record the report only; status, step, report (the merge evidence), finding stay
         text = args.text or "%s: %s" % ((state.get("session") or {}).get("name") or args.slug, said or "report")
@@ -297,6 +302,8 @@ def cmd_report(args):
         del state["reports"][:-30]
         save(state, "session report kept (done is final): " + text)
         print("KEPT done for %s: report recorded, status %s not applied (done is final)." % (args.slug, said or "(none)"))
+        if said == "merged":  # a merged report always frees the session (issue 175, MON-6)
+            print("\n".join(__import__("pool").return_session(args.slug, merged=True)) or "NOTHING TO FREE")
         return 0
     if said in ("merged", "failed") or (said == "waiting" and not args.ask):
         pool()  # a goal that ends frees its session: check the pool can be written before any change
@@ -307,7 +314,8 @@ def cmd_report(args):
     pr, said = state.get("pr", ""), args.status
     ended = said in ("merged", "failed") or (said == "waiting" and not args.ask)
     if said == "waiting" and args.ask:  # a question for the owner: the goal stops until it is answered
-        state.update(status="waiting", waiting={"ask": args.ask, "words": args.words or ["go on " + args.slug]})
+        state.update(status="waiting", waiting={"ask": args.ask, "words": args.words or ["go on " + args.slug], "at": now(),
+                                                "recommend": args.recommend, "kind": args.kind})
     elif said == "failed":
         state.update(status="failed", finding=args.text or state.get("finding") or "the worker session reported failed")
     elif said in ("merged", "waiting"):  # the goal ended with a pull request: done, merged or waiting for review
@@ -331,7 +339,7 @@ def cmd_report(args):
     save(state, "session report: " + text)  # saved first: a pool that breaks now can't lose a merged result
     if ended:
         try:
-            release(args.slug)
+            print("\n".join(__import__("pool").return_session(args.slug, merged=said == "merged")))
         except PoolUnreadable as error:
             sys.exit("SAVED %s as %s, but its session wasn't freed: the session pool can't be read (%s). Fix: repair "
                      "the pool, then run sessions.py free %s." % (args.slug, state.get("status"), error, args.slug))
@@ -375,9 +383,10 @@ def main():
     item = sub.add_parser("report")
     item.add_argument("slug")
     item.add_argument("--status", default="", choices=["", "running", "waiting", "merged", "failed"])
-    for flag in ("--step", "--pr", "--text", "--ask"):
+    for flag in ("--step", "--pr", "--text", "--ask", "--recommend", "--attempt"):
         item.add_argument(flag, default="")
     item.add_argument("--words", action="append", default=[])
+    item.add_argument("--kind", default="", choices=["", "routine", "destructive", "money", "security", "owner"])
     item = sub.add_parser("send")
     item.add_argument("slug")
     item.add_argument("text")
