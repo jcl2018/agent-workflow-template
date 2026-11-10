@@ -117,7 +117,8 @@ def wiki_check(root):
         return None
     if done.returncode not in (0, 1) or "NO PAGES" in done.stdout:
         return None
-    return sorted({m.groups() for m in re.finditer(r"^([A-Z]+) (\S+): ", done.stdout, re.M)}) if done.returncode else []
+    found = {m.groups() for m in re.finditer(r"^([A-Z]+) (\S+): ", done.stdout, re.M)} if done.returncode else set()
+    return sorted(item for item in found if item[0] != "LAG")  # a repo behind the installed skills shows as template_lag
 
 
 def main():

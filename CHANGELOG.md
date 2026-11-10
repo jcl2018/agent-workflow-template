@@ -1,5 +1,48 @@
 # Changelog
 
+## v0.23.0 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/setup-sync
+- Built-in default flow: steps mapped to built-in run delivery's own routine (issue 47)
+- Entry point (entry.py, START.md) and agent files (agents.py), wired by setup; agent_files and template_repo settings
+- update both ways: --check, the release source archive, the repo half (sync.py) on workflow-update-vX, local fixes and propose (propose.py); fake gh serves archives and issues
+- Board lag line for governed repos on an older template; test-sync parts for entry, agents, update, propose, board; MISSING only for stamped repos; no-hang guards
+- Rows for SET-4, SET-5 and SET-10
+- Docs: Setup SET-4, SET-5, SET-10 (approved wording, reviewed 2026-11-10), Usage with a sample; Monitoring, Documentation, Home, README, loop-files, skill pages; this repo's START.md, CLAUDE.md and AGENTS.md
+- Verify by hand steps; Usage sample as an indented block
+- update.py: shorter docstring
+- Split test-sync: narrow builtin/entry/agents keep exact # reads:, wide update/propose/board move to test-sync-update.sh; operate-fit-3 scopes its wiki assertion
+- entry.py write: splice the matched block (a stray close marker no longer multiplies the file), keep CRLF, accept a block at end of file; check reports stray markers (ENTRY_MARKER); docs check renders once
+- agents.py apply: say wire's refusals and a failed entry write, stage only files inside the repo and outside .git
+- update: a failed repo half no longer leaves an empty workflow-update-vX that reads as merged; a local fix matching the new copy is stamped, a dropped one is kept without holding check at behind; the repo half runs the sync.py just written; a checkout with no VERSION stamps nothing; PARTIAL whenever the skills were written
+- test-adopt SET-4: the update branch changes only config, START.md and the agent files; a linked skills folder is left alone
+- Docs: Setup and Documentation Usage for the review fixes (dropped local fix kept, a failed repo half safe to rerun, stray markers left for you)
+- agents.py wire refuses any file without exactly one block (the rule entry.py write follows); update flushes before the repo half and runs it in-process when sync.py itself is a kept local fix
+- test-sync-update: reset template_repo after the redirect check, so a full run passes
+- fix(qa): ISSUE-001 — test-sync.sh update/board ran nothing and said ALL PASS; forward them to test-sync-update.sh, refuse an unknown part (exit 2)
+- fix(qa): ISSUE-002 — entry.py read an indented example output's '- ' line as a Usage sub-bullet
+- Docs: Documentation notes the Features table leaves an indented example block out
+- test-sync.sh points update, propose and board at test-sync-update.sh instead of running it, so its rows stay narrow; Verify step 4 names that script
+- builtin-flow: watch's suite check moves to test-builtin-watch.sh so test-sync.sh stays narrow
+- test-sync.sh declares exact files; entry-adopt (same command as adopt-set-5) runs nightly, keeping a one-file change under half the land rows
+- Merge origin/main (v0.22.0 docs-format) into loop/setup-sync: both sides' rows kept, docs-format's reviewed pages win with this goal's Usage entries re-added; entry.py reads a bullet Problem
+- README front door rows for update, propose and agents; Home and Monitoring name the built-in routine and the lag line; workflow-docs SKILL.md back under 150 lines
+- Documentation: entry names what it reads from each PRD page
+- Merge origin/main (v0.22.1 estimate-model): both sides' rows kept, live board keeps the stall and lag lines; the lag line moves to board_lag.py so board_status.py stays under 20 KB
+
+### How to verify
+
+1. In this repo, open `.loop/START.md`.
+   Expect: a "First five minutes" list, one part each for Loop, Release, Operation and workers, Docs, Regression, Health and Settings, a Features table naming all seven feature pages (Home is not one) with how to use each, and a Settings table with every repo setting and its value.
+2. Open `CLAUDE.md` and `AGENTS.md` side by side.
+   Expect: the same `` block in both, telling a session to read `.loop/START.md` first and listing the seven workflow skills.
+3. Change one Usage bullet's first sentence in `docs/wiki/Setup.md`, then run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: `STALE .loop/START.md: ... (ENTRY_STALE)` and exit 1; `python3 skills/workflow-docs/scripts/docs.py audit` rewrites it, and the check is back to `DOCS OK`. Undo the edit.
+4. Run `bash dev/toy/test-sync-update.sh update` and `bash dev/toy/test-sync-update.sh board`.
+   Expect: `ALL PASS (update)` (check shows what is new, apply lands `workflow-update-v1.1.0` and keeps the repo's data) and `ALL PASS (board)` (the live board lists `oldharbor runs template v1.0.0, older than v1.1.0`).
+5. Run `bash dev/toy/test-sync.sh builtin`.
+   Expect: `ALL PASS (builtin)`: a goal with a flow file whose steps are all `built-in` and no probe runs every step through delivery's own routine.
+
 ## v0.22.1 - 2026-11-10
 
 - estimate-model: estimates from goal size and similar finished goals, ranges, pace, stalled goals under Issues

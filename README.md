@@ -5,9 +5,11 @@ agent takes it through your own skill suite's flow, unattended: your idea, plan,
 frozen done lines and the repo's checks around them. You review the pull request. One session governs and the others
 build.
 
-**Delivery needs a configured skill suite.** You bring the skills; a private file outside the repo,
-`~/.workflow-loop/flow.json`, names them and how to run them in their own unattended mode. With no flow file, delivery
-refuses with one line saying how to set it. See [the file contract](skills/loop-files.md).
+**Delivery runs standalone, or with your own skill suite.** A private file outside the repo,
+`~/.workflow-loop/flow.json`, names a skill for each step and how to run it in its own unattended mode. Setup fills it
+with `built-in` steps, which run delivery's own routine for idea, plan, review, qa and ship; name your own skill for any
+step and it replaces that routine. With no flow file, delivery refuses with one line saying how to set it. See
+[the file contract](skills/loop-files.md).
 
 **Status: early. Copy the `skills/` folders into your agent's skills folder, or run `dev/install-local.sh` for Claude
 Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md) for the features and the
@@ -99,6 +101,10 @@ Say these to the agent:
 | "Show me every setting" | Each repo and private setting, with its default and a one-line explanation. |
 | "Fill in any missing settings" | Missing repo settings are added with their defaults; your own values are kept. |
 | "Install the reply hook" | Operation-session replies that don't follow the check-in layout are blocked, saying what is missing. |
+| "Is there a newer template version?" | It shows what the newest release brings and which skill files you changed here; nothing is written. |
+| "Update this repo to the newest template" | The skills update, and this repo's new settings, entry point and agent files land on an update branch for you to merge; your own values and pages are kept. |
+| "Send my skill fix back to the template" | It drafts one issue with the diff and no repo name, and files it once you say so. |
+| "Wire the skills into CLAUDE.md and AGENTS.md" | Both files get the same block pointing every new session at `.loop/START.md`; your own text is kept. |
 
 ### How to use Automation
 
@@ -267,11 +273,14 @@ From install to one finished goal.
    folder. Then allow the
    tools a background agent needs in `agent_command` (for example
    `["claude", "-p", "--allowedTools=Bash,Read,Write,Edit"]`; you choose the list), and review and merge the branch
-   yourself. The other skills read the config from the base branch.
+   yourself. The other skills read the config from the base branch. Setup also writes `.loop/START.md`, the entry point
+   any new session reads first, and the same workflow-loop block into `CLAUDE.md` and `AGENTS.md`, so Claude Code and
+   Codex run the same loop.
 3. **Start a goal.** From the main checkout, on the base branch:
    `/workflow-monitoring go "add result caching" --done "repeat searches are served from the cache"`. Done lines are
    frozen once the goal starts, so make each one provable before the pull request, by a test or by what a person
-   can see (see [Delivery](docs/wiki/Delivery.md)). Set up your skill flow first, in `~/.workflow-loop/flow.json`.
+   can see (see [Delivery](docs/wiki/Delivery.md)). Setup filled `~/.workflow-loop/flow.json` with `built-in` steps,
+   so this works with no skill suite; name your own skill for any step there and it replaces that step's routine.
 4. **Watch it.** `/workflow-monitoring watch` starts queued goals in their own worktrees, prints what changed, and ends
    with what waits on you. Use `report` for a snapshot.
 5. **Answer what waits on you**, in the exact words `watch` prints.
@@ -279,6 +288,9 @@ From install to one finished goal.
    `--release ask`; then it waits for `cut <slug>` or `leave <slug>` (see [Delivery](docs/wiki/Delivery.md)). With
    `"release_auto": true`, it decides from its diff and may cut a draft instead. Answer before you merge, because `cut`
    commits on the goal's branch. Review and merge the pull request yourself; nothing here merges unless `auto_merge` is on.
+7. **Keep it current.** `/workflow-setup update --check` shows what a newer template version brings;
+   `/workflow-setup update` applies it and puts this repo's generated files on a `workflow-update-vX` branch for you to
+   merge. A skill you fixed here is kept, and `/workflow-setup update --propose` sends the fix back to the template.
 
 ## About this repo
 

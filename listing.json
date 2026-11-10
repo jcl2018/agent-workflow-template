@@ -1,6 +1,6 @@
 {
   "license": "MIT",
-  "summary": "Seven small skills: one session governs while background agents take each goal through your own idea, plan, review, test and ship skills to a pull request, unattended, and keep a wiki, regression tests, releases and repo health in check. Runs on Claude Code and Codex.",
+  "summary": "Seven small skills: one session governs while background agents take each goal through a built-in idea, plan, review, test and ship routine, or your own skills, to a pull request, unattended, and keep a wiki, regression tests, releases and repo health in check. Runs on Claude Code and Codex.",
   "tags": [
     "workflow",
     "agents",
@@ -135,7 +135,7 @@
     "git",
     "a background agent command such as claude or codex, for go and watch",
     "gh, signed in, for pull requests, issues and releases",
-    "your own skill suite, named in ~/.workflow-loop/flow.json"
+    "optionally your own skill suite, named in ~/.workflow-loop/flow.json (setup fills it with the built-in flow)"
   ],
   "limitations": [
     "Regression runs each row's command through a shell, so Agensi's scan flags shell=True in regression.py, actions.py and defect.py.",

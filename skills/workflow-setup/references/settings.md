@@ -37,6 +37,8 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `resume_on_limit` | `false` | true lets watch resume a goal that hit a usage limit. |
 | `limit_wait` | `1800` | Seconds to wait after a usage limit before resuming. |
 | `watch_interval` | `20` | Seconds between rounds of watch. |
+| `agent_files` | `["CLAUDE.md", "AGENTS.md"]` | Agent entry files setup wires the workflow-loop block into; [] turns wiring off. |
+| `template_repo` | `(empty)` | The template's GitHub repo (owner/name) update reads releases from, when the installed package names none. |
 | `reply_hook` | `true` | false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session. |
 
 ## Private settings
@@ -48,7 +50,7 @@ Outside the repo, never committed: `~/.workflow-loop/flow.json` (or `$LOOP_FLOW`
 | `command` | `["claude", "-p"]` | Flow file: the agent command that runs each flow step unattended. |
 | `allowed_tools` | `[]` | Flow file: tools a step's agent may use, passed as --allowedTools; empty adds nothing. |
 | `model` | `(empty)` | Flow file: the model a step's agent uses, passed as --model; empty keeps the command's own. |
-| `suite` | `{"idea": "", "plan": "", "review": "", "qa": "", "ship": ""}` | Flow file: the default skill for each step; empty until you name your own. |
+| `suite` | `{"idea": "built-in", "plan": "built-in", "review": "built-in", "qa": "built-in", "ship": "built-in"}` | Flow file: the skill for each step; built-in runs delivery's own routine until you name your own. |
 | `steps` | `{}` | Flow file: a skill for any one step, replacing the suite's. |
 | `overrides` | `{}` | Flow file: per step {skill, model, allowed_tools} that replace the defaults above. |
 | `env` | `{}` | Flow file: environment that puts the skills in their unattended mode. |

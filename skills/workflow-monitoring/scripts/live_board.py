@@ -22,6 +22,7 @@ import sys
 import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import board_lag  # noqa: E402
 import board_status as bs  # noqa: E402
 import graph  # noqa: E402
 import status_graph  # noqa: E402
@@ -225,6 +226,7 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
             other += ["- %s: assigned to session %s %s ago and still not frozen" % (entry["slug"], name, age(entry["since"], at)),
                       "    fix: look at the session %s; once it has stopped, drop the assignment with sessions.py free %s"
                       % (name, entry["slug"])]
+    other += board_lag.template_lag(root)
     other += bs.stall_lines(runs, at, root, None if taken is None else {r["slug"] for r in runs if is_held(r, taken)})
     found = bs.wiki_check(root)
     parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]

@@ -1,6 +1,6 @@
 ---
 name: workflow-delivery
-description: Takes one sentence to a pull request by running your own idea, plan, review, test and ship skills unattended, in a background agent, with frozen done lines around them and review as the only gate. `go` starts a goal. Use when asked to build a change and open a pull request. It needs a configured skill flow.
+description: Takes one sentence to a pull request by running your own idea, plan, review, test and ship skills unattended, in a background agent, with frozen done lines around them and review as the only gate. `go` starts a goal. Use when asked to build a change and open a pull request. With no suite of your own it runs its built-in routine for each step.
 ---
 
 # workflow-delivery
@@ -11,8 +11,8 @@ first.
 
 Delivery is a wrapper around your own skill suite: you bring the skills that shape an idea, plan it, review it, test it
 and ship it. A private file outside the repo, `~/.workflow-loop/flow.json`, names them, the command that runs them, the
-environment that puts them in their own unattended mode, and a probe that proves it. With no flow set, every command
-refuses with one line saying how to set it. `loop-files.md` describes the file.
+environment that puts them in their own unattended mode, and a probe that proves it. Setup fills it with `built-in`
+steps (`references/default-flow.md`), so it runs standalone; with no flow file, every command refuses. `loop-files.md`.
 
 The operation session is for governance only: it assigns and watches, and never runs `go` itself.
 
