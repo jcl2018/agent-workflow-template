@@ -17,17 +17,15 @@ Skill: `workflow-setup`. Adopts a repo into this template's format: loop config,
 
 - `/workflow-setup update --check` shows what a newer template version brings and writes nothing (exit 1 means behind, not broken); `/workflow-setup update` applies it: the skills (a skill file edited here is kept as a LOCAL FIX; `--take FILE` takes the package copy), then this repo's missing settings, `template_version`, `.loop/START.md` and the agent blocks, committed on branch `workflow-update-vX` cut from the base branch for you to merge. It reads the template's latest GitHub release (`--tag vX` pins one; `--from ZIP|DIR` reads a package instead). A sample check:
 
-  ```text
-  INSTALLED: 0.21.1
-  AVAILABLE: 0.22.0
-  REPO: template_version 0.21.1, older than 0.22.0: run update --apply
-  WHAT'S NEW:
-  ## v0.22.0 - 2026-11-12
-  - Updates flow both ways.
-  update: workflow-setup/scripts/update.py
-  LOCAL FIX: workflow-delivery/SKILL.md (kept on apply; --take workflow-delivery/SKILL.md takes the package copy, --propose sends it back)
-  PREVIEW: nothing written. Ask for workflow-setup update to apply
-  ```
+      INSTALLED: 0.21.1
+      AVAILABLE: 0.22.0
+      REPO: template_version 0.21.1, older than 0.22.0: run update --apply
+      WHAT'S NEW:
+      ## v0.22.0 - 2026-11-12
+      - Updates flow both ways.
+      update: workflow-setup/scripts/update.py
+      LOCAL FIX: workflow-delivery/SKILL.md (kept on apply; --take workflow-delivery/SKILL.md takes the package copy, --propose sends it back)
+      PREVIEW: nothing written. Ask for workflow-setup update to apply
 
 - `/workflow-setup update --propose` previews an issue proposing each LOCAL FIX back to the template (the diff and the version it was made on, never the repo's name); `--file-issue` files it once. The live board lists each governed repo whose `template_version` is older than your installed skills, with the fix.
 - `/workflow-docs entry` writes `.loop/START.md` (`check` says whether it is stale); `/workflow-setup agents` writes the same workflow-loop block into CLAUDE.md and AGENTS.md (`agent_files` picks the files; `[]` turns it off). Setup does both.
