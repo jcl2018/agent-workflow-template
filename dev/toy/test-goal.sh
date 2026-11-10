@@ -36,7 +36,7 @@ F="python3 $here/skills/workflow-delivery/scripts/flow.py"
 cat > "$d/skill.sh" <<'A'
 #!/bin/bash
 printf '%s' "${!#}" > "$FAKE_SKILL_DIR/prompt-$(date +%s%N)"
-printf '%b\n' "${FAKE_SKILL_OUT:-STEP: done}"
+printf '%b\n' "${FAKE_SKILL_OUT:-DEPTH: full\nSTEP: done}"
 A
 mkdir -p "$d/skills-seen"; export FAKE_SKILL_DIR="$d/skills-seen"
 python3 - "$d" <<'PY'
@@ -86,7 +86,7 @@ $goal answer low >/dev/null
 FAKE_SKILL_OUT='STEP: failed the tests would not run' step low review | grep -q "TRY 1 OF 3 FAILED: review failed" && ok "a failed step costs a try" || bad "failed step"
 FAKE_SKILL_OUT='nothing useful' step low review | grep -q "gave no STEP line" && ok "no STEP line costs a try" || bad "no step line"
 step low review >/dev/null
-FAKE_SKILL_OUT='STEP: skipped no browser on this machine' step low qa | grep -q "RECORDED qa skipped: no browser" && ok "a skipped step says why" || bad "skipped"
+FAKE_SKILL_OUT='DEPTH: full\nSTEP: skipped no browser on this machine' step low qa | grep -q "RECORDED qa skipped: no browser" && ok "a skipped step says why" || bad "skipped"
 step low ship >/dev/null
 $goal pr low | grep -q "^PR " && ok "pr once every step is done or skipped" || bad "pr"
 grep -q -- "- qa: skipped: no browser on this machine" "$FAKE_GH_DIR/calls.log" && ok "the pull request lists each step's result" || bad "pr body"
@@ -125,7 +125,7 @@ git switch -q main
 cp .loop/config.json "$d/cfg.gated"
 cfg 'auto_approve=true' 'auto_merge=true'; git commit -qam "No gates"; git push -q origin main
 $goal new open --here --goal "Add open" --done "calc has open" >/dev/null
-FAKE_SKILL_OUT='PENDING: approve the design\nSTEP: pending' step open idea | grep -q "AUTO-APPROVED open idea: approve the design" && ok "a pending decision is auto-approved" || bad "auto-approve"
+FAKE_SKILL_OUT='PENDING: approve the design\nDEPTH: full\nSTEP: pending' step open idea | grep -q "AUTO-APPROVED open idea: approve the design" && ok "a pending decision is auto-approved" || bad "auto-approve"
 [ "$(field open status)" = running ] && grep -q "auto-approved" "$C/loop/runs/open.json" && python3 -c "import json,sys;s=json.load(open(sys.argv[1]));assert s['note']['text'].startswith('auto-approved at idea')" "$C/loop/runs/open.json" && ok "logged and on the board as auto-approved, nothing waits" || bad "auto-approve log"
 for s2 in plan review qa ship; do step open $s2 >/dev/null; done
 printf '\n\ndef open_():\n    return 1\n' >> calc.py; git commit -qam "Add open"; verify open

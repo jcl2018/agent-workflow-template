@@ -13,7 +13,7 @@ echo "# Written by someone else" > Home.md; git add -A; git commit -qm "First pa
 git remote add origin "$d/origin.wiki.git"; git push -q origin main
 # A stand-in skill flow for the tests: each "skill" prints STEP: done, and the probe proves the unattended env.
 cd ..
-printf '#!/bin/bash\nprintf "%%b\\n" "${FAKE_SKILL_OUT:-STEP: done}"\n' > skill.sh
+printf '#!/bin/bash\nprintf "%%b\\n" "${FAKE_SKILL_OUT:-DEPTH: full\\nSTEP: done}"\n' > skill.sh
 python3 -c "
 import json, sys
 d = sys.argv[1]
