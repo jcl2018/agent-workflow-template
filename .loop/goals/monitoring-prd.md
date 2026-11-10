@@ -33,3 +33,7 @@ Frozen. A wrong done line needs a new goal.
    Expect: `BLOCK: git commit`, then `PASS`.
 6. Run `python3 skills/workflow-monitoring/scripts/replan.py plan` twice.
    Expect: the first run lists each running goal's start with its reason (or REPLAN: no change); the second prints `REPLAN: no change`.
+
+## Also closes
+
+Closes #321: the reply hook now checks the claimed operation session, so a one-line scheduled check-in reply is blocked and told the five missing parts (owner, 2026-11-10, via the operation session; row reply-checkin-321).
