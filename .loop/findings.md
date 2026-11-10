@@ -2,6 +2,8 @@
 
 Open findings, one line each.
 
+- flow-qa-lane-unasked: `flow.py <slug> qa` starts the full land lane itself (role.py lane step) with no check that the operation session allowed a lane, so an in-session worker following "run flow.py" can exceed the at-most-two-lanes rule; seen in health-hygiene 2026-11-09, stopped by hand after about two minutes.
+
 Retired (checked 2026-11-08 against each run record and `git log main`; a retired line does not start with a dash):
 retired project-wiki: its run record is retired and the wiki work landed in PR #10 (project-wiki-3).
 retired project-wiki-2: its run record is retired; superseded by project-wiki-3, merged as PR #10.

@@ -80,7 +80,7 @@ rm -f "$LOOP_HEALTH"
 echo "== one fixed template"
 out=$($health check); echo "$out" | head -3
 [ "$(head -1 <<<"$out")" = "HEALTH REPORT" ] && ok "starts with the title" || bad "title"
-[ "$(grep -n '^== ' <<<"$out" | sed 's/^[0-9]*:== \(.*\) ==$/\1/' | tr '\n' ' ')" = "size criteria docs hygiene performance Mine (skipped) " ] && ok "groups come in a fixed order" || bad "group order"
+[ "$(grep -n '^== ' <<<"$out" | sed 's/^[0-9]*:== \(.*\) ==$/\1/' | tr '\n' ' ')" = "size criteria docs hygiene performance Mine (skipped) controls " ] && ok "groups come in a fixed order" || bad "group order"
 [ "$(grep -c '^HEALTH: ' <<<"$out")" = 1 ] && tail -1 <<<"$out" | grep -q "^HEALTH: " && ok "exactly one verdict line, last" || bad "one verdict"
 awk '/^TESTS$/{t=1; next} t && /^$/{t=0; next} !t' <<<"$out" | grep -v '^\(HEALTH\|==\|groups run:\)' | grep -v '^\(PASS\|WARN\|FAIL\|UNREAD\|INFO\) [a-z]* ' | grep -q . && bad "a line outside the template" || ok "every line is a title, group, finding or verdict"
 

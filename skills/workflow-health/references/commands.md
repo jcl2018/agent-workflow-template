@@ -5,7 +5,7 @@ Moved from the wiki page, which is now only a summary, criteria and tests.
 ## Commands
 
 ```text
-check [--json] [--group size|criteria|docs|hygiene|performance|mine]
+check [--json] [--group size|criteria|docs|hygiene|performance|mine|controls] [--skip controls]
 preview [--group NAME[,NAME]]   (run is a deprecated alias)
 file --group NAME[,NAME]
 judge   (alias: suggest)
@@ -16,7 +16,7 @@ judge   (alias: suggest)
   that includes a sync with no result, an unreadable run record and a failing branch list. Every non-pass line ends with the command that fixes it. `--json` prints the same rows as records.
 
 - `check` prints a fixed template: `HEALTH REPORT`, a header naming the groups run and skipped, then each group (`size`,
-  `criteria`, `docs`, `hygiene`, `performance` (the Cost rule), `Mine`) with every rule it checked, then the `HEALTH:` verdict. `Mine` runs the owner's own rules from `~/.workflow-loop/health.json` (or the file
+  `criteria`, `docs`, `hygiene`, `performance` (the Cost rule), `Mine`, `controls`) with every rule it checked, then the `HEALTH:` verdict. `Mine` runs the owner's own rules from `~/.workflow-loop/health.json` (or the file
   `LOOP_HEALTH` names), outside the repo: exit 0 is `PASS`, 1 `FAIL`, 2 `WARN`, and a rule that can't run is `UNREAD`.
   Mine runs the owner's commands, so it is outside the read-only and same-answer promises, and it is filed only when named.
 
@@ -25,8 +25,21 @@ judge   (alias: suggest)
   costliest steps; no budget set is an `INFO` row; no tokens recorded in any of them is one `UNREAD` row. Only finished
   goals count, so two runs give the same lines.
 
+- `hygiene` also reads the land lane record (`regression.py`'s record of the current branch, else the newest one) and
+  warns when its land rows took longer than `test_budget_seconds`, naming the five slowest rows and the slowest toy
+  scripts. It lists loop worktrees that no live goal names (queued, running, waiting, failed, stopped, or done with its pull
+  request still open) and local branches on no remote older than `stale_branch_days`, one row per kind with the first
+  five and their removal commands (all of them under `--json`). A branch whose commits exist only on this machine says
+  so before `git branch -D`. These rows are never filed and the commands are never run for you.
+
+- `controls` runs each rule's negative control (`controls.py`): a throwaway repo, with no inherited git setting, made
+  to break that rule, then the real rule on it. `PASS` means it fired; `FAIL ... cannot fire` means the rule no longer
+  sees what it is for; `UNREAD` means the fixture could not be built, with the failing command, or the rule could not read its data on it. A rule with no control
+  stops health.py from loading (exit 2). `check --skip controls` leaves the group out; `controls.py run <rule> --keep`
+  runs one and keeps its fixture.
+
 - `judge` prints the `check` report, then a separate judge section, marked as suggestions: criteria quality, test
-  quality, and performance and tokens ranked by savings, with suggested criterion wording under `Needs you` and weak
+  quality, and performance (test time and tokens) ranked by savings, with suggested criterion wording under `Needs you` and weak
   tests and savings as candidate goals, then ranked next steps. It asks `judge_command` from `.loop/config.json` and
   reads only tagged lines (`CRITERION`, `TEST`, `SAVES`); any failure prints `JUDGE UNAVAILABLE`. It never changes the
   verdict or the exit code, and `check` itself calls no model.

@@ -85,7 +85,7 @@ out=$($health judge); rc=$?; echo "$out"
 [ "$(head -n "$(wc -l <<<"$a")" <<<"$out")" = "$a" ] && ok "the rules and the verdict print first, as check prints them" || bad "rules first"
 sec=$(sed -n '/^JUDGE (suggestions, never part of the verdict)$/,$p' <<<"$out")
 [ -n "$sec" ] && ok "the judge section is marked as suggestions" || bad "judge heading"
-for h in "criteria quality" "test quality" "performance and tokens, ranked by savings" "Needs you" "candidate goals" "next steps"; do
+for h in "criteria quality" "test quality" "performance, test time and tokens, ranked by savings" "Needs you" "candidate goals" "next steps"; do
   grep -q "^== $h ==$" <<<"$sec" && ok "section: $h" || bad "section $h"
 done
 needs=$(sed -n '/^== Needs you ==$/,/^== candidate goals ==$/p' <<<"$sec")

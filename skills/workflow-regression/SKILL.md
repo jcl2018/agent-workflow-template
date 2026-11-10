@@ -80,7 +80,7 @@ python3 scripts/regression.py run land --reuse
 ```
 
 Reuses this branch's last run, kept outside the worktree in `<git common dir>/loop/tests/<branch>-<sha8>.json` (each
-row's result and the commit it ran on). A row is reused only when it passed, or is a known failure, on HEAD or an
+row's result, its seconds and the commit it ran on, and the run's `total_seconds`, which health's test-time rule reads). A row is reused only when it passed, or is a known failure, on HEAD or an
 ancestor, and no file it reads changed since. What a row reads is every repo path its command names, followed through
 the files they name (a skill folder counts as a whole). It prints one of:
 
