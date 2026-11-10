@@ -6,7 +6,7 @@
 # Proves the Delivery PRD's delivery side: depth by size with the owner's override (DEL-6), resume from the last
 # recorded step after a kill (DEL-7), the goal's budget (DEL-8), the private-name scan before goal.py pr pushes (DEL-9),
 # verdicts in the pull request (issue 38) and GitHub touches, regeneration warnings and set (issue 117). No model.
-# usage: test-delivery-prd.sh [depth|resume|budget|private|defects|sites|all]
+# usage: test-delivery-prd.sh [depth|resume|budget|private|defects|hold|sites|all]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_PRIVATE_NAMES LOOP_BATCH
 here=$(cd "$(dirname "$0")/../.." && pwd); case=${1:-all}
@@ -215,6 +215,21 @@ if on defects; then
   check "the operation widens touches with a GitHub surface (#117)" '$goal touches g117 --add github:milestones --why "release milestone" | grep -q "^TOUCHES g117 +github:milestones"'
   git rm -q README.md; git commit -qm "drop README"; run_all g117; w $goal pr g117 >/dev/null 2>&1
   check "a deleted file a repo script writes back is warned about in the pull request (#117)" 'grep -q "WARN: tools/gen.sh names README.md, which this goal deletes; it may write it back" "$FAKE_GH_DIR/calls.log" && grep -q "GitHub surfaces this goal changes: github:wiki" "$FAKE_GH_DIR/calls.log"'
+fi
+
+if on hold; then
+  echo "== the merge hold: criterion rows need their requirement text on the base"
+  git switch -q main; mkdir -p docs/wiki; printf '# Page\n\n- ABC-1: the first one\n' > docs/wiki/Page.md
+  git add docs/wiki/Page.md; git commit -qm "page"; git push -q origin main
+  git switch -q -c loop/hold1
+  printf 'r1\tland\ttrue\tABC-1\t\td\tcriterion\t\nr2\tland\ttrue\tABC-2\t\td\tcriterion\t\nr3\tland\ttrue\tXYZ-1\t\td\tcriterion\t\n' >> .loop/regression.tsv
+  git add .loop/regression.tsv; git commit -qm "rows"
+  python3 - "$here/skills/workflow-release/scripts" > "$d/hold" <<'PY'
+import json, sys
+sys.path.insert(0, sys.argv[1]); import merge
+print(merge.missing_ids(".", json.load(open(".loop/config.json"))))
+PY
+  check "merge.py holds a row whose requirement ID no base page names where the pages use that prefix, and only notes a new prefix" 'grep -q "^(\[.ABC-2.\], \[.XYZ-1.\])$" "$d/hold"'
 fi
 
 if on sites; then
