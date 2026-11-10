@@ -3,37 +3,49 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/10
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-10** <!-- prd P=2f4bd05a R=759415cb N=d6d10cdd M=dad3088c U=dd23f794 -->
 
 ## Problem
-
-Skills: `workflow-health` (`automation.py`) and `workflow-regression`. For the owner of a repo that uses the loop: regression and health run on a schedule in GitHub Actions, file what they find as GitHub issues, and send one digest through GitHub's own notifications, so nothing waits for a session to be open.
+- Things break between my sessions, and I only find out when I next open one; the important checks should run on their own.
+- Every few hours I want the full regression suite and the health check to run, and every problem they find to become an issue tagged and placed on its feature's milestone.
+- I want one email to my address after each round that tells me what ran, what broke, what got fixed and what to ask the agent, without opening GitHub.
 
 ## Usage
 
-- `/workflow-setup` writes both workflows: `.github/workflows/regression.yml` on `regression_cron` and `.github/workflows/health.yml` on `health_cron` (every 4 hours by default, health 30 minutes after regression). Start either by hand from the Actions tab. A schedule change in `.loop/config.json` takes effect when the workflow is written again, and a run whose schedule differs from the config says so.
-- Set `regression_cron` or `health_cron` to `off` to turn that routine off: its scheduled runs write nothing and say it is off; a run you start by hand (or a release tag, for regression) still runs.
-- A failing test opens or updates one issue labelled `defect` (and `regression`, the tool's own label), naming the test, the feature and the requirement it guards; it closes itself when the test passes again. Health files its findings as `health:<group>` issues for the groups a runner can read (size, criteria, docs).
-- The judge runs in the health run only when the secret named by `judge_env` (default `ANTHROPIC_API_KEY`) is set and the runner has `judge_command`'s program (`judge_setup` can install it; it runs with the key unset, but the step still holds the key, so put only trusted commands there); otherwise the run says why it skipped.
-- After each health run, one comment on the pinned `Automation digest` issue lists what ran, the new, still-open and fixed issues, and a request per open issue to give the agent; it mentions `digest_owner` (default: the repo owner), so GitHub's notifications email it. Every-4-hours runs use Actions minutes: slow a routine down or turn it off in the config.
+- `/workflow-health workflow` — Writes the scheduled health workflow on `health_cron` (every 4 hours by default, 30 minutes after regression; `off` turns the schedule off, and a run started by hand still runs). Prints `WROTE <repo>/.github/workflows/health.yml`. Refuses (exit 1) `REFUSED: health_cron is not five cron fields or off. Fix: edit .loop/config.json.`, `REFUSED: judge_env <name> is not a secret name (capitals, digits, _). ...` and `REFUSED: <path> exists, and this tool didn't write it. Fix: merge by hand.`
+- `/workflow-regression workflow` — Writes the scheduled regression workflow on `regression_cron` (five cron fields, or `off` for by-hand and release-tag runs only). Prints `WROTE <repo>/.github/workflows/regression.yml`. Refuses (exit 1) `REFUSED: regression_cron is not five cron fields. ...` and `REFUSED: <path> exists, and this tool didn't write it. Fix: merge by hand.`
+- `/workflow-health digest` — Posts one comment per round on the pinned Automation digest issue: what ran, the new, still-open and fixed issues, and a request per open issue. Prints `DIGEST: posted on #<n> (<k> open)`, or `DIGEST: already posted for run <id>`. Refuses nothing; with no token it prints `DIGEST: no GH_TOKEN in this step, so nothing was posted. ...` and writes nothing.
 
 ## Requirements
 
-- AUT-1: **Reviewed 2026-11-08** Routines run in GitHub Actions. Every routine runs as a GitHub Actions workflow on a schedule set in the repo's config, every few hours by default, and I can also start it by hand from the Actions tab; each run shows its report in the run summary. <!-- reviewed 0b9dc6bd -->
-- AUT-2: **Reviewed 2026-11-08** Regression on a schedule. The full regression suite runs on the schedule; a failing test opens or updates one GitHub issue labeled defect, linked to the test and the feature it guards, and it closes by itself when the test passes again. <!-- reviewed 94fdb343 -->
-- AUT-3: **Reviewed 2026-11-08** Health on a schedule. The health check runs on the schedule and files its findings as issues tagged with their group, updating or closing them as things change; the judge runs too when the repo has an agent key set as a secret, otherwise it is skipped and the report says so. <!-- reviewed 12e2c23c -->
-- AUT-4: **Reviewed 2026-11-08** A digest through GitHub notifications. After each scheduled round, one comment on a pinned Automation digest issue lists what ran and its results, the new, still-open and fixed issues, and for each open issue the request to give the agent to fix it; GitHub's built-in notifications email it to me, with no extra setup. <!-- reviewed dff75b7e -->
-- AUT-5: **Reviewed 2026-11-08** Under my control. Each routine can be turned off or rescheduled in one setting, and without the secrets it needs a routine runs but writes nothing and says what is missing. <!-- reviewed dbcd5835 -->
+### Functional
+- AUT-1: **Reviewed 2026-11-10** Routines run in GitHub Actions <!-- reviewed b6d1385c -->
+  - Every routine runs as a GitHub Actions workflow on a schedule set in the repo's config, every few hours by default, and I can also start it by hand from the Actions tab; each run shows its report in the run summary.
+- AUT-2: **Reviewed 2026-11-10** Regression every few hours <!-- reviewed 8311faf0 -->
+  - The full regression suite runs on the schedule (every 4 hours by default) and on every release.
+  - A failing test opens or updates one issue labeled defect, on the milestone of the feature it guards, naming the test and the requirement; it closes by itself when the test passes again.
+- AUT-3: **Reviewed 2026-11-10** Health every few hours <!-- reviewed 9e6028de -->
+  - The health check runs on the schedule, after regression, with all its rule groups, and the repo review too when an agent key is set as a secret (otherwise skipped, and the report says so).
+  - Every finding becomes one issue tagged with its group, on the milestone of the feature it is about (Backlog only when none fits), updated, closed or reopened as things change, never duplicated.
+- AUT-4: **Reviewed 2026-11-10** A digest by email <!-- reviewed 40124745 -->
+  - After each round, one email goes to the address I set: what ran and its results, then the new, still-open and fixed issues grouped by feature, each with its link and the request to give the agent to fix it.
+  - The same digest is also posted as one comment on a pinned Automation digest issue.
+
+### Non-functional
+- AUT-5: **Reviewed 2026-11-10** Under my control <!-- reviewed f9052b71 -->
+  - Each routine can be turned off or rescheduled in one setting, and without the secrets it needs a routine runs but writes nothing and says what is missing.
+- AUT-6: **Reviewed 2026-11-10** Private address <!-- reviewed a08e7723 -->
+  - The email address and the mail key live only in GitHub secrets, never in the repo, logs, issues or the digest comment.
+- AUT-7: **Reviewed 2026-11-10** Bounded cost <!-- reviewed 4f0c2731 -->
+  - A round finishes within 45 minutes, and the run summary shows its Actions minutes, so I can slow the schedule if it costs too much.
 
 ## Non-goals
-
-- The scheduled routines never push to the repo, merge, or release; they only write issues, labels, comments and run summaries.
-- No notification service beyond GitHub's own (no email, chat or webhook setup).
+- The scheduled routines never push, merge or release; they only write issues, labels, comments, run summaries and the digest email.
+- No chat or webhook notifications; email and GitHub only.
 
 ## Success metrics
-
-- After a scheduled round, the digest issue has one new comment for that round, and every failing test has exactly one open defect issue.
-- With a routine set to off, its runs write no issue, label or comment.
+- After each scheduled round, one digest email arrives and every failing test or finding has exactly one open issue on its feature's milestone.
+- With a routine set to off, its runs write no issue, label, comment or email.
 
 ## Tests
 
@@ -79,3 +91,5 @@ Skills: `workflow-health` (`automation.py`) and `workflow-regression`. For the o
 | [aut-digest-dry-run](Tests#t-aut-digest-dry-run) | requirement | AUT-5 | Given no token outside Actions, when the digest runs, then it prints the comment, says it is a dry run and writes nothing. | PASS 2026-11-10 |
 | [aut-off-push-runs](Tests#t-aut-off-push-runs) | requirement | AUT-5 | Given regression_cron off, when a release tag is pushed, then the regression run still runs the rows. | PASS 2026-11-10 |
 | [aut-off-dispatch-runs](Tests#t-aut-off-dispatch-runs) | requirement | AUT-5 | Given regression_cron off, when someone starts the regression run by hand, then it still runs the rows. | PASS 2026-11-10 |
+| - | requirement | AUT-6 | no passing test | not enforced |
+| - | requirement | AUT-7 | no passing test | not enforced |

@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/7
 
-Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=b5e36347 N=f86bd012 M=bdcf897b U=53ff20fc -->
+Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf897b U=53ff20fc -->
 
 ## Problem
 - I can't trust a requirement or a fix unless a test proves it, and every fix I've ever shipped should stay fixed without me re-checking it.
@@ -35,7 +35,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=b5e36347 N=f86bd012 M=bdcf
 - REG-4: **Reviewed 2026-11-10** When tests run <!-- reviewed f5d2eeed -->
   - In the loop, each goal runs only the rows affected by its changes plus its own new rows, at qa; ship and release reuse that run when no code changed since.
   - Before a pull request merges, the affected rows run again on the merged result.
-  - The full suite (every requirement, workflow and defect test) runs in GitHub Actions nightly and on every release, never on every goal.
+  - The full suite (every requirement, workflow and defect test) runs in GitHub Actions on the Automation schedule (every few hours by default) and on every release, never on every goal.
   - I can run the full suite or any part of it at any time.
 - REG-5: **Reviewed 2026-11-10** Failures go to GitHub <!-- reviewed ed6bdd34 -->
   - One labeled issue per failing test, updated while it fails and closed when it passes; known failures don't block; with no token it only previews.
