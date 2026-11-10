@@ -142,10 +142,10 @@ Every check-in prints the live board, and the dashboard and `board-artifact.html
 4. **Queued goals**: each with its time left and what it waits on.
 5. **Dependencies**: arrows (`a --> b`) between running and queued goals.
 6. **Finish**: one time, the longest chain of what is left (goals that don't wait on each other run side by side), never the
-   sum. It reads `at least` when a goal has no estimate yet.
+   sum. It reads `at least` when a goal has no estimate yet, a step still to run has no history, or a goal is held or freezing.
 
 Merged and closed work, history, milestones, duplicate totals, token tables and done-line lists are left out. A worker still
-marks a done line met with `worker.py met SLUG N`. Estimates come from finished goals like this one: a goal's size is its done lines and touched areas (a skill folder, else its first folder, else the root file), and per step the estimate is the median of the times of finished goals within one done line and one area of it, when there are 5 or more, else of every finished goal; a whole-goal lift (at least a minute per extra done line or area) makes a larger goal always longer. The board shows a range, the 25th to 75th percentile summed over the steps left (`20m to 45m left`), with `, rough` when fewer than 5 goals are similar, the size is unknown or a step has no history (the finish then reads `at least`). A running goal's pace over its finished steps (held between half and double) scales the rest; a step whose time outlasts 3 times its estimate shows under Issues as stalled, with how long it has run. Without any history it reads `no estimate yet`. A goal's step label changes when `flow.py` starts the step, and moves on when
+marks a done line met with `worker.py met SLUG N`. Estimates come from finished goals like this one: a goal's size is its done lines and touched areas (a skill folder, else its first folder, else the root file), and per step the estimate is the median of the times of finished goals within one done line and one area of it, when there are 5 or more and they logged that step, else of every finished goal; a whole-goal lift (at least a minute per extra done line or area) makes a larger goal always longer. The board shows a range, the 25th to 75th percentile summed over the steps left (`20m to 45m left`), with `, rough` when fewer than 5 goals are similar, the size is unknown or more than one done line or area past every finished goal's, or a step still to run has no history (then the finish also reads `at least`). Step time counts reports and checks toward the step in force (the next step once a log entry says a step is done); a pause after a stopped, failed or waiting entry counts nothing. A running goal's pace over its finished steps (held between half and double) scales the rest; a running goal whose current step outlasts 3 times its estimate shows under Issues as stalled, with how long it has run (a held goal never does). Without any history it reads `no estimate yet`. A goal's step label changes when `flow.py` starts the step, and moves on when
 `goal.py record` records it, so the board never shows a finished step as current. A current step past its estimate has its
 time left re-estimated as half the time it has run (at least a minute), so the goal's time left and the finish time grow while
 it runs; a minute or more past, it reads `[build over by 12m]`. Every line fits 60 characters: the step flow wraps at its ` > `
@@ -160,8 +160,8 @@ in Runs marked `retired`. Only retire a goal the owner has said is superseded. I
 
 Each lane is a run and each box a step, coloured by status, with its expected finish. Solid arrows run inside a run.
 Thick dashed arrows cross runs and say that one goal depends on another. A goal's `waits_on` is its `depends-on` list,
-recorded when `watch` starts it, so the arrow stays through running and today's finished goals. Times come from the median
-finished goal; without one the box says `no estimate`. Hover a box for what it is, what's done, what's
+recorded when `watch` starts it, so the arrow stays through running and today's finished goals. Times come from the same
+estimates as the live board (finished goals of a similar size); without one the box says `no estimate`. Hover a box for what it is, what's done, what's
 next and what it unblocks, or tap it to open the same text in the list below. The page has no scripts.
 
 ## Rules
