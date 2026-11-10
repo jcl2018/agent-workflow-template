@@ -105,6 +105,7 @@ Live board. Each check-in prints the live board, always in the same format: Issu
 - Given a stuck worker, when the board is printed, then Issues puts it first with its fix in plain words. — [live-board-issues](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given merged work, history, totals, milestones, tokens and done lines, when the board is printed, then they are left off. — [live-board-leftouts](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a running goal with recorded steps, when the live board prints, then it shows each step's depth and the setting. — [depth-on-board](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
+- Given the board-held toy repo, when every check runs (held, freezing, pool lock, free, bind, done is final, fail-closed watch and mend, assign races), then all pass. — [held-all](../../.loop/regression.tsv), both, not run, seen failing no
 
 #### MON-5
 

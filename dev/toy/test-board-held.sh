@@ -171,6 +171,20 @@ check "a repeat bind of the same session changes nothing and keeps bound_at" 'gr
 check "the bound goal moves from freezing to running" 'board | grep -A3 "^- lc " | grep -q "worker: session worker · lc" && ! board | grep -A1 "^- lc " | grep -q freezing'
 $SE bind c1 s31 >/dev/null 2>&1 & $SE bind c2 s32 >/dev/null 2>&1 & wait
 check "two binds at the same moment both survive (the pool lock)" 'python3 -c "import json;p=json.load(open(\"$POOL\"));assert p[\"s31\"][\"slug\"]==\"c1\" and p[\"s32\"][\"slug\"]==\"c2\""'
+# Value: protects=the pool lock serializes two binds even when one is slow between its read and its write; fails_when=locked() is removed or bind reads the pool outside it (the slow bind writes its stale copy and drops the other's entry); why_new=the plain concurrent check rarely interleaves; seam=none (save_pool slowed in-process); no_claim=locks across machines
+python3 - "$S" <<'PY' > "$T/slow.out" 2>&1 &
+import sys, time
+sys.path.insert(0, sys.argv[1]); import sessions
+first = sessions.save_pool
+def slow(found):
+    time.sleep(1.5)
+    first(found)
+sessions.save_pool = slow
+sys.argv = ["sessions.py", "bind", "c3", "s33"]
+sys.exit(sessions.main())
+PY
+sleep 0.5; $SE bind c4 s34 >/dev/null 2>&1; wait
+check "a slow bind and a fast bind both survive (the lock holds the read and the write together)" 'python3 -c "import json;p=json.load(open(\"$POOL\"));assert p[\"s33\"][\"slug\"]==\"c3\" and p[\"s34\"][\"slug\"]==\"c4\""'
 $SE free lc > "$T/o" 2>&1
 check "free gives back the goal's session and its slot" 'grep -q "^FREED 1 session(s) for lc; slot released" "$T/o" && python3 -c "
 import json,sys;sys.path.insert(0,\"$S\");import graph
@@ -270,7 +284,102 @@ check "binding a failed goal to the session it already has brings it back to run
 echo '{"slug": "badrep", "status": "running", "step": "plan", "pid": 1, "reports": {"x": 1}, "log": []}' > "$R/badrep.json"
 check "a malformed reports field never crashes the board" 'board > "$T/board5" 2>&1 && grep -q "^- badrep " "$T/board5"'
 
+echo "== coverage: mend on an unreadable pool, assign races, a report saved but not freed, Finish, a pool-only slot"
+cp "$POOL" "$T/pool.keep"
+# Value: protects=mend.relaunch fails closed when a session goal's pool can't be read; fails_when=the except sessions.PoolUnreadable branch in mend.relaunch is removed (a traceback, or a background relaunch); why_new=no check ran mend.py against an unreadable pool; seam=none; no_claim=one_pass's own scheduling
+echo "{\"slug\": \"mr\", \"status\": \"failed\", \"step\": \"build\", \"branch\": \"loop/mr\", \"worktree\": \"$T/tree\", \"worker\": \"session\", \"session\": {\"id\": \"s95\", \"name\": \"worker · mr\"}, \"log\": []}" > "$R/mr.json"
+cp "$R/mr.json" "$T/mr.before"; printf '{bad' > "$POOL"
+python3 "$S/mend.py" --resume mr > "$T/o" 2>&1; rc=$?
+check "mend on a session goal with an unreadable pool refuses and launches nothing" '[ $rc = 1 ] && grep -q "^REFUSED: mr not restarted: the session pool can.t be read" "$T/o" && cmp -s "$R/mr.json" "$T/mr.before" && ! grep -q Traceback "$T/o"'
+cat > "$T/racetool.py" <<'TOOL'
+#!/usr/bin/env python3
+import json, os, subprocess, sys
+cmd, pool = sys.argv[1], os.environ["RACE_POOL"]
+if cmd == "start":
+    print("snew")
+elif cmd == "rename" and sys.argv[2] == "sfa":  # sfa can't be reached, and meanwhile another goal takes sfb
+    p = json.load(open(pool)); p["sfb"] = {"name": "worker · other", "slug": "other", "state": "busy", "since": "2026-01-01T00:00:00Z"}
+    json.dump(p, open(pool, "w")); sys.exit(1)
+elif cmd == "send" and os.environ.get("RACE_BIND"):  # the operator binds the goal elsewhere during the send
+    subprocess.run([sys.executable, os.environ["RACE_SE"], "bind", os.environ["RACE_BIND"], "sop"], stdout=subprocess.DEVNULL)
+TOOL
+chmod +x "$T/racetool.py"
+# Value: protects=assign re-checks a reused free session under the lock; fails_when=the reused-and-no-longer-free continue in sessions.assign is removed (sfb is taken from goal other); why_new=no check raced a free session against assign; seam=none; no_claim=the session tool's real timing
+echo "{\"slug\": \"ra\", \"status\": \"running\", \"step\": \"idea\", \"worktree\": \"$T/tree\", \"log\": []}" > "$R/ra.json"
+echo '{"sfa": {"name": "w", "slug": "", "state": "free"}, "sfb": {"name": "w", "slug": "", "state": "free"}}' > "$POOL"
+LOOP_SESSION_TOOL="$T/racetool.py" RACE_POOL="$POOL" $SE assign ra > "$T/o" 2>&1; rc=$?
+check "assign skips a reused free session another goal took before the claim" '[ $rc = 0 ] && python3 -c "
+import json;p=json.load(open(\"$POOL\"));r=json.load(open(\"$R/ra.json\"))
+assert p[\"sfb\"][\"slug\"]==\"other\" and p[\"sfb\"][\"state\"]==\"busy\" and p[\"sfa\"][\"state\"]==\"unreachable\"
+assert p[\"snew\"][\"slug\"]==\"ra\" and r[\"session\"][\"id\"]==\"snew\""'
+# Value: protects=an operator's bind during assign's send wins; fails_when=the HANDED guard after the send in sessions.assign is removed (the run is overwritten with snew); why_new=no check bound a goal while assign was sending; seam=none; no_claim=which session the operator should pick
+echo "{\"slug\": \"rb\", \"status\": \"running\", \"step\": \"idea\", \"worktree\": \"$T/tree\", \"log\": []}" > "$R/rb.json"
+echo '{}' > "$POOL"
+LOOP_SESSION_TOOL="$T/racetool.py" RACE_POOL="$POOL" RACE_BIND=rb RACE_SE="$S/sessions.py" $SE assign rb > "$T/o" 2>&1; rc=$?
+check "a bind during assign's send keeps the operator's bind and prints HANDED" '[ $rc = 0 ] && grep -q "^HANDED rb elsewhere during the send; session snew keeps no claim" "$T/o" && python3 -c "
+import json;p=json.load(open(\"$POOL\"));r=json.load(open(\"$R/rb.json\"))
+assert r[\"session\"][\"id\"]==\"sop\" and p[\"sop\"][\"slug\"]==\"rb\" and p[\"sop\"][\"state\"]==\"busy\" and p[\"snew\"][\"state\"]==\"free\""'
+# Value: protects=a failed or merged report is saved before the session is freed, and a pool that breaks in between says how to finish; fails_when=the except PoolUnreadable around release in cmd_report is removed (main's REFUSED ... Nothing was changed, which is false) or the save moves after release; why_new=no check broke the pool between save and release; seam=none (sessions.save wrapped in-process); no_claim=the gh merged check
+cp "$T/pool.keep" "$POOL"
+echo '{"slug": "rs", "status": "running", "step": "qa", "worker": "session", "session": {"id": "s96", "name": "worker · rs"}, "log": []}' > "$R/rs.json"
+python3 - "$S" "$POOL" > "$T/o" 2>&1 <<'PY'
+import sys
+here, pool = sys.argv[1:3]
+sys.path.insert(0, here); import sessions
+first = sessions.save
+def save_then_break(state, note):
+    first(state, note)
+    open(pool, "w").write("{bad")
+sessions.save = save_then_break
+sys.argv = ["sessions.py", "report", "rs", "--status", "failed", "--text", "broke"]
+sys.exit(sessions.main())
+PY
+rc=$?
+check "a report saved when the pool breaks before release keeps its result, exits 1 and says to run free" '[ $rc = 1 ] && grep -q "^SAVED rs as failed, but its session wasn.t freed: the session pool can.t be read .*run sessions.py free rs" "$T/o" && python3 -c "
+import json;r=json.load(open(\"$R/rs.json\"));assert r[\"status\"]==\"failed\" and r[\"report\"][\"status\"]==\"failed\""'
+# Value: protects=Finish says at least only because a goal is held or freezing, when every goal has an estimate; fails_when=or held or freezing is dropped from live_board.render's missing; why_new=the old Finish check also passed on no estimate yet; seam=none; no_claim=the estimate's accuracy
+mv "$R" "$R.keep"; mkdir -p "$R"
+python3 - "$R" <<'PY'
+import json, os, sys
+log = ["2026-06-01T08:00:00Z start"] + ["2026-06-01T%02d:00:00Z %s done" % (9 + i, s) for i, s in enumerate(("idea", "plan", "build", "review", "qa", "ship", "pr"))]
+json.dump({"slug": "hist", "goal": "H", "status": "done", "step": "pr", "pr": "", "log": log}, open(os.path.join(sys.argv[1], "hist.json"), "w"))
+PY
+echo '{}' > "$POOL"; plain=$(board | sed -n '/^Finish$/{n;p;}')
+echo "{\"slug\": \"heldx\", \"status\": \"running\", \"step\": \"plan\", \"worktree\": \"$T/tree\", \"log\": []}" > "$R/heldx.json"
+withheld=$(board | sed -n '/^Finish$/{n;p;}'); rm -f "$R/heldx.json"
+echo '{"s97": {"name": "worker · fzz", "slug": "fzz", "state": "busy", "since": "2026-06-01T11:59:00Z"}}' > "$POOL"
+withfz=$(board | sed -n '/^Finish$/{n;p;}')
+echo "finish: [$plain] [$withheld] [$withfz]"
+check "Finish reads at least with a real time for a held or freezing goal, and not without one" 'echo "$plain" | grep -qE "^finish about [0-9]" && echo "$withheld" | grep -qE "^at least finish about [0-9]" && echo "$withfz" | grep -qE "^at least finish about [0-9]"'
+rm -rf "$R"; mv "$R.keep" "$R"
+# Value: protects=a pool entry with no run (a freezing goal) uses a worker slot; fails_when=the used += taken-slugs-without-a-run line in graph.ready is removed; why_new=the window check's slot came from holds_slot on a run record; seam=none; no_claim=watch's launch path
+python3 - "$S" > "$T/o" 2>&1 <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1]); import graph
+q = [{"slug": "q", "depends": []}]
+start, held = graph.ready(q, {}, 1, {"fz": {"id": "s9", "name": "worker · fz"}})
+print("full", [g["slug"] for g in start], [why for _, why in held])
+start, held = graph.ready(q, {}, 1, {})
+print("free", [g["slug"] for g in start])
+PY
+check "a pool entry with no run counts against parallel" 'grep -qx "full \[\] \[.slots full (1 of 1).\]" "$T/o" && grep -qx "free \[.q.\]" "$T/o"'
+# Value: protects=assign on a failed goal that still names its old session gives it to the new session; fails_when=the HANDED check treats the run's earlier session id as an operator's bind (the run stays failed on the old session and the new one keeps a hidden busy entry); why_new=the HANDED check only covered a bind made during the send; seam=none; no_claim=the session tool's real timing
+echo "{\"slug\": \"rc\", \"status\": \"failed\", \"step\": \"build\", \"worktree\": \"$T/tree\", \"worker\": \"session\", \"session\": {\"id\": \"sx\", \"name\": \"worker · rc\"}, \"log\": []}" > "$R/rc.json"
+echo '{"sx": {"name": "worker · gb", "slug": "gb", "state": "busy", "since": "2026-06-01T11:00:00Z"}}' > "$POOL"
+LOOP_SESSION_TOOL="$T/racetool.py" RACE_POOL="$POOL" $SE assign rc > "$T/o" 2>&1; rc=$?
+check "assign gives a failed goal that still names its old session to the new session" '[ $rc = 0 ] && ! grep -q HANDED "$T/o" && python3 -c "
+import json;p=json.load(open(\"$POOL\"));r=json.load(open(\"$R/rc.json\"))
+assert r[\"session\"][\"id\"]==\"snew\" and r[\"status\"]==\"running\" and p[\"snew\"][\"slug\"]==\"rc\" and p[\"sx\"][\"slug\"]==\"gb\""'
+# Value: protects=binding a waiting goal to a new session keeps the owner's question and moves the slot; fails_when=bind sets a waiting goal running or drops waiting, or leaves the old session busy; why_new=the state matrix's waiting x bind cell had no test; seam=none; no_claim=the operation session's message routing
+echo '{"slug": "wb", "status": "waiting", "step": "plan", "worker": "session", "session": {"id": "sw1", "name": "worker · wb"}, "waiting": {"ask": "Q?", "words": ["yes"]}, "log": []}' > "$R/wb.json"
+echo '{"sw1": {"name": "worker · wb", "slug": "wb", "state": "busy", "since": "2026-06-01T11:00:00Z"}}' > "$POOL"
+$SE bind wb sw2 > "$T/o" 2>&1; rc=$?
+check "binding a waiting goal to a new session keeps its question and frees the old session" '[ $rc = 0 ] && python3 -c "
+import json;p=json.load(open(\"$POOL\"));r=json.load(open(\"$R/wb.json\"))
+assert r[\"status\"]==\"waiting\" and r[\"waiting\"][\"ask\"]==\"Q?\" and r[\"session\"][\"id\"]==\"sw2\" and p[\"sw2\"][\"state\"]==\"busy\" and p[\"sw1\"][\"state\"]==\"free\""'
+cp "$T/pool.keep" "$POOL"
+
 echo "== sizes"
 check "watch.py and sessions.py stay under the health rule's 20 KB" '[ $(wc -c < "$S/watch.py") -le 20480 ] && [ $(wc -c < "$S/sessions.py") -le 20480 ]'
 
-[ "$fails" = 0 ] && echo "ALL PASS" || echo "$fails FAILED"
+[ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
