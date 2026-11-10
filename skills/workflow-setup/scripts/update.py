@@ -167,7 +167,7 @@ def check(skills, manifest, old, fixes, ours):
     """Print the preview; return (changed, dropped)."""
     files = manifest["files"]
     changed = sorted(r for r, h in files.items() if (old.get("files") or {}).get(r) != h or not os.path.isfile(os.path.join(skills, r)))
-    dropped = sorted(r for r in (old.get("files") or {}) if r not in files)
+    dropped = sorted(r for r in (old.get("files") or {}) if r not in files and r not in fixes)  # a dropped LOCAL FIX is kept
     notes = newer(manifest.get("changelog", ""), ours)
     if notes:
         print("WHAT'S NEW:\n" + notes)
@@ -175,6 +175,8 @@ def check(skills, manifest, old, fixes, ours):
         print("%s: %s" % ("update" if rel in (old.get("files") or {}) else "add", rel))
     for rel in dropped:
         print("remove: " + rel)
+    for rel in sorted(r for r in fixes if r not in files):
+        print("remove: %s (a LOCAL FIX: kept)" % rel)
     for rel in fixes:
         print("LOCAL FIX: %s (kept on apply; --take %s takes the package copy, --propose sends it back)" % (rel, rel))
     if not old.get("files"):
@@ -198,7 +200,9 @@ def apply_skills(skills, manifest, read, old, fixes, take, where):
     for rel, data in blobs.items():
         if rel in keep:
             if sha(data) == sha(open(os.path.join(skills, rel), "rb").read()):
-                continue  # the local file already matches the new version: not a fix any more
+                keep.remove(rel)  # the local file already matches the new version: not a fix any more, stamp it
+                kept.pop(rel, None)
+                continue
             upstream = (old.get("files") or {}).get(rel) != files[rel]
             kept[rel] = {"hash": files[rel], "base_version": old.get("version") or ""}
             target = os.path.join(skills, KEPT, rel)
@@ -262,6 +266,9 @@ def main():
         import propose
         name = template(skills, base_cfg, args.template)[0]
         return propose.run(skills, old, fixes, name, repo, args.file_issue)
+    if tree == "unknown":
+        print("SKIPPED repo: the checkout's VERSION can't be found, so there is no version to stamp (UPDATE_CHECKOUT)")
+        repo = ""
     if tree:
         print("SKILLS: %s is a checkout; update it with git pull (UPDATE_CHECKOUT)" % skills)
         manifest, read, where = {"version": tree, "files": {}}, None, ""
@@ -290,10 +297,15 @@ def main():
         up = not changed and not dropped and not behind and not args.take and (tree or manifest["version"] == ours)
         print("UP TO DATE" if up else "PREVIEW: nothing written. Ask for workflow-setup update to apply")
         return 0 if up else 1
-    if not tree and (changed or dropped or args.take or manifest["version"] != ours):  # a version bump alone moves the stamp
+    wrote = not tree and bool(changed or dropped or args.take or manifest["version"] != ours)  # a version bump moves the stamp
+    if wrote:
         with locked(skills):
             apply_skills(skills, manifest, read, old, fixes, args.take, where)
-    return sync.apply_repo(repo, base_cfg, target, skills, bool(changed or dropped)) if repo else 0
+        # The repo half runs the sync.py just written, so the new version's settings and rules apply, not this run's.
+        new = os.path.join(skills, "workflow-setup", "scripts", "sync.py")
+        if repo and os.path.isfile(new):
+            return subprocess.run([sys.executable, new, "--repo", repo, "--version", target, "--wrote-skills"]).returncode
+    return sync.apply_repo(repo, base_cfg, target, wrote) if repo else 0
 
 
 if __name__ == "__main__":

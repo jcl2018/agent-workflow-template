@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The repo half of update.py: bring one repo's generated files and settings up to the installed template version.
 
-usage: sync.py [--repo DIR] [--version X]   (update.py --apply calls it; run alone it syncs to the installed version)
+usage: sync.py [--repo DIR] [--version X] [--wrote-skills]   (update.py --apply runs it; alone it syncs to the installed version)
 
 It reads the base branch's .loop/config.json, never the person's checkout, and writes in a temporary worktree on
 branch workflow-update-vX cut from the base branch:
@@ -104,7 +104,7 @@ def write_tree(tree, version):
     return paths
 
 
-def apply_repo(repo, cfg, target, skills, wrote_skills):
+def apply_repo(repo, cfg, target, wrote_skills):
     """The repo half; returns the exit code."""
     if not cfg:
         print("SKIPPED repo: %s has no .loop/config.json on its base branch (merge the setup branch first) (UPDATE_SKIPPED_REPO)"
@@ -146,6 +146,10 @@ def apply_repo(repo, cfg, target, skills, wrote_skills):
         return 0
     except (RuntimeError, OSError, SystemExit) as error:
         why = str(error).strip().splitlines()[-20:]
+        if where == "none":  # a branch cut this run with no commit would read as merged and refuse the rerun
+            git(repo, "worktree", "remove", "--force", tree, check=False)
+            if git(repo, "rev-list", "--count", "%s..%s" % (base, name), check=False) == "0":
+                git(repo, "branch", "-D", name, check=False)
         if wrote_skills:
             print("PARTIAL: skills updated to v%s; repo half not written: %s (UPDATE_PARTIAL). Fix: fix the cause, then run "
                   "update --apply again (safe to rerun)" % (target, " ".join(why)), file=sys.stderr)
@@ -162,12 +166,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--repo", default="")
     parser.add_argument("--version", default="")
+    parser.add_argument("--wrote-skills", action="store_true", help="update.py already wrote the skills (a failure is PARTIAL)")
     args = parser.parse_args()
     repo = args.repo or git(".", "rev-parse", "--show-toplevel", check=False)
     version = args.version or agents.installed_version()
     if not repo or not version:
         sys.exit("REFUSED: need a repo and an installed version (UPDATE_SKIPPED_REPO). Fix: pass --repo and --version")
-    return apply_repo(repo, base_config(repo), version, "", False)
+    return apply_repo(repo, base_config(repo), version, args.wrote_skills)
 
 
 if __name__ == "__main__":
