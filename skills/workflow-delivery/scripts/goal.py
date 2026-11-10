@@ -32,7 +32,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import defect  # noqa: E402
 import guards  # noqa: E402
 import guards_ops  # noqa: E402
-import prbody  # noqa: E402
 import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -299,6 +298,8 @@ def cmd_record(args):
     os.remove(ran)
     if result in ("done", "skipped") or pending or result == "pending":
         guards.clear_refusals(state)
+    if result in ("done", "skipped") or ((pending or result == "pending") and cfg.get("auto_approve") is True):
+        guards_ops.keep(sys.modules[__name__], state, args.step, text)
     if (pending or result == "pending") and cfg.get("auto_approve") is True:
         took = "; ".join(pending) or why or "the step's pending gate"
         state["flow"][args.step] = "done: auto-approved: " + took[:200] + stamp
@@ -318,9 +319,6 @@ def cmd_record(args):
         print("WAITING %s: %s" % (args.slug, ask))
         return 0
     if result in ("done", "skipped"):
-        state.setdefault("verdicts", {})[args.step] = prbody.verdicts(text)
-        if args.step == "plan":
-            state["plan_head"] = git("rev-parse", "HEAD")
         state["flow"][args.step] = result + (" in session" if args.in_session else "") + (": " + why[:120] if why else "") + stamp
         state["step"] = role.after(args.step)
         guards.advance(sys.modules[__name__], state)

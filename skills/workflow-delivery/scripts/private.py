@@ -11,7 +11,8 @@ A file holding only comments: off on purpose. A file that can't be read or holds
 
 What a scan reads: the branch name, every changed file name, the added lines and the message of every commit from the
 base to HEAD (a name added and removed later still counts; a line that only removes one doesn't), and any named texts
-(the pull request title and body, release notes, wiki pages). A hit names its place and the list line, never the text.
+(the pull request title and body, release notes, wiki pages). A hit names its place and the list line, never the text
+(a place that itself matches, such as a private file name, is masked).
 """
 import os
 import re
@@ -23,7 +24,7 @@ import time
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
 DEFAULT = "~/.workflow-loop/private-names"
-LIMIT, WIDTH = 60, 4096  # seconds for a whole scan, characters read from one line
+LIMIT, WIDTH = 60, 4096  # seconds for a whole scan (git included), characters per matched piece of a line
 PRIVATE_NAME, PRIVATE_LIST = "PRIVATE_NAME", "PRIVATE_LIST"
 
 
@@ -55,32 +56,51 @@ def patterns():
     return ("on" if found else "off"), found, ""
 
 
-def git(top, *args):
-    done = subprocess.run(["git"] + list(args), cwd=top, capture_output=True, text=True, errors="replace")
+def git(top, *args, stop=None):
+    try:
+        done = subprocess.run(["git"] + list(args), cwd=top, capture_output=True, text=True, errors="replace",
+                              timeout=max(1, (stop or time.time() + LIMIT) - time.time()))
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("git %s passed the %d second limit" % (" ".join(args[:2]), LIMIT))
     if done.returncode:
         raise RuntimeError("git %s failed: %s" % (" ".join(args[:2]), done.stderr.strip()[:200]))
     return done.stdout
 
 
-def places(top, base):
+def places(top, base, stop=None):
     """Yield (place, text) for everything a push from base to HEAD would publish."""
-    branch = git(top, "branch", "--show-current").strip()
+    branch = git(top, "branch", "--show-current", stop=stop).strip()
     if branch:
         yield "branch", branch
-    for name in git(top, "diff", "--name-only", "--no-renames", base + "...HEAD").splitlines():
+    for name in git(top, "diff", "--name-only", "--no-renames", base + "...HEAD", stop=stop).splitlines():
         yield "file name " + name, name
-    for sha in git(top, "rev-list", "--reverse", base + "..HEAD").split():
-        yield "commit:%s message" % sha[:7], git(top, "log", "-1", "--format=%B", sha)
-        path, line = "", 0
-        for row in git(top, "show", "--format=", "--no-color", "--no-ext-diff", "-U0", sha).splitlines():
-            if row.startswith("+++ "):
+    for sha in git(top, "rev-list", "--reverse", base + "..HEAD", stop=stop).split():
+        for line in git(top, "log", "-1", "--format=%B", sha, stop=stop).splitlines():
+            yield "commit:%s message" % sha[:7], line
+        path, line, header = "", 0, False
+        for row in git(top, "show", "--format=", "--no-color", "--no-ext-diff", "-U0", sha, stop=stop).splitlines():
+            if row.startswith("diff "):  # a file's header runs from here to its first @@ (a "+++ " row there names it)
+                header = True
+            elif header and row.startswith("+++ "):
                 path = row[6:] if row.startswith("+++ b/") else row[4:]
             elif row.startswith("@@"):
-                hunk = re.search(r"\+(\d+)", row)
+                header, hunk = False, re.search(r"\+(\d+)", row)
                 line = int(hunk.group(1)) if hunk else 0
-            elif row.startswith("+") and path:
+            elif row.startswith("+") and path and not header:
                 yield "%s:%d (commit:%s)" % (path, line, sha[:7]), row[1:]
                 line += 1
+
+
+def windows(text):
+    """The whole text in overlapping WIDTH-character pieces, so a long line is read to its end."""
+    return [text[at:at + WIDTH] for at in range(0, max(len(text), 1), WIDTH - 256)]
+
+
+def shown_place(place, found):
+    """The place as a hit names it: a part that itself matches a pattern (a private file name) is masked."""
+    for _, pattern in found:
+        place = pattern.sub("<private>", place)
+    return place
 
 
 def scan(top, base, texts=None):
@@ -97,7 +117,7 @@ def scan(top, base, texts=None):
     items = []
     if base:
         try:
-            items = list(places(top, base))
+            items = list(places(top, base, stop))
         except RuntimeError as failed:
             return {"state": "broken", "hits": [], "note": "the scan couldn't read the branch: %s" % failed}
     for name, text in (texts or {}).items():
@@ -106,8 +126,8 @@ def scan(top, base, texts=None):
         if time.time() > stop:
             return {"state": "broken", "hits": hits, "note": "the scan passed its %d second limit" % LIMIT}
         for number, pattern in found:
-            if pattern.search(text[:WIDTH]):
-                hits.append("%s matches list line %d" % (place, number))
+            if any(pattern.search(piece) for piece in windows(text)):
+                hits.append("%s matches list line %d" % (shown_place(place, found), number))
                 break
     note = "Private-name scan: %d pattern%s from %s, %s." % (
         len(found), "" if len(found) == 1 else "s", shown, "%d hit%s" % (len(hits), "" if len(hits) == 1 else "s") if hits else "clean")

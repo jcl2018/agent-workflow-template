@@ -68,6 +68,14 @@ def cmd_queue(g, args):
     return 0
 
 
+def keep(g, state, step, text):
+    """What record keeps from a done, skipped or auto-approved reply: its verdicts (issue 38) and, for plan, the HEAD
+    it was recorded at (fit.resume_at tells build from review by commits after it)."""
+    state.setdefault("verdicts", {})[step] = prbody.verdicts(text)
+    if step == "plan":
+        state["plan_head"] = g.git("rev-parse", "HEAD")
+
+
 def frozen_fields(g, args, lines, touches):
     """What `new` records beside the done lines: the goal's size and the budget it carries (0 = none set)."""
     bad = [t for t in touches if fit.surface(t) is None]

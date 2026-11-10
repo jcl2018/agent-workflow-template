@@ -141,6 +141,8 @@ PY
   check "at its token budget no new step starts, naming the budget and the fix" 'grep -q "1100 tokens spent, at the token budget of 1000 (the goal.s budget).*goal.py set bud1 --budget-tokens N.*(BUDGET_TOKENS)" <<<"$out"'
   $goal set bud1 --budget-tokens 5000 --why "owner: more" >/dev/null 2>&1
   check "the owner raises one goal's budget with set" 'grep -q "\"tokens\": 5000" "$R/bud1.extra.json"'
+  out=$(w $goal set bud1 --budget-tokens 99999 --why "worker: more" 2>&1)
+  check "a worker can't set a goal's budget (operation only)" '! grep -q 99999 "$R/bud1.extra.json" && grep -qi "operation" <<<"$out"'
   base 'time_budget_minutes=0' 'token_budget=0'
   new bud2 "src/api" >/dev/null
   check "a goal frozen with no budget carries an explicit none" '[ "$(field bud2 budget.minutes)" = 0 ] && [ "$(field bud2 budget.tokens)" = 0 ]'
@@ -161,6 +163,10 @@ if on private; then
   prgoal priv2; git commit -q --allow-empty -m "mention secretword in a message"
   out=$(w $goal pr priv2 2>&1)
   check "a private name only in a commit message refuses" 'grep -q "commit:[0-9a-f]* message matches list line 2" <<<"$out"'
+  prgoal priv7; mkdir -p secretworddir; echo x > secretworddir/a.txt; printf '++ secretword\n' > plus.txt
+  python3 -c "print('y' * 5000 + 'secretword')" > long.txt; git add -A secretworddir plus.txt long.txt; git commit -qm "files"
+  out=$(w $goal pr priv7 2>&1)
+  check "a private file name is masked, and a '++ ' line and text past column 4096 are scanned" '! grep -q secretword <<<"$out" && grep -q "file name <private>dir/a.txt matches" <<<"$out" && grep -q "plus.txt:1 (commit" <<<"$out" && grep -q "long.txt:1 (commit" <<<"$out"'
   git switch -q main; echo "old secretword" > legacy.txt; git add legacy.txt; git commit -qm legacy; git push -q origin main
   prgoal priv3; git rm -q legacy.txt; git commit -qm "remove the leaked name"
   out=$(w $goal pr priv3 2>&1)
