@@ -17,3 +17,5 @@ Frozen. A wrong done line needs a new goal.
    Expect: the running goal shows `[build over by 30m]`, `30m left`, a finish time later than the on-time board, and no line wider than 60 characters.
 2. Run `python3 skills/workflow-monitoring/scripts/board_status.py` in this repo.
    Expect: the step flow wraps at the `>` joints and no line runs past 60 characters.
+
+Closes #93
