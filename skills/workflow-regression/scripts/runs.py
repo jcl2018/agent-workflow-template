@@ -5,8 +5,9 @@ empty, so same-day runs on two branches write identical lines and merge cleanly.
 result flipped on (flaky.py, REG-9); status stays the raw PASS or FAIL. The per-result evidence (commit, clean, host,
 python) lives in the branch's lane record in the git common dir, never here: a commit cell would differ on every
 branch and turn each same-day merge of this file into a conflict. Files from before the run or flaky column still
-read, with those cells empty, and are rewritten with 5 columns on the next write. A row not rerun keeps its cells, and
-a result with no flaky field (a dirty tree) keeps the row's flaky cell.
+read, with those cells empty. A line carries the 5th cell only while it is set, so the upgrade changes no other line
+and an unflagged line is the same as before. A row not rerun keeps its cells, and a result with no flaky field (a dirty
+tree) keeps the row's flaky cell.
 """
 import os
 
@@ -43,4 +44,4 @@ def write(root, results, date, sha):
         flag = item["flaky"] if "flaky" in item else ran.get(item["id"], [""] * 5)[4]
         ran[item["id"]] = [item["id"], "PASS" if item["state"] == "PASS" else "FAIL", date, run, flag[:12]]
     with open(path(root), "w") as handle:
-        handle.write(HEADER + "".join("\t".join(ran[key]) + "\n" for key in sorted(ran)))
+        handle.write(HEADER + "".join("\t".join(ran[key][:4 + bool(ran[key][4])]) + "\n" for key in sorted(ran)))
