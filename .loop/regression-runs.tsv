@@ -1,4 +1,4 @@
-# id	status	date	run
+# id	status	date	run	flaky
 adopt-set-1	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 adopt-set-2	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 adopt-set-3	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -61,8 +61,11 @@ breaking-asks	PASS	2026-11-09
 cap-default-10	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 check-writes-nothing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 checkin-passes-hook	PASS	2026-11-10	
+ci-bad-target	PASS	2026-11-10	
 ci-issue-backlog	PASS	2026-11-10	
+ci-levels-setting	PASS	2026-11-10	
 ci-summary	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+ci-target-input	PASS	2026-11-10	
 cost-time-warn	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 cost-unread-tokens	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 criteria-max-config	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -114,6 +117,8 @@ every-row-described	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 failed-waits-mender	PASS	2026-11-09	
 file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 fixed-closes	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+flaky-marked	PASS	2026-11-10	
+flaky-no-false-mark	PASS	2026-11-10	
 format-bullets	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 format-frontdoor	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 format-groups	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -340,6 +345,7 @@ steps-in-session	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 steps-through-flow	PASS	2026-11-09	
 stop-after-3-tries	PASS	2026-11-09	
 stuck-stays-top	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+suite-time-recorded	PASS	2026-11-10	
 summary-escapes	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 summary-fallback	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 summary-fields	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
