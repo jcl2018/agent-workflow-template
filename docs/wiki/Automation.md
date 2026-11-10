@@ -94,28 +94,31 @@ Routines run in GitHub Actions. Every routine runs as a GitHub Actions workflow 
 - Given this repo's config, when the health workflow is written, then it equals the committed workflow. — [aut-health-workflow-current](../../.loop/regression.tsv), requirement, guards AUT-1, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a regression schedule that differs from the config, when the routine runs, then it names the difference and the command that fixes it. — [aut-regression-schedule-mismatch](../../.loop/regression.tsv), requirement, guards AUT-1, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given setup in a repo, when it plans the workflows, then it offers the health workflow only when the workflow-health skill is in the repo. — [aut-setup-health-only-with-skill](../../.loop/regression.tsv), requirement, guards AUT-1, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a workflow older than the skills, when a health run starts, then it warns with the command that rewrites it and still runs. — [aut-email-upgrade](../../.loop/regression.tsv), requirement, guards AUT-1, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### AUT-2
 
-Regression on a schedule. The full regression suite runs on the schedule; a failing test opens or updates one GitHub issue labeled defect, linked to the test and the feature it guards, and it closes by itself when the test passes again.
+Regression every few hours. The full regression suite runs on the schedule (every 4 hours by default) and on every release. A failing test opens or updates one issue labeled defect, on the milestone of the feature it guards, naming the test and the requirement; it closes by itself when the test passes again.
 
 - Given a failing test, when the scheduled regression runs, then one issue labelled defect opens, naming the test, the feature and the requirement it guards. — [aut-defect-issue](../../.loop/regression.tsv), requirement, guards AUT-2, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given an open failing-test issue without the defect label, when the test fails again, then the issue gains the defect label. — [aut-old-issue-relabel](../../.loop/regression.tsv), requirement, guards AUT-2, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given the issues cannot be read, when the scheduled regression runs, then it changes no issue rather than open duplicates. — [aut-issue-list-fails](../../.loop/regression.tsv), requirement, guards AUT-2, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a failing test, when the scheduled regression runs, then its defect issue goes on the milestone of the feature it guards, the suite runs every 4 hours and on every release tag, and a failed filing fails the run. — [aut-email-regression](../../.loop/regression.tsv), requirement, guards AUT-2, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### AUT-3
 
-Health on a schedule. The health check runs on the schedule and files its findings as issues tagged with their group, updating or closing them as things change; the judge runs too when the repo has an agent key set as a secret, otherwise it is skipped and the report says so.
+Health every few hours. The health check runs on the schedule, after regression, with all its rule groups, and the repo review too when an agent key is set as a secret (otherwise skipped, and the report says so). Every finding becomes one issue tagged with its group, on the milestone of the feature it is about (Backlog only when none fits), updated, closed or reopened as things change, never duplicated.
 
 - Given no agent key secret, when the scheduled health runs, then the judge is skipped and the report says so. — [aut-judge-no-secret](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given the secret but no judge program on the runner, when the scheduled health runs, then the judge is skipped and the report names the setting to fix. — [aut-judge-no-program](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a repo without a Backlog milestone, when the scheduled health files findings, then it makes the milestone first. — [aut-backlog-milestone](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given an agent key secret with another name, when the scheduled judge runs, then it receives the key under the name it reads. — [aut-secret-mapped](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a judge that fails, when the scheduled health runs, then the step stays green and its report stays readable. — [aut-judge-fails-green](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given health findings, when the scheduled health run files them, then each goes on its feature's milestone (Backlog when none fits), no open issue is duplicated, and an issue the owner moved stays. — [aut-email-file](../../.loop/regression.tsv), requirement, guards AUT-3, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### AUT-4
 
-A digest through GitHub notifications. After each scheduled round, one comment on a pinned Automation digest issue lists what ran and its results, the new, still-open and fixed issues, and for each open issue the request to give the agent to fix it; GitHub's built-in notifications email it to me, with no extra setup.
+A digest by email. After each round, one email goes to the address I set: what ran and its results, then the new, still-open and fixed issues grouped by feature, each with its link and the request to give the agent to fix it. The same digest is also posted as one comment on a pinned Automation digest issue.
 
 - Given no digest issue yet, when the first round ends, then the Automation digest issue is created and pinned. — [aut-digest-create](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given open defect and health issues, when a round ends, then one comment mentions the owner and lists what ran, the new issues and a request per open issue. — [aut-digest-format](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
@@ -126,6 +129,10 @@ A digest through GitHub notifications. After each scheduled round, one comment o
 - Given the repo cannot pin another issue, when the first round ends, then it warns and still posts the digest. — [aut-digest-pin-fails](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a round whose digest comment fails, when the run ends, then no state is saved, so its rerun posts the comment. — [aut-digest-comment-fails](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given gh cannot list the issues, when a round ends, then the digest posts nothing and says why. — [aut-digest-list-fails](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given this run's digest comment, when the email step runs, then one mail with the comment's text goes out and the comment is marked mailed, and a rerun, a look-alike comment, a refusal or an unknown outcome never sends a second one. — [aut-email-mail](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a provider that throttles once, when the round's mail is sent, then it is retried once, and only when the provider cannot have accepted it. — [aut-email-retry](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given the mail secrets, when the Mail test workflow runs, then one test mail goes out touching no issue, and a missing secret or mail off fails the run. — [aut-email-test](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given open issues on milestones, when a round ends, then the digest groups the new, still-open and fixed issues by feature with the cost and email rows, and an older or repeated run never posts twice. — [aut-email-digest](../../.loop/regression.tsv), requirement, guards AUT-4, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### AUT-5
 
@@ -147,3 +154,15 @@ Under my control. Each routine can be turned off or rescheduled in one setting, 
 - Given no token outside Actions, when the digest runs, then it prints the comment, says it is a dry run and writes nothing. — [aut-digest-dry-run](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given regression_cron off, when a release tag is pushed, then the regression run still runs the rows. — [aut-off-push-runs](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given regression_cron off, when someone starts the regression run by hand, then it still runs the rows. — [aut-off-dispatch-runs](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
+
+#### AUT-6
+
+Private address. The email address and the mail key live only in GitHub secrets, never in the repo, logs, issues or the digest comment.
+
+- Given the mail secrets, when the email step runs or fails, then their values never reach a log, the summary, an issue or the digest comment, and without them it writes nothing and names what is missing. — [aut-email-secrets](../../.loop/regression.tsv), requirement, guards AUT-6, both, PASS 2026-11-10, seen failing 2026-11-10
+
+#### AUT-7
+
+Bounded cost. A round finishes within 45 minutes, and the run summary shows its Actions minutes, so I can slow the schedule if it costs too much.
+
+- Given a round's runs, when the digest is written, then the run summary shows the round's job time and Actions minutes and flags a round over 45 minutes. — [aut-email-rounds](../../.loop/regression.tsv), requirement, guards AUT-7, both, PASS 2026-11-10, seen failing 2026-11-10

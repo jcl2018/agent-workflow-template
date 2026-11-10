@@ -17,3 +17,21 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Pick a sender and add its secrets in Settings, Secrets and variables, Actions: DIGEST_TO, DIGEST_FROM and either
+   CLOUDFLARE_ACCOUNT_ID with CLOUDFLARE_EMAIL_TOKEN (a domain onboarded to Cloudflare Email Sending), or
+   DIGEST_SMTP_USER with DIGEST_SMTP_PASSWORD plus `"digest_mail": "smtp"` in `.loop/config.json`. Time how long it takes.
+   Expect: under five minutes once the domain or app password exists.
+2. In the Actions tab, run the mail-test workflow.
+   Expect: its log ends `MAIL: test sent (MAIL_SENT)`, and a mail titled "Automation digest: test from <owner/repo>"
+   arrives within a minute.
+3. Run the health workflow by hand.
+   Expect: a new comment on the pinned Automation digest issue, grouped under milestone headings, with `round cost` and
+   `email` rows; the run summary has a `## Round` line; one mail arrives with the same text as the comment.
+4. Re-run that same health run (Re-run all jobs).
+   Expect: no second comment and no second mail; the Email the digest step says `already sent for run ... (MAIL_ALREADY)`.
+5. Open the health and regression issues on GitHub.
+   Expect: each sits on its feature's milestone (Backlog only when no feature fits). Move one to Backlog by hand, run the
+   health workflow again, and it stays on Backlog.
+6. Search the run logs, the digest comment and the issues for your address.
+   Expect: it appears nowhere.

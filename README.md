@@ -57,8 +57,10 @@ anything only you can decide under Waiting on you. Nothing is approved for you. 
 mode, so delivery opens the pull request itself, with each step's result in its body.
 
 Regression and health also run on a schedule in GitHub Actions (every 4 hours by default, `off` per routine in
-`.loop/config.json`), filing failing tests as `defect` issues and health findings as tagged issues, and posting one
-digest comment per round on a pinned `Automation digest` issue that GitHub emails you. These runs use Actions minutes.
+`.loop/config.json`), filing failing tests as `defect` issues and health findings as tagged issues on their feature's
+milestone, and posting one digest comment per round on a pinned `Automation digest` issue, which is also emailed to you
+once per round when the mail secrets are set (Cloudflare Email Service or SMTP). These runs use Actions minutes, and
+each round's cost is shown and flagged over 45 minutes.
 
 See where things stand, or pick up a failed goal:
 
