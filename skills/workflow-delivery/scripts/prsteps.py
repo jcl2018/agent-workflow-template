@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
-"""What goal.py pr records about the commit its pr lane passed, for merge.py's checks before it merges.
+"""What goal.py pr does after its pr lane passes, before it pushes: the bookkeeping commit and the record merge.py checks.
 
-Imported by goal.py. record(state, base) sets state["pr_head"] (the HEAD the pr lane passed) and state["pr_base"]
-(the base commit that HEAD was merged with). merge.py then refuses when the pull request head moved since (HEAD_MOVED)
-or the base moved in paths the goal's rows reach (BASE_MOVED). docs: Regression#lane-messages.
+Imported by goal.py. record(state, base):
+  1. issue states (V5): `tests.py issues --write` once, bounded to 120 s; a failure leaves the file and prints NOTE;
+  2. run results (DX-19): the branch's lane record's row results merge into .loop/regression-runs.tsv under the row
+     lock, so the rows a goal ran show on the wiki and in health once it merges;
+  3. one commit of those two files when they changed (`git commit --only`), then
+  4. state["pr_head"] (the head goal.py pr pushes: the lane's commit plus that bookkeeping commit) and state["pr_base"]
+     (the base commit it was merged with), for merge.py's HEAD_MOVED and BASE_MOVED checks.
+docs: Regression#lane-messages.
 """
-import subprocess
+import datetime
 import os
+import subprocess
+import sys
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+REG = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-regression", "scripts"))
+FILES = (".loop/regression-issues.tsv", ".loop/regression-runs.tsv")
 
 
 def git(*args):
@@ -17,8 +26,51 @@ def git(*args):
     return done.stdout.strip() if done.returncode == 0 else ""
 
 
+def issues(top):
+    tests = os.path.join(REG, "tests.py")
+    if not os.path.exists(tests) or not os.path.exists(os.path.join(top, ".loop", "regression.tsv")):
+        return
+    try:
+        done = subprocess.run([sys.executable, tests, "issues", "--write", "--root", top], capture_output=True, text=True,
+                              timeout=120, stdin=subprocess.DEVNULL)
+        why = (done.stderr.strip().splitlines() or [""])[-1] if done.returncode else ""
+    except subprocess.TimeoutExpired:
+        why = "timed out"
+    if why:
+        print("NOTE: issue states not refreshed: %s" % why[:200])
+
+
+def results(top):
+    if not os.path.isdir(REG):
+        return
+    sys.path.insert(0, REG)
+    try:
+        import lanes
+        import runs
+        import slots
+        record, _ = lanes.load(lanes.record_path(top), top)
+        rows = (record or {}).get("rows") or {}
+        done = [{"id": key, "state": value.get("status")} for key, value in sorted(rows.items())
+                if value.get("status") in ("PASS", "FAIL")]
+        if done:
+            day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+            slots.edit(top, "regression-runs.tsv", lambda: runs.write(top, done, day, git("rev-parse", "HEAD")))
+    except (ImportError, OSError, ValueError, SystemExit) as error:
+        print("NOTE: lane results not recorded in regression-runs.tsv: %s" % error)
+    finally:
+        sys.path.remove(REG)
+
+
 def record(state, base):
-    """Note the tested head and its base in the goal state (saved by the caller)."""
+    """Refresh issue states and run results, commit them if they changed, then note the head and base for merge.py."""
+    top = git("rev-parse", "--show-toplevel")
+    if top:
+        issues(top)
+        results(top)
+        changed = [path for path in FILES if git("status", "--porcelain", "--", path)]
+        if changed:
+            subprocess.run(["git", "commit", "--only", "-q", "-m", "pr: record issue states and the lane's results", "--"]
+                           + changed, cwd=top, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=60)
     head = git("rev-parse", "HEAD")
     state["pr_head"] = head
     state["pr_base"] = git("merge-base", head, "origin/" + base) or git("rev-parse", "origin/" + base)
