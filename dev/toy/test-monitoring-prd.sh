@@ -1,13 +1,13 @@
 #!/bin/bash
-# reads: skills/workflow-monitoring/scripts/auto.py skills/workflow-monitoring/scripts/board.py
+# reads: skills/workflow-monitoring/scripts/auto.py skills/workflow-monitoring/scripts/board.py skills/workflow-monitoring/scripts/board_lines.py
 # reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-monitoring/scripts/board_runs.py
 # reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/checkin.py
-# reads: skills/workflow-monitoring/scripts/dep_graph.py skills/workflow-monitoring/scripts/goal_state.py
+# reads: skills/workflow-monitoring/scripts/goal_state.py
 # reads: skills/workflow-monitoring/scripts/govern_hook.py skills/workflow-monitoring/scripts/graph.py
-# reads: skills/workflow-monitoring/scripts/issue_lines.py skills/workflow-monitoring/scripts/live_board.py
+# reads: skills/workflow-monitoring/scripts/live_board.py
 # reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/monitor.py
 # reads: skills/workflow-monitoring/scripts/operate.py skills/workflow-monitoring/scripts/pool.py
-# reads: skills/workflow-monitoring/scripts/prs.py skills/workflow-monitoring/scripts/replan.py
+# reads: skills/workflow-monitoring/scripts/replan.py
 # reads: skills/workflow-monitoring/scripts/reply_hook.py skills/workflow-monitoring/scripts/session_bind.py
 # reads: skills/workflow-monitoring/scripts/session_tool.py skills/workflow-monitoring/scripts/sessions.py
 # reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-monitoring/scripts/watch.py

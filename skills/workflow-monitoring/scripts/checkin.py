@@ -8,7 +8,7 @@ usage: checkin.py [--since ISO]
   All sessions    one table row per live goal: session, repo, what it is for, status, progress, time left, latest
   Re-plan         what replan.py changed since the last check-in, each with its reason (MON-10)
   Auto-answered   what auto.py answered or sent to you since the last check-in, with the words that revert it (MON-11)
-  Dependencies    dep_graph's top-to-bottom graph
+  Dependencies    board_lines' top-to-bottom graph
   Needs you       numbered: questions with their options and the recommended answer, stuck goals by cause, workers
                   silent past silent_minutes (MON-8), the pool ask (MON-12), sessions to archive, kept worktrees;
                   or "Nothing needs you"
@@ -25,11 +25,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import auto  # noqa: E402
 import board_status as bs  # noqa: E402
-import dep_graph  # noqa: E402
+import board_lines  # noqa: E402
 import goal_state  # noqa: E402
 import govern_hook  # noqa: E402
 import graph  # noqa: E402
-import issue_lines  # noqa: E402
 import live_board as lb  # noqa: E402
 import pool as pl  # noqa: E402
 import replan  # noqa: E402
@@ -85,7 +84,7 @@ def render(root=None, at=None, stamp=None):
     items = [dict(slug=r["slug"], mark=states[r["slug"]] if states[r["slug"]] != "done" else "awaiting merge",
                   depends=[d for d in r.get("waits_on") or []]) for r in live]
     items += [dict(slug=g["slug"], mark="queued", depends=g["depends"]) for g in queue]
-    out += ["", "Dependencies"] + dep_graph.render(items) + ["", "Needs you"]
+    out += ["", "Dependencies"] + board_lines.render(items) + ["", "Needs you"]
     needs = []
     for run in live:
         state, ask = states[run["slug"]], run.get("waiting") or {}
@@ -99,7 +98,7 @@ def render(root=None, at=None, stamp=None):
                 run["slug"], goal_state.silent_for(run, at) // 60))
         elif state == "held":
             needs.append("%s is held with no worker; give it a session (sessions.py bind %s ID)" % (run["slug"], run["slug"]))
-    stuck = issue_lines.stuck(live, cfg.get("resume_on_limit") is True)
+    stuck = board_lines.stuck(live, cfg.get("resume_on_limit") is True)
     needs += [" ".join(line.split()) for line in stuck if line.startswith("- ")]
     if found is not None:
         needs += [line[2:] for line in pl.ask_lines(found, cfg, len(ready)) if line.startswith("- ")]
@@ -127,7 +126,7 @@ def render(root=None, at=None, stamp=None):
             out.append("- %s: its pull request waits for merge (you: review %s)" % (run["slug"], run.get("pr") or "it"))
         elif states[run["slug"]] in ("running", "silent", "held"):
             out.append("- %s: %s" % (run["slug"], lb.next_line(run)))
-    paused = issue_lines.paused(live)
+    paused = board_lines.paused(live)
     out.append("- " + (paused or "next check-in in %s minutes" % (cfg.get("cadence") or 30)))
     return lb.fit(out, 100)
 

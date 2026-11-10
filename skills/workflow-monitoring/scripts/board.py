@@ -29,7 +29,7 @@ except ImportError:
     board_status = None
 try:  # the shared goal state (issue 113) and fast pull request states (MON-9), when they are beside this file
     import goal_state  # noqa: E402
-    import prs  # noqa: E402
+    import board_lines as prs  # noqa: E402  (its pull request lookups)
 except ImportError:
     goal_state = prs = None
 

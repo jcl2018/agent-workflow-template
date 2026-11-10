@@ -4,11 +4,11 @@
 usage: live_board.py [--html]
 
 LIVE BOARD header (repo, local time, version, health), then Issues (only what is open now, a stuck worker first, each with
-its fix in plain words; stopped goals grouped by cause by issue_lines.py), Running goals (10-cell bar, time left, tries, the
+its fix in plain words; stopped goals grouped by cause by board_lines.py), Running goals (10-cell bar, time left, tries, the
 step flow with the current step in brackets, worker, depth, next step; [freezing] for a goal handed over before it was
-frozen; then the session pool line), Queued goals (held goals marked held, with their held time), Dependencies (dep_graph.py's
+frozen; then the session pool line), Queued goals (held goals marked held, with their held time), Dependencies (board_lines.py's
 top-to-bottom graph) and one Finish time ("paused until ..." while every goal waits out one usage limit). Goal state comes
-from goal_state.py, pull request states from prs.py. Merged work, history and totals are left out. Health is
+from goal_state.py, pull request states from board_lines.py. Merged work, history and totals are left out. Health is
 workflow-health's verdict, or "unknown"; LOOP_BOARD_HEALTH replaces it (tests). Printed by report, dashboard and the
 status question, never by a check-in (MON-4). Imported by board_status.py.
 """
@@ -22,12 +22,10 @@ import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import board_lag  # noqa: E402
+import board_lines  # noqa: E402
 import board_status as bs  # noqa: E402
-import dep_graph  # noqa: E402
 import goal_state  # noqa: E402
 import graph  # noqa: E402
-import issue_lines  # noqa: E402
-import prs  # noqa: E402
 import status_graph  # noqa: E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block (board_status sets the rest).
@@ -52,7 +50,7 @@ def plain(text, size=200):
 def health(root):
     if os.environ.get("LOOP_BOARD_HEALTH"):
         return os.environ["LOOP_BOARD_HEALTH"]
-    return prs.health(root, HEALTH)  # the last verdict with its age; a stale one is refreshed in the background (MON-9)
+    return board_lines.health(root, HEALTH)  # the last verdict with its age; a stale one is refreshed in the background (MON-9)
 
 
 def version(root):
@@ -199,7 +197,7 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
                   "every held goal is forgotten); nothing was started or changed, and the next pass retries"]
     cfg = bs.read_json(os.path.join(root, ".loop", "config.json")) or {}
     quiet_s = goal_state.silent_limit(cfg)
-    stuck += issue_lines.stuck(runs, cfg.get("resume_on_limit") is True)  # failed and stopped goals by cause, never raw agent output (issue 97)
+    stuck += board_lines.stuck(runs, cfg.get("resume_on_limit") is True)  # failed and stopped goals by cause, never raw agent output (issue 97)
     for run in runs:
         slug, report = run["slug"], (run.get("report") or {}).get("text", "")
         if run.get("status") == "waiting":
@@ -251,7 +249,7 @@ def render(root=None, at=None):
     taken = graph.assigned(pool)
     on_disk = run_files(root)
     freezing = [dict(entry, slug=slug) for slug, entry in sorted((taken or {}).items()) if slug not in on_disk]
-    states = prs.states(runs, root, graph.merged)
+    states = board_lines.states(runs, root, graph.merged)
     gone = {r["slug"] for r in runs if graph.merged(r) or states.get(r["slug"]) == "MERGED"}
     shut = {r["slug"] for r in runs if r["slug"] not in gone and states.get(r["slug"]) == "CLOSED"}
     live = [r for r in runs if r["slug"] not in gone | shut]
@@ -297,12 +295,12 @@ def render(root=None, at=None):
         out.append("- %s  %s%s" % (goal["slug"], bs.estimate_text(next(i["est"] for i in items if i["slug"] == goal["slug"])),
                                    "  waits on " + ", ".join(waits(goal["depends"])) if waits(goal["depends"]) else ""))
     out += ([] if queue or held else ["- (none)"]) + ["", "Dependencies"]
-    out += dep_graph.render([dict(i, mark="held" if i["slug"] in {r["slug"] for r in held} else i["mark"]) for i in items])
+    out += board_lines.render([dict(i, mark="held" if i["slug"] in {r["slug"] for r in held} else i["mark"]) for i in items])
     seconds, _, _ = status_graph.chain(items)
     missing = status_graph.unknown(items) or any(i["partial"] for i in items) or held or freezing
     finish = "nothing left" if not items else "no estimate yet" if not seconds else "%sfinish about %s" % (
         "at least " if missing else "", graph.clock(at + datetime.timedelta(seconds=seconds)))
-    return fit(out + ["", "Finish", issue_lines.paused(live) or finish])
+    return fit(out + ["", "Finish", board_lines.paused(live) or finish])
 
 
 def pool_line(found, root):
