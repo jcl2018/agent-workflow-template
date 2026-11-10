@@ -108,8 +108,30 @@ python3 scripts/regression.py workflow
 Writes `.github/workflows/regression.yml`, which runs the rows nightly, on `v*` tags and by hand, and keeps the same
 issues. It refuses to replace a workflow it didn't write. The job has 90 minutes. Each row runs in its own process group
 with a 15-minute limit, and starts only if that full limit still fits the job's time; a row that doesn't fit is
-skipped, reported `SKIPPED`, and fails with an issue. Each row's result reaches the run summary as it ends. Rows run
-with no GitHub token in their environment, and the checkout keeps none in its git config.
+skipped, reported `SKIPPED`, and fails with an issue. Each row's result is saved as it ends, and a last step that
+always runs writes the run summary: one header with totals and the run time, then one table per feature (`tests.py
+summary`). If that fails, the plain results still reach the summary. Rows run with no GitHub token and none of the
+runner's own files (`GITHUB_STEP_SUMMARY`, `GITHUB_ENV`, `GITHUB_OUTPUT`, `GITHUB_PATH`, `GITHUB_STATE`) in their
+environment, so a toy test can't write into the real summary, and the checkout keeps no token in its git config.
+`regression.py run` gives its rows the same environment.
+
+## `tests.py list [--markdown|--tsv]`, `summary`, `issues [--write]`
+
+```bash
+python3 scripts/tests.py list
+```
+
+Every test in one fixed format, grouped by feature: the wiki page that holds the requirement a row guards, in page
+order, then `Other` for rows that guard none. Each test shows its name, kind (`requirement` or `defect`), what it guards
+(the requirement's ID and words, or the issue or pull request link with its recorded state and date, or the finding),
+what it checks, when it runs (`both`, `nightly`, `by a person`), its last result and date, and when it was seen failing.
+Plain output has one `FEATURE <name>` line per group; `--markdown` gives one table per feature; `--tsv` gives one line
+per test for scripts. The wiki Tests lines, the health report and the GitHub run summary all use this format.
+
+`summary --results FILE --took S` writes the GitHub run summary from a run's results (`id<TAB>state` lines, states
+`PASS`, `FAIL`, `SKIPPED`, `KNOWN`); a malformed file or run time is refused with the line to fix. `issues --write`
+reads each defect test's issue or pull request state with `gh` into `.loop/regression-issues.tsv` (a live `run` does
+this too); if `gh` can't read them it says so and writes nothing.
 
 ## Rules
 
@@ -130,3 +152,5 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-regression run land` | `python3 scripts/regression.py run land` |
 | `/workflow-regression sync` | `python3 scripts/regression.py sync` |
 | `/workflow-regression workflow` | `python3 scripts/regression.py workflow` |
+| `/workflow-regression list` | `python3 scripts/tests.py list` |
+| `/workflow-regression issues` | `python3 scripts/tests.py issues --write` |

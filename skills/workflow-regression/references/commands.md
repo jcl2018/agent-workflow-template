@@ -34,8 +34,13 @@ workflow
 - `workflow` writes `.github/workflows/regression.yml` (nightly, on `v*` tags, by hand). The job has 90 minutes; each
   row runs in its own process group with a 15-minute limit and starts only if that limit still fits an 88-minute
   budget (`REGRESSION_ROW_SECONDS` and `REGRESSION_JOB_SECONDS` in the step's environment override them). A row that
-  doesn't fit is skipped (`SKIPPED`) and fails with an issue; each result reaches the run summary as the row ends; rows
-  run with no GitHub token in their environment, and the checkout uses `persist-credentials: false`.
+  doesn't fit is skipped (`SKIPPED`) and fails with an issue. Each result is saved as the row ends, and a last step
+  that always runs writes the run summary: one header with totals and the run time, then one table per feature, or the
+  plain results if that fails. Rows run with no GitHub token and none of the runner's own files in their environment
+  (`regression.py run` too), and the checkout uses `persist-credentials: false`.
+- `tests.py list` prints every test in one fixed format, grouped by feature (`--markdown` tables, `--tsv` lines);
+  `summary` writes the GitHub run summary from a run's results; `issues --write` records each defect test's issue or
+  pull request state. The wiki Tests lines and the health report use the same fields.
 
 ### Example
 
