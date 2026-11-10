@@ -159,9 +159,16 @@ def refresh():
                 save(fresh, "failed: agent pid %s ended without finishing" % state.get("pid"))
 
 
+def pool():
+    """The session pool's busy map and why it can't be read (graph.read_pool); report reads it like watch (issue 111)."""
+    found, why = graph.read_pool(os.path.join(loop_dir(), "session-pool.json"))
+    return graph.assigned(found), why
+
+
 def plan(limit):
     """Split queued goals into those that may start now and those that wait, with the reason."""
-    return graph.ready(parse_queue(), {state["slug"]: state for state in runs()}, limit)
+    taken, why = pool()
+    return graph.ready(parse_queue(), {state["slug"]: state for state in runs()}, limit, taken, why)
 
 
 def facts():
@@ -226,6 +233,17 @@ def cmd_report(args):
     print("\nREVIEWED CRITERIA CHANGED")
     back = returned()
     print("\n".join("- %s (%s): %s" % item for item in back) if back else "(none)")
+    taken, _ = pool()
+    print("\nHELD OR FREEZING")
+    kept = [s for s in states if graph.held(s, taken)]
+    for state in kept:
+        print("- %s: held since %s, no worker; give it a session (sessions.py bind %s ID)" % (
+            state["slug"], state.get("held_at") or state.get("updated") or "?", state["slug"]))
+    on_disk = {s["slug"] for s in states}
+    for entry in graph.freezing(taken, on_disk):
+        print("- %s: freezing in session %s since %s" % (entry["slug"], entry.get("name") or entry["id"], entry.get("since") or "?"))
+    if not kept and not graph.freezing(taken, on_disk):
+        print("(none)")
     print("\nQUEUED, NOT STARTED")
     for goal, why in held:
         print("- %s: %s" % (goal["slug"], why))

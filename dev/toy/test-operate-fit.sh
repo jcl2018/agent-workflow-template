@@ -67,10 +67,11 @@ check "a merged goal's old wiki_error and release_error are gone from Issues, in
 check "errors and asks that are still open stay, with the exact words" 'issues "$T/block" | grep -q "^- wait is waiting: Which one" && issues "$T/block" | grep -q "fix: answer by typing \"pick a\" or \"pick b\""'
 check "with GitHub saying open, the unmerged goal keeps its error" 'issues "$T/open" | grep -q "^- wiki pages are out of date:.*saved: page Home is stale"'
 check "a pull request merged on GitHub leaves the board, and its dependant no longer waits on it" '! grep -q "^- gh \|^- rec \|^merged" "$T/block" && grep "^- q " "$T/block" | grep -q "waits on run" && ! grep "^- q " "$T/block" | grep -q "gh"'
-check "only live goals are drawn, with a 10-cell bar, and an arrow to the dependant" '! grep -q "^- old1\|^- newer" "$T/block" && grep -q "^- run  \[##--------\] 25%" "$T/block" && grep -q "^- wait " "$T/block" && grep -q "^- stale " "$T/block" && grep -qx "run --> q" "$T/block"'
+check "only live goals are drawn, with a 10-cell bar, and the dependant drawn under it" '! grep -q "^- old1\|^- newer" "$T/block" && grep -q "^- run  \[##--------\] 25%" "$T/block" && grep -q "^- wait " "$T/block" && grep -q "^- stale " "$T/block" && grep -qx "\[ \] q <- run" "$T/block"'
 check "the board ends with one finish line" 'tail -2 "$T/block" | head -1 | grep -qx Finish && tail -1 "$T/block" | grep -q "finish about\|no estimate yet\|nothing left"'
 
 echo "== closed, healed and old goals"
+rm -f "$(git rev-parse --git-common-dir)/loop/pr-states.json"  # the cached MERGED is final; this step makes 81 closed instead
 FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_STATE_81=CLOSED block > "$T/closed"
 check "a later publish clears the wiki_error of an unmerged goal" '! issues "$T/closed" | grep -q "healed" && issues "$T/closed" | grep -q "saved: page Docs is stale"'
 check "a pull request closed without merging leaves the board; an open one stays" '! grep -q "^- shut" "$T/closed" && grep -q "^- healed " "$T/closed"'
@@ -78,15 +79,15 @@ check "running, waiting and queued goals are listed; merged ones never are" 'gre
 
 echo "== operate"
 sed -i.bak '/depends-on: run, gh/d' .loop/queue.md; rm -f .loop/queue.md.bak
-FAKE_GH_PR_STATE=MERGED $OP run --once > "$T/first" 2>&1
-FAKE_GH_PR_STATE=MERGED $OP run --once > "$T/second" 2>&1
+FAKE_GH_PR_STATE=MERGED $OP run --board --once > "$T/first" 2>&1
+FAKE_GH_PR_STATE=MERGED $OP run --board --once > "$T/second" 2>&1
 check "the first pass prints the live board" 'grep -q "^LIVE BOARD" "$T/first"'
 check "a pass with nothing changed prints the full board again, never one line" 'grep -q "^LIVE BOARD" "$T/second" && grep -q "^Finish" "$T/second" && ! grep -q "Nothing changed\|NO_CHANGE" "$T/second"'
 python3 - "$C/loop/runs/stale.json" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1])); s.pop("wiki_error"); json.dump(s, open(sys.argv[1], "w"))
 PY
-FAKE_GH_PR_STATE=MERGED $OP run --once > "$T/third" 2>&1
+FAKE_GH_PR_STATE=MERGED $OP run --board --once > "$T/third" 2>&1
 check "clearing an error counts as a change and reprints the board" 'grep -q "wiki_error" "$T/third" && grep -q "^LIVE BOARD" "$T/third"'
 check "every pass writes the check-in" '[ -f "$C/loop/checkin.json" ]'
 

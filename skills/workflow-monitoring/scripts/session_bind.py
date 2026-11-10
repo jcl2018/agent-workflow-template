@@ -23,7 +23,9 @@ def inside(folder, tree):
 
 def announce(g, args, tree, was, worker):
     """Print the WORKER and WORKTREE lines for whoever binds to pass on (assign's message already carries them)."""
-    lines = [worker_line(args.slug)] + (["WORKTREE %s: %s" % (args.slug, tree)] if tree else [])
+    attempt = (g.load(args.slug) or {}).get("attempt")
+    lines = [worker_line(args.slug) + (" (attempt %s: pass --attempt %s to sessions.py report)" % (attempt, attempt) if attempt else "")]
+    lines += ["WORKTREE %s: %s" % (args.slug, tree)] if tree else []
     if was in ("failed", "stopped") and worker:
         lines.append("NEXT: ask the operation session to resume %s (a worker binding itself only attaches)" % args.slug)
     print("\n".join(lines))
@@ -64,7 +66,12 @@ def cmd_bind(g, args):
                 state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
             elif was in ("queued", "", None):
                 state.update(status="running", finding="", report=None)
-            state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None, bound_at=g.now())
+            new = (state.get("session") or {}).get("id") != args.id or was in ("failed", "stopped")  # a new worker: next attempt
+            state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None, bound_at=g.now(),
+                         attempt=int(state.get("attempt") or 0) + (1 if new else 0))  # an older attempt's report is not applied (114)
+            state.pop("held_at", None)
+            found[args.id]["attempt"] = state["attempt"]
+            g.save_pool(found)
             g.save(state, "bound to session %s (%s)%s" % (args.id, name, "; revived by bind (was %s)" % was
                                                            if was in ("failed", "stopped") and not worker else ""))
     if not state:

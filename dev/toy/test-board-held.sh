@@ -91,7 +91,7 @@ check "the board keeps exactly the five MON-4 sections" '[ "$(grep -xE "Issues|R
 check "a session goal's next line is its latest session report, not an older failure" 'goal stale | grep -qx "    next: review in progress" && ! goal stale | grep -q "OLD FAILURE"'
 check "a report older than the run's bound_at doesn't make the next line" '! goal rebound | grep -q "OLD WORKER" && goal rebound | grep -qx "    next: finish build, then review"'
 check "a held goal is listed under Queued goals marked held, not under Running goals" 'sec "Queued goals" Dependencies | grep -q "^- heldg .*  held$" && ! sec "Running goals" "Queued goals" | grep -q "^- heldg "'
-check "a held goal is not called a background worker" 'goal heldg | grep -q "worker: none (held, last change 2h ago, worktree gone)" && ! goal heldg | grep -q background'
+check "a held goal is not called a background worker" 'goal heldg | grep -q "worker: none (held 2h, worktree gone)" && ! goal heldg | grep -q background'
 check "a held goal whose worktree is gone says how to make it again" 'goal heldg | grep -q "next: give it a worker session (sessions.py bind heldg ID.*git worktree add <common>/loop/worktrees/heldg loop/heldg)"'
 check "a held goal with no recorded time still reads held, worktree kept" 'goal heldn | grep -qx "    worker: none (held, worktree kept)"'
 check "a held session goal that holds a slot says so, and is named under Issues past the quiet time" 'goal heldk | grep -q "holds a slot)" && sec Issues "Running goals" | grep -q "^- heldk: held 2h and holds a slot" && sec Issues "Running goals" | grep -q "sessions.py free heldk"'
@@ -120,7 +120,7 @@ import json
 c = json.load(open(".loop/config.json")); c["max_tries"] = "abc"; json.dump(c, open(".loop/config.json", "w"), indent=2)
 PY
 board > "$T/board3" 2>&1; rc=$?
-check "a malformed pool entry counts as an unknown pool and a bad max_tries never crashes the board" '[ $rc = 0 ] && grep -q "entry s1 is not an object" "$T/board3" && grep -q "try 2 of 3" "$T/board3"'
+check "a malformed pool entry is set aside and named (issue 122) and a bad max_tries never crashes the board" '[ $rc = 0 ] && grep -q "pool entry s1 is malformed" "$T/board3" && grep -q "try 2 of 3" "$T/board3"'
 git checkout -q -- .loop/config.json
 
 echo "== watch.py fails closed"

@@ -43,6 +43,10 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `agent_files` | `["CLAUDE.md", "AGENTS.md"]` | Agent entry files setup wires the workflow-loop block into; [] turns wiring off. |
 | `template_repo` | `(empty)` | The template's GitHub repo (owner/name) update reads releases from, when the installed package names none. |
 | `reply_hook` | `true` | false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session. |
+| `govern_hook` | `true` | false turns off the govern-only hook (setup.py --govern-hook installs it): edits, commits and pushes refused in the operation session. |
+| `full_auto` | `true` | true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait. |
+| `pool_size` | `20` | Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones. |
+| `silent_minutes` | `30` | Minutes a worker may send nothing before it shows under Needs you; LOOP_SESSION_QUIET (seconds) overrides it. |
 
 ## Private settings
 
