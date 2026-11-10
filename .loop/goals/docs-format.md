@@ -110,3 +110,45 @@ here: 125, 130, 133, 156. 104..107 were already fixed in v0.14.0; their rows now
 
 **Merged goals.** docs-count-gaps (issues 104..107) and prd-stamps (every approved page stamped with the owner's
 words).
+
+**Not enforced yet: owned by queued goals.** Health warns on these, and fails one only if it stays untested 7 days
+past its Reviewed date (HLT-2):
+
+| Requirements | Goal that builds the tests |
+|---|---|
+| AUT-6, AUT-7 | automation-email |
+| DEL-6, DEL-7, DEL-8, DEL-9 | delivery-prd |
+| HLT-7, HLT-8, HLT-9 | health-prd |
+| MON-6, MON-7, MON-8, MON-9, MON-10, MON-11, MON-12 | monitoring-prd |
+| REG-6, REG-7, REG-8, REG-9 | lane-control |
+| SET-6, SET-7, SET-8, SET-9, SET-10 | setup-adopt / setup-sync |
+
+**Added during review:**
+
+- Health's not-enforced grace, decided in the operation session under full auto from the owner's HLT-2 and REG-1/DOC-1
+  wording. It fixes #118.
+- The review's three critical fixes:
+  - Run cells are empty outside CI, so concurrent goals merge cleanly.
+  - Toy tests are safe on CI runners.
+  - A reviewed requirement's seal now covers its sub-bullets.
+- Re-sealing: every stamped requirement on the seven pages was re-sealed on the same text with the owner's same words.
+- Smaller fixes:
+  - The health workflow reads issues with the job token.
+  - Issues the template opens land on Backlog.
+  - Banned words are caught in the plural.
+  - The guide marker is refused on requirement pages.
+  - `--base` uses origin only.
+
+**Issues moved to milestones:**
+
+- Before the run: 53 open issues (none left on Backlog).
+- During qa: #184..#276, the regression issues main's CI opened with no milestone, moved to Regression.
+
+**Known, not from this branch:**
+
+- Nightly row lanes-trace fails, as it does on main (issue #173).
+- Main's last three CI runs failed (v0.20.0..v0.21.1).
+- A local `regression.py run` still opens issues with no milestone. regression.py is near its size limit.
+- The `--user` review stamp is honour-system: LOOP_OWNER_WORDS records the quoted words but can't prove them.
+
+Fixes #118, #125, #130, #133, #156.
