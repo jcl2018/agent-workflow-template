@@ -14,7 +14,7 @@ usage: regression.py <command> [options]
   red ID --break CMD            copy HEAD, run CMD to break it, and record that the test fails there
   run [land|nightly|ID] [--timeout S] [--live] [--reuse [--tier goal]] [--kind requirement|workflow|defect]
                                 run the rows (of one kind), then open, update or close one issue per failing row;
-                                --tier goal plans a goal lane (tiers.py)
+                                --tier goal plans a goal lane (tiers.py); a plain run nightly records its time (SUITE_TIME)
   workflow                      write .github/workflows/regression.yml, on the schedule in regression_cron
   reads ROW                     suggest a # reads: header for ROW's script from the newest check-reads trace
 
@@ -332,6 +332,7 @@ def cmd_run(args):
         print(line)
     if not args.reuse and results:  # a reusing run writes nothing in the worktree and opens no issue: CI's plain run owns both
         slots.edit(root, "regression-runs.tsv", lambda: runs.write(root, results, today(), head))
+    tiers.suite_time(root, args, head, results, today())
     left = sorted(set(lanes.dirty(root)) - set(unclean)) if record and not unclean else []
     if not record:
         print("NOT RECORDED: detached HEAD")

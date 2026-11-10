@@ -172,3 +172,17 @@ def summary(picked, todo, why, count, full, old):
     print("ROWS: %d selected (%d affected, %d new, %d root runners, %d failure reruns), %d reused; unmapped: %d" % (
         len(todo), first.count("reaches"), first.count("new"), first.count("root"), first.count("failure"),
         len(picked) - len(todo), count))
+
+
+def suite_time(root, args, head, results, day):
+    """REG-7 (S14, S25): only the plain full run `regression.py run nightly` (no row id, --reuse, --tier or --kind)
+    appends `<sha> TAB full TAB <seconds> TAB <date>` to <git common dir>/loop/suite-times.tsv, outside the worktree so
+    it never dirties a lane, and prints SUITE_TIME; health's timing.py reads the newest line."""
+    if args.target != "nightly" or args.reuse or args.tier or args.kind or not results:
+        return
+    seconds = int(round(sum(item["seconds"] for item in results)))
+    folder = os.path.join(root, (lanes.git(root, "rev-parse", "--git-common-dir") or ".git").strip(), "loop")
+    os.makedirs(folder, exist_ok=True)
+    with open(os.path.join(folder, "suite-times.tsv"), "a") as handle:
+        handle.write("%s\tfull\t%d\t%s\n" % (head, seconds, day))
+    print("SUITE_TIME %d" % seconds)
