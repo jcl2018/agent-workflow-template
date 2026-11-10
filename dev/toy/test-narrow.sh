@@ -161,7 +161,9 @@ printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nPYTHONPATH= python3 -S skil
 printf '#!/bin/bash\n# reads: skills/a/scripts/k.py\npython3 skills/a/scripts/k.py\n' > "$c/dev/t4.sh"  # lanes: no read (toy repo file)
 printf '# id\tlevel\tcommand\n' > "$c/.loop/regression.tsv"
 for r in 1 2 3 4 5; do printf 'r%s\tland\tbash dev/t%s.sh\n' $r $r >> "$c/.loop/regression.tsv"; done
+git -C "$c" init -q; before=$(cd "$c" && $reg reads r2 2>&1); brc=$?
 out=$(bash "$c/dev/toy/check-reads.sh" 2>&1); rc=$?; echo "$out"
+after=$(cd "$c" && $reg reads r2 2>&1)
 # Value: protects=a row's runtime Python reads outside its closure fail the nightly trace; fails_when=the hook or the
 # closure comparison is dropped; why_new=new tool; seam=sitecustomize + PATH shim; no_claim=bash-only reads
 check "check-reads passes a row whose runtime reads are inside its closure" 'grep -q "^PASS r1" <<<"$out"'
@@ -171,5 +173,9 @@ check "check-reads fails a row that reads a skill file its closure misses, with 
 # no_claim=interpreters started by absolute path
 check "check-reads hooks an isolated child (python3 -I) and fails its read outside the row's closure" 'grep -q "^LANES-TRACE-UNDECLARED r3 skills/a/scripts/c.py" <<<"$out" && grep -q "^LANES-TRACE-UNDECLARED r5 skills/a/scripts/c.py" <<<"$out" && ! grep -q "^LANES-TRACE-NOHOOK" <<<"$out"'
 check "check-reads maps a read of a copied skill file back to the repo file" 'grep -q "^LANES-TRACE-UNDECLARED r4 skills/a/scripts/e.py" <<<"$out"'
+# Value: protects=regression.py reads turns the newest trace into a header, and says how to get one (issue 172);
+# fails_when=check-reads stops keeping the trace or reads stops reading it; why_new=new command; seam=<git dir>/lanes-trace.tsv;
+# no_claim=bash reads (the trace sees Python only)
+check "regression.py reads suggests a row's # reads: header from the newest trace, and says how to make one" '[ $brc = 1 ] && grep -q "^NO TRACE r2: run bash dev/toy/check-reads.sh r2" <<<"$before" && grep -qx "# reads: skills/a/scripts/c.py skills/a/scripts/g.py" <<<"$after"'
 
 [ $fails = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

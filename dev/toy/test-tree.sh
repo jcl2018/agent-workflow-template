@@ -31,6 +31,12 @@ total=$(awk -F'\t' '!/^#/ && $2 == "land"' "$here/.loop/regression.tsv" | wc -l 
 got=$(sed -n 's/^AFFECTED \([0-9]*\) of.*/\1/p' <<<"$out")
 missing=$(cd "$here" && for s in $(grep -l "^# reads:.*skills/workflow-monitoring/scripts/batch.py" dev/toy/test-*.sh); do awk -F'\t' -v s="$s" '$2 == "land" && index($3, s) {print $1}' .loop/regression.tsv; done | while read -r id; do grep -qw "$id" <<<"$out" || echo "$id"; done)
 check "on this repo a one-file change reruns fewer than half the land rows and every row whose script declares it" '[ -n "$got" ] && [ "$got" -lt $((total / 2)) ] && [ -z "$missing" ]'
+# Value: protects=test-summary's and test-defect's rows rerun only on what they read (issue 172); fails_when=either stands in
+# the repo root again (ROOT_RUN: every change reruns it); why_new=both ran there; seam=none; no_claim=skill changes (both read skills/)
+out=$(cd "$here" && $L affected dev/toy/test-wiki.sh)
+theirs=$(awk -F'\t' '$2 == "land" && $3 ~ /dev\/toy\/test-(summary|defect)\.sh/ {print $1}' "$here/.loop/regression.tsv")
+hit=$(sed -n '1s/^AFFECTED [0-9]* of [0-9]* rows (\(.*\))$/\1/p' <<<"$out" | tr ',' '\n' | tr -d ' ' | grep -Fx -f <(echo "$theirs"))
+check "on this repo a change to a script test-summary and test-defect never read reruns none of their rows" '[ -n "$theirs" ] && [ -z "$hit" ] && grep -q "^AFFECTED" <<<"$out"'
 
 echo "== this repo stays green: no docs check line but CHANGED, no health FAIL but a docs changed row"
 # STALE and TESTS are left out too: a goal's own run or code change makes them mid-goal, and its release step fixes them.

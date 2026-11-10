@@ -3,6 +3,8 @@
 # reads: skills/workflow-docs/scripts/criteria.py skills/workflow-docs/scripts/docs.py
 # reads: skills/workflow-health/scripts/health.py skills/workflow-regression/scripts/regression.py
 # reads: skills/workflow-setup/scripts/setup.py
+# reads: skills/ docs/ README.md .loop/regression.tsv .loop/regression-runs.tsv .loop/regression-issues.tsv
+# reads: .loop/regression-known.tsv .loop/docs.tsv .loop/config.json
 # Prove the defect-tests goal's done lines, and guard the known defects. usage: test-defect.sh [CASE]
 # With a CASE it exits non-zero if that case fails (regression rows call it so); with none it prints one PASS per case.
 set -u
@@ -38,6 +40,12 @@ toy() { # a toy repo with the loop set up, the stand-in flow and the fake gh
   awk -F'\t' 'BEGIN {OFS = FS} !/^#/ && NF > 4 && $5 == "" {$5 = "2026-01-01"} {print}' .loop/regression.tsv > "$d/rows" \
     && cat "$d/rows" > .loop/regression.tsv && git commit -qam "Seen red" 2>/dev/null; git push -q origin main
 }
+real() { # a git copy of what the repo-wide checks read (skills, docs, README, the loop's tables); never the repo itself
+  mkdir -p "$d/real/.loop" && cp -R "$here/skills" "$here/docs" "$here/README.md" "$d/real/" \
+    && cp "$here/.loop/regression.tsv" "$here/.loop/regression-runs.tsv" "$here/.loop/regression-issues.tsv" \
+      "$here/.loop/regression-known.tsv" "$here/.loop/docs.tsv" "$here/.loop/config.json" "$d/real/.loop/" \
+    && cd "$d/real" && git init -q && git add -A && git -c user.name=t -c user.email=t@t commit -qm copy || no "cannot copy the repo"
+}
 finish() { # finish SLUG TEXT: a goal whose flow is done, with a change committed
   $goal new "$1" --here --goal "Add $1" --done "$2" >/dev/null || no "new"
   printf '\n# %s\n' "$1" >> calc.py; git commit -qam "Add $1 to calc"
@@ -59,12 +67,12 @@ for page, ids in want.items():
     for key, words in ids.items():
         assert re.search(r"^- %s: \*\*Reviewed \d{4}-\d\d-\d\d\*\* \S.* <!-- reviewed \w+ -->$" % key, text, re.M), key  # the owner's latest words, sealed
 PY
-    out=$(cd "$here" && python3 skills/workflow-docs/scripts/docs.py check 2>&1); grep -q "LOCKED" <<<"$out" && no "a reviewed criterion's seal is broken"
+    out=$(real && python3 skills/workflow-docs/scripts/docs.py check 2>&1); grep -q "LOCKED" <<<"$out" && no "a reviewed criterion's seal is broken"
     exit 0;;
   flow-steps) # done line 3: no checks step; every step can be mapped, with a default suite and per-step overrides
     toy
     $goal check x 2>&1 | grep -q "invalid choice" || no "goal.py still has check"
-    [ -z "$(git -C "$here" grep -l "require_checks" -- skills docs README.md .loop/config.json)" ] || no "require_checks is still named"
+    [ -z "$(real && git grep -l "require_checks" -- skills docs README.md .loop/config.json)" ] || no "require_checks is still named"
     grep -q '"checks"' "$here/.loop/config.json" && no "the config still has checks"
     steps=$(python3 -c "
 import re; print(re.search(r'^STEPS = \((.*)\)', open('$here/skills/workflow-delivery/scripts/flow.py').read(), re.M).group(1))")
@@ -102,7 +110,7 @@ rows = text.split("\n## Tests", 1)[1].splitlines()
 assert any("issues/35" in r and "| defect |" in r for r in rows), "no defect row"
 assert [r for r in rows if "scripts-no-hang" in r] and all("| defect |" in r for r in rows if "scripts-no-hang" in r)
 PY
-    (cd "$here" && python3 skills/workflow-docs/scripts/criteria.py render --check >/dev/null) || no "the Tests tables are stale"
+    (real && python3 skills/workflow-docs/scripts/criteria.py render --check >/dev/null) || no "the Tests tables are stale"
     exit 0;;
   defect-owed) # done line 5: a goal that fixes an issue cannot open its pull request without a defect test seen failing
     toy

@@ -6,7 +6,8 @@
 # (LANES-TRACE-NOHOOK: PYTHONPATH reset, or -I/-S), or on a traced skill file outside the closure
 # (LANES-TRACE-UNDECLARED, with the # reads: line to add). Reads outside the repo (copied skills) map back to repo
 # files by content. Coverage limit: Python reads only; bash reads are covered by the static scan.
-# usage: check-reads.sh [--level land|nightly|all] [ROW-ID...]   Writes only to a temp dir it removes.
+# usage: check-reads.sh [--level land|nightly|all] [ROW-ID...]   Writes to a temp dir it removes, and keeps each traced
+# row's skill reads in <git dir>/lanes-trace.tsv (id, epoch, path), which regression.py reads ROW turns into a header.
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
 level=land; [ "${1:-}" = "--level" ] && { level=$2; shift 2; }
@@ -121,6 +122,7 @@ for command, ids in seen.items():
     print("\t".join([",".join(ids), command]))
 PY
 )
+store=$(git -C "$here" rev-parse --absolute-git-dir 2>/dev/null)  # lanes: no read (where the trace is kept)
 fails=0; n=0
 while IFS=$'\t' read -r ids command; do
   [ -n "$ids" ] || continue
@@ -131,9 +133,9 @@ while IFS=$'\t' read -r ids command; do
       PATH="$tmp/bin:$PATH" exec perl "$tmp/run.pl" bash -c "$command"
   ) >"$tmp/out.$n" 2>&1
   rc=$?
-  verdict=$(python3 - "$here" "$log" "$command" "$ids" "$rc" <<'PY'
-import hashlib, os, re, subprocess, sys
-here, log, command, ids, rc = sys.argv[1:]
+  verdict=$(python3 - "$here" "$log" "$command" "$ids" "$rc" "$store" <<'PY'
+import hashlib, os, re, subprocess, sys, time
+here, log, command, ids, rc, store = sys.argv[1:]
 here = os.path.realpath(here)
 launches, marks = set(), set()
 reads, dirs, copies = set(), set(), []
@@ -172,6 +174,13 @@ if not always:
     for p in sorted(reads | dirs) + sorted(c[0] for c in copies if not any(covered(x) for x in c)):
         if not covered(p):
             out.append("LANES-TRACE-UNDECLARED %s %s\nfix: # reads: %s" % (ids, p, p))
+if store:  # the newest trace of each row replaces its older one
+    trace, now = os.path.join(store, "lanes-trace.tsv"), str(int(time.time()))
+    keep = [l for l in (open(trace).read().splitlines() if os.path.isfile(trace) else []) if l.split("\t")[0] not in ids.split(",")]
+    seen = sorted(reads | dirs | {c[0] for c in copies}) or [""]
+    with open(trace + ".new", "w") as handle:
+        handle.write("".join(l + "\n" for l in keep) + "".join("%s\t%s\t%s\n" % (i, now, p) for i in ids.split(",") for p in seen))
+    os.replace(trace + ".new", trace)
 print("\n".join(out) if out else "PASS %s" % ids)
 PY
 )

@@ -14,6 +14,7 @@ usage: regression.py <command> [options]
   run [land|nightly|ID] [--timeout S] [--live] [--reuse]
                                 run the rows, then open, update or close one issue per failing row
   workflow                      write .github/workflows/regression.yml, on the schedule in regression_cron
+  reads ROW                     suggest a # reads: header for ROW's script from the newest check-reads trace
 
 Rows live in .loop/regression.tsv: id, level, command, goal, seen_red, description, category, link. Each run records its rows' last status and
 date and run (Actions URL or commit sha) in .loop/regression-runs.tsv (runs.py), which the wiki Tests tables show. Known failures live in .loop/regression-known.tsv: id, reason. A known failure never blocks. A row never seen failing does.
@@ -386,6 +387,9 @@ def main():
     item.add_argument("--live", action="store_true")
     item.set_defaults(func=cmd_run)
     sub.add_parser("workflow").set_defaults(func=cmd_workflow)
+    item = sub.add_parser("reads")
+    item.add_argument("id")
+    item.set_defaults(func=lambda a: lanes.narrow.suggest(top(), a.id))
     args = parser.parse_args()
     return args.func(args)
 

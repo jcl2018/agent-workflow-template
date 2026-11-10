@@ -8,6 +8,7 @@ cannot resolve becomes a problem that makes the row run on every change.
 """
 import os
 import re
+import time
 
 import lanes
 
@@ -200,3 +201,32 @@ def narrow(root, seeds, cache):
         elif folder != "skills/" and not any(p.startswith(folder) or folder.startswith(p) for p in declared):
             problems.append(("LANES-DECL-FOLDER", via, at, "names %s but declares no file in it" % folder))
     return deps, problems, parent
+
+
+def suggest(root, rid):
+    """regression.py reads ROW: a `# reads:` header for the row's script from the newest check-reads trace of it, kept in
+    <git dir>/lanes-trace.tsv (id, epoch, path). The trace sees Python reads only; bash reads stay the author's."""
+    rows = [line.split("\t") for line in (lanes.read(root, lanes.TABLE, {}) or "").splitlines() if line[:1] != "#"]
+    command = next((cells[2] for cells in rows if len(cells) > 2 and cells[0] == rid), None)
+    if command is None:
+        print("REFUSED: no row %s in %s" % (rid, lanes.TABLE))
+        return 2
+    store = (lanes.git(root, "rev-parse", "--absolute-git-dir") or "").strip()
+    trace = os.path.join(store, "lanes-trace.tsv")
+    text = open(trace, errors="replace").read() if store and os.path.isfile(trace) else ""
+    mine = [cells for cells in (line.split("\t") for line in text.splitlines()) if len(cells) == 3 and cells[0] == rid]
+    if not mine:
+        print("NO TRACE %s: run bash dev/toy/check-reads.sh %s (it records each row's skill reads), then regression.py "
+              "reads %s again" % (rid, rid, rid))
+        return 1
+    newest = max(cells[1] for cells in mine)
+    scripts = sorted(p for p in lanes.references(root, command, "", wide=False)[0] if p.endswith(".sh")) or ["its command"]
+    print("READS %s: for %s, from the check-reads trace of %s (Python reads only; keep what its bash reads)" % (
+        rid, " ".join(scripts), time.strftime("%Y-%m-%d %H:%M", time.localtime(int(newest)))))
+    out = ["# reads:"]
+    for path in sorted({cells[2] for cells in mine if cells[1] == newest and cells[2]}):
+        if len(out[-1]) + len(path) > 118 and out[-1] != "# reads:":
+            out.append("# reads:")
+        out[-1] += " " + path
+    print("\n".join(out) if out != ["# reads:"] else "# reads: (the trace saw no skill file read)")
+    return 0
