@@ -11,6 +11,8 @@ Skill: `workflow-monitoring`. The operation session never does work: `/workflow-
 
 Commands, flows and how-tos: `skills/workflow-monitoring/references/commands.md`.
 
+Each check-in reply follows one layout (a headline, All sessions, Dependencies, Needs you and, last, Coming up), and `reply_hook.py`, a Stop hook that setup installs per repo, blocks an operation-session reply in any other layout and says what is missing; it reads only the transcript lines added since the last stop, never checks a worker (a session in a goal worktree, or one whose latest signal is a flow step), lets a reply through after three blocks in a row or on any error of its own, and `reply_hook: false` turns it off.
+
 A failed release is recorded as `release_error` and lists under Issues beside `wiki_error`, which leaves Issues once a later publish succeeds or the goal is merged. A pull request closed or merged on GitHub leaves the live board.
 
 ## Usage
