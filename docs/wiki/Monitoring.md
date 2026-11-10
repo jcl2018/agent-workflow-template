@@ -53,7 +53,7 @@ Roles, start and planning. One command starts the operation session and drives t
 - Given a failed goal, when mending is due, then it waits before a mender starts. — [failed-waits-mender](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
 - Given the governing session, when building is attempted inside it, then it is refused with one line. — [worker-refuses](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
 - Given several goals, when they run, then each runs in its own process and worktree. — [worker-per-goal](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
-- Given the tools, when a goal is started, then no old way to start it remains. — [one-way-to-run](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-07
+- Given the tools, when a goal is started, then no old way to start it remains. — [one-way-to-run](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-07
 - Given the operate command's toy suite, when it runs, then the whole suite passes. — [operate-all](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-09
 - Given a ready goal, when it is assigned, then it gets its own worker session in the app. — [session-assign](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given a worker session, when it takes a goal, then it is renamed after that goal. — [session-rename](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
