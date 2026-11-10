@@ -93,6 +93,9 @@ $GOOD_PAGE" "at most one Page table"
 |---|---|---|---|---|
 | Site | https://bob:hunter2@x.test/app | public | home | \`1a2b3c4\` |" "Page Link a full https URL with no user, password or token"
   check "the refused link is never printed" '! out | grep -q "hunter2"'
+  reset; place "see https://x.test/?token=synthetic-demo or write ops@example.test
+$GOOD_PAGE"
+  check "prose in the section is refused without echoing a token or address" 'o=$(out); echo "$o" | grep -qF "Deployments: DOC-14 only a Page table" && ! echo "$o" | grep -q "synthetic-demo\|ops@example.test"'
   refuse "a Link with a token" "| Page | Link | Access | Shows | Live build |
 |---|---|---|---|---|
 | Site | https://x.test/app?token=abc123 | public | home | \`1a2b3c4\` |" "Page Link a full https URL with no user, password or token"
@@ -133,8 +136,8 @@ case_pull() {
   check "#495 negative control: plain git pull is still refused" '[ "$(pull "git pull")" = "BLOCK: git pull" ]'
   check "#495 negative control: -r, --rebase=merges, --no-ff and --ff-only --rebase are refused" \
     '[ "$(pull "git pull -r")$(pull "git pull --rebase=merges")$(pull "git pull --no-ff")$(pull "git pull --ff-only --rebase")" = "BLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pull" ]'
-  check "#495 negative control: --ff after --ff-only, a +refspec and -f are refused (git takes the last flag)" \
-    '[ "$(pull "git pull --ff-only --ff")$(pull "git pull --ff-only origin +main:main")$(pull "git pull --ff-only -f")" = "BLOCK: git pullBLOCK: git pullBLOCK: git pull" ]'
+  check "#495 negative control: --ff after --ff-only, a +refspec, -f and a -c fetch override are refused (git takes the last flag)" \
+    '[ "$(pull "git pull --ff-only --ff")$(pull "git pull --ff-only origin +main:main")$(pull "git pull --ff-only -f")$(pull "git -c remote.origin.fetch=+refs/heads/main:refs/heads/main pull --ff-only origin")" = "BLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pull" ]'
 }
 
 for c in "${cases[@]}"; do "case_$c"; done

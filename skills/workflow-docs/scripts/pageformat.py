@@ -225,6 +225,7 @@ EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 
 def deployments(page, name, lines, page_cols=PAGE_COLS, delivery_cols=DELIVERY_COLS, access=("public", "sign-in")):
     """DOC-14: a Page table and/or a Delivery table, nothing else (template.md says each column's rule)."""
+    hide = lambda text: short(re.sub(r"\S*://\S*", "<link>", EMAIL.sub("<address>", str(text))))  # never echo a secret
     runs, other = tables(lines)
     found = []  # a header row inside a run starts a new table
     for number, header, rows in runs:
@@ -235,7 +236,7 @@ def deployments(page, name, lines, page_cols=PAGE_COLS, delivery_cols=DELIVERY_C
             elif not (found[-1][2] == [] and all(re.match(r"^:?-+:?$", c) for c in row)):
                 found[-1][2].append((row_no, row))
     fix_head = "use '%s' or '%s'" % (" | ".join(page_cols), " | ".join(delivery_cols))
-    out = [bad(page, number, name, 14, "only a Page table, a Delivery table and blank lines", short(line), "remove it")
+    out = [bad(page, number, name, 14, "only a Page table, a Delivery table and blank lines", hide(line), "remove it")
            for number, line in other]
     if not found and not other:
         out.append(bad(page, lines[0][0] if lines else 1, name, 14, "a Page or Delivery table with at least one row",
@@ -244,7 +245,7 @@ def deployments(page, name, lines, page_cols=PAGE_COLS, delivery_cols=DELIVERY_C
     for number, header, rows in found:
         kind = "Page" if tuple(header) == tuple(page_cols) else "Delivery" if tuple(header) == tuple(delivery_cols) else ""
         if not kind:
-            out.append(bad(page, number, name, 14, "a table header of exactly the Page or Delivery columns", short(" | ".join(header)), fix_head))
+            out.append(bad(page, number, name, 14, "a table header of exactly the Page or Delivery columns", hide(" | ".join(header)), fix_head))
             continue
         if kind in seen:
             out.append(bad(page, number, name, 14, "at most one %s table" % kind, "a second one", "merge its rows into the first"))
@@ -266,10 +267,10 @@ def deployments(page, name, lines, page_cols=PAGE_COLS, delivery_cols=DELIVERY_C
                     out.append(bad(page, row_no, name, 14, "Page Link a full https URL with no user, password or token", "another link",
                                    "give the plain https:// link"))
                 if cell[cols[2]] not in access:
-                    out.append(bad(page, row_no, name, 14, "Page Access %s" % " or ".join(access), short(cell[cols[2]]),
+                    out.append(bad(page, row_no, name, 14, "Page Access %s" % " or ".join(access), hide(cell[cols[2]]),
                                    "say who can open it: %s" % " or ".join(access)))
                 if not SHA.match(cell[cols[4]]):
-                    out.append(bad(page, row_no, name, 14, "Page Live build a 7 to 40 hex sha in backticks", short(cell[cols[4]]),
+                    out.append(bad(page, row_no, name, 14, "Page Live build a 7 to 40 hex sha in backticks", hide(cell[cols[4]]),
                                    "write the sha from the page's build.txt in backticks"))
             elif any(EMAIL.search(c) for c in row):
                 out.append(bad(page, row_no, name, 14, "Delivery Recipients a group, never an address", "an email address",

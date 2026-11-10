@@ -78,7 +78,7 @@ def git_write(words):
         elif word.startswith("-"):
             i += 1
         else:
-            if word == "pull" and safe_pull(words[i + 1:]):
+            if word == "pull" and "-c" not in words[1:i] and safe_pull(words[i + 1:]):  # a -c override (a forced fetch refspec) never passes
                 return ""  # issue 495: a fast-forward-only pull can't rewrite history
             return word if word in WRITES else ""
     return ""
