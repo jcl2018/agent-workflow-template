@@ -92,6 +92,8 @@ if want SET-4; then
   git rev-parse -q --verify workflow-update-v1.1.0 >/dev/null || no "no commit on workflow-update-v1.1.0"
   [ "$(pages workflow-update-v1.1.0)" = "$before" ] && [ "$(keys workflow-update-v1.1.0)" = "$kbefore" ] || no "update changed a page, a config value or private settings"
   git show workflow-update-v1.1.0:.loop/config.json | grep -q '"template_version": "1.1.0"' || no "template_version not stamped"
+  extra=$(git diff --name-only main workflow-update-v1.1.0 | grep -vxE '\.loop/config\.json|\.loop/START\.md|CLAUDE\.md|AGENTS\.md')
+  [ -z "$extra" ] || no "the update branch changed hand-written data: $extra"
   git show workflow-update-v1.1.0:.loop/START.md >/dev/null 2>&1 || no "no START.md on the update branch"
   echo "$out" | grep -q "^NEXT: merge workflow-update-v1.1.0 into main" || no "no NEXT merge line"
   tip=$(git rev-parse workflow-update-v1.1.0)
@@ -99,7 +101,9 @@ if want SET-4; then
   git merge -q --no-edit workflow-update-v1.1.0
   out=$($up --check); [ $? = 0 ] && echo "$out" | grep -q "UP TO DATE" || no "after the merge check is not UP TO DATE"
   ln -s "$d/v2/skills/workflow-setup" "$d/agent/skills/workflow-linked"
+  linked=$(cd "$d/v2/skills/workflow-setup" && find . -type f | sort | xargs shasum | shasum)
   python3 "$d/agent/skills/workflow-setup/scripts/update.py" --from "$d/v2.zip" --apply 2>&1 | grep -q "UPDATE_CHECKOUT" || no "a skills folder with a link was updated"
+  [ "$(cd "$d/v2/skills/workflow-setup" && find . -type f | sort | xargs shasum | shasum)" = "$linked" ] && [ -z "$(git branch --list 'workflow-update-vunknown')" ] || no "a linked skills folder was written to"
   echo "PASS SET-4: check shows the change, apply updates skills and the repo half on its branch, keeps data, PENDING then UP TO DATE"
 fi
 [ -n "$only" ] || echo "ALL PASS"
