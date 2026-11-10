@@ -76,21 +76,40 @@ def after(entry):
     return FLOW[FLOW.index(word) + 1] if done else word
 
 
-def flow_seconds(run, at):
+# A hold or free entry starts a pause that lasts until a step, a start, a bind or a resume (see holding).
+HOLD = re.compile(r"session report: (?:worker · \S+: .*?; )?(?:held|holding) (?:at|before)\b|freed \d+ session")
+UNHOLD = re.compile(r"(?:start [a-z]+|bound to session|assigned to session)\b|.*(?:resum|no longer held)")
+
+
+def holding(entry, paused):
+    """Whether a pause is in force after a log entry: a hold entry (a session report that the goal is held at or before a
+    step) or a free entry (sessions.py free) starts one; an entry whose first word is a flow step, start <step>, bound or
+    assigned to session, or one that says resum or no longer held ends it; any other entry keeps it as it was."""
+    text = (str(entry).split(" ", 1) + [""])[1]
+    if HOLD.match(text):
+        return True
+    return False if text.split(" ", 1)[0].rstrip(":") in FLOW or UNHOLD.match(text) else paused
+
+
+def flow_seconds(run, at, held=None):
     """Time per step with one rule for past and live runs: a gap before an entry naming a step counts toward that step;
     any other gap counts toward the step in force (the last one named, or the next after a finished one). A gap after a
-    stopped, failed or waiting entry is a pause and counts nothing; the time since the last entry counts while running."""
-    found, force, log = {}, None, run.get("log") or []
+    stopped, failed or waiting entry is a pause and counts nothing, and so is every gap while a hold or free pause is in
+    force (see holding). The time since the last entry counts while running, unless the goal is held: held is True or
+    False when the session pool says so, and None when it is unknown, when a pause in force at the last entry stops it."""
+    found, force, paused, log = {}, None, False, run.get("log") or []
     for before, entry in zip(log, log[1:]):
         a, b, word = stamp(before), stamp(entry), named(entry)
-        pause = (str(before).split(" ", 2) + ["", ""])[1].rstrip(":") in ("stopped", "failed", "waiting")
+        paused = holding(before, paused)
+        pause = paused or (str(before).split(" ", 2) + ["", ""])[1].rstrip(":") in ("stopped", "failed", "waiting")
         step = word if word in STEPS and not re.search(r"\bstep [a-z]+, running", str(entry)) else force
         if a and b and step in STEPS and not pause:
             found[step] = found.get(step, 0) + max(0, (b - a).total_seconds())
         force = after(entry) or force
     last = stamp(log[-1]) if log else None
     step = run.get("step") if run.get("step") in STEPS else force
-    if run.get("status") == "running" and step in STEPS and last:
+    idle = held if held is not None else bool(log) and holding(log[-1], paused)
+    if run.get("status") == "running" and step in STEPS and last and not idle:
         found[step] = found.get(step, 0) + max(0, (at - last).total_seconds())
     return found
 

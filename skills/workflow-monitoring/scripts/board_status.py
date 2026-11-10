@@ -18,11 +18,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
 import status_graph  # noqa: E402
 # board_log sets the no-prompt guard (GIT_TERMINAL_PROMPT and the rest) before any git or gh process starts.
-from board_log import (COMMON, FLOW, STEPS, after, current, flow_seconds, git, goal_file, named, read_json,  # noqa: E402,F401
-                       size_of, stamp)
+from board_log import (COMMON, FLOW, HOLD, STEPS, UNHOLD, after, current, flow_seconds, git, goal_file,  # noqa: E402,F401
+                       holding, named, read_json, size_of, stamp)
 from board_model import (MODEL, SIMILAR, STALL, STEP_UP, base, estimate, estimate_full, estimate_text,  # noqa: E402,F401
-                         left_time, lifted_steps, model, overrun, pace_of, span, spread, stall_lines, stalled, step_left,
-                         step_now, steps_for)
+                         holds, left_time, lifted_steps, model, overrun, pace_of, span, spread, stall_lines, stalled,
+                         step_left, step_now, steps_for)
 
 ASKING = ("waiting", "failed", "stopped")
 
@@ -52,10 +52,11 @@ def usual(runs, mine, step, pick):
     return statistics.median(values) if values else None
 
 
-def board_items(live, queue, freezing, lines, runs, at, root, waits):
-    """The board's goal items: slug, mark, depends, stage, left, the estimate, and partial (a step with no estimate)."""
+def board_items(live, queue, freezing, lines, runs, at, root, waits, held=None):
+    """The board's goal items: slug, mark, depends, stage, left, the estimate, and partial (a step with no estimate). held:
+    the slugs the session pool says are held (None when unknown), whose step time stops growing."""
     def item(run, mark, depends):
-        found = estimate_full(run, runs, at, root)
+        found = estimate_full(run, runs, at, root, held)
         return dict(slug=run["slug"], mark=mark, depends=waits(depends), stage=0, est=found and found[:4],
                     left=found[0] if found else None, partial=bool(found and found[4]))
     out = [item(r, status_graph.mark(r.get("status")), r.get("waits_on") or []) for r in live]
