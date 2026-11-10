@@ -14,6 +14,7 @@ import status_graph  # noqa: E402
 SIMILAR = 5     # similar finished goals needed before an estimate stops being rough
 STEP_UP = 60    # seconds one more done line or touched area adds at least
 STALL = 3       # a current step past this many times its estimate is stalled
+STALL_FLOOR = 900   # seconds: a step is never stalled before 15 minutes, however short its estimate
 MODEL = {}
 span = status_graph.span
 
@@ -162,9 +163,9 @@ def overrun(run, runs, at, root=None, held=None):
 
 def stalled(run, runs, at, root=None, held=()):
     """(step, spent, estimate) when a running goal that is not held has run its current step more than STALL times its
-    pace-adjusted estimate; None otherwise (never without an estimate)."""
+    pace-adjusted estimate and more than STALL_FLOOR seconds; None otherwise (never without an estimate)."""
     now = None if run.get("slug") in (held or ()) else step_now(run, runs, at, root, held)
-    return now if now and now[1] > STALL * now[2] else None
+    return now if now and now[1] > max(STALL * now[2], STALL_FLOOR) else None
 
 
 def stall_lines(runs, at, root=None, held=()):
