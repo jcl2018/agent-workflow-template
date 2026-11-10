@@ -122,6 +122,9 @@ Live board. Each check-in prints the live board, always in the same format: Issu
 - Given a bad slug or an unreadable goal file, when a goal is estimated, then it is unknown size and rough, and the board still renders. — [est-unsafe-slug](../../.loop/regression.tsv), requirement, guards MON-4, both, not run, seen failing 2026-11-10
 - Given a goal larger than every finished one, when the board is shown, then it renders quickly and reads rough. — [est-big-goal](../../.loop/regression.tsv), requirement, guards MON-4, both, not run, seen failing 2026-11-10
 - Given a finished run that changes, when the board is shown again in the same process, then the estimate changes. — [est-cache](../../.loop/regression.tsv), requirement, guards MON-4, both, not run, seen failing 2026-11-10
+- Given a running goal whose goal file sits only in its worktree, when its size is read, then the worktree's goal file sizes it, and a worktree outside the loop worktrees folder is never read. — [est-worktree](../../.loop/regression.tsv), requirement, guards MON-4, both, not run, seen failing 2026-11-10
+- Given five similar finished goals that never logged a step, when that step is estimated, then it comes from every finished goal, while steps they logged come from them. — [est-similar-step](../../.loop/regression.tsv), requirement, guards MON-4, both, not run, seen failing 2026-11-10
+- Given a goal far past three times its step estimate, when it has no worker and is held, then it is never shown as stalled under Issues. — [est-stall-held](../../.loop/regression.tsv), requirement, guards MON-4, both, not run, seen failing 2026-11-10
 
 #### MON-5
 
