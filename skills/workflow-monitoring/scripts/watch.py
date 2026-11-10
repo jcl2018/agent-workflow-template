@@ -82,8 +82,9 @@ ASK = ('ask the user first: run goal.py wait {slug} --ask "Cut a release or leav
 def flow_set():
     try:
         with open(os.path.expanduser(os.environ.get("LOOP_FLOW") or "~/.workflow-loop/flow.json")) as handle:
-            steps = json.load(handle).get("steps") or {}
-    except (OSError, ValueError, AttributeError):
+            spec = json.load(handle)
+            steps = dict(spec.get("suite") or {}, **(spec.get("steps") or {}))  # as goal.py and flow.py merge them
+    except (OSError, ValueError, AttributeError, TypeError):
         return False
     return all(steps.get(step) for step in FLOW)
 
@@ -457,7 +458,7 @@ def cmd_watch(args):
         pending = keep_moving(cfg, args.skill_dir)
         begun, _ = start_round(args, cfg)
         tell(seen, told)
-        if args.once or not (begun or pending or any(state.get("status") == "running" and graph.holds_slot(state) for state in runs())):
+        if args.once or not (begun or pending or any(state.get("status") == "running" and graph.holds_slot(state, taken()) for state in runs())):
             break
         time.sleep(interval)
     _, held = plan(limit_of(args, cfg))

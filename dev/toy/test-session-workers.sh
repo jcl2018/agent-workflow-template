@@ -133,13 +133,18 @@ $SE report b --status merged --pr https://x/pull/2 >/dev/null
 check "a merged report is checked with gh: an open pull request is recorded as waiting, never merged" '[ "$(field b report.status)" = waiting ]'
 python3 - "$C/loop/runs/b.json" <<'PY'
 import json, sys
-s = json.load(open(sys.argv[1])); s.update(status="running", updated="2026-01-01T00:00:00Z"); json.dump(s, open(sys.argv[1], "w"))
+s = json.load(open(sys.argv[1])); s.update(status="running", updated="2026-01-01T00:00:00Z", bound_at="2026-01-01T00:00:00Z")
+for r in s.get("reports") or []:
+    r["at"] = "2026-01-01T00:00:00Z"  # silence is judged from the latest report or bind too (MON-8)
+if isinstance(s.get("report"), dict):
+    s["report"]["at"] = "2026-01-01T00:00:00Z"
+json.dump(s, open(sys.argv[1], "w"))
 pool = sys.argv[1].replace("runs/b.json", "session-pool.json")  # its session still has it: quiet, not held
 p = json.load(open(pool)); p["s9"] = {"name": "worker · b", "slug": "b", "state": "busy", "since": "2026-01-01T00:00:00Z"}
 json.dump(p, open(pool, "w"))
 PY
 $LB > "$T/board4"
-check "a worker session silent for an hour is named under Issues" 'grep -q "^- b: its session worker · b has sent nothing for" "$T/board4"'
+check "a worker session silent past silent_minutes (30) is named under Issues" 'grep -q "^- b: its session worker · b has sent nothing for" "$T/board4"'
 (cd "$C/loop/worktrees/e" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/goal.py" record e ship --file "$T/plan-reply.txt" --in-session > "$T/f7" 2>&1)
 check "goal.py record --in-session refuses a step out of order" 'grep -q "^REFUSED: idea, plan, review, qa comes before ship" "$T/f7"'
 

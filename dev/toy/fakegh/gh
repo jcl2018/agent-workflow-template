@@ -5,7 +5,7 @@ echo "$*" >> "$d/calls.log"
 here=$(cd "$(dirname "$0")" && pwd)
 case "$1 $2" in
   "api "*) exec python3 "$here/fake.py" "$@";;
-  "issue list"|"issue create") [[ "$*" == *"--label health"* || "$*" == *"--milestone"* || "$*" == *"number,title,milestone"* ]] && exec python3 "$here/fake.py" "$@";;
+  "issue list"|"issue create") [[ "$*" == *"--label health"* || "$*" == *"--milestone"* || "$*" == *"--repo "* || "$*" == *"number,title,milestone"* ]] && exec python3 "$here/fake.py" "$@";;
   "issue edit"|"issue close"|"issue reopen"|"issue comment"|"pr edit") [ -f "$d/issues.json" ] || [ "$1" = pr ] && exec python3 "$here/fake.py" "$@";;
 esac
 case "$1 $2" in
@@ -23,14 +23,18 @@ case "$1 $2" in
   "release create") [ -n "${FAKE_GH_RELEASE_FAIL:-}" ] && { echo "release refused" >&2; exit 1; }
      while [ $# -gt 0 ]; do [ "$1" = --notes-file ] && cat "$2" >> "$d/notes.log"; shift; done
      echo "https://example.test/releases/draft";;
-  "release view") grep -qx "$3" "$d/releases" 2>/dev/null && exit 0; echo "release not found" >&2; exit 1;;
+  "release view") [[ "$*" == *"--json tagName"* ]] && { [ -n "${FAKE_GH_LATEST_TAG:-}" ] && { echo "$FAKE_GH_LATEST_TAG"; exit 0; }; echo "release not found" >&2; exit 1; }
+     grep -qx "$3" "$d/releases" 2>/dev/null && exit 0; echo "release not found" >&2; exit 1;;
+  "release download") [[ "$*" == *"--archive zip"* ]] || exit 1; dir=.; while [ $# -gt 0 ]; do [ "$1" = --dir ] && dir=$2; shift; done
+     [ -f "${FAKE_GH_ARCHIVE:-}" ] || { echo "release not found" >&2; exit 1; }; cp "$FAKE_GH_ARCHIVE" "$dir/";;
   "pr list") echo "[]";;
   "issue list") python3 -c '
 import datetime, json, os
 state = "OPEN" if os.environ.get("FAKE_GH_ISSUE_OPEN") else "CLOSED" if os.environ.get("FAKE_GH_ISSUE_CLOSED") else ""
 day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
 notes = [{"body": "Failing on %s." % day}] if os.environ.get("FAKE_GH_ISSUE_COMMENTED") else []
-print(json.dumps([{"number": 7, "state": state, "body": "<!-- loop-regression flag -->", "comments": notes}] if state else []))
+mark = "<!-- loop-regression flag placed=Alpha -->" if os.environ.get("FAKE_GH_ISSUE_PLACED") else "<!-- loop-regression flag -->"
+print(json.dumps([{"number": 7, "state": state, "body": mark, "comments": notes}] if state else []))
 ';;
   "issue create") echo "https://example.test/issues/7";;
   *) exit 0;;
