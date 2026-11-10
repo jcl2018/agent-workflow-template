@@ -136,3 +136,4 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf
 | - | requirement | REG-8 | no passing test | not enforced |
 | - | requirement | REG-9 | no passing test | not enforced |
 | [summary-only-real-rows](Tests#t-summary-only-real-rows) | defect | [#92](https://github.com/jcl2018/agent-workflow-template/issues/92) closed (2026-11-10) | Given a row that writes to the run summary, env or outputs like a toy test, when the GitHub run runs it, then nothing it writes reaches the real summary, env or outputs. | PASS 2026-11-10 |
+| [toy-no-leftovers](Tests#t-toy-no-leftovers) | defect | [#100](https://github.com/jcl2018/agent-workflow-template/issues/100) state unknown | Given a toy test that starts stand-in agents, when it passes, fails, is interrupted or its pipe closes, then no process it started is left running. | not run |

@@ -11,6 +11,7 @@ unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a rea
 unset LOOP_BATCH
 export LOOP_ROLE=worker  # goal.py and flow.py run only in a worker
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 cases="wording flow-steps categories defect-owed health-closed worker-release pr-body pr-body-criterion no-hang known-defects skill-size skill-kept"
 if [ $# = 0 ]; then
   fails=0
@@ -22,7 +23,7 @@ if [ $# = 0 ]; then
 fi
 case=$1
 no() { echo "$case: $1"; exit 1; }
-d=${TOY_KEEP:-$(mktemp -d)}; [ -n "${TOY_KEEP:-}" ] || trap 'rm -rf "$d"' EXIT
+d=${TOY_KEEP:-$(mktemp -d)}; [ -n "${TOY_KEEP:-}" ] || toy_on_exit 'rm -rf "$d"'
 goal="python3 $here/skills/workflow-delivery/scripts/goal.py"
 flow="python3 $here/skills/workflow-delivery/scripts/flow.py"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"

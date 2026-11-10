@@ -4,6 +4,7 @@
 set -u
 unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 auto="python3 -B $here/skills/workflow-health/scripts/automation.py"
 reg="python3 -B $here/skills/workflow-regression/scripts/regression.py"
 unset GH_TOKEN GITHUB_TOKEN GITHUB_ACTIONS GITHUB_STEP_SUMMARY GITHUB_OUTPUT DIGEST_RUN DIGEST_REPO_OWNER HEALTH_REPORT
