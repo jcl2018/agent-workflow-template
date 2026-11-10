@@ -4,10 +4,10 @@
 usage: sessions.py <command> [options]
 
   assign SLUG               give a frozen goal to a worker session (watch.py does this for every goal it starts)
-  bind SLUG ID [--name N] [--force]
+  bind SLUG ID [--name N] [--force] [--cwd DIR]
                             record a session started with the app's own tools; before freezing it records the handoff
                             (ASSIGNED: the board shows it freezing), after goal.py new it binds (BOUND). --force: rebind
-                            a session freed from the goal
+                            a session freed from the goal. Prints the WORKER command and the WORKTREE (session_bind.py)
   free SLUG                 give back a stopped session's goal and slot (FREED, NOTHING TO FREE)
   report SLUG [--step S] [--status running|waiting|merged|failed] [--pr URL] [--ask Q --words W...] [--text T]
                             record a worker's session message: each step change, and its result when the goal ends.
@@ -36,7 +36,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
-from session_tool import HUNG, call, tool  # noqa: E402  (watch.py clears sessions.HUNG)
+import session_bind  # noqa: E402
+from session_tool import HUNG, LAST_ERROR, call, tool  # noqa: E402  (watch.py clears sessions.HUNG)
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -156,7 +157,7 @@ def assign(state, prompt, cfg):
     found, to = pool(), os.environ.get("LOOP_OPERATION_SESSION", "")
     start = load(slug) or state  # a failed or stopped try's session is replaceable; a running one is a bind
     before = (start.get("session") or {}).get("id") if start.get("status") in ("failed", "stopped", "queued", "", None) else None
-    text = SEND.format(slug=slug, tree=state.get("worktree") or "its worktree", to=" (%s)" % to if to else "") + prompt
+    text = SEND.format(slug=slug, tree=state.get("worktree") or "its worktree", to=" (%s)" % to if to else "") + session_bind.worker_line(slug) + "\n\n" + prompt
     free = sorted(s for s, item in found.items() if item.get("state") == "free")[:FREE_TRIES]
     sid, reused = None, False
     for sid in free + [None]:  # free ones first, then a new one
@@ -242,37 +243,7 @@ def cmd_assign(args):
 
 
 def cmd_bind(args):
-    bad_slug(args.slug)
-    name = args.name or name_of(args.slug)
-    with locked():
-        found, state = pool(), load(args.slug)
-        if state.get("pid") and state.get("status") == "running" and alive(state["pid"]):
-            sys.exit("REFUSED: %s is running as background pid %s; let it end first." % (args.slug, state["pid"]))
-        other = found.get(args.id) or {}
-        if other.get("state") == "busy" and other.get("slug") != args.slug:
-            sys.exit("REFUSED: session %s is busy with goal %s." % (args.id, other.get("slug")))
-        if other.get("freed_from") == args.slug and other.get("state") != "busy" and not args.force:
-            sys.exit("REFUSED: session %s was freed from %s at %s. Fix: if you've confirmed no other worker has %s, run "
-                     "sessions.py bind %s %s --force." % (args.id, args.slug, other.get("freed_at"), args.slug, args.slug, args.id))
-        same = other.get("state") == "busy" and other.get("slug") == args.slug
-        if state and same and (state.get("session") or {}).get("id") == args.id and state.get("status") in ("running", "waiting", "done"):
-            print("BOUND %s to session %s (%s)" % (args.slug, args.id, other.get("name") or name))
-            return 0  # both records already agree: nothing changes, bound_at stays
-        if not same:
-            release(args.slug, found)  # a session the goal had before goes back to the pool
-            found[args.id] = {"name": name, "slug": args.slug, "state": "busy", "since": now()}
-            save_pool(found)
-        if state:
-            if state.get("status") in ("failed", "stopped", "queued", "", None):
-                state.update(status="running", finding="", report=None)
-            state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None, bound_at=now())
-            save(state, "bound to session %s (%s)" % (args.id, name))
-    if not state:
-        print("ASSIGNED %s to session %s (%s); not frozen yet. Next: in its worktree the worker runs goal.py new %s "
-              "--here ..., then sessions.py bind %s %s." % (args.slug, args.id, name, args.slug, args.slug, args.id))
-        return 0
-    print("BOUND %s to session %s (%s)" % (args.slug, args.id, name))
-    return 0
+    return session_bind.cmd_bind(sys.modules[__name__], args)
 
 
 def cmd_free(args):
@@ -375,7 +346,7 @@ def cmd_send(args):
         print("NO SESSION for %s: the inbox carries it" % args.slug)
         return 1
     if call(command, "send", sid, " ".join(args.text.split())) is None:
-        print("UNREACHED session %s for %s: the inbox carries it" % (sid, args.slug))
+        print("UNREACHED session %s for %s: the inbox carries it (%s)" % (sid, args.slug, LAST_ERROR[0]))
         return 1
     print("SENT to session %s (%s)" % (sid, (state.get("session") or {}).get("name")))
     return 0
@@ -398,6 +369,7 @@ def main():
     item.add_argument("id")
     item.add_argument("--name", default="")
     item.add_argument("--force", action="store_true")
+    item.add_argument("--cwd", default="")
     item = sub.add_parser("free")
     item.add_argument("slug")
     item = sub.add_parser("report")

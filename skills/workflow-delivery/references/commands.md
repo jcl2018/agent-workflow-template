@@ -29,14 +29,23 @@ pr SLUG
 wait SLUG --ask TEXT --words W [--words W]
 answer SLUG
 finding SLUG TEXT
+resume SLUG --why TEXT [--by WHO]
+touches SLUG --add PATH --why TEXT
 show SLUG
 ```
 
 A background agent runs `flow` for the idea and plan steps, builds, fills in `## Verify by hand`, then runs the review, qa and
 ship steps, and ends with `pr` and the release step. `flow` starts a step detached and
 prints `RUNNING` until it ends, then a `NEXT` line naming `record`. `record` refuses a reply that `flow` didn't produce.
-A failed step, a step with no `STEP:` line and a step refused for its depth (no `DEPTH:` line, condensed under `review_depth` full, a missing `full_markers` string) each cost a try. After 3 it files a finding in
-`.loop/findings.md` and stops with exit code 3. `pr` refuses until every step is done
+A failed step costs a try, and so does a background run's reply with no `STEP:` line (the run may have crashed). After 3 it
+files a finding in `.loop/findings.md` and stops with exit code 3. A refusal that changes nothing costs no try: it prints
+`REFUSED (no try used): ... Fix: ... (CODE)` and `NEXT:`, exits 2, keeps the step's reply and run marker, and the goal keeps
+running. That covers a session reply with no `STEP:` line, a step refused for its depth (no `DEPTH:` line, condensed under
+`review_depth` full, a missing `full_markers` string), a reply `flow` didn't produce, and the qa lane not passed on HEAD.
+Five refusals in a row leave a note on the board; ten put the goal in waiting for the owner. A format rule binds only steps started after it landed: each step records
+the rule ids known when it started (`guards.py known` prints them), and a refusal names the rule and the release that
+added it. A malformed `full_markers` in the flow file isn't the worker's slip: the goal waits for the owner. While a goal
+waits, `record` and `pr` refuse (`WAITING_OWNER`). `pr` refuses until every step is done
 or skipped with a reason, and until the issue or finding the goal fixes has a defect test seen failing and passing; its body lists each step's result. With `pr_bumps_version` on, it first moves the last number
 of the version file once, unless the branch already changed it.
 
@@ -211,6 +220,8 @@ flowchart LR
   a --> b
 ```
 
+`answer` moves only a waiting goal on (`ANSWER_STATUS` otherwise); a stopped goal comes back with `resume`.
+
 Status: built and proven: none. Built only: Clear the question; Goal runs again. Planned: none.
 Stops for the owner: none.
 Proof: no test calls it, and no real use is on record.
@@ -228,9 +239,72 @@ flowchart LR
   class c owner
 ```
 
+On a goal that is done or merged, `finding` only notes it (in the goal's `.extra.json`) and the goal keeps its status;
+the board shows it on that goal.
+
 Status: built and proven: none. Built only: File the finding; Stop the goal; Owner reads the finding. Planned: none.
 Stops for the owner: Owner reads the finding.
 Proof: no test calls this command, and no real use is on record. The same stop after 3 failed tries is proven under `go`.
+
+#### `resume`
+
+The operation session's repair for a failed or stopped goal worked in a session. It never starts a process; a worker
+can't resume its own goal (`WORKER_SELF_REPAIR`). It refuses a goal that isn't failed or stopped (`RESUME_STATUS`), has no
+session (`RESUME_NO_SESSION`: bind one, which revives it, or `watch.py resume` for a background worker), has lost its
+worktree (`RESUME_NO_WORKTREE`), or whose done lines changed (`DONE_LINES_CHANGED`), and a session now serving another
+goal (`SESSION_TAKEN`). Every check runs first, so a refusal writes nothing. Then it reserves the session under the pool
+lock, resets status, tries, refusals, finding, waiting, note and report (as `sessions.py bind` does), logs who asked and
+why, and sends the session "continue at <step> in <worktree>". If the send fails it says `(message not delivered)` and
+prints the resend command.
+
+```text
+python3 scripts/goal.py resume board-held --why "usage limit passed"
+RESUMED board-held at review
+```
+
+```mermaid
+flowchart LR
+  a["Check status, session, worktree, done lines"]
+  b["Reserve the session"]
+  c["Reset and log who and why"]
+  d["Tell the session where to continue"]
+  a --> b --> c --> d
+```
+
+Status: built and proven: Check status, session, worktree, done lines; Reserve the session; Reset and log who and why; Tell the session where to continue. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests (test-guards.sh).
+
+#### `touches`
+
+The operation session widens a goal's touches with a logged reason; a worker can't widen its own (`WORKER_SELF_REPAIR`).
+PATH must be repo-relative and new (`TOUCHES_PATH`). Only `<runs>/<slug>.extra.json` changes, under a lock, so no writer
+of the run record can erase it; the board shows the widened list, and the worker's next `record` (and `pr`, before its
+lane) rewrites the goal file's `- Touches:` line.
+
+```text
+python3 scripts/goal.py touches board-held --add skills/workflow-health --why "the board reads health.py"
+TOUCHES board-held +skills/workflow-health
+```
+
+Status: built and proven: Widen touches with a reason. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests (test-guards.sh).
+
+#### Refusal codes
+
+| Code | Means | Fix |
+|---|---|---|
+| `FORMAT_RULE <id>` | The reply breaks a format rule the step started under | Fix the reply as the message says, record again |
+| `NO_STEP_LINE` | A session reply has no `STEP:` line | End it with the DEPTH line and a STEP line |
+| `NOT_RUN_BY_FLOW` | The reply or run marker isn't where `flow` leaves them | Run `flow` for the step until it prints NEXT |
+| `LANE_MISSING` | The qa lane hasn't passed on HEAD | `role.py lane SLUG qa` |
+| `WAITING_OWNER` | The goal waits for the owner | The operation answers |
+| `NOT_WORKER` | A goal step outside a worker | Run it in the bound session as `LOOP_ROLE=worker ...` (the refusal prints it) |
+| `WORKER_SELF_REPAIR` | A worker ran resume or touches | Ask the operation session |
+| `RESUME_STATUS`, `RESUME_NO_SESSION`, `RESUME_NO_WORKTREE`, `SESSION_TAKEN`, `DONE_LINES_CHANGED` | resume can't run | As the message says |
+| `ANSWER_STATUS` | answer on a goal that isn't waiting | resume a stopped goal instead |
+| `TOUCHES_PATH` | touches PATH isn't repo-relative or is already there | Give a new repo-relative path |
 
 #### `show`
 

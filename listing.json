@@ -90,6 +90,7 @@
     "send",
     "assign",
     "bind",
+    "touches",
     "free",
     "list",
     "suggest",
