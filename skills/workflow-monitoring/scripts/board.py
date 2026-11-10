@@ -189,6 +189,8 @@ def collect(name, path, base, at):
     cfg = read_json(os.path.join(path, ".loop", "config.json")) or {}
     live = [r for r in records if r.get("status") in ("running", "waiting")]
     taken = graph.assigned(graph.read_pool(os.path.join(base, "loop", "session-pool.json"))[0])
+    if prs:  # every pull request asked at once, in parallel, before the rows ask one by one from the cache (MON-9)
+        prs.lookup([clean(r.get("pr")) for r in records if r.get("pr") and not graph.merged(r)], path)
     rows, deps = [], []
     for run in records:
         begun, last = started(run), stamp(run.get("updated"))

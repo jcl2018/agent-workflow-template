@@ -42,12 +42,13 @@ def stuck(runs, auto_resume=False):
     groups = {}
     for run in runs:
         if run.get("status") in ("failed", "stopped"):
-            groups.setdefault(cause(run)[0], []).append(run)
+            key, _, until = cause(run)
+            groups.setdefault((key, until) if key == "limit" else key, []).append(run)  # one line per reset time
     out = []
     for key, members in groups.items():
         _, words, until = cause(members[0])
         slugs = [run["slug"] for run in members]
-        if key == "limit":
+        if isinstance(key, tuple):
             when = " until " + until if until else " until the limit resets"
             out.append("- usage limit: %d goal%s paused%s" % (len(slugs), "" if len(slugs) == 1 else "s", when))
             out.append("    %s" % ", ".join(slugs))

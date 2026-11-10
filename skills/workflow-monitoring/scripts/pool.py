@@ -27,6 +27,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
+import prs  # noqa: E402
 import sessions as se  # noqa: E402
 
 DEFAULT_SIZE = 20
@@ -141,10 +142,14 @@ def remove_tree(slug, state):
         done = subprocess.run(["git", "worktree", "remove", tree], capture_output=True, text=True)
         said.append("removed worktree %s" % os.path.basename(tree) if done.returncode == 0 else
                     "KEPT worktree %s: %s" % (os.path.basename(tree), (done.stderr.strip().splitlines() or ["git refused"])[-1]))
-    branch = "loop/" + slug
+    branch, base = "loop/" + slug, config().get("base") or "main"
     if se.git("rev-parse", "--verify", "--quiet", "refs/heads/" + branch):
-        done = subprocess.run(["git", "branch", "-D", branch], capture_output=True, text=True)
-        said.append("deleted branch %s" % branch if done.returncode == 0 else "KEPT branch %s: checked out somewhere" % branch)
+        subprocess.run(["git", "fetch", "-q", "origin"], capture_output=True, timeout=60)
+        base = "origin/" + base if se.git("rev-parse", "--verify", "--quiet", "origin/" + base) else base
+        inside = subprocess.run(["git", "merge-base", "--is-ancestor", "refs/heads/" + branch, base], capture_output=True).returncode == 0
+        done = subprocess.run(["git", "branch", "-D", branch], capture_output=True, text=True) if inside else None
+        said.append("deleted branch %s" % branch if done and done.returncode == 0 else
+                    "KEPT branch %s: %s" % (branch, "it has commits not in %s" % base if not inside else "checked out somewhere"))
     return said
 
 
@@ -161,8 +166,9 @@ def return_session(slug, merged=False):
                 remember(item, slug)
                 said.append("%s session %s" % ("ARCHIVE" if item["state"] == "archive" else "POOLED", item.get("name") or sid))
         se.save_pool(found)
-    if merged:
-        said += remove_tree(slug, se.load(slug))
+    state = se.load(slug)
+    if merged or (state.get("pr") and prs.state(state["pr"], se.git("rev-parse", "--show-toplevel") or ".") == "MERGED"):
+        said += remove_tree(slug, state)  # only once GitHub says merged: an open pull request keeps its tree
     return said
 
 

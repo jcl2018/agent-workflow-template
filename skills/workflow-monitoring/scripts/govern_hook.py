@@ -56,16 +56,28 @@ def git_write(words):
     return ""
 
 
+def segments(command):
+    """The command's segments as word lists, split on && || ; | & and new lines outside quotes."""
+    text = str(command or "").replace("\n", " ; ")
+    try:
+        lex = shlex.shlex(text, posix=True, punctuation_chars=";&|()")
+        lex.whitespace_split = True
+        tokens = list(lex)
+    except ValueError:  # an unclosed quote: fall back to a plain split
+        return [part.split() for part in SPLIT.split(text)]
+    out, words = [], []
+    for token in tokens:
+        if token and set(token) <= set(";&|()"):
+            out.append(words)
+            words = []
+        else:
+            words.append(token)
+    return [w for w in out + [words] if w]
+
+
 def verdict(command, nested=False):
     """The first blocked git write in a command, as 'git <sub>', or ''."""
-    for part in SPLIT.split(str(command or "")):
-        part = part.strip().lstrip("(").rstrip(")").strip()
-        if not part:
-            continue
-        try:
-            words = shlex.split(part)
-        except ValueError:
-            words = part.split()
+    for words in segments(command):
         found = git_write(words)
         if found:
             return found if nested or found.startswith("git ") else "git " + found

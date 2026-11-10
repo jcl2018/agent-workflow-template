@@ -106,6 +106,11 @@ def render(root=None, at=None, stamp=None):
                   for sid, item in sorted(found.items()) if item.get("state") == "archive"]
     elif why:
         needs.append(graph.pool_fix(why))
+    for sid, item in sorted((found or {}).items()):  # a retired goal's session still busy holds a slot nobody sees (122)
+        old = bs.read_json(os.path.join(folder, "runs", "%s.json" % item.get("slug"))) if item.get("state") == "busy" else None
+        if isinstance(old, dict) and old.get("status") == "retired":
+            needs.append("%s is retired but session %s is still busy; free it with pool.py return %s" % (
+                old["slug"], item.get("name") or sid, old["slug"]))
     if os.path.exists(os.path.join(folder, "session-pool.bad.json")):
         needs.append("malformed session-pool entries were set aside in session-pool.bad.json; look and delete it")
     _, fails, cause = govern_hook.health(os.path.dirname(folder))
