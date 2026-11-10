@@ -225,7 +225,7 @@ PY
 echo "Covers the change too, with more words for the check." >> docs/wiki/Delivery.md
 $cri render >/dev/null; git add -A; git commit -qm "Change calc"
 bash "$here/dev/toy/flow-done.sh" crit; $goal pr crit >/dev/null
-$rel cut crit 2>&1 | grep -q "DEL-2 (no regression row)" && ok "cut refuses a missing row" || bad "cut missing row"
+cutout=$($rel cut crit 2>&1 || true); grep -q "DEL-2 (no regression row)" <<<"$cutout" && ok "cut refuses a missing row" || { bad "cut missing row"; echo "$cutout" | head -5; }
 $reg add del-2 --level land --command "false" --goal DEL-2 --describe "$gwt" >/dev/null
 $cri render >/dev/null; git add -A; git commit -qm "Failing row" >/dev/null
 $rel cut crit 2>&1 | grep -q "DEL-2 (row del-2 is a draft or failing)" && ok "cut refuses a failing row" || bad "cut failing row"
