@@ -53,6 +53,11 @@ out=$(python3 "$crash/scripts/health.py" check --group controls 2>&1)
 grep -q "^UNREAD controls findings control: the control stopped with RuntimeError" <<<"$out" && grep -q "^PASS controls waiting control" <<<"$out" \
   && ok "a control that crashes is UNREAD and the others still run" || bad "control crash"
 rm "$crash/../workflow-docs"
+# Value: protects=running the controls leaves the no-prompt setting in place for what runs after them; fails_when=the
+#   restore drops GIT_TERMINAL_PROMPT; why_new=ship review finding; seam=none; no_claim=none beyond protects
+GIT_TERMINAL_PROMPT=0 python3 -c "
+import os, sys; sys.argv = ['$S/health.py']; sys.path.insert(0, '$S'); import health
+health.controls_rows('.'); sys.exit(0 if os.environ.get('GIT_TERMINAL_PROMPT') == '0' else 1)" && ok "the controls keep GIT_TERMINAL_PROMPT for what runs after them" || bad "prompt env lost"
 out=$(python3 "$crash/scripts/health.py" check --group controls 2>&1)
 grep -q "^UNREAD controls docs-check control: its rule could not read its data" <<<"$out" && ok "a rule that cannot read on its fixture is UNREAD, not cannot fire" || bad "control blind"
 
@@ -87,8 +92,17 @@ $health check --group hygiene | grep -q "^PASS hygiene lane test-time: the land 
 mv "$OWN" "$C/loop/tests/other-abcdef12.json"
 $health check --group hygiene | grep -q "^INFO hygiene lane test-time: the land lane takes 908 s, within test_budget_seconds=1000 (from another branch's record, other-abcdef12.json)" \
   && ok "another branch's record is INFO and named" || bad "borrowed record"
+git checkout -q -- .loop/config.json
+$health check --group hygiene | grep -q "^INFO hygiene lane test-time: the land lane takes 908 s, over test_budget_seconds=600 .*(from another branch's record, other-abcdef12.json)" \
+  && ok "another branch's record over budget is INFO, never a warning" || bad "borrowed warn"
 echo '{"at": "x", "rows": {"a": {"seconds": "slow"}}}' > "$OWN"
 $health check --group hygiene | grep -q "^UNREAD hygiene lane test-time: this branch's lane record cannot be read" && ok "a damaged lane record of this branch is UNREAD" || bad "damaged record"
+echo '{"at": "x", "rows": {"slow-0": {"seconds": NaN}}}' > "$OWN"
+out=$($health check --group hygiene 2>&1); grep -q "^UNREAD hygiene lane test-time: this branch's lane record cannot be read" <<<"$out" && ! grep -q Traceback <<<"$out" \
+  && ok "a lane record with a NaN time is UNREAD, not a crash" || bad "nan record"
+cp .loop/config.json "$d/config.keep"; echo '[1]' > .loop/config.json
+out=$($health check --group hygiene 2>&1); ! grep -q Traceback <<<"$out" && grep -q "^HEALTH" <<<"$out" && ok "a config.json that is not an object never crashes the check" || bad "config list"
+cp "$d/config.keep" .loop/config.json
 mv "$C/loop/tests/other-abcdef12.json" "$OWN"
 git checkout -q -- .loop/config.json
 python3 -c "
@@ -128,6 +142,13 @@ grep -q "2 stale loop worktrees: old-goal (no live goal): git worktree remove .*
 ! grep -q "loop/held" <<<"$br" && ok "a live goal's branch with no worktree is not listed" || bad "held branch"
 for s in queued waiting failed stopped open landed; do git worktree remove --force "$C/loop/worktrees/s-$s"; git branch -q -D "loop/s-$s"; rm "$C/loop/runs/s-$s.json"; done
 git branch -q -D loop/held; rm "$C/loop/runs/held.json"
+# Value: protects=a damaged run record never makes a live goal's worktree look stale; fails_when=it is skipped and the
+#   worktree listed; why_new=ship review finding; seam=none; no_claim=none beyond protects
+echo '{broken' > "$C/loop/runs/broken.json"
+blind=$($health check --group hygiene)
+grep -q "^UNREAD hygiene worktrees worktrees: run record broken.json cannot be read" <<<"$blind" && grep -q "^UNREAD hygiene local-branches local-branches: run record broken.json" <<<"$blind" \
+  && ! grep -q "git worktree remove" <<<"$blind" && ok "an unreadable run record makes the worktree and branch rows UNREAD, listing nothing to remove" || bad "broken run record"
+rm "$C/loop/runs/broken.json"
 [ -d "$C/loop/worktrees/old-goal" ] && git rev-parse -q --verify "odd\$name" >/dev/null && ok "health removes nothing itself" || bad "something removed"
 # Value: protects=an old branch on no remote is listed with a quoted, warned delete; a young one is not; fails_when=the age,
 #   upstream or quoting is wrong; why_new=new; seam=none; no_claim=none beyond protects
@@ -154,6 +175,10 @@ import sys; sys.path.insert(0, '$S'); import file
 rows = [{'state': 'UNREAD', 'family': 'hygiene', 'subject': 'lane', 'rule': 'test-time', 'detail': 'x', 'fix': ''}]
 print([a['kind'] for a in file.plan(rows, {'hygiene:x:findings': {'number': 7, 'state': 'OPEN'}}, ['hygiene'])])" | grep -qx "\['close'\]" \
   && ok "an UNREAD report-only row never holds back closing a hygiene issue" || bad "report-only unread"
+python3 -c "
+import sys; sys.path.insert(0, '$S'); import file
+rows = [{'state': 'FAIL', 'family': 'controls', 'subject': 'size', 'rule': 'control', 'detail': 'cannot fire', 'fix': ''}]
+print(file.plan(rows, {}, ['controls']))" | grep -qx "\[\]" && ok "a controls row is never filed" || bad "controls filed"
 
 echo "repo: $d/repo"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

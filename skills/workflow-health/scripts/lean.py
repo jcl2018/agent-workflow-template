@@ -12,6 +12,7 @@ hold machine-local paths and names, so file.py never files them.
 import glob
 import hashlib
 import json
+import math
 import os
 import re
 import shlex
@@ -44,13 +45,18 @@ def common(root):
     return os.path.realpath(os.path.join(root, git(root, "rev-parse", "--git-common-dir")[1].strip() or ".git"))
 
 
-def setting(root, key, default):
+def config(root):
     try:
         with open(os.path.join(root, ".loop", "config.json")) as handle:
-            value = json.load(handle).get(key, default)
+            data = json.load(handle)
     except (OSError, ValueError):
-        return default
-    return value if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0 else default
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def setting(root, key, default):
+    value = config(root).get(key, default)
+    return value if number(value) and value > 0 else default
 
 
 def land_rows(root):
@@ -68,10 +74,14 @@ def land_rows(root):
     return out
 
 
+def number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
 def readable(data):
     rows = data.get("rows") if isinstance(data, dict) else None
     return isinstance(rows, dict) and data.get("at") and all(
-        isinstance(r, dict) and isinstance(r.get("seconds", 0), (int, float)) and not isinstance(r.get("seconds"), bool)
+        isinstance(r, dict) and number(r.get("seconds", 0))
         for r in rows.values())
 
 
@@ -116,23 +126,34 @@ def test_rows(root):
     for key, value in seconds.items():
         scripts[land[key]] = scripts.get(land[key], 0) + value
     worst = sorted(scripts.items(), key=lambda pair: (-pair[1], pair[0]))[:3]
-    return [row("WARN", "lane", "test-time", "the land lane takes %d s, over test_budget_seconds=%d in .loop/config.json; "
+    return [row("WARN" if mine else "INFO", "lane", "test-time", "the land lane takes %d s, over test_budget_seconds=%d in .loop/config.json; "
                 "slowest rows: %s; slowest scripts: %s%s" % (
                     total, budget, ", ".join("%s %ds" % pair for pair in slow), ", ".join("%s %ds" % pair for pair in worst), whose),
                 "move the slowest rows to nightly in .loop/regression.tsv, or raise test_budget_seconds")]
 
 
-def runs(root):
+def runs(root, bad=None):
+    """Every run record as a dict; the names of unreadable ones go in bad."""
     out = []
-    for path in glob.glob(os.path.join(common(root), "loop", "runs", "*.json")):
+    for path in sorted(glob.glob(os.path.join(common(root), "loop", "runs", "*.json"))):
         try:
             with open(path) as handle:
                 state = json.load(handle)
         except (OSError, ValueError):
-            continue
+            state = None
         if isinstance(state, dict):
             out.append(dict(state, slug=state.get("slug") or os.path.basename(path)[:-5]))
+        elif bad is not None:
+            bad.append(os.path.basename(path))
     return out
+
+
+def blind(rule, root):
+    """An UNREAD row when a run record cannot be read: its goal's worktree or branch could look stale."""
+    bad = []
+    runs(root, bad)
+    return [row("UNREAD", rule, rule, "run record %s cannot be read, so a live goal may look stale" % ", ".join(bad[:3]),
+                "repair or remove it before removing anything")] if bad else []
 
 
 def runs_by_tree(root):
@@ -164,6 +185,8 @@ def worktree_rows(root):
     code, out, err = git(root, "worktree", "list", "--porcelain")
     if code:
         return [row("UNREAD", "worktrees", "worktrees", (err or "git worktree list failed")[:120])]
+    if blind("worktrees", root):
+        return blind("worktrees", root)
     folder, here, runs = os.path.join(common(root), "loop", "worktrees"), os.path.realpath(root), runs_by_tree(root)
     items = []
     for block in out.strip().split("\n\n"):
@@ -191,15 +214,14 @@ def branch_rows(root):
     code, out, err = git(root, "for-each-ref", "--format=" + fields, "refs/heads")
     if code:
         return [row("UNREAD", "local-branches", "local-branches", (err or "git for-each-ref failed")[:120])]
-    try:
-        with open(os.path.join(root, ".loop", "config.json")) as handle:
-            name_of_base = json.load(handle).get("base") or "main"
-    except (OSError, ValueError, AttributeError):
-        name_of_base = "main"
+    name_of_base = config(root).get("base")
+    name_of_base = name_of_base if isinstance(name_of_base, str) and name_of_base else "main"
     base = next((ref for ref in ("origin/" + name_of_base, name_of_base) if git(root, "rev-parse", "--verify", "--quiet", ref)[0] == 0), "")
     if not base:
         return [row("UNREAD", "local-branches", "local-branches", "the base branch %s cannot be found" % name_of_base,
                     "set base in .loop/config.json")]
+    if blind("local-branches", root):
+        return blind("local-branches", root)
     days = setting(root, "stale_branch_days", STALE_DAYS)
     held = {r.get("branch") or "loop/" + r["slug"] for r in runs(root) if live([r])}
     items = []

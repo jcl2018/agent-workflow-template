@@ -11,6 +11,7 @@ or system config and a fixed identity, so no hook, signing or setting applies an
 Rows carry no temporary path and no time, so two runs print the same lines. run() imports nothing from health.py;
 only the run command line loads it, for its rule functions.
 """
+import hashlib
 import json
 import os
 import subprocess
@@ -131,7 +132,7 @@ def f_test_time(root):
     folder = os.path.join(root, ".git", "loop", "tests")
     os.makedirs(folder, exist_ok=True)
     rows = {"r%d" % n: {"status": "PASS", "seconds": 40, "commit": "x"} for n in range(3)}
-    with open(os.path.join(folder, "main-00000000.json"), "w") as handle:
+    with open(os.path.join(folder, "main-%s.json" % hashlib.sha1(b"main").hexdigest()[:8]), "w") as handle:  # main's own
         json.dump({"at": OLD, "rows": rows}, handle)
 
 
@@ -186,7 +187,7 @@ def one(rule, function, here, keep=False):
     folder = tempfile.mkdtemp(prefix="health-control-")
     root = os.path.join(folder, "repo")
     os.makedirs(root)
-    saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("GIT_") and k != "GIT_TERMINAL_PROMPT"}
+    saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("GIT_")}  # all restored in finally
     os.environ.update(GIT_ENV)
     try:
         fixture(root)
@@ -200,7 +201,7 @@ def one(rule, function, here, keep=False):
             "FAIL", rule, "cannot fire: it reported nothing on a fixture made to break it",
             "run: python3 controls.py run %s --keep, then fix the rule or its control" % rule)
     except Unbuilt as error:
-        result = row("UNREAD", rule, "the control could not build its fixture: %s" % str(error).replace(folder, "<fixture>"),
+        result = row("UNREAD", rule, "the control could not build its fixture: %s" % str(error).replace(os.path.realpath(folder), "<fixture>").replace(folder, "<fixture>"),
                      "run: python3 controls.py run %s --keep" % rule)
     except Exception as error:  # one broken control is UNREAD, never a crash of the whole check
         result = row("UNREAD", rule, "the control stopped with %s" % type(error).__name__, "run: python3 controls.py run %s --keep" % rule)
@@ -222,6 +223,14 @@ def run(rules, here):
 
 def missing(names):
     return [name for name in names if name not in CONTROLS]
+
+
+def refuse(names):
+    """Exit 2 before any report when a rule has no negative control."""
+    gap = missing(names)
+    if gap:
+        print("REFUSED: rule %s has no negative control. Fix: add CONTROLS[\"%s\"] in controls.py" % (", ".join(gap), gap[0]))
+        sys.exit(2)
 
 
 def main():

@@ -43,7 +43,7 @@ exit code is then 1. `--json` prints the same rows as records, with the verdict.
 
 `Mine` runs commands you name, outside the repo, so it is not covered by the read-only and same-answer promises, and it is filed only when named.
 
-The test-time, worktree and local-branch rows name local paths and branches, so they are shown, never filed, and health never runs the removal commands it prints. `check --skip controls` leaves the controls out; `controls.py run <rule> --keep` runs one control and keeps its fixture to look at.
+The test-time, worktree and local-branch rows name local paths and branches, and the controls rows check health itself, so they are shown, never filed (a run record that cannot be read makes the worktree and branch rows UNREAD), and health never runs the removal commands it prints. `check --skip controls` leaves the controls out; `controls.py run <rule> --keep` runs one control and keeps its fixture to look at.
 
 There are at most twelve fixed rules (the cap was raised on purpose, for `cost` and then for test time and stale worktrees and branches), and the script refuses to load with more. Every rule needs a negative control: a rule with none stops health.py with `REFUSED: rule <name> has no negative control` (exit 2) until `CONTROLS["<name>"]` is added in `controls.py`.
 

@@ -21,11 +21,11 @@ if not sys.stdin or not sys.stdin.isatty():
 
 MARK = "<!-- loop-health %s -->"
 BACKLOG = "Backlog"
-GROUPS = ("size", "criteria", "docs", "hygiene", "cost", "mine", "controls")
+GROUPS = ("size", "criteria", "docs", "hygiene", "cost", "mine")
 TAG = {"cost": "performance"}
-DEFAULT = ("size", "criteria", "docs", "hygiene", "cost", "controls")  # a preview with no group names these, never mine
+DEFAULT = ("size", "criteria", "docs", "hygiene", "cost")  # a preview with no group names these, never mine
 BAD = ("WARN", "FAIL", "UNREAD")
-REPORT_ONLY = ("test-time", "worktrees", "local-branches")  # machine-local paths and names: shown by check, never filed
+REPORT_ONLY = ("test-time", "worktrees", "local-branches", "control")  # local paths and names, and controls: shown, never filed
 
 
 def tag_of(group):

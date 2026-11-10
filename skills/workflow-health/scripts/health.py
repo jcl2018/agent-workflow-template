@@ -10,20 +10,17 @@ check prints the formal report (report.py): the groups run and skipped, every ru
 line, HEALTH: green or not green. Only FAIL and UNREAD (a rule that could not read its data) turn it red (exit 1).
 judge (alias suggest) adds a section of suggestions (judge.py) and never changes the verdict. --json prints the rows.
 
-Rules (at most MAX_RULES, asserted when the script loads; retire one before adding another):
+Rules (at most MAX_RULES; retire one before adding another):
   size      scripts under skills/*/scripts against 20 KB: WARN from 90%, FAIL over
-  criteria  composes regression.py sync: a criterion with no row FAILs, a draft or never-failed row FAILs,
-            done lines with no row WARN as one row; a closed issue or finding with no defect test FAILs (defects.py)
+  criteria  regression.py sync: a criterion with no row, or a draft or never-failed row, FAILs; done lines with
+            no row WARN; a closed issue or finding with no defect test FAILs (defects.py)
   docs      composes docs.py check: a stale page WARNs, any other gap FAILs
-  hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches; lean.py: the land lane over
-            test_budget_seconds, stale loop worktrees and local branches (each with its removal command, never run)
-  cost      a finished goal over time_budget_minutes or token_budget in .loop/config.json WARNs, naming its slowest or
-            costliest steps (cost.py); no tokens recorded is UNREAD
-  controls  each rule's negative control (controls.py) must fire, or it is FAIL "cannot fire"; a rule with no
-            control makes health.py refuse to load (exit 2). Mine runs the owner's rules (mine.py).
+  hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches; lean.py: test time, stale
+            worktrees and local branches
+  cost      a finished goal over time_budget_minutes or token_budget WARNs (cost.py); no tokens is UNREAD
+  controls  each rule's negative control (controls.py) must fire; a rule with none makes health.py refuse (exit 2)
 
-preview lists what file would open, update, close or reopen, writing nothing; file --group NAME[,NAME] files only
-those groups as issues on the Backlog milestone (file.py). run is an alias of preview. It runs git, gh and its siblings.
+preview lists what file would do, writing nothing; file --group NAME[,NAME] files those groups as issues (file.py).
 """
 import argparse
 import datetime
@@ -46,7 +43,7 @@ FINDINGS_WARN = 5
 WAITING_HOURS = 24
 RULES = ("size", "criteria-rows", "criteria-done", "defect-tests", "docs-check", "findings", "waiting", "branches", "cost",
          "test-time", "worktrees", "local-branches")
-MAX_RULES = 12  # raised on purpose: 9 for cost, 12 for HLT-6's test time and stale worktrees and branches
+MAX_RULES = 12  # raised on purpose: 9 for cost, 12 for HLT-6
 assert len(RULES) <= MAX_RULES, "too many rules: retire one first"
 FAMILY = {"size": "size", "criteria": "criteria", "docs": "docs", "hygiene": "hygiene", "cost": "cost", "mine": "mine",
           "controls": "controls"}
@@ -187,8 +184,7 @@ def hygiene_rows(root):
                 rows.append(row("WARN", "hygiene", name, "branch", "already merged into %s" % base,
                                 "worker.py cleanup"))
     lean = sibling_module("lean")
-    return rows + (lean.rows(root) if lean else [row("UNREAD", "hygiene", "lean.py", rule, "lean.py is not installed beside health.py")
-                                                 for rule in ("test-time", "worktrees", "local-branches")])
+    return rows + (lean.rows(root) if lean else [row("UNREAD", "hygiene", "lean.py", r, "lean.py is missing") for r in RULES[-3:]])
 
 
 def sibling_module(name):
@@ -202,7 +198,7 @@ def sibling_module(name):
 
 
 def rule_functions():
-    """Each rule in RULES -> the function that gives its group's rows for a repo root (what its control calls)."""
+    """Each rule -> the function its control calls."""
     lean = sibling_module("lean")
     groups = {"size": size_rows, "criteria-rows": criteria_rows, "criteria-done": criteria_rows, "defect-tests": defect_rows,
               "docs-check": docs_rows, "findings": hygiene_rows, "waiting": hygiene_rows, "branches": hygiene_rows,
@@ -215,7 +211,7 @@ def rule_functions():
 def controls_rows(root):
     controls = sibling_module("controls")
     if controls is None:
-        return [row("UNREAD", "controls", "controls.py", "control", "controls.py is not installed beside health.py")]
+        return [row("UNREAD", "controls", "controls.py", "control", "controls.py is missing")]
     return controls.run(rule_functions(), HERE)
 
 
@@ -269,7 +265,7 @@ def repo_root():
 
 def cmd_check(args):
     root = repo_root()
-    asked = groups_of(args.group)
+    whole = asked = groups_of(args.group)
     skipped = groups_of(args.skip) or []
     asked = [name for name in (asked or ORDER) if name not in skipped] if skipped else asked
     if asked == []:
@@ -279,7 +275,7 @@ def cmd_check(args):
     if args.json:
         print(json.dumps({"green": green, "counts": counts, "rows": rows, "verdict": verdict}, indent=2))
     else:
-        print("\n".join(with_tests(text, root) if asked is None else text))
+        print("\n".join(with_tests(text, root) if whole is None else text))
     return 0 if green else 1
 
 
@@ -326,7 +322,7 @@ def plan_for(root, asked, with_judge):
     """(file module, acts, groups) for the groups asked, or exit when file.py or gh cannot be used."""
     filing = sibling_module("file") or sys.exit("REFUSED: file.py is not installed beside health.py")
     groups = asked or list(filing.DEFAULT)
-    rows = gather(root, groups)
+    rows = gather(root, None)
     judged, extra = False, []
     if with_judge and "cost" in groups:
         extra, judged = filing.saves(root, HERE, rows)
@@ -364,7 +360,7 @@ def main():
     item = sub.add_parser("check", help="run the fixed rules")
     item.add_argument("--json", action="store_true")
     item.add_argument("--group", "--family", dest="group", help="one of: " + ", ".join(NAMES))
-    item.add_argument("--skip", default="", help="NAME[,NAME]: groups to leave out, such as controls")
+    item.add_argument("--skip", default="", help="groups to leave out")
     item.set_defaults(func=cmd_check)
     for name in ("judge", "suggest"):
         item = sub.add_parser(name, help="the check report, then a judge section of suggestions")
@@ -380,8 +376,5 @@ def main():
 
 if __name__ == "__main__":
     _controls = sibling_module("controls")
-    if _controls and _controls.missing(RULES):  # a new rule must come with its negative control
-        print("REFUSED: rule %s has no negative control. Fix: add CONTROLS[\"%s\"] in controls.py" % (
-            ", ".join(_controls.missing(RULES)), _controls.missing(RULES)[0]))
-        sys.exit(2)
+    _controls and _controls.refuse(RULES)  # a new rule must come with its negative control (exit 2)
     sys.exit(main())
