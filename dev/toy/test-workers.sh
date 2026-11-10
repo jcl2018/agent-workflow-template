@@ -127,7 +127,7 @@ json.dump(now, open(os.path.join(d, "cur.json"), "w"))
 PY
 $M report > "$T/report2"
 cur=$(grep -A2 "^- cur " "$T/report2")
-check "a running goal shows its time left from past runs, and its flow" 'grep -Eq "^- cur  \[----------\] 0%  [0-9]+m left" <<<"$cur" && grep -q "\[idea\] > plan" <<<"$cur"'
+check "a running goal shows its time left from past runs, and its flow" 'grep -Eq "^- cur  \[----------\] 0%  [0-9]+m to [0-9]+m left" <<<"$cur" && grep -q "\[idea\] > plan" <<<"$cur"'
 rm "$C/loop/runs/past.json"
 check "with no past runs the time left reads no estimate yet" '$M report | grep "^- cur " | grep -q "no estimate yet"'
 rm "$C/loop/runs/cur.json"
