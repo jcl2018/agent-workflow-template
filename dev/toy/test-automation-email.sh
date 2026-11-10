@@ -709,7 +709,16 @@ PY
     && EVENT=schedule GITHUB_OUTPUT=o.txt GITHUB_STEP_SUMMARY=s.txt bash -e "$T/check.sh" >out.txt 2>&1)
   grep -q "^::warning::STALE_WORKFLOW" "$x/out.txt" && grep -q "^STALE_WORKFLOW" "$x/s.txt" && grep -qx "on=true" "$x/o.txt" \
     && ok "each health run warns about a stale workflow and still runs" || bad "run warns"
-  rm -rf "$x" "$T"
+  # Value: protects=setup adoption commits mail-test.yml beside health.yml; fails_when=seed.decide drops the mail-test row so the written file is left uncommitted; why_new=no toy test calls seed.decide with the health skill present; seam=none; no_claim=apply's file contents
+  y=$(mktemp -d); mkdir -p "$y/skills/workflow-health/scripts"; : > "$y/skills/workflow-health/scripts/health.py"
+  python3 -B -c "
+import sys; sys.path.insert(0, '$here/skills/workflow-setup/scripts'); import seed
+found = {'wiki': 'docs/wiki', 'pages': {}, 'areas': {}, 'readme': ''}
+acts = seed.decide('$y', {'checks': ['true'], 'health_cron': '7 * * * *'}, found)
+health = [a[1] for a in acts if a[3] == 'health']
+assert health == ['.github/workflows/health.yml', '.github/workflows/mail-test.yml'], health
+" && ok "setup plans mail-test.yml with health.yml when the health skill is in the repo" || bad "seed mail-test"
+  rm -rf "$x" "$T" "$y"
 fi
 
 echo "== $pass passed, $fail failed"
