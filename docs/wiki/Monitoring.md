@@ -11,7 +11,7 @@ Skill: `workflow-monitoring`. The operation session never does work: `/workflow-
 
 Commands, flows and how-tos: `skills/workflow-monitoring/references/commands.md`.
 
-A failed release is recorded as `release_error` and lists under Issues beside `wiki_error`, which leaves Issues once a later publish succeeds or the goal is merged. A pull request closed or merged on GitHub leaves the live board.
+A failed release is recorded as `release_error` and lists under Issues beside `wiki_error`, which leaves Issues once a later publish succeeds or the goal is merged. A pull request closed or merged on GitHub leaves the live board. Each check-in reply follows one layout (a headline, All sessions, Dependencies, Needs you and, last, Coming up), and `reply_hook.py`, a Stop hook that setup installs per repo, blocks an operation-session reply in any other layout and says what is missing; it reads only the transcript lines added since the last stop, never checks a worker (a session in a goal worktree, or one whose latest signal is a flow step), lets a reply through after three blocks in a row or on any error of its own, and `reply_hook: false` turns it off.
 
 ## Usage
 
@@ -19,6 +19,7 @@ A failed release is recorded as `release_error` and lists under Issues beside `w
 - `/workflow-monitoring go "goal" --done "line"` queues and starts a goal; `/workflow-monitoring watch` keeps goals moving; `/workflow-monitoring resume SLUG` restarts one.
 - `/workflow-monitoring report` and `/workflow-monitoring dashboard` show where every goal stands.
 - `/workflow-monitoring met SLUG N` marks a done line met; `/workflow-monitoring cleanup` deletes merged `loop/*` branches ("list them first" previews).
+- `/workflow-monitoring reply-check FILE` prints what an operation-session reply is missing; `/workflow-monitoring reply-status` says whether the reply hook (installed by `/workflow-setup reply-hook`) is installed and on in this repo.
 
 ## Requirements
 
@@ -26,7 +27,7 @@ A failed release is recorded as `release_error` and lists under Issues beside `w
 - MON-2: **Reviewed 2026-11-08** Live communication. Operation and workers talk through session messages: a worker reports each change of step or status as it happens, and its result when it ends (merged, failed or waiting, with the pull request); the operation session sends a worker its answer or a follow-up. Background processes are used only when the app can't start or reach a session, and the board says so. <!-- reviewed 3c99a1c2 -->
 - MON-3: **Reviewed 2026-11-08** Board view: the board shows everything in one fixed template: what needs me, each running goal's progress bar and current step, what's next, roadmap progress, done lines met. <!-- reviewed b45361d0 -->
 - MON-4: **Reviewed 2026-11-08** Live board. Each check-in prints the live board, always in the same format: Issues first (only what is open now, each with its fix in plain words); then Running goals, each with a progress bar, time left, its step flow with the current step marked, and its next step; then Queued goals; then the dependencies between running and queued goals as arrows; then one finish time. Merged work, history and totals are left out. A stuck worker stays at the top of Issues until I answer. <!-- reviewed e4985fe1 -->
-- MON-5: **Reviewed 2026-11-08** Cadence. The operation session updates the board and prints the live board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new. It prints the full board every time. <!-- reviewed b74f3855 -->
+- MON-5: **Reviewed 2026-11-09** Cadence and reply format. The operation session updates the board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new, and prints the full board every time. Every check-in reply has the same layout: one headline line; All sessions, one table of every session across my repos with what it is for, its status, progress, time left, tokens left and latest report; Dependencies, a drawn graph marking what is running, holding, queued or stuck; Needs you, each question numbered with its options and a recommended answer, or Nothing needs you; and last, Coming up, the next expected events and what I will need to do. A hook that setup installs blocks a reply that doesn't follow this layout, saying what is missing; it never checks worker sessions or other repos, and one setting turns it off. <!-- reviewed ba57bf9b -->
 
 ## Non-goals
 
@@ -108,13 +109,21 @@ Live board. Each check-in prints the live board, always in the same format: Issu
 
 #### MON-5
 
-Cadence. The operation session updates the board and prints the live board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new. It prints the full board every time.
+Cadence and reply format. The operation session updates the board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new, and prints the full board every time. Every check-in reply has the same layout: one headline line; All sessions, one table of every session across my repos with what it is for, its status, progress, time left, tokens left and latest report; Dependencies, a drawn graph marking what is running, holding, queued or stuck; Needs you, each question numbered with its options and a recommended answer, or Nothing needs you; and last, Coming up, the next expected events and what I will need to do. A hook that setup installs blocks a reply that doesn't follow this layout, saying what is missing; it never checks worker sessions or other repos, and one setting turns it off.
 
 - Given a board field the old board lacked or gh not answering, when boards are compared, then it counts as no change. — [no-change-quiet](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-07
 - Given a worker's report, when it arrives before the cadence, then operate wakes and every pass prints the full board. — [operate-wakes-on-report](../../.loop/regression.tsv), nightly, PASS 2026-11-09, seen failing 2026-11-08
 - Given an unchanged pass, when the board is printed, then the full board is printed again and there is no one-line mode. — [live-board-no-oneline](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 - Given no cadence setting, when check-ins are scheduled, then the cadence is 30 minutes. — [live-board-cadence](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given an operation-session check-in reply, when it stops without the headline, All sessions, Dependencies, Needs you and Coming up last, then the hook blocks it and says what is missing, and a reply in that layout passes. — [reply-hook-blocks](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a worker session or a session in another repo, when it stops with any reply, then the hook never checks it, and only the operation session is checked. — [reply-hook-scope](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given reply_hook set to false in the config, when the operation session stops without the board, then the hook lets it through. — [reply-hook-off](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a reply blocked twice in a row or a broken hook input, when the session stops again, then the hook lets it through and logs it instead of looping. — [reply-hook-guard](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a repo, when setup --reply-hook runs, then the Stop hook is merged into its machine-local Claude settings, which git ignores, and a second run changes nothing. — [reply-hook-install](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given the reply hook's toy suite, when it runs, then every check passes. — [reply-hook-all](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given the Monitoring PRD, when MON-5 is read, then it carries the check-in reply layout the hook enforces. — [reply-hook-mon5-wording](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 
 ### Defect tests
 
 - Given a goal worked in a session, when the board is printed, then it shows its session name and step and never shows it as a failed background worker. — [#98](https://github.com/jcl2018/agent-workflow-template/issues/98), [session-board-issue98](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
+- Given a check-in reply that lacks the one headline, the All sessions table, the Dependencies graph, numbered Needs you or Coming up last, when it is checked, then each missing piece is named, and a reply in the issue 123 layout passes. — [#123](https://github.com/jcl2018/agent-workflow-template/issues/123), [reply-hook-checkin-123](../../.loop/regression.tsv), both, not run, seen failing 2026-11-10

@@ -13,6 +13,7 @@ Skill: `workflow-setup`. Adopts a repo into this template's format: loop config,
 
 - `/workflow-setup setup` shows what it found and would add (`--dry-run`), then writes it on a branch; `--bare` writes only the config, queue and findings.
 - `/workflow-setup settings` prints every setting with its default and one-line explanation; `/workflow-setup fill-repo` adds any missing repo setting to `.loop/config.json`. Every setting is in `skills/workflow-setup/references/settings.md`; `cadence`, the minutes between live-board check-ins, defaults to 30.
+- `/workflow-setup reply-hook` installs the operation session's reply-format Stop hook into the repo's machine-local `.claude/settings.local.json`, which git is told to ignore (`--remove` takes it out; a second run changes nothing; a committed settings file, or a run from a goal worktree, is refused); `reply_hook: false` in `.loop/config.json` turns it off.
 
 ## Requirements
 
@@ -40,8 +41,8 @@ Skill: `workflow-setup`. Adopts a repo into this template's format: loop config,
 
 One command adopts a repo. One command sets up a new or existing repo in this template's format, everything at once: the loop config, the feature pages with criteria and tests, a milestone per feature plus Backlog, the nightly regression in GitHub Actions and the health rules. It first shows what it found, what it would add or convert and what doesn't fit, then applies it on a branch through the usual loop. In an existing repo it adapts what is there instead of overwriting.
 
-- Given SET-1, when the toy adopt-and-update test runs, then it holds. — [adopt-set-1](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given SET-1 with suggest then apply, when the toy adopt-and-update test runs, then it holds. — [adopt-set-2](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given SET-1, when the toy adopt-and-update test runs, then it holds. — [adopt-set-1](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-08
+- Given SET-1 with suggest then apply, when the toy adopt-and-update test runs, then it holds. — [adopt-set-2](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-08
 - Given a repo, when setup runs, then it writes the repo half and, outside the repo, the private half. — [setup-both-halves](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-09
 
 #### SET-2
@@ -60,21 +61,21 @@ Every setting in one place. Every setting lives in one of two places: repo setti
 
 Shipped as a versioned package of separate skills in the Agensi format, with a version number, working in Claude Code, Codex and other SKILL.md agents, every script self-contained and under 20 KB.
 
-- Given SET-3, when the toy adopt-and-update test runs, then it holds. — [adopt-set-3](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given SET-3, when the toy adopt-and-update test runs, then it holds. — [adopt-set-3](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-08
 - Given detail moved out of the workflow-delivery and workflow-docs SKILL.md files, when their references are read, then every moved sentence is there word for word and SKILL.md points to it. — [skill-kept](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
 
 #### SET-4
 
 Repos can update: a repo that installed it can check for a newer version, see what's new, and update to get new commands and guidance without losing its own config, criteria, docs or private settings.
 
-- Given SET-4, when the toy adopt-and-update test runs, then it holds. — [adopt-set-4](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given SET-4, when the toy adopt-and-update test runs, then it holds. — [adopt-set-4](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-08
 
 #### SET-5
 
 Carries the design logic: the package explains how the loop and its release step, operation and workers, criteria and tests, regression and health fit together.
 
-- Given SET-5, when the toy adopt-and-update test runs, then it holds. — [adopt-set-5](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given SET-5, when the toy adopt-and-update test runs, then it holds. — [adopt-set-5](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-08
 
 ### Defect tests
 
-- Given the package's skills, when each SKILL.md is counted, then every one is under 150 lines, so test-board passes. — [#116](https://github.com/jcl2018/agent-workflow-template/issues/116), [skill-size-116](../../.loop/regression.tsv), both, not run, seen failing 2026-11-09
+- Given the package's skills, when each SKILL.md is counted, then every one is under 150 lines, so test-board passes. — [#116](https://github.com/jcl2018/agent-workflow-template/issues/116), [skill-size-116](../../.loop/regression.tsv), both, FAIL 2026-11-10, seen failing 2026-11-09

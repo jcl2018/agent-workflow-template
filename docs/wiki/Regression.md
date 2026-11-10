@@ -63,7 +63,7 @@ Test format. Every test is listed in one fixed format: its category (criterion o
 - Given a test row with no description, when the check runs, then it is flagged. — [describe-needed](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given a row with a seen-failing date, when a description is added, then the date is kept. — [keeps-seen-red](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
 - Given this repo's test rows, when they are checked, then every row has a description. — [every-row-described](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
-- Given the test rows, when they are checked, then every row has a category, defect rows link their issue, and the page shows defect tests apart. — [defect-categories](../../.loop/regression.tsv), both, PASS 2026-11-09, seen failing 2026-11-08
+- Given the test rows, when they are checked, then every row has a category, defect rows link their issue, and the page shows defect tests apart. — [defect-categories](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-08
 
 #### REG-3
 
