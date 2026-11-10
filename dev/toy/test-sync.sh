@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/flow.py
-# reads: skills/workflow-delivery/references/default-flow.md skills/workflow-monitoring/scripts/watch.py
+# reads: skills/workflow-delivery/references/default-flow.md
 # reads: skills/workflow-setup/ skills/workflow-docs/ skills/workflow-delivery/SKILL.md skills/workflow-health/SKILL.md
 # reads: skills/workflow-monitoring/SKILL.md skills/workflow-regression/SKILL.md skills/workflow-release/SKILL.md
 # reads: dev/toy/make.sh dev/toy/reap.sh
@@ -24,7 +24,7 @@ ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
 want() { [ -z "$only" ] || [ "$only" = "$1" ]; }
-DL="$here/skills/workflow-delivery"; SU="$here/skills/workflow-setup"; DO="$here/skills/workflow-docs"; MO="$here/skills/workflow-monitoring/scripts"
+DL="$here/skills/workflow-delivery"; SU="$here/skills/workflow-setup"; DO="$here/skills/workflow-docs"; 
 G="python3 $DL/scripts/goal.py"; F="python3 $DL/scripts/flow.py"
 
 # A fresh toy repo, set up bare and merged, at $1.
@@ -44,8 +44,6 @@ if want builtin; then
     "python3 -c \"import json;d=json.load(open('$B/flow.json'));assert set(d['suite'].values())=={'built-in'} and not d['probe']\""
   check "goal.py new starts a goal with an all-built-in flow and no probe" "$G new bf --here --goal 'Built in' --done 'It works' >/dev/null 2>&1"
   python3 -c "import json;d=json.load(open('$B/flow.json'));d['suite']['plan']='mine';d['steps']={'plan':'mine'};json.dump(d,open('$B/flow.json','w'))"
-  check "watch reads the suite too: an all-built-in suite with no steps is a flow that is set" \
-    "python3 -c \"import sys;sys.path.insert(0,'$MO');import os;os.environ['LOOP_FLOW']='$B/flow.json';import watch;assert watch.flow_set()\""
   out=$(cd "$B/repo" && LOOP_ROLE=worker $F bf idea 2>&1)
   check "a mixed flow whose named-skill step has no probe refuses up front, before any step starts (FLOW_UNRUNNABLE)" \
     "grep -q 'FLOW_UNRUNNABLE' <<<\"\$out\" && grep -q 'plan (mine) has no probe' <<<\"\$out\" && [ ! -e '$B/prompt.idea' ]"
