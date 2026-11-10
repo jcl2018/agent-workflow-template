@@ -60,7 +60,7 @@ no-done-line-refused	PASS	2026-11-09
 no-flow-refused	PASS	2026-11-09
 no-line-in-governor	PASS	2026-11-09
 no-pid-left-alone	PASS	2026-11-09
-no-prompts	PASS	2026-11-09
+no-prompts	PASS	2026-11-10
 no-row-fail	PASS	2026-11-09
 no-token-dry-run	PASS	2026-11-09
 no-token-would	PASS	2026-11-09
@@ -104,7 +104,7 @@ reviewed-lock	PASS	2026-11-09
 run-ledger	PASS	2026-11-09
 same-lines	PASS	2026-11-09
 schedule-setting	PASS	2026-11-09
-scripts-no-hang	PASS	2026-11-09
+scripts-no-hang	PASS	2026-11-10
 session-answer	PASS	2026-11-09
 session-assign	PASS	2026-11-09
 session-board-issue98	PASS	2026-11-09
