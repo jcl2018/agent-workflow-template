@@ -16,7 +16,9 @@ QUOTED = re.compile(r"""["']([\w./-]*\w)["']""")
 NOREAD = "# lanes: no read"
 ASSIGN = re.compile(r"""(?:^|[;\s])(\w+)=["']?(?:\$here/)?(skills/[\w./-]+?)/?["']?(?=\s*(?:;|$))""")
 SYSPATH_ARG = "sys.path.insert(0, sys.argv["  # python3 - "$folder": the folder only goes on sys.path
-PASSIVE = re.compile(r"\bcd\s|\bpushd\s|\bmkdir\s|sys\.path\.(?:insert|append)|PYTHONPATH=")  # name a folder, read nothing
+ENTER = re.compile(r"\s*(?:\w+=)?\$?\(?\s*(?:cd|pushd|mkdir)\s")  # a command that names a folder and reads nothing
+NAMES_ONLY = re.compile(r"PYTHONPATH=\S+|sys\.path\.(?:insert|append)\([^)]*\)")  # put a folder on a search path
+LISTING = re.compile(r"\b(?:ls|find|grep\s+-\w*[rR]|rg|tar|zip|cp\s+-\w*[rRa]|rsync|du|wc)\b|\s\.(?:\s|/|$)")
 GLOB = re.compile(r"(?:\$here/)?((?:skills|dev|docs)/[\w./-]*?)/?\*")
 FILEISH = re.compile(r"\.(?:py|md|json|sh|tsv|txt|yml|yaml|toml)$")
 
@@ -98,29 +100,45 @@ def scan(root, rel, cache):
         folders = {p for p in found if p.endswith("/")}
         globs = {m.rstrip("/") + "/" for m in GLOB.findall(lanes.HERE_FORMS.sub("$here/", text))
                  if os.path.isdir(os.path.join(root, m))}  # a glob needs its folder declared, not one file in it
-        bound = {}  # VAR=<skill folder>: a later bare $VAR (not $VAR/name) reads the folder as a whole
-        for line in text.split("\n"):  # a folder used bare (ls, grep -r, find, cp -R, "$d") needs it declared
-            line = lanes.HERE_FORMS.sub("$here/", line)
-            here_folders = {p for p in lanes.references(root, line, base, wide=False)[0]
-                            if p.endswith("/") and p.startswith("skills/")}
-            passive = PASSIVE.search(line) or ("python3" in line and SYSPATH_ARG in text)
-            assigned = ASSIGN.findall(line)  # VAR="$here/skills/x/scripts": the folder itself, not $(...) output
-            for var, folder in assigned:
-                bound[var] = {folder.rstrip("/") + "/"}
-            if not assigned and not passive:
-                globs |= here_folders
-            for var, held in bound.items():
-                if re.search(r"\$\{?%s\}?(?![\w/}])" % var, line) and not passive:
-                    globs |= held
+        bound = {}  # VAR=<skill folder>, from this file and the shell files it sources (merged in narrow())
+        for line in text.split("\n"):
+            for var, folder in ASSIGN.findall(lanes.HERE_FORMS.sub("$here/", line)):
+                bound[var] = folder.rstrip("/") + "/"
+        cache["bind", rel] = bound
+        globs |= wholes(root, text, base, bound)
         cache["globs", rel] = {g for g in globs if g.startswith("skills/")}
     cache[key] = (files, folders)
     return cache[key]
 
 
+def wholes(root, text, base, bound):
+    """Skill folders a shell text reads as a whole: named bare by a command (ls, grep -r, cp -R, "$d", "$d/sub")
+    rather than as the prefix of a named file. Per command: cd, pushd and mkdir read nothing, nor does putting a folder
+    on PYTHONPATH or sys.path; a cd into a skill folder followed by a listing or recursive read reads it whole."""
+    out = set()
+    for line in lanes.HERE_FORMS.sub("$here/", text).split("\n"):
+        entered = set()
+        for cmd in re.split(r"&&|\|\||;|\|", line):
+            cmd = NAMES_ONLY.sub(" ", cmd)
+            here = {p for p in lanes.references(root, cmd, base, wide=False)[0] if p.endswith("/") and p.startswith("skills/")}
+            for var, folder in bound.items():
+                for rest in re.findall(r"\$\{?%s\}?(?![\w}])(/[\w./-]*)?" % var, cmd):
+                    path = os.path.normpath(folder + rest.lstrip("/")) + "/" if rest.strip("/") else folder
+                    if os.path.isdir(os.path.join(root, path)):
+                        here.add(path)
+            if ENTER.match(cmd):
+                entered |= here
+            elif ASSIGN.search(cmd) or SYSPATH_ARG in line or (SYSPATH_ARG in text and re.match(r"\s*python3\s+-\s", cmd)):
+                continue
+            else:
+                out |= here | (entered if LISTING.search(cmd) else set())
+    return out
+
+
 def narrow(root, seeds, cache):
     """(deps, problems, parent) reached from the seeds. Fail-wide: a named skill folder needs a declared path in it,
     `skills/` needs `skills/` declared, and its files whose names appear in reached shell text are followed too."""
-    deps, problems, parent, declared, marks, shell = set(), [], {}, [], set(), []
+    deps, problems, parent, declared, marks, shell, sh = set(), [], {}, [], set(), [], []
     todo = [(s, None) for s in seeds]
     while True:
         while todo:
@@ -140,6 +158,7 @@ def narrow(root, seeds, cache):
                     todo.append((path, rel))
             files, folders = scan(root, rel, cache)
             todo += [(f, rel) for f in files]
+            marks |= {(g, rel) for g in cache.get(("globs", rel), ())}
             for folder in folders:
                 if folder.startswith("skills/") and not rel.endswith(".py"):
                     marks.add((folder, rel))
@@ -148,6 +167,18 @@ def narrow(root, seeds, cache):
                     todo += [] if rel.startswith(folder) else [(f, rel) for f in lanes.walk(root, folder)]
             if rel.endswith(".sh") or "." not in os.path.basename(rel):
                 shell.append(lanes.read(root, rel, cache) or "")
+                sh.append(rel)
+        for rel in sh:  # a VAR=<folder> set in a file this one sources counts here too
+            text = "\n".join(x for x in (lanes.read(root, rel, cache) or "").split("\n")
+                             if not x.lstrip().startswith("#") and NOREAD not in x)
+            sourced = {os.path.basename(s) for s in re.findall(r"(?m)^\s*(?:\.|source)\s+\"?([^\s\";]+)", text)}
+            bound = {k: v for o in sh if o != rel and os.path.basename(o) in sourced
+                     for k, v in cache.get(("bind", o), {}).items()}
+            if not bound:
+                continue
+            extra = wholes(root, text, os.path.dirname(rel), bound) - cache.get(("globs", rel), set())
+            cache["globs", rel] = cache.get(("globs", rel), set()) | extra
+            marks |= {(f, rel) for f in extra}
         added = False
         for folder, via in sorted(marks):
             for path in lanes.walk(root, folder):

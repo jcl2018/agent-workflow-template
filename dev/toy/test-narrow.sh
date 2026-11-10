@@ -95,8 +95,13 @@ out=$($L check --root "$n" dev/tz.sh dev/tw.sh dev/tr.sh)
 check "a glob or escaping declared path, an undeclared glob of every skill and a recursive grep are refused" 'grep -q "^LANES-DECL-PATTERN dev/tz.sh:2" <<<"$out" && grep -q "^LANES-DECL-ESCAPE dev/tz.sh:2: declared path leaves the repo: /etc/hosts" <<<"$out" && grep -q "^LANES-DECL-TREE dev/tw.sh" <<<"$out" && grep -q "^LANES-DECL-GLOB dev/tr.sh:3: reads skills/a/scripts/ as a whole" <<<"$out"'
 printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\nls skills/b/scripts | wc -l\n' > "$n/dev/t1.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\nd=$here/skills/b/scripts\ngrep -r foo "$d"\n' > "$n/dev/t2.sh"  # lanes: no read (toy repo file)
-out=$($L check --root "$n" dev/t1.sh dev/t2.sh)
-check "a skill folder read as a whole, literally or through a variable, needs the folder declared" 'grep -q "^LANES-DECL-GLOB dev/t1.sh" <<<"$out" && grep -q "^LANES-DECL-GLOB dev/t2.sh" <<<"$out"'
+printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\nmkdir -p /tmp/o && cp -R skills/b/scripts /tmp/o/\n' > "$n/dev/t3.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\nPYTHONPATH=skills/b/scripts python3 -c "import os; os.listdir(\\"skills/b/scripts\\")"\n' > "$n/dev/t4.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\n(cd skills/b/scripts && grep -r Y .)\n' > "$n/dev/t5.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\nd=skills/b; grep -r Y $d/scripts\n' > "$n/dev/t6.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\n. dev/tm-lib.sh; ls $m | wc -l\n' > "$n/dev/t7.sh"  # lanes: no read (toy repo file)
+out=$($L check --root "$n" dev/t1.sh dev/t2.sh dev/t3.sh dev/t4.sh dev/t5.sh dev/t6.sh dev/t7.sh)
+check "a skill folder read as a whole, literally or through a variable, needs the folder declared" '[ "$(grep -c "^LANES-DECL-GLOB dev/t[1-7].sh" <<<"$out")" = 7 ]'
 printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nhere=$(pwd); (cd "$here" && cat tools/x.txt)\n' > "$n/dev/tq.sh"  # lanes: no read (toy repo file)
 check "a script that runs tools on the repo's own files reruns on every change" '$L deps --root "$n" "bash dev/tq.sh" | grep -q "^ALWAYS bash dev/tq.sh: runs tools on this repo.s own files"'
 printf 'import os, helper\n' > "$n/skills/b/scripts/b2.py"; printf '#!/bin/bash\n# reads: skills/b/scripts/b2.py\npython3 skills/b/scripts/b2.py\n' > "$n/dev/tl.sh"

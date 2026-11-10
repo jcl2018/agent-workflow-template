@@ -167,8 +167,14 @@ says what it runs in its top comment block, and `lanes.py` follows from there wi
   ending in `# lanes: no read` read nothing); a Python file adds its same-folder imports, every file whose base name it
   quotes (`"docs.py"`), and quoted folders of its own skill. A skill folder a shell file names (`M=.../scripts`) needs a
   declared file in it, and its files whose names appear in the script (`$M/board.py`, `import board`) are followed. A
-  glob over a skill folder (`"$here"/skills/x/scripts/*.py`) needs that folder declared. A folder outside `skills/`
-  stays a dependency as a whole.
+  skill folder read as a whole needs that folder declared: a glob (`"$here"/skills/x/scripts/*.py`), a recursive or
+  listing command (`grep -r`, `find`, `ls`, `cp -R`), the folder or its variable used bare (`"$d"`, `$d/sub`, also when
+  `d` is set in a sourced file), or a `cd` into it followed by such a command. Naming a folder with `cd`, `mkdir`,
+  `PYTHONPATH=` or `sys.path` reads nothing. A folder outside `skills/` stays a dependency as a whole. Not seen: a
+  skill path behind another variable (`"$OLDPWD/skills/x"`); declare such reads by hand.
+- A script that runs tools on this repo's own files (`cd "$here"`, `git -C "$here"`, `--root "$here"`) runs on every
+  change: those tools may read any file. A table edit reruns the edited rows plus the rows that read this repo's
+  `.loop/regression.tsv`. A deleted file anywhere outside the release and loop files means a full run.
 - A row whose header cannot be worked out runs on every change (`ALWAYS <id>: <code> ...`). A script with no header
   keeps the wide mapping. `LANES_WIDE=1` forces the wide mapping for every row: the first step when a narrowed lane
   seems to miss a row. The first run after `lanes.py` or `narrow.py` changes is full: the record carries their hash.
@@ -190,7 +196,7 @@ outside it. All three take `--root DIR` (default: the git top level), exit 2 on 
 | `LANES-DECL-ESCAPE` | A declared path leaves the repo | Repo-relative paths only |
 | `LANES-DECL-PLACE` | `# reads:` below the top comment block | Move it up |
 | `LANES-DECL-FOLDER` | Names a skill folder, declares no file in it | Declare the files it runs from there |
-| `LANES-DECL-GLOB` | Globs a skill folder without declaring it | Declare the folder |
+| `LANES-DECL-GLOB` | Reads a skill folder as a whole without declaring it | Declare the folder |
 | `LANES-DECL-FOLDER-UNBACKED` | Declares a skill folder it never globs or reads whole | Declare its files instead |
 | `LANES-DECL-TREE` | Reads all of `skills/` without declaring `skills/` | Declare `skills/` (stays wide) |
 
