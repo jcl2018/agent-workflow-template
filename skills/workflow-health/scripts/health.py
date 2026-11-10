@@ -28,6 +28,7 @@ those groups as issues on the Backlog milestone (file.py). run is an alias of pr
 import argparse
 import datetime
 import glob
+import importlib
 import json
 import os
 import re
@@ -192,7 +193,7 @@ def hygiene_rows(root):
 def sibling_module(name):
     sys.path.insert(0, HERE)
     try:
-        return __import__(name)
+        return importlib.import_module(name)
     except ImportError:
         return None
     finally:

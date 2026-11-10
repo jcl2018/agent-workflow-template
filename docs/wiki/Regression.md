@@ -14,7 +14,7 @@ Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.l
 - `/workflow-regression add ID --level land --command "cmd" --goal DEL-1` adds a test row; `--category defect --link URL` makes it a defect test.
 - `/workflow-regression red ID --break "cmd"` records that the test fails on broken code.
 - `/workflow-regression run land` runs the rows and opens, updates or closes one issue per failing row.
-- `/workflow-regression run land --reuse` reuses the branch's last recorded run and reruns only the rows a change can affect; it opens no issue. Delivery's qa step runs it once per goal, and ship and the pull request reuse that run.
+- `/workflow-regression run land --reuse` reuses the branch's last recorded run and reruns only the rows a change can affect; it opens no issue. Delivery's qa step runs it once per goal, and ship and the pull request reuse that run. Each run records every row's time and the total, which health's test-time rule reads.
 - `/workflow-regression sync` lists criteria with no row and rows never seen failing; `/workflow-regression workflow` writes the GitHub Actions workflow.
 
 ## Requirements
