@@ -29,6 +29,7 @@ def cmd_judge(h, args):
         if not why and not any(found.values()):
             why = "the answer had no tagged line"
         steps = judge.suggestions(root, rows)[1]
+        print("judge: " + judge.VIA[0])
         print("\n".join(judge.render(found, steps)) if not why else "JUDGE UNAVAILABLE: " + why)
     except Exception as error:  # the judge is advice: nothing it does may change the verdict
         print("JUDGE UNAVAILABLE: %s" % str(error)[:120])
@@ -44,7 +45,8 @@ def cmd_review(h, args):
         refuse("feature", "unknown feature %s. Features: %s." % (args.feature, ", ".join(sorted(names))))
     found, dropped, why = review.review(root, args.feature)
     if args.json:
-        print(json.dumps({"version": 1, "findings": found, "dropped": dropped, "judge": why or "answered"}, indent=2))
+        via = getattr(h.sibling_module("judge"), "VIA", [""])[0]
+        print(json.dumps({"version": 1, "findings": found, "dropped": dropped, "judge": why or "answered", "via": via}, indent=2))
     else:
         print("\n".join(review.render(found, dropped, why)))
     return 0
@@ -104,14 +106,27 @@ def cmd_triage(h, args):
     return triage.listing(root, args.feature)
 
 
+def answer_flag(item):
+    """--judge-answer FILE: the reply an in-session subagent gave to the judge prompt (session first; see judge.py)."""
+    item.add_argument("--judge-answer", dest="judge_answer", type=saved_answer, help="the session judge's saved reply")
+
+
+def saved_answer(path):
+    import os
+    os.environ["LOOP_JUDGE_ANSWER"] = os.path.abspath(path)
+    return path
+
+
 def add(sub, h):
     """Add these commands to health.py's parser."""
     item = sub.add_parser("review", help="the per-feature repo review; writes nothing")
     item.add_argument("--feature")
     item.add_argument("--json", action="store_true")
+    answer_flag(item)
     item.set_defaults(func=lambda a: cmd_review(h, a))
     for name in ("judge", "suggest"):
         item = sub.add_parser(name, help="the check report, then a judge section of suggestions")
+        answer_flag(item)
         item.set_defaults(func=lambda a: cmd_judge(h, a))
     for name, func in (("preview", cmd_preview), ("run", cmd_preview), ("file", cmd_file)):
         item = sub.add_parser(name, help="file findings as issues" if name == "file" else "list what file would do")
@@ -119,6 +134,7 @@ def add(sub, h):
         item.add_argument("--feature", help="only findings on this feature's milestone")
         item.add_argument("--review", help="a saved health.py review --json to file too")
         item.add_argument("--live", action="store_true", help="(ignored)")
+        answer_flag(item)
         item.set_defaults(func=lambda a, f=func: f(h, a))
     item = sub.add_parser("triage", help="open findings per feature; --close a batch with the owner's words")
     item.add_argument("--feature")

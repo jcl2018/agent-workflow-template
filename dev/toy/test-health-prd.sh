@@ -4,8 +4,9 @@
 # Proves the owner-approved Health PRD on throwaway repos with a stand-in for GitHub and stand-in judges: the twelve groups
 # and their angles (HLT-2), feature milestones, links and migration (HLT-4), the review and its evidence (HLT-5, HLT-9),
 # triage (HLT-8), controls (HLT-6), same answer and no writes (HLT-1), and issues 124, 158
-# and 159. No model is called. usage: test-health-prd.sh [DIR] [h1|h2|h4|h5|h6|h8|i124|i158|i159]   (HLT-7: test-health-time.sh)   (no part: all)
+# and 159. No model is called. usage: test-health-prd.sh [DIR] [h1|h2|h4|h5|hj|h6|h8|i124|i158|i159]   (HLT-7: test-health-time.sh)   (no part: all)
 set -u
+unset CLAUDECODE LOOP_JUDGE_ANSWER  # the judge is the session only where a test asks for it
 unset GH_TOKEN GITHUB_TOKEN LOOP_HEALTH_GH_FIXTURE LOOP_HEALTH_T0 CI GITHUB_ACTIONS
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
@@ -133,6 +134,25 @@ PY
 $H file --group size >/dev/null 2>&1
 check "when the evidence changes it reopens, and the owner's health:closed label comes off" 'python3 -c "
 import json; i=json.load(open(\"$FAKE_GH_DIR/issues.json\"))[0]; assert i[\"state\"]==\"OPEN\" and {\"name\":\"health:closed\"} not in i[\"labels\"], i[\"labels\"]"'
+fi
+
+if want hj; then
+echo "== judge order (owner's rule): the session first, claude -p only with no session"
+# Value: protects=the owner's judge rule; fails_when=a session run calls claude -p, the session's reply is ignored, or a
+#   run with no session (GitHub Actions) has no judge; why_new=the judge only ran judge_command; seam=stand-in judge;
+#   no_claim=a real subagent's answer
+mkrepo
+printf '#!/bin/bash\ntouch "%s/ran"\ncat >/dev/null\necho "FINDING|Calc|conflict|a reader.s angle|from claude -p|CAL-1|merge"\n' "$d" > "$d/cp.sh"; chmod +x "$d/cp.sh"
+python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command']=['$d/cp.sh'];json.dump(c,open('.loop/config.json','w'))"
+git commit -qam judge; rm -f "$d/ran"
+out=$(CLAUDECODE=1 $H review 2>&1); p=$(grep -o "prompt in [^ ]* to an in-session" <<<"$out" | awk '{print $3}')
+check "in a session the judge is the session: the report says so, claude -p never runs, the prompt is handed over" 'grep -qx "judge: session" <<<"$out" && [ ! -e "$d/ran" ] && [ -n "$p" ] && grep -q "<<<DATA" "$p"'
+printf 'FINDING|Calc|gap|an auditor.s angle|from the session|CAL-1|tie it\n' > "$d/reply.txt"
+out=$(CLAUDECODE=1 $H review --judge-answer "$d/reply.txt" 2>&1)
+check "the session's saved reply is used, and claude -p still never runs" 'grep -qx "judge: session" <<<"$out" && grep -q "^FINDING gap (an auditor.s angle): from the session" <<<"$out" && [ ! -e "$d/ran" ]'
+out=$($H review 2>&1)
+check "with no session the fallback is claude -p, logged as such" 'grep -qx "judge: claude -p (no session)" <<<"$out" && grep -q "from claude -p" <<<"$out" && [ -e "$d/ran" ]'
+rm -f "$p"
 fi
 
 if want h6; then

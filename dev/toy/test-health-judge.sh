@@ -2,6 +2,7 @@
 # reads: skills/workflow-health/scripts/ skills/workflow-setup/scripts/setup.py
 # Test the Cost rule and the judge of workflow-health with a stand-in judge. usage: test-health-judge.sh [DIR]
 set -u
+unset CLAUDECODE LOOP_JUDGE_ANSWER  # the judge is the session only where a test asks for it
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"

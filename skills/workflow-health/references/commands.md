@@ -73,6 +73,11 @@ module's `FUNCTIONS`, and add a fixture to its `CONTROLS` that makes it fire. He
   requirement, a Usage command the skill doesn't name) and the judge. The judge's `FINDING|feature|kind|angle|evidence|fix`
   lines are kept only with verified citations: a page's requirement id, a file or file:line, a row id, or an issue. The
   rest are dropped and counted. `--json` prints `{"version": 1, "findings": [...]}`; `preview`/`file --review FILE` read it.
+- The judge is the session first, `claude -p` later (the owner's rule). Run by a session (`CLAUDECODE` set), `review`,
+  `judge` and `preview`/`file` never call a model: they write the prompt to a temporary file and say so; an in-session
+  subagent answers it, and the rerun takes its saved reply with `--judge-answer FILE`. With no session (the scheduled
+  GitHub Actions run) they run `judge_command` (`claude -p`). Each report logs `judge: session` or
+  `judge: claude -p (no session)`.
 - `file` puts each finding on its feature's milestone: the page whose `.loop/docs.tsv` path is the longest prefix of the
   finding's path, the page defining its requirement id, the page of its row's requirement, an issue's own milestone, or a
   review finding's feature. Backlog when none fits.
@@ -156,7 +161,7 @@ Proof: toy tests with stand-in judges and a stand-in for GitHub.
 flowchart TD
   a["Print the check report and verdict"]
   b["Gather criteria, test rows, skill files, recent goal costs"]
-  c["Ask judge_command for tagged lines"]
+  c["Ask the judge: the session first, claude -p with no session"]
   d["Print the judge section"]
   e{{"Owner applies suggested wording"}}
   a --> b
@@ -167,7 +172,7 @@ flowchart TD
   class e owner
 ```
 
-Status: built and proven: Print the check report and verdict; Gather criteria, test rows, skill files, recent goal costs; Ask judge_command for tagged lines; Print the judge section; Owner applies suggested wording. Built only: none. Planned: none.
+Status: built and proven: Print the check report and verdict; Gather criteria, test rows, skill files, recent goal costs; Ask the judge: the session first, claude -p with no session; Print the judge section; Owner applies suggested wording. Built only: none. Planned: none.
 Stops for the owner: Owner applies suggested wording.
 Proof: toy tests with a stand-in judge on a throwaway repo; no model is called in any test.
 

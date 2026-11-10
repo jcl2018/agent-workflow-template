@@ -2,6 +2,7 @@
 # reads: skills/
 # Test the Automation routines with a stub gh: the digest, defect labels, the off switch, the judge gate. usage: test-automation.sh
 set -u
+unset CLAUDECODE LOOP_JUDGE_ANSWER  # the judge is the session only where a test asks for it
 unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"

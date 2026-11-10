@@ -52,13 +52,14 @@ python3 scripts/health.py review --feature Health
 python3 scripts/health.py review --json > review.json
 ```
 
-Per feature (each `.loop/docs.tsv` page but Home), it reports conflicts, gaps, drift, weak tests and savings, each with
-its feature, angle and evidence (a requirement id, a file or file:line, a row id or an issue). A deterministic layer always
-runs; the judge (`judge_command` in `.loop/config.json`) adds the judgment kinds, and each citation it gives is checked:
-a finding with no verified evidence is dropped and counted. It ends with ranked next steps per feature, writes nothing
-and never changes the verdict. With no judge, or one that fails, it prints `JUDGE UNAVAILABLE: <the command's last
-output and stderr lines>`. Wording it suggests is applied only by the owner. `judge` (alias `suggest`) is the older check
-report plus suggestions.
+Per feature (each `.loop/docs.tsv` page but Home), it reports conflicts, gaps, drift, weak tests and savings, each
+with its feature, angle and evidence (a requirement id, a file or file:line, a row id or an issue). A deterministic
+layer always runs; the judge adds the judgment kinds, and each citation it gives is checked: a finding with no
+verified evidence is dropped and counted. It ends with ranked next steps per feature, writes nothing and never changes
+the verdict. The judge is the session first: run by a session, it hands the prompt to an in-session subagent (rerun
+with `--judge-answer FILE`); only with no session, as in GitHub Actions, does it run `judge_command` (`claude -p`). It
+logs `judge: session` or `judge: claude -p (no session)`. With no answer it prints `JUDGE UNAVAILABLE`. Wording it
+suggests is applied only by the owner. `judge` (alias `suggest`) is the older check report plus suggestions.
 
 ## `preview` and `file [--group NAME[,NAME]] [--feature NAME] [--review FILE]`
 

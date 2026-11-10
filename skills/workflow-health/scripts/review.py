@@ -15,7 +15,6 @@ With no judge, or one that fails, it says JUDGE UNAVAILABLE with the reason and 
 import json
 import os
 import re
-import subprocess
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -62,21 +61,9 @@ def deterministic(root, name, text, paths):
 
 
 def judge_answer(root, prompt):
-    """(text, why)."""
-    try:
-        command = json.load(open(os.path.join(root, ".loop", "config.json"))).get("judge_command")
-    except (OSError, ValueError, AttributeError):
-        command = None
-    if not isinstance(command, list) or not command:
-        return "", "no judge_command in .loop/config.json"
-    try:
-        done = subprocess.run([str(p) for p in command], input=prompt, capture_output=True, text=True, timeout=300, cwd=root)
-    except (OSError, subprocess.SubprocessError) as error:
-        return "", "the judge did not run: %s" % str(error)[:100]
-    if done.returncode:
-        import judge
-        return "", judge.cause(done)
-    return done.stdout, ""
+    """(text, why): judge.ask, session first."""
+    import judge
+    return judge.ask(prompt, root, timeout=300)
 
 
 def verified(root, cite, known, rows, issues):
@@ -142,6 +129,9 @@ def as_rows(findings):
 
 def render(findings, dropped, why):
     out = ["REVIEW (per feature; never part of the verdict; writes nothing)"]
+    import judge
+    if judge.VIA[0]:
+        out.append("judge: " + judge.VIA[0])
     if why:
         out.append("JUDGE UNAVAILABLE: " + why)
     for name in sorted({f["feature"] for f in findings}):

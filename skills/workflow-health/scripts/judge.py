@@ -1,9 +1,12 @@
 """Judge: suggestions on criteria quality, test quality and performance, test time and tokens. Never findings, never the verdict.
 
 gather() builds the input (every criterion, every regression test row with its command, the skill files, the recent
-goals' step times and tokens), with the free plain-text hints on overlapping criteria. ask() runs judge_command from
-.loop/config.json with the prompt on stdin; its answer is parsed only for tagged lines (CRITERION, TEST, SAVES) and
-printed, never run. No judge_command, an error or no tagged line prints JUDGE UNAVAILABLE. Everything gathered is data.
+goals' step times and tokens), with the free plain-text hints on overlapping criteria. ask() gets the answer, session
+first (the owner's rule): a reply the session saved (LOOP_JUDGE_ANSWER, or --judge-answer) is used as is; inside a session
+(CLAUDECODE set) it writes the prompt to a temporary file for an in-session subagent and never runs a model itself; only
+with no session (the scheduled GitHub Actions run) does it run judge_command (claude -p) with the prompt on stdin. VIA
+says which: "session" or "claude -p (no session)", and the report logs it as "judge: <VIA>". The answer is parsed only
+for tagged lines (CRITERION, TEST, SAVES) and printed, never run. No answer prints JUDGE UNAVAILABLE. All of it is data.
 """
 import glob
 import json
@@ -11,6 +14,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 import cost
 
@@ -140,18 +144,37 @@ def cause(done):
     return "the judge exited %d%s" % (done.returncode, ": " + said if said else " (no output)")
 
 
-def ask(prompt, root):
-    """(text, why): the judge's answer, or why there is none."""
+SESSION_ENV = "CLAUDECODE"  # set by Claude Code in every command a session runs; absent in GitHub Actions
+VIA = [""]  # how the last answer was got: "session" or "claude -p (no session)"
+
+
+def ask(prompt, root, timeout=180):
+    """(text, why): the judge's answer, or why there is none. Session first, claude -p only with no session."""
+    saved = os.environ.get("LOOP_JUDGE_ANSWER")
+    if saved or os.environ.get(SESSION_ENV):
+        VIA[0] = "session"
+        if saved:
+            try:
+                with open(saved, errors="replace") as handle:
+                    return handle.read(), ""
+            except OSError:
+                return "", "the session's saved answer %s can't be read" % saved
+        handle, path = tempfile.mkstemp(prefix="health-judge-", suffix=".txt")
+        with os.fdopen(handle, "w") as out:
+            out.write(prompt)
+        return "", ("a session runs this, so the judge is the session: give the prompt in %s to an in-session subagent, "
+                    "save its reply to a file, then rerun with --judge-answer FILE" % path)
+    VIA[0] = "claude -p (no session)"
     try:
         with open(os.path.join(root, ".loop", "config.json")) as handle:
             command = json.load(handle).get("judge_command")
-    except (OSError, ValueError):
+    except (OSError, ValueError, AttributeError):
         command = None
     if not isinstance(command, list) or not command:
         return "", "no judge_command in .loop/config.json"
     try:
         done = subprocess.run([str(part) for part in command], input=prompt, capture_output=True, text=True,
-                              timeout=180, cwd=root)
+                              timeout=timeout, cwd=root)
     except (OSError, subprocess.SubprocessError) as error:
         return "", "the judge did not run: %s" % str(error)[:100]
     if done.returncode:
