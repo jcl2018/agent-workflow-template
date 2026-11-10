@@ -24,3 +24,4 @@ Open (from board-held's ship review, 2026-11-10; non-blocking, for the health-re
 - report-attempt-identity: sessions.py report doesn't check which session sent it, so a stale or HANDED session's report can fail a goal and free its current session (deferred E7).
 - assign-freed-reuse: assign can hand a goal back to a session `free` marked freed_from that goal, the reuse bind refuses without --force.
 - watch-go-unreadable-pool: watch.py go treats an unreadable pool as empty when choosing a slug, so it can queue a goal under a slug a session already holds but hasn't frozen.
+- delivery-prd: Failed 3 tries. Last: qa failed: regression lane: LANE_TIMEOUT: past its limit of 4500s (flow file "limit", else step_limit); the lane committed and pushed nothing.
