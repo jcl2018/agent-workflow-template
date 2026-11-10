@@ -90,6 +90,8 @@
     "send",
     "assign",
     "bind",
+    "reserve",
+    "touches",
     "list",
     "suggest",
     "judge",
