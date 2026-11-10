@@ -1,8 +1,11 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/flow.py
 # reads: skills/workflow-delivery/references/default-flow.md
-# reads: skills/workflow-setup/ skills/workflow-docs/ skills/workflow-delivery/SKILL.md skills/workflow-health/SKILL.md
-# reads: skills/workflow-monitoring/SKILL.md skills/workflow-regression/SKILL.md skills/workflow-release/SKILL.md
+# reads: skills/workflow-setup/scripts/setup.py skills/workflow-setup/scripts/settings.py skills/workflow-setup/scripts/agents.py
+# reads: skills/workflow-setup/references/settings.md skills/workflow-docs/scripts/entry.py skills/workflow-docs/scripts/docs.py
+# reads: skills/workflow-docs/scripts/audit.py skills/workflow-docs/references/start.md skills/workflow-docs/SKILL.md
+# reads: skills/workflow-delivery/SKILL.md skills/workflow-health/SKILL.md skills/workflow-monitoring/SKILL.md
+# reads: skills/workflow-regression/SKILL.md skills/workflow-release/SKILL.md skills/workflow-setup/SKILL.md
 # reads: dev/toy/make.sh dev/toy/reap.sh
 # setup-sync: the built-in flow (issue 47), the generated entry point (SET-5) and the agent files (SET-10); update both
 # ways and the board's lag line are in test-sync-update.sh. No model is called.
@@ -108,7 +111,9 @@ EOF
   python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['template_version']='0.0.1';json.dump(d,open(p,'w'),indent=2)"
   check "a stamped repo with no entry point fails the check (ENTRY_MISSING)" "$E check | grep -q '^MISSING .loop/START.md'"
   $E write >/dev/null
-  mkdir -p "$T/inst"; cp -R "$DO" "$SU" "$T/inst/"; find "$T/inst" -name __pycache__ -prune -exec rm -rf {} +
+  mkdir -p "$T/inst/workflow-docs/scripts" "$T/inst/workflow-docs/references" "$T/inst/workflow-setup/references"
+  cp "$DO/scripts/entry.py" "$T/inst/workflow-docs/scripts/"; cp "$DO/references/start.md" "$T/inst/workflow-docs/references/"
+  cp "$DO/SKILL.md" "$T/inst/workflow-docs/"; cp "$SU/references/settings.md" "$T/inst/workflow-setup/references/"
   echo '{"version": "9.9.9", "files": {}}' > "$T/inst/workflow-package.json"
   sed -i.bak 's/One session governs and the others build:/One session governs; the others build:/' "$T/inst/workflow-docs/references/start.md"
   out=$(python3 "$T/inst/workflow-docs/scripts/entry.py" check); code=$?

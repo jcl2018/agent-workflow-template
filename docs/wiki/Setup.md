@@ -98,7 +98,7 @@ A self-describing workspace: every adopted repo has one generated entry point, b
 
 - Given SET-5, when the toy adopt test runs, then the design guide is installed and setup's .loop/START.md holds the opener and every part. — [adopt-set-5](../../.loop/regression.tsv), requirement, guards SET-5, both, PASS 2026-11-10, seen failing 2026-11-08
 - Given an adopted repo, when a PRD page's Usage changes, then the entry point check and the docs check fail STALE until docs.py audit regenerates it. — [entry-stale](../../.loop/regression.tsv), requirement, guards SET-5, both, not run, seen failing 2026-11-10
-- Given a repo, when setup adopts it, then .loop/START.md holds the first-five-minutes list and every part: loop, release, operation and workers, docs, regression, health, settings and features. — [entry-adopt](../../.loop/regression.tsv), requirement, guards SET-5, both, not run, seen failing 2026-11-10
+- Given a repo, when setup adopts it, then .loop/START.md holds the first-five-minutes list and every part: loop, release, operation and workers, docs, regression, health, settings and features. — [entry-adopt](../../.loop/regression.tsv), requirement, guards SET-5, nightly, not run, seen failing 2026-11-10
 
 #### SET-10
 
