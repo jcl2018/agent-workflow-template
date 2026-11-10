@@ -50,7 +50,7 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 - `auto_merge` (default `false`): `true` lets the release step's `merge.py` merge a goal's pull request.
 - `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
 - `mend` and `resume_on_limit` let `watch` restart a goal. `limit_wait`, `mend_wait` and `watch_interval` are optional, in seconds.
-- `criteria` (set `true` by `setup`) and `regression_cron` (default `17 */4 * * *`, the scheduled regression's cron, or `off`) are also read by the docs and regression skills; `health_cron` (default `47 */4 * * *`), `judge_env`, `judge_setup` and `digest_owner` set the scheduled health run and its digest (Automation page).
+- `criteria` (set `true` by `setup`) and `regression_cron` (default `17 */4 * * *`, the scheduled regression's cron, or `off`) are also read by the docs and regression skills; `health_cron` (default `47 */4 * * *`), `judge_env`, `judge_setup` and `digest_owner` set the scheduled health run and its digest, and `digest_mail` (default `cloudflare`, or `smtp` or `off`), `smtp_host` and `smtp_port` how the digest is emailed (Automation page).
 - Permissions are yours. These commands run as you set them, and nothing here turns them off.
 
 ### `goals/<slug>.md`
