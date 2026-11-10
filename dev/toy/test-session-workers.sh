@@ -14,6 +14,7 @@
 set -u
 unset LOOP_ROLE LOOP_SESSION LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # these tests act as the operation session
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 S="$here/skills/workflow-monitoring/scripts"
 W="python3 $S/watch.py"; SE="python3 $S/sessions.py"; LB="python3 $S/live_board.py"

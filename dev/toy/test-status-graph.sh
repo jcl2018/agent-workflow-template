@@ -11,6 +11,7 @@ set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 unset LOOP_ROLE  # these tests act as the operation session; workers get LOOP_ROLE=worker where they need it
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 T=${1:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"
 M="$here/skills/workflow-monitoring/scripts"; D="$here/skills/workflow-delivery/scripts"
 BO="python3 $M/board.py"; BP="python3 $M/board_page.py"
