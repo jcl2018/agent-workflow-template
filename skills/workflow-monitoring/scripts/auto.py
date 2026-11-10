@@ -35,11 +35,12 @@ sys.path.insert(0, HERE)
 import board_status as bs  # noqa: E402
 
 KINDS = ("routine", "destructive", "money", "security", "owner")
-END = r"(?:e|es|ed|ing|s|ion|ions)?"  # the endings a risky word may take: delete, deletes, deleted, deleting
+END = r"(?:e|es|ed|ing|s|ion|ions|al|als)?"  # the endings a risky word may take: delete, deletes, deleted, deleting
 WORDS = ["delet", "remov", "drop", "dropp", "rm", "wip", "truncat", "discard", "forc", "overwrit", "overwritten", "renam",
          "publish", "releas", "deploy", "deployment", "merg", "push", "pay", "payment", "purchas", "billing", "cost",
          "spend", "spent", "money", "permission", "access", "token", "secret", "credential", "password", "key", "licens",
-         "migrat", "schema", "auth", "authenticat", "authoriz", "secur", "security"]
+         "migrat", "schema", "auth", "authenticat", "authoriz", "secur", "security", "rebas", "amend", "squash", "eras",
+         "destroy", "uninstall", "kill", "unlink", "rmdir", "removal", "revert", "rewrit", "rewritten"]
 RISKY = re.compile(r"\b(?:%s)%s\b|reset\s+--hard|git\s+clean" % ("|".join(WORDS), END), re.I)
 
 

@@ -115,7 +115,8 @@ def stamp_held(runs, taken, at, folder):
             old = json.load(handle)
     except (OSError, ValueError):
         old = {}
-    new = {r["slug"]: old.get(r["slug"]) or iso(at) for r in runs if held(r, taken)}
+    old = old if isinstance(old, dict) else {}  # a malformed file is started again, never a crash
+    new = {r["slug"]: old.get(r["slug"]) or iso(at) for r in runs if r.get("slug") and held(r, taken)}
     if new == old:
         return False
     tmp = held_file(folder) + ".%d.tmp" % os.getpid()

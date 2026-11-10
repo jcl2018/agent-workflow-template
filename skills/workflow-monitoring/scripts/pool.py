@@ -138,6 +138,10 @@ def remove_tree(slug, state):
     """The merged goal's worktree (never forced) and branch; what was done, one line each."""
     said, tree = [], state.get("worktree") or ""
     common = os.path.realpath(os.path.join(se.base(), ".."))
+    listed = subprocess.run(["git", "worktree", "list", "--porcelain"], capture_output=True, text=True).stdout.splitlines()
+    main = next((line[9:] for line in listed if line.startswith("worktree ")), "")
+    if main and os.path.isdir(main):  # every git call runs from the main checkout: the worker may be standing in the tree
+        os.chdir(main)
     if tree and os.path.isdir(tree) and os.path.realpath(tree).startswith(os.path.join(common, "loop", "worktrees") + os.sep):
         done = subprocess.run(["git", "worktree", "remove", tree], capture_output=True, text=True)
         said.append("removed worktree %s" % os.path.basename(tree) if done.returncode == 0 else

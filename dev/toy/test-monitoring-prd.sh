@@ -69,9 +69,9 @@ case_mon6() {
   git branch -q loop/gone origin/main; git worktree add -q "$L/worktrees/gone" loop/gone 2>/dev/null
   run gone 'status="running"' 'worker="session"' 'session={"id":"s1","name":"worker · gone"}' "worktree=\"$L/worktrees/gone\""
   pool '{"s1": {"name": "worker · gone", "slug": "gone", "state": "busy"}, "s2": {"name": "w2", "state": "free"}}'
-  FAKE_GH_PR_STATE=MERGED python3 "$S/sessions.py" report gone --status merged --pr https://example.test/pull/1 >"$T/o6" 2>&1
+  (cd "$L/worktrees/gone" && FAKE_GH_PR_STATE=MERGED python3 "$S/sessions.py" report gone --status merged --pr https://example.test/pull/1 >"$T/o6" 2>&1)
   check "MON-6: a merged goal's session goes back to the pool" 'grep -q "\"state\": \"free\"" "$L/session-pool.json" && ! grep -q "busy" "$L/session-pool.json"'
-  check "MON-6: its worktree and branch are removed" '[ ! -d "$L/worktrees/gone" ] && ! git rev-parse --verify -q refs/heads/loop/gone >/dev/null'
+  check "MON-6: its worktree and branch are removed, even when reported from inside the worktree" '[ ! -d "$L/worktrees/gone" ] && ! git rev-parse --verify -q refs/heads/loop/gone >/dev/null'
   run edge 'worker="session"'
   pool '{"a": {"slug": "edge", "state": "busy"}, "b": {"state": "free"}, "c": {"state": "free"}}'
   python3 "$S/pool.py" return edge >/dev/null
@@ -97,6 +97,9 @@ case_mon7() {
   cfg govern_hook=true
   check "MON-7: LOOP_GOVERN_HOOK=0 turns it off for one session" '[ -z "$(printf "%s" "$e" | LOOP_GOVERN_HOOK=0 python3 "$S/govern_hook.py")" ]'
   check "MON-7: the deny names the fix and the off switch" 'hook "$e" | grep -q "govern_hook"'
+  hook "$(b dev9 "$R" "grep -rn operate.py\ run skills")" >/dev/null
+  check "MON-7: a command that only names operate.py run claims nothing" '[ "$(cat "$L/operation.id")" = op1 ]'
+  check "MON-7: wrappers such as timeout and nohup don't hide a push" 'hook "$(b op1 "$R" "timeout 60 git push")" | grep -q deny && hook "$(b op1 "$R" "nohup git push")" | grep -q deny'
   check "MON-7: claim records the session and a worker can't claim" \
     'python3 "$S/operate.py" claim --id op2 | grep -q "replaced op1" && ! LOOP_ROLE=worker python3 "$S/operate.py" claim --id w 2>/dev/null'
 }
