@@ -26,6 +26,9 @@ import slots  # noqa: E402
 sys.path.insert(0, HERE)
 from tables import generated, prep  # noqa: E402
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
 NOTHING = "the lane committed and pushed nothing"
 NAMES = ("qa", "ship", "pr")
 BOOKKEEPING = (".loop/regression-runs.tsv", ".loop/goals/", ".loop/queue.md", ".loop/findings.md")

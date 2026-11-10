@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-monitoring/scripts/ skills/workflow-delivery/scripts/ skills/workflow-setup/scripts/setup.py
+# reads: dev/toy/test-operate.sh
 # Issue 99: the operate-all toy suite passes 10 of 10 under load. Starts one busy loop per CPU, each of which dies with
 # this script even on SIGKILL (it checks its parent), runs dev/toy/test-operate.sh 10 times and requires ALL PASS each
 # time. Nightly: about 6 minutes. usage: test-operate-load.sh [RUNS]
