@@ -5,7 +5,7 @@ usage: live_board.py [--html]
 
 LIVE BOARD header (repo, local time, version, health), then Issues (only what is open now, a stuck worker first, each with its
 fix in plain words), Running goals (10-cell bar with percent, time left and the try count, the step flow with done steps ticked
-and the current step in brackets, the worker: its session name or background, one next step; a goal a session was handed
+and the current step in brackets, the worker: its session name or background, each recorded step's depth, one next step; a goal a session was handed
 before it was frozen shows as [freezing]), Queued goals (held goals among them, marked held: running, but no worker has
 them), Dependencies (arrows between running and queued goals) and one Finish time. The session pool is read with
 graph.read_pool; when it can't be read, nothing is called held or freezing and Issues says so.
@@ -171,6 +171,13 @@ def max_tries(root):
         return 3
 
 
+def depth_of(run, setting):
+    """Each recorded step's depth, in flow order, and the current review_depth setting."""
+    got = run.get("depth") if isinstance(run.get("depth"), dict) else {}
+    done = ", ".join("%s %s" % (step, got[step]) for step in FLOW if step in got)
+    return "%s (setting %s)" % (done or "none recorded yet", setting)
+
+
 def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
     stuck, other = [], []
     if why:
@@ -239,6 +246,7 @@ def render(root=None, at=None):
     items += [dict(slug=f["slug"], mark=status_graph.mark("running"), depends=waits((lines.get(f["slug"]) or {}).get("depends") or []),
                    stage=0, left=bs.left_time({"slug": f["slug"], "status": "queued"}, runs, at)) for f in freezing]
     names = {item["slug"] for item in items}
+    setting = "condensed" if (bs.read_json(os.path.join(root, ".loop", "config.json")) or {}).get("review_depth") == "condensed" else "full"
     out = ["LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root)), "", "Issues"]
     out += issues([r for r in runs if r["slug"] not in shut], gone, root, at, taken, why, freezing) + ["", "Running goals"]
     most = max_tries(root)
@@ -247,7 +255,8 @@ def render(root=None, at=None):
         "no estimate yet" if left_of(run) is None else "%s left" % status_graph.span(left_of(run)), tries(run, most), end)
     left_of = lambda run: next(i["left"] for i in items if i["slug"] == run["slug"])
     for run in running:
-        out += [bar(run, current(run)), "    " + flow_line(run), "    worker: " + worker_of(run, taken), "    next: " + next_line(run)]
+        out += [bar(run, current(run)), "    " + flow_line(run), "    worker: " + worker_of(run, taken),
+                "    depth: " + depth_of(run, setting), "    next: " + next_line(run)]
     for entry in freezing:
         name, ago = entry.get("name") or entry["id"], age(entry.get("since"), at)
         out += [bar(dict(entry, status="freezing"), 0), "    " + flow_line({"status": "freezing"}), "    worker: session " + name,
@@ -260,7 +269,7 @@ def render(root=None, at=None):
         state = ", ".join(x for x in ("held", "last change %s ago" % ago if ago else "", "worktree kept" if tree else "worktree gone",
                                        "holds a slot" if graph.holds_slot(run) else "") if x)
         fix = "" if tree else "; make its worktree again first (git worktree add <common>/loop/worktrees/%s loop/%s)" % (run["slug"], run["slug"])
-        out += [bar(run, current(run), "  held"), "    " + flow_line(run), "    worker: none (%s)" % state,
+        out += [bar(run, current(run), "  held"), "    " + flow_line(run), "    worker: none (%s)" % state, "    depth: " + depth_of(run, setting),
                 "    next: give it a worker session (sessions.py bind %s ID, where ID is the session's id from the app)%s" % (run["slug"], fix)]
     for goal in queue:
         left = next(i["left"] for i in items if i["slug"] == goal["slug"])

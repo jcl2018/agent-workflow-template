@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.12.1 - 2026-11-10
+
+- review_depth: full by default; every step states its depth, record checks it, the board and PR show it; setup writes it
+- Rows link to criteria; Monitoring and Setup pages name review_depth
+- Review (full) fixes: fill-repo keeps _help, setting read from the base branch, markers from both flow files and malformed ones refuse, skips not held to full, DEPTH a line of its own, rerun clears depth, setup validates, docs
+- review-depth rows seen red; Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/review-depth
+- Merge origin/main (test-lanes, v0.11.0) into loop/review-depth: lane and depth in the step prompt, both row sets, goal.py's in-session check moved to role.py to stay under its size limit
+- Merge origin/main (prd-format, v0.12.0) into loop/review-depth: main's PRD pages and Given/When/Then rows kept, depth rows and page sentences re-added, tables re-rendered
+
+### How to verify
+
+1. Run `python3 skills/workflow-setup/scripts/settings.py reference | grep review_depth`.
+   Expect: one row, `review_depth`, default `full`, with a one-line explanation.
+2. Open `.loop/config.json`.
+   Expect: `"review_depth": "full"` and its explanation under `_help`.
+3. On the next goal, run `python3 skills/workflow-monitoring/scripts/live_board.py` while it runs.
+   Expect: under its `worker:` line, a `depth:` line listing each recorded step's depth and `(setting full)`.
+4. Open that goal's pull request.
+   Expect: under Result, each step ends with `(depth full)`.
+
 ## v0.12.0 - 2026-11-09
 
 - workflow-docs: PRD page contract, review lock and prd command

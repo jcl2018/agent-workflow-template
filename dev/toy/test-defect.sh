@@ -65,7 +65,7 @@ import re; print(re.search(r'^STEPS = \((.*)\)', open('$here/skills/workflow-del
     for step in idea plan build review qa ship pr release; do
       grep -q "\"$step\"" <<<"$steps" || no "flow.py has no $step step"
     done
-    printf '#!/bin/bash\necho "$1" > "%s/prompt-$(date +%%s%%N)"\necho "STEP: done"\n' "$d" > "$d/say.sh"
+    printf '#!/bin/bash\necho "$1" > "%s/prompt-$(date +%%s%%N)"\necho "DEPTH: full"\necho "STEP: done"\n' "$d" > "$d/say.sh"
     python3 - "$d" <<'PY'
 import json, sys
 d = sys.argv[1]
