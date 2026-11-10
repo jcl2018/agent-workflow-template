@@ -6,6 +6,7 @@
 set -u
 group=${1:-all}
 here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
 S=$here/skills/workflow-health/scripts
 mail="python3 -B $S/mail.py"; auto="python3 -B $S/automation.py"
 unset GH_TOKEN GITHUB_TOKEN GITHUB_ACTIONS GITHUB_STEP_SUMMARY DIGEST_RUN DIGEST_MAIL_API DIGEST_SMTP_TEST_PORT MAIL_ADDR_SET MAIL_CF_SET MAIL_SMTP_SET
@@ -16,7 +17,7 @@ bad() { echo "FAIL: $1"; fail=$((fail + 1)); }
 want() { [ "$group" = all ] || [ "$group" = "$1" ]; }
 ADDR=owner.fixture@example.test; TOKEN=cf-token-fixture-7Q2; SMTPPW=app-password-fixture-9
 
-G=$(mktemp -d); export STUB="$G"; trap 'kill $(jobs -p) 2>/dev/null; rm -rf "$G"' EXIT
+G=$(mktemp -d); export STUB="$G"; toy_on_exit 'rm -rf "$G"'  # reap.sh stops the stub servers
 cat > "$G/gh" <<'PYGH'
 #!/usr/bin/env python3
 """A stub gh: logs calls, serves issues, comments, milestones and runs from $STUB, and applies writes to them."""
