@@ -408,11 +408,11 @@
 | <a id="t-tiers-rows-summary"></a>tiers-rows-summary | requirement | REG-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-run-kind-filter"></a>run-kind-filter | requirement | REG-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-full-goal-lane-timeout"></a>full-goal-lane-timeout | requirement | REG-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-workflow-goal-to-release"></a>workflow-goal-to-release | workflow | REG-1: Three kinds of tests | not run | - | local | no |
-| <a id="t-workflow-kind-shown"></a>workflow-kind-shown | requirement | REG-1 | not run | - | local | no |
-| <a id="t-list-kind-filter"></a>list-kind-filter | requirement | REG-1 | not run | - | local | no |
-| <a id="t-one-format-everywhere"></a>one-format-everywhere | requirement | REG-2 | not run | - | local | no |
-| <a id="t-defect-owed-branch-proved"></a>defect-owed-branch-proved | requirement | REG-1 | not run | - | local | no |
+| <a id="t-workflow-goal-to-release"></a>workflow-goal-to-release | workflow | REG-1: Three kinds of tests | not run | - | local | 2026-11-10 |
+| <a id="t-workflow-kind-shown"></a>workflow-kind-shown | requirement | REG-1 | not run | - | local | 2026-11-10 |
+| <a id="t-list-kind-filter"></a>list-kind-filter | requirement | REG-1 | not run | - | local | 2026-11-10 |
+| <a id="t-one-format-everywhere"></a>one-format-everywhere | requirement | REG-2 | not run | - | local | 2026-11-10 |
+| <a id="t-defect-owed-branch-proved"></a>defect-owed-branch-proved | requirement | REG-1 | not run | - | local | 2026-11-10 |
 
 ## Setup
 
