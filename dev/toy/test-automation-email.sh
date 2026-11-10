@@ -314,6 +314,8 @@ def boom(*a): raise RuntimeError(pad + os.environ['CLOUDFLARE_EMAIL_TOKEN'])
 mail.cmd_send = lambda args: boom()
 import sys; sys.argv = ['mail.py', 'send', '--root', '$r']; sys.exit(mail.main())" 2>&1)
   grep -q "(MAIL_FAILED)" <<<"$out" && ! grep -q "${TOKEN:0:5}" <<<"$out" && ok "MAIL_FAILED scrubs before cutting, so no secret prefix is printed" || bad "scrub before cut"
+  out=$(cd "$S" && env DIGEST_TO=$'\n'qaowner@x.test python3 -B -c "import mail; print(mail.scrub('user=qaowner; to qaowner@x.test'))")
+  [ "$out" = "user=***; to ***" ] && ok "the owner's local part is scrubbed even when DIGEST_TO was saved with a leading line break" || bad "owner local part"
   # Value: protects=an unexpected error during the send keeps the round marked mailing and says how to recover; fails_when=the crash goes to the generic MAIL_FAILED 'rerun' advice; why_new=no test crashed inside deliver; seam=none; no_claim=which errors happen in production
   reset; rm -f "$G/comments.json"; comment 201
   out=$(cd "$S" && cf_env python3 -B -c "
@@ -577,7 +579,7 @@ assert i[1]["milestone"]["title"] == "Backlog", i[1]
 assert i[3]["milestone"]["title"] == "Automation", i[3]
 PY
   out=$(fl skills/old/z.py)
-  grep -q "^api -X PATCH repos/{owner}/{repo}/issues/4 -F milestone=3" "$FAKE_GH_DIR/calls.log" && ok "a finding for a feature whose milestone is closed is set on it by number" || bad "closed milestone"
+  grep -q "^api -X PATCH repos/{owner}/{repo}/issues/4 -F milestone=3" "$FAKE_GH_DIR/calls.log" && grep -q "^DONE open issue .* on Old " <<<"$out" && ok "a finding for a feature whose milestone is closed is set on it by number" || bad "closed milestone"
   (cd "$S" && PATH="$F:$PATH" python3 -B -c "
 import file, subprocess
 real, seen = file.run, []
@@ -692,6 +694,22 @@ acts = file.plan([row], {}, ['size'], root='$r'); file.apply(acts, '$r', ['size'
 print('creates', len([a for a in seen if a[:2] == ['issue', 'create']]))
 " ) > "$G/blind3.out" 2>&1
   grep -q "^creates 1$" "$G/blind3.out" && ok "a create that fails for another reason is not retried, so a timeout can't file twice" || bad "retry only on milestone"
+  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
+import file, subprocess
+real, seen = file.run, []
+def run(args, root):
+    seen.append(args)
+    if args[:2] == ['api', '--paginate'] and any('milestones' in a for a in args):
+        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
+    if args[:2] == ['issue', 'create']:
+        return subprocess.CompletedProcess(args, 127, '', str(subprocess.TimeoutExpired(['gh'] + args, 120)))
+    return real(args, root)
+file.run = run
+row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/rounds.py', rule='limit', detail='big', fix='')
+acts = file.plan([row], {}, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
+print('creates', len([a for a in seen if a[:2] == ['issue', 'create']]))
+" ) > "$G/blind4.out" 2>&1
+  grep -q "^creates 1$" "$G/blind4.out" && ok "a create that timed out (its message names --milestone) is not retried" || bad "timeout not retried"
   rm -f .loop/docs.tsv; unset FAKE_GH_DIR
 fi
 

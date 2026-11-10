@@ -62,7 +62,7 @@ def scrub(text):
     raw = [os.environ.get(name) or "" for name in ALL]
     values = [f(v) for v in raw for f in (str, str.strip, lambda s: s.encode("unicode_escape").decode(),
                                           lambda s: s.strip().encode("unicode_escape").decode())]
-    owner = values[0].split("@")[0] if "@" in values[0] else ""
+    owner = raw[0].strip().split("@")[0] if "@" in raw[0] else ""
     values += [owner] if len(owner) > 3 else []
     for value in sorted(set(v for v in values if len(v) > 2), key=len, reverse=True):
         out = re.sub(re.escape(value), "***", out, flags=re.I)
