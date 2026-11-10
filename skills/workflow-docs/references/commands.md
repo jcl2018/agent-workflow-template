@@ -181,7 +181,8 @@ flowchart LR
 
 Status: built and proven: Check every argument; refuse without --user, a bad id, page or date; Stamp the date and the fingerprints or the line's hash. Built only: Owner says this PRD or requirement is reviewed. Planned: none.
 Stops for the owner: Owner says this PRD or requirement is reviewed.
-Proof: toy tests. Nothing enforces that `--user` is true: that is an instruction to the agent.
+Proof: toy tests. With no terminal, `--user` also needs `LOOP_OWNER_WORDS`, the owner's quoted words, logged in
+`.git/loop/reviews.tsv`; that the words are really the owner's is an instruction to the agent.
 
 #### `publish`
 

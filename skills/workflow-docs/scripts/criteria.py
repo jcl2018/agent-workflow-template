@@ -7,7 +7,9 @@ usage: criteria.py <command> [options]
                                mark requirements, or a whole PRD, Reviewed with today's date (or D); --user means the
                                owner's own words said so
   unreview ID|PAGE [...] --user
-                               mark them Unreviewed again, so their wording may change
+                               mark them Unreviewed again, so their wording may change. With no terminal, both need
+                               LOOP_OWNER_WORDS, the owner's own words that said to; each change is logged with them
+                               in reviews.tsv in the repo's .git/loop folder
   render [--check]             rewrite each feature page's Tests from the regression rows and their last runs;
                                --check only says which pages are stale
 
@@ -217,8 +219,8 @@ def contract(root, names, seen):
             if named:
                 found.append(("SCRIPT", page, "%s names %s. Fix: say what it does, not the file" % (key, ", ".join(named))))
             if mark != "Unreviewed" and mine != seal(text):
-                found.append(("LOCKED", page, "%s was reviewed and its wording changed. Fix: restore it, or the owner "
-                              "marks it Unreviewed first" % key))
+                found.append(("LOCKED", page, "%s was reviewed and its wording changed. Fix: restore the reviewed text (git log "
+                              "-p), or the owner un-reviews it (/workflow-docs unreview %s --user) and reviews it again" % (key, key)))
         if len(ids) > limit:
             found.append(("CAP", page, "has %d requirements, over the limit of %d (criteria_max in .loop/config.json). Fix: merge "
                           "requirements, or raise criteria_max" % (len(ids), limit)))
@@ -277,6 +279,10 @@ def mark_all(args, make, page_change):
     Nothing is written unless every argument is good."""
     if not args.user:
         sys.exit("REFUSED: only the owner changes a review. Fix: pass --user when their own words said to.")
+    words = " ".join(os.environ.get("LOOP_OWNER_WORDS", "").split())
+    if not words and not os.isatty(0):
+        sys.exit("REFUSED: --user with no terminal needs the owner's words. Nothing was changed. Fix: set LOOP_OWNER_WORDS "
+                 "to the owner's own message that said to, quoted exactly; never words of your own.")
     day = getattr(args, "date", None) or today()
     if not DAY.match(day) or day > today():
         sys.exit("REFUSED: --date %s is not a YYYY-MM-DD date on or before today (%s, UTC). Fix: --date 2026-11-08." % (day, today()))
@@ -304,6 +310,11 @@ def mark_all(args, make, page_change):
             sys.exit("REFUSED: %s: %s. Nothing was changed." % (name, why))
         held[rel] = fresh
     write(root, held.items())
+    log = os.path.join(os.path.abspath(git("rev-parse", "--git-common-dir")), "loop")
+    os.makedirs(log, exist_ok=True)
+    with open(os.path.join(log, "reviews.tsv"), "a") as handle:  # who said so, for the owner to check
+        handle.write("%s\t%s\t%s\t%s\n" % (datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                     args.command, ",".join(args.ids), words or "(typed at a terminal)"))
     return found, names
 
 

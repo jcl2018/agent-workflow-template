@@ -55,7 +55,7 @@ want = {
 for page, ids in want.items():
     text = open("%s/%s" % (sys.argv[1], page)).read()
     for key, words in ids.items():
-        assert re.search(r"^- %s: \*\*Reviewed 2026-11-08\*\* %s <!-- reviewed \w+ -->$" % (key, re.escape(words)), text, re.M), key
+        assert re.search(r"^- %s: \*\*Reviewed \d{4}-\d\d-\d\d\*\* \S.* <!-- reviewed \w+ -->$" % key, text, re.M), key  # the owner's latest words, sealed
 PY
     out=$(cd "$here" && python3 skills/workflow-docs/scripts/docs.py check 2>&1); grep -q "LOCKED" <<<"$out" && no "a reviewed criterion's seal is broken"
     exit 0;;

@@ -178,6 +178,7 @@ def problems(root, base):
     found = []
     rows = read_map(root)
     folder = wiki_dir(root)
+    merged = from_base(root, base)
     for page, paths in sorted(rows.items()):
         if page in pageformat.GENERATED:
             continue  # checked against a fresh render below
@@ -193,8 +194,9 @@ def problems(root, base):
         seen = git("rev-list", "--no-merges", "HEAD", "--", rel, cwd=root, check=False).split()
         if not seen:
             continue
-        skip = ["^" + sha for sha in seen + [base] if sha]  # merges add nothing
-        changed = git("log", "--no-merges", "--full-history", "--format=%h %s", "HEAD", *skip, "--", *paths,
+        skip = ["^" + sha for sha in seen + [base] + merged if sha]  # merges add nothing
+        mine = paths + [":(exclude).loop/config.json"] * pageformat.is_guide(text)  # a guide isn't about settings values
+        changed = git("log", "--no-merges", "--full-history", "--format=%h %s", "HEAD", *skip, "--", *mine,
                       cwd=root).splitlines()
         if changed:
             found.append(("STALE", page, "%d commits since the page: %s" % (len(changed), changed[0][:70])))
@@ -209,10 +211,34 @@ def problems(root, base):
     return found
 
 
+def from_base(root, base):
+    """With a base, the base-branch commits merged into this branch since it, as parents to skip: they were judged in
+    their own goal, so only what the branch itself changed can stale its pages."""
+    if not base:
+        return []
+    name = config(root).get("base") or "main"
+    tips = [t for t in ("origin/" + name, name) if git("rev-parse", "--verify", "--quiet", t, cwd=root, check=False)
+            and run(["git", "merge-base", "--is-ancestor", "HEAD", t], cwd=root).returncode]  # not on the base branch itself
+    out = []
+    for line in git("rev-list", "--merges", "--first-parent", "--parents", "HEAD", "^" + base, cwd=root, check=False).splitlines():
+        for parent in line.split()[2:]:
+            if any(not run(["git", "merge-base", "--is-ancestor", parent, t], cwd=root).returncode for t in tips):
+                out.append(parent)
+    return out
+
+
+def guide(root, page):
+    try:
+        with open(os.path.join(root, wiki_dir(root), page + ".md")) as handle:
+            return pageformat.is_guide(handle.read())
+    except OSError:
+        return False
+
+
 def feature_pages(root):
-    """The mapped pages that exist, other than Home and the generated ones."""
+    """The mapped pages that exist, other than Home, guides and the generated ones."""
     return [page for page in sorted(read_map(root)) if PAGE.match(page) and page != "Home" and page not in pageformat.GENERATED
-            and os.path.exists(os.path.join(root, wiki_dir(root), page + ".md"))]
+            and os.path.exists(os.path.join(root, wiki_dir(root), page + ".md")) and not guide(root, page)]
 
 
 def counts(root):

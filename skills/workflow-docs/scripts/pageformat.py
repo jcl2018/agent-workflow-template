@@ -9,6 +9,7 @@ after `[text](url)` becomes text and backticks are stripped; one sentence means 
 import re
 
 GENERATED = {"Tests"}  # pages render writes; never mapped to paths, never a feature page
+GUIDE = "<!-- workflow-docs guide -->"  # a line marking a guide page: mapped and kept fresh, but not a feature page
 CHECKS = ("home", "frontdoor", "usage", "bullets", "problem", "tests")
 BANNED = "script, function, regex, json, tsv, stdout"
 MARKER = "<!-- workflow-docs -->"
@@ -19,6 +20,11 @@ PATH = re.compile(r"(?<![\w/])/[\w.-]+/")
 EXT = re.compile(r"\.(py|sh|json|tsv|md)\b")
 ME = re.compile(r"\b(I|[Mm]y|[Mm]e)\b")
 ENTRY = re.compile(r"^- `([^`]+)` — (\S.*)$")
+
+
+def is_guide(text):
+    """Whether a page's text marks it a guide (a how-to page, not a feature): no PRD contract, no Home row."""
+    return GUIDE in (text or "").splitlines()
 
 
 def bad(page, line, section, rule, what, got, fix):

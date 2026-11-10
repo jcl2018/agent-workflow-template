@@ -12,6 +12,7 @@ set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_BATCH  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
 export HOME=$(mktemp -d)  # setup.py writes the private settings under HOME
+export LOOP_OWNER_WORDS='"review it" (the toy owner)'  # review --user with no terminal needs the owner's words
 d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 "$here/dev/toy/make.sh" "$d" || exit 1
 export LOOP_FLOW="$d/flow.json" PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
@@ -33,10 +34,7 @@ repo=$PWD; fails=0; day=$(date -u +%F)
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 P=docs/wiki/Delivery.md
-USAGE='### `/toy median 1 2 3`
-
-- Prints: the median.
-- Refuses: nothing.'
+USAGE='- `/toy median 1 2 3` — Prints the median (`2`). Refuses nothing.'
 REQS='### Functional
 
 - DEL-1: **Unreviewed** The calculator prints a median.
@@ -184,7 +182,7 @@ $cri unreview Home --user 2>&1 | grep -q "REFUSED: Home is not a feature page" &
 ! $cri unreview ../../README --user >/dev/null 2>&1 && ok "a page name outside the wiki is refused" || bad "page path"
 
 echo "== 4. a Usage change after the review is CHANGED: the check fails, the board lists it, audit and publish ignore it"
-edit "- Prints: the median." "- Prints: the median of the numbers."
+edit "Prints the median (\`2\`)." "Prints the median of the numbers (\`2\`)."
 out=$(check); rc=$?
 grep -q "^CHANGED Delivery: Usage edited since the owner's review on 2026-11-08 (reviewed U=[0-9a-f]*, now U=[0-9a-f]*). Fix: the owner runs /workflow-docs review Delivery --user; an agent cannot clear this" <<<"$out" && ! grep -q LOCKED <<<"$out" && [ "$rc" = 1 ] && ok "an edited Usage is CHANGED, not LOCKED, and the check exits 1" || bad "usage edited: $out"
 (cd "$here/skills/workflow-monitoring/scripts" && python3 -c "import board_status; print(board_status.wiki_check('$repo'))") | grep -q "('CHANGED', 'Delivery')" && ok "the board's wiki check lists the CHANGED page" || bad "board"
@@ -192,12 +190,8 @@ out=$($docs audit --dry-run); rc=$?
 ! grep -q CHANGED <<<"$out" && grep -q "^UNTESTED DEL-1" <<<"$out" && [ "$rc" = 0 ] && ok "audit --dry-run with only CHANGED and UNTESTED lines prints no CHANGED and exits 0" || bad "audit: $rc $out"
 out=$($docs publish --dry-run --adopt Home 2>&1)
 ! grep -q "fix the pages above" <<<"$out" && ! grep -q "^CHANGED" <<<"$out" && grep -q "WOULD WRITE Delivery" <<<"$out" && ok "publish's pre-check passes with only a CHANGED line" || bad "publish: $out"
-git checkout -q -- $P; edit "- Refuses: nothing." "- Refuses: nothing.
-
-### \`/toy mean 1 2 3\`
-
-- Prints: the mean.
-- Refuses: nothing."
+git checkout -q -- $P; edit "Refuses nothing." "Refuses nothing.
+- \`/toy mean 1 2 3\` — Prints the mean (\`2\`). Refuses nothing."
 check | grep -q "^CHANGED Delivery: Usage edited" && ok "a new Usage line is CHANGED" || bad "usage line added"
 git checkout -q -- $P; python3 - "$P" <<'PY'
 import re, sys

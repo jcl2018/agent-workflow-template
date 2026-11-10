@@ -126,7 +126,7 @@ def trouble(root, page, text, parts, rule):
     if moved:
         found.append(("LOCKED", page, "the reviewed PRD changed in %s (reviewed lock %s, now %s). Fix: git log -p -- %s to "
                       "find the reviewed text and restore it, or the owner runs /workflow-docs unreview %s --user (and "
-                      "/workflow-docs unreview ID --user for a reviewed requirement)" % (
+                      "/workflow-docs unreview ID --user for a reviewed requirement) and reviews it again" % (
                           ", ".join(dict(zip(KEYS, names(rule)))[key] for key in moved),
                           " ".join("%s=%s" % (key, was[key]) for key in moved),
                           " ".join("%s=%s" % (key, now[key]) for key in moved), rel, page)))
@@ -236,7 +236,8 @@ def convert_text(text, rule):
 def feature_pages(root):
     import docs
     folder = criteria.folder_of(root)
-    return [page for page in sorted(docs.read_map(root)) if page != "Home" and os.path.isfile(os.path.join(root, folder, page + ".md"))]
+    return [page for page in sorted(docs.read_map(root)) if page != "Home" and os.path.isfile(os.path.join(root, folder, page + ".md"))
+            and not docs.guide(root, page)]
 
 
 def cmd_convert(args):
