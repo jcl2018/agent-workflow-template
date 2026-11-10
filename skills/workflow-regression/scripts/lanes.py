@@ -125,6 +125,7 @@ def references(root, text, folder, wide=True):
     """Repo paths a text names (folders end /) and whether it names the whole repo; wide=False: no widening, no
     skill-name words."""
     text = HERE_FORMS.sub("$here/", text)
+    text = text if wide else re.sub(r"""(["'])/(skills|dev)/""", r"\1\2/", text)  # root + "/skills/x" -> skills/x
     found, whole = set(), bool(ROOT.search(text))
     if BARE.search(text) or (not wide and CD_SKILLS.search(text)):
         found.add("skills/")

@@ -25,6 +25,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lanes  # noqa: E402
 import narrow  # noqa: E402
 
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
 FIX = {
     "LANES-DECL-NONE": "add '# reads: <the skill files it runs>' to the comment block at the top of {file}",
     "LANES-DECL-PLACE": "move the # reads: line into the comment block at the top of {file}",

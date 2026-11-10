@@ -15,7 +15,7 @@ mkdir -p "$tmp/hook" "$tmp/bin"
 cat > "$tmp/hook/sitecustomize.py" <<'PY'
 import hashlib, os, sys
 _log = os.environ.get("LANES_TRACE_LOG")
-_root = os.environ.get("LANES_TRACE_ROOT", "") + "/skills/"
+_root = os.environ.get("LANES_TRACE_ROOT", "") + "/skills/"  # lanes: no read (the traced repo's skills)
 _busy = []
 if _log:
     _out = open(_log, "a")
@@ -78,7 +78,7 @@ here = os.path.realpath(here)
 launches = marks = 0
 reads, dirs = set(), set()
 by_hash = {}
-for root, _, names in os.walk(os.path.join(here, "skills")):
+for root, _, names in os.walk(os.path.join(here, "skills")):  # lanes: no read (the traced repo's skills)
     for n in names:
         p = os.path.join(root, n)
         if "__pycache__" not in p:
@@ -90,7 +90,7 @@ for line in open(log, errors="replace"):
     elif kind == "MARK":
         marks += 1
     elif kind in ("FILE", "DIR"):
-        if rest.startswith(here + "/skills/"):
+        if rest.startswith(here + "/skills/"):  # lanes: no read (the traced repo's skills)
             (reads if kind == "FILE" else dirs).add(os.path.relpath(rest, here) + ("/" if kind == "DIR" else ""))
     elif kind == "HASH" and rest in by_hash:
         reads.add(by_hash[rest])

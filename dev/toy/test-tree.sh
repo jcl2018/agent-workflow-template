@@ -31,4 +31,11 @@ got=$(sed -n 's/^AFFECTED \([0-9]*\) of.*/\1/p' <<<"$out")
 missing=$(cd "$here" && for s in $(grep -l "^# reads:.*skills/workflow-monitoring/scripts/batch.py" dev/toy/test-*.sh); do awk -F'\t' -v s="$s" '$2 == "land" && index($3, s) {print $1}' .loop/regression.tsv; done | while read -r id; do grep -qw "$id" <<<"$out" || echo "$id"; done)
 check "on this repo a one-file change reruns fewer than half the land rows and every row whose script declares it" '[ -n "$got" ] && [ "$got" -lt $((total / 2)) ] && [ -z "$missing" ]'
 
+echo "== this repo stays green: no docs check line but CHANGED, no health FAIL but a docs changed row"
+# STALE and TESTS are left out too: a goal's own run or code change makes them mid-goal, and its release step fixes them.
+out=$(cd "$here" && python3 skills/workflow-docs/scripts/docs.py check 2>&1)
+! grep -Ev "^(CHANGED|STALE|TESTS) " <<<"$out" | grep -qv "^DOCS OK" && ok "this repo's docs check has no line other than CHANGED" || bad "repo docs: $out"
+out=$(cd "$here" && python3 skills/workflow-health/scripts/health.py check 2>&1)
+! grep "^FAIL" <<<"$out" | grep -Eqv "^FAIL docs \S+ (changed|tests)" && ok "this repo's health has no FAIL other than a docs changed row" || bad "repo health: $(grep '^FAIL' <<<"$out")"
+
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

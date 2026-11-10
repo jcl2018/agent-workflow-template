@@ -1,6 +1,7 @@
 #!/bin/bash
 # reads: skills/workflow-setup/references/settings.md skills/workflow-setup/scripts/settings.py
-# reads: skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-setup/scripts/setup.py skills/workflow-monitoring/scripts/graph.py
+# reads: skills/workflow-delivery/scripts/flow.py
 # Proves the settings: one table, both halves written by setup, parallel 0 unlimited, settings read fresh each run.
 # No model is called. usage: test-settings.sh [DIR]
 set -u
