@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false  # no token left in .git/config for a row to read
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -41,7 +43,7 @@ jobs:
                   return default
               return value if value > 0 else default
           ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", 88 * 60)
-          ROW_ENV = {k: v for k, v in os.environ.items() if k not in ("GH_TOKEN", "GITHUB_TOKEN")}  # rows never see the token
+          ROW_ENV = {k: v for k, v in os.environ.items() if k not in ("GH_TOKEN", "GITHUB_TOKEN")}  # the token is not in a row's environment
           def run(command):  # own process group, output to a file: a row that times out fails alone and keeps what it printed
               with tempfile.TemporaryFile("w+", errors="replace") as log:
                   child = subprocess.Popen(command, shell=True, stdout=log, stderr=subprocess.STDOUT, env=ROW_ENV,
@@ -95,6 +97,6 @@ jobs:
                   else:
                       if hit["state"] != "OPEN":
                           gh("issue", "reopen", str(hit["number"]))
-                      gh("issue", "comment", str(hit["number"]), "--body", "Still failing.")
+                      gh("issue", "comment", str(hit["number"]), "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
           sys.exit(1 if red else 0)
           PY
