@@ -329,7 +329,7 @@ def plan_for(root, asked, with_judge):
     issues, why = filing.held(root)
     if issues is None:
         sys.exit("REFUSED: could not read the health issues: %s" % why)
-    return filing, filing.plan(rows, issues, groups, extra, judged), groups
+    return filing, filing.plan(rows, issues, groups, extra, judged, root), groups
 
 
 def cmd_preview(args):

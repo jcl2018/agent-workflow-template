@@ -64,7 +64,7 @@ python3 - <<'PYEND' && ok "file: one issue on Backlog, labelled, with the hidden
 import json, os
 issues = json.load(open(os.environ["FAKE_GH_DIR"] + "/issues.json"))
 assert len(issues) == 1 and issues[0]["milestone"]["title"] == "Backlog"
-assert "<!-- loop-health size:skills/x/scripts/near.py:limit -->" in issues[0]["body"]
+assert "<!-- loop-health size:skills/x/scripts/near.py:limit placed=Backlog -->" in issues[0]["body"]
 PYEND
 grep -q -e "--label health --label health:size --milestone Backlog" "$FAKE_GH_DIR/calls.log" && ok "labelled health and health:size" || bad "label"
 out=$($health file --group size); echo "$out"

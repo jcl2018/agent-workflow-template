@@ -73,7 +73,7 @@ jobs:
           python3 -I "$here/tests.py" list --tsv > "$here/map.tsv" 2>/dev/null || true
           export REGRESSION_MAP="$here/map.tsv"
           python3 - <<'PY'
-          import json, os, subprocess, sys, tempfile, time
+          import json, os, re, subprocess, sys, tempfile, time, urllib.parse
           def rows(path):
               if not os.path.exists(path):
                   return []
@@ -114,10 +114,46 @@ jobs:
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           gh("label", "create", "defect", "--description", "A test that guards it is failing")  # an existing one keeps its colour
           guards = {cells[1]: cells for cells in rows(os.environ.get("REGRESSION_MAP") or os.devnull) if len(cells) > 4}
-          out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body,labels")
+          out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body,labels,milestone")
           issues = json.loads(out.stdout or "[]") if out.returncode == 0 else None  # unread: change no issue, or each would repeat
           if issues is None:
               print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
+          FEATURES = {row[0] for row in rows(".loop/docs.tsv") if row and row[0] and row[0] != "Home"}  # milestone.py's features
+          failed, filed = [], [0]
+          def write(what, *args):  # every issue write is checked: a failure is named, and the step fails after the last row
+              done = gh(*args)
+              if done.returncode:
+                  failed.append(what)
+                  print("FAILED %s: %s (FILE_FAILED)" % (what, done.stderr.strip()[:160]))
+              else:
+                  filed[0] += 1
+              return done
+          def milestones():
+              done = gh("api", "--paginate", "--slurp", "repos/{owner}/{repo}/milestones?state=all&per_page=100")
+              try:
+                  data = json.loads(done.stdout) if done.returncode == 0 else []
+              except ValueError:
+                  data = []
+              flat = [m for page in data for m in (page if isinstance(page, list) else [page])] if isinstance(data, list) else []
+              return {m["title"]: (m.get("number"), m.get("state") or "open") for m in flat if isinstance(m, dict) and m.get("title")}
+          MILES = milestones() if issues is not None else {}
+          def place(feature):  # a docs.tsv feature's milestone, else Backlog; nothing else is ever created
+              title = feature if feature in FEATURES else "Backlog"
+              if title not in MILES:
+                  made = write("milestone " + title, "api", "-X", "POST", "repos/{owner}/{repo}/milestones", "-f", "title=" + title)
+                  try:
+                      MILES[title] = (json.loads(made.stdout)["number"], "open")
+                  except (ValueError, KeyError, TypeError):
+                      return "", None
+              number, state = MILES[title]
+              return (title, None) if state != "closed" else ("", number)  # gh --milestone finds open ones; a closed one is set by number
+          def by_number(number, closed):
+              if closed and number:
+                  write("milestone of #%s" % number, "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/%s" % number, "-F", "milestone=%s" % closed)
+          FOUND = re.compile(r"<!-- loop-regression (\S+?)(?: placed=(\S*))? -->")
+          def marked(body):
+              match = FOUND.search(body or "")
+              return (match.group(1), urllib.parse.unquote(match.group(2) or "")) if match else (None, "")
           red, start = [], time.time()
           with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
               handle.write("# started %d\n" % start)
@@ -128,8 +164,7 @@ jobs:
                   code, said, skipped = 125, "skipped: out of job time; this row did not run", True
               else:
                   (code, said), skipped = run(row[2]), False
-              mark = "<!-- loop-regression %s -->" % row[0]
-              hits = [item for item in issues or [] if mark in item["body"]]
+              hits = [item for item in issues or [] if marked(item["body"])[0] == row[0]]
               hit = next((item for item in hits if item["state"] == "OPEN"), hits[0] if hits else None)
               state = "PASS" if code == 0 else "SKIPPED" if skipped else "KNOWN" if row[0] in known else "FAIL"
               print(state, row[0])
@@ -143,19 +178,31 @@ jobs:
                   if issues is None:
                       continue
                   cells = guards.get(row[0]) or [""] * 5
+                  title, closed = place(cells[0])
+                  where = title or ("closed:%s" % closed if closed else "")
+                  mark = "<!-- loop-regression %s placed=%s -->" % (row[0], urllib.parse.quote(where, safe=""))
                   about = "- Feature: %s\n- Guards: %s\n- Checks: %s\n\n" % (cells[0] or "-", cells[3] or "-", cells[4] or "-")
                   body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "was skipped" if skipped else "fails", about,
                                                                  said[-1500:].replace("`" * 3, "'" * 3))
                   if not hit:
-                      gh("issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect",
-                         "--body", body)
+                      made = write("issue for " + row[0], "issue", "create", "--title", "Regression: " + row[0], "--label", "regression",
+                                   "--label", "defect", "--body", body, *(["--milestone", title] if title else []))
+                      by_number((re.findall(r"/issues/(\d+)", made.stdout) or [""])[-1], closed)
                   else:
+                      n = str(hit["number"])
                       if hit["state"] != "OPEN":
-                          gh("issue", "reopen", str(hit["number"]))
+                          write("reopen #" + n, "issue", "reopen", n)
                       if "defect" not in [label.get("name") for label in hit.get("labels") or []]:
-                          gh("issue", "edit", str(hit["number"]), "--add-label", "defect")
-                      gh("issue", "comment", str(hit["number"]), "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
-          sys.exit(1 if red else 0)
+                          write("label #" + n, "issue", "edit", n, "--add-label", "defect")
+                      now = (hit.get("milestone") or {}).get("title") or ""
+                      if now == marked(hit["body"])[1] and where and where != now:  # still where the automation put it
+                          old = FOUND.search(hit["body"]).group(0)
+                          write("move #" + n, "issue", "edit", n, "--body", hit["body"].replace(old, mark), *(["--milestone", title] if title else []))
+                          by_number(n, closed)
+                      write("comment #" + n, "issue", "comment", n, "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
+          if failed:
+              print("FILED %d issue writes; FAILED %d: %s (FILE_FAILED)" % (filed[0], len(failed), ", ".join(failed)))
+          sys.exit(1 if red or failed else 0)
           PY
       - name: Write the run summary, one table per feature
         if: always() && steps.routine.outputs.on == 'true'
