@@ -28,7 +28,16 @@ PY
 mkdir -p "$FAKE_GH_DIR"
 printf 'Delivery\tcalc.py\nHome\tREADME.md\n' > .loop/docs.tsv
 mkdir -p docs/wiki
-printf '<!-- workflow-docs -->\n# Home\n\nThe home page of the toy repo, with enough words to count as written.\n' > docs/wiki/Home.md
+printf '<!-- workflow-docs -->\n# Toy\n\n## Features\n\n| Feature | What it does | How to use | Milestone |\n|---|---|---|---|\n| [Delivery](Delivery) | Prints the median of the numbers given. | [README](https://github.com/toy/repo#how-to-use-delivery) | https://example.test/milestone/1 |\n' > docs/wiki/Home.md
+printf '\n## How to use\n\n### How to use Delivery\n\n| You say | What happens |\n|---|---|\n| "What is the median of 1 2 3?" | The calculator prints it. |\n' >> README.md
+GOOD='### Functional
+
+- DEL-1: **Unreviewed** It prints a median.
+  - The median of the numbers given is printed.
+
+### Non-functional
+
+None'  # requirements in the DOC-7 shape
 page() {  # page PROBLEM REQUIREMENTS
   printf '<!-- workflow-docs -->\n# Delivery\n\nReview: **Unreviewed**\n\n## Problem\n\n%s\n\n## Requirements\n\n%s\n\n## Non-goals\n\n- No other feature.\n\n## Success metrics\n\n- The toy run passes.\n\n## Tests\n\n' "$1" "$2" > docs/wiki/Delivery.md
 }
@@ -45,7 +54,7 @@ cp -r "$here/skills/workflow-docs" "$d/skill"
 page "Short." "- DEL-1: **Unreviewed** One.
 - CAL-2: **Unreviewed** Two."
 $cri render >/dev/null
-python3 "$d/skill/scripts/docs.py" check | grep -q "^CAP" && bad "two criteria are over the default limit of six" || ok "the default limit of 6 lets two criteria pass"
+python3 "$d/skill/scripts/docs.py" check | grep -q "^CAP" && bad "two criteria are over the default limit of ten" || ok "the default limit of 10 lets two criteria pass"
 grep -q max_criteria "$d/skill/references/template.md" && bad "the sheet still holds max_criteria" || ok "the sheet no longer holds the limit"
 python3 - <<'PY'
 import json
@@ -67,13 +76,13 @@ git add -A; git commit -qm "Long problem"
 out=$($docs audit --dry-run); echo "$out"
 grep -q "^WOULD FIX docs/wiki/Delivery.md: re-render the Tests table" <<<"$out" && [ -z "$(git status --porcelain)" ] && ok "dry run says what it would fix and writes nothing" || bad "dry run"
 out=$($docs audit); rc=$?; echo "$out"
-grep -q "^FIXED docs/wiki/Delivery.md: re-render" <<<"$out" && grep -q '^- \*\*not enforced\*\*' docs/wiki/Delivery.md && ok "the Tests table is fixed" || bad "fix tables"
+grep -q "^FIXED docs/wiki/Delivery.md: re-render" <<<"$out" && grep -q '| not enforced |$' docs/wiki/Delivery.md && ok "the Tests table is fixed" || bad "fix tables"
 grep -q "^REWRITE Delivery: PROBLEM is over 3 lines" <<<"$out" && [ "$rc" = 1 ] && ok "wording to rewrite is listed and the exit is 1" || bad "rewrite"
 [ -f docs/wiki/Delivery.md ] && grep -q "Four, which" docs/wiki/Delivery.md && ok "it deletes and rewrites no page" || bad "kept page"
 git add -A; git commit -qm "Rendered" >/dev/null
 trouble=$(cd "$here/skills/workflow-release/scripts" && python3 -c "import release; print(release.docs_trouble('$repo', 'main'))")
 grep -q "PROBLEM" <<<"$trouble" && ok "the release step reads the audit and sees the trouble" || bad "release hook"
-page "Short." "- DEL-1: **Unreviewed** It prints a median."; $cri render >/dev/null; git add -A; git commit -qm "Short" >/dev/null
+page "- I want the median of my numbers." "$GOOD"; $cri render >/dev/null; git add -A; git commit -qm "Short" >/dev/null
 trouble=$(cd "$here/skills/workflow-release/scripts" && python3 -c "import release; print(release.docs_trouble('$repo', 'main'))")
 [ "$trouble" = "[]" ] && ok "a clean page passes the release step" || bad "release clean: $trouble"
 

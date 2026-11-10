@@ -2,7 +2,8 @@
 
 The report is a header naming every group run and any skipped, each group in a fixed order with every rule it checked
 (PASS, WARN, FAIL or UNREAD, a fix on each line that is not a pass), then one verdict. A rule that gave no row is a
-pass only when its group ran; a rule that could not read its data is UNREAD, never a pass. The Cost group is shown
+pass only when its group ran; a rule that could not read its data is UNREAD, never a pass. A SOFT UNREAD row (the open
+issue list) is shown but not counted, so it never turns the verdict red. The Cost group is shown
 as performance. Internal family names (cost) are unchanged: only the display differs.
 """
 
@@ -22,6 +23,11 @@ def shown(name):
 
 
 SHARED = {("criteria", "rows"): ("done-lines",)}  # rules read from the same source: an unread source reads none of them
+SOFT = {("docs", "milestone")}  # UNREAD rows shown but never counted: an unreadable issue list (issues.py) is not red
+
+
+def counted(item):
+    return item["state"] != "UNREAD" or (item["family"], item["rule"]) not in SOFT
 
 
 def rule_of(item):
@@ -73,7 +79,7 @@ def build(rows, asked=None):
     """(lines, counts, green, verdict, ran, skipped) for the fixed template."""
     ran, skipped = groups(rows, asked)
     rows = complete(rows, [name for name in ran if name != "mine"])
-    counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
+    counts = {state: sum(1 for item in rows if item["state"] == state and counted(item)) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
     green = not counts["FAIL"] and not counts["UNREAD"]
     verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % (
         "green" if green else "not green", counts["PASS"], counts["WARN"], counts["FAIL"], counts["UNREAD"])

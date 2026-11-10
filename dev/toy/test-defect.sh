@@ -86,19 +86,19 @@ PY
     grep -l "Use the own-review skill" "$d"/prompt-* >/dev/null && ! grep -l "Use the suite-review skill" "$d"/prompt-* >/dev/null || no "the override did not win"
     LOOP_FLOW="$d/five.json" $flow fs release 2>&1 | grep -q "no skill is mapped to the release step" || no "an unmapped step ran"
     exit 0;;
-  categories) # done line 4: every row has a category, defect rows link their issue, the page shows defect tests apart
+  categories) # done line 4: every row has a category, defect rows link their issue, the page shows defect tests with their kind
     awk -F'\t' '/^#/ || NF == 0 {next} $7 != "criterion" && $7 != "defect" {print $1; bad = 1} $7 == "defect" && $8 == "" {print $1; bad = 1} END {exit bad}' "$here/.loop/regression.tsv" || no "a row has no category, or a defect has no link"
     toy
     $reg add dd --level land --command true --category defect 2>&1 | grep -q "links to its issue or finding" || no "a defect row without a link was added"
     $reg add dd --level land --command true --category defect --link https://example.test/issues/1 >/dev/null || no "add defect"
     awk -F'\t' '$1 == "dd" && $7 == "defect" && $8 ~ /issues\/1$/ {ok = 1} END {exit !ok}' .loop/regression.tsv || no "the row lost its category or link"
     $reg add cc --level land --command true >/dev/null; awk -F'\t' '$1 == "cc" && $7 == "criterion" {ok = 1} END {exit !ok}' .loop/regression.tsv || no "no default category"
-    python3 - "$here" <<'PY' || no "the page shows no separate defect part"
+    python3 - "$here" <<'PY' || no "the page shows no defect rows"
 import sys
 text = open(sys.argv[1] + "/docs/wiki/Delivery.md").read()
-head, _, defects = text.split("\n## Tests", 1)[1].partition("### Defect tests")
-assert "issues/35" in defects, "no defect part"
-assert "scripts-no-hang" not in head and "scripts-no-hang" in defects
+rows = text.split("\n## Tests", 1)[1].splitlines()
+assert any("issues/35" in r and "| defect |" in r for r in rows), "no defect row"
+assert [r for r in rows if "scripts-no-hang" in r] and all("| defect |" in r for r in rows if "scripts-no-hang" in r)
 PY
     (cd "$here" && python3 skills/workflow-docs/scripts/criteria.py render --check >/dev/null) || no "the Tests tables are stale"
     exit 0;;

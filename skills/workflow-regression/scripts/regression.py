@@ -16,7 +16,7 @@ usage: regression.py <command> [options]
   workflow                      write .github/workflows/regression.yml, on the schedule in regression_cron
 
 Rows live in .loop/regression.tsv: id, level, command, goal, seen_red, description, category, link. Each run records its rows' last status and
-date in .loop/regression-runs.tsv, which the wiki Tests tables show. Known failures live in .loop/regression-known.tsv: id, reason. A known failure never blocks. A row never seen failing does.
+date and run (Actions URL or commit sha) in .loop/regression-runs.tsv (runs.py), which the wiki Tests tables show. Known failures live in .loop/regression-known.tsv: id, reason. A known failure never blocks. A row never seen failing does.
 Issues dry-run unless GH_TOKEN or GITHUB_TOKEN is set, or you pass --live. It runs git, gh and your test
 commands, and nothing else.
 """
@@ -34,7 +34,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
-import actions, lanes  # noqa: E401,E402
+import actions, lanes, runs  # noqa: E401,E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -359,12 +359,7 @@ def cmd_run(args):
             print("\n".join("    " + line for line in text.rstrip().splitlines()[-20:]), file=sys.stderr)
         results.append({"id": row["id"], "state": state, "tail": text[-1500:], "seconds": round(time.time() - began, 1)})
     if not args.reuse:  # a reusing run writes nothing in the worktree and opens no issue: CI's plain run owns both
-        ran = {cells[0]: cells[:3] for cells in cells_of(root, "regression-runs.tsv")}
-        for item in results:
-            ran[item["id"]] = [item["id"], "PASS" if item["state"] == "PASS" else "FAIL", today()]
-        if results:
-            with open(path_of(root, "regression-runs.tsv"), "w") as handle:
-                handle.write("# id\tstatus\tdate\n" + "".join("\t".join(ran[key]) + "\n" for key in sorted(ran)))
+        runs.write(root, results, today(), head)
     left = sorted(set(lanes.dirty(root)) - set(unclean)) if record and not unclean else []
     if not record:
         print("NOT RECORDED: detached HEAD")

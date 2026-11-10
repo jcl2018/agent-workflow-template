@@ -46,7 +46,9 @@ python3 scripts/docs.py check [--base <ref>]
 | `STALE` | A commit touched a mapped path, and no commit to the page has it in its history. Merge commits don't count | Update the page. If it's still true, edit a line: only a commit that changes the page clears this |
 | `MISSING` | A mapped page has no file | Write it, or remove its row |
 | `UNWRITTEN` | The page still has its placeholder, or almost no text | Write it |
-| `UNMAPPED` | A page has no row in `.loop/docs.tsv` | Run `add` |
+| `UNMAPPED` | A page has no row in `.loop/docs.tsv` (the generated `Tests` page never needs one) | Run `add` |
+| `FORMAT` | With `"criteria": true`, a page breaks a shape rule of `references/template.md` (DOC-4 Home, DOC-5 README front door, DOC-6 Usage, DOC-7 Requirements, DOC-8 Problem, DOC-9 Tests), printed as `FORMAT <Page>:<line>: <Section>: DOC-n <what> (got <value>). Fix: <how>`; the sheet's `format` key picks the rules | Do what the Fix says |
+| `STALE Tests` | The generated `docs/wiki/Tests.md` differs from a fresh render; the line names the first difference | Run `/workflow-docs render` |
 | `COUNT` | The README, a wiki page or a top-level doc in `skills/` states a count of skills, feature pages, or a feature page's criteria or tests that the repo doesn't match; all but skills need `"criteria": true`. A feature page's tests count includes its defect tests. One word may sit between number and noun only if it means all of them ("eight workflow-ready skills"); "N defect tests" is checked against the defect tests. Skipped: the word "one", a limit ("up to 6"), a part or label ("two delivery skills"), fenced and indented code and comments as Markdown renders them, a line naming one of the page's own criteria, the criteria and tests counts on a line naming another page's criterion, and a line marked `<!-- not-a-count -->`; a code fence that never closes is itself a `COUNT` line. Wrapped lines are read as one paragraph. `publish` refuses only on wiki pages | Correct the number |
 
 Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to

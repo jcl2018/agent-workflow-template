@@ -33,9 +33,9 @@ printf 'text-1\tland\ttrue\tREG-9\tn/a\tA row dated with words.\tcriterion\t\n' 
 $reg sync | grep -q "^UNPROVEN dash-1" && $reg run dash-1 | grep -q "^UNPROVEN dash-1" && ok "a seen-failing date of - is unproven" || bad "a - date counted as seen failing"
 $reg sync | grep -q "^UNPROVEN text-1" && ok "a seen-failing value that is not a date is unproven" || bad "a non-date counted as seen failing"
 python3 - "$here/skills/workflow-docs/scripts" <<'PY' && ok "the Tests table shows no for a - or a non-date" || bad "Tests table shows a non-date as seen failing"
-import sys; sys.path.insert(0, sys.argv[1]); import criteria
-out = criteria.table(".", [("REG-9", "Words.")], {"REG-9": ["dash-1", "text-1"]})
-cells = [line.rsplit("seen failing ", 1)[-1] for line in out if "[dash-1]" in line or "[text-1]" in line]
+import sys; sys.dont_write_bytecode = True; sys.path.insert(0, sys.argv[1]); import render
+out = render.tests_page(".").splitlines()
+cells = [line.split(" | ")[-1].rstrip(" |") for line in out if 'id="t-dash-1"' in line or 'id="t-text-1"' in line]
 assert cells == ["no", "no"], out
 PY
 sed -i.bak '/^dash-1	/d; /^text-1	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak

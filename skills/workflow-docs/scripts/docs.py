@@ -15,6 +15,7 @@ usage: docs.py <command> [options]
   restore                      revert the last publish, if nothing came after it
 
 With "criteria": true in .loop/config.json, check also enforces the PRD page contract (references/template.md).
+It also enforces the page format (pageformat.py, FORMAT lines) and that the generated Tests page matches a fresh render.
 criteria.py reviews requirements and PRDs and renders Tests; prd.py drafts and converts pages; counting.py reads counts.
 
 Publish never deletes a page, and refuses to replace a page without this tool's marker unless you name it with --adopt.
@@ -31,6 +32,7 @@ import tempfile
 
 import counting
 import criteria
+import pageformat
 
 # No terminal, no waiting.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GIT_EDITOR="true")
@@ -177,6 +179,8 @@ def problems(root, base):
     rows = read_map(root)
     folder = wiki_dir(root)
     for page, paths in sorted(rows.items()):
+        if page in pageformat.GENERATED:
+            continue  # checked against a fresh render below
         rel = "%s/%s.md" % (folder, page)
         full = os.path.join(root, rel)
         if not os.path.exists(full):
@@ -197,9 +201,18 @@ def problems(root, base):
     held = os.path.join(root, folder)
     if os.path.isdir(held):
         for name in sorted(os.listdir(held)):
-            if name.endswith(".md") and name[:-3] not in rows:
+            if name.endswith(".md") and name[:-3] not in rows and name[:-3] not in pageformat.GENERATED:
                 found.append(("UNMAPPED", name[:-3], "not in .loop/docs.tsv"))
+    if config(root).get("criteria") and feature_pages(root):
+        import render
+        found += render.generated(root)
     return found
+
+
+def feature_pages(root):
+    """The mapped pages that exist, other than Home and the generated ones."""
+    return [page for page in sorted(read_map(root)) if PAGE.match(page) and page != "Home" and page not in pageformat.GENERATED
+            and os.path.exists(os.path.join(root, wiki_dir(root), page + ".md"))]
 
 
 def counts(root):
@@ -211,13 +224,12 @@ def contract(root):
     """Criteria contract trouble, as (kind, page, detail). Off unless config sets "criteria": true."""
     if not config(root).get("criteria"):
         return []
-    found, names = [], []
+    import render
+    found, names = [], feature_pages(root)
     for page in sorted(read_map(root)):
         if not PAGE.match(page):
             found.append(("PAGE", page, "not a page name. Fix: letters, digits and hyphens, or remove its .loop/docs.tsv row"))
-        elif page != "Home" and os.path.exists(os.path.join(root, wiki_dir(root), page + ".md")):
-            names.append(page)
-    return found + criteria.contract(root, names, {})
+    return found + criteria.contract(root, names, {}) + render.front(root, names)
 
 
 def cmd_criteria(args):
@@ -279,7 +291,8 @@ def cmd_publish(args):
         clone(url, wiki)
         before = git("rev-parse", "HEAD", cwd=wiki)
         changed = []
-        for page in sorted(rows):
+        made = [name for name in pageformat.GENERATED if os.path.exists(os.path.join(root, wiki_dir(root), name + ".md"))]
+        for page in sorted(set(rows) | set(made)):
             with open(os.path.join(root, wiki_dir(root), page + ".md")) as handle:
                 text = handle.read()
             if not text.startswith(MARKER):

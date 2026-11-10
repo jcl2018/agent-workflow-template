@@ -174,7 +174,14 @@ def skeleton(title, problem, requirement, milestone=""):
     """The one PRD page writer: an Unreviewed page with placeholder Non-goals and Success metrics."""
     return "%s\n%s\n\n%sReview: **Unreviewed**\n\n## Problem\n\n%s\n\n## Requirements\n\n%s\n\n## Non-goals\n\n- %s\n\n" \
            "## Success metrics\n\n- %s\n\n## Tests\n\n" % (MARKER, title, milestone + "\n\n" if milestone else "",
-                                                           problem.strip(), requirement, PLACEHOLDER, PLACEHOLDER)
+                                                           problem.strip(), group(requirement), PLACEHOLDER, PLACEHOLDER)
+
+
+def group(requirements):
+    """Requirement lines under the two DOC-7 groups: all under Functional, Non-functional 'None'; kept if grouped."""
+    if re.search(r"^### ", requirements, re.M):
+        return requirements
+    return "### Functional\n\n%s\n\n### Non-functional\n\nNone" % requirements.strip("\n")
 
 
 def convert_text(text, rule):
@@ -214,6 +221,10 @@ def convert_text(text, rule):
                     break
         out.append(raw)
     fresh = "\n".join(out)
+    head_, _, rest = fresh.partition("\n## %s\n" % second)
+    if rest:  # group the requirements, up to the next section, under Functional and Non-functional
+        body, _, tail = rest.partition("\n## ")
+        fresh = head_ + "\n## %s\n\n%s\n\n" % (second, group(body.strip("\n"))) + ("## " + tail if tail else "")
     if not line:
         pre = head(fresh)
         spot = max([n for n, item in enumerate(pre) if item.startswith(("# ", rule["milestone"] + ":"))] or [0])
@@ -289,7 +300,7 @@ def cmd_new(args):
         if not tag:
             sys.exit("REFUSED: no free ID prefix from the name %s. Fix: add --prefix XX (2 to 5 capital letters, unused)" % args.name)
     key = "%s-1" % tag
-    text = skeleton("# " + args.name.replace("-", " "), idea, "- %s: **Unreviewed** %s" % (key, idea))
+    text = skeleton("# " + args.name.replace("-", " "), "- " + idea, "- %s: **Unreviewed** %s\n  - %s" % (key, idea, PLACEHOLDER))
     linked, _ = criteria.test_rows(root)
     text += "\n".join(criteria.table(root, [(key, idea)], linked)) + "\n"
     os.makedirs(os.path.dirname(os.path.join(root, rel)), exist_ok=True)
@@ -297,8 +308,8 @@ def cmd_new(args):
         handle.write(text)
     docs.cmd_add(argparse.Namespace(page=args.name, paths=args.paths))
     print("DRAFTED %s: Review **Unreviewed**, requirement %s" % (rel, key))
-    print("NEXT replace the two placeholder lines (Non-goals, Success metrics) with real drafts; the docs check says "
-          "UNWRITTEN until then")
+    print("NEXT replace the placeholder lines (the requirement's sub-bullet, Non-goals, Success metrics) with real drafts, "
+          "and say the Problem from the user's side; the docs check says UNWRITTEN until then")
     print("NEXT add %s's regression row in this same pull request (it needs one before the next release): "
           "regression.py add <row-id> --level land --command \"<test>\" --goal %s --describe \"Given ..., when ..., then ...\"" % (key, key))
     print("NEXT then run: docs.py check")

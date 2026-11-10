@@ -12,14 +12,13 @@ usage: criteria.py <command> [options]
                                --check only says which pages are stale
 
 A feature page is a short PRD (references/template.md): a Review line, then Problem, an optional Usage, Requirements,
-Non-goals, Success metrics and Tests. Requirements hold up to criteria_max lines (default 6, .loop/config.json). A
-requirement is '- ID: **Unreviewed** text' or '- ID: **Reviewed DATE** text', and a Reviewed line ends with
-<!-- reviewed HASH -->, a hash of its text; docs.py check fails when the text no longer matches. An argument shaped like
-an ID (two to five capitals, a dash, a number) is a requirement; any other is a page, whose PRD review prd.py writes.
-A regression row whose goal column is '-' proves no requirement yet and is left out. Tests lists, under each
-requirement, one Given/When/Then scenario per row: the row's description, the row, when it runs, its last status and
-date from .loop/regression-runs.tsv and when it was seen failing, and marks a requirement with no passing row as not
-enforced. A row with category defect is listed under 'Defect tests' on the page of the requirement in its goal column.
+Non-goals, Success metrics and Tests. Requirements hold up to criteria_max lines (default CRITERIA_MAX_DEFAULT,
+.loop/config.json). A requirement is '- ID: **Unreviewed** text' or '- ID: **Reviewed DATE** text', with '  - '
+sub-bullets under it that are not requirements; a Reviewed line ends with <!-- reviewed HASH -->, a hash of its own text
+(never its sub-bullets), and docs.py check fails when the text no longer matches. An argument shaped like an ID (two to
+five capitals, a dash, a number) is a requirement; any other is a page, whose PRD review prd.py writes. A regression row
+whose goal column is '-' proves no requirement yet and is left out. render writes each page's Tests table and the full
+Tests page (render.py), each to a temp file renamed into place, printing WROTE per file.
 It runs git and nothing else.
 """
 import argparse
@@ -42,8 +41,8 @@ ID = re.compile(r"^[A-Z]{2,5}-\d+$")
 SCENARIO = re.compile(r"^Given .+, when .+, then .+", re.I)
 DAY = re.compile(r"^\d{4}-\d\d-\d\d$")
 SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
+CRITERIA_MAX_DEFAULT = 10  # the owner: "make that cap as like a config as well, and probably do that as 10 as default"
 SHEET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "template.md")
-FORMAT = os.path.join(os.path.dirname(SHEET), "..", "..", "workflow-regression", "scripts", "tests.py")  # the one test format
 
 
 def rules():
@@ -53,24 +52,31 @@ def rules():
             block = re.search(r"^```rules\n(.*?)^```", handle.read(), re.M | re.S)
         found = dict(line.split(":", 1) for line in block.group(1).splitlines() if ":" in line)
         found = {key.strip(): value.strip() for key, value in found.items()}
-        return {"sections": [x.strip() for x in found["sections"].split(",")], "problem_lines": int(found["problem_lines"]),
+        import pageformat
+        listed = lambda key, default: [x.strip() for x in found.get(key, default).split(",") if x.strip()]
+        on = listed("format", ",".join(pageformat.CHECKS))
+        if set(on) - set(pageformat.CHECKS):
+            raise ValueError
+        return {"sections": listed("sections", found["sections"]), "problem_lines": int(found["problem_lines"]),
                 "metrics_lines": int(found["metrics_lines"]), "usage": found.get("usage_section", "Usage"),
-                "review": found["review_line"], "milestone": found["milestone_line"]}
+                "review": found["review_line"], "milestone": found["milestone_line"], "format": on,
+                "banned": listed("problem_banned", pageformat.BANNED),
+                "groups": listed("requirement_groups", ", ".join(pageformat.GROUPS))}
     except (OSError, AttributeError, KeyError, ValueError):
         sys.exit("REFUSED: the rules block of skills/workflow-docs/references/template.md is missing or broken.")
 
 
 def criteria_max(root):
-    """The criteria limit: `criteria_max` in .loop/config.json, 6 when absent. A bad value refuses, never falls back."""
+    """The criteria limit: `criteria_max` in .loop/config.json, CRITERIA_MAX_DEFAULT when absent. A bad value refuses."""
     path = os.path.join(root, ".loop", "config.json")
     try:
         with open(path) as handle:
-            value = json.load(handle).get("criteria_max", 6)
+            value = json.load(handle).get("criteria_max", CRITERIA_MAX_DEFAULT)
     except (OSError, ValueError, AttributeError):
-        value = 6
+        value = CRITERIA_MAX_DEFAULT
     if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 50:
-        sys.exit("REFUSED: criteria_max is %r in %s. Fix: set it to a whole number from 1 to 50, or remove it for the default 6."
-                 % (value, path))
+        sys.exit("REFUSED: criteria_max is %r in %s. Fix: set it to a whole number from 1 to 50, or remove it for the default %d."
+                 % (value, path, CRITERIA_MAX_DEFAULT))
     return value
 
 
@@ -148,97 +154,31 @@ def defect_rows(root):
     return found
 
 
-def issue_cell(link):
-    """A defect's link as a table cell: the issue number linked to its URL, or the finding's id."""
-    number = re.search(r"/(?:issues|pull)/(\d+)$", link)
-    return "[#%s](%s)" % (number.group(1), link) if number else link.replace("finding:", "finding ", 1)
-
-
-RUNS = {"land": "both", "nightly": "nightly", "covered": "by a person"}
-SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date; anything else shows "no"
-
-
-def tests_format(held={}):
-    """tests.py, the test format, loaded once; None, with a NOTE, if missing or broken."""
-    import importlib.util
-    if "m" not in held:
-        sys.dont_write_bytecode, held["m"] = True, None
-        try:
-            spec = importlib.util.spec_from_file_location("regression_tests", FORMAT)
-            held["m"] = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(held["m"])
-            held["m"].fields, held["m"].issues_of  # too old: fall back
-        except Exception as err:  # noqa: BLE001
-            held["m"] = sys.stderr.write("NOTE: %s not found or broken (%s); Tests lines use the old shape\n"
-                                         % (os.path.normpath(FORMAT), type(err).__name__)) and None
-    return held["m"]
-
-
-def scenario(row, ran, link, cell="", fmt=None, issues=None):
-    """One Tests line: the row's Given/When/Then words, then tests.py's fields (kind, guards, runs, result, seen)."""
-    status, date = ran.get(row[0], ("not run", ""))
-    words = row[5] or "-"
-    if not SCENARIO.match(words):
-        words += " (not yet Given/When/Then)"
-    if fmt:
-        f = fmt.fields((row + [""] * 8)[:8], {}, ran, issues or {}, True, True)
-        return "- %s — [%s](%s), %s, guards %s, %s, %s, seen failing %s" % (words, row[0], link, *f[1:3], *f[4:])
-    return "- %s — %s[%s](%s), %s, %s, seen failing %s" % (words, cell, row[0], link, RUNS.get(row[1], row[1]),
-                                                       (status + " " + date).strip(), row[4] if SEEN.match(row[4]) else "no")
-
-
 def table(root, ids, linked):
-    """The Tests section: per requirement a '#### ID' heading, its words and one scenario line per row; 'not enforced'
-    when no row passes; then the defect tests. `ids` is (id, text) pairs. Blank lines separate the parts."""
-    ran = {row[0]: (row[1], row[2]) for row in tsv(root, "regression-runs.tsv")}
-    rows = {row[0]: row for row in tsv(root, "regression.tsv")}
-    link = "../" * (folder_of(root).count("/") + 1) + ".loop/regression.tsv"
-    out, fmt = [], tests_format()
-    issues = fmt.issues_of(root) if fmt else {}
-    for key, text in ids:
-        out += ["#### " + key, "", text, ""]
-        passing = False
-        for name in linked.get(key, []):
-            passing = passing or ran.get(name, ("",))[0] == "PASS"
-            out.append(scenario(rows[name], ran, link, "", fmt, issues))
-        if not passing:
-            out.append("- **not enforced**: no passing test")
-        out.append("")
-    guards = defect_rows(root)
-    names = [name for key, _ in ids for name in guards.get(key, [])]
-    if names:
-        out += ["### Defect tests", ""]
-    for name in names:
-        out.append(scenario(rows[name], ran, link, issue_cell(rows[name][7]) + ", ", fmt, issues))
-    return out[:-1] if out and out[-1] == "" else out
+    import render
+    return render.table(root, ids, linked)
+
+
+def cmd_render(args):
+    import render
+    return render.render(args)
 
 
 def criteria_of(lines):
-    return [(line, LINE.match(line)) for line in lines if line.strip()]
-
-
-def usage_trouble(root, lines):
-    """Problems in a Usage block: a script file or python/bash command named, or a `/skill verb` missing from that skill's Command map."""
-    out, base = [], os.path.join(root, "skills")
-    for command in re.findall(r"`([^`]+)`", "\n".join(lines)):
-        script = re.search(r"\b([\w-]+\.(?:py|sh))\b", command)
-        if script or re.match(r"(python3?|bash|sh)\s", command):
-            out.append("`%s` names a script. Fix: write it as an agent request or a /skill verb" % command)
-            continue
-        ask = re.match(r"/([\w-]+)\s+([\w-]+)", command)
-        path = os.path.join(base, ask.group(1) if ask else "", "SKILL.md")
-        if ask and os.path.isfile(path):
-            with open(path) as handle:
-                if not re.search(r"^\| `/%s %s[ `]" % (re.escape(ask.group(1)), re.escape(ask.group(2))), handle.read(), re.M):
-                    out.append("`%s` is not in the Command map of skills/%s/SKILL.md. Fix: use a mapped verb" % (command, ask.group(1)))
-    return out
+    """(line, LINE match or None) per requirement line: indented lines (sub-bullets) belong to the line above, and the
+    group headings (### Functional, ### Non-functional) and a group's 'None' are not requirements."""
+    return [(line, LINE.match(line)) for line in lines
+            if line.strip() and not line[:1].isspace() and not line.startswith("### ") and line.strip() != "None"]
 
 
 def contract(root, names, seen):
     """Page contract trouble for these feature pages, as (kind, page, detail). `seen` maps ids to their page."""
+    import pageformat as pf
     import prd
+    import render
     found, rule = [], rules()
-    limit = criteria_max(root)
+    limit, on, held = criteria_max(root), rule["format"], render.maps(root)
+    owns = {row[0]: re.findall(r"(?:^|,)skills/([\w-]+)", row[1]) for row in tsv(root, "docs.tsv")}
     linked, loose = test_rows(root)
     head = rule["sections"]
     for page in names:
@@ -258,12 +198,11 @@ def contract(root, names, seen):
             found.append(("SECTIONS", page, "have %s, want %s%s" % (", ".join(have) or "none", ", ".join(want), hint)))
             continue
         body, ids = dict(parts), []
+        numbered = {name: (start, lines) for name, start, lines in pf.parts(text)}
         found += prd.trouble(root, page, text, parts, rule)
         if rule["usage"] in body:
             if not [x for x in body[rule["usage"]] if x.strip()]:
                 found.append(("USAGE", page, "has an empty %s section. Fix: list its commands, or remove the section" % rule["usage"]))
-            for trouble in usage_trouble(root, body[rule["usage"]]):
-                found.append(("USAGE", page, trouble))
         for line, match in criteria_of(body[head[1]]):
             if not match:
                 found.append(("CRITERION", page, "not one line '- ID: **Unreviewed** text' under %s: %s" % (head[1], line.strip()[:60])))
@@ -286,8 +225,16 @@ def contract(root, names, seen):
         if len(prd.paras(body[head[0]])) > rule["problem_lines"]:
             found.append(("PROBLEM", page, "is over %d lines. Fix: say who it is for and what it solves in %d lines or fewer"
                           % (rule["problem_lines"], rule["problem_lines"])))
-        if [line for line in body["Tests"] if line.strip()] != [line for line in table(root, ids, linked) if line.strip()]:
-            found.append(("TESTS", page, "the Tests section is stale. Fix: run criteria.py render"))
+        found += pf.bullets(page, head[1], numbered[head[1]][1], LINE, "bullets" in on, rule["groups"])
+        if "usage" in on and rule["usage"] in numbered:
+            found += pf.usage(page, rule["usage"], numbered[rule["usage"]][1], held, owns.get(page, []))
+        if "problem" in on:
+            found += pf.problem(page, head[0], numbered[head[0]][1], rule["problem_lines"], rule["banned"])
+        if "tests" in on:
+            found += [x for x in [pf.stale(page, "Tests", numbered["Tests"][0], numbered["Tests"][1], table(root, ids, linked))] if x]
+    if "tests" in on:
+        found += [("FORMAT", "Tests:1", "Tests: DOC-9 one anchor per row (got %s). Fix: rename one row id" % x)
+                  for x in render.clashes([row[0] for row in tsv(root, "regression.tsv") if row[1] != "draft"])]
     for name in loose:
         found.append(("LINK", "regression", "row %s links to no requirement" % name))
     for key in sorted(set(defect_rows(root)) - set(seen)):
@@ -380,31 +327,6 @@ def cmd_unreview(args):
     for name in names:
         print("UNREVIEWED PAGE " + name)
     return 0
-
-
-def cmd_render(args):
-    root = git("rev-parse", "--show-toplevel")
-    linked, _ = test_rows(root)
-    stale = []
-    for rel in pages(root):
-        with open(os.path.join(root, rel)) as handle:
-            text = handle.read()
-        parts = sections(text)
-        if [n for n, _ in parts if n != rules()["usage"]] != rules()["sections"]:
-            continue
-        ids = [(m.group(1), m.group(4)) for _, m in criteria_of(dict(parts)[rules()["sections"][1]]) if m]
-        head, _, _ = text.partition("\n## Tests")
-        fresh = head + "\n## Tests\n\n" + "\n".join(table(root, ids, linked)) + "\n"
-        if fresh != text:
-            stale.append(rel)
-            if not args.check:
-                with open(os.path.join(root, rel), "w") as handle:
-                    handle.write(fresh)
-    for rel in stale:
-        print("%s %s" % ("STALE" if args.check else "RENDERED", rel))
-    if not stale:
-        print("TABLES OK")
-    return 1 if stale and args.check else 0
 
 
 def main():

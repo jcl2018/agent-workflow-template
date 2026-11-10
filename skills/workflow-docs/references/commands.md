@@ -48,7 +48,7 @@ after a merge. Only a commit that changes the page clears `STALE`.
 With `"criteria": true` in the config, every feature page is a short PRD (`references/template.md` holds the rules and
 an example page): the Review line, then Problem, an optional Usage, Requirements, Non-goals, Success metrics and Tests,
 in that order and nothing else. Requirements are the owner's lines (`- DEL-1: **Unreviewed** text`, up to
-`criteria_max`, default 6); tests are for the machine: a regression row linked to one requirement by its goal column,
+`criteria_max`, default 10); tests are for the machine: a regression row linked to one requirement by its goal column,
 described as one `Given ..., when ..., then ...` scenario, rendered under its requirement with its last result.
 
 ### Page states
@@ -229,7 +229,7 @@ Detail the skill's SKILL.md points to, kept word for word so no instruction is l
 1. the title, a `Milestone:` line once the milestone exists, then `Review: **Unreviewed**` (or the owner's Reviewed line);
 2. `## Problem`: who it's for and what it solves, at most `problem_lines` lines;
 3. `## Usage` (optional): the commands, as `/skill verb` asks or plain requests;
-4. `## Requirements`: up to `criteria_max` (default 6) lines `- DEL-3: **Unreviewed** what must hold`, short and plain,
+4. `## Requirements`: up to `criteria_max` (default 10) lines `- DEL-3: **Unreviewed** what must hold`, short and plain,
    no script names; ids are stable: take the next free id (`criteria PAGE` prints it), never reuse or renumber one;
 5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
 6. `## Tests`: written by `criteria.py render`, never by hand: under each requirement, one Given/When/Then scenario per
@@ -238,6 +238,12 @@ Detail the skill's SKILL.md points to, kept word for word so no instruction is l
 
 Lines: `SECTIONS` (wrong, extra or out-of-order sections, or text before the first one), `REVIEW`, `PROBLEM`,
 `NONGOALS`, `METRICS`, `CRITERION`, `CAP`, `SCRIPT`, `USAGE`, `TESTS` (run `render`), `LOCKED`, `CHANGED`.
+
+Since the docs format (DOC-4..DOC-10), the shapes in `references/template.md` win over items 2, 3, 4 and 6 above: Problem
+is 1 to `problem_lines` first-person bullets, Usage is `` ### `syntax` `` entries with Prints and Refuses bullets,
+Requirements sit under `### Functional` and `### Non-functional` with `  - ` sub-bullets, and Tests is one table
+linking the generated Tests page. Their refusals are `FORMAT <Page>:<line>: <Section>: DOC-n ...` lines, and a
+generated Tests page behind a fresh render is `STALE Tests`.
 
 ### Review locks
 
