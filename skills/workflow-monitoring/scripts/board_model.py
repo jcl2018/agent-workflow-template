@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-"""The estimate model of the live board: time left per goal, as a range, from finished goals of a similar size (done lines
-and touched areas); the current step's pace and overrun; and stalled goals. Imported by board_status.py, which re-exports
-every name here; it imports board_log.py, status_graph.py and the standard library, never board_status.py.
+"""The estimate model of the live board: time left per goal, as a range, from finished goals; the current step's pace and
+overrun; and stalled goals (past STALL times the estimate and STALL_FLOOR). Three candidates (CANDIDATES: step medians,
+the size rule over goals of a similar size, their blend) share one monotone envelope; steps and blend are size-light, and
+their TILT of a second per unit only keeps a larger goal strictly longer. A leave-one-out backtest picks the candidate with
+the lowest median |ln(estimate / actual)|, recomputed when a run finishes (kept in MODEL per set of runs; a goal file edited
+inside one long-lived process is not seen until a run changes). Stall and overrun follow the chosen per-step table. A new
+candidate is a cell function in CELLS and its name in CANDIDATES, scored automatically. Imported by board_status.py, which
+re-exports every name here; it imports board_log.py, status_graph.py and the standard library, never board_status.py.
 """
 import math
 import os

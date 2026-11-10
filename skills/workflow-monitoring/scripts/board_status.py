@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""The run facts the live board is built from, plus every name of board_log.py and board_model.py (the estimate model),
-re-exported so readers keep using board_status; running it prints the live board (see live_board.py).
+"""The run facts the live board is built from, plus every name of board_log.py (log facts) and board_model.py (the estimate
+model the backtest picks, the accuracy line, the stall floor), re-exported so readers keep using board_status; running it
+prints the live board (see live_board.py). board_report.py says why the board uses its model.
 
 usage: board_status.py [--html]
 

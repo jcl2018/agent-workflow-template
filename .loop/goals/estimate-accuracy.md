@@ -1,7 +1,7 @@
 # The board's estimates use whichever model backtests most accurate on this repo's finished goals, and show that accuracy (owner, 2026-11-10: "Yues")
 
 - Slug: estimate-accuracy
-- Touches: skills/workflow-monitoring/scripts/board_status.py, skills/workflow-monitoring/scripts/board_runs.py, dev/toy, .loop/regression.tsv, docs/wiki/Monitoring.md
+- Touches: skills/workflow-monitoring/scripts/board_status.py, skills/workflow-monitoring/scripts/board_runs.py, dev/toy, .loop/regression.tsv, docs/wiki/Monitoring.md, skills/workflow-monitoring/scripts, docs/wiki/Tests.md
 
 ## Done lines
 
@@ -16,3 +16,10 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Run `python3 skills/workflow-monitoring/scripts/live_board.py` in the repo and read the last line, under the finish time.
+   Expect: `estimates: <model>, whole goal off xN.N (N goals)`, at most 60 characters, or `error not known yet (N of 10 goals)`.
+2. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root .`.
+   Expect: one row per candidate, and the `chosen:` line names the candidate with the lowest loo score, the same model the board's last line names.
+3. Look at Issues on the live board for any goal whose current step has run under 15 minutes, and for any goal marked held.
+   Expect: none of them is listed as stalled.
