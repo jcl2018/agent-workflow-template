@@ -4,6 +4,7 @@ adopt-set-2	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 adopt-set-3	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 adopt-set-4	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 adopt-set-5	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+attempt-114	PASS	2026-11-10	
 aut-backlog-milestone	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-by-hand-runs	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-cron-check	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -50,6 +51,7 @@ board-sections	PASS	2026-11-09
 breaking-asks	PASS	2026-11-09	
 cap-default-10	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 check-writes-nothing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+checkin-passes-hook	PASS	2026-11-10	
 ci-issue-backlog	PASS	2026-11-10	
 ci-summary	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 cost-time-warn	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -67,6 +69,7 @@ defect-owed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 defect-wording	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 dependencies-on-map	PASS	2026-11-09	
 dependency-held	PASS	2026-11-09	
+deps-graph-94	PASS	2026-11-10	
 depth-auto-approve-gate	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 depth-base-branch	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 depth-condensed-refused	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -130,6 +133,7 @@ held-freezing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-off-flow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-shows-held	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-stale-next	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+held-time-115	PASS	2026-11-10	
 hlt6-branches	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-cannot-fire	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-clean-quiet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -150,6 +154,7 @@ issue-no-milestone-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6
 issue-states	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 issue-truncated-unread	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 issues-no-rows	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+issues-phone-97	PASS	2026-11-10	
 judge-needs-you	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 judge-section-format	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 judge-verdict-unchanged	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -179,17 +184,26 @@ lanes-trace-check	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lanes-wide-parity	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 list-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 list-tsv-raw	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-live-board-arrows	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+live-board-arrows	PASS	2026-11-10	
 live-board-cadence	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 live-board-flow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 live-board-header	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 live-board-issues	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 live-board-leftouts	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-live-board-no-oneline	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+live-board-no-oneline	PASS	2026-11-10	
 local-row-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lock-in-report	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+merged-frees-175	PASS	2026-11-10	
 milestone-links	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 milestones-once	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+mon10-replan	PASS	2026-11-10	
+mon11-full-auto	PASS	2026-11-10	
+mon12-pool	PASS	2026-11-10	
+mon4-checkin-no-board	PASS	2026-11-10	
+mon6-merged-frees	PASS	2026-11-10	
+mon7-govern-blocks	PASS	2026-11-10	
+mon8-silent-30	PASS	2026-11-10	
+mon9-board-fast	PASS	2026-11-10	
 needs-you-stuck	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 never-merges	PASS	2026-11-09	
 no-change-quiet	PASS	2026-11-09	
@@ -210,6 +224,7 @@ operate-wakes-on-report	PASS	2026-11-09
 page-shape	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 parallel-unlimited	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 pending-waits	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+pool-edges-122	PASS	2026-11-10	
 pr-body-criterion	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 pr-body-no-checks	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 pr-in-milestone	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -251,6 +266,7 @@ reply-hook-off	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reply-hook-scope	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 report-done-final	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 report-header	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+report-held-111	PASS	2026-11-10	
 report-sub-bullets	PASS	2026-11-10	
 retired-leaves-waiting	PASS	2026-11-09	
 review-dated	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -273,7 +289,7 @@ session-board-issue98	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 session-ended-waiting	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 session-fallback	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 session-holds-slot	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-session-quiet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+session-quiet	PASS	2026-11-10	
 session-rename	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 session-reports	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 session-reuse	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -286,13 +302,15 @@ size-fail	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 skill-kept	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 skill-says-governs	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 skill-size-116	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+slot-pool-112	PASS	2026-11-10	
 stale-found	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 stale-groups-defect	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 stale-merge-order	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 stale-page-row	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 starts-at-idea	PASS	2026-11-09	
+state-shared-113	PASS	2026-11-10	
 status-graph-board	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-status-graph-levels	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+status-graph-levels	PASS	2026-11-10	
 status-graph-marks	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 status-graph-order	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 status-graph-total	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
