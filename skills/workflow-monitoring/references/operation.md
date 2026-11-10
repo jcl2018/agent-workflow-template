@@ -119,7 +119,7 @@ installs it into the repo's machine-local `.claude/settings.local.json` (git ign
 session loads it. It checks only the operation session, a session whose latest signal is an `operate.py run` without a refusal, and never a worker (a session in a goal worktree, or one that ran a flow step) or a session in another repo.
 `"reply_hook": false` in `.loop/config.json`, or `LOOP_REPLY_HOOK=0`, turns it off. It checks the layout (the headline,
 then the four section headings in order, each with something under it, Needs you numbered or `Nothing needs you`), not
-whether the numbers are true. A reply that passes:
+whether the numbers are true. A reply that passes: It checks the session named in `loop/operation.id` (run `operate.py claim` once in the operation session) as well as one that ran `operate.py run`, so a scheduled check-in answered with one line is blocked and told the five missing parts (issue 321); a check-in prompt never offers a short reply.
 
 ````text
 Two goals moved; one needs you.

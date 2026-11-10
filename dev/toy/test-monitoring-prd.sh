@@ -17,14 +17,14 @@
 # Proves the Monitoring PRD's MON-4 and MON-6..MON-12 and issues 94, 97, 111-115, 122 and 175 with a made-up repo, a
 # fake gh and a stand-in session pool. No model is called. usage: test-monitoring-prd.sh [CASE ...] [--dir DIR]
 # Cases: mon4 mon6 mon7 mon8 mon9 mon10 mon11 mon12 deps94 issues97 held111 slot112 state113 attempt114 held115
-# pool122 merged175 (default: all). Each case prints PASS or FAIL lines; the last line is ALL PASS or N FAILED.
+# pool122 merged175 reply321 (default: all). Each case prints PASS or FAIL lines; the last line is ALL PASS or N FAILED.
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_ROLE LOOP_SESSION_QUIET LOOP_GOVERN_HOOK CLAUDE_SESSION_ID
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
 cases=(); T=""
 while [ $# -gt 0 ]; do case "$1" in --dir) T=$2; shift 2;; *) cases+=("$1"); shift;; esac; done
-[ ${#cases[@]} -eq 0 ] && cases=(mon4 mon6 mon7 mon8 mon9 mon10 mon11 mon12 deps94 issues97 held111 slot112 state113 attempt114 held115 pool122 merged175)
+[ ${#cases[@]} -eq 0 ] && cases=(mon4 mon6 mon7 mon8 mon9 mon10 mon11 mon12 deps94 issues97 held111 slot112 state113 attempt114 held115 pool122 merged175 reply321)
 T=${T:-$(mktemp -d)}; rm -rf "${T:?}"; mkdir -p "$T"; [ -n "${KEEP:-}" ] || toy_on_exit 'rm -rf "$T"'
 S="$here/skills/workflow-monitoring/scripts"
 export HOME="$T/home" LOOP_BOARD_HEALTH=green PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$T/gh"; mkdir -p "$HOME"
@@ -298,6 +298,17 @@ case_merged175() {
   pool '{"s1": {"name": "worker · donem", "slug": "donem", "state": "busy"}}'
   out=$(FAKE_GH_PR_STATE=MERGED python3 "$S/sessions.py" report donem --status merged --pr https://example.test/pull/9 2>&1)
   check "#175: a merged report on a done goal frees its session" 'echo "$out" | grep -q KEPT && ! grep -q busy "$L/session-pool.json"'
+}
+
+case_reply321() {  # issue 321: a scheduled check-in answered with one line is blocked, naming the five parts
+  fresh; echo op9 > "$L/operation.id"; R=$(pwd -P)
+  printf '%s\n' '{"type":"user","message":{"role":"user","content":"Scheduled check-in: print the check-in."}}' \
+    '{"type":"assistant","message":{"id":"m1","role":"assistant","content":[{"type":"text","text":"No change since the last check-in."}]}}' > "$T/t321.jsonl"
+  p() { printf '{"session_id":"%s","cwd":"%s","transcript_path":"%s","stop_hook_active":false}' "$1" "$2" "$T/t321.jsonl"; }
+  out=$(p op9 "$R" | python3 "$S/reply_hook.py")
+  check "#321: the operation session's one-line check-in reply is blocked" 'echo "$out" | grep -q "\"decision\": \"block\""'
+  check "#321: the block names the five missing parts" 'echo "$out" | grep -q "the headline line, All sessions, Dependencies, Needs you and Coming up"'
+  check "#321: another session's one-line reply is not checked" '[ -z "$(p other "$R" | python3 "$S/reply_hook.py")" ]'
 }
 
 for c in "${cases[@]}"; do "case_$c"; done
