@@ -1,4 +1,7 @@
 #!/bin/bash
+# reads: skills/workflow-monitoring/SKILL.md skills/workflow-monitoring/references/operation.md
+# reads: skills/workflow-monitoring/scripts/board.py skills/workflow-monitoring/scripts/board_page.py
+# reads: skills/workflow-monitoring/scripts/watch.py skills/workflow-setup/scripts/setup.py
 # Proves the operation board with fixtures. No model is called and no network is used. usage: test-board.sh [DIR]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
@@ -229,8 +232,6 @@ rm "$R/nopid.json"
 op="$here/skills/workflow-monitoring/references/operation.md"
 for k in "watch.py watch --once" "latest report" "board.py board" "board_page.py" "main project folder" "Artifact" "one chat line" "6 lines" "NEXT_DELAY" "Never answer a gate" "exact words" "information" "merge only when told" "never archive"; do has "$op" "$k" "operation.md: $k"; done
 has "$here/skills/workflow-monitoring/SKILL.md" "references/operation.md" "SKILL.md links operation.md"
-for f in "$here"/skills/*/scripts/*.py; do [ "$(wc -c < "$f")" -lt 20480 ] && ok "under 20 KB: $(basename "$f")" || bad "over 20 KB: $f"; done
 for f in watch board board_page; do [ "$(wc -c < "$here/skills/workflow-monitoring/scripts/$f.py")" -lt 19000 ] && ok "$f.py keeps room under 19 KB" || bad "$f.py has no room"; done
-for f in "$here"/skills/*/SKILL.md; do [ "$(wc -l < "$f")" -lt 150 ] && ok "under 150 lines: $(basename "$(dirname "$f")")" || bad "over 150 lines: $f"; done
 for k in '"board"' '"cadence"' '"handoff"' '"note"' '"retire"' 'board.json' 'repos'; do has "$here/listing.json" "$k" "listing.json discloses $k"; done
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

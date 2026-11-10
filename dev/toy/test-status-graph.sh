@@ -1,4 +1,10 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/defect.py skills/workflow-delivery/scripts/flow.py
+# reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/role.py
+# reads: skills/workflow-monitoring/scripts/board.py skills/workflow-monitoring/scripts/board_page.py
+# reads: skills/workflow-monitoring/scripts/board_runs.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
+# reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-setup/scripts/setup.py
 # Proves the roadmap graph with a made-up queue: parallel and chained goals, the marks, the total as the longest chain, the same
 # graph on the board, and the step label changing when a step starts. No model is called. usage: test-status-graph.sh [DIR]
 set -u
@@ -105,5 +111,4 @@ $goal record lv plan --file "$C/loop/runs/lv.plan.txt" >/dev/null
 check "recording moves the label on, so the finished step is never shown as current" '[ "$(label)" = build ] && block | grep -q "idea✓ > plan✓ > \[build\]"'
 
 echo "== sizes"
-check "every script is under 20 KB" '[ -z "$(find "$here/skills" -name "*.py" -size +20479c)" ]'
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

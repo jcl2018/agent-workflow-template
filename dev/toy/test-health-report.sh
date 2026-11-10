@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/workflow-health/scripts/health.py skills/workflow-setup/scripts/setup.py
 # Test the formal health report and filing by group on a toy repo with a fake gh. usage: test-health-report.sh [DIR]
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)

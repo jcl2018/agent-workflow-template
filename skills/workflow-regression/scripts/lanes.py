@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Reuse a branch's last regression run: the test record, and which rows a change since then can affect.
 
-Imported by regression.py (`run ... --reuse`), not run. The record lives outside the worktree, in
+Imported by regression.py (`run ... --reuse`) and lanes_cli.py (`affected`, `deps`, `check`). The record lives in
 <git common dir>/loop/tests/<branch>-<sha8>.json: {schema, runner, worktree, command, at, commit,
 rows: {id: {status: PASS|FAIL|KNOWN, seconds, commit}}}. A row is reused only when it passed (or is a known failure)
 on HEAD or an ancestor of HEAD and nothing it reads changed since; anything this file can't map reruns everything.
+A test script whose leading comment block has `# reads: <path>...` lines is mapped narrowly (declared entry points plus
+what they reach, no folder widening); a script without one keeps the wide mapping; LANES_WIDE=1 forces wide everywhere.
 """
 import fcntl
 import hashlib
@@ -13,6 +15,8 @@ import os
 import re
 import subprocess
 import sys
+
+import narrow
 
 # No terminal, no waiting: a prompt from git must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -31,6 +35,8 @@ ROOT = re.compile(r"\$\{?here\}?/?(?=[\s\"')]|$)")
 RUNNER = "skills/workflow-regression/scripts/regression.py"  # rows that reach it read .loop/regression.tsv
 SKILL_NAME = re.compile(r"\bworkflow-[a-z]+\b")
 IMPORT = re.compile(r"^\s*(?:import|from)\s+([A-Za-z_]\w*)", re.M)
+HERE_FORMS = re.compile(r'"\$\{?here\}?"/|\$\{here\}/')  # "$here"/x, "${here}"/x and ${here}/x all mean $here/x
+CD_SKILLS = re.compile(r"cd\s+\"?\$\{?here\}?\"?\s*[;&|\n][^\n]*?(?<![\w./$-])skills(?:/\.)?(?=[\s\"')]|$)")
 
 
 def git(root, *args):
@@ -41,7 +47,7 @@ def git(root, *args):
 def runner():
     here = os.path.dirname(os.path.abspath(__file__))
     digest = hashlib.sha256()
-    for name in ("regression.py", "lanes.py"):
+    for name in ("regression.py", "lanes.py", "narrow.py"):
         with open(os.path.join(here, name), "rb") as handle:
             digest.update(handle.read())
     return digest.hexdigest()[:12]
@@ -115,33 +121,43 @@ def widen(path):
     return "skills/%s/" % parts[1] if parts[0] == "skills" and len(parts) > 1 else path
 
 
-def references(root, text, folder):
-    """Repo paths a text names: files, folders (as prefixes ending /), and whether it names the whole repo."""
+def references(root, text, folder, wide=True):
+    """Repo paths a text names (folders end /) and whether it names the whole repo; wide=False: no widening, no
+    skill-name words."""
+    text = HERE_FORMS.sub("$here/", text)
     found, whole = set(), bool(ROOT.search(text))
-    if BARE.search(text):
+    if BARE.search(text) or (not wide and CD_SKILLS.search(text)):
         found.add("skills/")
-    for name in SKILL_NAME.findall(text):
+    for name in SKILL_NAME.findall(text) if wide else ():
         found.add("skills/%s/" % name)
     for raw in PATH.findall(text):
         raw = raw.rstrip(".")
         for cand in {raw, os.path.normpath(os.path.join(folder, raw))}:
             full = os.path.join(root, cand)
             if os.path.isdir(full):
-                found.add(widen(cand.rstrip("/") + "/"))
+                cand = cand.rstrip("/") + "/"
+                found.add(widen(cand) if wide else cand)
             elif os.path.isfile(full):
-                found.add(widen(cand))
+                found.add(widen(cand) if wide else cand)
     return found, whole
 
 
-def scan(root, rel, cache):
-    """The repo paths one file names; each file is read once per plan."""
-    files = cache.setdefault(None, {})
-    if rel not in files:
+def read(root, rel, cache):
+    texts = cache.setdefault("text", {})
+    if rel not in texts:
         try:
             with open(os.path.join(root, rel), errors="replace") as handle:
-                text = handle.read(400000)
+                texts[rel] = handle.read(400000)
         except OSError:
-            text = ""
+            texts[rel] = None
+    return texts[rel]
+
+
+def scan(root, rel, cache):
+    """The repo paths one file names (wide); each file is read once per plan."""
+    files = cache.setdefault(None, {})
+    if rel not in files:
+        text = read(root, rel, cache) or ""
         more, _ = references(root, text, os.path.dirname(rel))  # a script's own `cd "$here"` reads nothing by itself
         if rel.endswith(".py"):
             more |= {os.path.join(os.path.dirname(rel), m + ".py") for m in IMPORT.findall(text)
@@ -155,10 +171,10 @@ def walk(root, prefix):
             for n in names if "__pycache__" not in here]
 
 
-def closure(root, command, cache):
-    """(dependency paths, always-run) for a row command, following every file it reaches."""
-    if command in cache:
-        return cache[command]
+def wide_closure(root, command, cache):
+    """(dependency paths, always-run) for a row command, following every file it reaches, folders widened."""
+    if ("wide", command) in cache:
+        return cache["wide", command]
     deps, whole = references(root, command, "")
     always = whole or not deps
     todo, seen = [p for p in deps if not p.endswith("/")], set()
@@ -172,8 +188,27 @@ def closure(root, command, cache):
         for path in scan(root, rel, cache) - deps:
             deps.add(path)
             todo += walk(root, path) if path.endswith("/") else [path]
-    cache[command] = (deps, always)
-    return cache[command]
+    cache["wide", command] = (deps, always)
+    return cache["wide", command]
+
+
+def closure(root, command, cache):
+    """(deps, always) for a row command: narrow when a file it names has a header, else wide; a problem means always."""
+    if ("closure", command) in cache:
+        return cache["closure", command]
+    found, whole = references(root, command, "", wide=False)
+    named = [p for p in found if not p.endswith("/")]
+    seeds = [p for p in named if narrow.header(root, p, cache)[0] is not None or narrow.header(root, p, cache)[1]]
+    if os.environ.get("LANES_WIDE") == "1" or not seeds:
+        cache["closure", command] = wide_closure(root, command, cache)
+        return cache["closure", command]
+    deps, problems, parent = narrow.narrow(root, seeds, cache)
+    for path in [p for p in found if p not in deps and p not in seeds]:
+        deps |= wide_closure(root, path, cache)[0] | {path}
+    cache["why", command] = " ".join(map(str, problems[0][:1] + problems[0][3:])) if problems else ""
+    cache["chain", command] = parent
+    cache["closure", command] = (deps, whole or bool(problems))
+    return cache["closure", command]
 
 
 def named(root, command, cache):
@@ -189,6 +224,22 @@ def hits(path, deps):
     return path in deps or any(d.endswith("/") and path.startswith(d) for d in deps)
 
 
+def touches(root, command, path, cache):
+    """Whether a change to path can affect a row (shared by plan() and affected())."""
+    deps, _ = closure(root, command, cache)
+    if any(path == n or (n.endswith("/") and path.startswith(n)) for n in NO_EFFECT):
+        return hits(path, named(root, command, cache))  # release and loop files: only a row naming one
+    return hits(path, deps)
+
+
+def deleted(root, commit):
+    """Deleted paths under skills/ or dev/ since commit or in the worktree: a vanished file drops edges, so run all."""
+    out = (git(root, "diff", "--name-status", "--no-renames", "%s..HEAD" % commit) or "").splitlines()
+    out += (git(root, "status", "--porcelain", "--no-renames") or "").splitlines()
+    gone = [line.split()[-1] for line in out if line[:2].strip() == "D" or line.startswith("D")]
+    return sorted({p for p in gone if p.startswith(("skills/", "dev/"))})
+
+
 def table(root, commit, name, memo):
     """The rows of a .loop table at a commit, as {id: line}."""
     if (commit, name) not in memo:
@@ -200,15 +251,21 @@ def table(root, commit, name, memo):
 def plan(root, selected, record, current_tsv, current_known):
     """Decide each selected row: (to_run ids, reused ids, notes, full reason or '')."""
     rows, cache, notes, memo = record["rows"], {}, [], {}
+    every = [r["id"] for r in selected]
     failed = [r["id"] for r in selected if rows.get(r["id"], {}).get("status") == "FAIL"]
     if failed:
-        return [r["id"] for r in selected], [], notes, "record has FAIL rows %s" % ", ".join(failed[:10])
+        return every, [], notes, "record has FAIL rows %s" % ", ".join(failed[:10])
     run, reuse, since, kin = [], [], {}, {}
     for row in selected:
         rid, prior = row["id"], rows.get(row["id"])
         deps, always = closure(root, row["command"], cache)
+        if cache.get(("why", row["command"])):
+            notes.append("ALWAYS %s: %s" % (rid, cache["why", row["command"]]))
         if prior and prior["commit"] not in kin:
             kin[prior["commit"]] = ancestor(root, prior["commit"])
+            gone = deleted(root, prior["commit"]) if kin[prior["commit"]] else []
+            if gone:
+                return every, [], notes, "deleted %s" % " ".join(gone[:5])
         if always or not prior or not kin[prior["commit"]]:
             run.append(rid)
             continue
@@ -221,13 +278,11 @@ def plan(root, selected, record, current_tsv, current_known):
                     or hits(RUNNER, deps)
             elif path == ".loop/regression-known.tsv":
                 stale = table(root, prior["commit"], "regression-known.tsv", memo).get(rid) != current_known.get(rid)
-            elif any(path == n or (n.endswith("/") and path.startswith(n)) for n in NO_EFFECT):
-                stale = hits(path, named(root, row["command"], cache))  # release and loop files: only a row naming one
-            elif hits(path, deps):
+            elif touches(root, row["command"], path, cache):
                 stale = True
             elif not any(hits(path, closure(root, other["command"], cache)[0]) for other in selected):
                 notes.append("UNMAPPED %s: full run" % path)
-                return [r["id"] for r in selected], [], notes, "unmapped change %s" % path
+                return every, [], notes, "unmapped change %s" % path
             if stale:
                 break
         (run if stale else reuse).append(rid)

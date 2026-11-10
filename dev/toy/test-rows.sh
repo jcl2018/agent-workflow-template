@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/
 # One small test for each Delivery criterion, so a regression row doesn't run a whole toy script.
 # usage: test-rows.sh ID   exits non-zero if the criterion doesn't hold. No model is called.
 set -u

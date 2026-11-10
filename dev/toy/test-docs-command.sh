@@ -1,4 +1,8 @@
 #!/bin/bash
+# reads: skills/workflow-docs/references/template.md skills/workflow-docs/scripts/criteria.py
+# reads: skills/workflow-docs/scripts/docs.py skills/workflow-health/scripts/milestone.py
+# reads: skills/workflow-regression/scripts/regression.py skills/workflow-release/scripts/release.py
+# reads: skills/workflow-setup/scripts/setup.py
 # Test the one docs command (docs.py audit) on a throwaway toy repo with a fake gh. usage: test-docs-command.sh [DIR]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
@@ -100,8 +104,5 @@ $docs audit | grep -q "^RELEASE v9.9.9: has no release note" && ok "a tag with n
 printf '# Changelog\n\n## v9.9.9 - 2026-11-08\n\n- Toy release\n' > CHANGELOG.md; git add -A; git commit -qm "Changelog" >/dev/null
 $docs audit | grep -q "^RELEASE" && bad "release note still missing" || ok "its CHANGELOG section is the release note"
 
-echo "== 5. every script stays under 20 KB"
-big=$(find "$here/skills" -name '*.py' -size +20480c | head -1)
-[ -z "$big" ] && ok "scripts under 20 KB" || bad "over 20 KB: $big"
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

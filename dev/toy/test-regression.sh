@@ -1,4 +1,7 @@
 #!/bin/bash
+# reads: skills/workflow-docs/scripts/audit.py skills/workflow-docs/scripts/criteria.py
+# reads: skills/workflow-docs/scripts/docs.py skills/workflow-docs/scripts/prd.py
+# reads: skills/workflow-regression/scripts/regression.py skills/workflow-setup/scripts/setup.py
 # Test workflow-regression on a throwaway toy repo with a fake gh. usage: test-regression.sh [DIR]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool

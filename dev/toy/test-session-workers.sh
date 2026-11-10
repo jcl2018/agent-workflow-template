@@ -1,4 +1,12 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/goal.py
+# reads: skills/workflow-monitoring/scripts/board.py skills/workflow-monitoring/scripts/board_page.py
+# reads: skills/workflow-monitoring/scripts/board_runs.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
+# reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/operate.py
+# reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/status_graph.py
+# reads: skills/workflow-monitoring/scripts/watch.py skills/workflow-monitoring/scripts/worker.py
+# reads: skills/workflow-setup/scripts/setup.py
 # Proves worker sessions with a stand-in session tool: assignment, renaming, the report path, reuse of a finished
 # session for the next goal, the background fallback, steps run inside the session, and issue 98 (a goal moved into a
 # session shows with its session name and step, never as a failed background worker). No model is called.
