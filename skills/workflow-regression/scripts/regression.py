@@ -46,7 +46,7 @@ ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$")
 FIELDS = ("id", "level", "command", "goal", "seen_red", "description", "category", "link")
 SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date; "", "-" or any other text is never seen failing
 HEADER = "# " + "\t".join(FIELDS) + "\n"
-CRON = "17 9 * * *"
+CRON = "17 */4 * * *"
 MARK = "<!-- loop-regression %s -->"
 def run(args, cwd=None):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
@@ -271,6 +271,7 @@ def sync_issues(results, live):
     issues = []
     if live:
         gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
+        gh("label", "create", "defect", "--description", "A test that guards it is failing")
         out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200",
                  "--json", "number,state,body,comments")
         if out.returncode:
@@ -289,9 +290,10 @@ def sync_issues(results, live):
             if not live:
                 print("WOULD open or update the issue for " + item["id"])
             elif not hit:
-                gh("issue", "create", "--title", "Regression: " + item["id"], "--label", "regression", "--body", body)
+                gh("issue", "create", "--title", "Regression: " + item["id"], *("--label=" + n for n in actions.LABELS), "--body", body)
                 print("OPENED issue for " + item["id"])
             else:
+                gh("issue", "edit", number, "--add-label", "defect")
                 if hit.get("state") != "OPEN":
                     gh("issue", "reopen", number)
                     print("REOPENED issue %s" % number)

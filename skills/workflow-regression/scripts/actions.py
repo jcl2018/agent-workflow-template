@@ -10,7 +10,8 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
-            "REGRESSION_RESULTS", "RUNNER_TEMP")
+            "REGRESSION_RESULTS", "REGRESSION_MAP", "RUNNER_TEMP")
+LABELS = ("regression", "defect")  # the tool's own label (lookup and digest), and the defect label every failing row carries
 
 
 def row_env():
@@ -21,9 +22,7 @@ def row_env():
 WORKFLOW = r"""# Written by workflow-regression. It reads .loop/regression.tsv and .loop/regression-known.tsv.
 name: regression
 on:
-  schedule:
-    - cron: "@CRON@"
-  push:
+@SCHEDULE@  push:
     tags: ["v*"]
   workflow_dispatch:
 permissions:
@@ -44,11 +43,32 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Check the routine
+        id: routine
+        run: |
+          cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("regression_cron") or "")' 2>/dev/null || true)
+          if [ "$cron" = off ]; then
+            echo "on=false" >> "$GITHUB_OUTPUT"
+            echo "OFF: regression is off in .loop/config.json (regression_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "on=true" >> "$GITHUB_OUTPUT"
+          if [ -n "$cron" ] && [ "$cron" != "@CRON@" ]; then
+            said="SCHEDULE: this workflow runs on '@CRON@' but .loop/config.json says '$cron'. Fix: python3 skills/workflow-regression/scripts/regression.py workflow"
+            echo "::warning::$said"; echo "$said" >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Run the rows, and keep one issue per failing row
+        if: steps.routine.outputs.on == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv  # the runner's own file, in no row's environment
         run: |
+          here=$(mktemp -d)  # a private folder: what each row guards, read before any row runs
+          cat > "$here/tests.py" <<'TESTS_PY_EOF'
+@TESTS@
+          TESTS_PY_EOF
+          python3 -I "$here/tests.py" list --tsv > "$here/map.tsv" 2>/dev/null || true
+          export REGRESSION_MAP="$here/map.tsv"
           python3 - <<'PY'
           import json, os, subprocess, sys, tempfile, time
           def rows(path):
@@ -89,6 +109,8 @@ jobs:
               with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "a") as handle:
                   handle.write("%s\t%s\n" % (name, state))
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
+          gh("label", "create", "defect", "--description", "A test that guards it is failing")  # an existing one keeps its colour
+          guards = {cells[1]: cells for cells in rows(os.environ.get("REGRESSION_MAP") or os.devnull) if len(cells) > 4}
           out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body")
           issues = json.loads(out.stdout or "[]")
           red, start = [], time.time()
@@ -113,18 +135,22 @@ jobs:
                           gh("issue", "close", str(item["number"]), "--comment", "Passing again.")
               elif row[0] not in known:
                   red.append(row[0])
-                  body = "%s\nThe row `%s` %s.\n\n```\n%s\n```\n" % (mark, row[0], "was skipped" if skipped else "fails",
-                                                               said[-1500:].replace("`" * 3, "'" * 3))
+                  cells = guards.get(row[0]) or [""] * 5
+                  about = "- Feature: %s\n- Guards: %s\n- Checks: %s\n\n" % (cells[0] or "-", cells[3] or "-", cells[4] or "-")
+                  body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "was skipped" if skipped else "fails", about,
+                                                                 said[-1500:].replace("`" * 3, "'" * 3))
                   if not hit:
-                      gh("issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--body", body)
+                      gh("issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect",
+                         "--body", body)
                   else:
                       if hit["state"] != "OPEN":
                           gh("issue", "reopen", str(hit["number"]))
+                      gh("issue", "edit", str(hit["number"]), "--add-label", "defect")
                       gh("issue", "comment", str(hit["number"]), "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
           sys.exit(1 if red else 0)
           PY
       - name: Write the run summary, one table per feature
-        if: always()
+        if: always() && steps.routine.outputs.on == 'true'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -147,7 +173,7 @@ jobs:
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "TESTS_PY_EOF")  # what Actions or this writer would read as its own
+UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "TESTS_PY_EOF")  # what Actions or this writer would read as its own
 
 
 def render(cron):
@@ -159,7 +185,9 @@ def render(cron):
     if bad:
         sys.exit("REFUSED: tests.py contains %s, which the workflow can't carry. Fix: reword that line" % bad[0])
     body = "\n".join(("          " + line).rstrip() for line in source.rstrip("\n").split("\n"))
-    return WORKFLOW.replace("@CRON@", cron).replace("@ROWDROP@", repr(ROW_DROP)).replace("@TESTS@", body)
+    schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron  # off: by hand only, and the run says so
+    return WORKFLOW.replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@ROWDROP@", repr(ROW_DROP)) \
+        .replace("@TESTS@", body)
 
 
 def write(root, default):
@@ -168,8 +196,8 @@ def write(root, default):
             cron = json.load(handle).get("regression_cron") or default
     except (OSError, ValueError):
         cron = default
-    if len(cron.split()) != 5 or '"' in cron:
-        sys.exit("REFUSED: regression_cron is not five cron fields. Fix: edit .loop/config.json.")
+    if cron != "off" and (len(cron.split()) != 5 or '"' in cron or "'" in cron):
+        sys.exit("REFUSED: regression_cron is not five cron fields or off. Fix: edit .loop/config.json.")
     path = os.path.join(root, ".github", "workflows", "regression.yml")
     if os.path.exists(path):
         with open(path) as handle:

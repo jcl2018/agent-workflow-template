@@ -25,8 +25,8 @@ Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.l
 - REG-1: **Reviewed 2026-11-08** Two kinds of tests. The suite has two categories: criteria tests, which prove each Reviewed criterion, and defect tests, one for every finding, issue or bug that gets fixed, which prove it stays fixed. A criterion with no passing test shows as not enforced, and a fix isn't finished until its defect test exists and passes. <!-- reviewed 43753494 -->
 - REG-2: **Reviewed 2026-11-08** Test format. Every test is listed in one fixed format, grouped by feature, wherever tests are shown (the wiki, the GitHub run summary, the health report): its category (requirement or defect); what it guards (the requirement's ID and words, or a link to the issue or finding it came from, with that issue's state); what it checks in one plain line; when it runs; its last result and date; and whether it has been seen failing once. <!-- reviewed e1571cd8 -->
 - REG-3: **Reviewed 2026-11-08** One command runs it, the same way for me, the loop and GitHub. <!-- reviewed fccc7d92 -->
-- REG-4: **Reviewed 2026-11-08** Runs in GitHub Actions: the routine run lives in GitHub Actions, not a session, on every push and nightly, with the schedule as a setting I can change (e.g. hourly). <!-- reviewed 9fce961f -->
-- REG-5: **Reviewed 2026-11-08** Failures go to GitHub: one issue per failing test, updated, closed on pass; known failures don't block; no token = preview only. <!-- reviewed 8074710d -->
+- REG-4: **Reviewed 2026-11-08** Runs in GitHub Actions: one command runs the suite the same way for me, the loop and GitHub Actions. <!-- reviewed 3c1eb292 -->
+- REG-5: **Reviewed 2026-11-08** Failures go to GitHub: one issue per failing test, labeled defect, updated, closed on pass; known failures don't block; no token = preview only. <!-- reviewed 3cda2699 -->
 - REG-6: **Reviewed 2026-11-09** Temporary, until the PRD format replaces the criteria pages: a goal runs the full suite once, in qa; ship and release reuse qa's recorded run when no code changed since it, and otherwise run only the rows for the files changed after it. <!-- reviewed 8a250f7d -->
 
 ## Non-goals

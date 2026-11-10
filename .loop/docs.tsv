@@ -1,4 +1,5 @@
 # page<TAB>paths it describes, comma separated
+Automation	skills/workflow-health/scripts/automation.py,.github/workflows
 Delivery	skills/workflow-delivery,skills/workflow-release
 Documentation	skills/workflow-docs,skills/workflow-health/scripts/milestone.py,dev/toy/fakegh
 Health	skills/workflow-health

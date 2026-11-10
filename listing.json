@@ -99,7 +99,8 @@
     "convert",
     "skeleton",
     "summary",
-    "issues"
+    "issues",
+    "digest"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
