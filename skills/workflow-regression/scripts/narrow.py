@@ -24,7 +24,7 @@ def header(root, rel, cache):
     if key in cache:
         return cache[key]
     text, paths, problems, lead = lanes.read(root, rel, cache), [], [], True
-    if text is None:
+    if text is None or not (rel.endswith(".sh") or "." not in os.path.basename(rel)):  # headers live in shell files
         cache[key] = (None, [])
         return cache[key]
     code = "\n".join(line for line in text.split("\n") if not line.lstrip().startswith("#"))

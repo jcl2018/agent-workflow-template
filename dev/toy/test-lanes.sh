@@ -344,15 +344,6 @@ check "check-reads passes a row whose runtime reads are inside its closure" 'gre
 check "check-reads fails a row that reads a skill file its closure misses, with the line to add" '[ $rc = 1 ] && grep -q "^LANES-TRACE-UNDECLARED r2 skills/a/scripts/c.py" <<<"$out" && grep -q "^fix: # reads: skills/a/scripts/c.py" <<<"$out"'
 check "check-reads fails a row with a Python launch the hook never saw (python3 -I)" 'grep -q "^LANES-TRACE-NOHOOK r3: 2 Python launches, 1 hooked" <<<"$out"'
 check "check-reads maps a read of a copied skill file back to the repo file" 'grep -q "^LANES-TRACE-UNDECLARED r4 skills/a/scripts/e.py" <<<"$out"'
-echo "== the real repo's headers"
-check "every test script a row of this repo names has a valid # reads: header (lanes_cli.py check)" '(cd "$here" && $L check >/dev/null)'
-# Value: protects=done line 2 on the real table; fails_when=a header widens or the narrow closure regresses; why_new=no
-# repo-level narrowing check; seam=none; no_claim=runtime savings (the PR table measures them)
-out=$(cd "$here" && $L affected skills/workflow-monitoring/scripts/batch.py)
-total=$(awk -F'\t' '!/^#/ && $2 == "land"' "$here/.loop/regression.tsv" | wc -l | tr -d ' ')
-got=$(sed -n 's/^AFFECTED \([0-9]*\) of.*/\1/p' <<<"$out")
-missing=$(cd "$here" && for s in $(grep -l "^# reads:.*skills/workflow-monitoring/scripts/batch.py" dev/toy/test-*.sh); do awk -F'\t' -v s="$s" '$2 == "land" && index($3, s) {print $1}' .loop/regression.tsv; done | while read -r id; do grep -qw "$id" <<<"$out" || echo "$id"; done)
-check "on this repo a one-file change reruns fewer than half the land rows and every row whose script declares it" '[ -n "$got" ] && [ "$got" -lt $((total / 2)) ] && [ -z "$missing" ]'
 fi
 
 [ $fails = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

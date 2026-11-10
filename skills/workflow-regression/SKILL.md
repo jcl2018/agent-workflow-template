@@ -82,7 +82,8 @@ python3 scripts/regression.py run land --reuse
 Reuses this branch's last run, kept outside the worktree in `<git common dir>/loop/tests/<branch>-<sha8>.json` (each
 row's result and the commit it ran on). A row is reused only when it passed, or is a known failure, on HEAD or an
 ancestor, and no file it reads changed since. What a row reads is every repo path its command names, followed through
-the files they name (a skill folder counts as a whole). It prints one of:
+the files they name: narrowly when a test script it names has a `# reads:` header (below), else with a skill folder
+counting as a whole. It prints one of:
 
 | Line | Means |
 |---|---|
@@ -90,6 +91,8 @@ the files they name (a skill folder counts as a whole). It prints one of:
 | `AFFECTED <n> of <m> rows (<ids>): <files>` | Only the rows the changed files can affect ran |
 | `FULL: <reason>` | Every row ran: no record, an unreadable one, one with a failing row, or a moved base |
 | `UNMAPPED <file>: full run` | A changed file no row reads, outside the docs and release files: every row ran |
+| `FULL: deleted <file>` | A file under `skills/` or `dev/` was deleted: every row ran |
+| `ALWAYS <id>: <code> <what>` | A row whose header has a problem; it runs on every change until fixed |
 | `NOT RECORDED: <reason>` | Uncommitted changes or a detached HEAD: tested, but the record is unchanged |
 | `NOT RECORDED: the rows left uncommitted files: <files>; record dropped` | The rows left files behind: the record is deleted, so the next run is full |
 
@@ -98,6 +101,12 @@ failure counts as known. A reusing run
 writes nothing in the worktree and opens no issue: a failure shows in its exit status and output (the last 20 lines of
 each failing row), and the plain `run` in GitHub Actions keeps the issues. A plain `run` forces every row and rewrites
 the record. Try it on a toy repo: `bash dev/toy/test-lanes.sh "" regression` (in this repo) walks every case.
+
+**Declare what a test script runs.** Put `# reads: <path> <path>...` lines in the test script's top comment block:
+the skill files it runs, or `skills/` if it reads every skill (it then stays wide). Then `python3
+scripts/lanes_cli.py check <script>` (problems, each with a fix line) and `python3 scripts/lanes_cli.py affected
+<file>` (the rows a change reruns). Headerless scripts keep the wide mapping; `LANES_WIDE=1` forces it everywhere.
+Rules, codes and the nightly read trace: `references/commands.md`, "Narrow rows".
 
 ## `workflow`
 
