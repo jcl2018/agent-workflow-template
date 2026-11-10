@@ -113,6 +113,24 @@ def _read(path):
         return {}
 
 
+def port_base():
+    """(fd, base) for a lane's own ports (REG-8): flock the first free port-N file (N 0..99) in the pool and return
+    20000 + 100 * N, held while fd stays open; (None, why) when the pool is unavailable or all 100 are held."""
+    try:
+        pool = lanes_dir()
+        check(pool)
+        for number in range(100):
+            fd = _open(os.path.join(pool, "port-%d" % number))
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return fd, 20000 + 100 * number
+            except BlockingIOError:
+                os.close(fd)
+    except OSError as error:
+        return None, "port pool unavailable: %s" % error
+    return None, "no port lease free (100 in use)"
+
+
 def held(pool):
     """A nested run: _LOOP_LANE_HELD names this pool's slot, still locked by the pid it names."""
     parts = os.environ.get("_LOOP_LANE_HELD", "").rsplit(":", 2)

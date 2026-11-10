@@ -265,6 +265,9 @@ def lane(runs, slug, name, spec, cfg, wait=90):
                    _LOOP_LANE_QUEUED=held["rc"] + ".queued", _LOOP_LANE_STARTED=held["rc"] + ".started",
                    _LOOP_LANE_NOTE=held["rc"] + ".note")
         env.pop("_LOOP_LANE_HELD", None)
+        env["TMPDIR"] = base + ".tmp"  # REG-8: its own temp folder, emptied at each start
+        shutil.rmtree(env["TMPDIR"], ignore_errors=True)
+        os.makedirs(env["TMPDIR"])
         with open(base + ".txt", "w") as log:
             if line:
                 log.write(line + "\n")
@@ -350,7 +353,12 @@ def lane_exec(rc, seconds, last, attempt, pool, argv):
     """A lane's child: run the lane in this process's own group; enforce the deadline (time limit from the started marker,
     the queue span while queued, 4x while planning) by killing the group; write .last ended, then the exit status."""
     held = {"rc": rc, "limit": seconds, "started": time.time(), "pool": pool, "markers": 1}
-    child, seen = subprocess.Popen(argv), None
+    lease, port = slots.port_base()  # REG-8: its own ports, held while this child lives
+    if lease is None:
+        with open(rc + ".note", "a") as note:
+            note.write("Note: %s; LOOP_LANE_PORT_BASE unset\n" % port)
+    env = dict(os.environ, **({"LOOP_LANE_PORT_BASE": str(port)} if lease is not None else {}))
+    child, seen = subprocess.Popen(argv, env=env), None
     try:
         while True:
             try:
