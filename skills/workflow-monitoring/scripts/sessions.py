@@ -186,7 +186,8 @@ def assign(state, prompt, cfg):
     with locked():  # an operator's bind during the send wins: never overwrite it
         found = pool()
         entry, current = found.get(sid) or {}, load(slug) or state
-        if entry.get("slug") != slug or entry.get("state") != "busy" or (current.get("session") or {}).get("id") not in (None, sid, before):
+        if entry.get("slug") != slug or entry.get("state") != "busy" or current.get("bound_at") != start.get("bound_at") or (
+                current.get("session") or {}).get("id") not in (None, sid, before):
             if entry.get("slug") == slug and entry.get("state") == "busy":
                 entry["state"] = "free"
                 save_pool(found)
@@ -232,6 +233,8 @@ def alive(pid):
 
 def cmd_assign(args):
     state = held(args.slug)
+    if state.get("status") in ("running", "waiting", "done") and (state.get("session") or state.get("pid")):
+        sys.exit("REFUSED: %s is %s with a worker; nothing was sent. Fix: free it first (sessions.py free)." % (args.slug, state["status"]))
     if not assign(state, args.text, config()):
         print("BACKGROUND %s: %s" % (args.slug, state["worker_why"]))
         return 1
