@@ -112,7 +112,8 @@ skipped, reported `SKIPPED`, and fails with an issue. Each row's result is saved
 always runs writes the run summary: one header with totals and the run time, then one table per feature (`tests.py
 summary`). If that fails, the plain results still reach the summary. Rows run with no GitHub token and none of the
 runner's own files (`GITHUB_STEP_SUMMARY`, `GITHUB_ENV`, `GITHUB_OUTPUT`, `GITHUB_PATH`, `GITHUB_STATE`) in their
-environment, so a toy test can't write into the real summary, and the checkout keeps no token in its git config.
+environment, so no row inherits the real summary (rows run as the same user, so this stops accidents like a toy test's
+fixture tables, not a hostile row), and the checkout keeps no token in its git config.
 `regression.py run` gives its rows the same environment.
 
 ## `list [--markdown|--tsv]`, `summary`, `issues [--write]` (scripts/tests.py)

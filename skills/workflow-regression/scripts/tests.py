@@ -46,9 +46,10 @@ def tsv(root, name):
         return [line.rstrip("\n").split("\t") for line in handle if line.strip() and not line.startswith("#")]
 
 
-def cell(text):
-    """One table cell: whitespace runs (newlines too) collapsed, and | escaped so it can't split a column."""
-    return " ".join(str(text).split()).replace("|", "\\|") or "-"
+def cell(text, raw=False):
+    """One table cell: whitespace runs (newlines too) collapsed, and | escaped so it can't split a column (kept for --tsv)."""
+    text = " ".join(str(text).split()) or "-"
+    return text if raw else text.replace("|", "\\|")
 
 
 def features(root):
@@ -100,16 +101,16 @@ def guard(row, found, issues, markdown):
     return "done line " + row[3] if re.match(r"^[\w-]+:\d+$", row[3]) else "-"
 
 
-def fields(row, found, ran, issues, markdown=False):
+def fields(row, found, ran, issues, markdown=False, raw=False):
     """The one fixed format for one row (all 8 columns of regression.tsv): test, kind, guards, checks, runs, last
     result and date, seen failing."""
     status, day = ran.get(row[0], ("not run", ""))
-    return [cell(item) for item in (row[0], KIND.get(row[6] or "criterion", row[6]), guard(row, found, issues, markdown),
+    return [cell(item, raw) for item in (row[0], KIND.get(row[6] or "criterion", row[6]), guard(row, found, issues, markdown),
                                     row[5] or "-", RUNS.get(row[1], row[1] or "-"), (status + " " + day).strip(),
                                     row[4] if SEEN.match(row[4]) else "no")]
 
 
-def entries(root, results=None, markdown=False):
+def entries(root, results=None, markdown=False, raw=False):
     """[(feature, [fields])] in page order, then Other; rows in file order, draft rows left out. With results, only
     the rows that run reported, each with that run's state."""
     titles, found = features(root)
@@ -122,7 +123,7 @@ def entries(root, results=None, markdown=False):
     for name in order:
         row = rows.get(name) or [name, "", "", "-", "", "", "-", ""]
         key = key_of(row)
-        groups.setdefault(found[key][0] if key in found else OTHER, []).append(fields(row, found, ran, issues, markdown))
+        groups.setdefault(found[key][0] if key in found else OTHER, []).append(fields(row, found, ran, issues, markdown, raw))
     return [(title, groups[title]) for title in titles + [OTHER] if title in groups]
 
 
@@ -132,7 +133,7 @@ def table(header, lines):
 
 def cmd_list(args):
     out = []
-    for feature, lines in entries(args.root, markdown=args.markdown):
+    for feature, lines in entries(args.root, markdown=args.markdown, raw=args.tsv):
         if args.tsv:
             out += ["\t".join([feature] + each) for each in lines]
         elif args.markdown:
@@ -194,8 +195,8 @@ def cmd_issues(args):
         sys.stderr.write("ISSUES: cannot read issues (gh: %s). Fix: gh auth login, or set GH_TOKEN\n"
                          % (cause[0][:120] if cause else "not available"))
         return 1
-    old, day, out = issues_of(args.root), datetime.date.today().isoformat(), {}
-    for row in tsv(args.root, "regression.tsv"):
+    old, day, out, rows = issues_of(args.root), datetime.date.today().isoformat(), {}, tsv(args.root, "regression.tsv")
+    for row in rows:
         link = row[7] if len(row) > 7 else ""
         kind = re.match(r"^https?://\S+/(issues|pull)/\d+$", link)
         if row[6:7] != ["defect"] or not kind or link in out:
@@ -205,9 +206,11 @@ def cmd_issues(args):
         kept = old.get(link, ("unknown", day))  # a state that didn't change keeps its date, so a run leaves no churn
         out[link] = kept if done.returncode or not state or state == kept[0] else (state, day)
         print("ISSUE %s %s" % (link, out[link][0]))
-    if args.write:
-        with open(os.path.join(args.root, ".loop", "regression-issues.tsv"), "w") as handle:
+    if args.write and rows:  # no rows read: keep the recorded states rather than wipe them
+        path = os.path.join(args.root, ".loop", "regression-issues.tsv")
+        with open(path + ".new", "w") as handle:
             handle.write("# link\tstate\tdate\n" + "".join("%s\t%s\t%s\n" % (k, *v) for k, v in sorted(out.items())))
+        os.replace(path + ".new", path)  # whole or not at all
     return 0
 
 

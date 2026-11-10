@@ -29,6 +29,7 @@ on:
 permissions:
   contents: read
   issues: write
+  pull-requests: read  # the defect tests' pull request states
 concurrency:
   group: regression
   cancel-in-progress: false
@@ -133,7 +134,7 @@ jobs:
           cat > "$here/tests.py" <<'TESTS_PY_EOF'
 @TESTS@
           TESTS_PY_EOF
-          python3 -I "$here/tests.py" issues --write >/dev/null || true
+          timeout 120 python3 -I "$here/tests.py" issues --write >/dev/null || true  # never eats the job's last minutes
           started=$(sed -n 's/^# started //p' "$REGRESSION_RESULTS" 2>/dev/null || true)
           took=$(( $(date +%s) - ${started:-$(date +%s)} ))
           GH_TOKEN= python3 -I "$here/tests.py" summary --results "$REGRESSION_RESULTS" --took "$took" >> "$GITHUB_STEP_SUMMARY" || {

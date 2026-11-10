@@ -100,7 +100,7 @@ rm "$c/skills/workflow-regression/scripts/tests.py"
 out=$(python3 -B "$c/skills/workflow-health/scripts/health.py" check 2>/dev/null)
 python3 -B -c "import sys; sys.path.insert(0, '$c/skills/workflow-docs/scripts'); import criteria; assert criteria.tests_format() is None" 2>err.txt
 awk '/^TESTS$/{t=1; next} t && /^$/{exit} t' <<<"$out" | grep -q "^NOTE: the test list is unavailable" && tail -1 <<<"$out" | grep -q '^HEALTH: ' \
-  && grep -q "^NOTE: .*tests.py not found; Tests lines use the old shape" err.txt && ok "without tests.py, health and the wiki say so and keep working" || bad "missing tests.py"
+  && grep -q "^NOTE: .*tests.py not found or broken (FileNotFoundError); Tests lines use the old shape" err.txt && ok "without tests.py, health and the wiki say so and keep working" || bad "missing tests.py"
 rm -rf "$c"
 out=$(python3 -B "$here/skills/workflow-health/scripts/health.py" check 2>/dev/null)
 t=$(awk '/^TESTS$/{t=1; next} t && /^$/{exit} t' <<<"$out")
