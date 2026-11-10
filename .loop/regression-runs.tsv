@@ -136,6 +136,7 @@ settings-reference	PASS	2026-11-09
 setup-both-halves	PASS	2026-11-09
 size-fail	PASS	2026-11-09
 skill-says-governs	PASS	2026-11-09
+skill-size-116	FAIL	2026-11-10
 stale-found	PASS	2026-11-09
 stale-groups-defect	PASS	2026-11-09
 stale-merge-order	PASS	2026-11-09

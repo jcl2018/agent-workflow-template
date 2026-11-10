@@ -105,15 +105,9 @@ agent ends, the worker sends its result back as a prompt message in the run reco
 `waiting`, with the pull request), which the board shows; each change of step or status is in `reports` as it happens.
 `worker.py met SLUG N` marks a done line met; `worker.py send SLUG TEXT` leaves a message its agent sees next; `worker.py cleanup [--dry-run]` deletes merged `loop/*` branches no worktree has checked out (`git branch -d`, local only).
 
-Each check-in prints the live board (`scripts/live_board.py`, run by `board_status.py`), and `dashboard` and `board-artifact.html`
-carry the same content, always in this format: a `LIVE BOARD` header (repo, local time, version, health); Issues (only what is
-open now, a stuck worker first, each with its fix in plain words and the exact words to answer); Running goals (a 10-cell bar
-with percent and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current
-step in brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows; and one
-finish time. Merged work, history and totals are left out. The loop is in `references/operation.md`.
-Every operation-session check-in reply has one layout: a headline, All sessions, Dependencies, Needs you and, last, Coming
-up (`references/operation.md`); `scripts/reply_hook.py`, a Stop hook that `workflow-setup` installs with
-`setup.py --reply-hook`, blocks one that doesn't (never a worker's).
+Each check-in prints the live board (`scripts/live_board.py`, run by `board_status.py`), and `dashboard` and `board-artifact.html` carry the same content, always in this format: a `LIVE BOARD` header (repo, local time, version, health); Issues (only what is open now, a stuck worker first, each with its fix in plain words and the exact words to answer);
+Running goals (a 10-cell bar with percent and time left, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current step in brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows; and one finish time. Merged work, history and totals are left out. The loop is in `references/operation.md`.
+Every operation-session check-in reply has one layout: a headline, All sessions, Dependencies, Needs you and, last, Coming up (`references/operation.md`); `scripts/reply_hook.py`, a Stop hook that `workflow-setup` installs with `setup.py --reply-hook`, blocks one that doesn't (never a worker's).
 
 ## Statuses
 
