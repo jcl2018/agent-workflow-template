@@ -779,7 +779,8 @@ with the default the build follows unless the owner says otherwise:
   (`--cwd`, or a worker binding itself). With no folder known, assign and the operation's bind print only the hint.
   #160 stays open. Cross-model note: Codex (CEO phase) reads line 6 as unmet without the app-side change. The owner's
   word stands.
-- p1 plan approval (pending).
+- p1 plan approval: approved 2026-11-10 by the owner in the operation session, relayed by it: "Approve it". d1-d5 take
+  the defaults above.
 How it ran: /autoplan's guard refused (init_mismatch), so its stated fallback ran: CEO (HOLD SCOPE), DX (POLISH) and Eng
 (FULL) by hand, each with a native pass and a completed Codex outside voice (gpt-6-astra). Design was skipped (no UI
 scope).
@@ -788,15 +789,15 @@ scope).
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
-| CEO Review | `/plan-ceo-review` (autoplan fallback) | Scope & strategy | 1 | ISSUES OPEN (not logged: gate unapproved) | HOLD SCOPE; 3 native findings + 7 Codex (6 accepted, 1 owner decision) |
+| CEO Review | `/plan-ceo-review` (autoplan fallback) | Scope & strategy | 1 | CLEAR (gate approved 2026-11-10) | HOLD SCOPE; 3 native findings + 7 Codex (6 accepted, 1 owner decision) |
 | Outside Review | codex (gpt-6-astra), CEO/DX/Eng | Independent 2nd opinion | 3 | completed | 24 findings; 23 accepted, 1 carried to the gate (line 6) |
-| Eng Review | `/plan-eng-review` (autoplan fallback) | Architecture & tests (required) | 1 | ISSUES OPEN (not logged: gate unapproved) | 2 native + 9 Codex, all accepted; 0 critical gaps left |
+| Eng Review | `/plan-eng-review` (autoplan fallback) | Architecture & tests (required) | 1 | CLEAR (gate approved 2026-11-10) | 2 native + 9 Codex, all accepted; 0 critical gaps left |
 | Design Review | `/plan-design-review` | UI/UX gaps | 0 | skipped (no UI scope) | — |
-| DX Review | `/plan-devex-review` (autoplan fallback) | Developer experience gaps | 1 | ISSUES OPEN (not logged: gate unapproved) | 5/10 → 8/10; recovery: one command; 8 Codex accepted |
+| DX Review | `/plan-devex-review` (autoplan fallback) | Developer experience gaps | 1 | CLEAR (gate approved 2026-11-10) | 5/10 → 8/10; recovery: one command; 8 Codex accepted |
 
 - **OUTSIDE COVERAGE:** codex completed in CEO (7 findings), DX (8) and Eng (9); design phase skipped.
 - **CROSS-MODEL:** CEO 2/7 confirmed by both (1 disagreement with the owner's line-6 choice); DX 0/8 overlap (all accepted); Eng 0/9 overlap (all accepted; Codex caught two races the native pass rated mitigated).
-- **VERDICT:** no review CLEAR until the owner answers the gate; eng review required.
+- **VERDICT:** gate answered 2026-11-10 (p1 approved, "Approve it"; d1-d5 as defaulted); eng review required and done.
 
 **UNRESOLVED DECISIONS:**
-- p1: plan approval (owner gate, gate_rev 1)
+- none: p1 (plan approval, gate_rev 1) approved 2026-11-10, "Approve it".
