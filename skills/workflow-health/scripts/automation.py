@@ -26,7 +26,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 CRON = "47 */4 * * *"
-SECRET = "ANTHROPIC_API_KEY"
+KEY_NAME = "ANTHROPIC_API_KEY"  # the name of the Actions secret, not a secret
 GROUPS = "size,criteria,docs,hygiene"  # what a runner can read: cost and Mine need this machine's run records and files
 LABELS = ("regression", "health")  # the issues the digest follows: failing tests and health findings
 TITLE = "Automation digest"
@@ -126,7 +126,7 @@ def render(cron, secret):
 def settings(root):
     """(health_cron, judge_secret) from the config, or a REFUSED exit when either can't be written into a workflow."""
     cfg = config(root)
-    cron, secret = cfg.get("health_cron") or CRON, cfg.get("judge_secret") or SECRET
+    cron, secret = cfg.get("health_cron") or CRON, cfg.get("judge_secret") or KEY_NAME
     if cron != "off" and (len(cron.split()) != 5 or re.search(r"""["'$`\\]""", cron)):
         sys.exit("REFUSED: health_cron is not five cron fields or off. Fix: edit .loop/config.json.")
     if not re.match(r"^[A-Z_][A-Z0-9_]*$", secret):
@@ -214,7 +214,7 @@ def compose(login, note, ran, now_open, before, run_id):
     """The comment and the new state marker. Issues are named by number and link only: a title is never copied into
     the request an owner pastes into an agent."""
     new, still, fixed = set(now_open) - before, set(now_open) & before, before - set(now_open)
-    head = ("@%s " % login if login else "") + "Automation round, %s UTC" % datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+    head = ("@%s " % login if login else "") + "Automation round, %s UTC" % datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M")
     out = [head, ""] + ([note, ""] if note else []) + ["| Routine | Result |", "|---|---|"]
     out += ["| %s | %s |" % (name, said.replace("|", "\\|")) for name, said in ran] + [""]
     out += ["**New** (%d): %s" % (len(new), listed(new, now_open)), "",

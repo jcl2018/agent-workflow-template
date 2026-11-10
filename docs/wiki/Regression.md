@@ -96,20 +96,20 @@ One command runs it, the same way for me, the loop and GitHub.
 
 #### REG-4
 
-Runs in GitHub Actions: the routine run lives in GitHub Actions, not a session, on every push and nightly, with the schedule as a setting I can change (e.g. hourly).
+Runs in GitHub Actions: one command runs the suite the same way for me, the loop and GitHub Actions.
 
-- Given the nightly run, when it ends, then it writes a results table to the job summary. — [ci-summary](../../.loop/regression.tsv), requirement, guards REG-4, both, PASS 2026-11-09, seen failing 2026-11-07
-- Given a changed schedule setting, when the workflow is rewritten, then the Actions schedule changes. — [schedule-setting](../../.loop/regression.tsv), requirement, guards REG-4, both, PASS 2026-11-09, seen failing 2026-11-08
-- Given a schedule setting that is not a cron time, when it is applied, then it is refused. — [bad-schedule-refused](../../.loop/regression.tsv), requirement, guards REG-4, both, PASS 2026-11-09, seen failing 2026-11-08
+- Given the same test, when it runs locally, in the loop or in GitHub Actions, then it gets the same environment from the same command. — [reg-same-env](../../.loop/regression.tsv), requirement, guards REG-4, both, not run, seen failing no
+- **not enforced**: no passing test
 
 #### REG-5
 
-Failures go to GitHub: one issue per failing test, updated, closed on pass; known failures don't block; no token = preview only.
+Failures go to GitHub: one issue per failing test, labeled defect, updated, closed on pass; known failures don't block; no token = preview only.
 
 - Given a known failure, when the run happens, then it does not block the run or open an issue. — [known-no-block](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given no GitHub token, when a run happens, then it only prints what it would do. — [no-token-dry-run](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a failing test, when the run reports it, then one GitHub issue is opened. — [one-issue](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a known failure, when the GitHub run runs it, then its result is recorded KNOWN, not FAIL. — [known-recorded](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a failing test, when a local live run reports it, then its issue is labelled defect. — [reg-defect-label](../../.loop/regression.tsv), requirement, guards REG-5, both, not run, seen failing no
 
 #### REG-6
 

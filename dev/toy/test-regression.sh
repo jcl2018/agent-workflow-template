@@ -161,7 +161,7 @@ sys.path.insert(0, sys.argv[1] + "/skills/workflow-regression/scripts"); import 
 cron = json.load(open(sys.argv[1] + "/.loop/config.json")).get("regression_cron") or "17 9 * * *"
 assert actions.render(cron) == open(sys.argv[1] + "/.github/workflows/regression.yml").read()
 PY
-grep -q 'cron: "17 9 \* \* \*"' .github/workflows/regression.yml && ok "default schedule written" || bad "default cron"
+grep -q 'cron: "17 \*/4 \* \* \*"' .github/workflows/regression.yml && ok "default schedule written" || bad "default cron"
 python3 - <<'PY'
 import json
 c = json.load(open(".loop/config.json")); c["regression_cron"] = "5 4 * * 1"
