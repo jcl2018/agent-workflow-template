@@ -34,7 +34,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
-import lanes  # noqa: E402
+import actions, lanes  # noqa: E401,E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -237,7 +237,7 @@ def cmd_red(args):
         broke = subprocess.run(args.break_it, shell=True, cwd=tree, capture_output=True, text=True)
         if broke.returncode:
             sys.exit("REFUSED: the break command failed: " + broke.stderr.strip()[:300])
-        done = subprocess.run(row["command"], shell=True, cwd=tree, capture_output=True, text=True,
+        done = subprocess.run(row["command"], shell=True, cwd=tree, capture_output=True, text=True, env=actions.row_env(),
                               timeout=args.timeout)
     finally:
         run(["git", "worktree", "remove", "--force", tree], cwd=root)
@@ -344,7 +344,7 @@ def cmd_run(args):
     for row in [r for r in picked if r["id"] in todo]:
         began = time.time()
         try:
-            done = subprocess.run(row["command"], shell=True, cwd=root, capture_output=True, text=True,
+            done = subprocess.run(row["command"], shell=True, cwd=root, capture_output=True, text=True, env=actions.row_env(),
                                   timeout=args.timeout)
             code, text = done.returncode, done.stdout + done.stderr
         except subprocess.TimeoutExpired:
@@ -394,8 +394,6 @@ def cmd_run(args):
 
 
 def cmd_workflow(_args):
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import actions
     return actions.write(top(), CRON)
 
 

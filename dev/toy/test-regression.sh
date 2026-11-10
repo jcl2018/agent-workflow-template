@@ -9,7 +9,7 @@ d=${1:-$(mktemp -d)}; rm -rf "$d"; mkdir -p "$d"
 export LOOP_FLOW="$d/flow.json"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
-unset GH_TOKEN GITHUB_TOKEN
+unset GH_TOKEN GITHUB_TOKEN GITHUB_STEP_SUMMARY GITHUB_ENV GITHUB_OUTPUT GITHUB_PATH GITHUB_STATE  # a toy test never writes to a real run summary (issue 92)
 cd "$d/repo" || exit 1
 python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
@@ -156,7 +156,7 @@ python3 - "$here" <<'PY' && ok "the committed regression workflow matches what a
 import json, sys
 sys.path.insert(0, sys.argv[1] + "/skills/workflow-regression/scripts"); import actions
 cron = json.load(open(sys.argv[1] + "/.loop/config.json")).get("regression_cron") or "17 9 * * *"
-assert actions.WORKFLOW.replace("@CRON@", cron) == open(sys.argv[1] + "/.github/workflows/regression.yml").read()
+assert actions.render(cron) == open(sys.argv[1] + "/.github/workflows/regression.yml").read()
 PY
 grep -q 'cron: "17 9 \* \* \*"' .github/workflows/regression.yml && ok "default schedule written" || bad "default cron"
 python3 - <<'PY'

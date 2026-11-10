@@ -9,6 +9,14 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
+ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE")
+
+
+def row_env():
+    """A row's environment: no GitHub token, and no runner file a row could write into (the run summary, env, outputs)."""
+    return {k: v for k, v in os.environ.items() if k not in ROW_DROP}
+
+
 WORKFLOW = r"""# Written by workflow-regression. It reads .loop/regression.tsv and .loop/regression-known.tsv.
 name: regression
 on:
@@ -54,7 +62,7 @@ jobs:
                   return default
               return value if value > 0 else default
           ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", 88 * 60)
-          ROW_ENV = {k: v for k, v in os.environ.items() if k not in ("GH_TOKEN", "GITHUB_TOKEN")}  # the token is not in a row's environment
+          ROW_ENV = {k: v for k, v in os.environ.items() if k not in @ROWDROP@}  # no token, no runner file a row could write into
           def run(command):  # own process group, output to a file: a row that times out fails alone and keeps what it printed
               with tempfile.TemporaryFile("w+", errors="replace") as log:
                   child = subprocess.Popen(command, shell=True, stdout=log, stderr=subprocess.STDOUT, env=ROW_ENV,
@@ -114,6 +122,11 @@ jobs:
 """
 
 
+def render(cron):
+    """The workflow text for this cron: what write() saves and the tests compare."""
+    return WORKFLOW.replace("@CRON@", cron).replace("@ROWDROP@", repr(ROW_DROP))
+
+
 def write(root, default):
     try:
         with open(os.path.join(root, ".loop", "config.json")) as handle:
@@ -129,6 +142,6 @@ def write(root, default):
                 sys.exit("REFUSED: %s exists, and this tool didn't write it. Fix: merge by hand." % path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as handle:
-        handle.write(WORKFLOW.replace("@CRON@", cron))
+        handle.write(render(cron))
     print("WROTE " + path)
     return 0
