@@ -115,6 +115,7 @@ case_mon9() {
   fresh
   for i in $(seq 1 12); do run "pr$i" 'status="done"' 'step="pr"' "pr=\"https://example.test/pull/$i\""; done
   start=$(date +%s); FAKE_GH_SLEEP=2 FAKE_GH_PR_STATE=OPEN python3 "$S/live_board.py" >/dev/null 2>&1; took=$(( $(date +%s) - start ))
+  # timing-ok: MON-9 is itself a wall-clock requirement (under 10 s); 12 x 2 s sequential would take 24 s
   check "MON-9: the board for 12 goals builds in under 10 seconds with a slow gh (${took}s)" '[ "$took" -lt 10 ]'
 }
 

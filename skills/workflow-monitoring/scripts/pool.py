@@ -162,7 +162,8 @@ def return_session(slug, merged=False):
             if item.get("slug") == slug and item.get("state") == "busy":
                 _, _, total = counts(found)
                 item["state"] = "archive" if total > size_of(cfg) else "free"
-                item.update(freed_from=slug, freed_at=se.now())
+                if merged:  # a merged goal is over: block a rebind to it; a failed one may take the same session back
+                    item.update(freed_from=slug, freed_at=se.now())
                 remember(item, slug)
                 said.append("%s session %s" % ("ARCHIVE" if item["state"] == "archive" else "POOLED", item.get("name") or sid))
         se.save_pool(found)
