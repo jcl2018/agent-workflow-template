@@ -1,7 +1,7 @@
 # The board's estimates use whichever model backtests most accurate on this repo's finished goals, and show that accuracy (owner, 2026-11-10: "Yues")
 
 - Slug: estimate-accuracy
-- Touches: skills/workflow-monitoring/scripts/board_status.py, skills/workflow-monitoring/scripts/board_runs.py, dev/toy, .loop/regression.tsv, docs/wiki/Monitoring.md, skills/workflow-monitoring/scripts, docs/wiki/Tests.md
+- Touches: skills/workflow-monitoring/scripts/board_status.py, skills/workflow-monitoring/scripts/board_runs.py, dev/toy, .loop/regression.tsv, docs/wiki/Monitoring.md, skills/workflow-monitoring/scripts, docs/wiki/Tests.md, skills/workflow-monitoring/references
 
 ## Done lines
 
