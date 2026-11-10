@@ -6,6 +6,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 case "$1 $2" in
   "api "*) exec python3 "$here/fake.py" "$@";;
   "issue list"|"issue create") [[ "$*" == *"--label health"* || "$*" == *"--milestone"* ]] && exec python3 "$here/fake.py" "$@";;
+  "issue view") [ -f "$d/issues.json" ] && exec python3 "$here/fake.py" "$@";;
   "issue edit"|"issue close"|"issue reopen"|"issue comment"|"pr edit") [ -f "$d/issues.json" ] || [ "$1" = pr ] && exec python3 "$here/fake.py" "$@";;
 esac
 case "$1 $2" in

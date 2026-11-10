@@ -5,58 +5,88 @@ Moved from the wiki page, which is now only a summary, criteria and tests.
 ## Commands
 
 ```text
-check [--json] [--group size|criteria|docs|hygiene|performance|mine|controls] [--skip controls]
-preview [--group NAME[,NAME]]   (run is a deprecated alias)
-file --group NAME[,NAME]
+check [--json] [--group NAME[,NAME]] [--skip NAME[,NAME]]
+review [--feature NAME] [--json]
 judge   (alias: suggest)
+preview [--group NAME[,NAME]] [--feature NAME] [--review FILE]   (run is a deprecated alias)
+file --group NAME[,NAME] | --review FILE [--feature NAME]
+triage [--feature NAME] [--close --kind K --why WORDS [--older DAYS] [--max N] [--yes]]
 ```
 
-- `check` prints one line per finding, then one `HEALTH:` verdict line. A `FAIL` or an `UNREAD` line makes the verdict
-  not green and the exit code 1; a `WARN` never does. `UNREAD` means a rule couldn't read its data, and is never a pass:
-  that includes a sync with no result, an unreadable run record and a failing branch list. Every non-pass line ends with the command that fixes it. `--json` prints the same rows as records.
+Group names for `--group`: requirements, traceability, consistency, docs, freshness, tests, performance, security, size,
+hygiene, adoption, mine, controls (criteria and cost still work for one release, meaning requirements and performance).
 
-- `check` prints a fixed template: `HEALTH REPORT`, a header naming the groups run and skipped, then each group (`size`,
-  `criteria`, `docs`, `hygiene`, `performance` (the Cost rule), `Mine`, `controls`) with every rule it checked, then the `HEALTH:` verdict. `Mine` runs the owner's own rules from `~/.workflow-loop/health.json` (or the file
-  `LOOP_HEALTH` names), outside the repo: exit 0 is `PASS`, 1 `FAIL`, 2 `WARN`, and a rule that can't run is `UNREAD`.
-  Mine runs the owner's commands, so it is outside the read-only and same-answer promises, and it is filed only when named.
+## Rules
 
-- `cost` reads the last 10 finished goals' run records: seconds per step from the log gaps and tokens from the record. A
-  goal over `time_budget_minutes` or `token_budget` in `.loop/config.json` is a `WARN` naming its three slowest or
-  costliest steps; no budget set is an `INFO` row; no tokens recorded in any of them is one `UNREAD` row. Only finished
-  goals count, so two runs give the same lines.
+Each rule belongs to one group (`scripts/groups.py`) and has a negative control (`controls.py`, plus each rule module's
+`CONTROLS`). A rule that needs gh says `INFO: gh not available here` without it; a rule about this machine says
+`not applicable here` where its state is absent. Ages and counts appear only in a warning's detail, so two checks of an
+unchanged repo print the same lines.
 
-- `hygiene` also reads the land lane record (`regression.py`'s record of the current branch, else the newest one) and
-  warns when its land rows took longer than `test_budget_seconds`, naming the five slowest rows and the slowest toy
-  scripts. It lists loop worktrees that no live goal names (queued, running, waiting, failed, stopped, or done with its pull
-  request still open) and local branches on no remote older than `stale_branch_days`, one row per kind with the first
-  five and their removal commands (all of them under `--json`). A branch whose commits exist only on this machine says
-  so before `git branch -D`. These rows are never filed and the commands are never run for you.
+| Group (angle) | Rule | Warns or fails when |
+|---|---|---|
+| Requirements (is every promise I approved proven?) | `rows` | a criterion has no regression row (FAIL) |
+| | `proof` | a row is a draft with no command or level (FAIL) |
+| | `done` | done lines have no regression row, as one WARN; goals frozen before `done_lines_since` owe none |
+| Traceability (can I follow any work end to end?) | `defect-tests` | closed work has no defect test (FAIL) |
+| | `issue-milestone` | an open issue has no milestone (WARN) |
+| | `row-requirement` | a row guards an id no page defines and isn't a done line `slug:N` (FAIL) |
+| Consistency (do the pages agree?) | `ids-unique` | a requirement id is defined on two pages (FAIL) |
+| | `refs` | a page names an id of a known prefix that no page defines (FAIL) |
+| | `usage-readme` | the README names a `/workflow-x verb` no page's Usage names (WARN) |
+| Docs (does each page match the template and the code?) | `docs-check` | `docs.py check`: a stale page WARNs, any other gap FAILs (its requirement count belongs to Size) |
+| Freshness (is anything out of date?) | `nightly` | the newest nightly run is older than a day (WARN) |
+| | `unreleased` | commits after the newest `v*` tag, the oldest over 3 days old (WARN) |
+| | `finding-age` | an open health issue is older than 30 days (WARN) |
+| Tests (do the tests prove anything?) | `seen-red` | a row was never seen failing (FAIL) |
+| | `skipped` | a row recorded SKIPPED for over 7 days (WARN) |
+| | `network` | a land row's command reaches the network: curl, wget, http(s):// (WARN) |
+| Performance (is it fast and cheap enough?) | `cost` | a finished goal over `time_budget_minutes` or `token_budget` (WARN); goals that recorded no tokens are left out |
+| | `test-time` | the land lane over `test_budget_seconds`, naming its slowest rows (WARN; shown, never filed) |
+| | `check-time` | the check, up to this group, past 60 seconds (WARN; shown, never filed) |
+| Security and privacy (can anything private escape?) | `private` | a tracked file matches a `leak_patterns` entry of the private flow file: file:line and the pattern's number only, never the text (FAIL) |
+| | `scan-hook` | no commit scan hook (WARN; shown, never filed) |
+| | `workflow-permissions` | a workflow has no top-level `permissions:` (WARN) |
+| Size (can someone still read this?) | `scripts` | a script at 90% of 20 KB (WARN) or over it (FAIL) |
+| | `skill-lines` | a SKILL.md of 150 lines or more (FAIL) |
+| | `requirements-per-page` | a page with more requirements than `criteria_max` (FAIL) |
+| Hygiene (is anything left lying around?) | `findings` | over 5 open findings in `.loop/findings.md` (WARN) |
+| | `waiting` | a run waiting over 24 hours (WARN) |
+| | `branches` | a `loop/` branch already merged (WARN) |
+| | `worktrees`, `local-branches` | loop worktrees no live goal names, local branches on no remote older than `stale_branch_days`, with the commands that remove them (WARN; shown, never filed, never run) |
+| | `idle-sessions` | a busy worker session whose goal has ended (WARN; shown, never filed) |
+| Adoption (would this work installed fresh?) | `config` | `.loop/config.json` doesn't parse or has no base (FAIL) |
+| | `checks-run-tests` | the regression workflow exists but no land row does (WARN) |
+| | `template-version` | VERSION isn't the newest CHANGELOG heading (WARN) |
+| | `scheduled` | the regression or health workflow is missing or has no schedule (WARN) |
+| Controls (can each rule fire?) | `control` per rule | a rule's control stays green: it cannot fire (FAIL); a fixture that can't be built is UNREAD |
 
-- `controls` runs each rule's negative control (`controls.py`): a throwaway repo, with no inherited git setting, made
-  to break that rule, then the real rule on it. `PASS` means it fired; `FAIL ... cannot fire` means the rule no longer
-  sees what it is for; `UNREAD` means the fixture could not be built, with the failing command, or the rule could not read its data on it. A rule with no control
-  stops health.py from loading (exit 2). `check --skip controls` leaves the group out; `controls.py run <rule> --keep`
-  runs one and keeps its fixture.
+Mine runs the owner's own rules from `~/.workflow-loop/health.json` (or `LOOP_HEALTH`): exit 0 is PASS, 1 FAIL, 2 WARN,
+anything else UNREAD. It runs the owner's commands, so it is outside the read-only and same-answer promises, and it is
+filed only when named.
 
-- `judge` prints the `check` report, then a separate judge section, marked as suggestions: criteria quality, test
-  quality, and performance (test time and tokens) ranked by savings, with suggested criterion wording under `Needs you` and weak
-  tests and savings as candidate goals, then ranked next steps. It asks `judge_command` from `.loop/config.json` and
-  reads only tagged lines (`CRITERION`, `TEST`, `SAVES`); any failure prints `JUDGE UNAVAILABLE`. It never changes the
-  verdict or the exit code, and `check` itself calls no model.
-- The full `check` and `judge` reports print a `TESTS` block just before the `HEALTH:` line: every test, grouped by
-  feature, in workflow-regression's one test format (`tests.py list`). It never changes the verdict, and it is left out
-  for a single group and for `--json`.
+Adding a rule: write `fn(root) -> rows` in a rule module, add its name to its group in `groups.py`, list it in the
+module's `FUNCTIONS`, and add a fixture to its `CONTROLS` that makes it fire. Health refuses to load until the control exists.
 
-- `preview` lists exactly what `file` would do: each issue it would open, update, close or reopen, with its
-  `health:<group>` tag. It has no write path, even with a token. With no `--group` it covers every group except `mine`;
-  the judge runs (and its savings are included) only when `performance` is named.
+## Review, filing and triage
 
-- `file --group NAME[,NAME]` is the only writer, and refuses without a group. For the named groups only it files each
-  warning, failure or unread finding as one issue on the `Backlog` milestone, labelled `health:<group>` (`size`,
-  `criteria`, `docs`, `hygiene`, `performance` for Cost and the judge's savings, `mine`) and the older `health`. A hidden
-  marker in the body finds it again: a repeat updates the issue, a fixed finding closes it, a returning one reopens it,
-  and an issue you moved to a feature stays there. A rule that could not be read closes none of its issues. Create the
-  milestones first (see Milestones).
+- `review` runs per feature: a deterministic layer (a page with no non-functional requirement, an open issue naming no
+  requirement, a Usage command the skill doesn't name) and the judge. The judge's `FINDING|feature|kind|angle|evidence|fix`
+  lines are kept only with verified citations: a page's requirement id, a file or file:line, a row id, or an issue. The
+  rest are dropped and counted. `--json` prints `{"version": 1, "findings": [...]}`; `preview`/`file --review FILE` read it.
+- `file` puts each finding on its feature's milestone: the page whose `.loop/docs.tsv` path is the longest prefix of the
+  finding's path, the page defining its requirement id, the page of its row's requirement, an issue's own milestone, or a
+  review finding's feature. Backlog when none fits.
+  - Its marker is `<!-- loop-health KEY evidence=H -->`, where H hashes the finding's identity and stable citations, never
+    its ages, counts or sizes. Markers from before the twelve groups are found and moved to the new key.
+  - An open non-health issue on that milestone naming the subject (exact path, id or row id) gets one comment marked
+    `<!-- loop-health-link KEY evidence=H -->`, instead of a new issue.
+  - An issue closes only when its own rule ran and read its data. One closed in triage (`health:closed`) stays closed while
+    its evidence hash is unchanged.
+- `triage` lists open health issues per feature by kind, count and age. `--close` always lists the matches first and
+  writes only with `--yes`, with the owner's words as the closing comment.
+
+Refusals print `REFUSED[code]` and exit 2: `[file]`, `[gh]`, `[review]`, `[feature]`, `[kind]`, `[why]`, `[cap]`.
 
 The milestones the issues land in are on the [Documentation](Documentation) page.
 
@@ -68,40 +98,58 @@ Amber marks where the command stops for the owner. [Home](Home) says what each s
 
 ```mermaid
 flowchart TD
-  a["Measure each script against 20 KB"]
-  b["Run the criteria sync and the docs check"]
-  c["Look at findings, runs and merged branches"]
-  d["Print the lines and the HEALTH verdict"]
+  a["Run each group's rules (twelve groups)"]
+  b["Run each rule's negative control"]
+  c["Print each group under its angle, then the HEALTH verdict"]
   e{{"Owner reads a red verdict"}}
-  a --> d
-  b --> d
-  c --> d
-  d -->|not green| e
+  a --> c
+  b --> c
+  c -->|not green| e
   classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
   class e owner
 ```
 
-Status: built and proven: Measure each script against 20 KB; Run the criteria sync and the docs check; Look at findings, runs and merged branches; Print the lines and the HEALTH verdict; Owner reads a red verdict. Built only: none. Planned: none.
+Status: built and proven: Run each group's rules (twelve groups); Run each rule's negative control; Print each group under its angle, then the HEALTH verdict; Owner reads a red verdict. Built only: none. Planned: none.
 Stops for the owner: Owner reads a red verdict.
-Proof: toy tests on a throwaway repo. On this repo it has run by hand once and printed warnings for the five scripts near the limit.
+Proof: toy tests on throwaway repos (test-health*.sh, test-health-prd.sh); run on this repo by hand.
 
-#### `run`
+#### `preview` and `file`
 
 ```mermaid
 flowchart TD
-  a["Run the same rules as check"]
-  b["Find each finding's issue by its hidden marker"]
-  c["Create, update, close or reopen issues"]
-  d["No token and no live flag: print WOULD lines only"]
-  a --> b
-  b --> d
-  d --> c
+  a["Run the rules, and read a saved review"]
+  b["Find each finding's feature and its issue"]
+  c["Print WOULD lines (preview stops here)"]
+  d{{"Owner names the groups to file"}}
+  e["Open, update, close, reopen or link on each feature milestone"]
+  a --> b --> c --> d --> e
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class d owner
 ```
 
-Status: built and proven: Run the same rules as check; Find each finding's issue by its hidden marker; Create, update, close or reopen issues; No token and no live flag: print WOULD lines only. Built only: none. Planned: none.
-Stops for the owner: none.
-Proof: toy tests with a stand-in for GitHub. It has only been dry-run on this repo, which has no health issues yet.
+Status: built and proven: Run the rules, and read a saved review; Find each finding's feature and its issue; Print WOULD lines (preview stops here); Owner names the groups to file; Open, update, close, reopen or link on each feature milestone. Built only: none. Planned: none.
+Stops for the owner: Owner names the groups to file.
+Proof: toy tests with a stand-in for GitHub.
 
+#### `review` and `triage`
+
+```mermaid
+flowchart TD
+  a["Per feature: deterministic findings"]
+  b["The judge's findings, each citation checked"]
+  c["Print findings with evidence and next steps"]
+  t["Triage: open findings per feature"]
+  d{{"Owner closes a batch with their words"}}
+  a --> c
+  b --> c
+  t --> d
+  classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
+  class d owner
+```
+
+Status: built and proven: Per feature: deterministic findings; The judge's findings, each citation checked; Print findings with evidence and next steps; Triage: open findings per feature; Owner closes a batch with their words. Built only: none. Planned: none.
+Stops for the owner: Owner closes a batch with their words.
+Proof: toy tests with stand-in judges and a stand-in for GitHub.
 
 #### `judge`
 

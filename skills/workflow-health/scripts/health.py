@@ -32,7 +32,16 @@ if not sys.stdin or not sys.stdin.isatty():
 
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import groups as G  # noqa: E402
+try:
+    import groups as G  # noqa: E402
+except ImportError:  # a lone health.py: only the rules it holds itself, in four groups, no angles
+    class G:
+        RULES_OF = {"size": ("scripts",), "requirements": ("rows", "proof", "done"), "docs": ("docs-check",),
+                    "hygiene": ("findings", "waiting", "branches"), "mine": (), "controls": ()}
+        ORDER = tuple(RULES_OF)
+        RULES = tuple(r for rules in RULES_OF.values() for r in rules)
+        GROUP_OF = {r: g for g, rules in RULES_OF.items() for r in rules}
+        ALIASES = {"criteria": "requirements", "cost": "performance"}
 
 LIMIT = 20 * 1024
 WARN_AT = LIMIT * 9 // 10
@@ -327,66 +336,8 @@ def tests_block(root):
     return ["", "TESTS"] + done.stdout.rstrip("\n").splitlines() + [""]
 
 
-def cmd_judge(args):
-    """The check report, then the judge section. The verdict and exit code are the check's, whatever the judge says."""
-    root = repo_root()
-    rows = gather(root, None)
-    text, _, green, _, _ = report(rows)
-    print("\n".join(with_tests(text, root)))
-    print()
-    judge = sibling_module("judge")
-    if not judge:
-        print("JUDGE UNAVAILABLE: judge.py is not installed beside health.py")
-        return 0 if green else 1
-    try:
-        answer, why = judge.ask(judge.gather(root, HERE, rows), root)
-        found = judge.parse(answer)
-        if not why and not any(found.values()):
-            why = "the answer had no tagged line"
-        steps = judge.suggestions(root, rows)[1]
-        print("\n".join(judge.render(found, steps)) if not why else "JUDGE UNAVAILABLE: " + why)
-    except Exception as error:  # the judge is advice: nothing it does may change the verdict
-        print("JUDGE UNAVAILABLE: %s" % str(error)[:120])
-    return 0 if green else 1
-
-
-def plan_for(root, asked, with_judge):
-    """(file module, acts, groups) for the groups asked, or exit when file.py or gh cannot be used."""
-    filing = sibling_module("file") or sys.exit("REFUSED: file.py is not installed beside health.py")
-    groups = asked or list(filing.DEFAULT)
-    rows = gather(root, None)
-    judged, extra = False, []
-    if with_judge and "cost" in groups:
-        extra, judged = filing.saves(root, HERE, rows)
-    issues, why = filing.held(root)
-    if issues is None:
-        sys.exit("REFUSED: could not read the health issues: %s" % why)
-    return filing, filing.plan(rows, issues, groups, extra, judged), groups
-
-
-def cmd_preview(args):
-    """What file would do. Writes nothing; calls the judge only when performance is named."""
-    root = repo_root()
-    asked = groups_of(args.group)
-    if args.live:
-        print("NOTE: run and preview never write, even with --live. To write, run: health.py file --group NAME", file=sys.stderr)
-    filing, acts, _ = plan_for(root, asked, bool(asked))
-    count = filing.preview(acts)
-    print("PREVIEW: %d to write, nothing written. To write, run: health.py file --group %s" % (count, args.group or "NAME"))
-    return 0
-
-
-def cmd_file(args):
-    root = repo_root()
-    asked = groups_of(args.group)
-    if not asked:
-        sys.exit("REFUSED: file needs --group NAME[,NAME], one of %s. Run preview first." % ", ".join(NAMES))
-    filing, acts, groups = plan_for(root, asked, True)
-    filing.apply(acts, root, groups)
-    return 0
-
-
 def main():
+    commands = sibling_module("commands")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     item = sub.add_parser("check", help="run the fixed rules")
@@ -394,17 +345,10 @@ def main():
     item.add_argument("--group", "--family", dest="group", help="one of: " + ", ".join(NAMES))
     item.add_argument("--skip", default="", help="groups to leave out")
     item.set_defaults(func=cmd_check)
-    for name in ("judge", "suggest"):
-        item = sub.add_parser(name, help="the check report, then a judge section of suggestions")
-        item.set_defaults(func=cmd_judge)
-    for name, func in (("preview", cmd_preview), ("run", cmd_preview), ("file", cmd_file)):
-        item = sub.add_parser(name, help="file findings as issues by group" if name == "file" else "list what file would do")
-        item.add_argument("--group", "--family", dest="group", help="NAME[,NAME]: " + ", ".join(NAMES))
-        item.add_argument("--live", action="store_true", help=argparse.SUPPRESS)
-        item.set_defaults(func=func)
+    if commands:  # a lone health.py has check only
+        commands.add(sub, sys.modules[__name__])
     args = parser.parse_args()
     return args.func(args)
-
 
 if __name__ == "__main__":
     _controls = sibling_module("controls")

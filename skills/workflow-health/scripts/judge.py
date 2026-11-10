@@ -131,6 +131,15 @@ def gather(root, here, rows):
     return ASK + "<<<DATA\n" + "\n".join(out) + "\nDATA>>>\n"
 
 
+def cause(done):
+    """Why a judge command failed (issue 158): its last stdout line (a CLI often prints the reason there, such as a usage
+    limit) and its last stderr line, never just the exit code."""
+    last = lambda text: ([line.strip() for line in text.splitlines() if line.strip()] or [""])[-1][:160]
+    out, err = last(done.stdout or ""), last(done.stderr or "")
+    said = "; ".join(part for part in (out, "stderr: " + err if err else "") if part)
+    return "the judge exited %d%s" % (done.returncode, ": " + said if said else " (no output)")
+
+
 def ask(prompt, root):
     """(text, why): the judge's answer, or why there is none."""
     try:
@@ -145,9 +154,8 @@ def ask(prompt, root):
                               timeout=180, cwd=root)
     except (OSError, subprocess.SubprocessError) as error:
         return "", "the judge did not run: %s" % str(error)[:100]
-    if done.returncode:  # issue 158: name the cause, the command's first stderr line
-        first = (done.stderr.strip().splitlines() or [""])[0][:160]
-        return "", "the judge exited %d%s" % (done.returncode, ": " + first if first else " (no stderr)")
+    if done.returncode:
+        return "", cause(done)
     return done.stdout, ""
 
 

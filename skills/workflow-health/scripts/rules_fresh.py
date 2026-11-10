@@ -16,6 +16,9 @@ import os
 import re
 import subprocess
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
 import ghcache
 from rules_trace import row, table
 
