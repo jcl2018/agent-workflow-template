@@ -168,6 +168,6 @@ per test for scripts. The wiki Tests lines, the health report and the GitHub run
 
 `summary --results FILE --took S` writes the GitHub run summary from a run's results (`id<TAB>state` lines, states
 `PASS`, `FAIL`, `SKIPPED`, `KNOWN`); a malformed file or run time is refused with the line to fix. `issues --write`
-reads each defect test's issue or pull request state with `gh` into `.loop/regression-issues.tsv`; if `gh` can't read
-them it says so and writes nothing. Only this command writes that file (no run does, so a state change on GitHub never
+reads each defect test's issue or pull request state with `gh` into `.loop/regression-issues.tsv`; if `gh` can't sign
+in it says so and writes nothing, and a single link it can't read keeps its last recorded state. Only this command writes that file (no run does, so a state change on GitHub never
 dirties a checkout); commit it with the re-rendered wiki Tests (`criteria.py render`).
