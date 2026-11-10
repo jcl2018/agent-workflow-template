@@ -16,7 +16,7 @@ python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 export LOOP_HEALTH="$d/none.json"  # after setup: no private rules
 mkdir -p docs/wiki skills/x/scripts; mkdir -p "$FAKE_GH_DIR"; : > "$FAKE_GH_DIR/calls.log"
-printf '<!-- workflow-docs -->\n# Calc\n\n## Summary\n\nCalc adds numbers.\n\n## Criteria\n\n- REL-1: **Unreviewed** calc adds.\n' > docs/wiki/Calc.md
+printf '<!-- workflow-docs -->\n# Calc\n\n## Summary\n\nCalc adds numbers.\n\n## Criteria\n\n- REL-1: **Reviewed 2026-01-01** calc adds.\n' > docs/wiki/Calc.md
 printf 'Calc\tcalc.py\nGhost\tghost.py\n' > .loop/docs.tsv
 python3 -c "print('# pad\n' * 3400)" > skills/x/scripts/near.py
 git add -A; git commit -qm "Findings in several groups"; git push -q origin main; git branch loop/old

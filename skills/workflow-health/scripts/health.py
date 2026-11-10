@@ -100,8 +100,7 @@ def criteria_rows(root):
         if gap and re.match(r"^[A-Za-z0-9-]+:\d+$", gap.group(1)):
             loose += 1
         elif gap and "criterion has no regression row" in gap.group(2):
-            rows.append(row("FAIL", "criteria", gap.group(1), "rows", "criterion has no regression row",
-                            "add a row with regression.py add"))
+            rows.append(sibling_module("enforce").row(root, gap.group(1), row))
         elif line.startswith(("DRAFT ", "UNPROVEN ")):
             word, key = line.split()[:2]
             rows.append(row("FAIL", "criteria", key.rstrip(":"), "proof", "a draft row, or one never seen failing"
