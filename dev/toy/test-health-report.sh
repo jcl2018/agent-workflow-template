@@ -27,9 +27,9 @@ count() { python3 -c "import json,sys;print(sum(1 for i in json.loads(sys.argv[1
 
 echo "== the formal report"
 out=$($health check); echo "$out"
-[ "$(sed -n 1p <<<"$out")" = "HEALTH REPORT" ] && sed -n 2p <<<"$out" | grep -q "^groups run: size, criteria, docs, hygiene, performance; skipped: Mine (no private rules set)$" \
+[ "$(sed -n 1p <<<"$out")" = "HEALTH REPORT" ] && sed -n 2p <<<"$out" | grep -q "^groups run: size, criteria, docs, hygiene, performance, controls; skipped: Mine (no private rules set)$" \
   && ok "the header names every group run and the one skipped" || bad "header"
-[ "$(grep -n '^== ' <<<"$out" | sed 's/^[0-9]*:== \(.*\) ==$/\1/' | tr '\n' ' ')" = "size criteria docs hygiene performance Mine (skipped) " ] && ok "groups in the fixed order, Cost shown as performance" || bad "order"
+[ "$(grep -n '^== ' <<<"$out" | sed 's/^[0-9]*:== \(.*\) ==$/\1/' | tr '\n' ' ')" = "size criteria docs hygiene performance Mine (skipped) controls " ] && ok "groups in the fixed order, Cost shown as performance" || bad "order"
 for g in size:limit criteria:rows criteria:defect-tests docs:"(check|missing)" hygiene:findings hygiene:waiting hygiene:"(branches|branch)" performance:cost; do
   grep -Eq "^(PASS|WARN|FAIL|UNREAD|INFO) ${g%%:*} [^ ]+ ${g##*:}:" <<<"$out" || bad "rule missing from the report: $g"
 done; ok "every rule of every group is listed with a state"
@@ -65,7 +65,7 @@ $health check --json | python3 -c "import json,sys; d=json.load(sys.stdin); c=d[
 #   complete() pads groups that did not run, or the header drops "not asked"; why_new=only the full check header is
 #   asserted; seam=none; no_claim=none beyond protects
 out=$($health check --group docs)
-sed -n 2p <<<"$out" | grep -q "^groups run: docs; skipped: size (not asked), criteria (not asked), hygiene (not asked), performance (not asked), Mine (not asked)$" \
+sed -n 2p <<<"$out" | grep -q "^groups run: docs; skipped: size (not asked), criteria (not asked), hygiene (not asked), performance (not asked), Mine (not asked), controls (not asked)$" \
   && ! grep -Eq "^PASS (size|criteria|hygiene|performance) " <<<"$out" && ok "a named group run lists the rest as skipped, none shown passing" || bad "named group header"
 
 echo "== preview writes nothing"
