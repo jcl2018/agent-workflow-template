@@ -97,9 +97,11 @@ case_mon7() {
   cfg govern_hook=true
   check "MON-7: LOOP_GOVERN_HOOK=0 turns it off for one session" '[ -z "$(printf "%s" "$e" | LOOP_GOVERN_HOOK=0 python3 "$S/govern_hook.py")" ]'
   check "MON-7: the deny names the fix and the off switch" 'hook "$e" | grep -q "govern_hook"'
-  hook "$(b dev9 "$R" "grep -rn operate.py\ run skills")" >/dev/null
+  hook "$(b dev9 "$R" "grep -rn operate.py.run skills")" >/dev/null; hook "$(b dev9 "$R" "echo python3 operate.py run")" >/dev/null
   check "MON-7: a command that only names operate.py run claims nothing" '[ "$(cat "$L/operation.id")" = op1 ]'
-  check "MON-7: wrappers such as timeout and nohup don't hide a push" 'hook "$(b op1 "$R" "timeout 60 git push")" | grep -q deny && hook "$(b op1 "$R" "nohup git push")" | grep -q deny'
+  check "MON-7: wrappers such as timeout and nohup don't hide a push" 'hook "$(b op1 "$R" "timeout -s KILL 60 git push")" | grep -q deny && hook "$(b op1 "$R" "nohup git push")" | grep -q deny'
+  hook "$(b op3 "$R" "python3 -u $S/operate.py run --once")" >/dev/null
+  check "MON-7: running operate.py run claims the session" '[ "$(cat "$L/operation.id")" = op3 ]'; echo op1 > "$L/operation.id"
   check "MON-7: claim records the session and a worker can't claim" \
     'python3 "$S/operate.py" claim --id op2 | grep -q "replaced op1" && ! LOOP_ROLE=worker python3 "$S/operate.py" claim --id w 2>/dev/null'
 }

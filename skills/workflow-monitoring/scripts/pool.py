@@ -162,7 +162,8 @@ def remove_tree(slug, state):
 
 def return_session(slug, merged=False):
     """Give the goal's busy sessions back (free, or archive above pool_size); on a merge also remove its tree."""
-    cfg, said = config(), []
+    cfg, said, state = config(), [], se.load(slug)
+    merged = merged or bool(state.get("pr") and prs.state(state["pr"], se.git("rev-parse", "--show-toplevel") or ".") == "MERGED")
     with se.locked():
         found = se.pool()
         for sid, item in sorted(found.items()):
@@ -174,8 +175,7 @@ def return_session(slug, merged=False):
                 remember(item, slug)
                 said.append("%s session %s" % ("ARCHIVE" if item["state"] == "archive" else "POOLED", item.get("name") or sid))
         se.save_pool(found)
-    state = se.load(slug)
-    if merged or (state.get("pr") and prs.state(state["pr"], se.git("rev-parse", "--show-toplevel") or ".") == "MERGED"):
+    if merged:
         said += remove_tree(slug, state)  # only once GitHub says merged: an open pull request keeps its tree
     return said
 

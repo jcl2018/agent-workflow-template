@@ -49,7 +49,9 @@ def strip(words):
 
 def git_write(words):
     """The history-writing git subcommand in one segment's words, or ''."""
-    words, i = strip(words), 0
+    words = strip(words)
+    at = next((n for n, w in enumerate(words[:6]) if os.path.basename(w) in ("git", "bash", "sh", "zsh")), 0)
+    words, i = words[at:], 0  # a wrapper's flag values (timeout -s KILL 60, sudo -u root) come before the command
     if i < len(words) and os.path.basename(words[i]) in ("bash", "sh", "zsh") and i + 2 < len(words) and words[i + 1] == "-c":
         return verdict(words[i + 2], nested=True)
     if i >= len(words) or os.path.basename(words[i]) != "git":
@@ -121,8 +123,9 @@ def claim(payload, common):
     operation session: its id from the hook's own input goes into operation.id, so no environment variable is needed."""
     command = str((payload.get("tool_input") or {}).get("command") or "") if payload.get("tool_name") == "Bash" else ""
     session, cwd = str(payload.get("session_id") or ""), os.path.realpath(str(payload.get("cwd") or ""))
-    runs = any(len(w) >= 3 and os.path.basename(w[0]).startswith("python") and os.path.basename(w[1]) == "operate.py"
-               and w[2] in ("run", "claim") for w in (strip(words) for words in segments(command)))
+    runs = any(os.path.basename(x) == "operate.py" and w[n + 1:n + 2] in (["run"], ["claim"])
+               and all(os.path.basename(p).startswith("python") or (k and p.startswith("-")) for k, p in enumerate(w[:n]))
+               for w in (strip(words) for words in segments(command)) for n, x in enumerate(w))  # executed, not named
     if not runs or not reply_hook.SESSION.match(session):  # only executing operate.py claims; a grep that names it doesn't
         return
     if os.environ.get("LOOP_ROLE") == "worker" or cwd.startswith(os.path.join(common, "loop", "worktrees") + os.sep):

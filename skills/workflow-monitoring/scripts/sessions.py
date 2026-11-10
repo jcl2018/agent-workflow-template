@@ -319,7 +319,7 @@ def cmd_report(args):
     ended = said in ("merged", "failed") or (said == "waiting" and not args.ask)
     if said == "waiting" and args.ask:  # a question for the owner: the goal stops until it is answered
         old = state.get("waiting") or {}  # the same question asked again keeps full auto's decision
-        state.update(status="waiting", waiting=dict({"auto": old["auto"]} if old.get("auto") and old.get("ask") == args.ask else {},
+        state.update(status="waiting", waiting=dict({"auto": old["auto"]} if old.get("auto") and old.get("ask", "").split() == args.ask.split() else {},
                      ask=args.ask, words=args.words or ["go on " + args.slug], at=now(), recommend=args.recommend, kind=args.kind))
     elif said == "failed":
         state.update(status="failed", finding=args.text or state.get("finding") or "the worker session reported failed")
