@@ -56,8 +56,8 @@ default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (
   tables and blank lines: at most one Page table `| Page | Link | Access | Shows | Live build |` (`deployments_page`) and
   at most one Delivery table `| Delivery | Channel | Recipients | What's sent | Status |` (`deployments_delivery`), each
   with its separator row and at least one row, headers exact after trimming spaces. Page rows: Page and Shows filled,
-  Link an http(s) URL (bare or `[text](url)`), Access one of `deployments_access` (public, sign-in), Live build the 7 to
-  40 hex sha in the page's build.txt. Delivery rows: every cell filled, and Recipients a group name, never an email
+  Link a full `https://` URL, Access one of `deployments_access` (public, sign-in), Live build the 7 to 40 hex sha in
+  the page's build.txt, in backticks. Delivery rows: every cell filled, and Recipients a group name, never an email
   address. A `|` inside a cell is written `\|`. Not part of the PRD fingerprints: it changes with each deploy. The
   live-link and promoted-build check runs in the deploying repo for now.
 - **Tests** (`tests`, DOC-9): made by `criteria.py render`, never by hand: one table

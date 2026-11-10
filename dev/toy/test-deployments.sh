@@ -26,7 +26,7 @@ D="python3 skills/workflow-docs/scripts/docs.py check"
 P=docs/wiki/Setup.md; cp "$P" "$T/setup.orig"
 GOOD_PAGE='| Page | Link | Access | Shows | Live build |
 |---|---|---|---|---|
-| Site | https://example.test/app | public | the setup guide | 1a2b3c4d |'
+| Site | https://example.test/app | public | the setup guide | `1a2b3c4d` |'
 GOOD_DELIVERY="| Delivery | Channel | Recipients | What's sent | Status |
 |---|---|---|---|---|
 | Newsletter | email | subscribers | the weekly PDF | live |"
@@ -62,7 +62,7 @@ $GOOD_PAGE" "only a Page table, a Delivery table and blank lines"
   refuse "an empty section" "" "a Page or Delivery table with at least one row"
   refuse "an unknown header" "| Page | URL | Access | Shows | Live build |
 |---|---|---|---|---|
-| Site | https://x.test | public | home | 1a2b3c4 |" "a table header of exactly the Page or Delivery columns"
+| Site | https://x.test | public | home | \`1a2b3c4\` |" "a table header of exactly the Page or Delivery columns"
   refuse "two Page tables" "$GOOD_PAGE
 
 $GOOD_PAGE" "at most one Page table"
@@ -73,16 +73,22 @@ $GOOD_PAGE" "at most one Page table"
 | Site | https://x.test | public | home |" "5 cells in each Page row"
   refuse "an empty Shows cell" "| Page | Link | Access | Shows | Live build |
 |---|---|---|---|---|
-| Site | https://x.test | public |  | 1a2b3c4 |" "every Page cell filled (got empty Shows)"
+| Site | https://x.test | public |  | \`1a2b3c4\` |" "every Page cell filled (got empty Shows)"
   refuse "a Link that is not a URL" "| Page | Link | Access | Shows | Live build |
 |---|---|---|---|---|
-| Site | x.test/app | public | home | 1a2b3c4 |" "Page Link an http(s) URL"
+| Site | x.test/app | public | home | \`1a2b3c4\` |" "Page Link a full https URL"
   refuse "Access that is not public or sign-in" "| Page | Link | Access | Shows | Live build |
 |---|---|---|---|---|
-| Site | https://x.test | everyone | home | 1a2b3c4 |" "Page Access public or sign-in"
+| Site | https://x.test | everyone | home | \`1a2b3c4\` |" "Page Access public or sign-in"
   refuse "a Live build that is not a sha" "| Page | Link | Access | Shows | Live build |
 |---|---|---|---|---|
-| Site | https://x.test | sign-in | home | latest |" "Page Live build a 7 to 40 hex sha"
+| Site | https://x.test | sign-in | home | latest |" "Page Live build a 7 to 40 hex sha in backticks"
+  refuse "an http (not https) Link" "| Page | Link | Access | Shows | Live build |
+|---|---|---|---|---|
+| Site | http://x.test | public | home | \`1a2b3c4\` |" "Page Link a full https URL"
+  refuse "a Live build sha without backticks" "| Page | Link | Access | Shows | Live build |
+|---|---|---|---|---|
+| Site | https://x.test | public | home | 1a2b3c4 |" "Page Live build a 7 to 40 hex sha in backticks"
   refuse "an email address in Recipients" "| Delivery | Channel | Recipients | What's sent | Status |
 |---|---|---|---|---|
 | Newsletter | email | someone@example.test | the PDF | live |" "Delivery Recipients a group, never an address"

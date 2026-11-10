@@ -217,8 +217,8 @@ def usage(page, name, lines, maps, own):
 
 PAGE_COLS = ("Page", "Link", "Access", "Shows", "Live build")
 DELIVERY_COLS = ("Delivery", "Channel", "Recipients", "What's sent", "Status")
-URL = re.compile(r"^(?:https?://\S+|\[[^\]]+\]\(https?://[^)\s]+\))$")
-SHA = re.compile(r"^[0-9a-f]{7,40}$")
+URL = re.compile(r"^https://\S+$")
+SHA = re.compile(r"^`[0-9a-f]{7,40}`$")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 
 
@@ -262,13 +262,13 @@ def deployments(page, name, lines, page_cols=PAGE_COLS, delivery_cols=DELIVERY_C
                 out.append(bad(page, row_no, name, 14, "every %s cell filled" % kind, "empty %s" % ", ".join(empty), "fill it"))
             elif kind == "Page":
                 if not URL.match(cell[cols[1]]):
-                    out.append(bad(page, row_no, name, 14, "Page Link an http(s) URL", short(cell[cols[1]]), "give the full https:// link"))
+                    out.append(bad(page, row_no, name, 14, "Page Link a full https URL", short(cell[cols[1]]), "give the full https:// link"))
                 if cell[cols[2]] not in access:
                     out.append(bad(page, row_no, name, 14, "Page Access %s" % " or ".join(access), short(cell[cols[2]]),
                                    "say who can open it: %s" % " or ".join(access)))
-                if not SHA.match(cell[cols[4]].strip("`")):
-                    out.append(bad(page, row_no, name, 14, "Page Live build a 7 to 40 hex sha", short(cell[cols[4]]),
-                                   "put the sha in the page's build.txt"))
+                if not SHA.match(cell[cols[4]]):
+                    out.append(bad(page, row_no, name, 14, "Page Live build a 7 to 40 hex sha in backticks", short(cell[cols[4]]),
+                                   "write the sha from the page's build.txt in backticks"))
             elif EMAIL.search(cell[cols[2]]):
                 out.append(bad(page, row_no, name, 14, "Delivery Recipients a group, never an address", "an email address",
                                "name the group instead"))
