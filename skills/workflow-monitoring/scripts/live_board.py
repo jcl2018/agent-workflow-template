@@ -21,8 +21,8 @@ import sys
 import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import board_budget as bb  # noqa: E402
 import board_lag  # noqa: E402
+bb = board_lag  # budget, depth and private-name lines
 import board_lines  # noqa: E402
 import board_status as bs  # noqa: E402
 import graph  # noqa: E402
@@ -262,7 +262,7 @@ def render(root=None, at=None):
     items = bs.board_items(live, queue, freezing, lines, runs, at, root, waits)
     cfg = bs.read_json(os.path.join(root, ".loop", "config.json")) or {}
     setting = "condensed" if cfg.get("review_depth") == "condensed" else "full"
-    folder = os.path.join(loop_dir(root), "runs")  # depth decided and budget lines (board_budget.py)
+    folder = os.path.join(loop_dir(root), "runs")  # depth decided and budget lines (board_lag.py)
     fits = lambda run: [p + x for p, x in (("    depth decided: ", bb.depth(run, setting, folder)), ("    ", bb.line(run, cfg, at, folder))) if x]
     head = "LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root))
     if len(head) > WIDTH:

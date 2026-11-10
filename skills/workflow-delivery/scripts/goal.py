@@ -31,7 +31,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import defect  # noqa: E402
 import guards  # noqa: E402
-import guards_ops  # noqa: E402
+import fit  # noqa: E402
 import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -220,7 +220,7 @@ def cmd_new(args):
     elif current != branch:
         no("on branch %s. Fix: go to %s or %s first." % (current, cfg["base"], branch))
     lines = ["%d. %s" % (index, " ".join(line.split())) for index, line in enumerate(args.done, 1)]
-    fields = guards_ops.frozen_fields(sys.modules[__name__], args, lines, touches)
+    fields = fit.frozen_fields(sys.modules[__name__], args, lines, touches)
     path = goal_file(args.slug)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     write(path, TEMPLATE.format(goal=" ".join(args.goal.split()), slug=args.slug,
@@ -239,11 +239,11 @@ def cmd_new(args):
 
 
 def cmd_queue(args):
-    return guards_ops.cmd_queue(sys.modules[__name__], args)
+    return fit.cmd_queue(sys.modules[__name__], args)
 
 
 def cmd_set(args):
-    return guards_ops.cmd_set(sys.modules[__name__], args)
+    return fit.cmd_set(sys.modules[__name__], args)
 
 
 def cmd_step(args):
@@ -299,7 +299,7 @@ def cmd_record(args):
     if result in ("done", "skipped") or pending or result == "pending":
         guards.clear_refusals(state)
     if result in ("done", "skipped") or ((pending or result == "pending") and cfg.get("auto_approve") is True):
-        guards_ops.keep(sys.modules[__name__], state, args.step, text)
+        fit.keep(sys.modules[__name__], state, args.step, text)
     if (pending or result == "pending") and cfg.get("auto_approve") is True:
         took = "; ".join(pending) or why or "the step's pending gate"
         state["flow"][args.step] = "done: auto-approved: " + took[:200] + stamp
@@ -368,7 +368,7 @@ def cmd_pr(args):
         return 1
     known = run(["gh", "pr", "view", state["branch"], "--json", "url,state"])
     info = json.loads(known.stdout) if known.returncode == 0 else {}
-    body = guards_ops.pr_text(sys.modules[__name__], state)
+    body = fit.pr_text(sys.modules[__name__], state)
     state["step"] = "pr"
     save(state, "pr")
     for wait in (2, 5, 0):
@@ -413,7 +413,7 @@ def cmd_touches(args):
 
 def cmd_show(args):
     state = load(args.slug)
-    state["resume_at"] = guards_ops.fit.resume_at(state, guards.moved_since_plan(sys.modules[__name__], state))
+    state["resume_at"] = fit.resume_at(state, guards.moved_since_plan(sys.modules[__name__], state))
     print(json.dumps(state, indent=2))
     return 0
 

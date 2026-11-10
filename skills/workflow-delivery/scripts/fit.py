@@ -13,10 +13,19 @@ goal runs condensed and a larger one full.
 
 Owner settings (`goal.py set`) live in the operation sidecar `<runs>/<slug>.extra.json` under its lock, so a worker's
 save of the run record can't erase them; `view` merges them over the run record.
+
+Also here, so the package stays under its file cap: the operation's `set` and `queue` commands and what `new`, `record`
+and `pr` keep (each takes goal.py's module as g, and imports guards, private and role lazily, since they import fit),
+and the pull request body: each step's result, depth, tokens and VERDICT lines (issue 38), the decided depth, the
+budget, the private-name scan, GitHub surfaces and scripts that may write back what the goal deletes (issue 117).
 """
 import json
 import os
 import re
+import subprocess
+
+# No terminal, no waiting: a prompt from git must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
 STEPS = ("idea", "plan", "review", "qa", "ship")
 NOT_AREAS = ("docs/", ".loop/", "dev/toy/", "test/", "tests/")
@@ -153,3 +162,148 @@ def says_bump(goal):
     """minor or major when the goal text names one (a hint for the operation; never stored)."""
     found = re.search(r"\b(minor|major)\b", goal or "", re.I)
     return found.group(1).lower() if found else ""
+
+
+# ---- operation commands and what goal.py keeps (was guards_ops.py)
+SET_AFTER_RECORD = "SET_AFTER_RECORD"
+
+
+def cmd_set(g, args):
+    import guards  # noqa: E401 - lazily: they import fit
+    guards.operation_only(g, "set", args.slug)
+    state = g.load(args.slug)
+    if not (args.depth or args.bump or args.budget_minutes is not None or args.budget_tokens is not None):
+        g.no("nothing to set. Fix: give --depth, --bump, --budget-minutes or --budget-tokens")
+    why = " ".join(args.why.split())
+    if args.depth and any(recorded(state, s) for s in ("plan", "review")):
+        done = [s for s in ("review", "plan") if recorded(state, s)][-1]
+        g.no("%s is already recorded, so a new depth wouldn't bind it; nothing changed. Fix: goal.py set first, then "
+             "flow.py %s %s --again (%s)" % (done, args.slug, done, SET_AFTER_RECORD))
+    if args.bump and state.get("release") in ("cut", "merged"):
+        g.no("%s's release has started; nothing changed (%s)" % (args.slug, SET_AFTER_RECORD))
+    runs = g.state_dir()
+    if args.depth:
+        guards.add_set(runs, args.slug, "depth_override", {"depth": args.depth, "why": why}, "set depth %s: %s" % (args.depth, why))
+    if args.bump:
+        guards.add_set(runs, args.slug, "bump", args.bump, "set bump %s: %s" % (args.bump, why))
+    if args.budget_minutes is not None or args.budget_tokens is not None:
+        held, _ = budget(view(state, runs), g.config())
+        if args.budget_minutes is not None:
+            held["minutes"] = max(0, args.budget_minutes)
+        if args.budget_tokens is not None:
+            held["tokens"] = max(0, args.budget_tokens)
+        guards.add_set(runs, args.slug, "budget", held, "set budget %dm, %d tokens: %s" % (held["minutes"], held["tokens"], why))
+    print("SET %s: %s" % (args.slug, ", ".join(
+        "%s=%s" % (k, v) for k, v in sidecar(runs, args.slug).items())))
+    return 0
+
+
+def cmd_queue(g, args):
+    g.valid(args)
+    if any("|" in text for text in [args.goal, args.touches] + args.done):
+        g.no("no | in a queue line.")
+    path = os.path.join(g.root(), ".loop", "queue.md")
+    held = g.read(path) if os.path.exists(path) else ""
+    if os.path.exists(g.state_path(args.slug)) or "- slug: %s |" % args.slug in held:
+        g.no("%s already exists. Fix: pick a new slug." % args.slug)
+    parts = ["slug: " + args.slug]
+    if args.touches:
+        parts.append("touches: " + args.touches)
+    if args.depends_on:
+        parts.append("depends-on: " + args.depends_on)
+    parts.append("goal: " + " ".join(args.goal.split()))
+    parts += ["done: " + " ".join(line.split()) for line in args.done]
+    g.write(path, ("" if held.endswith("\n") or not held else "\n") + "- " + " | ".join(parts) + "\n", "a")
+    print("QUEUED %s in .loop/queue.md" % args.slug)
+    return 0
+
+
+def keep(g, state, step, text):
+    """What record keeps from a done, skipped or auto-approved reply: its verdicts (issue 38) and, for plan, the HEAD
+    it was recorded at (resume_at tells build from review by commits after it)."""
+    state.setdefault("verdicts", {})[step] = verdicts(text)
+    if step == "plan":
+        state["plan_head"] = g.git("rev-parse", "HEAD")
+
+
+def frozen_fields(g, args, lines, touches):
+    """What `new` records beside the done lines: the goal's size and the budget it carries (0 = none set)."""
+    bad = [t for t in touches if surface(t) is None]
+    if bad:
+        g.no("%s isn't a GitHub surface. Fix: one of github:%s" % (", ".join(bad), ", github:".join(SURFACES)))
+    if says_bump(args.goal):
+        print("WARN: the goal text says %s; the operation records it with goal.py set %s --bump %s --why ..." % (
+            says_bump(args.goal), args.slug, says_bump(args.goal)))
+    return {"size": size_of(lines, touches, g.root()), "budget": budget_of(g.config())}
+
+
+def pr_text(g, state):
+    """The pull request body, after the private-name scan of the branch, the title and the body (DEL-9): a hit or a
+    broken list refuses with no try, before anything is pushed."""
+    import guards, private, role  # noqa: E401 - lazily: they import fit
+    base, cfg = g.base_ref(state), g.config()
+    body = pr_body(g.read(g.goal_file(state["slug"])), view(state, g.state_dir()), cfg, role.setting_of(cfg),
+                          "", regen_warnings(g.root(), base))
+    found = private.scan(g.root(), base, {"pr-title": state["goal"][:70], "pr-body": body})
+    stop = private.refusal(found, base)
+    if stop:
+        guards.refuse_no_try(state, stop[0], stop[1], stop[2], g.save)
+    if found["state"] == "none":
+        state.setdefault("log", []).append("%s %s" % (guards.now(), found["note"]))
+    return body.replace("\n## Result\n", "\n## Result\n\n" + found["note"] + "\n", 1)
+
+
+# ---- the pull request body (was prbody.py)
+VERDICT = re.compile(r"^\W*VERDICT:\s*(.+?)\s*$", re.M)
+
+
+def verdicts(text):
+    """The `VERDICT: <who>: <verdict>` lines of a step reply, at most 12, each cut to 200 characters."""
+    return [" ".join(item.split())[:200] for item in VERDICT.findall(text or "")][:12]
+
+
+def step_line(step, seen):
+    flow = seen.get("flow") or {}
+    tokens = (seen.get("tokens") or {}).get(step)
+    line = "\n- %s: %s" % (step, flow.get(step, "not run"))
+    if isinstance(tokens, int) and tokens:
+        line += " (%s tokens)" % format(tokens, ",")
+    for item in ((seen.get("verdicts") or {}).get(step) or []):
+        line += "\n  - verdict: " + item
+    return line
+
+
+def regen_warnings(top, base):
+    """For each file the branch deletes, tracked scripts and workflows that name its path."""
+    def git(*args):
+        done = subprocess.run(["git"] + list(args), cwd=top, capture_output=True, text=True)
+        return done.stdout if done.returncode == 0 else ""
+    gone = [line for line in git("diff", "--name-only", "--diff-filter=D", "--no-renames", base + "...HEAD").splitlines() if line]
+    scripts = [p for p in git("ls-files").splitlines() if p.endswith((".py", ".sh")) or p.startswith(".github/workflows/")]
+    found = []
+    for path in gone:
+        named = git("grep", "-l", "-F", path, "--", *scripts).split() if scripts else []
+        for script in named:
+            found.append("WARN: %s names %s, which this goal deletes; it may write it back. Fix: update or delete %s in "
+                         "this goal, or ask the operation session to widen touches" % (script, path, script))
+    return found
+
+
+def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
+    """The pull request body. Keeps `## Result` and the `Skill flow:` lines other tools read."""
+    depth, why = depth_for(setting, seen)
+    held, source = budget(seen, cfg)
+    parts = ["%dm" % held["minutes"] if held["minutes"] else "", "%s tokens" % format(held["tokens"], ",") if held["tokens"] else ""]
+    body = goal_text + "\n## Result\n\nSkill flow:" + "".join(step_line(step, seen) for step in STEPS) + "\n"
+    body += "\nReview depth: %s (%s).\n" % (depth, why)
+    body += "Budget: %s (%s); spent %s tokens.\n" % (", ".join(p for p in parts if p) or "none set", source,
+                                                     format(spent_tokens(seen), ","))
+    body += scan_note + "\n"
+    surfaces = [t for t in (seen.get("touches") or []) if t.startswith("github:")]
+    if surfaces:
+        body += "GitHub surfaces this goal changes: %s.\n" % ", ".join(surfaces)
+    if base_note:
+        body += base_note + "\n"
+    if warnings:
+        body += "\n" + "\n".join("- " + w for w in warnings) + "\n"
+    return body

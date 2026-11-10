@@ -6,7 +6,7 @@ No draft, no question. Every failure is recorded on the goal as `release_error`,
 The bump is patch unless the owner recorded the goal's bump (`goal.py set SLUG --bump minor|major`), read through
 workflow-delivery's fit.py. The release commit and notes pass the private-name scan (workflow-delivery's private.py,
 loaded from the sibling skill; missing or broken refuses, PRIVATE_MODULE) before any push. A protected base (a
-`pull_request` rule, or a push refused for protection) takes the release pull request instead (release_pr.py).
+`pull_request` rule, or a push refused for protection) takes the release pull request instead (merge.py's release PR functions).
 """
 import datetime
 import importlib.util
@@ -253,7 +253,7 @@ def finish(top, cfg, state):
         if not state.get("release_pr") and not protected(top, base):
             version, sha = push_release_commit(top, cfg, state, part)
         if version is None:  # a protected base: the release pull request lands VERSION and CHANGELOG
-            import release_pr
+            import merge as release_pr  # the release pull request lives in merge.py
             got = release_pr.advance(top, cfg, state)
             if not got:
                 return False

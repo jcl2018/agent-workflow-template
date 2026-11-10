@@ -2,7 +2,7 @@
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/fit.py
 # reads: skills/workflow-delivery/scripts/private.py skills/workflow-docs/scripts/docs.py
 # reads: skills/workflow-release/scripts/autorelease.py skills/workflow-release/scripts/merge.py
-# reads: skills/workflow-release/scripts/release.py skills/workflow-release/scripts/release_pr.py
+# reads: skills/workflow-release/scripts/release.py
 # reads: skills/workflow-release/scripts/wiki.py skills/workflow-setup/scripts/setup.py
 # reads: skills/workflow-release/SKILL.md skills/workflow-release/references/commands.md skills/ skills/workflow-release/scripts/
 # The release half of delivery-prd (DEL-5, DEL-9, issues 129, 134, 154, 170) on a throwaway toy repo, with a

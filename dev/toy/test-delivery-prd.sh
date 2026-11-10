@@ -1,7 +1,7 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/fit.py
-# reads: skills/workflow-delivery/scripts/prbody.py skills/workflow-delivery/scripts/private.py skills/workflow-delivery/scripts/guards.py
-# reads: skills/workflow-delivery/scripts/guards_ops.py skills/workflow-delivery/scripts/role.py skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-delivery/scripts/private.py skills/workflow-delivery/scripts/guards.py
+# reads: skills/workflow-delivery/scripts/role.py skills/workflow-setup/scripts/setup.py
 # reads: skills/workflow-release/scripts/ skills/workflow-delivery/scripts/ skills/workflow-regression/scripts/regression.py
 # Proves the Delivery PRD's delivery side: depth by size with the owner's override (DEL-6), resume from the last
 # recorded step after a kill (DEL-7), the goal's budget (DEL-8), the private-name scan before goal.py pr pushes (DEL-9),
