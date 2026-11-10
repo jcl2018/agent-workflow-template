@@ -6,7 +6,11 @@ The GitHub Actions run keeps its own copy of this logic inside regression.yml (a
 """
 import json
 import re
+import os
 import subprocess
+
+# No terminal, no waiting: a prompt from gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
 LABELS = ("regression", "defect")  # the tool's own label, and the defect label every failing row's issue carries
 MARK = "<!-- loop-regression %s -->"
