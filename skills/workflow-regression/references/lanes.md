@@ -12,8 +12,8 @@ settings. The Regression wiki page holds the requirements (REG-1..REG-9); this p
 | goal lane, pr | the same, plus the full suite once when the goal changed a path no row declares, or deleted one (`FULL (unmapped <path> at pr)`) | only when FULL |
 | goal lane with no merge-base (shallow clone, missing base) | every row (`FULL (no merge-base with <base>)`) | yes |
 | hand run `regression.py run land\|nightly\|ID [--kind K]` | what you name; a plain `run nightly` is the full suite and records its time | when it is a full run |
-| GitHub Actions, schedule and v* tags | `ci_levels` (default nightly: every row) | n/a (a runner) |
-| GitHub Actions, run by hand | its `target` input: land, nightly or a row id | n/a |
+| GitHub Actions, on the `regression_cron` schedule (every 4 hours by default; `off` stops it) and every v* tag | `ci_levels` (default nightly: every row, the full suite; land: land rows only) | n/a (a runner) |
+| GitHub Actions, run by hand | its `target` input: land, nightly or a row id (empty: `ci_levels`); the workflow's own runner checks it, so a repo without the skills folder works | n/a |
 
 ship and release reuse the qa lane's results when no code changed since (`REUSED`). Before a pull request merges,
 merge.py checks the base: a move in paths this goal's rows reach refuses (`BASE_MOVED`); `goal.py pr` then merges the
@@ -45,7 +45,8 @@ part is advice and never blocks.
 | UNMAPPED | tiers.py | — | a changed or deleted path no row declares (Note) | declare it in the `# reads:` header of the row that tests it, or let pr run the full suite once |
 | KILLED | regression.py | — | a signal stopped a row: `KILLED <row>: signal <name> (pid <n>)` (Note) | see the lane log |
 | FLAKY | regression.py | per result | a row gave different results on the same clean commit, runner and python (Note): the raw result counts, the flag stays on that commit (regression-runs.tsv's flaky column, tests.py list, health's TESTS block) and the row is never reused | find the nondeterminism in the row's command; FLAKY clears when a later commit's clean run passes |
-| SUITE_TIME | regression.py | — | a plain full run's time, kept for health's REG-7 check | none |
+| SUITE_TIME | regression.py / CI run step | — | a plain full run's time (`regression.py run nightly`, or a CI run whose target is nightly), appended to `<git common dir>/loop/suite-times.tsv` for health's REG-7 check; CI keeps its line as artifact `suite-time`, which the scheduled health job downloads with a `ci` column | none |
+| REFUSED (BAD_TARGET) | CI run step | 1 | the run-by-hand `target` input is not land, nightly or a row id: `REFUSED (BAD_TARGET): bad target "<value>": use land, nightly or a row id from regression.py list. Fix: rerun the workflow with one of those`; no row ran | rerun the workflow with one of those |
 | REFUSED (BASE_MOVED) | merge.py | 2 | the base moved in paths this goal's rows reach since the pr lane | `goal.py pr SLUG`, then `merge.py SLUG` |
 | REFUSED (BASE_FETCH) | merge.py | 3 | origin can't be fetched to check the base; nothing merged | run `merge.py SLUG` again when the remote answers |
 | REFUSED (HEAD_MOVED) | merge.py | 4 | the pull request head moved since the pr lane | `goal.py pr SLUG`, then `merge.py SLUG` |

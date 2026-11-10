@@ -11,7 +11,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
-            "REGRESSION_RESULTS", "REGRESSION_MAP", "RUNNER_TEMP")
+            "REGRESSION_RESULTS", "REGRESSION_MAP", "RUNNER_TEMP", "SUITE_TIME_FILE")
 
 
 def row_env():
@@ -25,6 +25,12 @@ on:
 @SCHEDULE@  push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      target:
+        description: "land, nightly or a row id; empty runs @LEVELS@ (the ci_levels setting)"
+        required: false
+        default: ""
+        type: string
 permissions:
   contents: read
   issues: write
@@ -64,6 +70,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv  # the runner's own file, in no row's environment
+          SUITE_TIME_FILE: ${{ runner.temp }}/suite-time.tsv  # a full run's time, kept as artifact suite-time for health
+          REGRESSION_TARGET: ${{ inputs.target }}  # a run by hand; checked below, never put into a shell line
+          REGRESSION_LEVELS: "@LEVELS@"  # the schedule and v* tags run ci_levels
         run: |
           here=$(mktemp -d)  # a private folder: what each row guards, read before any row runs
           cat > "$here/tests.py" <<'TESTS_PY_EOF'
@@ -78,6 +87,14 @@ jobs:
                   return []
               return [line.rstrip("\n").split("\t") for line in open(path) if line.strip() and not line.startswith("#")]
           known = {row[0] for row in rows(".loop/regression-known.tsv")}
+          TARGET = os.environ.get("REGRESSION_TARGET") or os.environ.get("REGRESSION_LEVELS") or "nightly"
+          if not re.fullmatch(r"land|nightly|[A-Za-z0-9_.-]+", TARGET) or TARGET not in ("land", "nightly") and \
+                  TARGET not in [row[0] for row in rows(".loop/regression.tsv")]:
+              print("REFUSED (BAD_TARGET): bad target %s: use land, nightly or a row id from regression.py list. Fix: rerun the "
+                    "workflow with one of those" % json.dumps(TARGET), file=sys.stderr)
+              sys.exit(1)
+          def wanted(row):  # a row id runs that row alone; land runs land rows; nightly runs land and nightly rows
+              return row[0] == TARGET if TARGET not in ("land", "nightly") else row[1] in ("land", TARGET)
           def gh(*args):
               return subprocess.run(("gh",) + args, capture_output=True, text=True)
           def seconds(name, default):  # a bad or non-positive value falls back to the default
@@ -170,7 +187,7 @@ jobs:
           with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
               handle.write("# started %d\n" % start)
           for row in rows(".loop/regression.tsv"):
-              if len(row) < 3 or row[1] not in ("land", "nightly"):
+              if len(row) < 3 or not wanted(row):
                   continue
               if time.time() - start + ROW_SECONDS > JOB_SECONDS:  # a row may run its full limit, so it must still fit
                   code, said, skipped = 125, "skipped: out of job time; this row did not run", True
@@ -219,10 +236,24 @@ jobs:
                           write("move #" + n, "issue", "edit", n, "--body", hit["body"].replace(old, mark), *(["--milestone", title] if title else []))
                           by_number(n, closed, hit["body"])
                       write("comment #" + n, "issue", "comment", n, "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
+          if TARGET == "nightly":  # the full suite: its time for health's REG-7 check (timing.py)
+              took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+              with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
+                  handle.write("%s\tfull\t%d\t%s\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime())))
+              print("SUITE_TIME %d" % took)
           if failed:
               print("FILED %d issue writes; FAILED %d: %s (FILE_FAILED)" % (filed[0], len(failed), ", ".join(failed)))
           sys.exit(1 if red or failed else 0)
           PY
+      - name: Keep the full suite's time for the health job
+        if: always() && steps.routine.outputs.on == 'true'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: suite-time
+          path: ${{ runner.temp }}/suite-time.tsv
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Write the run summary, one table per feature
         if: always() && steps.routine.outputs.on == 'true'
         continue-on-error: true
@@ -247,12 +278,13 @@ jobs:
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "TESTS_PY_EOF")  # what Actions or this writer would read as its own
+UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "TESTS_PY_EOF")  # what Actions or this writer would read as its own
 
 
-def render(cron):
-    """The workflow text for this cron: what write() saves and the tests compare. It carries tests.py, the one
-    test format, because the GitHub job has only the repo's own checkout."""
+def render(cron, levels="nightly"):
+    """The workflow text for this cron and ci_levels: what write() saves and the tests compare. It carries tests.py,
+    the one test format, and its own row runner (the dispatch target's check too), because the GitHub job has only the
+    repo's own checkout: an adopting repo has no skills/ folder."""
     with open(os.path.join(HERE, "tests.py")) as handle:
         source = handle.read()
     bad = [token for token in UNSAFE if token in source]
@@ -260,16 +292,20 @@ def render(cron):
         sys.exit("REFUSED: tests.py contains %s, which the workflow can't carry. Fix: reword that line" % bad[0])
     body = "\n".join(("          " + line).rstrip() for line in source.rstrip("\n").split("\n"))
     schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron  # off: by hand only, and the run says so
-    return WORKFLOW.replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@ROWDROP@", repr(ROW_DROP)) \
+    return WORKFLOW.replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
         .replace("@TESTS@", body)
 
 
 def write(root, default):
     try:
         with open(os.path.join(root, ".loop", "config.json")) as handle:
-            cron = json.load(handle).get("regression_cron") or default
+            cfg = json.load(handle)
     except (OSError, ValueError):
-        cron = default
+        cfg = {}
+    cfg = cfg if isinstance(cfg, dict) else {}
+    cron, levels = cfg.get("regression_cron") or default, cfg.get("ci_levels") or "nightly"
+    if levels not in ("land", "nightly"):
+        sys.exit("REFUSED: ci_levels is %r, not land or nightly. Fix: edit .loop/config.json." % (levels,))
     if cron != "off" and not (isinstance(cron, str) and re.fullmatch(r"[0-9A-Za-z*/,\- ]+", cron) and len(cron.split()) == 5):
         sys.exit("REFUSED: regression_cron is not five cron fields or off. Fix: edit .loop/config.json.")
     path = os.path.join(root, ".github", "workflows", "regression.yml")
@@ -279,6 +315,6 @@ def write(root, default):
                 sys.exit("REFUSED: %s exists, and this tool didn't write it. Fix: merge by hand." % path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as handle:
-        handle.write(render(cron))
+        handle.write(render(cron, levels))
     print("WROTE " + path)
     return 0

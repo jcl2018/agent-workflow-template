@@ -6,6 +6,12 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      target:
+        description: "land, nightly or a row id; empty runs nightly (the ci_levels setting)"
+        required: false
+        default: ""
+        type: string
 permissions:
   contents: read
   issues: write
@@ -45,6 +51,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv  # the runner's own file, in no row's environment
+          SUITE_TIME_FILE: ${{ runner.temp }}/suite-time.tsv  # a full run's time, kept as artifact suite-time for health
+          REGRESSION_TARGET: ${{ inputs.target }}  # a run by hand; checked below, never put into a shell line
+          REGRESSION_LEVELS: "nightly"  # the schedule and v* tags run ci_levels
         run: |
           here=$(mktemp -d)  # a private folder: what each row guards, read before any row runs
           cat > "$here/tests.py" <<'TESTS_PY_EOF'
@@ -351,6 +360,14 @@ jobs:
                   return []
               return [line.rstrip("\n").split("\t") for line in open(path) if line.strip() and not line.startswith("#")]
           known = {row[0] for row in rows(".loop/regression-known.tsv")}
+          TARGET = os.environ.get("REGRESSION_TARGET") or os.environ.get("REGRESSION_LEVELS") or "nightly"
+          if not re.fullmatch(r"land|nightly|[A-Za-z0-9_.-]+", TARGET) or TARGET not in ("land", "nightly") and \
+                  TARGET not in [row[0] for row in rows(".loop/regression.tsv")]:
+              print("REFUSED (BAD_TARGET): bad target %s: use land, nightly or a row id from regression.py list. Fix: rerun the "
+                    "workflow with one of those" % json.dumps(TARGET), file=sys.stderr)
+              sys.exit(1)
+          def wanted(row):  # a row id runs that row alone; land runs land rows; nightly runs land and nightly rows
+              return row[0] == TARGET if TARGET not in ("land", "nightly") else row[1] in ("land", TARGET)
           def gh(*args):
               return subprocess.run(("gh",) + args, capture_output=True, text=True)
           def seconds(name, default):  # a bad or non-positive value falls back to the default
@@ -360,7 +377,7 @@ jobs:
                   return default
               return value if value > 0 else default
           ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", 88 * 60)
-          ROW_ENV = {k: v for k, v in os.environ.items() if k not in ('GH_TOKEN', 'GITHUB_TOKEN', 'GITHUB_STEP_SUMMARY', 'GITHUB_ENV', 'GITHUB_OUTPUT', 'GITHUB_PATH', 'GITHUB_STATE', 'REGRESSION_RESULTS', 'REGRESSION_MAP', 'RUNNER_TEMP')}  # no token, no runner file a row could write into
+          ROW_ENV = {k: v for k, v in os.environ.items() if k not in ('GH_TOKEN', 'GITHUB_TOKEN', 'GITHUB_STEP_SUMMARY', 'GITHUB_ENV', 'GITHUB_OUTPUT', 'GITHUB_PATH', 'GITHUB_STATE', 'REGRESSION_RESULTS', 'REGRESSION_MAP', 'RUNNER_TEMP', 'SUITE_TIME_FILE')}  # no token, no runner file a row could write into
           def run(command):  # own process group, output to a file: a row that times out fails alone and keeps what it printed
               with tempfile.TemporaryFile("w+", errors="replace") as log:
                   child = subprocess.Popen(command, shell=True, stdout=log, stderr=subprocess.STDOUT, env=ROW_ENV,
@@ -443,7 +460,7 @@ jobs:
           with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
               handle.write("# started %d\n" % start)
           for row in rows(".loop/regression.tsv"):
-              if len(row) < 3 or row[1] not in ("land", "nightly"):
+              if len(row) < 3 or not wanted(row):
                   continue
               if time.time() - start + ROW_SECONDS > JOB_SECONDS:  # a row may run its full limit, so it must still fit
                   code, said, skipped = 125, "skipped: out of job time; this row did not run", True
@@ -492,10 +509,24 @@ jobs:
                           write("move #" + n, "issue", "edit", n, "--body", hit["body"].replace(old, mark), *(["--milestone", title] if title else []))
                           by_number(n, closed, hit["body"])
                       write("comment #" + n, "issue", "comment", n, "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
+          if TARGET == "nightly":  # the full suite: its time for health's REG-7 check (timing.py)
+              took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+              with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
+                  handle.write("%s\tfull\t%d\t%s\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime())))
+              print("SUITE_TIME %d" % took)
           if failed:
               print("FILED %d issue writes; FAILED %d: %s (FILE_FAILED)" % (filed[0], len(failed), ", ".join(failed)))
           sys.exit(1 if red or failed else 0)
           PY
+      - name: Keep the full suite's time for the health job
+        if: always() && steps.routine.outputs.on == 'true'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: suite-time
+          path: ${{ runner.temp }}/suite-time.tsv
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Write the run summary, one table per feature
         if: always() && steps.routine.outputs.on == 'true'
         continue-on-error: true
