@@ -23,6 +23,7 @@ import sys
 
 import criteria
 import docs
+import entry
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -150,6 +151,12 @@ def audit(root, base, dry):
         would += ["%s: re-render the Tests table" % name for name in render(not fix)]
     found, moved = milestone_trouble(root, fix)
     would += moved
+    # The entry point and a stale agent block are generated: rewriting them is mechanical (a missing block needs agents.py).
+    stale = [path for kind, path, _ in entry.problems(root) if path == entry.ENTRY and kind in ("STALE", "MISSING") or
+             kind == "STALE" and path in entry.agent_files(docs.config(root))]
+    if stale and fix:
+        entry.write(root)
+    would += ["%s: regenerate it (entry.py write)" % path for path in stale]
     for line in would:
         print("%s %s" % ("WOULD FIX" if dry else "FIXED", line))
     found += docs.problems(root, base) + docs.contract(root) + docs.counts(root) + release_trouble(root)

@@ -31,6 +31,7 @@ import tempfile
 
 import counting
 import criteria
+import entry
 
 # No terminal, no waiting.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GIT_EDITOR="true")
@@ -247,8 +248,9 @@ def cmd_check(args):
     if not read_map(root):
         print("NO PAGES: run add first")
         return 1
-    found = problems(root, args.base) + contract(root) + counts(root)
-    for kind, page, detail in found:
+    notes = [item for item in entry.problems(root) if item[0] in ("LAG", "SKIPPED")]  # said, never a failure
+    found = problems(root, args.base) + contract(root) + counts(root) + [i for i in entry.problems(root) if i not in notes]
+    for kind, page, detail in found + notes:
         print("%s %s: %s" % (kind, page, detail))
     if found:
         return 1
