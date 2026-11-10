@@ -129,7 +129,7 @@ def check_monotone():
 def check_lift_bound():
     repo = Repo()
     history(repo, (1, 1), [300, 320, 340, 360, 380], "slow")
-    history(repo, (6, 6), [20, 22, 24, 26, 28], "quick")
+    history(repo, (6, 6), [20, 22, 24, 26], "quick")   # 9 finished goals: under MIN_BACKTEST, so the size rule is in use
     bs.MODEL.clear()
     runs = repo.records()
     big = {"slug": "q", "status": "queued", "done": ["x"] * 6, "touches": ["t%d/f" % k for k in range(6)]}
@@ -251,7 +251,7 @@ def check_stalled():
 
 def check_issue_96():
     repo = Repo()
-    small, large = [10, 15, 20, 25, 30], [90, 105, 120, 135, 150]
+    small, large = [10, 15, 20, 25, 30, 12], [90, 105, 120, 135, 150, 100]   # six each, so the size rule wins its backtest
     history(repo, (2, 1), small, "s")
     history(repo, (7, 5), large, "l")
     repo.queued("small-goal", 2, 1)

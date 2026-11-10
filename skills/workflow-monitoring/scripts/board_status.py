@@ -20,9 +20,11 @@ import status_graph  # noqa: E402
 # board_log sets the no-prompt guard (GIT_TERMINAL_PROMPT and the rest) before any git or gh process starts.
 from board_log import (COMMON, FLOW, HOLD, STEPS, UNHOLD, after, current, flow_seconds, git, goal_file,  # noqa: E402,F401
                        holding, named, read_json, size_of, stamp)
-from board_model import (MODEL, SIMILAR, STALL, STALL_FLOOR, STEP_UP, base, estimate, estimate_full, estimate_text,  # noqa: E402,F401
-                         holds, left_time, lifted_steps, model, overrun, pace_of, span, spread, stall_lines, stalled,
-                         step_left, step_now, steps_for)
+from board_model import (CANDIDATES, CELLS, LABELS, MIN_BACKTEST, MODEL, SIMILAR, STALL, STALL_FLOOR,  # noqa: E402,F401
+                         STEP_UP, TILT, History, accuracy_text, backtest, base, blend_cell, cached, chosen, envelope,
+                         estimate, estimate_full, estimate_text, folds, holds, left_time, lifted_steps, model, overrun,
+                         pace_of, score, size_cell, span, spread, stall_lines, stalled, step_left, step_now, steps_cell,
+                         steps_for, table)
 
 ASKING = ("waiting", "failed", "stopped")
 

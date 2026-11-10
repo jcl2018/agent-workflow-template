@@ -3,9 +3,11 @@
 and touched areas); the current step's pace and overrun; and stalled goals. Imported by board_status.py, which re-exports
 every name here; it imports board_log.py, status_graph.py and the standard library, never board_status.py.
 """
+import math
 import os
 import statistics
 import sys
+import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from board_log import STEPS, current, flow_seconds, git, size_of  # noqa: E402
@@ -15,6 +17,10 @@ SIMILAR = 5     # similar finished goals needed before an estimate stops being r
 STEP_UP = 60    # seconds one more done line or touched area adds at least
 STALL = 3       # a current step past this many times its estimate is stalled
 STALL_FLOOR = 900   # seconds: a step is never stalled before 15 minutes, however short its estimate
+MIN_BACKTEST = 10   # scorable finished goals the backtest needs before it picks a candidate over the size rule
+TILT = 1        # seconds one more unit adds for the size-light candidates: only keeps a larger goal strictly longer
+CANDIDATES = ("steps", "size", "blend")   # a new candidate is a cell function in CELLS and its name here; ties go first
+LABELS = {"steps": "step medians", "size": "size rule", "blend": "blend"}
 MODEL = {}
 span = status_graph.span
 
@@ -34,11 +40,13 @@ def left_time(run, runs, at, root=None):
 
 
 def model(runs, at, root):
-    """Finished goals as (slug, size, flow_seconds), worked out once per set of runs."""
+    """Finished goals as (slug, size, flow_seconds) and their History, worked out once per set of runs; the backtest's
+    scores and the chosen candidate are kept here too, so a run that finishes or changes recomputes them."""
     key = (at, root, tuple((r.get("slug"), r.get("status"), r.get("updated")) for r in runs))
     if MODEL.get("key") != key:
         MODEL.clear()
-        MODEL.update(key=key, done=[(r["slug"], size_of(r, root), flow_seconds(r, at)) for r in runs if r.get("status") == "done"])
+        done = [(r["slug"], size_of(r, root), flow_seconds(r, at)) for r in runs if r.get("status") == "done"]
+        MODEL.update(key=key, done=done, hist=History(done))
     return MODEL
 
 
@@ -60,33 +68,178 @@ def base(done, size, step):
     return spread([t[step] for t in pick if t.get(step)]), len(similar)
 
 
-def steps_for(run, runs, at, root):
-    """Per step (est, low, high) or None, lifted so a larger goal is longer; plus (similar count, size known, clamped)."""
-    m = model(runs, at, root)
-    key = ("steps", run.get("slug"), size_of(run, root))
+class History:
+    """Finished goals [(slug, size, seconds per step)] with each size's similar goals found once. Every lookup leaves out
+    one goal, out: a backtest fold's held-out goal, or the goal being estimated; results are kept per (cell, step, out)
+    only when out changes them, so a backtest reuses every cell its held-out goal is not in."""
+    def __init__(self, done):
+        self.done, self.memo, self.near = done, {}, {}
+
+    def pooled(self, step, out):
+        key = ("pool", step, out)
+        if key not in self.memo:
+            self.memo[key] = spread([t[step] for s, _, t in self.done if s != out and t.get(step)])
+        return self.memo[key]
+
+    def logged(self, step, out):
+        """How many finished goals other than out logged the step."""
+        return sum(1 for s, _, t in self.done if s != out and t.get(step))
+
+    def top(self, out):
+        """One past the largest done lines and areas of the finished goals other than out (the size clamp)."""
+        sizes = [z for s, z, _ in self.done if z and s != out]
+        return max([z[0] for z in sizes] + [1]) + 1, max([z[1] for z in sizes] + [1]) + 1
+
+    def base(self, cell, step, out):
+        """base() over every finished goal but out."""
+        if not cell:
+            return self.pooled(step, out), 0
+        if cell not in self.near:
+            self.near[cell] = [i for i in self.done if i[1] and abs(i[1][0] - cell[0]) <= 1 and abs(i[1][1] - cell[1]) <= 1]
+        key = (cell, step, out if any(s == out for s, _, _ in self.near[cell]) else None)
+        if key not in self.memo:
+            similar = [t for s, _, t in self.near[cell] if s != out]
+            own = len(similar) >= SIMILAR and any(t.get(step) for t in similar)
+            self.memo[key] = spread([t[step] for t in similar if t.get(step)]) if own else "pool", len(similar)
+        found, count = self.memo[key]
+        return (self.pooled(step, out) if found == "pool" else found), count
+
+
+def size_cell(hist, out):
+    """The size rule's cell: each step's base over the goals similar to that size."""
+    return lambda x, y: {step: hist.base((x, y), step, out)[0] for step in STEPS}
+
+
+def steps_cell(hist, out):
+    """The step medians' cell: each step's spread over every finished goal that logged it, the same for every size."""
+    flat = {step: hist.pooled(step, out) for step in STEPS}
+    return lambda x, y: flat
+
+
+def blend_cell(hist, out):
+    """The blend's cell: per step and per value, the geometric mean of the step medians and the size rule's base; a step
+    only one of them has comes from that one."""
+    flat, by_size = steps_cell(hist, out)(1, 1), size_cell(hist, out)
+
+    def cell(x, y):
+        sized = by_size(x, y)
+        return {s: tuple(math.sqrt(p * q) for p, q in zip(flat[s], sized[s])) if flat[s] and sized[s] else flat[s] or sized[s]
+                for s in STEPS}
+    return cell
+
+
+CELLS = {"steps": steps_cell, "size": size_cell, "blend": blend_cell}
+
+
+def envelope(cell, size, top, up):
+    """Per step (est, low, high) or None for a goal of size, and the size it was clamped to: every size's cell total is
+    lifted to at least `up` seconds more than each size one smaller (one rule for every candidate), and the goal's own
+    cell is scaled to its lifted total. A cell with no time under a lifted total takes that total split evenly."""
+    total = lambda per: sum(b[0] for b in per.values() if b)
+    d, a = min(size[0], top[0]), min(size[1], top[1])
+    lifted = {}
+    for x in range(1, d + 1):
+        for y in range(1, a + 1):
+            lifted[x, y] = max([total(cell(x, y))] + [lifted[k] + up for k in ((x - 1, y), (x, y - 1)) if k in lifted])
+    own = cell(d, a)
+    whole, target = total(own), lifted[d, a] + up * (size[0] - d + size[1] - a)
+    if whole:
+        return {s: tuple(v * target / whole for v in b) if b else None for s, b in own.items()}, (d, a)
+    if not any(lifted[x, y] > up * (x + y - 2) for x, y in lifted):
+        return dict(own), (d, a)   # no finished goal logged anything
+    return {s: (target / len(own),) * 3 for s in own}, (d, a)
+
+
+def table(name, hist, size, out=None):
+    """(per step (est, low, high) or None, info) for a goal of size estimated by candidate name from every finished goal
+    but out. info: (similar count, size known, clamped, {step: finished goals that logged it}, name)."""
+    logged = {step: hist.logged(step, out) for step in STEPS}
+    if not size:
+        return {step: hist.pooled(step, out) for step in STEPS}, (0, False, False, logged, name)
+    per, clamp = envelope(CELLS[name](hist, out), size, hist.top(out), STEP_UP if name == "size" else TILT)
+    return per, (hist.base(size, STEPS[0], out)[1], True, size != clamp, logged, name)
+
+
+def cached(m, name, slug, size):
+    """table() for a goal, kept in the model under ("steps", name, slug, size)."""
+    key = ("steps", name, slug, size)
     if key not in m:
-        m[key] = lifted_steps(run, m, root)
+        m[key] = table(name, m["hist"], size, slug)
     return m[key]
 
 
+def steps_for(run, runs, at, root):
+    """Per step (est, low, high) or None from the chosen candidate, lifted so a larger goal is longer; plus info (see
+    table)."""
+    return cached(model(runs, at, root), chosen(runs, at, root), run.get("slug"), size_of(run, root))
+
+
 def lifted_steps(run, m, root):
-    """steps_for, worked out."""
-    done = [item for item in m["done"] if item[0] != run.get("slug")]
-    size = size_of(run, root)
-    if not size:
-        return {step: base(done, None, step)[0] for step in STEPS}, (0, False, False)
-    top = (max([s[0] for _, s, _ in done if s] + [1]) + 1, max([s[1] for _, s, _ in done if s] + [1]) + 1)
-    d, a = min(size[0], top[0]), min(size[1], top[1])
-    lifted, total = {}, lambda x, y: sum(b[0] for b in (base(done, (x, y), step)[0] for step in STEPS) if b)
-    for x in range(1, d + 1):
-        for y in range(1, a + 1):
-            lifted[x, y] = max([total(x, y)] + [lifted[k] + STEP_UP for k in ((x - 1, y), (x, y - 1)) if k in lifted])
-    own = {step: base(done, (d, a), step)[0] for step in STEPS}
-    whole = sum(b[0] for b in own.values() if b)
-    target = lifted[d, a] + STEP_UP * (size[0] - d + size[1] - a)
-    lift = target / whole if whole else 1
-    out = {step: tuple(v * lift for v in b) if b else None for step, b in own.items()}
-    return out, (base(done, size, STEPS[0])[1], True, size != (d, a))
+    """The size rule's steps_for, worked out."""
+    return table("size", m["hist"], size_of(run, root), run.get("slug"))
+
+
+def folds(hist, names=CANDIDATES, memo=None):
+    """Each finished goal with logged time that every candidate estimates above 0 when it is queued and left out of the
+    history: {slug, size, actual, seconds, per: {name: per step}, left: {name: seconds}}."""
+    out = []
+    for slug, size, seconds in hist.done:
+        actual = sum(seconds.get(s, 0) for s in STEPS)
+        if actual <= 0:
+            continue
+        per = {c: (cached(memo, c, slug, size) if memo is not None else table(c, hist, size, slug))[0] for c in names}
+        left = {c: sum(b[0] for b in p.values() if b) for c, p in per.items()}
+        if all(v > 0 for v in left.values()):
+            out.append(dict(slug=slug, size=size, actual=actual, seconds=seconds, per=per, left=left))
+    return out
+
+
+def score(rows, name):
+    """Median over the rows of |ln(estimate / actual)|: how many times off the whole-goal estimate typically was."""
+    return statistics.median(abs(math.log(r["left"][name] / r["actual"])) for r in rows)
+
+
+def backtest(runs, at, root):
+    """Leave-one-out over the finished goals: (scores, n), with n the goals every candidate could estimate (see folds) and
+    scores {candidate: score} ({} when n is under MIN_BACKTEST). Worked out once per set of runs (see model)."""
+    m = model(runs, at, root)
+    if "scores" not in m:
+        m["folds"] = rows = folds(m["hist"], CANDIDATES, m)
+        m["scores"] = ({c: score(rows, c) for c in CANDIDATES} if len(rows) >= MIN_BACKTEST else {}), len(rows)
+    return m["scores"]
+
+
+def chosen(runs, at, root):
+    """The candidate with the lowest backtest score; scores within 1e-9 tie and the first in CANDIDATES wins. The size
+    rule under MIN_BACKTEST scorable goals, or when the backtest fails (its traceback goes to stderr). The name and the
+    reason are kept in the model as "chosen"."""
+    m = model(runs, at, root)
+    if "chosen" not in m:
+        try:
+            scores, n = backtest(runs, at, root)
+        except (ArithmeticError, ValueError, TypeError, KeyError) as error:
+            traceback.print_exc(limit=3, file=sys.stderr)
+            m["chosen"] = "size", "backtest failed (%s)" % type(error).__name__
+            return "size"
+        low = min(scores.values()) if scores else 0
+        tied = [c for c in CANDIDATES if c in scores and scores[c] - low <= 1e-9]
+        m["chosen"] = (("size", "fewer than %d scorable goals (%d)" % (MIN_BACKTEST, n)) if not scores else
+                       (tied[0], "exact tie, first in CANDIDATES" if len(tied) > 1 else "lowest leave-one-out score"))
+    return m["chosen"][0]
+
+
+def accuracy_text(runs, at, root=None):
+    """The line under Finish: the candidate in use and how many times off its whole-goal estimate typically was in the
+    backtest, or why that is not known (at most 60 columns)."""
+    root = root or git("rev-parse", "--show-toplevel")
+    name = chosen(runs, at, root)
+    m = model(runs, at, root)
+    if "scores" not in m:
+        return "estimates: size rule, %s" % m["chosen"][1]
+    scores, n = m["scores"]
+    if not scores:
+        return "estimates: size rule, error not known yet (%d of %d goals)" % (n, MIN_BACKTEST)
+    return "estimates: %s, whole goal off x%.1f (%d goals)" % (LABELS[name], math.exp(scores[name]), n)
 
 
 def estimate(run, runs, at, root=None):
@@ -103,12 +256,13 @@ def holds(run, held):
 def estimate_full(run, runs, at, root=None, held=None):
     """(left, low, high, rough, partial) in seconds for what a goal still needs, or None when no step has an estimate.
     Finished steps add nothing; a running goal's pace over its finished steps (0.5 to 2) scales the rest; the current
-    step past its estimate is re-estimated by step_left. Rough: fewer than SIMILAR similar goals, unknown size, a
-    step still to run with no estimate, or a size past every finished goal's. A held goal's step time stops growing."""
+    step past its estimate is re-estimated by step_left. Rough: unknown size, a step still to run with no estimate, and
+    for the size rule fewer than SIMILAR similar goals or a size past every finished goal's, for the others a step
+    still to run that fewer than SIMILAR other finished goals logged. A held goal's step time stops growing."""
     if run.get("status") == "done":
         return 0, 0, 0, False, False
     root = root or git("rev-parse", "--show-toplevel")
-    per, (similar, known, clamped) = steps_for(run, runs, at, root)
+    per, (similar, known, clamped, logged, name) = steps_for(run, runs, at, root)
     queued = run.get("status") in ("queued", "freezing") or not run.get("log")
     here = 0 if queued else current(run)
     if here >= len(STEPS):
@@ -128,7 +282,8 @@ def estimate_full(run, runs, at, root=None, held=None):
         left, low, high = left + e, low + lo, high + hi
     if partial and not any(per[s] for s in STEPS[here:]):
         return None
-    return left, low, high, similar < SIMILAR or not known or partial or clamped, partial
+    few = similar < SIMILAR or clamped if name == "size" else any(logged[s] < SIMILAR for s in STEPS[here:] if per[s])
+    return left, low, high, few or not known or partial, partial
 
 
 def pace_of(run, per, at, here, held=None):
