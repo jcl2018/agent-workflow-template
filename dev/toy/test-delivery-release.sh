@@ -4,7 +4,7 @@
 # reads: skills/workflow-release/scripts/autorelease.py skills/workflow-release/scripts/merge.py
 # reads: skills/workflow-release/scripts/release.py skills/workflow-release/scripts/release_pr.py
 # reads: skills/workflow-release/scripts/wiki.py skills/workflow-setup/scripts/setup.py
-# reads: skills/workflow-release/SKILL.md skills/workflow-release/references/commands.md
+# reads: skills/workflow-release/SKILL.md skills/workflow-release/references/commands.md skills/ skills/workflow-release/scripts/
 # The release half of delivery-prd (DEL-5, DEL-9, issues 129, 134, 154, 170) on a throwaway toy repo, with a
 # test-local gh shim (dev/toy/release-gh.py) around dev/toy/fakegh and a pre-receive hook in the toy origin that stands in for a protected main.
 # usage: test-delivery-release.sh [CASE]   CASE: patch removed bump protected rules review pending nomatch crash

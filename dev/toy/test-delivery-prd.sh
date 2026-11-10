@@ -2,13 +2,13 @@
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/fit.py
 # reads: skills/workflow-delivery/scripts/prbody.py skills/workflow-delivery/scripts/private.py skills/workflow-delivery/scripts/guards.py
 # reads: skills/workflow-delivery/scripts/guards_ops.py skills/workflow-delivery/scripts/role.py skills/workflow-setup/scripts/setup.py
-# reads: skills/workflow-release/scripts/ skills/workflow-monitoring/scripts/
+# reads: skills/workflow-release/scripts/ skills/workflow-delivery/scripts/ skills/workflow-regression/scripts/regression.py
 # Proves the Delivery PRD's delivery side: depth by size with the owner's override (DEL-6), resume from the last
 # recorded step after a kill (DEL-7), the goal's budget (DEL-8), the private-name scan before goal.py pr pushes (DEL-9),
 # verdicts in the pull request (issue 38) and GitHub touches, regeneration warnings and set (issue 117). No model.
-# usage: test-delivery-prd.sh [depth|resume|budget|private|defects|hold|sites|all]
+# usage: test-delivery-prd.sh [depth|resume|budget|private|defects|hold|all]
 set -u
-unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_PRIVATE_NAMES LOOP_BATCH
+unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_PRIVATE_NAMES LOOP_BATCH LOOP_ROLE  # w() sets the worker role per call; set and touches run as the operation
 here=$(cd "$(dirname "$0")/../.." && pwd); case=${1:-all}
 . "$here/dev/toy/reap.sh"
 export HOME=$(mktemp -d)
@@ -189,28 +189,6 @@ PY
   mkdir -p "$HOME/.workflow-loop"; printf '# nothing private here\n' > "$HOME/.workflow-loop/private-names"
   check "a list holding only comments is off on purpose" 'python3 $S/private.py check | grep -q "off on purpose"'
   rm -rf "$HOME/.workflow-loop"
-  python3 - "$here" <<'PY' && ok "every push or GitHub write in delivery, release and monitoring calls the scan first" || bad "an unscanned push site"
-import ast, os, sys
-here = sys.argv[1]
-skip = {"private.py"}
-bad = []
-for skill in ("workflow-delivery", "workflow-release", "workflow-monitoring"):
-    folder = os.path.join(here, "skills", skill, "scripts")
-    for name in sorted(os.listdir(folder)):
-        if not name.endswith(".py") or name in skip:
-            continue
-        tree = ast.parse(open(os.path.join(folder, name)).read())
-        for fn in [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]:
-            text = ast.unparse(fn)
-            q = text.replace('"', "'")  # ast.unparse prints single quotes
-            writes = ("'push'" in q and "'git'" in q) or any("'%s', '%s'" % pair in q for pair in (
-                ("pr", "create"), ("release", "create"), ("pr", "merge"), ("pr", "comment"), ("pr", "edit")))
-            called = {(c.func.attr if isinstance(c.func, ast.Attribute) else getattr(c.func, "id", "")) for c in ast.walk(fn) if isinstance(c, ast.Call)}
-            if writes and not called & {"scan", "private_check", "check", "pr_text"}:
-                bad.append("%s:%s" % (name, fn.name))
-if bad:
-    print("unscanned: " + ", ".join(bad)); sys.exit(1)
-PY
 fi
 
 if on defects; then
@@ -247,12 +225,5 @@ PY
   check "merge.py holds a row whose requirement ID no base page names where the pages use that prefix, and only notes a new prefix" 'grep -q "^(\[.ABC-2.\], \[.XYZ-1.\])$" "$d/hold"'
 fi
 
-if on sites; then
-  echo "== sizes"
-  for f in "$here"/skills/workflow-delivery/scripts/*.py "$here"/skills/workflow-release/scripts/*.py "$here"/skills/workflow-monitoring/scripts/*.py; do
-    [ "$(wc -c < "$f")" -lt 20480 ] || bad "$(basename "$f") is over 20 KB"
-  done
-  ok "every script the goal touches stays under 20 KB"
-fi
 [ "$fails" = 0 ] || { echo "$fails failed"; exit 1; }
 echo "ALL PASS"

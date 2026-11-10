@@ -4,7 +4,7 @@
 # reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/live_board.py
 # reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/session_bind.py
 # reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/worker.py
-# reads: skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-setup/scripts/setup.py skills/workflow-monitoring/scripts/
 # Proves the delivery-prd monitoring half on a made-up repo: the live board's budget line (DEL-8: minutes and tokens,
 # OVER flags, none set, one half, a record from before budgets, agreement with health's cost rule), the decided depth
 # on the board (DEL-6: by size under condensed, the owner override wins), the missing private-name list under Issues
