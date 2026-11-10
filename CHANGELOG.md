@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.13.0 - 2026-11-10
+
+- Health: formal report, preview and file by group
+- Health: guard, tests table
+- Health: clean group still closes its issues
+- Merge origin/main into loop/health-report
+- List the preview and file commands; regression run log
+- Merge origin/main into loop/health-report
+- Render the wiki Tests tables after the merge
+- fix: pre-landing review fixes
+- fix: adversarial and targeted review fixes
+- docs: health preview, file and report wording after review
+- fix: pre-existing test failure in every-row-described
+- fix: pre-existing test failure in dev/toy/test-operate.sh
+- fix: pre-existing race in dev/toy/test-operate.sh
+- Merge origin/main (v0.11.0) into loop/health-report
+- Merge origin/main (v0.12.0, PRD pages) into loop/health-report
+- docs: the toy gh keeps issue labels (Documentation page)
+- docs: Health success metric counts only the groups the owner files
+- docs: design guide rows for health filing and PRD pages
+- Merge origin/main (v0.12.1) into loop/health-report
+
+### How to verify
+
+1. Run `python3 skills/workflow-health/scripts/health.py check`.
+   Expect: line 2 reads `groups run: ...; skipped: ...`, then each group with every rule and a state, the Cost group titled `performance`, and one `HEALTH:` line last.
+2. Run `python3 skills/workflow-health/scripts/health.py preview`.
+   Expect: `WOULD open/update/close/reopen ... [health:<group>]` lines and a `PREVIEW:` line; no issue changes on GitHub.
+3. Run `python3 skills/workflow-health/scripts/health.py file`.
+   Expect: `REFUSED: file needs --group ...` and nothing written.
+4. Open `docs/wiki/Health.md`.
+   Expect: HLT-3 and HLT-4 carry the new wording marked `Reviewed 2026-11-08`, and Usage lists the four agent requests.
+
 ## v0.12.1 - 2026-11-10
 
 - review_depth: full by default; every step states its depth, record checks it, the board and PR show it; setup writes it
