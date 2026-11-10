@@ -96,7 +96,9 @@ step: the latest session report, a running goal at release reads `finish release
 known flow step); Queued goals (held goals among them, marked `held`); Dependencies between running and queued goals as arrows
 (`a --> b`); and one finish time (the longest chain of estimates, not their sum; `at least` while a goal is held or freezing). Merged and closed work, history, milestones, duplicate totals, token
 tables and done-line lists are left out. Estimates are the median of other finished runs' steps, read from their logs, and read
-`no estimate yet` without one.
+`no estimate yet` without one. A current step past its estimate has its time left re-estimated (half the time it has run, at
+least a minute), so time left and the finish time grow; a minute or more past, it reads `over by Nm` in its brackets. Every line
+fits 60 characters: the step flow wraps at its ` > ` joints and a long header splits in two.
 
 #### Board states
 

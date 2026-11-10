@@ -149,6 +149,6 @@ import json, sys
 s = json.load(open(sys.argv[1])); s["status"] = "running"; s.pop("pr", None); json.dump(s, open(sys.argv[1], "w"))
 PY
 $LB > "$d/board"
-check "the live board shows each recorded step's depth and the setting" 'grep -q "^    depth: idea full, plan full, review full, qa full, ship full (setting full)$" "$d/board"'
+check "the live board shows each recorded step's depth and the setting" 'grep -A1 -x "    depth: idea full, plan full, review full, qa full, ship" "$d/board" | grep -qx "      full (setting full)"'
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
