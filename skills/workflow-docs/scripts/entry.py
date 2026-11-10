@@ -122,8 +122,12 @@ def features(root, cfg):
             continue
         mile = re.search(r"^Milestone:\s*(\S.*)$", text, re.M)
         problem = " ".join(section(text, "Problem").split("\n\n")[0].split())
-        usage, items = section(text, "Usage"), []
-        for line in usage.splitlines():
+        usage, items, code, blank = section(text, "Usage"), [], False, False
+        for line in usage.splitlines():  # an indented block after a blank line is example output, never a sub-bullet
+            code = bool(line.strip()) and re.match(r"^ {4}", line) is not None and (blank or code) or (code and not line.strip())
+            blank = not line.strip()
+            if code:
+                continue
             if re.match(r"^- ", line):
                 items.append(sentence(line[2:].strip()))
             elif re.match(r"^\s+- ", line) and items:
