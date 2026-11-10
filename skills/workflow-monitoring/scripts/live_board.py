@@ -240,6 +240,8 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
             other += ["- %s: assigned to session %s %s ago and still not frozen" % (entry["slug"], name, age(entry["since"], at)),
                       "    fix: look at the session %s; once it has stopped, drop the assignment with sessions.py free %s"
                       % (name, entry["slug"])]
+    for key in sorted(graph.LAST_BAD.get(os.path.join(loop_dir(root), "session-pool.json"), {})):
+        other += ["- pool entry %s is malformed and was set aside" % key, "    fix: look at session-pool.bad.json, then delete it"]
     found = bs.wiki_check(root)
     parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]
     for run in runs:
@@ -296,7 +298,7 @@ def render(root=None, at=None):
                 "    next: the worker freezes it (goal.py new %s --here in its worktree), binds again, then idea%s"
                 % (entry["slug"], " (assigned %s ago)" % ago if ago else "")]
     out += ([] if running or freezing else ["- (none)"])
-    out += [pool_line(pool, root)] if pool is not None else []
+    out += [pool_line(pool, root)] if pool else []  # a repo with no session pool shows no pool line
     out += ["", "Queued goals"]
     for run in held:
         tree = run.get("worktree") and os.path.isdir(run["worktree"])

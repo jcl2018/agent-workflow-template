@@ -47,7 +47,7 @@ needs() { sed -n '/^Issues/,/^Running goals/p' "$1"; }
 
 echo "== a clean docs check"
 $DOCS check | grep -q "DOCS OK" || bad "setup: docs check should be clean"
-$OP run --once > "$T/clean" 2>&1
+$OP run --board --once > "$T/clean" 2>&1
 check "line 1: old saved errors for pages the check does not report are gone" '! needs "$T/clean" | grep -q "Using-the-toy\|Vanished\|oldclean\|oldgone"'
 check "line 1: a saved error naming no page is kept, in the one wiki line" '[ "$(needs "$T/clean" | grep -c "^- wiki")" = 1 ] && needs "$T/clean" | grep -q "saved: push rejected"'
 
@@ -57,14 +57,14 @@ python3 - "$C/loop/runs/nopage.json" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1])); s.pop("wiki_error"); json.dump(s, open(sys.argv[1], "w"))
 PY
-$OP run --once > "$T/stale" 2>&1
+$OP run --board --once > "$T/stale" 2>&1
 check "line 1: exactly one wiki line names today's stale page and the fix" '[ "$(needs "$T/stale" | grep -c "^- wiki")" = 1 ] && needs "$T/stale" | grep "wiki" | head -1 | grep -q "out of date: stale Using-the-toy" && needs "$T/stale" | grep -q "fix: bring those wiki pages up to date" && ! needs "$T/stale" | grep -q "docs.py"'
 check "line 1: the old goal's error is folded in, not repeated per goal" '! needs "$T/stale" | grep -q "oldclean\|oldgone\|Vanished"'
-$OP run --once > "$T/again" 2>&1
+$OP run --board --once > "$T/again" 2>&1
 check "line 1: two passes with an unchanged check print the same full board" 'grep -q "^LIVE BOARD" "$T/again" && [ "$(needs "$T/again")" = "$(needs "$T/stale")" ]'
 
 echo "== the dependencies"
-check "line 2: chained goals are drawn with arrows" 'grep -qx "a --> b" "$T/stale" && grep -qx "a --> d" "$T/stale" && grep -qx "b --> c" "$T/stale"'
+check "line 2: chained goals are drawn as a top-to-bottom graph" 'grep -qx "\[ \] b <- a" "$T/stale" && grep -qx "\[ \] d <- a" "$T/stale" && grep -qx "\[ \] c <- b" "$T/stale"'
 last=$(grep -A1 "^Finish" "$T/stale" | tail -1)
 check "line 2: the board ends with one finish time in the local zone" 'echo "$last" | grep -q "^finish about [0-9][0-9]:[0-9][0-9] IST"'
 

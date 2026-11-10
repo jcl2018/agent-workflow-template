@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pull request states for the board, fast (MON-9: the board builds in under 10 seconds). gh is asked in parallel, each
-call bounded, and answers are kept in <git common dir>/loop/pr-states.json: MERGED for good, OPEN and CLOSED for
-TTL seconds (a closed pull request can be reopened). The file is written whole through a temp file and os.replace, so
+call bounded, and a MERGED answer is kept in <git common dir>/loop/pr-states.json for good (OPEN and CLOSED can change,
+so they are asked each time, all at once). The file is written whole through a temp file and os.replace, so
 a reader never sees half of it; when two writers race, the last one wins and a lost answer is only asked again.
 Imported by board_status.py and board.py, not run.
 
@@ -11,11 +11,11 @@ Imported by board_status.py and board.py, not run.
 import concurrent.futures
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
 
-TTL = int(os.environ.get("LOOP_PR_TTL", "60"))
 TIMEOUT = float(os.environ.get("LOOP_PR_TIMEOUT", "3"))
 WORKERS = 16  # 16 calls of at most 3 s each: one wave, well inside MON-9's 10 seconds
 
@@ -50,19 +50,23 @@ def save(path, found):
 
 def ask(url, root):
     try:
-        done = subprocess.run(["gh", "pr", "view", url, "--json", "state"], cwd=root, capture_output=True, text=True, timeout=TIMEOUT)
-        got = str(json.loads(done.stdout).get("state", "")).upper() if done.returncode == 0 else ""
+        done = subprocess.run(["gh", "pr", "view", url, "--json", "state", "-q", ".state"], cwd=root, capture_output=True,
+                              text=True, timeout=TIMEOUT)
+        out = done.stdout.strip() if done.returncode == 0 else ""
+        got = str(json.loads(out).get("state", "") if out.startswith("{") else out).upper()  # -q, or JSON when ignored
         return got if got in ("MERGED", "CLOSED", "OPEN") else ""
     except (OSError, ValueError, AttributeError, subprocess.SubprocessError):
         return ""
 
 
 def fresh(entry, now):
-    return isinstance(entry, dict) and (entry.get("state") == "MERGED" or now - float(entry.get("at") or 0) < TTL)
+    return isinstance(entry, dict) and entry.get("state") == "MERGED"  # only a merge is final; OPEN and CLOSED are asked anew
 
 
 def lookup(urls, root):
-    """{url: state} for each url, from the cache where fresh, else from gh in parallel."""
+    """{url: state} for each url, from the cache where fresh, else from gh in parallel. No gh at all: every state unknown."""
+    if not shutil.which("gh"):
+        return {url: "" for url in urls}
     path, now = cache_path(root), time.time()
     cache = load(path) if path else {}
     out = {url: cache[url]["state"] for url in urls if fresh(cache.get(url), now)}
@@ -71,7 +75,7 @@ def lookup(urls, root):
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(WORKERS, len(todo))) as pool:
             for url, got in zip(todo, pool.map(lambda u: ask(u, root), todo)):
                 out[url] = got
-                if got:
+                if got == "MERGED":
                     cache[url] = {"state": got, "at": now}
         if path:
             save(path, cache)
