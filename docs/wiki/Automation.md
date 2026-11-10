@@ -46,6 +46,8 @@ Routines run in GitHub Actions. Every routine runs as a GitHub Actions workflow 
 - Given health_cron in the config, when the health workflow is written, then it runs on that schedule and by hand, one run at a time. — [aut-health-schedule](../../.loop/regression.tsv), requirement, guards AUT-1, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a config schedule that differs from the written workflow, when the routine runs, then its summary names the difference and the command that fixes it. — [aut-schedule-mismatch](../../.loop/regression.tsv), requirement, guards AUT-1, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given this repo's config, when the health workflow is written, then it equals the committed workflow. — [aut-health-workflow-current](../../.loop/regression.tsv), requirement, guards AUT-1, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a regression schedule that differs from the config, when the routine runs, then it names the difference and the command that fixes it. — [aut-regression-schedule-mismatch](../../.loop/regression.tsv), requirement, guards AUT-1, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given setup in a repo, when it plans the workflows, then it offers the health workflow only when the workflow-health skill is in the repo. — [aut-setup-health-only-with-skill](../../.loop/regression.tsv), requirement, guards AUT-1, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### AUT-2
 
@@ -95,3 +97,7 @@ Under my control. Each routine can be turned off or rescheduled in one setting, 
 - Given a cron setting with anything but plain cron fields, when a workflow is written, then it is refused. — [aut-cron-check](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given regression_cron off, when its workflow is written, then it has no schedule and keeps its by-hand trigger. — [aut-regression-off-written](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a cron setting that ends in a newline, when a workflow is written, then it is refused. — [aut-cron-newline](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given a health workflow the tool didn't write, when the health workflow is written, then it is refused and left unchanged. — [aut-foreign-workflow](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given no token outside Actions, when the digest runs, then it prints the comment, says it is a dry run and writes nothing. — [aut-digest-dry-run](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given regression_cron off, when a release tag is pushed, then the regression run still runs the rows. — [aut-off-push-runs](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given regression_cron off, when someone starts the regression run by hand, then it still runs the rows. — [aut-off-dispatch-runs](../../.loop/regression.tsv), requirement, guards AUT-5, both, PASS 2026-11-10, seen failing 2026-11-10

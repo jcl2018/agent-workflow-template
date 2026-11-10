@@ -115,6 +115,7 @@ Failures go to GitHub: one issue per failing test, labeled defect, updated, clos
 - Given a failing test, when the run reports it, then one GitHub issue is opened. — [one-issue](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a known failure, when the GitHub run runs it, then its result is recorded KNOWN, not FAIL. — [known-recorded](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a failing test, when a local live run reports it, then its issue is labelled defect. — [reg-defect-label](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-10, seen failing 2026-11-10
+- Given an older open issue for a failing test, when a local live run reports it, then the issue gains the defect label. — [reg-local-relabel](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### REG-6
 
