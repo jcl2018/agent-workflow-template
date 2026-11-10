@@ -20,3 +20,16 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. In the main checkout, run `python3 skills/workflow-monitoring/scripts/operate.py run --once`.
+   Expect: one headline line, then All sessions, Dependencies, Needs you and Coming up; no `LIVE BOARD` block.
+2. Run `python3 skills/workflow-monitoring/scripts/monitor.py report`.
+   Expect: the live board, with Dependencies drawn top to bottom (`[>]`, `[ ]`, `<-`, a `|`/`v` between bands and a legend), no line wider than 60 characters, and a HELD OR FREEZING section.
+3. Run `python3 skills/workflow-monitoring/scripts/pool.py status`.
+   Expect: one line `pool: F free, B busy, T total (target 20)` with this repo's counts.
+4. Pipe a routine question into the full-auto check: `echo "Which helper name?" | python3 skills/workflow-monitoring/scripts/auto.py decide-text --kind routine --recommend a`, then the same with "Delete the cache?".
+   Expect: `AUTO` for the first, `WAITS: it mentions delete` for the second.
+5. Pipe two commands into the govern check: `echo "git -C . commit -m x" | python3 skills/workflow-monitoring/scripts/govern_hook.py check`, then `echo "git status" | ...`.
+   Expect: `BLOCK: git commit`, then `PASS`.
+6. Run `python3 skills/workflow-monitoring/scripts/replan.py plan` twice.
+   Expect: the first run lists each running goal's start with its reason (or REPLAN: no change); the second prints `REPLAN: no change`.

@@ -55,5 +55,6 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 |---|---|
 | `/workflow-setup setup` | `python3 scripts/setup.py` (`--dry-run` previews, `--bare` writes only the config, queue and findings) |
 | `/workflow-setup reply-hook` | `python3 scripts/setup.py --reply-hook` (`--remove` takes it out): the operation session's reply-format Stop hook, in the repo's machine-local `.claude/settings.local.json` |
+| `/workflow-setup govern-hook` | `python3 scripts/setup.py --govern-hook` (`--remove` takes it out): the operation session's govern-only PreToolUse hook (MON-7), installed beside the reply hook too |
 | `/workflow-setup settings` | `python3 scripts/settings.py reference` |
 | `/workflow-setup fill-repo` | `python3 scripts/settings.py fill-repo` |
