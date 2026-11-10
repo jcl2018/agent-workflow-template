@@ -35,7 +35,7 @@ show SLUG
 A background agent runs `flow` for the idea and plan steps, builds, fills in `## Verify by hand`, then runs the review, qa and
 ship steps, and ends with `pr` and the release step. `flow` starts a step detached and
 prints `RUNNING` until it ends, then a `NEXT` line naming `record`. `record` refuses a reply that `flow` didn't produce.
-A failed step and a step with no `STEP:` line each cost a try. After 3 it files a finding in
+A failed step, a step with no `STEP:` line and a step refused for its depth (no `DEPTH:` line, condensed under `review_depth` full, a missing `full_markers` string) each cost a try. After 3 it files a finding in
 `.loop/findings.md` and stops with exit code 3. `pr` refuses until every step is done
 or skipped with a reason, and until the issue or finding the goal fixes has a defect test seen failing and passing; its body lists each step's result. With `pr_bumps_version` on, it first moves the last number
 of the version file once, unless the branch already changed it.
