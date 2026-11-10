@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=219479d7 N=81dd3484 M=4599a537 U=689852ab -->
+Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599a537 U=689852ab -->
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
@@ -62,6 +62,12 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=219479d7 N=81dd3484 M=4599
   - One full Tests page is generated, listing every test with its latest result.
   - Every open issue is on its feature's milestone, or on Backlog only when it fits no feature.
   - Every release has a release note.
+- DOC-14: **Reviewed 2026-11-10** A feature page lists what it ships: the pages people open and the deliveries people receive <!-- reviewed 6920f546 -->
+  - A feature page that ships something people can open, or a delivery people receive (for example a scheduled email), has a Deployments section; it is optional otherwise.
+  - Pages: one row per public or private page, with its link, who can open it (public or sign-in), what it shows, and the live build (the sha in build.txt).
+  - Deliveries: one row each, with its channel, recipients as a group (never an email address), what is sent and its status.
+  - The docs check refuses a malformed Deployments table, naming the table and the column.
+  - A listed public link that doesn't answer, or a live build that isn't the promoted one, fails the deploying repo's own check for now; the template takes that check over later.
 
 ### Non-functional
 - DOC-11: **Reviewed 2026-11-10** Safe publish <!-- reviewed f33a3310 -->
@@ -155,6 +161,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=219479d7 N=81dd3484 M=4599
 | [runs-same-day](Tests#t-runs-same-day) | requirement | DOC-10 | Given two branches running the same rows on one day, when each records its run, then the run files are identical. | PASS 2026-11-10 |
 | [ci-issue-backlog](Tests#t-ci-issue-backlog) | requirement | DOC-10 | Given a regression issue that fits no feature, when CI opens it, then it is on Backlog, and a missing Backlog is made once. | PASS 2026-11-10 |
 | [digest-backlog](Tests#t-digest-backlog) | requirement | DOC-10 | Given a Backlog milestone, when the digest issue is created, then it is on Backlog. | PASS 2026-11-10 |
+| - | requirement | DOC-14 | no passing test | not enforced |
 | [refuse-replace](Tests#t-refuse-replace) | requirement | DOC-11 | Given a wiki page the tool did not write, when the tool writes pages, then that page is never overwritten. | PASS 2026-11-10 |
 | [publish-restore](Tests#t-publish-restore) | requirement | DOC-11 | Given a publish that adopted a page someone else wrote, when restore runs, then the original page is back. | PASS 2026-11-10 |
 | [docs-check-speed](Tests#t-docs-check-speed) | requirement | DOC-12 | Given this repo, when the docs check runs, then it finishes in under 30 seconds. | PASS 2026-11-10 |

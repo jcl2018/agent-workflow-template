@@ -63,7 +63,10 @@ def rules():
                 "metrics_lines": int(found["metrics_lines"]), "usage": found.get("usage_section", "Usage"),
                 "review": found["review_line"], "milestone": found["milestone_line"], "format": on,
                 "banned": listed("problem_banned", pageformat.BANNED),
-                "groups": listed("requirement_groups", ", ".join(pageformat.GROUPS))}
+                "groups": listed("requirement_groups", ", ".join(pageformat.GROUPS)),
+                "deploy": found.get("deployments_section", "Deployments"), "access": listed("deployments_access", "public, sign-in"),
+                "page_cols": listed("deployments_page", ", ".join(pageformat.PAGE_COLS)),
+                "delivery_cols": listed("deployments_delivery", ", ".join(pageformat.DELIVERY_COLS))}
     except (OSError, AttributeError, KeyError, ValueError):
         sys.exit("REFUSED: the rules block of skills/workflow-docs/references/template.md is missing or broken.")
 
@@ -208,7 +211,9 @@ def contract(root, names, seen):
             text = handle.read()
         parts = sections(text)
         have = [name for name, _ in parts]
-        want = head[:1] + [rule["usage"]] + head[1:] if rule["usage"] in have else head
+        want = head[:1] + [rule["usage"]] + head[1:] if rule["usage"] in have else list(head)
+        if rule["deploy"] in have:  # optional, after Success metrics (before Tests)
+            want = want[:-1] + [rule["deploy"]] + want[-1:]
         if have != want:
             hint = ""
             if "Commands" in have:
@@ -250,6 +255,8 @@ def contract(root, names, seen):
         found += pf.bullets(page, head[1], numbered[head[1]][1], LINE, "bullets" in on, rule["groups"])
         if "usage" in on and rule["usage"] in numbered:
             found += pf.usage(page, rule["usage"], numbered[rule["usage"]][1], held, owns.get(page, []))
+        if "deployments" in on and rule["deploy"] in numbered:
+            found += pf.deployments(page, rule["deploy"], numbered[rule["deploy"]][1], rule["page_cols"], rule["delivery_cols"], rule["access"])
         if "problem" in on:
             found += pf.problem(page, head[0], numbered[head[0]][1], rule["problem_lines"], rule["banned"])
         if "tests" in on:

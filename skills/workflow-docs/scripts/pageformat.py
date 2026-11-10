@@ -10,7 +10,7 @@ import re
 
 GENERATED = {"Tests"}  # pages render writes; never mapped to paths, never a feature page
 GUIDE = "<!-- workflow-docs guide -->"  # a line marking a guide page: mapped and kept fresh, but not a feature page
-CHECKS = ("home", "frontdoor", "usage", "bullets", "problem", "tests")
+CHECKS = ("home", "frontdoor", "usage", "bullets", "problem", "tests", "deployments")
 BANNED = "script, function, regex, json, tsv, stdout"
 MARKER = "<!-- workflow-docs -->"
 HOME = ("Feature", "What it does", "How to use", "Milestone")
@@ -212,6 +212,66 @@ def usage(page, name, lines, maps, own):
         if "`" not in head.group(2) and not re.search(r"\b(prints|ends with)\b", head.group(2), re.I):
             out.append(bad(page, number, name, 6, "each entry says what it prints", short(head.group(1)),
                            "add what it prints on success, in backticks"))
+    return out
+
+
+PAGE_COLS = ("Page", "Link", "Access", "Shows", "Live build")
+DELIVERY_COLS = ("Delivery", "Channel", "Recipients", "What's sent", "Status")
+URL = re.compile(r"^(?:https?://\S+|\[[^\]]+\]\(https?://[^)\s]+\))$")
+SHA = re.compile(r"^[0-9a-f]{7,40}$")
+EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
+
+
+def deployments(page, name, lines, page_cols=PAGE_COLS, delivery_cols=DELIVERY_COLS, access=("public", "sign-in")):
+    """DOC-14: a Page table and/or a Delivery table, nothing else (template.md says each column's rule)."""
+    runs, other = tables(lines)
+    found = []  # a header row inside a run starts a new table
+    for number, header, rows in runs:
+        found.append([number, header, []])
+        for row_no, row in rows:
+            if tuple(row) in (tuple(page_cols), tuple(delivery_cols)):
+                found.append([row_no, row, []])
+            elif not (found[-1][2] == [] and all(re.match(r"^:?-+:?$", c) for c in row)):
+                found[-1][2].append((row_no, row))
+    fix_head = "use '%s' or '%s'" % (" | ".join(page_cols), " | ".join(delivery_cols))
+    out = [bad(page, number, name, 14, "only a Page table, a Delivery table and blank lines", short(line), "remove it")
+           for number, line in other]
+    if not found and not other:
+        out.append(bad(page, lines[0][0] if lines else 1, name, 14, "a Page or Delivery table with at least one row",
+                       "an empty section", "add a table, or remove the section"))
+    seen = set()
+    for number, header, rows in found:
+        kind = "Page" if tuple(header) == tuple(page_cols) else "Delivery" if tuple(header) == tuple(delivery_cols) else ""
+        if not kind:
+            out.append(bad(page, number, name, 14, "a table header of exactly the Page or Delivery columns", short(" | ".join(header)), fix_head))
+            continue
+        if kind in seen:
+            out.append(bad(page, number, name, 14, "at most one %s table" % kind, "a second one", "merge its rows into the first"))
+        seen.add(kind)
+        if not rows:
+            out.append(bad(page, number, name, 14, "at least one row in the %s table" % kind, "none", "add a row, or remove the table"))
+        cols = page_cols if kind == "Page" else delivery_cols
+        for row_no, row in rows:
+            if len(row) != len(cols):
+                out.append(bad(page, row_no, name, 14, "%d cells in each %s row" % (len(cols), kind), len(row),
+                               "one cell per column; escape a | inside a cell as \\|"))
+                continue
+            cell = dict(zip(cols, row))
+            empty = [c for c in cols if not cell[c]]
+            if empty:
+                out.append(bad(page, row_no, name, 14, "every %s cell filled" % kind, "empty %s" % ", ".join(empty), "fill it"))
+            elif kind == "Page":
+                if not URL.match(cell[cols[1]]):
+                    out.append(bad(page, row_no, name, 14, "Page Link an http(s) URL", short(cell[cols[1]]), "give the full https:// link"))
+                if cell[cols[2]] not in access:
+                    out.append(bad(page, row_no, name, 14, "Page Access %s" % " or ".join(access), short(cell[cols[2]]),
+                                   "say who can open it: %s" % " or ".join(access)))
+                if not SHA.match(cell[cols[4]].strip("`")):
+                    out.append(bad(page, row_no, name, 14, "Page Live build a 7 to 40 hex sha", short(cell[cols[4]]),
+                                   "put the sha in the page's build.txt"))
+            elif EMAIL.search(cell[cols[2]]):
+                out.append(bad(page, row_no, name, 14, "Delivery Recipients a group, never an address", "an email address",
+                               "name the group instead"))
     return out
 
 

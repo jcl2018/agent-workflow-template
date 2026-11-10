@@ -10,7 +10,7 @@ writes it, the last claim wins and says whom it replaced) or by the reply hook's
 `operate.py run`. A session whose folder is a goal worktree is a worker and is never checked, nor is any other repo.
 What it blocks there: Edit, Write and NotebookEdit; and each Bash segment (split on && || ; | and new lines, with
 `env X=Y`, `bash -c` and `sh -c` bodies read once more) that runs git, after any -C, -c, --git-dir or --work-tree
-options, with commit, push, merge, rebase, reset, cherry-pick, revert or am. Each segment is judged alone, so
+options, with commit, push, merge, rebase, reset, cherry-pick, revert, am or pull (a `pull --ff-only` passes, issue 495). Each segment is judged alone, so
 `merge.py X && git push` is blocked. The merge and post-merge steps (merge.py, release.py, autorelease.py, wiki.py,
 pool.py return, worker.py cleanup) run their own git inside their own process and pass. It guards the session's own
 tool use; command substitution and shell writes such as `sed -i` are outside it.
@@ -53,6 +53,11 @@ def strip(words):
     return words[i:]
 
 
+def safe_pull(args):
+    """`git pull --ff-only`, with no -r, --rebase, --rebase=<mode> or --no-ff anywhere among its words."""
+    return "--ff-only" in args and not any(a in ("-r", "--rebase", "--no-ff") or a.startswith("--rebase=") for a in args)
+
+
 def git_write(words):
     """The history-writing git subcommand in one segment's words, or ''."""
     words, i = strip(words), 0
@@ -70,6 +75,8 @@ def git_write(words):
         elif word.startswith("-"):
             i += 1
         else:
+            if word == "pull" and safe_pull(words[i + 1:]):
+                return ""  # issue 495: a fast-forward-only pull can't rewrite history
             return word if word in WRITES else ""
     return ""
 
