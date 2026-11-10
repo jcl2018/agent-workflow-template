@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-health/scripts/cost.py skills/workflow-health/scripts/health.py
-# reads: skills/workflow-health/scripts/mine.py skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-health/scripts/mine.py skills/workflow-setup/scripts/setup.py skills/workflow-health/scripts/
 # Test workflow-health on a throwaway toy repo. usage: test-health.sh [DIR]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool

@@ -260,7 +260,7 @@ def deleted(root, commit):
     out = (git(root, "diff", "--name-status", "--no-renames", "%s..HEAD" % commit) or "").splitlines()
     out += (git(root, "status", "--porcelain", "--no-renames") or "").splitlines()
     gone = [line.split("\t")[-1] if "\t" in line else line[3:].strip('"') for line in out
-            if line[:2].strip() == "D" or line.startswith("D")]
+            if line.startswith("D") or line[1:2] == "D"]  # D\tpath, "D  path", " D path", "MD path"
     return sorted({p for p in gone if not any(p == n or (n.endswith("/") and p.startswith(n)) for n in NO_EFFECT)})
 
 

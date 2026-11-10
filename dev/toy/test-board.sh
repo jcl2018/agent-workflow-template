@@ -2,6 +2,7 @@
 # reads: skills/workflow-monitoring/SKILL.md skills/workflow-monitoring/references/operation.md
 # reads: skills/workflow-monitoring/scripts/board.py skills/workflow-monitoring/scripts/board_page.py
 # reads: skills/workflow-monitoring/scripts/watch.py skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-monitoring/scripts/
 # Proves the operation board with fixtures. No model is called and no network is used. usage: test-board.sh [DIR]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool

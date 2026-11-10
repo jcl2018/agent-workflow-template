@@ -55,7 +55,7 @@ block() { LOOP_BOARD_HEALTH=green python3 -c "
 import sys, datetime
 sys.path.insert(0, sys.argv[1]); import live_board
 at = datetime.datetime(2026, 6, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
-print(chr(10).join(live_board.render('$T/repo', at)))" "$M"; }
+print(chr(10).join(live_board.render('$T/repo', at)))" "$M"; }  # lanes: no read ($M only goes on sys.path)
 block > "$T/block"
 check "the live board sections are in the fixed order" 'python3 -c "
 t=open(\"$T/block\").read()

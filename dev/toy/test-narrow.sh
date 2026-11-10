@@ -52,7 +52,7 @@ printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\n. dev/common.sh; python3 sk
 printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\n. dev/common.sh; python3 skills/b/scripts/b.py\n' > "$n/dev/tb.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\n. dev/common.sh; . dev/tm-lib.sh\npython3 $m/b.py; python3 $m/solo.py\n' > "$n/dev/tm.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/a/scripts/gone.py\n. dev/common.sh\n' > "$n/dev/tx.sh"  # lanes: no read (toy repo file)
-printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\n. dev/common.sh; ls skills/b/scripts >/dev/null; python3 skills/a/scripts/a.py\n' > "$n/dev/tf.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\n. dev/common.sh; (cd skills/b/scripts && true); python3 skills/a/scripts/a.py\n' > "$n/dev/tf.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n. dev/common.sh; python3 skills/a/scripts/a.py\n' > "$n/dev/tu.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/a/scripts/data.md\n. dev/common.sh; for f in tools/*; do cat "$f"; done\n' > "$n/dev/th.sh"  # lanes: no read (toy repo file)
 printf '# id\tlevel\tcommand\n' > "$n/.loop/regression.tsv"
@@ -92,7 +92,11 @@ printf '#!/bin/bash\n# reads: skills/a/scripts/*.py /etc/hosts\n:\n' > "$n/dev/t
 printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nfor f in skills/*; do :; done\n' > "$n/dev/tw.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\n! grep -R BAD skills/a/scripts\n' > "$n/dev/tr.sh"  # lanes: no read (toy repo file)
 out=$($L check --root "$n" dev/tz.sh dev/tw.sh dev/tr.sh)
-check "a glob or escaping declared path, an undeclared glob of every skill and a recursive grep are refused" 'grep -q "^LANES-DECL-PATTERN dev/tz.sh:2" <<<"$out" && grep -q "^LANES-DECL-ESCAPE dev/tz.sh:2: declared path leaves the repo: /etc/hosts" <<<"$out" && grep -q "^LANES-DECL-TREE dev/tw.sh" <<<"$out" && grep -q "^LANES-DECL-GLOB dev/tr.sh:3: globs skills/a/scripts/" <<<"$out"'
+check "a glob or escaping declared path, an undeclared glob of every skill and a recursive grep are refused" 'grep -q "^LANES-DECL-PATTERN dev/tz.sh:2" <<<"$out" && grep -q "^LANES-DECL-ESCAPE dev/tz.sh:2: declared path leaves the repo: /etc/hosts" <<<"$out" && grep -q "^LANES-DECL-TREE dev/tw.sh" <<<"$out" && grep -q "^LANES-DECL-GLOB dev/tr.sh:3: reads skills/a/scripts/ as a whole" <<<"$out"'
+printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\nls skills/b/scripts | wc -l\n' > "$n/dev/t1.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/b/scripts/b.py\nd=$here/skills/b/scripts\ngrep -r foo "$d"\n' > "$n/dev/t2.sh"  # lanes: no read (toy repo file)
+out=$($L check --root "$n" dev/t1.sh dev/t2.sh)
+check "a skill folder read as a whole, literally or through a variable, needs the folder declared" 'grep -q "^LANES-DECL-GLOB dev/t1.sh" <<<"$out" && grep -q "^LANES-DECL-GLOB dev/t2.sh" <<<"$out"'
 printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nhere=$(pwd); (cd "$here" && cat tools/x.txt)\n' > "$n/dev/tq.sh"  # lanes: no read (toy repo file)
 check "a script that runs tools on the repo's own files reruns on every change" '$L deps --root "$n" "bash dev/tq.sh" | grep -q "^ALWAYS bash dev/tq.sh: runs tools on this repo.s own files"'
 printf 'import os, helper\n' > "$n/skills/b/scripts/b2.py"; printf '#!/bin/bash\n# reads: skills/b/scripts/b2.py\npython3 skills/b/scripts/b2.py\n' > "$n/dev/tl.sh"
@@ -138,12 +142,15 @@ check "an uncommitted deletion forces a full run too" 'grep -q "^FULL: deleted s
 git checkout -q -- skills/k/scripts/k.py
 echo "== check-reads.sh: runtime reads outside a row's closure fail the trace"
 c="$d/trace"; mkdir -p "$c/dev/toy" "$c/skills/workflow-regression/scripts" "$c/skills/a/scripts" "$c/.loop"
-cp "$here/dev/toy/check-reads.sh" "$c/dev/toy/"; cp "$here"/skills/workflow-regression/scripts/{lanes,narrow,lanes_cli}.py "$c/skills/workflow-regression/scripts/"
+cp "$here/dev/toy/check-reads.sh" "$c/dev/toy/"; cp "$here/skills/workflow-regression/scripts/lanes.py" "$here/skills/workflow-regression/scripts/narrow.py" \
+  "$here/skills/workflow-regression/scripts/lanes_cli.py" "$c/skills/workflow-regression/scripts/"
 for f in a b c e; do printf 'NAME = "%s"\nopen(__file__).read()\n' "$f" > "$c/skills/a/scripts/$f.py"; done
+printf 'import os\nopen(os.path.join(os.path.dirname(__file__), "c" + ".py")).read()\n' > "$c/skills/a/scripts/g.py"
+printf 'import os, shutil, subprocess, sys, tempfile\nt = tempfile.mkdtemp(); shutil.copy(os.path.join(os.path.dirname(__file__), "e" + ".py"), t + "/x.py")\nsubprocess.run(["python3", t + "/x.py"], check=True)\n' > "$c/skills/a/scripts/k.py"
 printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\npython3 skills/a/scripts/a.py\n' > "$c/dev/t1.sh"  # lanes: no read (toy repo file)
-printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nn=c; python3 skills/a/scripts/a.py; python3 skills/a/scripts/$n.py\n' > "$c/dev/t2.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/a/scripts/g.py\npython3 skills/a/scripts/g.py\n' > "$c/dev/t2.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/a/scripts/a.py skills/a/scripts/b.py\npython3 skills/a/scripts/a.py; python3 -I skills/a/scripts/b.py\n' > "$c/dev/t3.sh"  # lanes: no read (toy repo file)
-printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nt=$(mktemp -d); n=e; cp "skills/a/scripts/$n.py" "$t/x.py"; python3 skills/a/scripts/a.py; python3 "$t/x.py"; rm -rf "$t"\n' > "$c/dev/t4.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/a/scripts/k.py\npython3 skills/a/scripts/k.py\n' > "$c/dev/t4.sh"  # lanes: no read (toy repo file)
 printf '# id\tlevel\tcommand\n' > "$c/.loop/regression.tsv"
 for r in 1 2 3 4; do printf 'r%s\tland\tbash dev/t%s.sh\n' $r $r >> "$c/.loop/regression.tsv"; done
 out=$(bash "$c/dev/toy/check-reads.sh" 2>&1); rc=$?; echo "$out"

@@ -14,7 +14,9 @@ import lanes
 READS = re.compile(r"^#\s*reads:(.*)$")
 QUOTED = re.compile(r"""["']([\w./-]*\w)["']""")
 NOREAD = "# lanes: no read"
-RECURSIVE = re.compile(r"\b(?:grep\s+-\w*[rR]|find|cp\s+-\w*[rRa]|ls\s+-\w*R|tar|zip\s+-\w*r|rsync|du)\s")
+ASSIGN = re.compile(r"""(?:^|[;\s])(\w+)=["']?(?:\$here/)?(skills/[\w./-]+?)/?["']?(?=\s*(?:;|$))""")
+SYSPATH_ARG = "sys.path.insert(0, sys.argv["  # python3 - "$folder": the folder only goes on sys.path
+PASSIVE = re.compile(r"\bcd\s|\bpushd\s|\bmkdir\s|sys\.path\.(?:insert|append)|PYTHONPATH=")  # name a folder, read nothing
 GLOB = re.compile(r"(?:\$here/)?((?:skills|dev|docs)/[\w./-]*?)/?\*")
 FILEISH = re.compile(r"\.(?:py|md|json|sh|tsv|txt|yml|yaml|toml)$")
 
@@ -96,9 +98,20 @@ def scan(root, rel, cache):
         folders = {p for p in found if p.endswith("/")}
         globs = {m.rstrip("/") + "/" for m in GLOB.findall(lanes.HERE_FORMS.sub("$here/", text))
                  if os.path.isdir(os.path.join(root, m))}  # a glob needs its folder declared, not one file in it
-        for line in text.split("\n"):  # so does a recursive read (grep -r, find, cp -R, ls -R, tar, zip -r)
-            if RECURSIVE.search(line):
-                globs |= {p for p in lanes.references(root, line, base, wide=False)[0] if p.endswith("/")}
+        bound = {}  # VAR=<skill folder>: a later bare $VAR (not $VAR/name) reads the folder as a whole
+        for line in text.split("\n"):  # a folder used bare (ls, grep -r, find, cp -R, "$d") needs it declared
+            line = lanes.HERE_FORMS.sub("$here/", line)
+            here_folders = {p for p in lanes.references(root, line, base, wide=False)[0]
+                            if p.endswith("/") and p.startswith("skills/")}
+            passive = PASSIVE.search(line) or ("python3" in line and SYSPATH_ARG in text)
+            assigned = ASSIGN.findall(line)  # VAR="$here/skills/x/scripts": the folder itself, not $(...) output
+            for var, folder in assigned:
+                bound[var] = {folder.rstrip("/") + "/"}
+            if not assigned and not passive:
+                globs |= here_folders
+            for var, held in bound.items():
+                if re.search(r"\$\{?%s\}?(?![\w/}])" % var, line) and not passive:
+                    globs |= held
         cache["globs", rel] = {g for g in globs if g.startswith("skills/")}
     cache[key] = (files, folders)
     return cache[key]
@@ -152,7 +165,7 @@ def narrow(root, seeds, cache):
         if folder == "skills/" and "skills/" not in declared:
             problems.append(("LANES-DECL-TREE", via, at, "reads all of skills/ but does not declare skills/"))
         elif folder in cache.get(("globs", via), ()) and not any(folder.startswith(p) for p in declared):
-            problems.append(("LANES-DECL-GLOB", via, at, "globs %s but does not declare that folder" % folder))
+            problems.append(("LANES-DECL-GLOB", via, at, "reads %s as a whole but does not declare it" % folder))
         elif folder != "skills/" and not any(p.startswith(folder) or folder.startswith(p) for p in declared):
             problems.append(("LANES-DECL-FOLDER", via, at, "names %s but declares no file in it" % folder))
     return deps, problems, parent
