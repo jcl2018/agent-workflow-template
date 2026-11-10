@@ -95,6 +95,7 @@ docs-locked-hint-issue-133	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479d
 docs-merged-base-issue-156	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 docs-milestone-line-issue-130	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 docs-only	PASS	2026-11-09	
+done-lines-warning-143	PASS	2026-11-10	
 estimates-shown	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 every-row-described	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 failed-waits-mender	PASS	2026-11-09	
@@ -170,12 +171,13 @@ lanes-missing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lanes-narrow-wide	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lanes-pr-affected	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lanes-qa-record	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-lanes-repo-narrow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-repo-narrow	PASS	2026-11-10	
 lanes-reuse	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lanes-ship-reuses	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lanes-table	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lanes-trace	FAIL	2026-11-10	
-lanes-trace-check	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+lanes-trace-check	PASS	2026-11-10	
+lanes-trace-hook-173	PASS	2026-11-10	
 lanes-wide-parity	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 list-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 list-tsv-raw	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -190,6 +192,7 @@ local-row-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lock-in-report	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 milestone-links	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 milestones-once	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+narrow-root-172	PASS	2026-11-10	
 needs-you-stuck	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 never-merges	PASS	2026-11-09	
 no-change-quiet	PASS	2026-11-09	
@@ -249,6 +252,7 @@ reply-hook-install	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reply-hook-mon5-wording	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reply-hook-off	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reply-hook-scope	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+repo-narrow-178	PASS	2026-11-10	
 report-done-final	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 report-header	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 report-sub-bullets	PASS	2026-11-10	
