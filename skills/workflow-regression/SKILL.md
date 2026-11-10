@@ -12,7 +12,7 @@ Rows live in `.loop/regression.tsv`: id, level, command, goal, and the date it w
 
 | Level | Runs in |
 |---|---|
-| `land` | `run land` and `run nightly`. Keep these to seconds |
+| `land` | `run land` and `run nightly`. Keep these to seconds: a row whose suite takes 20 seconds or more is `nightly` |
 | `nightly` | `run nightly` |
 | `draft` | Nothing, until you give it a real command and level |
 | `covered` | Nothing. The done line is proved elsewhere; say where in the command |
@@ -40,7 +40,8 @@ command, or mark it `covered`.
 
 ## `red <id> --break "<command>"`
 
-A test must be seen failing once before it counts.
+A test must be seen failing once before it counts. Only a date (`YYYY-MM-DD`) in the row's seen-failing column counts:
+an empty cell, `-` or any other text counts as never seen failing.
 
 ```bash
 python3 scripts/regression.py red check-1 --break "sed -i.bak 's/return a + b/return a - b/' calc.py"
@@ -105,7 +106,10 @@ python3 scripts/regression.py workflow
 ```
 
 Writes `.github/workflows/regression.yml`, which runs the rows nightly, on `v*` tags and by hand, and keeps the same
-issues. It refuses to replace a workflow it didn't write.
+issues. It refuses to replace a workflow it didn't write. The job has 90 minutes. Each row runs in its own process group
+with a 15-minute limit, and starts only if that full limit still fits the job's time; a row that doesn't fit is
+skipped, reported `SKIPPED`, and fails with an issue. Each row's result reaches the run summary as it ends. Rows run
+with no GitHub token in their environment, and the checkout keeps none in its git config.
 
 ## Rules
 

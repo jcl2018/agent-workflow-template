@@ -154,6 +154,7 @@ def issue_cell(link):
 
 
 RUNS = {"land": "both", "nightly": "nightly", "covered": "by a person"}
+SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date; anything else shows "no"
 
 
 def scenario(row, ran, link, cell=""):
@@ -163,7 +164,7 @@ def scenario(row, ran, link, cell=""):
     if not SCENARIO.match(words):
         words += " (not yet Given/When/Then)"
     return "- %s — %s[%s](%s), %s, %s, seen failing %s" % (words, cell, row[0], link, RUNS.get(row[1], row[1]),
-                                                       (status + " " + date).strip(), row[4] or "no")
+                                                       (status + " " + date).strip(), row[4] if SEEN.match(row[4]) else "no")
 
 
 def table(root, ids, linked):
