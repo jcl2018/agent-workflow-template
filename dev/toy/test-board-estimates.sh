@@ -46,7 +46,7 @@ board 600 > "$T/early"      # build 10m in, 30m usual: on time
 board 3600 > "$T/late"      # 60m in: 30m over
 board 7200 > "$T/later"     # 120m in
 cat "$T/late"
-fin() { sed -n '$p' "$1" | grep -Eo '[0-9]{2}:[0-9]{2}' | head -1; }
+fin() { sed -n '/^Finish$/{n;p;}' "$1" | grep -Eo '[0-9]{2}:[0-9]{2}' | head -1; }   # the line after Finish (the accuracy line is last)
 check "on time: no over-by mark" '! grep -q "over by" "$T/early"'
 check "over: the step reads over by 30m" 'grep -q "\[build over by 30m\]" "$T/late"'
 check "over: time left is re-estimated from time spent (30m)" '[ "$(mins < "$T/late")" = 30 ]'

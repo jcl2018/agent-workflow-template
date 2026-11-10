@@ -546,16 +546,16 @@ def check_backtest_speed():
     spread_history(repo, 100, (6, 5))
     runs = repo.records()
     bs.MODEL.clear()
-    began = time.time()
+    began = time.process_time()   # CPU seconds of this process: other tests running beside it do not count
     scores, n = bs.backtest(runs, AT, repo.root)
-    took = time.time() - began
+    took = time.process_time() - began
     print("  backtest over %d goals: %.2fs" % (n, took))
     need(n == 100 and took < 3, "the backtest over 100 finished goals takes under 3s: %.2fs" % took)
     big = Repo()
     spread_history(big, 300, (10, 8))
-    began = time.time()
+    began = time.process_time()
     big.board()
-    took = time.time() - began
+    took = time.process_time() - began
     print("  board over 300 goals: %.2fs" % took)
     need(took < 5, "the board over 300 finished goals renders under 5s: %.2fs" % took)
 

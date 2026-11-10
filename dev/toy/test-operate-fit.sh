@@ -68,7 +68,7 @@ check "errors and asks that are still open stay, with the exact words" 'issues "
 check "with GitHub saying open, the unmerged goal keeps its error" 'issues "$T/open" | grep -q "^- wiki pages are out of date:.*saved: page Home is stale"'
 check "a pull request merged on GitHub leaves the board, and its dependant no longer waits on it" '! grep -q "^- gh \|^- rec \|^merged" "$T/block" && grep "^- q " "$T/block" | grep -q "waits on run" && ! grep "^- q " "$T/block" | grep -q "gh"'
 check "only live goals are drawn, with a 10-cell bar, and an arrow to the dependant" '! grep -q "^- old1\|^- newer" "$T/block" && grep -q "^- run  \[##--------\] 25%" "$T/block" && grep -q "^- wait " "$T/block" && grep -q "^- stale " "$T/block" && grep -qx "run --> q" "$T/block"'
-check "the board ends with one finish line" 'tail -2 "$T/block" | head -1 | grep -qx Finish && tail -1 "$T/block" | grep -q "finish about\|no estimate yet\|nothing left"'
+check "the board ends with one finish line" 'tail -3 "$T/block" | head -1 | grep -qx Finish && tail -2 "$T/block" | head -1 | grep -q "finish about\|no estimate yet\|nothing left" && tail -1 "$T/block" | grep -q "^estimates: "'
 
 echo "== closed, healed and old goals"
 FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_STATE_81=CLOSED block > "$T/closed"
