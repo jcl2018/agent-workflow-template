@@ -44,7 +44,7 @@ if _log:
                     pass
     sys.addaudithook(_hook)
 PY
-real=$(command -v python3)
+real=$(python3 -c "import sys; print(sys.executable)")  # the interpreter itself, never an outer shim
 for name in python3 python; do
   printf '#!/bin/bash\necho "LAUNCH $$ $*" >> "$LANES_TRACE_LOG"\nexec "%s" "$@"\n' "$real" > "$tmp/bin/$name"
   chmod +x "$tmp/bin/$name"

@@ -110,3 +110,4 @@ Temporary, until the PRD format replaces the criteria pages: a goal runs the ful
 - Given scripts with no header, when affected runs, then the mapping is the same as the wide one, and LANES_WIDE=1 forces it everywhere. — [lanes-wide-parity](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-10
 - Given a row whose run reads a skill file outside its closure, when check-reads runs, then that row fails with the line to add. — [lanes-trace-check](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-10
 - Given every land row, when check-reads traces their runs, then each run's skill reads are inside its closure. — [lanes-trace](../../.loop/regression.tsv), nightly, not run, seen failing 2026-11-10
+- Given an edit to one row of the table, when a reusing run happens, then only that row and the rows that read this repo's table rerun. — [lanes-table](../../.loop/regression.tsv), both, PASS 2026-11-10, seen failing 2026-11-10
