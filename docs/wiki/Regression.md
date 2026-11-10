@@ -16,6 +16,7 @@ Skill: `workflow-regression`. Keeps tests visible and enforced. Rows live in `.l
 - `/workflow-regression run land` runs the rows and opens, updates or closes one issue per failing row. A row whose suite takes 20 seconds or more is `nightly`, so it runs only in the nightly and full runs.
 - `/workflow-regression run land --reuse` reuses the branch's last recorded run and reruns only the rows a change can affect; it opens no issue. Delivery's qa step runs it once per goal, and ship and the pull request reuse that run. Each run records every row's time and the total in the branch's lane record, which health's test-time rule reads.
 - A reusing run reruns a row only when a file it reads changed. A test script declares what it runs in `# reads:` lines in its top comment block (`skills/` keeps it wide), and the mapping follows those files without widening to folders. A row whose header can't be worked out, or whose script runs tools on the repo's own files, runs on every change; a deleted file means a full run; `LANES_WIDE=1` brings back the wide mapping. Ask the agent to check the test headers (each problem comes with a fix line), which rows a change to a file reruns, or why a row reads a file; a nightly row traces each run's Python reads against what its header declares.
+- The scheduled run, its `regression_cron` switch and the `defect` issues are on the Automation page.
 - `/workflow-regression sync` lists criteria with no row and rows never seen failing; `/workflow-regression workflow` writes the GitHub Actions workflow. It runs each row in its own process group with a 15-minute limit, inside a 90-minute job: a row starts only if its full limit still fits, one that doesn't is skipped and fails with an issue, each result is saved as its row ends, and rows run with no GitHub token and none of the runner's own files (the run summary, env, outputs) in their environment, nor a token in the checkout's git config; rows run as the same user, so this stops accidents such as a toy test writing into the summary, not a hostile row.
 - `/workflow-regression list` lists every test in one fixed format, grouped by feature (the page holding the requirement it guards, then Other): its kind, what it guards (requirement ID and words, or issue link and state), what it checks, when it runs, its last result and date, and when it was seen failing. The GitHub run summary (one header with totals and run time, then one table per feature), these Tests lines and the health report use the same format; `/workflow-regression issues` records each defect test's issue or pull request state, keeping a state's date until it changes; if `gh` can't sign in it writes nothing, and a link it can't read keeps its last state (only this command writes them, so commit them with the re-rendered Tests); the GitHub run refreshes them for its summary for at most a minute, and only in the time its job has left.
 - To give a slow repo's GitHub run more time, ask for the workflow step's `REGRESSION_ROW_SECONDS` (each row's limit, 900 by default) or `REGRESSION_JOB_SECONDS` (the job's budget, 88 minutes by default) to be raised; a budget past 88 minutes also needs the job's 90-minute limit raised, a value that isn't a positive whole number keeps the default, and writing the workflow again resets both.
@@ -98,8 +99,7 @@ One command runs it, the same way for me, the loop and GitHub.
 
 Runs in GitHub Actions: one command runs the suite the same way for me, the loop and GitHub Actions.
 
-- Given the same test, when it runs locally, in the loop or in GitHub Actions, then it gets the same environment from the same command. — [reg-same-env](../../.loop/regression.tsv), requirement, guards REG-4, both, not run, seen failing no
-- **not enforced**: no passing test
+- Given the same test, when it runs locally, in the loop or in GitHub Actions, then it gets the same environment from the same command. — [reg-same-env](../../.loop/regression.tsv), requirement, guards REG-4, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### REG-5
 
@@ -109,7 +109,7 @@ Failures go to GitHub: one issue per failing test, labeled defect, updated, clos
 - Given no GitHub token, when a run happens, then it only prints what it would do. — [no-token-dry-run](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a failing test, when the run reports it, then one GitHub issue is opened. — [one-issue](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-09, seen failing 2026-11-07
 - Given a known failure, when the GitHub run runs it, then its result is recorded KNOWN, not FAIL. — [known-recorded](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-10, seen failing 2026-11-10
-- Given a failing test, when a local live run reports it, then its issue is labelled defect. — [reg-defect-label](../../.loop/regression.tsv), requirement, guards REG-5, both, not run, seen failing no
+- Given a failing test, when a local live run reports it, then its issue is labelled defect. — [reg-defect-label](../../.loop/regression.tsv), requirement, guards REG-5, both, PASS 2026-11-10, seen failing 2026-11-10
 
 #### REG-6
 

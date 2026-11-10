@@ -123,3 +123,21 @@ flowchart TD
 Status: built and proven: Print the check report and verdict; Gather criteria, test rows, skill files, recent goal costs; Ask judge_command for tagged lines; Print the judge section; Owner applies suggested wording. Built only: none. Planned: none.
 Stops for the owner: Owner applies suggested wording.
 Proof: toy tests with a stand-in judge on a throwaway repo; no model is called in any test.
+
+#### `automation.py`: `workflow`, `digest`
+
+`workflow` writes `.github/workflows/health.yml` from `.loop/config.json`: `health_cron` (five cron fields, or `off`,
+which keeps only the by-hand trigger) and `judge_secret` (a secret name, `^[A-Z_][A-Z0-9_]*$`; anything else is
+refused). The run checks the routine first: `off` prints `OFF:` and writes nothing; a schedule unlike the config prints
+`SCHEDULE:` with the command that rewrites it; a checkout without the workflow-health skill prints `MISSING:` and fails,
+writing nothing. Then `health.py check --group size,criteria,docs,hygiene` goes into the run summary (Cost and Mine need
+this machine's run records and private files), `health.py file` for those groups, the judge only when the secret is set
+and the runner has `judge_command`'s program (`judge_setup` can install it; otherwise `JUDGE: skipped` says why), and the
+digest. The workflow reads the repo and writes only issues, labels, comments and the run summary.
+
+`digest` finds or creates the `Automation digest` issue (label `automation`) and pins it (a failed pin warns). It reads
+the open issues labelled `regression` (failing tests, also labelled `defect`) or `health`, compares them with the state
+kept in the digest issue's body, and posts one comment: `@digest_owner` (default the repo owner; an organisation is named,
+not mentioned), what ran (regression's latest run, health's verdict), **New**, **Still open** and **Fixed**, and for each
+open issue ``/workflow-delivery go "Fix #N"`` with its link, never its title. A rerun of the same run posts nothing. In
+Actions with no token it says so and fails; elsewhere without one it only prints the comment.

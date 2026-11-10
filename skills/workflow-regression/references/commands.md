@@ -31,7 +31,9 @@ workflow
   counts as never, in `sync`, `run`, the wiki Tests lines and delivery's defect-test check.
 - `run` prints `PASS`, `FAIL`, `KNOWN`, `FIXED` or `UNPROVEN` (blocks). Known failures sit in
   `.loop/regression-known.tsv`. It keeps one issue per failing row; without a token it only prints `WOULD` lines.
-- `workflow` writes `.github/workflows/regression.yml` (nightly, on `v*` tags, by hand). The job has 90 minutes; each
+- `workflow` writes `.github/workflows/regression.yml` (on `regression_cron`, every 4 hours by default, or only by hand
+  when it is `off`, which a run reads first and then writes nothing; on `v*` tags; by hand). A failing row's issue is
+  labelled `regression` and `defect` and names the feature and requirement the row guards. The job has 90 minutes; each
   row runs in its own process group with a 15-minute limit and starts only if that limit still fits an 88-minute
   budget (`REGRESSION_ROW_SECONDS` and `REGRESSION_JOB_SECONDS` in the step's environment override them). A row that
   doesn't fit is skipped (`SKIPPED`) and fails with an issue. Each result is saved as the row ends, and a last step

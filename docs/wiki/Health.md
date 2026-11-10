@@ -14,6 +14,7 @@ Skill: `workflow-health`. A check of the repo's health with fixed rules, so the 
 - `/workflow-health check` prints the formal report ending in a `HEALTH:` line; "check only the docs health" limits it to one group. The full report also lists every test just before the verdict, under `TESTS`, grouped by feature in workflow-regression's one test format; it never changes the verdict, and a single group or `--json` leaves it out.
 - `/workflow-health preview` lists each issue it would open, update, close or reopen, with its tag, and writes nothing.
 - `/workflow-health file --group docs` writes only the named groups as issues on the Backlog; with no group it refuses.
+- `/workflow-health workflow` writes the scheduled health workflow and `/workflow-health digest` posts the round's digest; the Automation page has the routine, its switch and the digest.
 - `/workflow-health judge` adds the judge section of suggestions and ranked next steps; it never changes the verdict. Name `performance` to preview or file to include the judge's savings.
 
 ## Requirements
