@@ -28,6 +28,10 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `wiki_dir` | `docs/wiki` | The folder of wiki pages. |
 | `risky_paths` | `["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]` | Regexes for paths whose goals need extra care. |
 | `step_limit` | `0` | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. |
+| `goal_lane_minutes` | `10` | Minutes a goal's regression lane may take before health warns and its LANE line says over. |
+| `full_suite_minutes` | `30` | Minutes the full suite may take before health warns; also a full goal lane's time limit. |
+| `goal_levels` | `land` | Row levels a goal lane plans from: land, or nightly for land and nightly rows. |
+| `ci_levels` | `nightly` | Target of the scheduled and tag regression runs: nightly (every row) or land. |
 | `token_budget` | `0` | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
 | `test_budget_seconds` | `600` | Seconds the land test lane may take before health warns and names its slowest rows. |
 | `stale_branch_days` | `14` | Days a local branch on no remote may sit before health lists it with its removal command. |
@@ -59,5 +63,6 @@ Outside the repo, never committed: `~/.workflow-loop/flow.json` (or `$LOOP_FLOW`
 | `leak_prefixes` | `[]` | Flow file: case-insensitive regexes the package scan blocks in any file or file name, as your leak hook does. |
 | `full_markers` | `{}` | Flow file: per step, strings a full plan or review reply must contain, e.g. {"review": ["..."]}; none checked when empty. |
 | `limit` | `2700` | Flow file: seconds one flow step may run. |
+| `lane_limit` | `2` | Flow file: full regression lanes that may run at once on this machine; more wait their turn (0 is unlimited). |
 | `rules` | `[]` | Health file: your own health rules, each {name, command, fix}. |
 | `repos` | `[]` | Followed repos: one path a line in the repos file, shown on the board. |
