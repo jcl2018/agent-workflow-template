@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-docs/scripts/audit.py skills/workflow-docs/scripts/counting.py skills/workflow-docs/scripts/criteria.py skills/workflow-docs/scripts/docs.py skills/workflow-docs/scripts/entry.py skills/workflow-docs/scripts/pageformat.py skills/workflow-docs/scripts/prd.py skills/workflow-docs/scripts/render.py
+# reads: skills/workflow-docs/scripts/deployments.py skills/workflow-docs/scripts/audit.py skills/workflow-docs/scripts/counting.py skills/workflow-docs/scripts/criteria.py skills/workflow-docs/scripts/docs.py skills/workflow-docs/scripts/entry.py skills/workflow-docs/scripts/pageformat.py skills/workflow-docs/scripts/prd.py skills/workflow-docs/scripts/render.py
 # reads: skills/workflow-docs/references/template.md docs/wiki/ .loop/ README.md CLAUDE.md AGENTS.md
 # reads: skills/workflow-monitoring/scripts/govern_hook.py skills/workflow-monitoring/scripts/reply_hook.py
 # Proves the optional Deployments section (DOC-14) on a copy of this repo's own wiki: a page with or without it passes,
@@ -50,6 +50,14 @@ case_section() {
   reset; place "$GOOD_PAGE
 
 $GOOD_DELIVERY"; check "a page with both tables passes" '[ "$(out | tail -1)" = "DOCS OK: 8 pages" ]'
+  reset; place "$GOOD_PAGE"; python3 - "$P" <<'PY'
+import sys
+p = sys.argv[1]; s = open(p).read()
+if "\n## Usage\n" not in s:
+    s = s.replace("\n## Requirements\n", "\n## Usage\n\n- `/workflow-setup settings` — prints the settings table.\n\n## Requirements\n", 1)
+open(p, "w").write(s)
+PY
+  check "a page with both Usage and Deployments passes the order check" '! out | grep -q "^SECTIONS Setup"'
   reset; place "$GOOD_PAGE" early; check "Deployments before Success metrics is refused as out of order" 'out | grep -q "^SECTIONS Setup: .*want .*Success metrics, Deployments, Tests"'
 }
 
@@ -96,6 +104,16 @@ $GOOD_PAGE" "at most one Page table"
   reset; place "see https://x.test/?token=synthetic-demo or write ops@example.test
 $GOOD_PAGE"
   check "prose in the section is refused without echoing a token or address" 'o=$(out); echo "$o" | grep -qF "Deployments: DOC-14 only a Page table" && ! echo "$o" | grep -q "synthetic-demo\|ops@example.test"'
+  refuse "a table with no separator row" "| Page | Link | Access | Shows | Live build |
+| Site | https://x.test | public | home | \`1a2b3c4\` |" "a separator row under the Page header"
+  for q in "?access_token=abc" "?api_key=abc" "#access_token=abc" ";token=abc"; do
+    refuse "a Link carrying $q" "| Page | Link | Access | Shows | Live build |
+|---|---|---|---|---|
+| Site | https://x.test/app$q | public | home | \`1a2b3c4\` |" "Page Link a full https URL with no user, password or token"
+  done
+  refuse "a dotless address in Recipients" "| Delivery | Channel | Recipients | What's sent | Status |
+|---|---|---|---|---|
+| Newsletter | email | bob@localhost | the PDF | live |" "Delivery Recipients a group, never an address"
   refuse "a Link with a token" "| Page | Link | Access | Shows | Live build |
 |---|---|---|---|---|
 | Site | https://x.test/app?token=abc123 | public | home | \`1a2b3c4\` |" "Page Link a full https URL with no user, password or token"
@@ -110,7 +128,7 @@ $GOOD_PAGE"
 
 case_locked() {
   reset; place "$GOOD_PAGE"; o=$(out)
-  check "a Deployments section on a Reviewed page is neither LOCKED nor CHANGED" '! echo "$o" | grep -q "^LOCKED Setup\|^CHANGED Setup"'
+  check "a Deployments section on a Reviewed page is neither LOCKED nor CHANGED" 'echo "$o" | grep -q "^DOCS OK" && ! echo "$o" | grep -q "^LOCKED Setup\|^CHANGED Setup"'
   check "the owner's review works on a page with Deployments" 'LOOP_OWNER_WORDS=toy python3 skills/workflow-docs/scripts/criteria.py review Setup --user 2>&1 | grep -q "REVIEWED PAGE Setup"'
   before=$(sed -n "/^## Deployments/,/^## Tests/p" "$P"); python3 skills/workflow-docs/scripts/criteria.py render >/dev/null 2>&1
   check "render keeps the Deployments section byte for byte" '[ "$(sed -n "/^## Deployments/,/^## Tests/p" "$P")" = "$before" ]'

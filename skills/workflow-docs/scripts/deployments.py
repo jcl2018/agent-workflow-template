@@ -6,7 +6,7 @@ read <link> and addresses <address>. The live-link and promoted-build check runs
 """
 import re
 
-from pageformat import bad, short, tables
+from pageformat import RULE, bad, short, tables
 
 PAGE_COLS = ("Page", "Link", "Access", "Shows", "Live build")
 DELIVERY_COLS = ("Delivery", "Channel", "Recipients", "What's sent", "Status")
@@ -19,9 +19,10 @@ def deployments(page, name, lines, page_cols=PAGE_COLS, delivery_cols=DELIVERY_C
     """DOC-14: a Page table and/or a Delivery table, nothing else (template.md says each column's rule)."""
     hide = lambda text: short(re.sub(r"\S*://\S*", "<link>", EMAIL.sub("<address>", str(text))))  # never echo a secret
     runs, other = tables(lines)
+    text = dict(lines)
     found = []  # a header row inside a run starts a new table
     for number, header, rows in runs:
-        found.append([number, header, [], False])
+        found.append([number, header, [], bool(RULE.match(text.get(number + 1, "").strip()))])  # tables() drops that separator
         for row_no, row in rows:
             if tuple(row) in (tuple(page_cols), tuple(delivery_cols)):
                 found.append([row_no, row, [], False])
