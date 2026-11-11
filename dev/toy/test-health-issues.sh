@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-health/scripts/health.py skills/workflow-health/scripts/issues.py
+# reads: skills/workflow-health/scripts/health.py skills/workflow-health/scripts/milestone.py
 # reads: skills/workflow-health/scripts/report.py skills/workflow-health/scripts/controls.py
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-health/scripts/
 # Test DOC-10: health's docs-check flags an open issue with no milestone, on a toy repo with a fake gh. usage: test-health-issues.sh [DIR]
@@ -67,7 +67,7 @@ out=$($health check --group docs); rc=$?
 echo "== the negative control fires"
 out=$(python3 "$here/skills/workflow-health/scripts/controls.py" run docs-issues); echo "$out"
 grep -q "^PASS controls docs-issues: fires on its fixture" <<<"$out" && ok "the docs-issues negative control fires" || bad "control"
-for f in health issues controls report; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 18432 ] || bad "size of $f.py"; done; ok "health scripts under the WARN line"
+for f in health milestone controls report; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 18432 ] || bad "size of $f.py"; done; ok "health scripts under the WARN line"
 
 echo "repo: $d/repo"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

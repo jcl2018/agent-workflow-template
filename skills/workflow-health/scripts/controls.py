@@ -166,7 +166,7 @@ CONTROLS = {
     "criteria-done": ("criteria", "done-lines", f_criteria_done),
     "defect-tests": ("criteria", "defect-tests", f_defect_tests),
     "docs-check": ("docs", "check", f_docs_check),
-    "docs-issues": ("docs", "check", f_docs_issues),  # docs-check's issue rows (issues.py): checked inside its row
+    "docs-issues": ("docs", "check", f_docs_issues),  # docs-check's issue rows (milestone.py): checked inside its row
     "findings": ("hygiene", "findings", f_findings),
     "waiting": ("hygiene", "waiting", f_waiting),
     "branches": ("hygiene", "branches", f_branches),
@@ -231,7 +231,7 @@ def extra(rules, here):
     """Controls for rows a rule composes from another module: docs-check's issue rows, read with the fixture's own gh."""
     sys.path.insert(0, here)
     try:
-        import issues
+        import milestone as issues
     except ImportError:
         return {}
     finally:

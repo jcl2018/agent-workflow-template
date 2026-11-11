@@ -23,7 +23,7 @@ def shown(name):
 
 
 SHARED = {("criteria", "rows"): ("done-lines",)}  # rules read from the same source: an unread source reads none of them
-SOFT = {("docs", "milestone")}  # UNREAD rows shown but never counted: an unreadable issue list (issues.py) is not red
+SOFT = {("docs", "milestone")}  # UNREAD rows shown but never counted: an unreadable issue list (milestone.py) is not red
 
 
 def counted(item):

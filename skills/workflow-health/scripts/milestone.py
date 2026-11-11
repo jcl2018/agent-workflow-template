@@ -10,6 +10,10 @@ usage: milestone.py <command> [options]
 
 Nothing is written to GitHub without --live, GH_TOKEN or GITHUB_TOKEN: it prints WOULD lines instead. It never closes,
 deletes or merges anything. It runs git and gh, and nothing else.
+
+rows(root) is the DOC-10 rule health.py's docs check calls: every open issue sits on a milestone (its feature's, or
+Backlog). It runs `gh issue list --state open --limit 1000` and gives one FAIL row per open issue with no milestone; when
+gh is missing, fails, or returns exactly LIMIT issues it gives one UNREAD row instead (never red: report.py SOFT).
 """
 import argparse
 import json
@@ -195,6 +199,50 @@ def cmd_move(args):
         sys.exit("REFUSED: could not move issue %d: %s" % (args.issue, done.stderr.strip()[:200]))
     print("MOVED issue %d to milestone %s" % (args.issue, title))
     return 0
+
+
+LIMIT = 1000
+RULE = "milestone"
+FIX_UNREAD = "gh auth login, then rerun health.py check"
+
+
+def row(state, subject, detail, fix):
+    return {"state": state, "family": "docs", "subject": subject, "rule": RULE, "detail": detail, "fix": fix}
+
+
+def on_github(root):
+    """True when a remote points at a GitHub host: only then can the repo have issues."""
+    try:
+        done = subprocess.run(["git", "remote", "-v"], cwd=root, capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return "github" in done.stdout.lower()
+
+
+def unread(text):
+    first = next((line.strip() for line in (text or "").splitlines() if line.strip()), "no answer")
+    return [row("UNREAD", "issues", first[:120], FIX_UNREAD)]
+
+
+def rows(root, gh="gh"):
+    if not on_github(root):
+        return []
+    args = [gh, "issue", "list", "--state", "open", "--limit", str(LIMIT), "--json", "number,title,milestone"]
+    try:
+        done = subprocess.run(args, cwd=root, capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as error:
+        return unread(str(error))
+    try:
+        issues = json.loads(done.stdout) if not done.returncode else None
+    except ValueError:
+        issues = None
+    if not isinstance(issues, list):
+        return unread(done.stderr or done.stdout)
+    if len(issues) >= LIMIT:
+        return unread("truncated at %d open issues" % LIMIT)
+    return [row("FAIL", "#%s" % one.get("number"), (one.get("title") or "")[:120],
+                "gh issue edit %s --milestone <Feature|Backlog>" % one.get("number"))
+            for one in sorted(issues, key=lambda one: one.get("number") or 0) if not one.get("milestone")]
 
 
 def main():

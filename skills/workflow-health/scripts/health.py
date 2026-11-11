@@ -14,8 +14,8 @@ judge (alias suggest) adds a section of suggestions (judge.py) and never changes
 Rules (at most MAX_RULES; retire one before adding another):
   size      scripts under skills/*/scripts against 20 KB: WARN from 90%, FAIL over
   criteria  regression.py sync: a criterion with no row, or a draft or never-failed row, FAILs; done lines with
-            no row WARN; a closed issue or finding with no defect test FAILs (defects.py)
-  docs      docs.py check: a stale page WARNs, any other gap FAILs; issues.py: an open issue with no milestone FAILs
+            no row WARN; a closed issue or finding with no defect test FAILs (enforce.py)
+  docs      docs.py check: a stale page WARNs, any other gap FAILs; milestone.py: an open issue with no milestone FAILs
   hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches; lean.py: test time, stale
             worktrees and local branches
   cost      a finished goal over time_budget_minutes or token_budget WARNs (cost.py); no tokens is UNREAD
@@ -135,9 +135,9 @@ def docs_rows(root):
 
 
 def defect_rows(root):
-    defects = sibling_module("defects")
+    defects = sibling_module("enforce")
     if not defects:
-        return [row("UNREAD", "criteria", "defects", "defect-tests", "defects.py is not installed beside health.py")]
+        return [row("UNREAD", "criteria", "defects", "defect-tests", "enforce.py is not installed beside health.py")]
     return [row("FAIL", "criteria", ref, "defect-tests", "closed by %s with no defect test" % source,
                 "regression.py add --category defect --link ...") for ref, source in defects.missing(root)]
 
@@ -226,7 +226,7 @@ def cost_rows(root):
 
 
 def gather(root, family):
-    issues = sibling_module("issues")
+    issues = sibling_module("milestone")
     rules = {"size": size_rows, "criteria": lambda root: criteria_rows(root) + defect_rows(root), "hygiene": hygiene_rows,
              "docs": lambda root: docs_rows(root) + (issues.rows(root) if issues else []),
              "cost": cost_rows, "mine": mine_rows, "controls": controls_rows}
