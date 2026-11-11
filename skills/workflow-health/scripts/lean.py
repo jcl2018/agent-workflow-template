@@ -2,8 +2,9 @@
 
 test-time reads the land lane record (regression.py's per-branch record under the git common folder's loop/tests/):
 the current branch's, else the newest one with a readable `at`. It counts only rows that are land rows in the current
-.loop/regression.tsv, and warns when their total is over test_budget_seconds (.loop/config.json, default 600),
-naming the slowest rows and scripts.
+.loop/regression.tsv, and warns when their total is over test_budget_minutes (.loop/config.json, default 15, floor 15),
+naming the slowest rows and scripts. It also warns when the newest full (non --reuse) run took over 30 minutes, and lists
+each step or test run of a goal that hit its time budget with what it left (budget_hits in the run records).
 worktrees lists loop worktrees (the git common folder's loop/worktrees/) that no live run names; local-branches lists
 branches with no upstream (or a gone one), checked out nowhere, not merged into the base and older than
 stale_branch_days (default 14). Each gets its removal command, shell-quoted; nothing is ever removed here. These rows
@@ -25,7 +26,8 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
-TEST_BUDGET = 600
+TEST_BUDGET = 15  # minutes: the loop's test budget (default and floor)
+SUITE_LIMIT = 30  # minutes: the scheduled full suite
 STALE_DAYS = 14
 SHOWN = 5
 LIVE = ("queued", "running", "waiting", "failed", "stopped")
@@ -109,7 +111,47 @@ def lane_record(root):
     return found[-1][3], found[-1][0], "" if found[-1][0] else os.path.basename(found[-1][2])
 
 
+def budget_minutes(root):
+    value = config(root).get("test_budget_minutes", TEST_BUDGET)
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= TEST_BUDGET else None
+
+
+def suite_rows(root):
+    """A WARN when the newest recorded full run (a record whose command has no --reuse) took over 30 minutes."""
+    full = []
+    for path in glob.glob(os.path.join(common(root), "loop", "tests", "*.json")):
+        try:
+            with open(path) as handle:
+                data = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        if readable(data) and "--reuse" not in str(data.get("command")) and number(data.get("total_seconds")):
+            full.append((str(data["at"]), data["total_seconds"]))
+    if not full or max(full)[1] <= SUITE_LIMIT * 60:
+        return []
+    return [row("WARN", "lane", "test-time", "the full suite took %d s, over %d minutes" % (max(full)[1], SUITE_LIMIT),
+                "move the slowest rows to nightly in .loop/regression.tsv, or split them")]
+
+
+def hit_rows(root):
+    """One INFO row per step or test run that hit its budget, with what it left."""
+    found = []
+    for state in runs(root):
+        if state.get("status") == "merged" or state.get("release") in LANDED:
+            continue
+        for hit in state.get("budget_hits") or []:
+            if isinstance(hit, dict):
+                found.append(row("INFO", "budget", "test-time", "%s: %s %s hit its %s-minute budget; left: %s" % (
+                    state["slug"], hit.get("step"), "step" if hit.get("kind") == "step" else "tests", hit.get("minutes"),
+                    hit.get("left")), "run what it left with regression.py run land, or raise the budget"))
+    return found
+
+
 def test_rows(root):
+    return lane_rows(root) + suite_rows(root) + hit_rows(root)
+
+
+def lane_rows(root):
     record, mine, why = lane_record(root)
     if record is None:
         return [row("UNREAD" if mine else "INFO", "lane", "test-time", why, "run regression.py run land --reuse")]
@@ -117,19 +159,22 @@ def test_rows(root):
     land = land_rows(root)
     seconds = {key: float(item.get("seconds") or 0) for key, item in record["rows"].items() if key in land}
     total = sum(seconds.values())
-    budget = setting(root, "test_budget_seconds", TEST_BUDGET)
-    if total <= budget:
+    minutes = budget_minutes(root)
+    if minutes is None:
+        return [row("WARN" if mine else "INFO", "lane", "test-time", "test_budget_minutes in .loop/config.json is under the "
+                    "15-minute floor", "set test_budget_minutes to 15 or more")]
+    if total <= minutes * 60:
         return [row("PASS" if mine else "INFO", "lane", "test-time",
-                    "the land lane takes %d s, within test_budget_seconds=%d%s" % (total, budget, whose))]
+                    "the land lane takes %d s, within test_budget_minutes=%d%s" % (total, minutes, whose))]
     slow = sorted(seconds.items(), key=lambda pair: (-pair[1], pair[0]))[:SHOWN]
     scripts = {}
     for key, value in seconds.items():
         scripts[land[key]] = scripts.get(land[key], 0) + value
     worst = sorted(scripts.items(), key=lambda pair: (-pair[1], pair[0]))[:3]
-    return [row("WARN" if mine else "INFO", "lane", "test-time", "the land lane takes %d s, over test_budget_seconds=%d in .loop/config.json; "
+    return [row("WARN" if mine else "INFO", "lane", "test-time", "the land lane takes %d s, over test_budget_minutes=%d in .loop/config.json; "
                 "slowest rows: %s; slowest scripts: %s%s" % (
-                    total, budget, ", ".join("%s %ds" % pair for pair in slow), ", ".join("%s %ds" % pair for pair in worst), whose),
-                "move the slowest rows to nightly in .loop/regression.tsv, or raise test_budget_seconds")]
+                    total, minutes, ", ".join("%s %ds" % pair for pair in slow), ", ".join("%s %ds" % pair for pair in worst), whose),
+                "move the slowest rows to nightly in .loop/regression.tsv, or raise test_budget_minutes")]
 
 
 def runs(root, bad=None):
@@ -256,5 +301,5 @@ def facts(root):
     seconds = {key: float(item.get("seconds") or 0) for key, item in record["rows"].items() if key in land}
     slow = sorted(seconds.items(), key=lambda pair: (-pair[1], pair[0]))[:10]
     return ["land lane: %d rows, %d s (budget %d s); slowest: %s" % (
-        len(seconds), sum(seconds.values()), setting(root, "test_budget_seconds", TEST_BUDGET),
+        len(seconds), sum(seconds.values()), (budget_minutes(root) or TEST_BUDGET) * 60,
         ", ".join("%s %ds" % pair for pair in slow))]

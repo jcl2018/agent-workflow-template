@@ -77,7 +77,7 @@ def load(path, root):
         with open(path) as handle:
             data = json.load(handle)
         rows = data["rows"]
-        assert all(row["status"] in ("PASS", "FAIL", "KNOWN") and row["commit"] for row in rows.values())
+        assert all(row["status"] in ("PASS", "FAIL", "KNOWN", "LEFT") and row["commit"] for row in rows.values())
     except (OSError, ValueError, KeyError, TypeError, AssertionError) as error:
         return None, "record unreadable (%s)" % (type(error).__name__,)
     if data.get("schema") != SCHEMA or data.get("runner") != runner():
@@ -272,14 +272,33 @@ def table(root, commit, name, memo):
     return memo[commit, name]
 
 
+def no_effect(path):
+    return any(path == n or (n.endswith("/") and path.startswith(n)) for n in NO_EFFECT)
+
+
+def names_any(root, command, paths, cache):
+    """Whether a row's command, or a file it reaches, names one of paths (a file gone from the tree can't be mapped by reach)."""
+    deps, _ = closure(root, command, cache)
+    files = [p for p in deps if not p.endswith("/")] + [f for p in deps if p.endswith("/") for f in walk(root, p)]
+    texts = [command] + [read(root, p, cache) or "" for p in files]
+    for path in paths:
+        name = os.path.basename(path)
+        stem = re.escape(name[:-3]) if name.endswith(".py") else None  # `import stem` names a module without its path
+        if any(path in t or name in t or (stem and re.search(r"(?m)^\s*(?:from|import)\s+(?:[\w, ]*\b)?%s\b" % stem, t)) for t in texts):
+            return True
+    return False
+
+
 def plan(root, selected, record, current_tsv, current_known):
-    """Decide each selected row: (to_run ids, reused ids, notes, full reason or '')."""
+    """Decide each selected row: (to_run ids in tier order, reused ids, notes, why no row could be reused or '').
+    A deleted or unmapped file picks the rows that name it plus the rows that reach the runner; the caller fits the list
+    to the time budget, so nothing here ever widens a change into a full run on its own."""
     rows, cache, notes, memo = record["rows"], {}, [], {}
     every = [r["id"] for r in selected]
     failed = [r["id"] for r in selected if rows.get(r["id"], {}).get("status") == "FAIL"]
     if failed:
         return every, [], notes, "record has FAIL rows %s" % ", ".join(failed[:10])
-    run, reuse, since, kin = [], [], {}, {}
+    hot, rest, reuse, since, kin, odd = [], [], [], {}, {}, set()
     for row in selected:
         rid, prior = row["id"], rows.get(row["id"])
         deps, always = closure(root, row["command"], cache)
@@ -287,11 +306,9 @@ def plan(root, selected, record, current_tsv, current_known):
             notes.append("ALWAYS %s: %s" % (rid, cache["why", row["command"]]))
         if prior and prior["commit"] not in kin:
             kin[prior["commit"]] = ancestor(root, prior["commit"])
-            gone = deleted(root, prior["commit"]) if kin[prior["commit"]] else []
-            if gone:
-                return every, [], notes, "deleted %s" % " ".join(gone[:5])
+            odd |= set(deleted(root, prior["commit"]) if kin[prior["commit"]] else [])
         if always or not prior or not kin[prior["commit"]]:
-            run.append(rid)
+            (rest if always and prior else hot).append(rid)  # a new row, or one with no usable record, is the goal's own: first
             continue
         if prior["commit"] not in since:
             since[prior["commit"]] = changed(root, prior["commit"])
@@ -304,10 +321,16 @@ def plan(root, selected, record, current_tsv, current_known):
                 stale = table(root, prior["commit"], "regression-known.tsv", memo).get(rid) != current_known.get(rid)
             elif touches(root, row["command"], path, cache):
                 stale = True
-            elif not any(hits(path, closure(root, other["command"], cache)[0]) for other in selected):
-                notes.append("UNMAPPED %s: full run" % path)
-                return every, [], notes, "unmapped change %s" % path
+            elif not no_effect(path) and not any(hits(path, closure(root, other["command"], cache)[0]) for other in selected):
+                odd.add(path)
             if stale:
                 break
-        (run if stale else reuse).append(rid)
-    return run, reuse, notes, ""
+        (hot if stale else reuse).append(rid)
+    if odd:
+        names = sorted(odd)
+        pick = [r["id"] for r in selected if r["id"] in reuse and (
+            names_any(root, r["command"], names, cache) or hits(RUNNER, closure(root, r["command"], cache)[0]))]
+        reuse = [k for k in reuse if k not in pick]
+        notes.append("UNMAPPED %s: ran the rows that name them and the runners (%d)" % (" ".join(names[:5]), len(pick)))
+        hot += pick
+    return hot + rest, reuse, notes, ""

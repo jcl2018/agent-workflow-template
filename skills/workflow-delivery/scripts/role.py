@@ -13,6 +13,8 @@ import json
 import datetime
 import time
 
+import budget
+
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 TOKENS = re.compile(r"(\d[\d,]*) (?:total )?tokens", re.I)
@@ -118,6 +120,7 @@ def begin(record, step):
         return
     state["step"] = step
     (state.get("depth") or {}).pop(step, None)  # a rerun step's earlier depth no longer stands
+    state["budget_hits"] = [h for h in state.get("budget_hits") or [] if not (h.get("step") == step and h.get("kind") == "step")]
     import guards  # lazily: guards imports role
     guards.stamp(state, step)  # the format rules this step started under
     state["updated"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -170,10 +173,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 NOTHING = "the lane committed and pushed nothing"
 
 
-def lane_argv():
+def lane_argv(seconds=0):
     """The one lane command, resolved from this package: every prompt, run and receipt uses exactly this."""
     path = os.path.normpath(os.path.join(HERE, "..", "..", "workflow-regression", "scripts", "regression.py"))
-    return ["python3", path, "run", "land", "--reuse"]
+    return ["python3", path, "run", "land", "--reuse"] + (["--budget", str(int(seconds))] if seconds else [])
 
 
 def lane_text():
@@ -238,7 +241,8 @@ def lane(runs, slug, name, spec, cfg, wait=90):
         if prefix and not (shutil.which(prefix[0]) or os.path.isfile(prefix[0])):
             return "fail", "LANE_RECORDER: the flow file's test_record command %s isn't on this machine. Fix: install it " \
                 "or remove \"test_record\" from the flow file; %s." % (prefix[0], NOTHING), []
-        limit = float(spec.get("limit") or cfg.get("step_limit") or 2700)
+        tests = budget.minutes(cfg, "test_budget_minutes") * 60  # the rows stop at it; the lane's own limit is a backstop
+        limit = min(float(spec.get("limit") or cfg.get("step_limit") or 2700), tests + 300)
         try:
             handle = os.open(job, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError:
@@ -247,7 +251,7 @@ def lane(runs, slug, name, spec, cfg, wait=90):
         held = {"head": head, "attempt": attempt, "started": time.time(), "limit": limit, "rc": "%s.%s.rc" % (base, attempt)}
         with open(out, "w") as log:
             child = subprocess.Popen([sys.executable, os.path.abspath(__file__), "lane-exec", held["rc"], str(limit), "--"]
-                                     + prefix + lane_argv(), stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                     + prefix + lane_argv(tests), stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                                      start_new_session=True, env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
         held["pid"] = child.pid
         os.write(handle, json.dumps(held).encode())
@@ -267,6 +271,10 @@ def lane(runs, slug, name, spec, cfg, wait=90):
     kind = (re.findall(r"^(REUSED|AFFECTED|FULL)", text, re.M) or ["FULL"])[0]
     ran, reused = len(re.findall(r"^(?:PASS|FAIL|KNOWN) ", text, re.M)), re.findall(r"\((\d+) reused\)", text)
     line = "LANE %s %s %d/%d in %ds" % (name, kind, ran, ran + int((reused or [0])[0]), time.time() - held["started"])
+    cut = re.findall(r"^BUDGET (\d+) min: .*?LEFT \d+ to the scheduled full suite: (.*)$", text, re.M)
+    if cut:  # the run stopped at its budget: say so, and keep what it left on the goal's record
+        line += "\n" + re.findall(r"^BUDGET .*$", text, re.M)[-1]
+        budget.hit(runs, slug, name, "test", int(cut[-1][0]), cut[-1][1])
     dirt = unclean()
     if dirt:
         return "fail", "%s\nLANE_DIRTY at end: a row left %s. Fix: make it clean up; %s." % (line, ", ".join(dirt[:10]), NOTHING), []
