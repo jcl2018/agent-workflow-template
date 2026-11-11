@@ -9,7 +9,7 @@
 # reads: skills/workflow-monitoring/scripts/operate.py skills/workflow-monitoring/scripts/pool.py
 # reads: skills/workflow-monitoring/scripts/replan.py
 # reads: skills/workflow-monitoring/scripts/reply_hook.py skills/workflow-monitoring/scripts/session_bind.py
-# reads: skills/workflow-monitoring/scripts/session_tool.py skills/workflow-monitoring/scripts/sessions.py
+# reads: skills/workflow-monitoring/scripts/sessions.py
 # reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-monitoring/scripts/watch.py
 # reads: skills/workflow-monitoring/scripts/worker.py skills/workflow-setup/scripts/setup.py
 # reads: skills/workflow-setup/scripts/settings.py skills/workflow-setup/scripts/survey.py
