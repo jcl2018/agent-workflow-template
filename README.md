@@ -118,6 +118,17 @@ Say these to the agent:
 | "Post the automation digest" | One comment on the pinned digest issue lists what ran, the new, still-open and fixed issues, and a request per open issue. |
 | "Write the scheduled regression run again" | The regression workflow is rewritten from the current config, so its schedule matches. |
 
+### How to use Guardrails
+
+Say these to the agent:
+
+| You say | What happens |
+|---|---|
+| "Show me every guardrail" | You get the Guardrails page: each guardrail with what it protects against, the feature that owns it, its setting, and whether its Tests row says it is enforced. |
+| "Which guardrail settings are there?" | The settings reference lists every setting with its home, default and meaning, the budgets among them. |
+| "Check the budgets" | Health's performance group runs: goals within their time and token budgets, and test runs within their time limits. |
+| "Which guardrails aren't enforced yet?" | Each guardrail whose Tests row reads not enforced is listed with the feature that owns the missing part. |
+
 ## What it aims to be
 
 - **Light:** Markdown instructions and a few small scripts, with no engine to run.

@@ -1,7 +1,7 @@
 # A new Guardrails feature page in the docs format lists every guardrail the template has or needs, each with what it protects against, where it is enforced, its setting and the health check that proves it is on, so guardrails are one visible set that health checks and adoption installs; docs only, no code
 
 - Slug: guardrails-prd
-- Touches: docs/wiki, README.md, .loop/docs.tsv
+- Touches: docs/wiki, README.md, .loop/docs.tsv, .loop/START.md
 
 ## Done lines
 
@@ -14,3 +14,10 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Open docs/wiki/Guardrails.md (or the published wiki's Guardrails page).
+   Expect: Problem, Usage, Requirements, Non-goals, Success metrics and Tests; GRD-1 to GRD-10, each **Unreviewed**, each part naming its owner feature and requirement ID or "new"; every Tests row reads not enforced.
+2. Open the wiki's Home page and the README's "How to use Guardrails" section.
+   Expect: a Guardrails row linking the page, the README section and milestone 11; the README table's four lines.
+3. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: `DOCS OK`.

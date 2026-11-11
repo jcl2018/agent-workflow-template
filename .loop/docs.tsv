@@ -7,3 +7,4 @@ Home	README.md,FINDINGS.md,DECISIONS.md
 Monitoring	skills/workflow-monitoring
 Regression	skills/workflow-regression
 Setup	skills/workflow-setup,dev/install-local.sh
+Guardrails	.loop/config.json
