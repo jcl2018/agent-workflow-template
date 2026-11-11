@@ -9,19 +9,24 @@ sections: Problem, Requirements, Non-goals, Success metrics, Tests
 problem_lines: 3
 metrics_lines: 3
 usage_section: Usage
+deployments_section: Deployments
+deployments_page: Page, Link, Access, Shows, Live build
+deployments_delivery: Delivery, Channel, Recipients, What's sent, Status
+deployments_access: public, sign-in
 review_line: Review
 scenario: Given ..., when ..., then ...
 milestone_line: Milestone
 problem_banned: script, function, regex, json, tsv, stdout
 requirement_groups: Functional, Non-functional
-format: home, frontdoor, usage, bullets, problem, tests
+format: home, frontdoor, usage, bullets, problem, tests, deployments
 ```
 
 ## Layout
 
 The first line is `<!-- workflow-docs -->`, then `# <Feature>`, then one `Milestone: <url>` line (left out until the
 milestone exists), then the PRD review line, then the sections in the order of `sections`, and nothing else. The
-optional `usage_section` goes between Problem and Requirements. `format` lists which shape checks (DOC-4..DOC-9) run,
+optional `usage_section` goes between Problem and Requirements, and the optional `deployments_section` between Success
+metrics and Tests. `format` lists which shape checks (DOC-4..DOC-9 and DOC-14) run,
 default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (got <value>). Fix: <how>`.
 
 - **Review line**: `Review: **Unreviewed**`, or `Review: **Reviewed YYYY-MM-DD** <!-- prd P=… R=… N=… M=… U=… -->`
@@ -47,6 +52,14 @@ default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (
   or deeper-nested sub-bullet is always refused. No script names.
 - **Non-goals**: at least one line: what the feature deliberately won't do.
 - **Success metrics**: one to `metrics_lines` lines: how we know it works, each measurable.
+- **Deployments** (optional, `deployments`, DOC-14): for a feature that ships something people open or receive. Only
+  tables and blank lines: at most one Page table `| Page | Link | Access | Shows | Live build |` (`deployments_page`) and
+  at most one Delivery table `| Delivery | Channel | Recipients | What's sent | Status |` (`deployments_delivery`), each
+  with its separator row and at least one row, headers exact after trimming spaces. Page rows: Page and Shows filled,
+  Link a full `https://` URL, Access one of `deployments_access` (public, sign-in), Live build the 7 to 40 hex sha in
+  the page's build.txt, in backticks. Delivery rows: every cell filled, and Recipients a group name, never an email
+  address. A `|` inside a cell is written `\|`. Not part of the PRD fingerprints: it changes with each deploy. The
+  live-link and promoted-build check runs in the deploying repo for now.
 - **Tests** (`tests`, DOC-9): made by `criteria.py render`, never by hand: one table
   `| Test | Kind | Guards | Checks | Last result |`. Test links the row's entry on the full Tests page,
   `[row](Tests#t-<slug>)` (the row id lower-cased, anything but `a-z0-9-` turned into `-`; two rows sharing a slug are
