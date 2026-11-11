@@ -71,6 +71,9 @@ def base_moved(state, cfg, top):
     """None when the merge may go ahead, else (exit code, refusal): the base moved since the pr lane in paths this goal's
     rows reach (2), or origin can't be fetched to tell (3). A move elsewhere only notes it. workflow-regression/references/commands.md."""
     base, was = cfg.get("base", "main"), state.get("pr_base")
+    if not was and state.get("pr_head"):  # goal.py pr recorded a head but no base (origin/<base> unresolved): unknown, never clear
+        return 2, "REFUSED (BASE_MOVED): the base the pr lane ran on was not recorded. Fix: goal.py pr %s, then merge.py %s" % (
+            state.get("slug", "SLUG"), state.get("slug", "SLUG"))
     if not was:  # a pull request opened before goal.py pr recorded its base
         return None
     try:

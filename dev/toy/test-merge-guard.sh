@@ -41,6 +41,8 @@ PY
 }
 st="{\"slug\": \"g\", \"pr_base\": \"$base\", \"pr_head\": \"$head\"}"
 check() { if eval "$2"; then ok "$1"; else bad "$1"; echo "    out: $out"; fi; }
+out=$(moved "{\"slug\": \"g\", \"pr_base\": \"\", \"pr_head\": \"$head\"}"); check "a recorded head with no recorded base refuses BASE_MOVED, never merges unchecked (exit 2)" 'grep -q "^2|REFUSED (BASE_MOVED): the base the pr lane ran on was not recorded" <<<"$out"'
+out=$(moved "{\"slug\": \"g\"}"); check "a goal from before the base was recorded still merges (nothing to compare)" '[ "$out" = none ]'
 out=$(moved "$st"); check "an unmoved base merges" '[ "$out" = none ]'
 git switch -q main; echo b2 >> src/b.txt; git commit -qam "base changes b"; git push -q origin main; git switch -q loop/g
 out=$(moved "$st"); check "a base move in paths the goal's rows don't reach notes it and merges" 'grep -q "^NOTE: main moved in paths this goal.s rows don.t reach; merging" <<<"$out" && tail -1 <<<"$out" | grep -qx none'
