@@ -8,7 +8,7 @@
 # the same command run again passes; every LANE line and .last record the three parts; a cut in planning, a corrupt record and a
 # job without a budget are handled; the board and health list the hit with its part. A toy repo; the real lane, regression.py
 # and slots run, with the test-only LOOP_PREP_BUDGET (seconds) standing in for 15 minutes. No model is called.
-# usage: test-prep-budget.sh [DIR]
+# usage: [PREP_ONLY=setting|times|stop|edges|board] test-prep-budget.sh [DIR]   (a row runs one section: one toy run per requirement)
 set -u
 unset LOOP_BATCH LOOP_SESSION_TOOL LOOP_OPERATION_SESSION GH_TOKEN GITHUB_TOKEN _LOOP_LANE_HELD LOOP_LANE_LIMIT LOOP_PREP_BUDGET
 export LOOP_ROLE=worker
@@ -26,6 +26,8 @@ python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
 RUNS="$(git rev-parse --git-common-dir)/loop/runs"; mkdir -p "$RUNS"; RUNS=$(cd "$RUNS" && pwd)
 fails=0
+ONLY=${PREP_ONLY:-}
+want() { [ -z "$ONLY" ] || [ "$ONLY" = "$1" ]; }
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 check() { if eval "$2" 2>/dev/null; then ok "$1"; else bad "$1"; [ -z "${out:-}" ] || head -3 <<<"$out" | sed "s/^/    out: /"; fi; }
@@ -49,12 +51,15 @@ PY
   for _ in $(seq 100); do [ -s "$HOME/holder.ready" ] && break; sleep 0.1; done; cut -d' ' -f1 "$HOME/holder.ready"; rm -f "$HOME/holder.ready"
 }
 
+want setting && {
 echo "== the setting"
 bp() { python3 -c 'import json, sys; sys.path.insert(0, sys.argv[1]); import budget; print(budget.prep_seconds(json.loads(sys.argv[2])))' "$S" "$1" 2>&1; }
 check "prep_budget_minutes defaults to 15 minutes" '[ "$(bp "{}")" = "(900, False)" ]'
 out=$(bp '{"prep_budget_minutes": 14}')
 check "a prep budget under 15 is refused with a fix line" 'grep -q "^REFUSED: prep_budget_minutes is 14 in .loop/config.json, under the 15-minute floor. Fix: set it to 15 or more" <<<"$out"'
 check "LOOP_PREP_BUDGET (seconds) overrides it for tests, and a value of that name in config.json is ignored" '[ "$(LOOP_PREP_BUDGET=3 bp "{}")" = "(3, True)" ] && [ "$(bp "{\"LOOP_PREP_BUDGET\": 3}")" = "(900, False)" ]'
+
+}
 
 echo "== rows"
 for i in 1 2; do $reg add r$i --level land --command "sleep 1; test ! -e broken" --describe "toy row $i" >/dev/null; done
@@ -71,20 +76,22 @@ PY
 git add -A; git commit -qm "rows"
 echo '{"slug": "g", "status": "running"}' > "$RUNS/g.json"
 
+want times && {
 echo "== every lane records and says the three parts"
 export LOOP_LANE_LIMIT=1
 out=$(until_done g qa)
 check "a lane within the budget passes and its LANE line ends its text with the before-rows parts" 'grep -q "^pass$" <<<"$out" && grep -qE "before rows: prep [0-9]+s, planning [0-9]+s, slot wait 0s" <<<"$out" && ! grep -q "LOOP_PREP_BUDGET in effect" <<<"$out"'
 check "the lane's .last record holds prep_s, plan_s and wait_s" 'python3 -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if all(k in d for k in (\"prep_s\",\"plan_s\",\"wait_s\")) and d[\"wait_s\"]==0 else 1)" "$RUNS/g.qa-lane.last"'
 
+}
+want stop && {
 echo "== a lane that waits for a slot past the budget stops and says which part ran long"
+export LOOP_LANE_LIMIT=1; echo '{"slug": "h", "status": "running"}' > "$RUNS/h.json"
 hp=$(holder); head=$(git rev-parse HEAD)
 export LOOP_PREP_BUDGET=3
 out=$(until_done h pr); echo "$out" | head -4
 check "it fails with LANE_PREP_BUDGET naming waiting for a slot, the three parts, the shared budget and who holds the slots" 'grep -q "^fail$" <<<"$out" && grep -q "^LANE_PREP_BUDGET: the pr lane used its 0-minute preparation budget before any row ran: waiting for a slot ran long (prep [0-9]*s, planning [0-9]*s, slot wait [0-9]*s; the three share one budget); slots held by: toy/holder qa;" <<<"$out"'
 check "it ran no row and committed nothing, and the LANE line says the override is in effect" '! grep -q "^PASS r" "$RUNS/h.pr-lane.txt" && [ "$(git rev-parse HEAD)" = "$head" ] && grep -q "LOOP_PREP_BUDGET in effect" <<<"$out"'
-echo '{"slug": "h", "status": "running"}' > "$RUNS/h.json"
-out=$(until_done h pr)
 check "the hit is on the goal's run file as a prep hit with the part" 'python3 -c "import json,sys; d=json.load(open(sys.argv[1])); h=d[\"budget_hits\"][0]; sys.exit(0 if h[\"kind\"]==\"prep\" and h[\"step\"]==\"pr\" and \"waiting for a slot ran long\" in h[\"left\"] else 1)" "$RUNS/h.json"'
 unset LOOP_PREP_BUDGET
 kill "$hp" 2>/dev/null; wait "$hp" 2>/dev/null
@@ -93,6 +100,8 @@ check "its place was freed: another lane takes the slot at once and passes" 'gre
 out=$(until_done h pr)
 check "the same command run again, with the slot free, passes" 'grep -q "^pass$" <<<"$out" && grep -q "^LANE pr" <<<"$out"'
 
+}
+want edges && {
 echo "== a cut in planning, and the records that are missing or bad"
 now=$(python3 -c 'import time; print(time.time() + 2)')
 # the child kills its own process group at the cut, as it does in a lane (its own session): give it one
@@ -114,7 +123,15 @@ at, why = lane.deadline({"markers": 1, "rc": sys.argv[2] + "/z.rc", "started": 1
 sys.exit(0 if at == 120.0 and "preparation budget" in why else 1)
 PY'
 
+}
+want board && {
 echo "== the board and health list it with the part"
+python3 - "$S" "$RUNS" <<'PY'
+import json, sys
+sys.path.insert(0, sys.argv[1]); import budget
+json.dump({"slug": "h", "status": "running"}, open(sys.argv[2] + "/h.json", "w"))
+budget.hit(sys.argv[2], "h", "pr", "prep", 0, "waiting for a slot ran long (prep 0s, planning 1s, slot wait 2s)")
+PY
 out=$(python3 "$here/skills/workflow-monitoring/scripts/monitor.py" report 2>&1); echo "$out" | grep -A3 "BUDGET HITS"
 check "the report lists the lane that hit the preparation budget and the part that ran long" 'grep -q "^- h: pr preparation hit its 0-minute budget; left: waiting for a slot ran long" <<<"$out"'
 out=$(python3 -c "
@@ -125,5 +142,7 @@ check "budget.py names a prep hit the same way" 'python3 - "$S" <<PY
 import sys; sys.path.insert(0, sys.argv[1]); import budget
 sys.exit(0 if budget.label({"kind": "prep"}) == "preparation" and "pr preparation hit its 15-minute budget" in budget.lines({"slug": "h", "budget_hits": [{"step": "pr", "kind": "prep", "minutes": 15, "left": "x"}]})[0] else 1)
 PY'
+
+}
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
