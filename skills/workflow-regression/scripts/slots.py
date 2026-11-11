@@ -12,7 +12,7 @@ Row files (.loop/regression.tsv, .loop/regression-runs.tsv) are edited under loc
 which serializes writers across every worktree of a repo. controls.py (throwaway control repos) and setup's seed write
 them without the lock.
 Exit codes, shared with lane.py: 0 pass, 1 fail, 2 lane-wait timeout, 3 no lane, 4 a hand run's slot wait timed out,
-5 LANE_STALE, 124 time limit. Messages: workflow-regression/references/lanes.md.
+5 LANE_STALE, 124 time limit. Messages: workflow-regression/references/commands.md.
 """
 import fcntl
 import glob

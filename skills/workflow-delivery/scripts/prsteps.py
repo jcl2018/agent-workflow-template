@@ -8,7 +8,7 @@ Imported by goal.py. record(state, base):
   3. one commit of those two files when they changed, with the wiki Tests tables re-rendered from them, then
   4. state["pr_lane"] (the pull request body's lane part), state["pr_head"] (the head goal.py pr pushes: the lane's commit plus that bookkeeping commit) and state["pr_base"]
      (the base commit it was merged with), for merge.py's HEAD_MOVED and BASE_MOVED checks.
-workflow-regression/references/lanes.md.
+workflow-regression/references/commands.md.
 """
 import datetime
 import os

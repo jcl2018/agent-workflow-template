@@ -6,7 +6,7 @@ Imported by role.py, which re-exports lane, need_lane, lane_text, lane_argv and 
 for HEAD ends; never starts one) and `lane.py lane-exec ...` (a lane's child).
 A lane tests committed HEAD and never pushes. Before it starts it may make one commit: the re-rendered Tests tables and
 the run dates they come from. One lane per goal runs at a time; a lane on an older HEAD is stopped first. Its latest
-result is always at <runs>/<slug>.<name>-lane.last. Exit codes and messages: slots.py, workflow-regression/references/lanes.md.
+result is always at <runs>/<slug>.<name>-lane.last. Exit codes and messages: slots.py, workflow-regression/references/commands.md.
 """
 import fcntl
 import json

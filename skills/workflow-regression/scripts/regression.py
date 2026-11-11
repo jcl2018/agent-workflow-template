@@ -322,7 +322,7 @@ def cmd_run(args):
             print("FIXED %s: remove it from the known list" % row["id"])
         reason = " (%s)" % expected[row["id"]] if state == "KNOWN" else ""
         print("%s %s%s" % (state, row["id"], reason), flush=True)
-        if signal and state != "PASS":  # workflow-regression/references/lanes.md
+        if signal and state != "PASS":  # workflow-regression/references/commands.md
             print("KILLED %s: signal %s (pid %d). Note: a signal stopped this row; see the lane log" % (row["id"], signal, pid))
         if state == "FAIL" and args.reuse:
             print("\n".join("    " + line for line in text.rstrip().splitlines()[-20:]), file=sys.stderr)
