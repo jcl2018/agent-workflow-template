@@ -88,9 +88,9 @@ want stop && {
 echo "== a lane that waits for a slot past the budget stops and says which part ran long"
 export LOOP_LANE_LIMIT=1; echo '{"slug": "h", "status": "running"}' > "$RUNS/h.json"
 hp=$(holder); head=$(git rev-parse HEAD)
-export LOOP_PREP_BUDGET=3
+export LOOP_PREP_BUDGET=8
 out=$(until_done h pr); echo "$out" | head -4
-check "it fails with LANE_PREP_BUDGET naming waiting for a slot, the three parts, the shared budget and who holds the slots" 'grep -q "^fail$" <<<"$out" && grep -q "^LANE_PREP_BUDGET: the pr lane used its 0-minute preparation budget before any row ran: waiting for a slot ran long (prep [0-9]*s, planning [0-9]*s, slot wait [0-9]*s; the three share one budget); slots held by: toy/holder qa;" <<<"$out"'
+check "it fails with LANE_PREP_BUDGET naming waiting for a slot, the three parts, the shared budget and who holds the slots" 'grep -q "^fail$" <<<"$out" && grep -q "^LANE_PREP_BUDGET: the pr lane used its 8s (LOOP_PREP_BUDGET) preparation budget before any row ran: waiting for a slot ran long (prep [0-9]*s, planning [0-9]*s, slot wait [0-9]*s; the three share one budget); slots held by: toy/holder qa;" <<<"$out"'
 check "it ran no row and committed nothing, and the LANE line says the override is in effect" '! grep -q "^PASS r" "$RUNS/h.pr-lane.txt" && [ "$(git rev-parse HEAD)" = "$head" ] && grep -q "LOOP_PREP_BUDGET in effect" <<<"$out"'
 check "the hit is on the goal's run file as a prep hit with the part" 'python3 -c "import json,sys; d=json.load(open(sys.argv[1])); h=d[\"budget_hits\"][0]; sys.exit(0 if h[\"kind\"]==\"prep\" and h[\"step\"]==\"pr\" and \"waiting for a slot ran long\" in h[\"left\"] else 1)" "$RUNS/h.json"'
 unset LOOP_PREP_BUDGET
@@ -123,6 +123,22 @@ at, why = lane.deadline({"markers": 1, "rc": sys.argv[2] + "/z.rc", "started": 1
 sys.exit(0 if at == 120.0 and "preparation budget" in why else 1)
 PY'
 
+}
+want edges && {
+echo "== a lane under a test_record wrapper keeps the old rule; preparing alone can use the budget"
+echo '{"limit": 60, "test_record": ["env"]}' > "$LOOP_FLOW"
+python3 "$T/h.py" "$S" "$RUNS" w qa >/dev/null
+check "a lane whose rows run under a wrapper (that may strip the start markers) gets no prep_by" 'python3 -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d[\"prep_by\"]==0 and d[\"markers\"]==1 else 1)" "$RUNS/w.qa-lane.job"'
+until_done w qa >/dev/null; echo '{"limit": 60}' > "$LOOP_FLOW"
+echo '{"slug": "p", "status": "running"}' > "$RUNS/p.json"
+out=$(LOOP_PREP_BUDGET=1 python3 - "$S" "$RUNS" <<'PY'
+import json, sys, time
+sys.path.insert(0, sys.argv[1]); import lane
+lane.prep = lambda *a: (time.sleep(1.2), (None))[1] or ("", None)
+print(*lane.lane(sys.argv[2], "p", "qa", lane.flow_spec(), json.load(open(".loop/config.json")), 0)[:2], sep="\n")
+PY
+)
+check "when preparing the Tests tables alone uses the budget no lane starts: LANE_PREP_BUDGET names it and the hit is recorded" 'grep -q "^fail$" <<<"$out" && grep -q "preparing the Tests tables ran long" <<<"$out" && python3 -c "import json,sys; h=json.load(open(sys.argv[1]))[\"budget_hits\"][0]; sys.exit(0 if h[\"kind\"]==\"prep\" and \"preparing the Tests tables\" in h[\"left\"] else 1)" "$RUNS/p.json" && [ ! -e "$RUNS/p.qa-lane.job" ]'
 }
 want board && {
 echo "== the board and health list it with the part"

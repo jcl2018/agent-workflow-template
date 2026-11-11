@@ -25,7 +25,7 @@ import lanekit  # noqa: E402
 # No terminal, no waiting: a prompt from git or gh must fail, not block (lanekit sets it too).
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 import lanetime  # noqa: E402
-from lanekit import NOTHING, TERMINAL, dirty, drop, generated, git, mtime, need_lane, prep, read_json, set_last  # noqa: E402,F401
+from lanekit import NOTHING, TERMINAL, died, dirty, drop, generated, git, mtime, need_lane, prep, read_json, running_line, set_last  # noqa: E402,F401
 
 NAMES = ("qa", "ship", "pr")
 GRACE = 60  # seconds a claimed rc belongs to the caller finishing it; an older claim is an orphan the next caller finishes
@@ -90,11 +90,7 @@ def stop(base, held):
         kill(held["pid"])
     drop(base + ".job")
     if held:
-        drop(*[held["rc"] + end for end in ("", ".queued", ".started", ".note", ".claimed", ".times")])
-
-
-def died(log):
-    return "LANE_DIED: the lane ended with no exit status (log %s); the next call starts a new lane; %s." % (log, NOTHING)
+        drop(*[held["rc"] + end for end in ("", ".queued", ".started", ".note", ".claimed", ".times", ".times.tmp")])
 
 
 def fresh(held):
@@ -175,18 +171,6 @@ def finalize(base, held, name):
     return status, line, ids
 
 
-def running_line(held, other=None):
-    if other:
-        return "WAITING: the %s lane of this goal is still running; run this same command again, or block with role.py " \
-            "lane-wait SLUG %s" % (other, other)
-    queued = held["rc"] + ".queued"
-    if os.path.exists(queued):
-        return "WAITING: %s; run this same command again" % open(queued).read().strip()
-    if "markers" in held and not os.path.exists(held["rc"] + ".started"):
-        return "RUNNING: planning the lane; run this same command again"
-    return "RUNNING: the regression lane is running; run this same command again"
-
-
 def lane(runs, slug, name, spec, cfg, wait=90):
     """Start or poll a goal's qa, ship or pr lane on committed HEAD: (running|pass|fail, line, failing ids)."""
     head = git("rev-parse", "HEAD").stdout.strip()
@@ -217,7 +201,9 @@ def lane(runs, slug, name, spec, cfg, wait=90):
             return "fail", refusal, []
         spent, (budget_s, override) = time.time() - began_prep, lanekit.budget.prep_seconds(cfg)
         if spent >= budget_s:  # preparing the Tests tables alone used the budget: no lane is started
-            return "fail", lanetime.cut_line(name, {"budget": budget_s, "prep_s": spent}, 0, 0, "preparing the Tests tables"), []
+            cut = {"budget": budget_s, "prep_s": spent, "override": override}
+            lanetime.prep_hit(base, name, cut, 0, 0, "preparing the Tests tables")
+            return "fail", lanetime.cut_line(name, cut, 0, 0, "preparing the Tests tables"), []
         head = git("rev-parse", "HEAD").stdout.strip()
         prefix = [os.path.expanduser(part) for part in spec.get("test_record") or []]
         if prefix and not (shutil.which(prefix[0]) or os.path.isfile(prefix[0])):
@@ -234,7 +220,7 @@ def lane(runs, slug, name, spec, cfg, wait=90):
         attempt = "%d-%d" % (os.getpid(), time.time() * 1000)
         held = {"head": head, "attempt": attempt, "started": time.time(), "limit": seconds, "source": source,
                 "rc": "%s.%s.rc" % (base, attempt), "pool": lanekit.lanes_dir(), "markers": 1, "prep_s": spent,
-                "prep_by": began_prep + budget_s, "budget": budget_s, "override": override}
+                "prep_by": 0 if prefix else began_prep + budget_s, "budget": budget_s, "override": override}  # a wrapper may strip the markers
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", _LOOP_LANE_LABEL="%s/%s %s" % (os.path.basename(top), slug, name),
                    _LOOP_LANE_QUEUED=held["rc"] + ".queued", _LOOP_LANE_STARTED=held["rc"] + ".started",
                    _LOOP_LANE_NOTE=held["rc"] + ".note", _LOOP_LANE_PREP_BY=str(held["prep_by"]))
@@ -336,7 +322,7 @@ def lane_exec(rc, seconds, last, attempt, pool, argv):
                     child.wait(timeout=10)
                 except subprocess.TimeoutExpired:
                     child.kill()
-                code = lanekit.EXIT_PREP if cut else 124
+                code = lanekit.EXIT_PREP if cut and not os.path.exists(rc + ".started") else 124  # a row began at the last moment: timeout
                 break
     except Exception:  # an unexpected failure: a compact trace in the lane log, and a failing status
         import traceback

@@ -382,3 +382,19 @@ def need_lane(runs, slug, reply, step="qa"):
                 fix + " (reruns only the rows the change can affect)",
                 "HEAD_MOVED")
     return None
+
+
+def died(log):
+    return "LANE_DIED: the lane ended with no exit status (log %s); the next call starts a new lane; %s." % (log, NOTHING)
+
+
+def running_line(held, other=None):
+    if other:
+        return "WAITING: the %s lane of this goal is still running; run this same command again, or block with role.py " \
+            "lane-wait SLUG %s" % (other, other)
+    queued = held["rc"] + ".queued"
+    if os.path.exists(queued):
+        return "WAITING: %s; run this same command again" % open(queued).read().strip()
+    if "markers" in held and not os.path.exists(held["rc"] + ".started"):
+        return "RUNNING: planning the lane; run this same command again"
+    return "RUNNING: the regression lane is running; run this same command again"

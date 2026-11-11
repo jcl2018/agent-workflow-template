@@ -41,10 +41,11 @@ def before_rows(held, plan, wait):
 def cut_line(name, held, plan, wait, part):
     """The LANE_PREP_BUDGET text: which part ran long, all three parts, the one shared budget, who holds the slots."""
     got = ", ".join(holders(held.get("pool"))) or "none"
-    return ("LANE_PREP_BUDGET: the %s lane used its %d-minute preparation budget before any row ran: %s ran long (prep %ds, "
+    return ("LANE_PREP_BUDGET: the %s lane used its %s preparation budget before any row ran: %s ran long (prep %ds, "
             "planning %ds, slot wait %ds; the three share one budget); slots held by: %s; no row ran, %s beyond the prep "
             "commit. Fix: run the same command again (it replans on this HEAD); raise prep_budget_minutes only if prep or "
-            "planning is the part that ran long." % (name, round(held.get("budget", 0) / 60), part or "preparation",
+            "planning is the part that ran long." % (name, "%ds (LOOP_PREP_BUDGET)" % held["budget"] if held.get("override") else "%d-minute" % round(held.get("budget", 0) / 60),
+                                                      part or "preparation",
                                                       held.get("prep_s") or 0, plan, wait, got, NOTHING))
 
 
