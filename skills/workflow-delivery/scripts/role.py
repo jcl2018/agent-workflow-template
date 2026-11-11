@@ -12,7 +12,6 @@ import sys
 import json
 import datetime
 
-import budget
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -104,6 +103,45 @@ def sync(base):
     return "conflict", ", ".join(files) or " ".join((done.stderr or done.stdout).split())[:200]
 
 
+def goal_state(runs, slug):
+    try:
+        return json.load(open(os.path.join(runs, slug + ".json")))
+    except (OSError, ValueError):
+        return {}
+
+
+def recorded_gate(args, runs, job):
+    """A step the record already holds isn't run again by accident (DEL-7): it refuses with no try and names where the
+    goal resumes. --again reruns it on purpose: it clears that step and every later step, never tries or tokens."""
+    record = os.path.join(runs, args.slug + ".json")
+    import fit  # lazily: fit imports role
+    state = goal_state(runs, args.slug)
+    if not fit.recorded(state, args.step):
+        return
+    if not args.again:
+        head = state.get("plan_head")
+        count = git("rev-list", "--count", head + "..HEAD") if head else None
+        at = fit.resume_at(state, bool(count and count.returncode == 0 and count.stdout.strip() not in ("", "0")))
+        print("REFUSED (no try used): %s is already recorded (%s). Fix: go on with %s, or rerun it on purpose with "
+              "flow.py %s %s --again (ALREADY_RECORDED)" % (args.step, state["flow"][args.step], fit.next_command(state, at),
+                                                              args.slug, args.step))
+        sys.exit(2)
+    if os.path.exists(job) and alive(json.load(open(job)).get("pid") or 0):
+        sys.exit("REFUSED (no try used): %s is still running; let it end first (ALREADY_RECORDED)" % args.step)
+    cleared = fit.again(state, args.step)
+    for step in cleared:
+        for end in (".ran", ".asked"):
+            path = os.path.join(runs, "%s.%s%s" % (args.slug, step, end))
+            if os.path.exists(path):
+                os.remove(path)
+    state.setdefault("log", []).append("%s rerun %s on purpose: cleared %s" % (
+        datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), args.step, ", ".join(cleared)))
+    with open(record + ".%d.tmp" % os.getpid(), "w") as handle:
+        json.dump(state, handle, indent=2)
+    os.replace(record + ".%d.tmp" % os.getpid(), record)
+    print("AGAIN %s: cleared %s" % (args.step, ", ".join(cleared)))
+
+
 def after(step):
     """The label once a flow step is recorded: what comes next, never the step that just finished."""
     return {"idea": "plan", "plan": "build"}.get(step, "checks")
@@ -134,7 +172,17 @@ DEPTH = re.compile(r"^[ \t*_]*DEPTH:\s*(full|condensed)[ \t*_.]*$", re.M | re.I)
 STEP = re.compile(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", re.M | re.I)
 
 
-def depth_of(cfg):
+def depth_of(cfg, state=None, runs=None):
+    """The depth a step must run at. With a goal's state: fit.depth_for over the setting and the goal (its size and the
+    owner's override, DEL-6). Without: the setting alone."""
+    setting = setting_of(cfg)
+    if state is None:
+        return setting
+    import fit  # lazily: fit is pure, but role is imported early by everything
+    return fit.depth_for(setting, fit.view(state, runs))[0]
+
+
+def setting_of(cfg):
     """review_depth from the base branch's .loop/config.json, which a worker's worktree can't change: condensed only
     when the base branch says so, full otherwise (the default). cfg is the worktree's config, read for its base name."""
     base = (cfg or {}).get("base") or "main"

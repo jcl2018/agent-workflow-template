@@ -4,6 +4,7 @@ the goal worktree, and refuse a session folder outside that worktree. Imported b
 
   WORKER <slug>: ...    the command form for goal steps (LOOP_ROLE=worker); no process can set another's environment
   WORKTREE <slug>: ...  the folder to work in; --cwd DIR, or a worker binding itself, outside it is CWD_OUTSIDE
+ID `self` is the session named by CLAUDE_CODE_HOST_SESSION_ID (unset: exit 2, BIND_SELF_UNSET).
 A failed or stopped goal is revived with the same fields as goal.py resume; a worker binding itself only attaches.
 
 It also holds the session tool (tool, call, HUNG, LAST_ERROR): the command that starts, renames and messages the app's
@@ -41,8 +42,22 @@ def announce(g, args, tree, was, worker):
     return 0
 
 
+def self_id(args):
+    """`bind SLUG self`: the id of the session this runs in, from CLAUDE_CODE_HOST_SESSION_ID (issue 117); unset is a
+    usage error before any work."""
+    if args.id != "self":
+        return
+    args.id = os.environ.get("CLAUDE_CODE_HOST_SESSION_ID", "").strip()
+    if not args.id:
+        sys.stderr.write("REFUSED: bind %s self reads CLAUDE_CODE_HOST_SESSION_ID, which is not set here; nothing was "
+                         "bound. Fix: sessions.py bind %s <ID>, with the session's id from the app (BIND_SELF_UNSET)\n"
+                         % (args.slug, args.slug))
+        sys.exit(2)
+
+
 def cmd_bind(g, args):
     g.bad_slug(args.slug)
+    self_id(args)
     name = args.name or g.name_of(args.slug)
     worker = os.environ.get("LOOP_ROLE") == "worker"
     tree = (g.load(args.slug) or {}).get("worktree") or ""

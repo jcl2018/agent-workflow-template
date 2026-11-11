@@ -1,6 +1,6 @@
 ---
 name: workflow-release
-description: Once a goal has a pull request, shows its docs and manual verify steps, then asks `cut` or `leave`. `cut` moves the version, writes the changelog and creates a draft GitHub release for you to publish; `leave` keeps the work unreleased and changes nothing versioned. Use after workflow-delivery opens a pull request, or when asked to release or not release a goal.
+description: Releases a goal once it has a pull request. With auto_merge on, `merge` merges it and publishes the release (no draft), through a release PR on a protected base. Without auto_merge, it shows the docs and manual verify steps and asks `cut` or `leave`; `cut` moves the version, writes the changelog and creates a draft GitHub release for you to publish; `leave` changes nothing versioned. Use after workflow-delivery opens a pull request, or when asked to release or not release a goal.
 ---
 
 # workflow-release
@@ -9,7 +9,9 @@ Two commands: `cut` and `leave`, after one question from `ask`. Run `scripts/rel
 skill's files aren't on disk, write the script to a temporary file, run it, and delete it. If `.loop/config.json` is
 missing, use `workflow-setup` first.
 
-You publish the draft release yourself. `release.py` never publishes, never pushes a tag and never merges.
+Two paths, said plainly: with `auto_merge` on, `merge.py` publishes the release (no draft), and on a protected base it
+goes through a release PR. Without `auto_merge`, `cut` makes a draft that you publish yourself; `release.py` never
+publishes, never pushes a tag and never merges.
 
 **The release step is automatic.** Where `"auto_merge": true` is set, which this repo does, and `.loop/docs.tsv` exists,
 first bring the goal's wiki pages up to date:
@@ -20,16 +22,23 @@ python3 scripts/wiki.py prepare <slug>
 
 It lists every page `docs.py check` calls stale, mapped to a touched path or not. Rewrite those pages from what the goal changed, then run
 `wiki.py prepare <slug> --commit`: it commits them on the goal's branch and pushes it. Then run `scripts/merge.py <slug>`
-after `goal.py pr`. It asks nothing and drafts nothing:
+after `goal.py pr`. It asks nothing, and it publishes the release (no draft):
 
 1. It refuses while any page `docs.py check` calls stale, naming each; there is no bypass, so a page that cannot be
    cleared stays under Issues until the owner rewrites it.
-2. It runs each `routines` entry of `.loop/config.json` as read from `origin/<base>` (a pull request cannot add one), and
-   refuses the merge if one exits non-zero.
-3. It merges the goal's open pull request, then bumps the version once on the base branch (patch; minor for a new file or
-   `feat` commit; a breaking change is major, or minor while the version is 0.x), adds a CHANGELOG.md entry and creates a
-   published GitHub release (`autorelease.py`). A retry never bumps twice: the pushed version is recorded.
+2. It scans the branch and the release notes for private names (refusing with nothing merged), holds the merge
+   (`REQUIREMENT_MISSING`) while a criterion row names a requirement ID no wiki page on the base names, and runs each
+   `routines` entry of `.loop/config.json` as read from `origin/<base>`, refusing if one exits non-zero.
+3. It merges the goal's open pull request, then bumps the version once (the bump rule below), adds a CHANGELOG.md entry,
+   pushes them to the base and creates a published GitHub release (`autorelease.py`). On a protected base (a
+   `pull_request` rule, or a push refused for protection) the release PR `release/vX-<slug>` carries them; the loop
+   merges it with `gh pr merge --merge` (never `--admin`), waits while checks are pending, and records
+   `RELEASE_PR_BLOCKED` with your command when a review is required. A retry never bumps or releases twice.
 4. It publishes the wiki from `origin/<base>` (`wiki.py publish <slug>`). A refused publish is `wiki_error`.
+
+**Bump rule:** patch by default. Minor or major only when the operation recorded the goal's bump with
+`goal.py set SLUG --bump minor|major`. A removed file or a `BREAKING` commit is named in the reason, never a major on
+its own. Every refusal ends with a code; `references/commands.md` has the codes table.
 
 Any release failure, a failed merge included, is recorded on the goal as `release_error` and shows under Issues.
 Without the switch it refuses, and the owner merges. `ask`, `cut` and `leave` below are the manual path.
@@ -53,17 +62,9 @@ It refuses unless the goal is `done`.
 - `ALREADY cut` or `ALREADY leave`: the question was answered before. Report it.
 
 With `"release_auto": true` in `.loop/config.json`, a monitored batch goal does not just leave. `ask` prints
-`NEED <leave|patch|minor|ask>: <reason>` from the goal's diff (`.loop/` changes are ignored) and records both:
-
-| Need | When | What happens |
-|---|---|---|
-| `leave` | only docs, tests or `.loop` changed | leaves, as before |
-| `patch` | any other change, such as a fix | cuts a draft, bump `patch`, no `--user` |
-| `minor` | a new non-doc file, or a `feat` commit | cuts a draft, bump `minor`, no `--user` |
-| `ask` | a `BREAKING` or `!:` commit, or a removed file | waits for the owner |
-
-A goal marked `release: ask` still waits. Every refusal of `cut` still applies; if one fires, the owner is asked. The
-release is always a draft. Without `release_auto`, nothing changes.
+`NEED <leave|patch|minor|major>: <reason>` from the goal's diff (`.loop/` changes are ignored) and records both: only
+docs, tests or `.loop` leave; anything else cuts a draft with the bump rule above, no `--user`. A goal marked
+`release: ask` still waits. Every refusal of `cut` applies; if one fires, the owner is asked. Always a draft.
 
 ## 2. `leave <slug>`
 
@@ -94,7 +95,7 @@ On the goal's branch `loop/<slug>` it:
    the last number. With no file, the first release is `0.1.0` and the file is created.
 3. Adds an entry to `CHANGELOG.md` above the last release: the new version, today's date (UTC), one line per commit since
    the base, leaving out commits that only touch `.loop/`, and the verify steps.
-4. Commits those two files as `Release vX.Y.Z` and pushes the branch.
+4. Commits those two files as `Release vX.Y.Z`, scans for private names (`PRIVATE_NAME`), and pushes the branch.
 5. Runs `gh release create vX.Y.Z --draft --target loop/<slug>`, with the verify steps and docs in the notes, and prints
    `DRAFT <url>`.
 

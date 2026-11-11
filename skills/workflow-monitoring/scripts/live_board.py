@@ -22,6 +22,7 @@ import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import board_lines  # noqa: E402
+bb = board_lines  # budget, depth and private-name lines (its section 4)
 import board_status as bs  # noqa: E402
 import graph  # noqa: E402
 import board_page  # noqa: E402
@@ -228,6 +229,7 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
         other += ["- pool entry %s is malformed and was set aside" % key, "    fix: look at session-pool.bad.json, then delete it"]
     other += board_page.template_lag(root)
     other += bs.stall_lines(runs, at, root, {r["slug"] for r in runs if is_held(r, taken)})
+    other += bb.issues(root, [r for r in runs if r["slug"] not in gone])
     found = bs.wiki_check(root)
     parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]
     for run in runs:
@@ -257,7 +259,10 @@ def render(root=None, at=None):
     lines = {g["slug"]: g for g in bs.queued(root, runs)}
     queue = [g for g in lines.values() if g["slug"] not in {f["slug"] for f in freezing}]
     items = bs.board_items(live, queue, freezing, lines, runs, at, root, waits)
-    setting = "condensed" if (bs.read_json(os.path.join(root, ".loop", "config.json")) or {}).get("review_depth") == "condensed" else "full"
+    cfg = bs.read_json(os.path.join(root, ".loop", "config.json")) or {}
+    setting = "condensed" if cfg.get("review_depth") == "condensed" else "full"
+    folder = os.path.join(loop_dir(root), "runs")  # depth decided and budget lines (board_lines.py section 4)
+    fits = lambda run: [p + x for p, x in (("    depth decided: ", bb.depth(run, setting, folder)), ("    ", bb.line(run, cfg, at, folder))) if x]
     head = "LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root))
     if len(head) > WIDTH:
         head, tail = head.rsplit("  ", 2)[0], "  ".join(head.rsplit("  ", 2)[1:])
@@ -272,7 +277,7 @@ def render(root=None, at=None):
     est_of = lambda run: next(i["est"] for i in items if i["slug"] == run["slug"])
     for run in running:
         out += [bar(run, current(run)), *flow_lines(run, bs.overrun(run, runs, at, root)), "    worker: " + worker_of(run, taken),
-                "    depth: " + depth_of(run, setting), "    next: " + next_line(run)]
+                "    depth: " + depth_of(run, setting), *fits(run), "    next: " + next_line(run)]
     for entry in freezing:
         name, ago = entry.get("name") or entry["id"], age(entry.get("since"), at)
         out += [bar(dict(entry, status="freezing"), 0), *flow_lines({"status": "freezing"}), "    worker: session " + name,
@@ -287,7 +292,7 @@ def render(root=None, at=None):
         state = ", ".join(x for x in ("held %s" % ago if ago else "held", "worktree kept" if tree else "worktree gone",
                                        "holds a slot" if graph.holds_slot(run) else "") if x)
         fix = "" if tree else "; make its worktree again first (git worktree add <common>/loop/worktrees/%s loop/%s)" % (run["slug"], run["slug"])
-        out += [bar(run, current(run), "  held"), *flow_lines(run), "    worker: none (%s)" % state, "    depth: " + depth_of(run, setting),
+        out += [bar(run, current(run), "  held"), *flow_lines(run), "    worker: none (%s)" % state, "    depth: " + depth_of(run, setting), *fits(run),
                 "    next: give it a worker session (sessions.py bind %s ID, where ID is the session's id from the app)%s" % (run["slug"], fix)]
     for goal in queue:
         out.append("- %s  %s%s" % (goal["slug"], bs.estimate_text(next(i["est"] for i in items if i["slug"] == goal["slug"])),

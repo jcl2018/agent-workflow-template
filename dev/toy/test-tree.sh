@@ -18,7 +18,7 @@ for f in "$here"/skills/*/scripts/*.py; do [ "$(wc -c < "$f")" -lt 20480 ] && ok
 for f in "$here"/skills/*/SKILL.md; do [ "$(wc -l < "$f")" -lt 150 ] && ok "under 150 lines: $(basename "$(dirname "$f")")" || bad "over 150 lines: $f"; done
 
 echo "== repo-wide greps"
-[ "$(grep -rlE '"pr", "merge"|gh pr merge' "$here/skills" --include=*.py | xargs -n1 basename | tr '\n' ' ')" = "merge.py " ] && ok "no script calls gh pr merge but the release step's merge.py" || bad "a script merges"
+[ "$(grep -rlE '"pr", "merge"|gh pr merge' "$here/skills" --include=*.py | xargs -n1 basename | sort | tr '\n' ' ')" = "merge.py " ] && ok "no script calls gh pr merge but the release step's merge.py (which also merges its release PR)" || bad "a script merges"
 check "a grep finds nothing for the old upgrade paths" '[ -z "$(grep -rniE --exclude=test-workers.sh --exclude=test-tree.sh -- "--session|board.py take|session (add|update|remove) |visible session|hand_over|sessions\.json|taken over" "$here/skills" "$here/docs/wiki" "$here/README.md" "$here/listing.json" "$here/dev/toy")" ]'
 
 L="python3 $here/skills/workflow-regression/scripts/lanes_cli.py"
