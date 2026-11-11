@@ -21,11 +21,10 @@ import sys
 import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import board_lag  # noqa: E402
 import board_lines  # noqa: E402
 import board_status as bs  # noqa: E402
 import graph  # noqa: E402
-import status_graph  # noqa: E402
+import board_page  # noqa: E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block (board_status sets the rest).
 os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")
@@ -106,7 +105,7 @@ def flow_lines(run, over=0):
         steps = ["[freezing]"] + list(FLOW)
     else:
         here = current(run)
-        steps = ["[%s%s]" % (step, " over by " + status_graph.span(over) if over >= 60 else "") if i == here
+        steps = ["[%s%s]" % (step, " over by " + board_page.span(over) if over >= 60 else "") if i == here
                  else step + "✓" if i < here else step for i, step in enumerate(FLOW)]
     lines, line = [], "    "
     for i, step in enumerate(steps):
@@ -227,7 +226,7 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
                       % (name, entry["slug"])]
     for key in sorted(graph.LAST_BAD.get(os.path.join(loop_dir(root), "session-pool.json"), {})):
         other += ["- pool entry %s is malformed and was set aside" % key, "    fix: look at session-pool.bad.json, then delete it"]
-    other += board_lag.template_lag(root)
+    other += board_page.template_lag(root)
     other += bs.stall_lines(runs, at, root, {r["slug"] for r in runs if is_held(r, taken)})
     found = bs.wiki_check(root)
     parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]
@@ -295,8 +294,8 @@ def render(root=None, at=None):
                                    "  waits on " + ", ".join(waits(goal["depends"])) if waits(goal["depends"]) else ""))
     out += ([] if queue or held else ["- (none)"]) + ["", "Dependencies"]
     out += board_lines.render([dict(i, mark="held" if i["slug"] in {r["slug"] for r in held} else i["mark"]) for i in items])
-    seconds, _, _ = status_graph.chain(items)
-    missing = status_graph.unknown(items) or any(i["partial"] for i in items) or held or freezing
+    seconds, _, _ = board_page.chain(items)
+    missing = board_page.unknown(items) or any(i["partial"] for i in items) or held or freezing
     finish = "nothing left" if not items else "no estimate yet" if not seconds else "%sfinish about %s" % (
         "at least " if missing else "", graph.clock(at + datetime.timedelta(seconds=seconds)))
     return fit(out + ["", "Finish", board_lines.paused(live) or finish])

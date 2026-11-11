@@ -14,6 +14,7 @@ import datetime
 import json
 import os
 import subprocess
+import re
 import sys
 
 import autorelease
@@ -28,6 +29,73 @@ if not sys.stdin or not sys.stdin.isatty():
 
 def run(args, cwd=None):
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+
+
+REACH = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-regression",
+                                       "scripts", "lanes_cli.py"))
+
+
+def reach(top, paths):
+    """The row ids a change to PATHS can affect, or None when it means every row (unmapped, deleted, no planner)."""
+    if not paths:
+        return set()
+    if not os.path.exists(REACH):
+        return None
+    done = run([sys.executable, "-B", REACH, "affected", "--root", top, "--"] + paths, cwd=top)
+    found = re.search(r"^AFFECTED \d+ of \d+ rows \((.*)\)", done.stdout, re.M)
+    if done.returncode or not found or re.search(r"^(UNMAPPED|DELETED) ", done.stdout, re.M):
+        return None  # a planner that fails or can't map a path can't clear the merge
+    return set(found.group(1).split(", ")) - {"none", ""}
+
+
+def wiki_only(top, cfg, old, new):
+    """True when NEW descends from OLD (the head the pr lane passed) and every commit between only adds or edits .md pages
+    in the base branch's wiki folder (wiki_dir from origin/<base>'s config: the branch can't widen it), no SKILL.md."""
+    if run(["git", "merge-base", "--is-ancestor", old, new], cwd=top).returncode:
+        return False
+    head = run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], cwd=top).stdout.strip()  # not the branch's say
+    shown = run(["git", "show", "%s:.loop/config.json" % (head or "origin/main")], cwd=top)
+    try:
+        folder = (json.loads(shown.stdout).get("wiki_dir") if shown.returncode == 0 else None) or "docs/wiki"
+    except (ValueError, AttributeError):
+        folder = "docs/wiki"
+    done = run(["git", "diff", "--raw", "--no-renames", old, new], cwd=top)  # a move into the wiki shows its source
+    rows = [(line.split("\t")[0].split(), line.split("\t")[1:]) for line in done.stdout.split("\n") if line]
+    return not done.returncode and bool(rows) and all(
+        len(m) == 5 and len(p) == 1 and m[4] in ("A", "M") and m[1] != "120000"  # a symlink is no page
+        and p[0].startswith(str(folder).rstrip("/") + "/") and p[0].endswith(".md") and os.path.basename(p[0]) != "SKILL.md"
+        for m, p in rows)
+
+
+def base_moved(state, cfg, top):
+    """None when the merge may go ahead, else (exit code, refusal): the base moved since the pr lane in paths this goal's
+    rows reach (2), or origin can't be fetched to tell (3). A move elsewhere only notes it. workflow-regression/references/commands.md."""
+    base, was = cfg.get("base", "main"), state.get("pr_base")
+    if not was and state.get("pr_head"):  # goal.py pr recorded a head but no base (origin/<base> unresolved): unknown, never clear
+        return 2, "REFUSED (BASE_MOVED): the base the pr lane ran on was not recorded. Fix: goal.py pr %s, then merge.py %s" % (
+            state.get("slug", "SLUG"), state.get("slug", "SLUG"))
+    if not was:  # a pull request opened before goal.py pr recorded its base
+        return None
+    try:
+        done = subprocess.run(["git", "fetch", "-q", "origin", base], cwd=top, capture_output=True, text=True, timeout=60)
+        why = (done.stderr.strip().splitlines() or ["exit %d" % done.returncode])[-1] if done.returncode else ""
+    except subprocess.TimeoutExpired:
+        why = "timed out after 60s"
+    if why:
+        return 3, "REFUSED (BASE_FETCH): cannot fetch origin/%s: %s. Fix: run merge.py %s again when the remote answers; " \
+                  "nothing merged" % (base, why, state.get("slug", "SLUG"))
+    now = run(["git", "rev-parse", "origin/" + base], cwd=top).stdout.strip()
+    if now == was:
+        return None
+    def names(a, b):  # None when git can't diff (a commit missing here): unknown, so refused below
+        done = run(["git", "diff", "--name-only", "--no-renames", a, b], cwd=top)
+        return None if done.returncode else [p for p in done.stdout.split("\n") if p]
+    theirs, ours = [None if x is None else reach(top, x) for x in (names(was, now), names(was, state.get("pr_head") or "HEAD"))]
+    if theirs is None or ours is None or theirs & ours:
+        return 2, "REFUSED (BASE_MOVED): %s moved in paths this goal's rows reach (lane on %s, base now %s). Fix: goal.py " \
+                  "pr %s, then merge.py %s" % (base, was[:12], now[:12], state.get("slug", "SLUG"), state.get("slug", "SLUG"))
+    print("NOTE: %s moved in paths this goal's rows don't reach; merging" % base)
+    return None
 
 
 def main():
@@ -53,8 +121,9 @@ def main():
         sys.exit("REFUSED: no goal named %s." % args.slug)
     if state.get("status") != "done" or not state.get("pr"):
         sys.exit("REFUSED: %s has no finished pull request. Fix: run goal.py pr first." % args.slug)
-    view = run(["gh", "pr", "view", state["pr"], "--json", "state"])
-    known = json.loads(view.stdout).get("state") if view.returncode == 0 else ""
+    view = run(["gh", "pr", "view", state["pr"], "--json", "state,headRefOid"])
+    info = json.loads(view.stdout or "{}") if view.returncode == 0 else {}
+    known = info.get("state", "")
     if known != "MERGED":
         if wiki.top_of():
             stale = wiki.pending(top, cfg)
@@ -65,10 +134,22 @@ def main():
                 sys.exit("REFUSED: this branch's latest commit is not on origin. Fix: run wiki.py prepare %s --commit." % args.slug)
         if known != "OPEN":
             sys.exit("REFUSED: the pull request %s is %s, not open." % (state["pr"], known or "unknown"))
+        tested = state.get("pr_head")
+        if tested and info.get("headRefOid") and info["headRefOid"] != tested and wiki_only(top, cfg, tested, info["headRefOid"]):
+            print("NOTE: the pull request head moved only by wiki page commits (wiki.py prepare); merging %s" % info["headRefOid"][:12])
+            tested = info["headRefOid"]  # only wiki pages changed since the lane: no row's code moved
+        if tested and info.get("headRefOid") and info["headRefOid"] != tested:
+            print("REFUSED (HEAD_MOVED): the pull request head moved since the pr lane passed (lane on %s, PR head %s). Fix: "
+                  "goal.py pr %s, then merge.py %s" % (tested[:12], info["headRefOid"][:12], args.slug, args.slug), file=sys.stderr)
+            return 4
+        moved = base_moved(state, cfg, top)
+        if moved:
+            print(moved[1], file=sys.stderr)
+            return moved[0]
         autorelease.run_routines(top, cfg, state)
         autorelease.stage_notes(top, state, cfg)
         autorelease.stage_part(top, state)
-        done = run(["gh", "pr", "merge", state["pr"], "--merge"])
+        done = run(["gh", "pr", "merge", state["pr"], "--merge"] + (["--match-head-commit", tested] if tested else []))
         if done.returncode:
             autorelease.fail(state, "gh could not merge %s: %s" % (state["pr"], done.stderr.strip()[-300:]))
     at = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

@@ -82,7 +82,7 @@ def one_pass(top, common, args):
         if code:
             print(graph.localize(said.strip()))
     print(graph.localize(script("checkin.py", cwd=top)[1].rstrip()))
-    script("board_runs.py", "checkin", cwd=top)
+    script("board_page.py", "checkin", cwd=top)
     try:
         with open(board) as handle:
             busy = bool(json.load(handle).get("open"))

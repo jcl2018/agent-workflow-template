@@ -3,7 +3,9 @@
 
 usage: reap.py list VAR=VALUE                 print "<pid> <ppid> <argv>" for each own process with that exact env entry
        reap.py reap VAR=VALUE [--label NAME]   TERM, then KILL, up to 5 rounds; exit 1 with a REAP line if any is left
-       reap.py sweep [--dry-run] [--marker V]  stop processes whose TOY_REAP_ID names a test shell that is gone
+       reap.py sweep [--dry-run] [--marker V]  stop processes whose TOY_REAP_ID names a test shell that is gone;
+                                              without --marker only markers of this lane (TOY_REAP_LANE, else the
+                                              _LOOP_LANE_LABEL hash, else hand), never another lane's (issue 435)
        reap.py format LABEL MARKER PID:ARGV... print the REAP line for those survivors (used by the defect test)
 Any other command or option, or an option missing its value, prints this text and exits 2.
 
@@ -17,6 +19,7 @@ an ancestor carries the marker, so stand-ins should run a non-system bash or pyt
 import ctypes
 import ctypes.util
 import errno
+import hashlib
 import os
 import re
 import signal
@@ -242,10 +245,21 @@ def main(argv):
     usage()
 
 
+def own_lane():
+    """This lane's id, as reap.sh puts it in every marker: TOY_REAP_LANE, else the label's hash, else hand."""
+    label = os.environ.get("_LOOP_LANE_LABEL")
+    return os.environ.get("TOY_REAP_LANE") or (hashlib.sha1(label.encode()).hexdigest()[:8] if label else "hand")
+
+
+def ours(marker, only):
+    """A marker this sweep may judge: exactly --marker when given, else one ending in this lane's id."""
+    return marker == only if only is not None else marker.endswith("-L" + own_lane())
+
+
 def owner_gone(env, only):
     for item in env:
         m = re.match(r"TOY_REAP_ID=(toy-(\d+)-\S+)$", item)
-        if m and (only is None or m.group(1) == only):
+        if m and ours(m.group(1), only):
             try:
                 os.kill(int(m.group(2)), 0)
             except ProcessLookupError:
@@ -257,8 +271,8 @@ def owner_gone(env, only):
 
 def sweep(dry, only):
     procs = table()
-    hits, _ = find(lambda env: any(re.match(r"TOY_REAP_ID=toy-\d+-", e) and
-                                   (only is None or e == "TOY_REAP_ID=" + only) for e in env), procs)
+    hits, _ = find(lambda env: any(re.match(r"TOY_REAP_ID=toy-\d+-", e) and ours(e[len("TOY_REAP_ID="):], only)
+                                   for e in env), procs)
     verdict, hidden, targets = {}, [], []
     for pid, _s, _a, _q in hits:
         try:

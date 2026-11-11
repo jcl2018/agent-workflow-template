@@ -59,11 +59,14 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `auto_merge` | true | true lets the release step merge a goal's pull request and publish its release. |
 | `base` | main | The branch goals start from and pull requests target. |
 | `cadence` | 30 | Minutes between check-ins of the operation session, 1 to 60, or off. |
+| `ci_levels` | nightly | Target of the scheduled and tag regression runs: nightly (every row) or land. |
 | `criteria` | true | true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests). |
 | `criteria_max` | 15 | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. |
 | `digest_mail` | cloudflare | How the round's digest is mailed: cloudflare (Email Service), smtp, or off; the address and keys live only in Actions secrets. |
 | `digest_owner` | none | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). |
 | `full_auto` | true | true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait. |
+| `goal_lane_minutes` | 10 | Minutes a goal's regression lane may take before health warns and its LANE line says over. |
+| `goal_levels` | land | Row levels a goal lane plans from: land, or nightly for land and nightly rows. |
 | `govern_hook` | true | false turns off the govern-only hook (setup.py --govern-hook installs it): edits, commits and pushes refused in the operation session. |
 | `health_cron` | 47 */4 * * * | Five cron fields: when the health routine and its digest run in GitHub Actions; off turns it off. |
 | `judge_command` | ["claude", "-p", "--tools", ""] |  |

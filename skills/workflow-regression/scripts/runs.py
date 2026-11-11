@@ -1,8 +1,17 @@
-"""Read and write .loop/regression-runs.tsv: each row's last run as id, status, date, run.
+"""Read and write .loop/regression-runs.tsv: each row's last run as id, status, date, run, flaky.
 
 run is the GitHub Actions run URL when GITHUB_SERVER_URL, GITHUB_REPOSITORY and GITHUB_RUN_ID are all set, else
-empty, so same-day runs on two branches write identical lines and merge cleanly. A 3-column file from before the run
-column still reads, with run empty, and is rewritten with 4 columns on the next write. A row not rerun keeps its cells.
+empty, so same-day runs on two branches write identical lines and merge cleanly. flaky is empty, or the commit a row's
+result flipped on (tiers.py flaky_apply, REG-9); status stays the raw PASS or FAIL. The per-result evidence (commit, clean, host,
+python) lives in the branch's lane record in the git common dir, never here: a commit cell would differ on every
+branch and turn each same-day merge of this file into a conflict. Files from before the run or flaky column still
+read, with those cells empty. A line carries the 5th cell only while it is set, so the upgrade changes no other line
+and an unflagged line is the same as before. A row not rerun keeps its cells, and a result with no flaky field (a dirty
+tree) keeps the row's flaky cell.
+
+It also holds a local `regression.py run`'s GitHub issues (sync_issues): one issue per failing row, keyed by a marker in
+its body. Dry-run (WOULD lines) unless live; live, it creates, labels, reopens, comments on and closes issues with gh.
+The GitHub Actions run keeps its own copy of this logic inside regression.yml (actions.py).
 
 The time budget of an in-loop test run lives here too (budget, fit, execute): a run with --reuse (the loop's qa, ship
 and pull-request lanes) never goes past test_budget_minutes in .loop/config.json (default 15, floor 15). Rows run in
@@ -10,22 +19,25 @@ tier order (the rows a change affects first) while their estimated seconds fit, 
 stopped, and every row not run is left to the scheduled full suite and listed. A left row is recorded as LEFT, so a
 later lane on the same content doesn't rerun it.
 """
-
 import json
 import os
+import re
 import subprocess
 import sys
 import time
 
 import actions
+import lanes
 
-# No terminal, no waiting: a prompt from git or a row must fail, not block.
+# No terminal, no waiting: a prompt from gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 NAME = "regression-runs.tsv"
-HEADER = "# id\tstatus\tdate\trun\n"
+HEADER = "# id\tstatus\tdate\trun\tflaky\n"
+LABELS = ("regression", "defect")  # the tool's own label, and the defect label every failing row's issue carries
+MARK = "<!-- loop-regression %s -->"
 
 
 def path(root):
@@ -33,13 +45,13 @@ def path(root):
 
 
 def read(root):
-    """Return {id: [id, status, date, run]}; missing cells read as ""."""
+    """Return {id: [id, status, date, run, flaky]}; missing cells read as ""."""
     try:
         with open(path(root)) as handle:
             rows = [line.rstrip("\n").split("\t") for line in handle if line.strip() and line[0] != "#"]
     except OSError:
         return {}
-    return {cells[0]: (cells + [""] * 4)[:4] for cells in rows}
+    return {cells[0]: (cells + [""] * 5)[:5] for cells in rows}
 
 
 def where(sha=None):
@@ -49,14 +61,63 @@ def where(sha=None):
 
 
 def write(root, results, date, sha):
-    """Merge results ([{"id", "state"}]) into the file; nothing is written when results is empty."""
+    """Merge results ([{"id", "state", "flaky"?}]) into the file; nothing is written when results is empty."""
     if not results:
         return
     ran, run = read(root), where(sha)
     for item in results:
-        ran[item["id"]] = [item["id"], "PASS" if item["state"] == "PASS" else "FAIL", date, run]
+        flag = item["flaky"] if "flaky" in item else ran.get(item["id"], [""] * 5)[4]
+        ran[item["id"]] = [item["id"], "PASS" if item["state"] == "PASS" else "FAIL", date, run, flag[:12]]
     with open(path(root), "w") as handle:
-        handle.write(HEADER + "".join("\t".join(ran[key]) + "\n" for key in sorted(ran)))
+        handle.write(HEADER + "".join("\t".join(ran[key][:4 + bool(ran[key][4])]) + "\n" for key in sorted(ran)))
+
+
+def gh(*args):
+    return subprocess.run(["gh"] + list(args), capture_output=True, text=True)
+
+
+def sync_issues(results, live, day):
+    """One issue per failing row, keyed by a marker in its body."""
+    issues = []
+    if live:
+        gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
+        gh("label", "create", "defect", "--description", "A test that guards it is failing")
+        out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200",
+                 "--json", "number,state,body,comments,labels")
+        if out.returncode:
+            print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
+            return
+        issues = json.loads(out.stdout or "[]")
+    for item in results:
+        mark = MARK % item["id"]
+        hits = [issue for issue in issues if re.search(r"<!-- loop-regression %s(?: placed=\S*)? -->" % re.escape(item["id"]), issue.get("body", ""))]
+        hit = next((issue for issue in hits if issue.get("state") == "OPEN"), hits[0] if hits else None)
+        number = str(hit["number"]) if hit else ""
+        if item["state"] == "FAIL":
+            line = "Failing on %s." % day
+            body = "%s\nThe row `%s` fails.\n\n```\n%s\n```\n" % (mark, item["id"], item["tail"])
+            if not live:
+                print("WOULD open or update the issue for " + item["id"])
+            elif not hit:
+                gh("issue", "create", "--title", "Regression: " + item["id"], *("--label=" + n for n in LABELS), "--body", body)
+                print("OPENED issue for " + item["id"])
+            else:
+                if "defect" not in [x.get("name") for x in hit.get("labels") or []]:
+                    gh("issue", "edit", number, "--add-label", "defect")
+                if hit.get("state") != "OPEN":
+                    gh("issue", "reopen", number)
+                    print("REOPENED issue %s" % number)
+                said = [note.get("body", "") for note in hit.get("comments") or []]
+                if line not in said:
+                    gh("issue", "comment", number, "--body", line)
+                    print("UPDATED issue %s" % number)
+        elif item["state"] == "PASS" and not live:
+            print("WOULD close any open issue for " + item["id"])
+        elif item["state"] == "PASS":
+            for issue in hits:
+                if issue.get("state") == "OPEN":
+                    gh("issue", "close", str(issue["number"]), "--comment", "Passing again on %s." % day)
+                    print("CLOSED issue %s" % issue["number"])
 
 
 FLOOR, DEFAULT = 15, 15
@@ -104,22 +165,20 @@ def execute(root, picked, todo, est, limit, timeout, expected, reuse):
             continue
         cap = timeout if remaining is None else min(timeout, remaining)
         began = time.time()
-        try:
-            done = subprocess.run(by[key]["command"], shell=True, cwd=root, capture_output=True, text=True,
-                                  env=actions.row_env(), timeout=cap)
-            code, text = done.returncode, done.stdout + done.stderr
-        except subprocess.TimeoutExpired:
-            if cap < timeout:  # stopped by the budget, not by its own limit: it didn't fail, it wasn't finished
-                left.append(key)
-                continue
-            code, text = 124, "timed out after %s seconds" % timeout
+        code, text, pid, signal = lanes.run_row(by[key]["command"], root, actions.row_env(), cap)
+        if code == 124 and cap < timeout:  # stopped by the budget, not by its own limit: it didn't fail, it wasn't finished
+            left.append(key)
+            continue
         state = "PASS" if code == 0 else ("KNOWN" if key in expected else "FAIL")
         if code == 0 and key in expected:
             print("FIXED %s: remove it from the known list" % key)
         print("%s %s%s" % (state, key, " (%s)" % expected[key] if state == "KNOWN" else ""), flush=True)
+        if signal and state != "PASS":  # workflow-regression/references/commands.md
+            print("KILLED %s: signal %s (pid %d). Note: a signal stopped this row; see the lane log" % (key, signal, pid))
         if state == "FAIL" and reuse:
             print("\n".join("    " + line for line in text.rstrip().splitlines()[-20:]), file=sys.stderr)
-        results.append({"id": key, "state": state, "tail": text[-1500:], "seconds": round(time.time() - began, 1)})
+        results.append({"id": key, "state": state, "tail": text[-1500:], "seconds": round(time.time() - began, 1),
+                        "pid": pid, "rc": code, "signal": signal})
     if left:
         print("BUDGET %d min: ran %d of %d rows; LEFT %d to the scheduled full suite: %s" % (
             (limit or 0) // 60, len(results), len(results) + len(left), len(left), ", ".join(left[:20]) + (

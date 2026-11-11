@@ -90,6 +90,7 @@ def f_criteria_rows(root):
 def f_criteria_done(root):
     repo(root)
     write(root, ".loop/goals/old.md", "# Old\n\n## Done lines\n\nFrozen.\n\n1. Calc adds.\n\n## Design\n")
+    write(root, ".git/loop/runs/old.json", '{"status": "running"}')  # done lines count while the goal runs
 
 
 def f_defect_tests(root):

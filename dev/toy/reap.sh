@@ -13,7 +13,7 @@
 # INT exits 130, TERM 143, HUP 129, a closed pipe 141; any other status is kept. A signal sent only to the
 # shell is handled after its foreground child returns. A nested toy test reaps its own marker; one killed with
 # SIGKILL can't clean up, so its processes are left for:
-#   bash dev/toy/reap.sh --sweep-dead [--dry-run]   stop processes whose test shell is gone
+#   bash dev/toy/reap.sh --sweep-dead [--dry-run]   stop this lane's processes whose test shell is gone
 # Functions: toy_on_exit CMD, toy_list VAR VALUE (print matching processes), toy_reap VAR VALUE (stop them).
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   case "${1:-}" in
@@ -27,8 +27,11 @@ _toy_reap_py="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/reap.py"
 _toy_reap_label=$(basename "$0")
 _toy_reap_cbs=""
 _toy_reap_done=""
-TOY_REAP_ID="toy-$$-$(date +%s)-$RANDOM"
-export TOY_REAP_ID
+# The lane id (issue 435): 8 hex of the lane's _LOOP_LANE_LABEL, or "hand" outside a lane; nested tests inherit it.
+# A sweep only touches markers carrying its own lane id, so one lane never stops another lane's processes.
+[ -n "${TOY_REAP_LANE:-}" ] || TOY_REAP_LANE=$( [ -n "${_LOOP_LANE_LABEL:-}" ] && printf %s "$_LOOP_LANE_LABEL" | shasum | cut -c1-8 || echo hand)
+TOY_REAP_ID="toy-$$-$(date +%s)-$RANDOM-L$TOY_REAP_LANE"
+export TOY_REAP_ID TOY_REAP_LANE
 toy_on_exit() { _toy_reap_cbs="${_toy_reap_cbs}${1}
 "; }
 toy_list() { python3 "$_toy_reap_py" list "$1=$2"; }

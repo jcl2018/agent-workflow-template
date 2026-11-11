@@ -2,9 +2,9 @@
 # reads: skills/workflow-delivery/scripts/defect.py skills/workflow-delivery/scripts/flow.py
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/role.py
 # reads: skills/workflow-monitoring/scripts/board.py skills/workflow-monitoring/scripts/board_page.py
-# reads: skills/workflow-monitoring/scripts/board_runs.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-monitoring/scripts/board_status.py
 # reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
-# reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-setup/scripts/setup.py
 # Proves the roadmap graph with a made-up queue: parallel and chained goals, the marks, the total as the longest chain, the same
 # graph on the board, and the step label changing when a step starts. No model is called. usage: test-status-graph.sh [DIR]
 set -u
@@ -80,7 +80,7 @@ check "a running goal shows its step flow with the current step in brackets" 'gr
 echo "== the pure graph"
 python3 - "$M" <<'PY' && ok "no estimate gives at least, a cycle is cut, an empty queue is empty" || bad "pure graph"
 import sys
-sys.path.insert(0, sys.argv[1]); import status_graph as g
+sys.path.insert(0, sys.argv[1]); import board_page as g
 def node(slug, mark="queued", depends=(), left=60):
     return dict(slug=slug, mark=mark, depends=list(depends), stage=0, left=left)
 assert g.total([node("a", left=600), node("b", depends=["a"], left=None)]).startswith("at least 10m"), g.total([node("a", left=600), node("b", depends=["a"], left=None)])

@@ -3,7 +3,7 @@
 
 Imported by regression.py (`run ... --reuse`) and lanes_cli.py (`affected`, `deps`, `check`). The record lives in
 <git common dir>/loop/tests/<branch>-<sha8>.json: {schema, runner, worktree, command, at, commit,
-rows: {id: {status: PASS|FAIL|KNOWN, seconds, commit}}}. A row is reused only when it passed (or is a known failure)
+rows: {id: {status: PASS|FAIL|KNOWN, seconds, commit, clean, host, python, flaky}}} (tiers.py flaky_apply). A row is reused only when it passed (or is a known failure)
 on HEAD or an ancestor of HEAD and nothing it reads changed since; anything this file can't map reruns everything.
 A test script whose leading comment block has `# reads: <path>...` lines is mapped narrowly (declared entry points plus
 what they reach, no folder widening); a script without one keeps the wide mapping; LANES_WIDE=1 forces wide everywhere.
@@ -54,7 +54,7 @@ def git(root, *args):
 def runner():
     here = os.path.dirname(os.path.abspath(__file__))
     digest = hashlib.sha256()
-    for name in ("regression.py", "lanes.py", "narrow.py"):
+    for name in ("regression.py", "lanes.py", "narrow.py", "tiers.py"):
         with open(os.path.join(here, name), "rb") as handle:
             digest.update(handle.read())
     return digest.hexdigest()[:12]
@@ -87,21 +87,64 @@ def load(path, root):
     return data, ""
 
 
-def save(path, root, command, results, head, at, fresh):
-    """Merge the rows this run ran into the record, under a lock; a fresh (full) run first drops the old rows."""
+def save(path, root, command, results, head, at, fresh, base=None):
+    """Merge the rows this run ran into the record, under a lock; a fresh (full) run, or a goal tier run on a new
+    merge-base (base), first drops the old rows. base is kept as the record's merge_base (tiers.py)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path + ".lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         old, _ = load(path, root)
-        rows = {} if fresh or not old else old["rows"]
+        rows = {} if fresh or not old or (base and old.get("merge_base") != base) else old["rows"]
         for item in results:
-            rows[item["id"]] = {"status": item["state"], "seconds": item["seconds"], "commit": head}
+            rows[item["id"]] = {"status": item["state"], "seconds": item["seconds"], "commit": head,
+                                "pid": item.get("pid"), "rc": item.get("rc"), "signal": item.get("signal")}
+            rows[item["id"]].update({k: item[k] for k in ("clean", "host", "python", "flaky") if k in item})  # tiers.py flaky_apply
         data = {"schema": SCHEMA, "runner": runner(), "worktree": root, "command": command, "at": at,
-                "commit": head, "rows": rows, "total_seconds": round(sum(r.get("seconds") or 0 for r in rows.values()), 1)}
+                "commit": head, "merge_base": base, "rows": rows, "total_seconds": round(sum(r.get("seconds") or 0 for r in rows.values()), 1)}
         temp = "%s.%d.tmp" % (path, os.getpid())
         with open(temp, "w") as handle:
             json.dump(data, handle, indent=1, sort_keys=True)
         os.replace(temp, path)
+
+
+def descendants(root_pid):
+    """Every live descendant pid of root_pid (ps), children first found, so a timeout can kill a row's whole tree."""
+    out = subprocess.run(["ps", "-A", "-o", "pid=,ppid="], capture_output=True, text=True).stdout
+    kids = {}
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            kids.setdefault(int(parts[1]), []).append(int(parts[0]))
+    found, todo = [], [root_pid]
+    while todo:
+        for child in kids.get(todo.pop(), []):
+            found.append(child)
+            todo.append(child)
+    return found
+
+
+def run_row(command, cwd, env, timeout):
+    """(code, output, pid, signal) for one row's shell (issue 435): signal names what stopped it, from a negative
+    status or a shell's 128+N exit status; None when it exited on its own. A timeout kills it and returns 124."""
+    import signal as sig
+    import tempfile
+    with tempfile.TemporaryFile("w+", errors="replace") as log:  # a file, not a pipe: a child left running can't hold it
+        proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
+        try:
+            code, tail = proc.wait(timeout=timeout), ""
+        except subprocess.TimeoutExpired:  # kill the row's whole tree, so nothing it started keeps ports or writes on
+            for pid in [proc.pid] + descendants(proc.pid):
+                try:
+                    os.kill(pid, sig.SIGKILL)
+                except OSError:
+                    pass
+            proc.wait()
+            code, tail = 124, "timed out after %s seconds" % timeout
+        log.seek(0)
+        out = log.read() + tail
+    num = -code if code < 0 else (code - 128 if 128 < code < 160 else 0)
+    names = {s.value: s.name for s in sig.Signals}
+    return code, out or "", proc.pid, names.get(num)
 
 
 def dirty(root):
@@ -141,6 +184,8 @@ def references(root, text, folder, wide=True):
     for raw in PATH.findall(text):
         raw = raw.rstrip(".")
         for cand in {raw, os.path.normpath(os.path.join(folder, raw))}:
+            if cand.split("/")[0] == ".git":  # git's own store: in a full clone .git/index names every file (issue 178)
+                continue
             full = os.path.join(root, cand)
             if os.path.isdir(full):
                 cand = cand.rstrip("/") + "/"
@@ -307,7 +352,7 @@ def plan(root, selected, record, current_tsv, current_known):
         if prior and prior["commit"] not in kin:
             kin[prior["commit"]] = ancestor(root, prior["commit"])
             odd |= set(deleted(root, prior["commit"]) if kin[prior["commit"]] else [])
-        if always or not prior or not kin[prior["commit"]]:
+        if always or not prior or prior.get("flaky") or not kin[prior["commit"]]:  # a flaky row is never reused
             (rest if always and prior else hot).append(rid)  # a new row, or one with no usable record, is the goal's own: first
             continue
         if prior["commit"] not in since:
