@@ -80,10 +80,10 @@ PY
   out=$(FAKE_SKILL_OUT='DEPTH: condensed\nSTEP: done' step full3 review)
   check "under review_depth full a small goal with no override is held to full" 'grep -q "ran condensed while review_depth is full" <<<"$out"'
   git switch -q loop/full2; w $F full2 qa --wait 60 > "$d/qa1" 2>&1; step full2 qa >/dev/null
-  check "a condensed goal still runs the full land lane in qa" 'grep -qi "lane" "$d/qa1" && [ "$(field full2 flow.qa)" != None ] && python3 -c "import sys; sys.path.insert(0, \"$S\"); import role; assert role.lane_argv()[-3:] == [\"run\", \"land\", \"--reuse\"]"'
+  check "a condensed goal still runs the full land lane in qa" 'grep -qi "lane" "$d/qa1" && [ "$(field full2 flow.qa)" != None ] && python3 -c "import sys; sys.path.insert(0, \"$S\"); import role; assert role.lane_argv()[2:5] == [\"run\", \"land\", \"--reuse\"]"'
   python3 - "$S" <<'PY' && ok "the lane command never depends on depth" || bad "lane and depth"
 import sys; sys.path.insert(0, sys.argv[1]); import role
-assert role.lane_argv()[-3:] == ["run", "land", "--reuse"]
+assert role.lane_argv()[2:5] == ["run", "land", "--reuse"]  # the lane never depends on depth (main adds --tier goal after it)
 PY
   $goal touches small1 --add src/web --why "needs the web side" > "$d/tw" 2>&1
   check "widening a small goal's touches to a second area re-sizes it large" 'grep -q "^RESIZED small1: large" "$d/tw" && grep -q "\"small\": false" "$R/small1.extra.json"'
