@@ -1,7 +1,7 @@
 # Worker sessions can push only their own goal branch, never main or another goal's branch, so only the operation session's merge step publishes (owner, 2026-11-10: "Approve 1-9")
 
 - Slug: worker-push-guard
-- Touches: skills/workflow-delivery, skills/workflow-setup, dev/toy, .loop/regression.tsv, docs/wiki/Delivery.md
+- Touches: skills/workflow-delivery, skills/workflow-setup, dev/toy, .loop/regression.tsv, docs/wiki/Delivery.md, docs/wiki/Tests.md
 
 ## Done lines
 
