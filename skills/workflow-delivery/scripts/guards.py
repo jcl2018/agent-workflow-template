@@ -19,7 +19,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fit  # noqa: E402
 import private  # noqa: E402
-import budget  # noqa: E402
+import lanekit  # noqa: E402
 import role  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -68,7 +68,7 @@ def check_record(state, step, text, cfg, result):
         skipped.append("%s (v%s) not applied: %s started before it" % (rule, RULES[rule], step))
         return False
 
-    if result == "done" and budget.reached(state, step):  # stopped at its step budget: it finishes with what it has done
+    if result == "done" and lanekit.reached(state, step):  # stopped at its step budget: it finishes with what it has done
         state.setdefault("depth", {})[step] = "condensed"
         return " (stopped at its step budget)", None, None, skipped
     common = role.git("rev-parse", "--git-common-dir").stdout.strip()

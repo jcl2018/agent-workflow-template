@@ -251,7 +251,7 @@ def lane(runs, slug, name, spec, cfg, wait=90):
             return "fail", "LANE_RECORDER: the flow file's test_record command %s isn't on this machine. Fix: install it " \
                 "or remove \"test_record\" from the flow file; %s." % (prefix[0], NOTHING), []
         seconds, source = (float(spec["limit"]), "flow file limit") if spec.get("limit") else lanekit.time_limit(top)
-        tests = lanekit.budget.minutes(cfg, "test_budget_minutes") * 60  # rows stop at it; the lane limit is a backstop
+        tests = lanekit.minutes(cfg, "test_budget_minutes") * 60  # rows stop at it; the lane limit is a backstop
         if tests + 300 < seconds:
             seconds, source = tests + 300, "test_budget_minutes"
         try:
