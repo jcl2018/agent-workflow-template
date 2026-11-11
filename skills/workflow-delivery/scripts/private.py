@@ -38,6 +38,8 @@ def patterns():
     """(state, [(list line, compiled)], error): state is none, off, on or broken."""
     path, shown = source()
     if not os.path.exists(path):
+        if os.environ.get("LOOP_PRIVATE_NAMES"):  # a list named on purpose that isn't there is a typo, not "no list"
+            return "broken", [], "%s names a file that doesn't exist" % shown
         return "none", [], ""
     try:
         with open(path, encoding="utf-8") as handle:

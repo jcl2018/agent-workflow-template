@@ -122,7 +122,8 @@ fit = load_fit()
 
 
 def mega(n):
-    return "%.1fM" % (n / 1e6)
+    """3.0M, 0.4M, 25k or 500: a small budget never reads as 0.0M."""
+    return "%.1fM" % (n / 1e6) if n >= 100000 else "%dk" % round(n / 1000) if n >= 1000 else "%d" % n
 
 
 def spent(run, at):

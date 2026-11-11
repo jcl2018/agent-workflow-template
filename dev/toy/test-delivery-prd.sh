@@ -187,6 +187,7 @@ PY
   unset LOOP_PRIVATE_NAMES; prgoal priv6; w $goal pr priv6 >/dev/null 2>&1
   check "with no list the pull request says nothing was checked, naming the list unexpanded" 'grep -q "Private-name scan: no list at ~/.workflow-loop/private-names, nothing was checked" "$FAKE_GH_DIR/calls.log" && ! grep -q "$HOME" "$FAKE_GH_DIR/calls.log"'
   mkdir -p "$HOME/.workflow-loop"; printf '# nothing private here\n' > "$HOME/.workflow-loop/private-names"
+  check "a list named by LOOP_PRIVATE_NAMES that doesn't exist is broken, never silently no list" 'LOOP_PRIVATE_NAMES="$d/no-such-list" python3 $S/private.py check | grep -q "broken: \$LOOP_PRIVATE_NAMES names a file that doesn.t exist (PRIVATE_LIST)"'
   check "a list holding only comments is off on purpose" 'python3 $S/private.py check | grep -q "off on purpose"'
   rm -rf "$HOME/.workflow-loop"
 fi

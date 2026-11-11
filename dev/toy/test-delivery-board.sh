@@ -74,6 +74,7 @@ if want budget; then
   edit b6 "s.update(status='done', step='pr', pid=None, log=['2026-11-10T09:00:00Z new goal', '2026-11-10T09:45:00Z idea done', '2026-11-10T10:15:00Z plan done'], tokens={'idea': 1000000, 'plan': 1500000}); s.pop('budget', None); s.pop('pr', None)"
   board
   check "the board shows budget: with minutes and tokens for a running goal" 'block b1 | grep -q "budget: 35m of 120m, 0.4M of 3.0M tokens" && ! block b1 | grep -q OVER'
+  python3 -c "import sys; sys.path.insert(0, '$here/skills/workflow-monitoring/scripts'); import board_lag as b; assert (b.mega(3000000), b.mega(400000), b.mega(25000), b.mega(500)) == ('3.0M', '0.4M', '25k', '500')" && ok "a small token budget reads 25k or 500 on the board, never 0.0M" || bad "small budgets"
   check "a goal past its time and token budget is flagged OVER time and OVER tokens" 'block b2 | grep -q "budget: 35m of 30m, 0.4M of 0.3M tokens, OVER time, OVER tokens"'
   check "a goal carrying a zero budget shows budget: none set even when the repo now sets one" 'block b3 | grep -q "budget: none set"'
   check "only the time half shows when only a time budget is set" 'block b4 | grep -q "budget: 35m of 90m " && ! block b4 | grep -q "tokens"'

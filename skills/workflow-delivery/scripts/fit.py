@@ -348,8 +348,12 @@ if __name__ == "__main__":
     import sys
     if len(sys.argv) == 3 and sys.argv[1] == "owed":
         top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
-        with open(os.path.join(top, ".loop", "goals", sys.argv[2] + ".md")) as handle:
-            left = owed(top, handle.read())
+        try:
+            with open(os.path.join(top, ".loop", "goals", sys.argv[2] + ".md")) as handle:
+                left = owed(top, handle.read())
+        except OSError:
+            print("REFUSED: no goal file for %s on this branch. Fix: run it from the goal's worktree (NO_GOAL_FILE)" % sys.argv[2])
+            sys.exit(2)
         print("\n".join("OWED %s: no defect test seen failing and passing" % ref for ref in left) or "NONE OWED")
         sys.exit(1 if left else 0)
     print("usage: fit.py owed SLUG   the issues and findings a goal fixes that still lack a defect test")
