@@ -2,7 +2,7 @@
 # reads: skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/goal.py
 # reads: skills/workflow-delivery/scripts/role.py skills/workflow-regression/scripts/regression.py
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-monitoring/scripts/monitor.py
-# reads: skills/workflow-health/scripts/lean.py skills/workflow-regression/scripts/runs.py
+# reads: skills/workflow-health/scripts/lean.py skills/workflow-regression/scripts/runs.py skills/
 # Proves the time budgets: both settings refuse a value under 15 minutes, an in-loop test run stops at its budget and
 # lists the rows it left (recorded, so a later lane doesn't rerun them), rows fit the budget by their estimated seconds,
 # a review or ship step at its limit finishes with what it has done and the goal goes on, a session-run step is given its
