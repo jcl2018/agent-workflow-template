@@ -53,16 +53,18 @@ def wiki_only(top, cfg, old, new):
     in the base branch's wiki folder (wiki_dir from origin/<base>'s config: the branch can't widen it), no SKILL.md."""
     if run(["git", "merge-base", "--is-ancestor", old, new], cwd=top).returncode:
         return False
-    shown = run(["git", "show", "origin/%s:.loop/config.json" % cfg.get("base", "main")], cwd=top)
+    head = run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], cwd=top).stdout.strip()  # not the branch's say
+    shown = run(["git", "show", "%s:.loop/config.json" % (head or "origin/main")], cwd=top)
     try:
         folder = (json.loads(shown.stdout).get("wiki_dir") if shown.returncode == 0 else None) or "docs/wiki"
     except (ValueError, AttributeError):
         folder = "docs/wiki"
-    done = run(["git", "diff", "--name-status", "--no-renames", old, new], cwd=top)  # a move into the wiki shows its source
-    rows = [line.split("\t") for line in done.stdout.split("\n") if line]
+    done = run(["git", "diff", "--raw", "--no-renames", old, new], cwd=top)  # a move into the wiki shows its source
+    rows = [(line.split("\t")[0].split(), line.split("\t")[1:]) for line in done.stdout.split("\n") if line]
     return not done.returncode and bool(rows) and all(
-        len(r) == 2 and r[0] in ("A", "M") and r[1].startswith(str(folder).rstrip("/") + "/") and r[1].endswith(".md")
-        and os.path.basename(r[1]) != "SKILL.md" for r in rows)
+        len(m) == 5 and len(p) == 1 and m[4] in ("A", "M") and m[1] != "120000"  # a symlink is no page
+        and p[0].startswith(str(folder).rstrip("/") + "/") and p[0].endswith(".md") and os.path.basename(p[0]) != "SKILL.md"
+        for m, p in rows)
 
 
 def base_moved(state, cfg, top):

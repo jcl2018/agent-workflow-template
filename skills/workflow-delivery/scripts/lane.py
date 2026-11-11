@@ -298,7 +298,7 @@ def lane_status(runs, slug, name):
         if os.path.exists(held["rc"]) or os.path.exists(held["rc"] + ".claimed"):
             status, line, _ = finalize(base, held, name)
             return status, line
-        if time.time() - held["started"] > 30:  # it ran and died with no exit status: say so, never NO LANE
+        if time.time() - held["started"] > 30 and not alive(held["pid"]):  # ran and died with no exit status: never NO LANE
             stop(base, held)
             return "fail", died(base + ".txt")
     done = read_json(base + ".last") or {}

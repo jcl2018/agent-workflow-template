@@ -68,6 +68,10 @@ git reset -q --hard "$wiki"; printf 'x\n' > docs/wiki/SKILL.md; git add docs/wik
 out=$(FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_HEAD=$skill python3 "$M/merge.py" g 2>&1); rc=$?
 check "a SKILL.md, even in the wiki folder, is no wiki-only move: HEAD_MOVED (exit 4)" '[ $rc = 4 ]'
 git reset -q --hard "$wiki"
+ln -s ../../src/a.txt docs/wiki/link.md; git add docs/wiki/link.md; git commit -qm "symlink page"; link=$(git rev-parse HEAD)
+out=$(FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_HEAD=$link python3 "$M/merge.py" g 2>&1); rc=$?
+check "a symlink named like a wiki page is no wiki-only move: HEAD_MOVED (exit 4)" '[ $rc = 4 ]'
+git reset -q --hard "$wiki"
 echo x > src/c.txt; git add src/c.txt; git commit -qm code; code=$(git rev-parse HEAD)
 out=$(FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_HEAD=$code python3 "$M/merge.py" g 2>&1); rc=$?
 check "a head moved by any other commit still refuses HEAD_MOVED (exit 4)" '[ $rc = 4 ] && grep -q "^REFUSED (HEAD_MOVED)" <<<"$out"'

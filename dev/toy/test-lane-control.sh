@@ -303,4 +303,21 @@ $role lane-wait dead qa --timeout 20 >"$T/de.out" 2>&1; drc=$?
 check "an orphaned claim (its finisher killed) is finished by the next caller, never RUNNING forever" '[ $orc = 0 ] && grep -q "^LANE qa" "$T/or.out"'
 check "a lane that died with no exit status ends lane-wait with LANE_DIED (exit 1), never NO LANE" '[ $drc = 1 ] && grep -q "^LANE_DIED" "$T/de.out"'
 
+python3 - "$RUNS" "$(git rev-parse HEAD)" <<'PY'
+import json, os, sys, time
+runs, head = sys.argv[1:]
+base = runs + "/orphp.qa-lane"
+json.dump({"head": head, "attempt": "o-2", "started": time.time() - 300, "limit": 60, "rc": base + ".rc", "pid": 999999, "markers": 1, "pool": "/nonexistent"}, open(base + ".job", "w"))
+open(base + ".txt", "w").write("AFFECTED 1 of 1 rows (r1): x\nPASS r1\nRESULT 1 passed\n")
+open(base + ".rc.claimed", "w").write("0"); os.utime(base + ".rc.claimed", (time.time() - 300,) * 2)
+PY
+out=$(python3 -c "import json,sys;sys.path.insert(0,sys.argv[1]);import lane;print(lane.lane(sys.argv[2],'orphp','qa',{},json.load(open('.loop/config.json')),1)[0])" "$S" "$RUNS" 2>&1)
+# Value: protects=a polling caller also finishes an orphaned claim (review pass 3); fails_when=lane() answers RUNNING forever to an old claim; why_new=claims are new; seam=none; no_claim=none beyond protects
+check "an orphaned claim is also finished by a polling lane() call: a terminal result, never running" '[ "$out" = pass ]'
+printf '{"attempt": "x", "head": "%s", "state": "pass", "line": "LANE qa REUSED 1/1 in 1s"}' "$(git rev-parse HEAD)" > "$RUNS/dp.qa-lane.last"; echo scratch > "$T/../dirty-$$.txt"; echo more >> README.md 2>/dev/null || echo more > README.md
+out=$(python3 -c "import json,sys;sys.path.insert(0,sys.argv[1]);import lane;print(lane.lane(sys.argv[2],'dp','qa',{},json.load(open('.loop/config.json')),1)[:2])" "$S" "$RUNS" 2>&1)
+# Value: protects=a stored pass is not reused on a dirty tree, so the dirty-tree refusal still holds (review pass 3); fails_when=lane() returns the stored pass with edits in the tree; why_new=pass reuse is new; seam=none; no_claim=none beyond protects
+check "a stored pass is not reused when the tree is dirty: the dirty-tree refusal comes first" 'grep -q "^(.fail.,.*LANE_DIRTY" <<<"$out"'
+git checkout -q -- README.md 2>/dev/null; git clean -fdq README.md 2>/dev/null; rm -f "$T/../dirty-$$.txt"
+
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

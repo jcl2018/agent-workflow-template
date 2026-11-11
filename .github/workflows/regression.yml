@@ -316,7 +316,7 @@ jobs:
               for row in tsv(args.root, "regression.tsv"):
                   row = (row + [""] * 8)[:8]
                   found = re.match(r"^https?://\S+/issues/(\d+)$", row[7])
-                  found = found if not repo or re.match(r"^https?://github\.com/%s/issues/" % re.escape(repo.group(1)), row[7]) else None
+                  found = found if repo and re.match(r"^https?://github\.com/%s/issues/" % re.escape(repo.group(1)), row[7], re.I) else None
                   before = (old.get(row[0], []) + [""] * 8)[4]
                   if row[6] == "defect" and found and SEEN.match(row[4]) and row[4] != before and ran.get(row[0]) == ["PASS"]:
                       print("Fixes #%s: test %s, seen failing %s, passing" % (found.group(1), row[0], row[4]))
@@ -798,7 +798,7 @@ jobs:
               for row in tsv(args.root, "regression.tsv"):
                   row = (row + [""] * 8)[:8]
                   found = re.match(r"^https?://\S+/issues/(\d+)$", row[7])
-                  found = found if not repo or re.match(r"^https?://github\.com/%s/issues/" % re.escape(repo.group(1)), row[7]) else None
+                  found = found if repo and re.match(r"^https?://github\.com/%s/issues/" % re.escape(repo.group(1)), row[7], re.I) else None
                   before = (old.get(row[0], []) + [""] * 8)[4]
                   if row[6] == "defect" and found and SEEN.match(row[4]) and row[4] != before and ran.get(row[0]) == ["PASS"]:
                       print("Fixes #%s: test %s, seen failing %s, passing" % (found.group(1), row[0], row[4]))

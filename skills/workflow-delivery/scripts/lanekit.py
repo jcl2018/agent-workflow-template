@@ -300,7 +300,8 @@ def record(state, base):
                                        "--"] + changed, cwd=top, capture_output=True, text=True, stdin=subprocess.DEVNULL,
                                       timeout=60)
                 if done.returncode:
-                    print("NOTE: the bookkeeping commit failed: %s" % ((done.stderr or done.stdout).strip().splitlines() or ["?"])[-1])
+                    print("NOTE: the bookkeeping commit failed: %s; those files were put back (a new file stays, untracked), so "
+                          "the next pr run derives them again" % ((done.stderr or done.stdout).strip().splitlines() or ["?"])[-1])
                     undo(top, changed)
         except subprocess.TimeoutExpired as error:  # never crash pr after its lane passed
             print("NOTE: the bookkeeping step timed out (%s); nothing more committed" % " ".join(error.cmd[:3]))
