@@ -82,6 +82,10 @@ defect-owed-branch-proved	PASS	2026-11-10
 defect-wording	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 dependencies-on-map	PASS	2026-11-09	
 dependency-held	PASS	2026-11-09	
+deploy-doc14-reviewed	PASS	2026-11-10	
+deploy-not-locked	PASS	2026-11-10	
+deploy-section-optional	PASS	2026-11-10	
+deploy-table-refused	PASS	2026-11-10	
 deps-graph-94	PASS	2026-11-10	
 depth-auto-approve-gate	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 depth-base-branch	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -271,6 +275,8 @@ preview-writes-nothing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 problem-plural	PASS	2026-11-10	
 publish-refused-stale	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 publish-restore	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+pull-ff-only-passes	PASS	2026-11-10	
+pull-plain-blocked	PASS	2026-11-10	
 record-in-session	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 refuse-replace	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 refused-unmet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a

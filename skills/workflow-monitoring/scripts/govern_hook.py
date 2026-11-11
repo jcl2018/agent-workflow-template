@@ -10,7 +10,7 @@ writes it, the last claim wins and says whom it replaced) or by the reply hook's
 `operate.py run`. A session whose folder is a goal worktree is a worker and is never checked, nor is any other repo.
 What it blocks there: Edit, Write and NotebookEdit; and each Bash segment (split on && || ; | and new lines, with
 `env X=Y`, `bash -c` and `sh -c` bodies read once more) that runs git, after any -C, -c, --git-dir or --work-tree
-options, with commit, push, merge, rebase, reset, cherry-pick, revert or am. Each segment is judged alone, so
+options, with commit, push, merge, rebase, reset, cherry-pick, revert, am or pull (a `pull --ff-only` passes, issue 495). Each segment is judged alone, so
 `merge.py X && git push` is blocked. The merge and post-merge steps (merge.py, release.py, autorelease.py, wiki.py,
 pool.py return, worker.py cleanup) run their own git inside their own process and pass. It guards the session's own
 tool use; command substitution and shell writes such as `sed -i` are outside it.
@@ -53,8 +53,17 @@ def strip(words):
     return words[i:]
 
 
+def safe_pull(args):
+    """`git pull --ff-only [-q|-v] [remote [branch ...]]` and nothing else: an allowlist, since git takes the last of
+    --ff/--ff-only and a `+src:dst` refspec or -f can force; anything else is refused."""
+    names = [a for a in args if not a.startswith("-")]
+    return ("--ff-only" in args and all(a in ("--ff-only", "-q", "--quiet", "-v", "--verbose") for a in args if a.startswith("-"))
+            and all(re.match(r"^[A-Za-z0-9._/-]+$", a) for a in names))
+
+
 def git_write(words):
     """The history-writing git subcommand in one segment's words, or ''."""
+    configured = any(w.startswith("GIT_CONFIG") for w in words)  # an env config override (a forced fetch refspec)
     words, i = strip(words), 0
     if i < len(words) and os.path.basename(words[i]) in ("bash", "sh", "zsh") and i + 2 < len(words) and words[i + 1] == "-c":
         return verdict(words[i + 2], nested=True)
@@ -70,6 +79,9 @@ def git_write(words):
         elif word.startswith("-"):
             i += 1
         else:
+            plain = all(w == "-C" or words[n - 1] == "-C" for n, w in enumerate(words[1:i], 1))  # only -C <dir> before pull
+            if word == "pull" and plain and not configured and safe_pull(words[i + 1:]):  # no -c, --config-env or GIT_CONFIG_*
+                return ""  # issue 495: a fast-forward-only pull can't rewrite history
             return word if word in WRITES else ""
     return ""
 

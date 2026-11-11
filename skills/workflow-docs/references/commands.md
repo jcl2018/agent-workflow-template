@@ -59,8 +59,9 @@ no later commit to the page has it in its history. Merge commits don't count, so
 after a merge. Only a commit that changes the page clears `STALE`.
 
 With `"criteria": true` in the config, every feature page is a short PRD (`references/template.md` holds the rules and
-an example page): the Review line, then Problem, an optional Usage, Requirements, Non-goals, Success metrics and Tests,
-in that order and nothing else. Requirements are the owner's lines (`- DEL-1: **Unreviewed** text`, up to
+an example page): the Review line, then Problem, an optional Usage, Requirements, Non-goals, Success metrics, an
+optional Deployments (DOC-14: a Page table and/or a Delivery table for what the feature ships) and Tests, in that order
+and nothing else. Requirements are the owner's lines (`- DEL-1: **Unreviewed** text`, up to
 `criteria_max`, default 10); tests are for the machine: a regression row linked to one requirement by its goal column,
 described as one `Given ..., when ..., then ...` scenario, rendered under its requirement with its last result.
 

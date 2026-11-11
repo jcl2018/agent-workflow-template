@@ -90,7 +90,7 @@ def render(args):
         with open(os.path.join(root, rel)) as handle:
             text = handle.read()
         parts = criteria.sections(text)
-        if [n for n, _ in parts if n != criteria.rules()["usage"]] != criteria.rules()["sections"]:
+        if [n for n, _ in parts if n not in (criteria.rules()["usage"], criteria.rules()["deploy"])] != criteria.rules()["sections"]:
             continue
         ids = [(m.group(1), m.group(4)) for _, m in criteria.criteria_of(dict(parts)[criteria.rules()["sections"][1]]) if m]
         head, _, _ = text.partition("\n## Tests")

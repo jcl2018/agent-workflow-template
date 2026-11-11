@@ -153,7 +153,7 @@ def review_text(text, day, page):
     """(new text, None) with the PRD Reviewed on day and its fingerprints, or (text, why) when it can't be reviewed."""
     rule = criteria.rules()
     parts = criteria.sections(text)
-    have = [name for name, _ in parts if name != rule["usage"]]
+    have = [name for name, _ in parts if name not in (rule["usage"], rule["deploy"])]
     if have != rule["sections"]:
         return text, "its sections are %s, not a PRD. Fix: run prd.py convert --write (workflow-docs) first" % (", ".join(have) or "none")
     line, why = review_of(text, rule)
@@ -187,7 +187,7 @@ def group(requirements):
 def convert_text(text, rule):
     """(outcome, new text): outcome is skipped, converted, completed, or 'refused: why'."""
     parts = criteria.sections(text)
-    have = [name for name, _ in parts if name != rule["usage"]]
+    have = [name for name, _ in parts if name not in (rule["usage"], rule["deploy"])]
     first, second, third, fourth = rule["sections"][:4]
     shapes = ([first, "Summary"], [second, "Criteria"], [third, None], [fourth, None], ["Tests"])
     at, plan = 0, []
@@ -213,7 +213,7 @@ def convert_text(text, rule):
             raw = "## " + first
         elif not fenced and raw.strip() == "## Criteria":
             raw = "## " + second
-        elif not fenced and raw.strip() in ("## " + fourth, "## Tests"):
+        elif not fenced and raw.strip() in ("## " + fourth, "## " + rule["deploy"], "## Tests"):  # Deployments stays last
             for name, there in ((third, plan[2]), (fourth, plan[3])):
                 if not there and "## " + name not in out:
                     out += ["## " + name, "", "- " + PLACEHOLDER, ""]
