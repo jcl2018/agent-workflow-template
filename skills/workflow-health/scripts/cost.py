@@ -155,10 +155,11 @@ def read(path):
 def lane_rows(runs, lane_limit):
     rows = []
     for path in sorted(glob.glob(os.path.join(runs, "*-lane.last"))):
-        slug, name = re.match(r"^(.+)\.([a-z]+)-lane\.last$", os.path.basename(path)).groups()
-        state, last = read(os.path.join(runs, slug + ".json")), read(path)
-        if not isinstance(state, dict) or state.get("status") in (None, "done", "failed", "retired", "stopped"):
-            continue
+        found = re.match(r"^(.+)\.([a-z]+)-lane\.last$", os.path.basename(path))
+        state, last = read(os.path.join(runs, found.group(1) + ".json")) if found else {}, read(path)
+        if not isinstance(state, dict) or not isinstance(last, dict) or state.get("status") in (None, "done", "failed", "retired", "stopped"):
+            continue  # a stray file, or no goal still being built
+        slug, name = found.groups()
         took = re.search(r"^LANE \S+ (\S+) \S+ in (\d+)s", str(last.get("line", "")), re.M)
         if took and took.group(1) != "FULL" and int(took.group(2)) > lane_limit * 60:
             rows.append(timing_row("WARN", "goal-lane", "%s %s took %d min (limit %d, goal_lane_minutes)" % (

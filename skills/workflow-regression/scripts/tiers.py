@@ -37,6 +37,11 @@ def kinds(rows, kind):
     return rows if not kind else [row for row in rows if row["category"] == KINDS[kind]]
 
 
+def target(root, args):
+    """S23: a goal lane plans from goal_levels: land (default), or nightly for land and nightly rows."""
+    return "nightly" if args.tier and args.target == "land" and config(root).get("goal_levels") == "nightly" else args.target
+
+
 def config(root):
     try:
         data = json.load(open(os.path.join(root, ".loop", "config.json")))
@@ -238,8 +243,8 @@ def flaky_apply(record, results, head, clean):
             continue
         item["flaky"] = compare(rows.get(item["id"]), item["state"], head, clean)
         if item["flaky"] == head:
-            now = item["state"] == "PASS"
-            lines.append("FLAKY %s: %s then %s on %s (same clean tree; runner %s, python %s). Note: the result counts as %s; "
-                         "the row is never reused while flaky" % (item["id"], word(not now), word(now), head[:12], host,
-                                                                 python, word(now)))
+            now, was = item["state"] == "PASS", (rows.get(item["id"]) or {}).get("status") == "PASS"
+            seen = "%s then %s" % (word(was), word(now)) if was != now else "%s again, still flaky" % word(now)
+            lines.append("FLAKY %s: %s on %s (same clean tree; runner %s, python %s). Note: the result counts as %s; "
+                         "the row is never reused while flaky" % (item["id"], seen, head[:12], host, python, word(now)))
     return lines

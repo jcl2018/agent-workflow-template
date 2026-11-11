@@ -41,7 +41,7 @@ grep -qxF "PASS f" <<<"$out" && [ "$rc" = 0 ] && grep -q "^FLAKY f: failed then 
 #   state; seam=none; no_claim=the wiki Tests tables (criteria.py renders tests.py's cells)
 go pass
 health=$(cd "$here/skills/workflow-health/scripts" && python3 -c "import sys, health; print('\n'.join(health.tests_block(sys.argv[1])))" "$r/repo")
-[ "$rc" = 0 ] && grep -q "^FLAKY f: failed then passed" <<<"$out" && [ "$(flag)" = "$(head12)" ] && [ "$(listed)" = 1 ] \
+[ "$rc" = 0 ] && grep -q "^FLAKY f: passed again, still flaky" <<<"$out" && [ "$(flag)" = "$(head12)" ] && [ "$(listed)" = 1 ] \
   && grep -q "PASS [0-9-]* FLAKY" <<<"$health" && grep -q '"flaky": "'"$(git rev-parse HEAD)" "$(record)" \
   && ok "a third run's PASS stays flaky: in regression-runs.tsv, tests.py list, health's TESTS block and the lane record" \
   || bad "sticky: rc=$rc flag=$(flag) $(listed) $health"
@@ -59,7 +59,7 @@ next two; go pass
   && ok "a clean pass on a later commit clears the flag" || bad "not cleared: flag=$(flag) $out"
 go fail; first=$rc; firstout=$out; go fail
 [ "$first" = 1 ] && [ "$rc" = 1 ] && grep -q "^FLAKY f: passed then failed on $(head12) .*Note: the result counts as failed" <<<"$firstout" \
-  && grep -qxF "FAIL f" <<<"$out" && grep -q "^FLAKY f: passed then failed" <<<"$out" && [ "$(flag)" = "$(head12)" ] \
+  && grep -qxF "FAIL f" <<<"$out" && grep -q "^FLAKY f: failed again, still flaky" <<<"$out" && [ "$(flag)" = "$(head12)" ] \
   && ok "PASS, FAIL, FAIL stays flaky, keeps FAIL and exits 1" || bad "pass fail fail: $first/$rc $out"
 }
 

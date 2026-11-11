@@ -121,4 +121,18 @@ out=$(cat "$d/t4.out" "$d/t4.err")
 # Value: protects=a FULL goal lane runs on full_suite_minutes and its timeout is FULL_TIMEOUT, not retried (DX-16); fails_when=the lane keeps the flow file limit or prints the retryable LANE_TIMEOUT; why_new=FULL goal lanes are new; seam=none; no_claim=a real 30-minute suite (0.05 min stands in)
 check "a FULL goal lane past full_suite_minutes fails with FULL_TIMEOUT (exit 124), long before the flow limit" '[ $rc = 124 ] && grep -q "^LANE pr FULL (unmapped [^)]* at pr) " "$d/t4.err" && grep -qx "LANE_TIMEOUT (FULL_TIMEOUT): the full suite passed its 0.05 min limit; not retryable by the worker. Fix: the owner raises full_suite_minutes or narrows rows; rerunning times out again" "$d/t4.err" && grep -q "[1-9][0-9]* unfinished" "$d/t4.err" && [ $took -lt 60 ] && ! pgrep -f "^sleep 27$" >/dev/null'
 
+echo "== goal_levels and goal_lane_minutes (S23, S21)"
+git switch -q main; branch t6
+python3 -c "import json;c=json.load(open('.loop/config.json'));c.update(goal_levels='nightly',goal_lane_minutes=0.0001);json.dump(c,open('.loop/config.json','w'),indent=2)"
+printf 'm\tnightly\tgrep -q ok src/a.txt && echo m >> "$TOY_LOG"\tX-1\t2026-01-01\tM runs nightly.\tcriterion\t\n' >> .loop/regression.tsv
+git add -A; git commit -qm "t6 rows"; printf 'ok, t6\n' > src/a.txt; git commit -qam "t6"
+out=$(python3 "$d/h.py" "$S" "$RUNS" t6 qa 2>&1)
+# Value: protects=goal_levels nightly makes a goal lane plan from land and nightly rows (S23) and a lane over goal_lane_minutes says so on its LANE line (S21); fails_when=the setting is ignored or the note is missing; why_new=both settings are new; seam=none; no_claim=a real 10-minute lane (0.0001 min stands in)
+check "goal_levels nightly: a goal lane selects the nightly row a change reaches" 'grep -q "^SELECTED m: " "$RUNS/t6.qa-lane.txt"'
+check "a goal lane over goal_lane_minutes adds '; over N min (goal_lane_minutes)' to its LANE line" 'grep -q "^LANE qa AFFECTED .*; over 0.0001 min (goal_lane_minutes)" <<<"$out"'
+t0=$(date +%s); rr=$(python3 -c "import sys;sys.path.insert(0,sys.argv[1]);import lanes;print(lanes.run_row('sleep 20 & echo \$! > $d/left.pid; exec sleep 20','.',None,1)[0])" "$here/skills/workflow-regression/scripts"); took=$(( $(date +%s) - t0 ))
+# Value: protects=a row's timeout holds even when its shell left a child holding the output (red team); fails_when=run_row waits for the pipe to close; why_new=run_row is new; seam=none; no_claim=none beyond protects
+check "a row past its timeout returns 124 within seconds even when a child it started still runs" '[ "$rr" = 124 ] && [ $took -lt 10 ]'
+kill "$(cat "$d/left.pid")" 2>/dev/null  # only the child this check left
+
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

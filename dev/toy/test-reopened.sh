@@ -24,7 +24,7 @@ cat > bin/gh <<'G'
 case "$1" in
   auth) exit 0 ;;
   issue) echo "$STUB_STATE" ;;
-  api) [[ "$2" == repos/o/r/issues/7/events ]] && echo "${STUB_REOPENED:-null}" ;;
+  api) [[ " $* " == *" repos/o/r/issues/7/events "* ]] && echo "${STUB_REOPENED:-null}" ;;
 esac
 G
 chmod +x bin/gh; export PATH="$d/bin:$PATH"

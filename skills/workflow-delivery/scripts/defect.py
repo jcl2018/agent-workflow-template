@@ -47,7 +47,7 @@ def before(root):
             base = json.load(handle).get("base") or "main"
     except (OSError, ValueError):
         base = "main"
-    git = lambda *a: subprocess.run(("git",) + a, cwd=root, capture_output=True, text=True)
+    git = lambda *a: subprocess.run(("git",) + a, cwd=root, capture_output=True, text=True, env=dict(os.environ, LC_ALL="C"))
     found = next((x for x in (git("merge-base", "HEAD", ref).stdout.strip() for ref in ("origin/" + base, base)) if x), "")
     shown = git("show", found + ":.loop/regression.tsv") if found else None
     if not shown or shown.returncode and "exists on disk" not in shown.stderr and "does not exist" not in shown.stderr:

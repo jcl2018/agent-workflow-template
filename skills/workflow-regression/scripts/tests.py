@@ -210,9 +210,9 @@ def reopened(link):
     parts = re.match(r"^https?://[^/]+/([^/]+)/([^/]+)/issues/(\d+)$", link)
     if not parts:
         return ""
-    done = gh("api", "repos/%s/%s/issues/%s/events" % parts.groups(), "--jq",
-              '[.[] | select(.event == "reopened") | .created_at] | last')
-    value = done.stdout.strip()
+    done = gh("api", "--paginate", "repos/%s/%s/issues/%s/events" % parts.groups(), "--jq",
+              '.[] | select(.event == "reopened") | .created_at')  # every page: a busy issue's reopen is past the first
+    value = (done.stdout.split() or [""])[-1]
     return value if done.returncode == 0 and re.match(r"^\d{4}-\d\d-\d\dT", value) else ""
 
 
@@ -247,7 +247,7 @@ def cmd_issues(args):
 def cmd_fixes(args):
     """The release notes' proof lines (REG-6): defect rows this range added or proved, linked to an issue, passing now."""
     shown = subprocess.run(["git", "show", "%s:.loop/regression.tsv" % args.since], cwd=args.root, capture_output=True,
-                           text=True)
+                           text=True, env=dict(os.environ, LC_ALL="C"))  # git's English messages, matched below
     if shown.returncode and "exists on disk, but not in" not in shown.stderr and "does not exist" not in shown.stderr:
         return refuse("cannot read .loop/regression.tsv at %s: %s" % (args.since, shown.stderr.strip()[:200]))
     old = {cells[0]: cells for cells in (line.split("\t") for line in shown.stdout.splitlines()) if cells[0] and cells[0][0] != "#"}
@@ -256,7 +256,7 @@ def cmd_fixes(args):
         row = (row + [""] * 8)[:8]
         found = re.match(r"^https?://\S+/issues/(\d+)$", row[7])
         before = (old.get(row[0], []) + [""] * 8)[4]
-        if row[6] == "defect" and found and row[4] and row[4] != before and ran.get(row[0]) == ["PASS"]:
+        if row[6] == "defect" and found and SEEN.match(row[4]) and row[4] != before and ran.get(row[0]) == ["PASS"]:
             print("Fixes #%s: test %s, seen failing %s, passing" % (found.group(1), row[0], row[4]))
     return 0
 

@@ -286,7 +286,7 @@ def cmd_run(args):
         print("NO ROWS: nothing to run" if args.reuse else "NO ROWS: run add first")
         return 0 if args.reuse else 1
     expected, picked = known(root), []
-    for row in tiers.kinds(chosen(rows, args.target), args.kind):
+    for row in tiers.kinds(chosen(rows, tiers.target(root, args)), args.kind):
         if row["level"] in ("draft", "covered"):
             print("SKIP %s: %s" % (row["id"], row["level"]))
         else:

@@ -23,19 +23,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REG = os.path.normpath(os.path.join(HERE, "..", "..", "workflow-regression", "scripts"))
 sys.path.insert(0, HERE)
 import lanekit  # noqa: E402
-from lanekit import generated, prep  # noqa: E402
-
-# No terminal, no waiting: a prompt from git or gh must fail, not block.
+# No terminal, no waiting: a prompt from git or gh must fail, not block (lanekit sets it too).
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+from lanekit import BOOKKEEPING, NOTHING, dirty, generated, git, prep  # noqa: E402,F401
 
-NOTHING = "the lane committed and pushed nothing"
 NAMES = ("qa", "ship", "pr")
-BOOKKEEPING = (".loop/regression-runs.tsv", ".loop/goals/", ".loop/queue.md", ".loop/findings.md")
 TERMINAL = ("pass", "fail")
-
-
-def git(*args):
-    return subprocess.run(["git"] + list(args), capture_output=True, text=True)
+flow_spec = lanekit._flow  # the flow file as a dict ({} when missing or bad)
 
 
 def lane_argv():
@@ -45,19 +39,6 @@ def lane_argv():
 
 def lane_text():
     return shlex.join(lane_argv())
-
-
-def flow_spec():
-    try:
-        spec = json.load(open(lanekit.flow_file()))
-    except (OSError, ValueError):
-        spec = {}
-    return spec if isinstance(spec, dict) else {}
-
-
-def dirty():
-    out = git("status", "--porcelain", "--no-renames", "--untracked-files=all").stdout
-    return [line[3:].strip('"') for line in out.splitlines() if not line[3:].strip('"').startswith(BOOKKEEPING)]
 
 
 def kill(pid):
@@ -172,18 +153,21 @@ def finalize(base, held, name):
     ran, reused = len(re.findall(r"^(?:PASS|FAIL|KNOWN) ", text, re.M)), re.findall(r"\((\d+) reused\)", text)
     took = now - (began or held["started"])
     line = "LANE %s %s %d/%d in %ds" % (name, kind, ran, ran + int((reused or [0])[0]), took)
+    try:  # the repo config: goal_lane_minutes here, wiki_dir for the dirt check below
+        wiki = json.load(open(os.path.join(git("rev-parse", "--show-toplevel").stdout.strip(), ".loop", "config.json")))
+    except (OSError, ValueError):
+        wiki = {}
+    wiki = wiki if isinstance(wiki, dict) else {}
+    limit = wiki.get("goal_lane_minutes") if isinstance(wiki.get("goal_lane_minutes"), (int, float)) else 10
+    if not kind.startswith("FULL") and took > limit * 60:  # S21: health warns too (REG-7)
+        line += "; over %g min (goal_lane_minutes)" % limit
     killed = re.findall(r"^KILLED (\S+): signal (\S+) \(pid (\d+)\)", text, re.M)  # issue 435: say what stopped a row
     if killed:
         line += "; " + ", ".join("%s killed by %s (pid %s)" % k for k in killed)
     if began and began - held["started"] >= 1:
         line += " (queued %ds)" % (began - held["started"])
     line += lanekit.rows_line(text, ran, out)
-    status = "fail"
-    try:  # rendered Tests tables a row left are the next prep commit's, not dirt (done line 5)
-        wiki = json.load(open(os.path.join(git("rev-parse", "--show-toplevel").stdout.strip(), ".loop", "config.json")))
-    except (OSError, ValueError):
-        wiki = {}
-    made = generated(wiki if isinstance(wiki, dict) else {})
+    status, made = "fail", generated(wiki)  # rendered Tests tables a row left are the next prep commit's (done line 5)
     after = [p for p in dirty() if p not in made]
     if rc == lanekit.EXIT_STALE:
         stop(base, held)
@@ -238,10 +222,13 @@ def lane(runs, slug, name, spec, cfg, wait=90):
             stop(other_base, other_held)
         elif live(other_held):
             return "running", running_line(other_held, other), []
-    if held and not live(held) and not os.path.exists(held["rc"]):
-        if time.time() - held["started"] > 30:
+    if held and not live(held) and not os.path.exists(held["rc"]) and not os.path.exists(held["rc"] + ".claimed"):
+        if time.time() - held["started"] > 30:  # a claimed rc is another caller finishing it: never stale
             stop(base, held)
             held = None
+    done = read_json(base + ".last") or {}
+    if not held and done.get("head") == head and done.get("state") == "pass":  # lane-wait finished it: reuse, never rerun
+        return "pass", done.get("line", ""), []
     if not held:
         top = git("rev-parse", "--show-toplevel").stdout.strip()
         line, refusal = prep(top, cfg, base + ".txt")

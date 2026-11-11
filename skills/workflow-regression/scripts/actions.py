@@ -183,14 +183,14 @@ jobs:
           def marked(body):
               match = FOUND.search(body or "")
               return (match.group(1), urllib.parse.unquote(match.group(2) or "")) if match else (None, "")
-          red, start = [], time.time()
+          red, start, cut = [], time.time(), False
           with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
               handle.write("# started %d\n" % start)
           for row in rows(".loop/regression.tsv"):
               if len(row) < 3 or not wanted(row):
                   continue
               if time.time() - start + ROW_SECONDS > JOB_SECONDS:  # a row may run its full limit, so it must still fit
-                  code, said, skipped = 125, "skipped: out of job time; this row did not run", True
+                  code, said, skipped, cut = 125, "skipped: out of job time; this row did not run", True, True
               else:
                   (code, said), skipped = run(row[2]), False
               hits = [item for item in issues or [] if marked(item["body"])[0] == row[0]]
@@ -236,7 +236,7 @@ jobs:
                           write("move #" + n, "issue", "edit", n, "--body", hit["body"].replace(old, mark), *(["--milestone", title] if title else []))
                           by_number(n, closed, hit["body"])
                       write("comment #" + n, "issue", "comment", n, "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
-          if TARGET == "nightly":  # the full suite: its time for health's REG-7 check (cost.py)
+          if TARGET == "nightly" and not cut:  # the whole full suite ran: its time for health's REG-7 check (cost.py)
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
                   handle.write("%s\tfull\t%d\t%s\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime())))

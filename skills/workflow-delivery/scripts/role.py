@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """What goal.py and flow.py do as a worker: refuse outside one, read the operation session's messages, report each
 change of step or status, bring the latest base into the branch, count tokens, and run the regression lane.
-Imported; run only as `role.py lane SLUG qa|ship|pr` (start or poll a lane by hand) and `role.py lane-exec` (a lane's child)."""
+Imported; run only as `role.py lane SLUG qa|ship|pr` (start or poll a lane by hand) and `role.py lane-wait SLUG qa|ship|pr`
+(block until it ends). The lane itself is lane.py, whose child runs as `lane.py lane-exec`."""
 import os
 import re
 import shlex
 import shutil
-import signal
 import subprocess
 import sys
 import json
 import datetime
-import time
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")

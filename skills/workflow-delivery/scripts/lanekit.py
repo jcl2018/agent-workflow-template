@@ -158,12 +158,20 @@ def tests_only(path):
     page (Tests.md), which render writes whole (DOC-10)."""
     if os.path.basename(path) == "Tests.md":
         return True
-    now = open(path).read().partition("\n## Tests")[0] if os.path.exists(path) else None
+    now = open(path).read() if os.path.exists(path) else None
     shown = git("show", "HEAD:" + path)
     if now is None or shown.returncode:
         return False
-    head = shown.stdout
-    return now == head.partition("\n## Tests")[0] or ("\n## Tests" not in head and now == head)
+    return outside(now) == outside(shown.stdout)
+
+
+def outside(text):
+    """A page without its ## Tests section (from that heading to the next ## heading): what a render never changes."""
+    found = re.search(r"^## Tests[ \t]*$", text, re.M)
+    if not found:
+        return text
+    rest = re.search(r"^## ", text[found.end():], re.M)
+    return text[:found.start()] + (text[found.end() + rest.start():] if rest else "")
 
 
 def prep(top, cfg, log):
@@ -269,17 +277,27 @@ def record(state, base):
         results(top)
         changed = [path for path in FILES if git_out("status", "--porcelain", "--", path)]
         criteria = os.path.join(os.path.dirname(REG), "..", "workflow-docs", "scripts", "criteria.py")
-        if changed and os.path.exists(os.path.join(top, ".loop", "docs.tsv")) and os.path.exists(criteria):
-            subprocess.run([sys.executable, criteria, "render"], cwd=top, capture_output=True, text=True, timeout=300)
-            status = subprocess.run(["git", "status", "--porcelain"], cwd=top, capture_output=True, text=True).stdout
-            changed += [line[3:] for line in status.splitlines()  # the Tests tables it re-rendered (unstripped columns)
-                        if line[3:].endswith(".md") and line[:2].strip() in ("M", "??")]
-        if changed:  # a new (untracked) file must be added before --only can commit it
-            subprocess.run(["git", "add", "--"] + changed, cwd=top, capture_output=True, text=True)
-            done = subprocess.run(["git", "commit", "--only", "-q", "-m", "pr: record issue states and the lane's results",
-                                   "--"] + changed, cwd=top, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=60)
-            if done.returncode:
-                print("NOTE: the bookkeeping commit failed: %s" % ((done.stderr or done.stdout).strip().splitlines() or ["?"])[-1])
+        try:
+            cfg = json.load(open(os.path.join(top, ".loop", "config.json")))
+        except (OSError, ValueError):
+            cfg = {}
+        cfg = cfg if isinstance(cfg, dict) else {}
+        try:
+            if changed and os.path.exists(os.path.join(top, ".loop", "docs.tsv")) and os.path.exists(criteria):
+                subprocess.run([sys.executable, criteria, "render"], cwd=top, capture_output=True, text=True, timeout=300)
+                changed += generated(cfg)  # only the Tests tables it re-rendered: never other dirty files
+            if changed:  # a new (untracked) file must be added before --only can commit it
+                subprocess.run(["git", "add", "--"] + changed, cwd=top, capture_output=True, text=True)
+                done = subprocess.run(["git", "commit", "--only", "-q", "-m", "pr: record issue states and the lane's results",
+                                       "--"] + changed, cwd=top, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                                      timeout=60)
+                if done.returncode:
+                    print("NOTE: the bookkeeping commit failed: %s" % ((done.stderr or done.stdout).strip().splitlines() or ["?"])[-1])
+        except subprocess.TimeoutExpired as error:  # never crash pr after its lane passed
+            print("NOTE: the bookkeeping step timed out (%s); nothing more committed" % " ".join(error.cmd[:3]))
+            lock = os.path.join(top, git_out("rev-parse", "--git-path", "index.lock"))
+            if os.path.exists(lock):
+                os.remove(lock)
     state["pr_lane"] = lane_part(state.get("slug", ""))
     head = git_out("rev-parse", "HEAD")
     state["pr_head"] = head

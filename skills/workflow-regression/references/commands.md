@@ -307,9 +307,9 @@ part is advice and never blocks.
 | FLAKY | regression.py | per result | a row gave different results on the same clean commit, runner and python (Note): the raw result counts, the flag stays on that commit (regression-runs.tsv's flaky column, tests.py list, health's TESTS block) and the row is never reused | find the nondeterminism in the row's command; FLAKY clears when a later commit's clean run passes |
 | SUITE_TIME | regression.py / CI run step | — | a plain full run's time (`regression.py run nightly`, or a CI run whose target is nightly), appended to `<git common dir>/loop/suite-times.tsv` for health's REG-7 check; CI keeps its line as artifact `suite-time`, which the scheduled health job downloads with a `ci` column | none |
 | REFUSED (BAD_TARGET) | CI run step | 1 | the run-by-hand `target` input is not land, nightly or a row id: `REFUSED (BAD_TARGET): bad target "<value>": use land, nightly or a row id from regression.py list. Fix: rerun the workflow with one of those`; no row ran | rerun the workflow with one of those |
-| REFUSED (BASE_MOVED) | merge.py | 2 | the base moved in paths this goal's rows reach since the pr lane | `goal.py pr SLUG`, then `merge.py SLUG` |
+| REFUSED (BASE_MOVED) | merge.py | 2 | the base moved in paths this goal's rows reach since the pr lane, or it can't tell (the planner or `git diff` failed): an unknown never merges | `goal.py pr SLUG`, then `merge.py SLUG` |
 | REFUSED (BASE_FETCH) | merge.py | 3 | origin can't be fetched to check the base; nothing merged | run `merge.py SLUG` again when the remote answers |
-| REFUSED (HEAD_MOVED) | merge.py | 4 | the pull request head moved since the pr lane | `goal.py pr SLUG`, then `merge.py SLUG` |
+| REFUSED (HEAD_MOVED) | merge.py | 4 | the pull request head moved since the pr lane by a commit that isn't only wiki pages (a `wiki.py prepare` commit only notes it and merges) | `goal.py pr SLUG`, then `merge.py SLUG` |
 
 Exit codes shared by every lane entry point: 0 pass (or still running for `role.py lane`), 1 fail, 2 lane-wait
 timeout, 3 no lane, 4 a hand run's slot wait timed out, 5 stale, 124 time limit.
@@ -327,9 +327,11 @@ lane ends.
 
 - `lane_limit` (flow file, default 2): full lanes that may run at once on this machine; 0 is unlimited. Best effort:
   it limits concurrent full lanes, not the machine's load; AFFECTED, by-id and red runs take no slot.
-- `goal_lane_minutes` (10) and `full_suite_minutes` (30): health warns above them (REG-7); the second is also a FULL
+- `goal_lane_minutes` (10) and `full_suite_minutes` (30): health warns above them (REG-7), and a goal lane over the first
+  adds `; over N min (goal_lane_minutes)` to its LANE line; the second is also a FULL
   goal lane's time limit.
-- `goal_levels` (land) and `ci_levels` (nightly): the levels a goal lane plans from and the CI target.
+- `goal_levels` (land) and `ci_levels` (nightly): the levels a goal lane plans from (nightly adds the nightly rows a
+  change reaches) and the CI target. A CI run that skips rows for lack of job time records no full-suite time.
 - Each lane child gets its own `TMPDIR` and `LOOP_LANE_PORT_BASE` (a leased range of 100 ports from 20000); a row that
   binds ports uses that range or picks a free port itself.
 - Internal handoff variables (`_LOOP_LANE_HELD`, `_LOOP_LANE_LABEL`, `_LOOP_LANE_QUEUED`, `_LOOP_LANE_STARTED`,

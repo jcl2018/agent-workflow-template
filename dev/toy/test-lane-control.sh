@@ -235,8 +235,9 @@ base = runs + "/race%s.qa-lane" % i
 json.dump({"head": head, "attempt": "9-%s" % i, "started": time.time() - 5, "limit": 60, "rc": base + ".rc", "pid": 1, "markers": 1, "pool": "/nonexistent"}, open(base + ".job", "w"))
 open(base + ".txt", "w").write("FULL: x\nPASS r1\nRESULT 1 passed\n"); open(base + ".rc", "w").write("0")
 PY
-  a=$(python3 "$T/h.py" "$S" "$RUNS" race$i qa status &); b=$(python3 "$T/h.py" "$S" "$RUNS" race$i qa status); wait
-  grep -q LANE_DIED <<<"$a$b" && died=$((died + 1))
+  python3 "$T/h.py" "$S" "$RUNS" race$i qa status >"$T/ra$i" 2>&1 & first=$!  # truly at once: each writes its own file
+  python3 "$T/h.py" "$S" "$RUNS" race$i qa status >"$T/rb$i" 2>&1; wait $first
+  grep -q LANE_DIED "$T/ra$i" "$T/rb$i" && died=$((died + 1))
 done
 check "two callers finishing the same lane 20 times never report LANE_DIED and leave one terminal pass" '[ $died = 0 ] && for i in $(seq 20); do python3 -c "import json,sys;assert json.load(open(sys.argv[1]))[\"state\"]==\"pass\"" "$RUNS/race$i.qa-lane.last" || exit 1; done'
 $role lane-wait nolane qa >"$T/o.out" 2>"$T/o.err"; rc=$?
@@ -271,5 +272,19 @@ print("drift: " + ", ".join(drift) if drift else "same")
 PY
 )
 check "every function lanekit.py copies from slots.py has exactly the same source, and the shared constants match" '[ "$out" = same ]'
+
+echo "== review fixes: one start mark, a finished pass is reused, the pr commit takes only its files"
+git checkout -q -- . 2>/dev/null; touch -t 202601010000 "$T/started.mark"
+out=$(_LOOP_LANE_STARTED="$T/started.mark" python3 -c "import sys;sys.path.insert(0,sys.argv[1]);import slots;slots.started()" "$R"; python3 -c "import os,sys;print(int(os.path.getmtime(sys.argv[1])))" "$T/started.mark")
+# Value: protects=a row's nested regression run leaves the outer lane's start mark (its clock) alone; fails_when=started() rewrites an existing mark; why_new=review finding; seam=none; no_claim=none beyond protects
+check "a nested run never rewrites the outer lane's start mark (its clock keeps its time)" '[ "$out" = "$(python3 -c "import datetime;print(int(datetime.datetime(2026,1,1).timestamp()))")" ]'
+printf '{"attempt": "x", "head": "%s", "state": "pass", "line": "LANE qa REUSED 1/1 in 1s"}' "$(git rev-parse HEAD)" > "$RUNS/rp.qa-lane.last"
+out=$(python3 -c "import json,sys;sys.path.insert(0,sys.argv[1]);import lane;print(lane.lane(sys.argv[2],'rp','qa',{},json.load(open('.loop/config.json')),1)[:2])" "$S" "$RUNS")
+# Value: protects=a lane lane-wait already finished as a pass on this HEAD is not run again (review finding); fails_when=lane() preps and starts a new lane; why_new=lane-wait finalizes lanes; seam=none; no_claim=none beyond protects
+check "a lane that already passed on this HEAD returns its pass and starts nothing" '[ "$out" = "('"'"'pass'"'"', '"'"'LANE qa REUSED 1/1 in 1s'"'"')" ] && [ ! -e "$RUNS/rp.qa-lane.job" ]'
+echo "note" >> .loop/findings.md; printf '# link\tstate\tdate\treopened_at\nhttps://example.test/o/r/issues/1\topen\t2026-01-01\t\n' > .loop/regression-issues.tsv
+out=$(PATH="$T/nogh:$PATH" python3 -c "import sys;sys.path.insert(0,sys.argv[1]);import lanekit;s={'slug':'rp'};lanekit.record(s,'main')" "$S" 2>&1)
+# Value: protects=goal.py pr's bookkeeping commit takes only the issue and run files and re-rendered Tests pages (review finding); fails_when=it sweeps any dirty .md (the loop's findings, queue or goal files) into the pull request; why_new=prsteps is new; seam=none; no_claim=none beyond protects
+check "the pr bookkeeping commit takes the issue file and never the loop's own dirty findings" '[ "$(git log -1 --format=%s)" = "pr: record issue states and the lane'"'"'s results" ] && git show --name-only --format= HEAD | grep -qx .loop/regression-issues.tsv && ! git show --name-only --format= HEAD | grep -q findings.md && git status --porcelain | grep -q findings.md'
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

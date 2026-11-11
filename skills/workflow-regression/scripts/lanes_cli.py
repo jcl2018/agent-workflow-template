@@ -89,7 +89,7 @@ def relative(root, path):
 
 def affected(root, rows, paths, cache):
     """(rerun ids, notes) for a change to paths: plan()'s per-path rules without a record (dependency impact only)."""
-    ids, notes, every = set(), [], [r["id"] for r in rows]
+    ids, notes, every, real = set(), [], [r["id"] for r in rows], False
     for row in rows:
         lanes.closure(root, row["command"], cache)
         if cache.get(("why", row["command"])):
@@ -108,8 +108,9 @@ def affected(root, rows, paths, cache):
                                                  for r in rows):
             return every, notes + ["UNMAPPED %s: full run; no row reads it (add it to a script's # reads: if one "
                                    "should)" % path]
-        ids |= hit
-    ids |= {r["id"] for r in rows if lanes.closure(root, r["command"], cache)[1]}
+        ids, real = ids | hit, real or not no_effect
+    if real:  # root runners rerun on a real change; a change only to NO_EFFECT files (a release's VERSION) reaches none
+        ids |= {r["id"] for r in rows if lanes.closure(root, r["command"], cache)[1]}
     return sorted(ids), notes
 
 

@@ -222,8 +222,9 @@ def _slot(pool, count, label):
 
 
 def started():
+    """Mark the lane's start once: a row's nested run sees the outer lane's marker and leaves its clock alone."""
     path = os.environ.get("_LOOP_LANE_STARTED")
-    if path:
+    if path and not os.path.exists(path):
         open(path, "w").close()
 
 

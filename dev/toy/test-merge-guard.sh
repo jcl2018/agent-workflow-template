@@ -33,7 +33,8 @@ M="$here/skills/workflow-release/scripts"
 moved() {  # STATE-JSON: print "<code>|<line>" from base_moved, or "none"
   python3 - "$M" "$1" <<'PY'
 import json, sys
-sys.path.insert(0, sys.argv[1]); import merge
+sys.path.insert(0, sys.argv[1]); import merge, os
+merge.REACH = os.environ.get("REACH_OVERRIDE") or merge.REACH
 got = merge.base_moved(json.loads(sys.argv[2]), {"base": "main"}, ".")
 print("none" if got is None else "%d|%s" % got)
 PY
@@ -43,6 +44,9 @@ check() { if eval "$2"; then ok "$1"; else bad "$1"; echo "    out: $out"; fi; }
 out=$(moved "$st"); check "an unmoved base merges" '[ "$out" = none ]'
 git switch -q main; echo b2 >> src/b.txt; git commit -qam "base changes b"; git push -q origin main; git switch -q loop/g
 out=$(moved "$st"); check "a base move in paths the goal's rows don't reach notes it and merges" 'grep -q "^NOTE: main moved in paths this goal.s rows don.t reach; merging" <<<"$out" && tail -1 <<<"$out" | grep -qx none'
+printf 'import sys\nsys.exit("planner crashed")\n' > "$d/crash.py"
+out=$(REACH_OVERRIDE="$d/crash.py" moved "$st"); check "a planner that fails can't clear a base move: BASE_MOVED, never merged unchecked (exit 2)" 'grep -q "^2|REFUSED (BASE_MOVED)" <<<"$out"'
+out=$(moved "{\"slug\": \"g\", \"pr_base\": \"$(printf 'd%.0s' {1..40})\", \"pr_head\": \"$head\"}"); check "a recorded base git can't diff (missing here) refuses BASE_MOVED (exit 2)" 'grep -q "^2|REFUSED (BASE_MOVED)" <<<"$out"'
 git switch -q main; echo a3 >> src/a.txt; git commit -qam "base changes a"; git push -q origin main; git switch -q loop/g
 out=$(moved "$st"); check "a base move in a path the goal's rows reach refuses BASE_MOVED with its fix (exit 2)" 'grep -q "^2|REFUSED (BASE_MOVED): main moved in paths this goal.s rows reach (lane on .*, base now .*). Fix: goal.py pr g, then merge.py g" <<<"$out"'
 git remote set-url origin "$d/nowhere.git"
@@ -54,4 +58,14 @@ printf '{"auto_merge": true, "base": "main"}\n' > .loop/config.json
 echo "{\"slug\": \"g\", \"status\": \"done\", \"pr\": \"https://example.test/pull/1\", \"pr_base\": \"$base\", \"pr_head\": \"$head\"}" > "$common/loop/runs/g.json"
 out=$(FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_HEAD=0000000000000000000000000000000000000000 python3 "$M/merge.py" g 2>&1); rc=$?
 check "a pull request head that moved since the pr lane refuses HEAD_MOVED with its fix (exit 4), nothing merged" '[ $rc = 4 ] && grep -q "^REFUSED (HEAD_MOVED): the pull request head moved since the pr lane passed (lane on .*, PR head 000000000000). Fix: goal.py pr g, then merge.py g" <<<"$out" && [ ! -e "$FAKE_GH_DIR/merged" ]'
+mkdir -p docs/wiki; echo page > docs/wiki/Page.md; git add docs/wiki/Page.md; git commit -qm "wiki page"; wiki=$(git rev-parse HEAD)
+out=$(FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_HEAD=$wiki python3 "$M/merge.py" g 2>&1); rc=$?
+check "a head moved only by a wiki page commit (wiki.py prepare) is not HEAD_MOVED: it notes it and goes on to the base check" '[ $rc != 4 ] && grep -q "^NOTE: the pull request head moved only by wiki page commits (wiki.py prepare); merging ${wiki:0:12}" <<<"$out"'
+echo x > src/c.txt; git add src/c.txt; git commit -qm code; code=$(git rev-parse HEAD)
+out=$(FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_HEAD=$code python3 "$M/merge.py" g 2>&1); rc=$?
+check "a head moved by any other commit still refuses HEAD_MOVED (exit 4)" '[ $rc = 4 ] && grep -q "^REFUSED (HEAD_MOVED)" <<<"$out"'
+printf '#!/bin/bash\n# reads: src/a.txt\ncd "$here" && cat src/a.txt\n' > dev/tc.sh  # lanes: no read (toy repo file)
+printf 'tc\tland\tbash dev/tc.sh\n' >> .loop/regression.tsv; touch VERSION; git add -A; git commit -qm "root runner"
+out=$(python3 -B "$here/skills/workflow-regression/scripts/lanes_cli.py" affected VERSION; python3 -B "$here/skills/workflow-regression/scripts/lanes_cli.py" affected src/b.txt)
+check "a change only to NO_EFFECT files (a release's VERSION) reaches no root runner; a real change still does" 'grep -qx "AFFECTED 0 of 3 rows ()" <<<"$out" && grep -q "^AFFECTED 2 of 3 rows (tb, tc)" <<<"$out"'
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

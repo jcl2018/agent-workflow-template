@@ -111,13 +111,17 @@ def run_row(command, cwd, env, timeout):
     """(code, output, pid, signal) for one row's shell (issue 435): signal names what stopped it, from a negative
     status or a shell's 128+N exit status; None when it exited on its own. A timeout kills it and returns 124."""
     import signal as sig
-    proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            text=True, errors="replace")
-    try:
-        out, code = proc.communicate(timeout=timeout)[0], proc.returncode
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        out, code = (proc.communicate()[0] or "") + "timed out after %s seconds" % timeout, 124
+    import tempfile
+    with tempfile.TemporaryFile("w+", errors="replace") as log:  # a file, not a pipe: a child left running can't hold it
+        proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
+        try:
+            code, tail = proc.wait(timeout=timeout), ""
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+            code, tail = 124, "timed out after %s seconds" % timeout
+        log.seek(0)
+        out = log.read() + tail
     num = -code if code < 0 else (code - 128 if 128 < code < 160 else 0)
     names = {s.value: s.name for s in sig.Signals}
     return code, out or "", proc.pid, names.get(num)
