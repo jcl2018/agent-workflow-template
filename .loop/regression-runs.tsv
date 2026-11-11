@@ -4,6 +4,7 @@ adopt-set-2	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 adopt-set-3	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 adopt-set-4	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 adopt-set-5	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+affected-quiet-release	PASS	2026-11-11	
 attempt-114	PASS	2026-11-10	
 aut-backlog-milestone	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 aut-by-hand-runs	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -135,6 +136,7 @@ format-tests-table	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 format-usage-api	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 frozen-done-lines	PASS	2026-11-09	
 full-goal-lane-timeout	PASS	2026-11-10	
+goal-levels-nightly	PASS	2026-11-11	
 guards-extra	PASS	2026-11-10	
 guards-no-try	PASS	2026-11-10	
 guards-resume	PASS	2026-11-10	
@@ -185,7 +187,10 @@ known-no-block	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 known-recorded	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 landed-left-alone	PASS	2026-11-09	
 lane-messages-table	PASS	2026-11-11	
+lane-over-minutes	PASS	2026-11-11	
+lane-pass-reused	PASS	2026-11-11	
 lane-ports-tmpdir	PASS	2026-11-11	
+lane-start-mark-once	PASS	2026-11-11	
 lanes-affected	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lanes-always	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lanes-check	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -219,8 +224,10 @@ live-board-leftouts	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 live-board-no-oneline	PASS	2026-11-10	
 local-row-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lock-in-report	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+merge-base-undiffable	PASS	2026-11-11	
 merge-guard-base-head	PASS	2026-11-11	
 merge-reach-fail-closed	PASS	2026-11-11	
+merge-wiki-head	PASS	2026-11-11	
 merged-frees-175	PASS	2026-11-10	
 milestone-links	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 milestones-once	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -257,6 +264,7 @@ pending-waits	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 pool-edges-122	PASS	2026-11-10	
 pr-body-criterion	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 pr-body-no-checks	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+pr-commit-scope	PASS	2026-11-11	
 pr-in-milestone	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 pr-needs-flow	PASS	2026-11-09	
 prd-audit-ignores-changed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -308,6 +316,7 @@ retired-leaves-waiting	PASS	2026-11-09
 review-dated	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 review-owner-only	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reviewed-lock	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+row-timeout-holds	PASS	2026-11-11	
 run-kind-filter	PASS	2026-11-10	
 run-ledger	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 runs-keep	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
