@@ -37,7 +37,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
-import actions, flaky, issues_gh, lanes, runs, slots, tiers  # noqa: E401,E402
+import actions, issues_gh, lanes, runs, slots, tiers  # noqa: E401,E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -328,7 +328,7 @@ def cmd_run(args):
             print("\n".join("    " + line for line in text.rstrip().splitlines()[-20:]), file=sys.stderr)
         results.append({"id": row["id"], "state": state, "tail": text[-1500:], "seconds": round(time.time() - began, 1),
                         "pid": pid, "rc": code, "signal": signal})
-    for line in flaky.apply(record, results, head, not unclean):  # REG-9: advisory; the result decides
+    for line in tiers.flaky_apply(record, results, head, not unclean):  # REG-9: advisory; the result decides
         print(line)
     if not args.reuse and results:  # a reusing run writes nothing in the worktree and opens no issue: CI's plain run owns both
         slots.edit(root, "regression-runs.tsv", lambda: runs.write(root, results, today(), head))

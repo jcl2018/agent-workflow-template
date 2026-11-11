@@ -1,8 +1,8 @@
 #!/bin/bash
-# reads: skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/flaky.py
+# reads: skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/tiers.py
 # reads: skills/workflow-regression/scripts/lanes.py skills/workflow-regression/scripts/runs.py
 # reads: skills/workflow-regression/scripts/tests.py skills/workflow-health/scripts/health.py
-# Proves FLAKY (REG-9, flaky.py) on a throwaway repo with a fake gh: a row whose result flips on the same clean commit
+# Proves FLAKY (REG-9, tiers.py flaky_apply) on a throwaway repo with a fake gh: a row whose result flips on the same clean commit
 # and runner is marked with the raw result kept, the exit following that result, a sticky flag shown by tests.py list
 # and health's TESTS block, never reused, and cleared by a later commit's clean pass; a dirty tree, another runner or a
 # record from before the fields never marks. No model is called.

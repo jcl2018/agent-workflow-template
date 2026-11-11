@@ -3,7 +3,7 @@
 # reads: skills/workflow-regression/scripts/lanes.py skills/workflow-regression/scripts/actions.py
 # Proves the run column of .loop/regression-runs.tsv on a throwaway repo with a fake gh: empty outside CI, so two
 # branches write identical lines, the Actions run URL when all three GITHUB_* vars are set, a 3-column file upgraded,
-# a row not rerun kept, and the flaky column (5th) written only on a line whose row flipped (flaky.py).
+# a row not rerun kept, and the flaky column (5th) written only on a line whose row flipped (tiers.py flaky_apply).
 # usage: test-runs-column.sh
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)

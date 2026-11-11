@@ -2,7 +2,7 @@
 
 run is the GitHub Actions run URL when GITHUB_SERVER_URL, GITHUB_REPOSITORY and GITHUB_RUN_ID are all set, else
 empty, so same-day runs on two branches write identical lines and merge cleanly. flaky is empty, or the commit a row's
-result flipped on (flaky.py, REG-9); status stays the raw PASS or FAIL. The per-result evidence (commit, clean, host,
+result flipped on (tiers.py flaky_apply, REG-9); status stays the raw PASS or FAIL. The per-result evidence (commit, clean, host,
 python) lives in the branch's lane record in the git common dir, never here: a commit cell would differ on every
 branch and turn each same-day merge of this file into a conflict. Files from before the run or flaky column still
 read, with those cells empty. A line carries the 5th cell only while it is set, so the upgrade changes no other line
