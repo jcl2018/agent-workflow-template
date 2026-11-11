@@ -111,7 +111,7 @@ Review: **Unreviewed**
 | [lanes-ship-reuses](Tests#t-lanes-ship-reuses) | requirement | REG-4 | Given nothing changed since the qa run, when ship runs, then it reuses the qa run. | PASS 2026-11-10 |
 | [lanes-qa-record](Tests#t-lanes-qa-record) | requirement | REG-4 | Given the qa step, when it runs the tests, then it records the run with the exact command ship checks. | PASS 2026-11-10 |
 | [lanes-pr-affected](Tests#t-lanes-pr-affected) | requirement | REG-4 | Given the base merged before the pull request, when tests run, then only the affected tests rerun. | PASS 2026-11-10 |
-| [lanes-headers](Tests#t-lanes-headers) | requirement | REG-4 | Given the repo's test scripts, when their # reads: headers are checked, then every script a row names has a valid header. | PASS 2026-11-11 |
+| [lanes-headers](Tests#t-lanes-headers) | requirement | REG-4 | Given the repo's test scripts, when their # reads: headers are checked, then every script a row names has a valid header. | FAIL 2026-11-10 |
 | [lanes-declared](Tests#t-lanes-declared) | requirement | REG-4 | Given scripts that declare the files they run, when one skill's file changes, then only the rows whose closure reaches it rerun. | PASS 2026-11-10 |
 | [lanes-folder-var](Tests#t-lanes-folder-var) | requirement | REG-4 | Given a file run through a folder variable set in another file, when that file changes, then its row still reruns. | PASS 2026-11-10 |
 | [lanes-always](Tests#t-lanes-always) | requirement | REG-4 | Given a row whose declaration cannot be resolved, when an unrelated mapped file changes, then the row still reruns. | PASS 2026-11-10 |
