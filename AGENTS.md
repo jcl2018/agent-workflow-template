@@ -14,6 +14,6 @@ Skills:
 - `workflow-health`: Checks a repo's health with fixed rules that give the same answer every time.
 - `workflow-monitoring`: One session governs and the others build.
 - `workflow-regression`: Keeps a repo's regression tests visible and enforced.
-- `workflow-release`: Once a goal has a pull request, shows its docs and manual verify steps, then asks `cut` or `leave`.
+- `workflow-release`: Releases a goal once it has a pull request.
 - `workflow-setup`: Surveys a git repo and writes its .loop/ config on a branch, so the delivery, monitoring and release skills can run there.
 <!-- /workflow-loop -->

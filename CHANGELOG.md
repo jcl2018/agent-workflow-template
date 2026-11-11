@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.27.2 - 2026-11-11
+
+- delivery-prd: depth by size, set, resume and --again, goal budgets, private-name scan before pr, verdicts and GitHub touches; board budget and depth lines, mend resume step, bind self
+- delivery-prd: delivery docs for depth by size, set, budgets, resume, the private-name scan and refusal codes
+- delivery-prd: release bumps patch unless the goal set minor or major (170), protected base releases through a release PR (134, 154), private scan before merge, wiki and cut, wiki first-page fix and docs say published (129)
+- delivery-prd: rows for DEL-5..DEL-9 and defect rows for issues 38, 117, 129, 134, 154, 170; merge-hold check
+- delivery-prd: rows seen red on the old code; the scan-site control reads single-quoted calls and the scan entry points; the lane row checks the lane command
+- Merge remote-tracking branch 'origin/main' into loop/delivery-prd
+- delivery-prd: new toy tests source reap.sh (main's rule); Delivery Tests table rendered
+- delivery-prd review: private scan masks a matching place, reads '++ ' lines and whole long lines, bounds git by the limit; plan_head and verdicts kept on an auto-approved plan; a worker's set is refused (test)
+- delivery-prd review: a bump set after a refused merge binds; VERSION fixed by hand on the base releases at its tip; the merge hold counts the goal's own wiki pages; a waiting release PR shows under Issues; release shim moved to dev/toy/release-gh.py; tests for dirty restart, mismatch, existing release, late bump
+- delivery-prd: merge.py scans the goal's pushed branch wherever it runs; Delivery and Monitoring pages refreshed (summary only)
+- Merge origin/main (docs-format, v0.22.0) into loop/delivery-prd: both row sets kept, main's PRD pages kept, Tests re-rendered
+- delivery-prd qa fixes: toy test # reads: headers declare the folders they glob; the scan-site control and size check move to test-scan-sites.sh so test-delivery-prd stays narrow; test-delivery-prd clears LOOP_ROLE; test-tree allows the release PR's merge
+- Merge origin/main (monitoring-prd, v0.25.0) into loop/delivery-prd: flow.py's step_prompt carries the goal's decided depth; live_board keeps main's split and adds the depth-decided and budget lines; both row sets and both findings kept
+- delivery-prd: fold modules to stay under the 99-file package cap: guards_ops.py and prbody.py into fit.py, release_pr.py into merge.py, board_budget.py into board_lag.py (two new skill files: fit.py, private.py)
+- delivery-prd: keep main's Review stamps on Monitoring and Setup (a merge had restored older ones); CLAUDE.md and AGENTS.md entry block names the release skill's new first sentence (issue 129)
+- delivery-prd: fold defect.py into fit.py (fit.py owed SLUG), so the goal adds one skill file net under the package cap
+- Merge origin/main (deployments-format, v0.25.1) into loop/delivery-prd: both row sets kept, Tests re-rendered
+- delivery-prd qa fixes: a LOOP_PRIVATE_NAMES file that doesn't exist refuses (PRIVATE_LIST) instead of passing as no list; small token budgets read 25k or 500 on the board; fit.py owed names a missing goal file (NO_GOAL_FILE)
+- Merge origin/main (lane-control v0.27.0, step-budget v0.26.0) into loop/delivery-prd: defect.py's E-10 rule ported into fit.py; board_lag/board_budget lines now live in board_lines.py section 4; flow.py's --again gate and goal_state moved to role.py (flow.py under 20 KB); merge.py keeps main's HEAD_MOVED/BASE_MOVED checks, then my scan and requirement hold; both row sets kept; Tests re-rendered
+- delivery-prd: lane check follows main's --tier flag; del6-full-lane description; Tests re-rendered
+- delivery-prd: del6-full-lane seen red on the new lane layout; Tests re-rendered
+- delivery-prd: fold budget.py into lanekit.py so the goal adds no skill file net (package stays at 99 of 99): flow, guards and lane.py use lanekit's budget functions
+- Merge remote-tracking branch 'origin/main' into loop/delivery-prd
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `printf 'notes\n' > /tmp/names; LOOP_PRIVATE_NAMES=/tmp/names python3 skills/workflow-delivery/scripts/private.py check`.
+   Expect: it prints `PRIVATE LIST: 1 pattern from $LOOP_PRIVATE_NAMES` and never prints the pattern itself.
+2. Run `python3 skills/workflow-monitoring/scripts/live_board.py` from the main checkout while a goal is running.
+   Expect: under the goal, a `budget:` line (minutes and tokens of its budget, or `budget: none set`) and a
+   `depth decided:` line naming the goal's depth and why.
+3. Run `bash dev/toy/test-delivery-prd.sh resume`.
+   Expect: it kills a goal's review mid-step, shows `idea is already recorded ... (ALREADY_RECORDED)` when idea is
+   rerun, and ends with `ALL PASS` after the review is resumed.
+4. Run `bash dev/toy/test-delivery-release.sh protected`.
+   Expect: every line is PASS, including the release landing through a `release/vX-<slug>` pull request with one
+   GitHub release.
+
 ## v0.27.1 - 2026-11-11
 
 - guardrails-prd: the Guardrails feature page (GRD-1..GRD-10, all Unreviewed), its Home row, README section, docs.tsv row and START.md entry

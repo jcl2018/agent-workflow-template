@@ -20,6 +20,12 @@
      commit plus that bookkeeping commit) and state["pr_base"] (the base commit it was merged with), for merge.py's
      HEAD_MOVED and BASE_MOVED checks.
 Exit codes and messages: workflow-regression/references/commands.md.
+
+4. The time budgets of the loop's steps (was budget.py, folded in to keep the package under its file cap):
+step_budget_minutes (default 30) bounds each review and ship step; test_budget_minutes (default 15) bounds each test
+run (regression's runs.py enforces it). Neither can be set under 15. A step that reaches its budget finishes with what
+it has done, and its record (budget_hits in the goal's run file) names what it left; the board and health show those.
+Imported by flow.py, role.py, guards.py and the monitoring and health reports.
 """
 import fcntl
 import glob
@@ -29,7 +35,7 @@ import re
 import subprocess
 import sys
 
-import budget
+import tempfile
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -123,7 +129,7 @@ def budget_note(text, base, name):
     cut = re.findall(r"^BUDGET (\d+) min: .*?LEFT \d+ to the scheduled full suite: (.*)$", text, re.M)
     if not cut:
         return ""
-    budget.hit(os.path.dirname(base), os.path.basename(base)[:-len(".%s-lane" % name)], name, "test", int(cut[-1][0]), cut[-1][1])
+    hit(os.path.dirname(base), os.path.basename(base)[:-len(".%s-lane" % name)], name, "test", int(cut[-1][0]), cut[-1][1])
     return "\n" + re.findall(r"^BUDGET .*$", text, re.M)[-1]
 
 
@@ -318,3 +324,57 @@ def record(state, base):
     head = git_out("rev-parse", "HEAD")
     state["pr_head"] = head
     state["pr_base"] = git_out("merge-base", head, "origin/" + base) or git_out("rev-parse", "origin/" + base)
+
+
+# ---- the time budgets of the loop's steps (was budget.py)
+FLOOR = 15
+DEFAULTS = {"step_budget_minutes": 30, "test_budget_minutes": 15}
+LEFT = re.compile(r"^\W*BUDGET:\s*left:\s*(.+)$", re.M | re.I)
+
+
+def minutes(cfg, key):
+    """The setting in whole minutes; exits with a fix line when it is under the 15-minute floor or not a whole number."""
+    value = cfg.get(key, DEFAULTS[key])
+    if isinstance(value, bool) or not isinstance(value, int) or value < FLOOR:
+        sys.exit("REFUSED: %s is %r in .loop/config.json, under the %d-minute floor. Fix: set it to %d or more." % (
+            key, value, FLOOR, FLOOR))
+    return value
+
+
+def seconds(cfg, key, limit=0):
+    """Seconds a step or run may take: the budget, or the flow file's own limit when that is shorter."""
+    budget = minutes(cfg, key) * 60
+    return min(budget, limit) if limit else budget
+
+
+def left_of(text):
+    """What a reply says it left, from its last `BUDGET: left: ...` line, else ''."""
+    found = LEFT.findall(text or "")
+    return " ".join(found[-1].split())[:300] if found else ""
+
+
+def hit(runs, slug, step, kind, limit, left):
+    """Record that STEP (kind step: the step itself, test: its test run) reached its budget of LIMIT minutes and what it left."""
+    path = os.path.join(runs, slug + ".json")
+    try:
+        with open(path) as handle:
+            state = json.load(handle)
+    except (OSError, ValueError):
+        return
+    kept = [h for h in state.get("budget_hits") or [] if not (h.get("step") == step and h.get("kind") == kind)]
+    state["budget_hits"] = kept + [{"step": step, "kind": kind, "minutes": limit, "left": left or "not stated"}]
+    with tempfile.NamedTemporaryFile("w", dir=runs, delete=False, suffix=".tmp") as handle:
+        json.dump(state, handle, indent=2)
+    os.replace(handle.name, path)
+
+
+def reached(state, step):
+    """Whether this goal's step was stopped at its step budget (recorded by flow.py, never by the step's own words)."""
+    return any(h.get("step") == step and h.get("kind") == "step" for h in state.get("budget_hits") or [])
+
+
+def lines(state):
+    """One line per budget hit of a run record, for the board and for health."""
+    return ["%s: %s hit its %s-minute budget; left: %s" % (
+        state.get("slug", "?"), "%s %s" % (h.get("step"), "step" if h.get("kind") == "step" else "tests"), h.get("minutes"),
+        h.get("left")) for h in state.get("budget_hits") or [] if isinstance(h, dict)]
