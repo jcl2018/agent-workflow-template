@@ -2,7 +2,7 @@
 # reads: skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/goal.py
 # reads: skills/workflow-delivery/scripts/role.py skills/workflow-regression/scripts/regression.py
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-monitoring/scripts/monitor.py
-# reads: skills/workflow-health/scripts/lean.py skills/workflow-regression/scripts/tiers.py
+# reads: skills/workflow-health/scripts/lean.py skills/workflow-regression/scripts/runs.py
 # Proves the time budgets: both settings refuse a value under 15 minutes, an in-loop test run stops at its budget and
 # lists the rows it left (recorded, so a later lane doesn't rerun them), rows fit the budget by their estimated seconds,
 # a review or ship step at its limit finishes with what it has done and the goal goes on, a session-run step is given its
@@ -57,8 +57,8 @@ check "a left row is not a failure" 'grep -q "^RESULT 1 passed" <<<"$out" && ! g
 check "the next lane on the same content reuses the left rows and runs none" 'grep -q "^REUSED 3 rows" <<<"$out" && [ -z "$(ran)" ]'
 python3 - "$S/workflow-regression/scripts" <<'PY' && ok "rows fit the budget by their estimated seconds, in tier order" || bad "fit"
 import sys
-sys.path.insert(0, sys.argv[1]); import tiers
-keep, left = tiers.fit(["x", "y", "z"], {"x": 500, "y": 300, "z": 100}, 600)
+sys.path.insert(0, sys.argv[1]); import runs
+keep, left = runs.fit(["x", "y", "z"], {"x": 500, "y": 300, "z": 100}, 600)
 sys.exit(0 if (keep, left) == (["x", "z"], ["y"]) else 1)
 PY
 

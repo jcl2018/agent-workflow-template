@@ -34,7 +34,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
-import actions, lanes, runs, tiers  # noqa: E401,E402
+import actions, lanes, runs  # noqa: E401,E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -345,8 +345,8 @@ def cmd_run(args):
             print("AFFECTED %d of %d rows (%s): %s" % (len(todo), len(picked), ids,
                                                        " ".join(lanes.changed(root, old["commit"]) or [])[:400]))
     est = {key: item.get("seconds") or 0 for key, item in (old["rows"] if args.reuse and picked and old else {}).items()}
-    limit = (args.budget or tiers.budget(root)) if args.reuse else None  # CI's plain run is the full suite: no budget
-    results, cut = tiers.execute(root, picked, todo, est, limit, args.timeout, expected, args.reuse)
+    limit = (args.budget or runs.budget(root)) if args.reuse else None  # CI's plain run is the full suite: no budget
+    results, cut = runs.execute(root, picked, todo, est, limit, args.timeout, expected, args.reuse)
     if not args.reuse:  # a reusing run writes nothing in the worktree and opens no issue: CI's plain run owns both
         runs.write(root, results, today(), head)
     left = sorted(set(lanes.dirty(root)) - set(unclean)) if record and not unclean else []

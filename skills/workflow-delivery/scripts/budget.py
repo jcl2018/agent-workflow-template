@@ -2,7 +2,7 @@
 """The time budgets of the loop's steps: read and check the two settings, and record a step or test run that hit one.
 
 step_budget_minutes (default 30) bounds each review and ship step; test_budget_minutes (default 15) bounds each test
-run (regression's tiers.py enforces it). Neither can be set under 15. A step that reaches its budget finishes with what
+run (regression's runs.py enforces it). Neither can be set under 15. A step that reaches its budget finishes with what
 it has done, and its record (budget_hits in the goal's run file) names what it left; the board and health show those.
 Imported by flow.py, role.py, guards.py and the monitoring and health reports.
 """
