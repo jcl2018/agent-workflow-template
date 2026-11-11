@@ -103,7 +103,7 @@
 | <a id="t-del6-depth-by-size"></a>del6-depth-by-size | requirement | DEL-6 | not run | - | local | 2026-11-10 |
 | <a id="t-del6-large-held-full"></a>del6-large-held-full | requirement | DEL-6 | not run | - | local | 2026-11-10 |
 | <a id="t-del6-owner-override"></a>del6-owner-override | requirement | DEL-6 | not run | - | local | 2026-11-10 |
-| <a id="t-del6-full-lane"></a>del6-full-lane | requirement | DEL-6 | not run | - | local | 2026-11-10 |
+| <a id="t-del6-full-lane"></a>del6-full-lane | requirement | DEL-6 | not run | - | local | 2026-11-11 |
 | <a id="t-del5-patch-default"></a>del5-patch-default | requirement | DEL-5 | not run | - | local | 2026-11-10 |
 | <a id="t-del5-bump-set"></a>del5-bump-set | requirement | DEL-5 | not run | - | local | 2026-11-10 |
 | <a id="t-del5-release-pr"></a>del5-release-pr | requirement | DEL-5 | not run | - | local | 2026-11-10 |
