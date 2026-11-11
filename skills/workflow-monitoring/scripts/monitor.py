@@ -159,9 +159,16 @@ def refresh():
                 save(fresh, "failed: agent pid %s ended without finishing" % state.get("pid"))
 
 
+def pool():
+    """The session pool's busy map and why it can't be read (graph.read_pool); report reads it like watch (issue 111)."""
+    found, why = graph.read_pool(os.path.join(loop_dir(), "session-pool.json"))
+    return graph.assigned(found), why
+
+
 def plan(limit):
     """Split queued goals into those that may start now and those that wait, with the reason."""
-    return graph.ready(parse_queue(), {state["slug"]: state for state in runs()}, limit)
+    taken, why = pool()
+    return graph.ready(parse_queue(), {state["slug"]: state for state in runs()}, limit, taken, why)
 
 
 def facts():
@@ -196,6 +203,13 @@ def status_block(fragment=False):
     return subprocess.run([sys.executable, helper] + ["--html"] * fragment, capture_output=True, text=True, cwd=root()).stdout
 
 
+def over_budget(states):
+    """(slug, line) for each step or test run that reached its time budget, with what it left (the run file's budget_hits)."""
+    return [(state["slug"], "%s %s hit its %s-minute budget; left: %s" % (
+        hit.get("step"), "step" if hit.get("kind") == "step" else "tests", hit.get("minutes"), hit.get("left")))
+        for state in states for hit in state.get("budget_hits") or [] if isinstance(hit, dict)]
+
+
 def cmd_report(args):
     states, held = facts()
     print(status_block())
@@ -223,9 +237,24 @@ def cmd_report(args):
         print("- %s (%s): %s" % (state["slug"], state["status"], " ".join(str(state.get("finding", "")).split())))
     if not found:
         print("(none)")
+    over = over_budget(states)
+    if over:  # shown only when there is one, so the usual report keeps its layout
+        print("\nBUDGET HITS")
+        print("\n".join("- %s: %s" % item for item in over))
     print("\nREVIEWED CRITERIA CHANGED")
     back = returned()
     print("\n".join("- %s (%s): %s" % item for item in back) if back else "(none)")
+    taken, _ = pool()
+    print("\nHELD OR FREEZING")
+    kept = [s for s in states if graph.held(s, taken)]
+    for state in kept:
+        print("- %s: held since %s, no worker; give it a session (sessions.py bind %s ID)" % (
+            state["slug"], state.get("held_at") or state.get("updated") or "?", state["slug"]))
+    on_disk = {s["slug"] for s in states}
+    for entry in graph.freezing(taken, on_disk):
+        print("- %s: freezing in session %s since %s" % (entry["slug"], entry.get("name") or entry["id"], entry.get("since") or "?"))
+    if not kept and not graph.freezing(taken, on_disk):
+        print("(none)")
     print("\nQUEUED, NOT STARTED")
     for goal, why in held:
         print("- %s: %s" % (goal["slug"], why))
@@ -273,7 +302,9 @@ def cmd_dashboard(args):
     found = [state for state in states if state.get("status") in ("stopped", "failed")]
     out.extend("<li><b>%s</b> (%s): %s</li>" % (e(state["slug"]), e(state["status"]), e(state.get("finding")))
                for state in found)
-    out.append(("" if found else "<li>None.</li>") + "</ul><h2>Queued, not started</h2><ul>")
+    over = over_budget(states)
+    out.append(("" if found else "<li>None.</li>") + "</ul>" + ("<h2>Budget hits</h2><ul>" + "".join(
+        "<li><b>%s</b>: %s</li>" % (e(slug), e(line)) for slug, line in over) + "</ul>" if over else "") + "<h2>Queued, not started</h2><ul>")
     out.extend("<li><b>%s</b>: %s</li>" % (e(goal["slug"]), e(why)) for goal, why in held)
     out.append(("" if held else "<li>None.</li>") + "</ul></body></html>\n")
     path = os.path.abspath(args.out) if args.out else os.path.join(loop_dir(), "dashboard.html")

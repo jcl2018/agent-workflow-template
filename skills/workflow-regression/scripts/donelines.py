@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Done lines with no regression row, for regression.py sync. A goal whose file was first committed before
 done_lines_since (YYYY-MM-DD in .loop/config.json) owes no done-line rows: it finished before the repo adopted the
-table (issue 124). Imported by regression.py; not run."""
+table (issue 124), and neither does one that is no longer being built (issue 143: its criteria rows guard it).
+Imported by regression.py; not run."""
 import glob
 import json
 import os
@@ -32,14 +33,14 @@ def first_added(root, folder):
     return added
 
 
-def gaps(root, rows, path_of, done_lines):
+def gaps(root, rows, path_of, done_lines, owes=None):
     covered = {row["goal"] for row in rows.values() if row["goal"]}
     cut = since(root)
     added = first_added(root, path_of(root, "goals")) if cut else {}
     out = []
     for path in sorted(glob.glob(path_of(root, "goals/*.md"))):
         slug = os.path.basename(path)[:-3]
-        if cut and added.get(slug, cut) < cut:
+        if cut and added.get(slug, cut) < cut or owes and not owes(root, slug):
             continue
         for number, line in done_lines(path):
             if "%s:%s" % (slug, number) not in covered:

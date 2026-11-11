@@ -37,14 +37,21 @@ TABLE = [
     ("judge_env", REPO, "ANTHROPIC_API_KEY", "The Actions secret holding the agent key; the scheduled judge runs only when it is set."),
     ("judge_setup", REPO, "", "A command the scheduled health run uses to install judge_command's program, run only with the secret."),
     ("digest_owner", REPO, "", "Who the digest comment mentions; empty means the repo owner (an organisation notifies no one)."),
+    ("digest_mail", REPO, "cloudflare", "How the round's digest is mailed: cloudflare (Email Service), smtp, or off; the address and keys live only in Actions secrets."),
+    ("smtp_host", REPO, "smtp.gmail.com", "The SMTP server digest_mail smtp sends through (with DIGEST_SMTP_USER and DIGEST_SMTP_PASSWORD secrets)."),
+    ("smtp_port", REPO, 465, "465 (TLS) or 587 (STARTTLS) for digest_mail smtp."),
     ("review_depth", REPO, "full", "full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run."),
     ("criteria", REPO, True, "true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests)."),
     ("criteria_max", REPO, 10, "Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it."),
     ("wiki_dir", REPO, "docs/wiki", "The folder of wiki pages."),
     ("risky_paths", REPO, RISKY, "Regexes for paths whose goals need extra care."),
     ("step_limit", REPO, 0, "Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit."),
+    ("goal_lane_minutes", REPO, 10, "Minutes a goal's regression lane may take before health warns and its LANE line says over."),
+    ("goal_levels", REPO, "land", "Row levels a goal lane plans from: land, or nightly for land and nightly rows."),
+    ("ci_levels", REPO, "nightly", "Target of the scheduled and tag regression runs: nightly (every row) or land."),
     ("token_budget", REPO, 0, "Tokens a goal may spend over all steps before no new step starts; 0 means no budget."),
-    ("test_budget_seconds", REPO, 600, "Seconds the land test lane may take before health warns and names its slowest rows."),
+    ("test_budget_minutes", REPO, 15, "Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite."),
+    ("step_budget_minutes", REPO, 30, "Minutes one review or ship step may take, 15 or more; a step at its limit finishes with what it has done and records what it left."),
     ("stale_branch_days", REPO, 14, "Days a local branch on no remote may sit before health lists it with its removal command."),
     ("mend", REPO, False, "true lets watch start a fresh agent for a failed goal."),
     ("mend_wait", REPO, 120, "Seconds a failed goal waits before a mender starts."),
@@ -52,12 +59,18 @@ TABLE = [
     ("resume_on_limit", REPO, False, "true lets watch resume a goal that hit a usage limit."),
     ("limit_wait", REPO, 1800, "Seconds to wait after a usage limit before resuming."),
     ("watch_interval", REPO, 20, "Seconds between rounds of watch."),
+    ("agent_files", REPO, ["CLAUDE.md", "AGENTS.md"], "Agent entry files setup wires the workflow-loop block into; [] turns wiring off."),
+    ("template_repo", REPO, "", "The template's GitHub repo (owner/name) update reads releases from, when the installed package names none."),
     ("reply_hook", REPO, True, "false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session."),
+    ("govern_hook", REPO, True, "false turns off the govern-only hook (setup.py --govern-hook installs it): edits, commits and pushes refused in the operation session."),
+    ("full_auto", REPO, True, "true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait."),
+    ("pool_size", REPO, 20, "Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones."),
+    ("silent_minutes", REPO, 30, "Minutes a worker may send nothing before it shows under Needs you; LOOP_SESSION_QUIET (seconds) overrides it."),
     ("command", PRIVATE, ["claude", "-p"], "Flow file: the agent command that runs each flow step unattended."),
     ("allowed_tools", PRIVATE, [], "Flow file: tools a step's agent may use, passed as --allowedTools; empty adds nothing."),
     ("model", PRIVATE, "", "Flow file: the model a step's agent uses, passed as --model; empty keeps the command's own."),
-    ("suite", PRIVATE, {"idea": "", "plan": "", "review": "", "qa": "", "ship": ""},
-     "Flow file: the default skill for each step; empty until you name your own."),
+    ("suite", PRIVATE, {"idea": "built-in", "plan": "built-in", "review": "built-in", "qa": "built-in", "ship": "built-in"},
+     "Flow file: the skill for each step; built-in runs delivery's own routine until you name your own."),
     ("steps", PRIVATE, {}, "Flow file: a skill for any one step, replacing the suite's."),
     ("overrides", PRIVATE, {}, "Flow file: per step {skill, model, allowed_tools} that replace the defaults above."),
     ("env", PRIVATE, {}, "Flow file: environment that puts the skills in their unattended mode."),
@@ -66,6 +79,7 @@ TABLE = [
     ("leak_prefixes", PRIVATE, [], "Flow file: case-insensitive regexes the package scan blocks in any file or file name, as your leak hook does."),
     ("full_markers", PRIVATE, {}, "Flow file: per step, strings a full plan or review reply must contain, e.g. {\"review\": [\"...\"]}; none checked when empty."),
     ("limit", PRIVATE, 2700, "Flow file: seconds one flow step may run."),
+    ("lane_limit", PRIVATE, 2, "Flow file: full regression lanes that may run at once on this machine; more wait their turn (0 is unlimited)."),
     ("rules", PRIVATE, [], "Health file: your own health rules, each {name, command, fix}."),
     ("repos", PRIVATE, [], "Followed repos: one path a line in the repos file, shown on the board."),
 ]
@@ -143,6 +157,10 @@ def fill_private(path=None):
             new[key] = default
         if key in FLOW_KEYS and key not in help_:
             help_[key] = text.split(": ", 1)[-1]
+    suite = new.get("suite")
+    if isinstance(suite, dict) and not any(suite.values()) and not new.get("steps"):  # never configured: the built-in flow
+        new["suite"] = dict((key, "built-in") for key in ("idea", "plan", "review", "qa", "ship"))
+        added.append("suite")
     new["_help"] = help_
     if new != held:
         write_json(path, new, 0o600)
@@ -154,6 +172,22 @@ def fill_private(path=None):
     if not os.path.exists(repos):
         open(repos, "w").close()
         os.chmod(repos, 0o600)
+    return added
+
+
+def fill_repo(path):
+    """Add each missing repo setting, with its default and _help line, to the config at path; never changes a value set.
+    Keeps the config's key order, new keys last. Returns what was added (update's repo half calls it too)."""
+    held = load(path)
+    if "criteria_max" in held and (isinstance(held["criteria_max"], bool) or not isinstance(held["criteria_max"], int)
+                                   or not 1 <= held["criteria_max"] <= 50):
+        sys.exit("REFUSED: criteria_max is %r in %s. Fix: a whole number from 1 to 50 (default 10)." % (held["criteria_max"], path))
+    check_depth(held, path)
+    added = [k for k in repo_defaults() if k not in held]
+    merged = dict(held, **{k: v for k, v in repo_defaults().items() if k not in held})
+    merged["_help"] = repo_help(held)
+    if merged != held:
+        write_json(path, merged)
     return added
 
 
@@ -179,16 +213,7 @@ def main():
     elif args.command == "fill-repo":
         top = subprocess.run(["git", "-C", args.repo, "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
         path = os.path.join(top or args.repo, ".loop", "config.json")
-        held = load(path)
-        if "criteria_max" in held and (isinstance(held["criteria_max"], bool) or not isinstance(held["criteria_max"], int)
-                                       or not 1 <= held["criteria_max"] <= 50):
-            sys.exit("REFUSED: criteria_max is %r in %s. Fix: a whole number from 1 to 50 (default 10)." % (held["criteria_max"], path))
-        check_depth(held, path)
-        added = [k for k in repo_defaults() if k not in held]
-        merged = dict(repo_defaults(), **held)
-        merged["_help"] = repo_help(held)
-        write_json(path, merged)
-        print("FILLED %s: %s" % (path, ", ".join(added) or "nothing missing"))
+        print("FILLED %s: %s" % (path, ", ".join(fill_repo(path)) or "nothing missing"))
     else:
         added = fill_private(args.file or None)
         print("FILLED %s: %s" % (args.file or private_path(), ", ".join(added) or "nothing missing"))

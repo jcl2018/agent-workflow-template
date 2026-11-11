@@ -27,8 +27,9 @@ flowchart LR
 ```
 
 **The one command is `python3 scripts/operate.py run`.** It runs the loop below the same way every time, with no model in
-it: each pass is `watch.py watch --once`, `board.py board --since <the last board.json>` and `board_page.py`. It prints
-the full live board and the changes every pass, even when nothing changed. It waits the gap from
+it: each pass is `watch.py watch --once`, `board.py board --since <the last board.json>`, `board_page.py`, `replan.py`
+and `auto.py pass`. It prints the check-in (`checkin.py`) every pass, even when nothing changed, and never the live board:
+the board prints only for `report`, `dashboard` and "where do things stand" (MON-4). It waits the gap from
 `board.py cadence`, or less: a run record changing (a worker reported) or a new queue line starts the next pass at once.
 It stops when nothing is queued, running or waiting, or when the cadence is `off`. `operate.py send SLUG "<text>"` gives a
 worker an answer or follow-up. When the owner asks an LLM to run the operation session, the LLM runs this command and
@@ -51,7 +52,7 @@ message at each change of step or status and at the end. For each such message, 
 open pull request stays `done` and reports waiting, and where `auto_merge` is on the release step runs for it). A question
 for the owner is `--status waiting --ask Q --words W`, and `operate.py send` carries the answer to the session itself. A
 goal that ended frees its session, and the next ready goal gets it, renamed again. A session goal holds a `parallel`
-slot, and one silent for an hour is named under Issues. A session you start yourself with the app's tools is recorded with
+slot, and one silent for `silent_minutes` (default 30) is named under Needs you (MON-8). A session you start yourself with the app's tools is recorded with
 `sessions.py bind SLUG ID`, which also brings back a goal the board showed as a failed background worker.
 
 Only when no session can be started or reached does the goal fall back to a background process: `scripts/worker.py loop
@@ -73,7 +74,7 @@ gap between check-ins, or an hour when nothing runs or waits:
    a note with `board.py note SLUG "<text>"`; the board shows the report or note as the last message.
 3. Run `python3 scripts/board.py board --since <the last board.json>`. It prints `DIGEST`, `CHANGED`, one `CHANGE` line
    per really changed field, `NEXT_DELAY`, and the path of `board.json`.
-   It first prints the live board (below). Then run `python3 scripts/board_page.py`, which prints the paths of
+   Asked directly, it first prints the live board (below). Then run `python3 scripts/board_page.py`, which prints the paths of
    `board.html` and `board-artifact.html`.
 4. If you have an Artifact tool, publish `board-artifact.html` as it is, with no hand edits (it has no doctype, html, head
    or body tags): the same artifact URL each time, never a new one. Both pages follow the viewer's light or dark setting,
@@ -91,6 +92,26 @@ gap between check-ins, or an hour when nothing runs or waits:
 
 To pass the loop to a new session, run `board.py handoff` and give it the path.
 
+## Re-plan, full auto, the pool and the govern hook
+
+- **Re-plan (MON-10).** `replan.py plan` runs each pass: it logs each start with its reason, proposes merging two queued
+  goals with the same `prd:` and shared `touches:`, proposes splitting a goal two or more wait on when its queue line
+  has `parts:`, and orders the merge line critical path first. It never stops or restarts a running goal and applies
+  nothing; open proposals show at every check-in until the owner acts (`board.py retire` and a new queue line).
+- **Full auto (MON-11).** `full_auto` (on by default) lets `auto.py pass` answer a waiting worker's routine decision with
+  its recommended words through `operate.py send --source auto`, logged in `loop/auto.log` and listed in the next
+  check-in with how to revert it. Kinds destructive, money, security and owner, a missing kind, a risky word or path, or
+  a goal the owner has answered wait under Needs you. `auto.py pass --dry-run` shows what it would do.
+- **Session pool (MON-12, MON-6).** `pool.py status` prints free, busy and total against `pool_size` (default 20). When
+  free sessions are fewer than ready goals, the check-in asks to create every missing session: on "fill pool" the
+  operation session creates them with the app in one step and runs `pool.py add ID ...`; "no pool" runs `pool.py
+  decline`. A merged report runs `pool.py return SLUG`: the session goes back to the pool (marked archive above
+  `pool_size`, for the operation session to archive with the app), and the goal's worktree and branch are removed once
+  GitHub says merged (a dirty worktree is kept and named).
+- **Govern only (MON-7).** `govern_hook.py` is a PreToolUse hook: in the operation session (`operate.py claim` records
+  it) it refuses Edit, Write and git commit, push, merge, rebase, reset, cherry-pick, revert and am, segment by segment.
+  `govern_hook: false` turns it off; its fail-opens show under Needs you.
+
 ## The reply hook
 
 `scripts/reply_hook.py` is a Claude Code Stop hook that keeps step 5's reply format (MON-5). `setup.py --reply-hook`
@@ -98,7 +119,7 @@ installs it into the repo's machine-local `.claude/settings.local.json` (git ign
 session loads it. It checks only the operation session, a session whose latest signal is an `operate.py run` without a refusal, and never a worker (a session in a goal worktree, or one that ran a flow step) or a session in another repo.
 `"reply_hook": false` in `.loop/config.json`, or `LOOP_REPLY_HOOK=0`, turns it off. It checks the layout (the headline,
 then the four section headings in order, each with something under it, Needs you numbered or `Nothing needs you`), not
-whether the numbers are true. A reply that passes:
+whether the numbers are true. A reply that passes: It checks the session named in `loop/operation.id` (run `operate.py claim` once in the operation session) as well as one that ran `operate.py run`, so a scheduled check-in answered with one line is blocked and told the five missing parts (issue 321); a check-in prompt never offers a short reply.
 
 ````text
 Two goals moved; one needs you.
@@ -130,7 +151,8 @@ layout: ...`, and the session writes the reply again. The third block in a row l
 
 ## The live board
 
-Every check-in prints the live board, and the dashboard and `board-artifact.html` carry the same content, always in this format:
+`report`, `dashboard` and "where do things stand" print the live board (a check-in prints `checkin.py` instead), and
+`board-artifact.html` carries the same content, always in this format:
 
 1. **Header**: `LIVE BOARD`, the repo, the local time (`17:30 IST`, never UTC), the version and the health verdict.
 2. **Issues**: only what is open now, each with its fix in plain words and no local file paths. A stuck, waiting or failed
@@ -142,11 +164,10 @@ Every check-in prints the live board, and the dashboard and `board-artifact.html
 4. **Queued goals**: each with its time left and what it waits on.
 5. **Dependencies**: arrows (`a --> b`) between running and queued goals.
 6. **Finish**: one time, the longest chain of what is left (goals that don't wait on each other run side by side), never the
-   sum. It reads `at least` when a goal has no estimate yet.
+   sum. It reads `at least` when a goal has no estimate yet, a step still to run has no history, or a goal is held or freezing.
 
 Merged and closed work, history, milestones, duplicate totals, token tables and done-line lists are left out. A worker still
-marks a done line met with `worker.py met SLUG N`. Estimates are the median of other finished runs' steps, read from their logs;
-a step with none reads `no estimate yet`. A goal's step label changes when `flow.py` starts the step, and moves on when
+marks a done line met with `worker.py met SLUG N`. Estimates come from finished goals like this one: a goal's size is its done lines and touched areas (a skill folder, else its first folder, else the root file), and per step the estimate is the median of the times of finished goals within one done line and one area of it, when there are 5 or more and they logged that step, else of every finished goal; a whole-goal lift (at least a minute per extra done line or area) makes a larger goal always longer. The board shows a range, the 25th to 75th percentile summed over the steps left (`20m to 45m left`), with `, rough` when fewer than 5 goals are similar, the size is unknown or more than one done line or area past every finished goal's, or a step still to run has no history (then the finish also reads `at least`). Step time counts reports and checks toward the step in force (the next step once a log entry says a step is done); a pause after a stopped, failed or waiting entry counts nothing. A running goal's pace over its finished steps (held between half and double) scales the rest; a running goal whose current step outlasts 3 times its estimate shows under Issues as stalled, with how long it has run (a held goal never does). Without any history it reads `no estimate yet`. A goal's step label changes when `flow.py` starts the step, and moves on when
 `goal.py record` records it, so the board never shows a finished step as current. A current step past its estimate has its
 time left re-estimated as half the time it has run (at least a minute), so the goal's time left and the finish time grow while
 it runs; a minute or more past, it reads `[build over by 12m]`. Every line fits 60 characters: the step flow wraps at its ` > `
@@ -161,8 +182,8 @@ in Runs marked `retired`. Only retire a goal the owner has said is superseded. I
 
 Each lane is a run and each box a step, coloured by status, with its expected finish. Solid arrows run inside a run.
 Thick dashed arrows cross runs and say that one goal depends on another. A goal's `waits_on` is its `depends-on` list,
-recorded when `watch` starts it, so the arrow stays through running and today's finished goals. Times come from the median
-finished goal; without one the box says `no estimate`. Hover a box for what it is, what's done, what's
+recorded when `watch` starts it, so the arrow stays through running and today's finished goals. Times come from the same
+estimates as the live board (finished goals of a similar size); without one the box says `no estimate`. Hover a box for what it is, what's done, what's
 next and what it unblocks, or tap it to open the same text in the list below. The page has no scripts.
 
 ## Rules

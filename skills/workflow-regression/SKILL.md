@@ -17,13 +17,13 @@ Rows live in `.loop/regression.tsv`: id, level, command, goal, and the date it w
 | `draft` | Nothing, until you give it a real command and level |
 | `covered` | Nothing. The done line is proved elsewhere; say where in the command |
 
-## `add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>] [--category criterion|defect --link <url>]`
+## `add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>] [--category criterion|workflow|defect --link <url>]`
 
 Adds or replaces a row. `--goal` ties it to a criterion, such as `DEL-5`, or a goal's done line, such as `add-median:2`. With criteria on, every
-test needs a criterion. A changed command must be proved
-again. `--category defect --link <url or finding:SLUG>` makes a defect test: one for every finding, issue or bug that
-gets fixed. It shows under "Defect tests" on the page of the criterion in `--goal`, never counts as proof of that
-criterion, and `sync` flags a defect row with no link.
+test needs a criterion. A changed command must be proved again. `--category defect --link <url or finding:SLUG>` makes a
+defect test: one for every finding, issue or bug that gets fixed. It shows under "Defect tests" on the page of the
+criterion in `--goal`, never counts as proof of that criterion, and `sync` flags a defect row with no link.
+`--category workflow` makes a workflow test: an end-to-end run of a whole flow on a toy repo, after the requirement tests.
 
 `run` also records each row's last status and date in `.loop/regression-runs.tsv`, which the wiki Tests tables show. The regression
 workflow on GitHub runs every `land` and `nightly` row, so a criterion's rows should be one of those; its run summary lists each row's result, and Actions keeps the run history.
@@ -51,13 +51,13 @@ It copies `HEAD` to a temporary worktree, runs the break command there, runs the
 fails. `STILL GREEN` means the test proves nothing, so fix the test. Commit the row first if the test is new. Your own
 checkout is never touched.
 
-## `run [land|nightly|<id>] [--timeout S] [--live]`
+## `run [land|nightly|<id>] [--timeout S] [--live] [--kind requirement|workflow|defect]`
 
 ```bash
 python3 scripts/regression.py run land
 ```
 
-The default is `land`.
+The default is `land`. `--kind` runs only that kind of test (`requirement` is category criterion).
 
 | Line | Means |
 |---|---|
@@ -89,8 +89,7 @@ the files they name (narrowly under a `# reads:` header, below; else a skill fol
 | `REUSED <n> rows from <commit> (<time>)` | Nothing changed: no test ran |
 | `AFFECTED <n> of <m> rows (<ids>): <files>` | Only the rows the changed files can affect ran |
 | `FULL: <reason>` | Every row ran: no record, an unreadable one, one with a failing row, or a moved base |
-| `UNMAPPED <file>: full run` | A changed file no row reads, outside the docs and release files: every row ran |
-| `FULL: deleted <file>` | A file outside the release and loop files was deleted: every row ran |
+| `UNMAPPED <file>: ...` | A changed or deleted file no row maps: the rows that name it and the runners ran, never every row |
 | `ALWAYS <id>: <code> <what>` | A row whose header has a problem; it runs on every change until fixed |
 | `NOT RECORDED: <reason>` | Uncommitted changes or a detached HEAD: tested, but the record is unchanged |
 | `NOT RECORDED: the rows left uncommitted files: <files>; record dropped` | The rows left files behind: the record is deleted, so the next run is full |
@@ -99,7 +98,7 @@ A row whose command names no repo path always runs. `RESULT` counts reused rows 
 failure counts as known. A reusing run
 writes nothing in the worktree and opens no issue: a failure shows in its exit status and output (the last 20 lines of
 each failing row), and the plain `run` in GitHub Actions keeps the issues. A plain `run` forces every row and rewrites
-the record. Try it on a toy repo: `bash dev/toy/test-lanes.sh "" regression` (in this repo) walks every case.
+the record. Try it on a toy repo: `bash dev/toy/test-lanes.sh "" regression` (in this repo) walks every case. A goal lane adds `--tier goal` (`scripts/tiers.py`; `references/commands.md`, "Goal tier").
 
 **Declare what a test script runs** in `# reads:` lines at its top (`skills/` keeps it wide), then run `scripts/lanes_cli.py
 check <script>` and `affected <file>`; `LANES_WIDE=1` forces the wide mapping. Rules: `references/commands.md`, "Narrow rows".
@@ -111,7 +110,7 @@ python3 scripts/regression.py workflow
 ```
 
 Writes `.github/workflows/regression.yml`: rows run on `regression_cron` (4-hourly by default; `off` drops the schedule), on
-`v*` tags and by hand; each failing row's issue is labeled `regression` and `defect` and names what it guards; it keeps the same issues. It refuses to replace a workflow it didn't write. The job has 90 minutes. Each row runs in its own process group
+`v*` tags and by hand; each failing row's issue is labeled `regression` and `defect`, names what it guards and goes on its feature's milestone (`Backlog` when none; one you moved stays); a failed write fails the step (`FILE_FAILED`). It refuses to replace a workflow it didn't write. The job has 90 minutes. Each row runs in its own process group
 with a 15-minute limit, and starts only if that full limit still fits the job's time; a row that doesn't fit is
 skipped, reported `SKIPPED`, and fails with an issue. Each row's result is saved as it ends, and a last step that
 always runs writes the run summary: one header with totals and the run time, then one table per feature (`tests.py

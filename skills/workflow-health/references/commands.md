@@ -60,6 +60,16 @@ unchanged repo print the same lines.
 | | `scheduled` | the regression or health workflow is missing or has no schedule (WARN) |
 | Controls (can each rule fire?) | `control` per rule | a rule's control stays green: it cannot fire (FAIL); a fixture that can't be built is UNREAD |
 
+- Performance's `test-time` reads the land lane record (`regression.py`'s record of the current branch, else the newest
+  one) and warns when its land rows took longer than `test_budget_minutes` (default 15, floor 15), naming the five
+  slowest rows and the slowest toy scripts; a full run over 30 minutes also warns, and each step or test run that hit its
+  budget is an INFO row with what it left. Its `cost` rule also carries lane-control's REG-7 timing rows: a goal lane over
+  `goal_lane_minutes`, or the newest full suite over 30 minutes, warns. Hygiene's `worktrees` and `local-branches` list loop
+  worktrees that no live goal names and local branches on no remote older than `stale_branch_days`, one row per kind with
+  the first five and their removal commands (all of them under `--json`). A branch whose commits exist only on this
+  machine says so before `git branch -D`. These rows are never filed and the commands are never run for you.
+
+
 Mine runs the owner's own rules from `~/.workflow-loop/health.json` (or `LOOP_HEALTH`): exit 0 is PASS, 1 FAIL, 2 WARN,
 anything else UNREAD. It runs the owner's commands, so it is outside the read-only and same-answer promises, and it is
 filed only when named.
@@ -81,8 +91,11 @@ module's `FUNCTIONS`, and add a fixture to its `CONTROLS` that makes it fire. He
 - `file` puts each finding on its feature's milestone: the page whose `.loop/docs.tsv` path is the longest prefix of the
   finding's path, the page defining its requirement id, the page of its row's requirement, an issue's own milestone, or a
   review finding's feature. Backlog when none fits.
-  - Its marker is `<!-- loop-health KEY evidence=H -->`, where H hashes the finding's identity and stable citations, never
-    its ages, counts or sizes. Markers from before the twelve groups are found and moved to the new key.
+  - Its marker is `<!-- loop-health KEY evidence=H placed=P -->`, where H hashes the finding's identity and stable citations,
+    never its ages, counts or sizes, and P is the milestone `file` put it on: it moves to its feature only while it is still
+    there, so an issue you moved anywhere else, `Backlog` included, stays. Markers from before the twelve groups are found
+    and moved to the new key. A feature milestone that isn't there falls back to `Backlog` (made when needed); create the
+    milestones first (see Milestones). When the milestones can't be read, issues are placed by title and none is moved.
   - An open non-health issue on that milestone naming the subject (exact path, id or row id) gets one comment marked
     `<!-- loop-health-link KEY evidence=H -->`, instead of a new issue.
   - An issue closes only when its own rule ran and read its data. One closed in triage (`health:closed`) stays closed while
@@ -193,4 +206,9 @@ the open issues labelled `regression` (failing tests, also labelled `defect`) or
 kept in the digest issue's body, and posts one comment: `@digest_owner` (default the repo owner; an organisation is named,
 not mentioned), what ran (regression's latest run, health's verdict), **New**, **Still open** and **Fixed**, and for each
 open issue ``/workflow-delivery go "Fix #N"`` with its link, never its title. A rerun of the same run posts nothing. In
-Actions with no token it says so and fails; elsewhere without one it only prints the comment.
+Actions with no token it says so and fails; elsewhere without one it only prints the comment. `workflow --check` reports a
+written workflow older than the skills (`STALE_WORKFLOW`) or one not written by it (`NOT_OURS`).
+
+`mail.py send` (the `mail` job, after the digest) mails the round's comment at most once, by Cloudflare Email or SMTP
+(`digest_mail`), to the address in the `DIGEST_TO` secret; `mail.py test` (`mail-test.yml`, by hand) sends one fixed mail.
+Codes and fixes are in the Automation wiki page.

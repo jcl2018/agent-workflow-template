@@ -28,7 +28,7 @@ mkrepo() {  # a repo with one feature (Calc, skills/calc) and a near-limit scrip
   printf '# Calc\n\n## Usage\n\n- /workflow-calc add adds.\n\n## Requirements\n\n### Functional\n- CAL-1: **Reviewed 2026-11-10** Calc adds.\n\n### Non-functional\n- CAL-2: **Reviewed 2026-11-10** Calc is fast.\n' > docs/wiki/Calc.md
   printf '# pad\n%.0s' $(seq 1 3400) > skills/calc/scripts/near.py
   echo 'Run /workflow-zzz frob.' > README.md
-  git add -A; git commit -qm toy; echo '[]' > "$FAKE_GH_DIR/issues.json"; echo '[]' > "$FAKE_GH_DIR/milestones.json"
+  git add -A; git commit -qm toy; echo '[]' > "$FAKE_GH_DIR/issues.json"; echo '[{"number": 1, "title": "Backlog", "state": "open"}, {"number": 2, "title": "Calc", "state": "open"}]' > "$FAKE_GH_DIR/milestones.json"
 }
 
 if want h2; then
@@ -186,6 +186,7 @@ echo "== issue 124: older repos can go green: goals without tokens, done lines b
 mkrepo
 mkdir -p .loop/goals; printf '# Old\n\n## Done lines\n\n1. Calc adds.\n' > .loop/goals/old.md
 git add -A; GIT_COMMITTER_DATE=2020-01-01T00:00:00 git commit -qm old
+mkdir -p .git/loop/runs; printf '{"slug": "old", "status": "running"}' > .git/loop/runs/old.json  # a goal still being built owes its done lines
 out=$(python3 "$here/skills/workflow-regression/scripts/regression.py" sync 2>&1)
 python3 -c "import json;c=json.load(open('.loop/config.json'));c['done_lines_since']='2021-01-01';json.dump(c,open('.loop/config.json','w'))"
 out2=$(python3 "$here/skills/workflow-regression/scripts/regression.py" sync 2>&1)

@@ -4,18 +4,24 @@
 usage: lanes_cli.py affected [--root DIR] [--level land|nightly|all] PATH...
        lanes_cli.py deps [--root DIR] COMMAND [--why PATH]
        lanes_cli.py check [--root DIR] [SCRIPT...]
+       lanes_cli.py merge-runs [--root DIR]
 
 affected  dependency impact of a change to PATH: `AFFECTED n of m rows (ids)`, plus `ALWAYS <id>: <reason>` for rows
-          that run on every change, `UNMAPPED <path>` or `DELETED <path>` when the change means a full run. No record is
+          that run on every change, `UNMAPPED <path>` or `DELETED <path>` when no row maps
+          the file: the rows that name it and the runners are picked, never a full run. No record is
           read, so failed rows, ancestry and edited table rows (which a reuse run also reruns) are outside it.
 deps      a row command's dependency paths, sorted, then `ALWAYS <command>: <reason>`; --why prints the chain of files
           from the command to PATH, or NOT REACHED.
 check     every `# reads:` problem of the test scripts (default: each dev/toy/test-*.sh a row of the table names), one
           `<CODE> <file>:<line>: <what>` line and a `fix:` line each. Exit 0 clean, 1 problems.
+merge-runs  merge the branch's lane record's row results (PASS or FAIL, with any flaky flag) into
+          .loop/regression-runs.tsv under slots.py's row lock (DX-19); workflow-delivery's goal.py pr runs it, by path,
+          before its bookkeeping commit. Writes nothing when the record has no results; exit 1 on an error.
 The root is the git top level of the current directory unless --root is given. Usage errors exit 2 on stderr;
-LANES_DEBUG=1 shows the full trace of an unexpected error. Read-only.
+LANES_DEBUG=1 shows the full trace of an unexpected error. Read-only, except merge-runs.
 """
 import argparse
+import datetime
 import os
 import re
 import subprocess
@@ -82,9 +88,15 @@ def relative(root, path):
     return rel
 
 
+def picked(root, rows, path, cache):
+    """The rows a deleted or unmapped file selects: those that name it, and those that reach the runner."""
+    return {r["id"] for r in rows if lanes.names_any(root, r["command"], [path], cache)
+            or lanes.hits(lanes.RUNNER, lanes.closure(root, r["command"], cache)[0])}
+
+
 def affected(root, rows, paths, cache):
     """(rerun ids, notes) for a change to paths: plan()'s per-path rules without a record (dependency impact only)."""
-    ids, notes, every = set(), [], [r["id"] for r in rows]
+    ids, notes, real = set(), [], False
     for row in rows:
         lanes.closure(root, row["command"], cache)
         if cache.get(("why", row["command"])):
@@ -92,7 +104,9 @@ def affected(root, rows, paths, cache):
     for path in paths:
         if not os.path.exists(os.path.join(root, path)) and not any(
                 path == n or (n.endswith("/") and path.startswith(n)) for n in lanes.NO_EFFECT):
-            return every, notes + ["DELETED %s: full run" % path]
+            ids |= picked(root, rows, path, cache)
+            notes.append("DELETED %s: the rows that name it and the runners" % path)
+            continue
         if path in (lanes.TABLE, ".loop/regression-known.tsv"):  # never unmapped; a record would add the edited rows
             hit = {r["id"] for r in rows if lanes.reads_table(root, r["command"], cache)}  # plus edited rows (needs a record)
         else:
@@ -101,10 +115,14 @@ def affected(root, rows, paths, cache):
             path == n or (n.endswith("/") and path.startswith(n)) for n in lanes.NO_EFFECT)
         if not hit and not no_effect and not any(lanes.hits(path, lanes.closure(root, r["command"], cache)[0])
                                                  for r in rows):
-            return every, notes + ["UNMAPPED %s: full run; no row reads it (add it to a script's # reads: if one "
-                                   "should)" % path]
-        ids |= hit
-    ids |= {r["id"] for r in rows if lanes.closure(root, r["command"], cache)[1]}
+            ids |= picked(root, rows, path, cache)
+            notes.append("UNMAPPED %s: the rows that name it and the runners; no row reads it (add it to a script's "
+                         "# reads: if one should)" % path)
+            real = real or not no_effect
+            continue
+        ids, real = ids | hit, real or not no_effect
+    if real:  # root runners rerun on a real change; a change only to NO_EFFECT files (a release's VERSION) reaches none
+        ids |= {r["id"] for r in rows if lanes.closure(root, r["command"], cache)[1]}
     return sorted(ids), notes
 
 
@@ -127,10 +145,25 @@ def chain(parent, path):
     return " -> ".join(reversed(links))
 
 
+def merge_runs(root):
+    """The lane record's row results, with any flaky flag (tiers.py flaky_apply), into regression-runs.tsv."""
+    import runs
+    import slots
+    record, _ = lanes.load(lanes.record_path(root), root)
+    rows = (record or {}).get("rows") or {}
+    done = [dict({"id": key, "state": value.get("status")}, **{k: value[k] for k in ("flaky",) if k in value})
+            for key, value in sorted(rows.items()) if value.get("status") in ("PASS", "FAIL")]
+    if done:
+        day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True).stdout.strip()
+        slots.edit(root, "regression-runs.tsv", lambda: runs.write(root, done, day, head))
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(prog="lanes_cli.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
-    for name in ("affected", "deps", "check"):
+    for name in ("affected", "deps", "check", "merge-runs"):
         item = sub.add_parser(name)
         item.add_argument("--root")
     sub.choices["affected"].add_argument("--level", default="land", choices=("land", "nightly", "all"))
@@ -140,6 +173,8 @@ def main():
     sub.choices["check"].add_argument("scripts", nargs="*", metavar="SCRIPT")
     args = parser.parse_args()
     root, cache = top(args.root), {}
+    if args.cmd == "merge-runs":
+        return merge_runs(root)
     if args.cmd == "affected":
         rows = rows_of(root, args.level)
         ids, notes = affected(root, rows, [relative(root, p) for p in args.paths], cache)

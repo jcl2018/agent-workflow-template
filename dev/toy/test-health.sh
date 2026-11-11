@@ -59,6 +59,7 @@ import os
 os.makedirs(".loop/goals", exist_ok=True)
 open(".loop/goals/old.md", "w").write("# Old\n\n## Done lines\n\nFrozen.\n\n1. Calc adds.\n\n## Design\n")
 PY
+mkdir -p "$(git rev-parse --git-common-dir)/loop/runs"; echo '{"status": "running"}' > "$(git rev-parse --git-common-dir)/loop/runs/old.json"  # a goal still being built (issue 143)
 out=$($health check --family requirements)
 grep -q "^WARN requirements done-lines done: [0-9]* done lines have no regression row" <<<"$out" && ok "done lines with no row are one WARN row" || bad "done lines"
 

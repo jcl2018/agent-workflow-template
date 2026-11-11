@@ -68,7 +68,7 @@ def plan_for(h, root, asked, with_judge, only=None, saved=None):
     judged, extra = False, []
     if with_judge and "performance" in groups:
         extra, judged = filing.saves(root, h.HERE, rows)
-    issues, everything, why = filing.held(root)
+    issues, everything, why = filing.held_all(root)
     if issues is None:
         refuse("gh", "can't list the issues (%s). Nothing was written." % why)
     return filing, filing.plan(rows, issues, groups, extra, judged, root, ran, everything, only), groups

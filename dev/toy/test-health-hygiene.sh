@@ -92,18 +92,18 @@ PY
 # Value: protects=a slow land lane is named with its slowest rows; fails_when=nightly or deleted rows are counted, or
 #   no WARN; why_new=new; seam=none; no_claim=real lane timings (a stand-in record)
 out=$($health check --group performance); echo "$out" | grep test-time
-grep -q "^WARN performance lane test-time: the land lane takes 908 s, over test_budget_seconds=600 .*slowest rows: slow-2 302s, slow-1 301s, slow-0 300s, quick 5s; slowest scripts: dev/toy/test-a.sh 903s" <<<"$out" \
+grep -q "^WARN performance lane test-time: the land lane takes 908 s, over test_budget_minutes=15 .*slowest rows: slow-2 302s, slow-1 301s, slow-0 300s, quick 5s; slowest scripts: dev/toy/test-a.sh 903s" <<<"$out" \
   && ok "a land lane over its budget warns, naming the slowest rows and scripts (nightly and deleted rows left out)" || bad "test-time warn"
-python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['test_budget_seconds']=1000;json.dump(d,open(p,'w'))"
-$health check --group performance | grep -q "^PASS performance lane test-time: the land lane takes 908 s, within test_budget_seconds=1000" \
+python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['test_budget_minutes']=16;json.dump(d,open(p,'w'))"
+$health check --group performance | grep -q "^PASS performance lane test-time: the land lane takes 908 s, within test_budget_minutes=16" \
   && ok "a lane within its budget stays quiet" || bad "test-time quiet"
 # Value: protects=another branch's record is never this branch's verdict, and a damaged own record is UNREAD;
 #   fails_when=a borrowed record passes or a damaged one is skipped; why_new=review finding; seam=none; no_claim=none
 mv "$OWN" "$C/loop/tests/other-abcdef12.json"
-$health check --group performance | grep -q "^INFO performance lane test-time: the land lane takes 908 s, within test_budget_seconds=1000 (from another branch's record, other-abcdef12.json)" \
+$health check --group performance | grep -q "^INFO performance lane test-time: the land lane takes 908 s, within test_budget_minutes=16 (from another branch's record, other-abcdef12.json)" \
   && ok "another branch's record is INFO and named" || bad "borrowed record"
 git checkout -q -- .loop/config.json
-$health check --group performance | grep -q "^INFO performance lane test-time: the land lane takes 908 s, over test_budget_seconds=600 .*(from another branch's record, other-abcdef12.json)" \
+$health check --group performance | grep -q "^INFO performance lane test-time: the land lane takes 908 s, over test_budget_minutes=15 .*(from another branch's record, other-abcdef12.json)" \
   && ok "another branch's record over budget is INFO, never a warning" || bad "borrowed warn"
 echo '{"at": "x", "rows": {"a": {"seconds": "slow"}}}' > "$OWN"
 $health check --group performance | grep -q "^UNREAD performance lane test-time: this branch's lane record cannot be read" && ok "a damaged lane record of this branch is UNREAD" || bad "damaged record"
@@ -117,7 +117,7 @@ mv "$C/loop/tests/other-abcdef12.json" "$OWN"
 git checkout -q -- .loop/config.json
 python3 -c "
 import sys; sys.path.insert(0, '$S'); import lean
-print(lean.facts('.')[0])" | grep -q "land lane: 4 rows, 908 s (budget 600 s); slowest: slow-2 302s" && ok "the judge's facts carry test time" || bad "judge facts"
+print(lean.facts('.')[0])" | grep -q "land lane: 4 rows, 908 s (budget 900 s); slowest: slow-2 302s" && ok "the judge's facts carry test time" || bad "judge facts"
 python3 -c "
 import sys; sys.path.insert(0, '$S'); import judge
 print(judge.gather('.', '$S', []))" | grep -q "^## Test time (the land lane)" && ok "the judge input has a test time section" || bad "judge input"

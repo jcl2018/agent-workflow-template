@@ -65,7 +65,7 @@ python3 - <<'PYEND' && ok "file: one issue on Backlog, labelled, with the hidden
 import json, os, re
 issues = json.load(open(os.environ["FAKE_GH_DIR"] + "/issues.json"))
 assert len(issues) == 1 and issues[0]["milestone"]["title"] == "Backlog"
-assert re.search(r"<!-- loop-health size:skills/x/scripts/near.py:scripts evidence=[0-9a-f]{8} -->", issues[0]["body"])
+assert re.search(r"<!-- loop-health size:skills/x/scripts/near.py:scripts evidence=[0-9a-f]{8} placed=Backlog -->", issues[0]["body"])
 PYEND
 grep -q -e "--label health --label health:size --milestone Backlog" "$FAKE_GH_DIR/calls.log" && ok "labelled health and health:size" || bad "label"
 out=$($health file --group size); echo "$out"
@@ -76,7 +76,7 @@ grep -q "^DONE update #1" <<<"$out" && ok "a changed finding updates its issue" 
 python3 - <<'PYEND'
 import json, os, re
 p = os.environ["FAKE_GH_DIR"] + "/issues.json"; issues = json.load(open(p))
-issues[0]["body"] = re.sub(r"<!-- loop-health \S+ evidence=\w+ -->", "<!-- loop-health size:skills/x/scripts/near.py:limit -->", issues[0]["body"])
+issues[0]["body"] = re.sub(r"<!-- loop-health \S+ evidence=\w+ placed=\S* -->", "<!-- loop-health size:skills/x/scripts/near.py:limit -->", issues[0]["body"])
 json.dump(issues, open(p, "w"))
 PYEND
 out=$($health file --group size); echo "$out"

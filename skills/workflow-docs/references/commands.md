@@ -40,14 +40,28 @@ publish [--dry-run] [--adopt PAGE]   copy the pages to the GitHub wiki, commit a
 restore                         revert the last publish, if nothing came after it
 ```
 
+`entry.py write|check|render|block` builds `.loop/START.md`, the entry point every new session reads first, and the
+workflow-loop block for the agent files, from the PRD pages, `.loop/config.json` and `references/start.md`. `check`
+(also run by `docs.py check`) prints `STALE` when either differs from a fresh render and `MISSING` when a stamped repo
+(it holds `template_version`, or is the template's own checkout) has none; both fail. While the installed skills are
+newer than the repo's `template_version`, a difference only in the parts built from the skills prints `LAG` and does
+not fail. `docs.py audit` rewrites a stale entry point and stale blocks itself.
+
+| Code | Means | Fix |
+|---|---|---|
+| `ENTRY_STALE` | START.md or an agent block differs from its sources | `docs.py audit`, or `entry.py write` |
+| `ENTRY_MISSING` | a stamped repo has no START.md, or an agent file has no block | `entry.py write`; ask for workflow-setup agents |
+| `ENTRY_LAG` | the installed skills are newer than the repo's template_version | ask for workflow-setup update |
+
 `.loop/docs.tsv` maps each page to the paths it describes. `check` prints `STALE`, `MISSING`, `UNWRITTEN` or
 `UNMAPPED`, `NO PAGES` if the map is empty, and `DOCS OK` when clean. `STALE` means a commit touched a mapped path and
 no later commit to the page has it in its history. Merge commits don't count, so a page gives the same answer before and
 after a merge. Only a commit that changes the page clears `STALE`.
 
 With `"criteria": true` in the config, every feature page is a short PRD (`references/template.md` holds the rules and
-an example page): the Review line, then Problem, an optional Usage, Requirements, Non-goals, Success metrics and Tests,
-in that order and nothing else. Requirements are the owner's lines (`- DEL-1: **Unreviewed** text`, up to
+an example page): the Review line, then Problem, an optional Usage, Requirements, Non-goals, Success metrics, an
+optional Deployments (DOC-14: a Page table and/or a Delivery table for what the feature ships) and Tests, in that order
+and nothing else. Requirements are the owner's lines (`- DEL-1: **Unreviewed** text`, up to
 `criteria_max`, default 10); tests are for the machine: a regression row linked to one requirement by its goal column,
 described as one `Given ..., when ..., then ...` scenario, rendered under its requirement with its last result.
 
@@ -235,7 +249,7 @@ Detail the skill's SKILL.md points to, kept word for word so no instruction is l
 5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
 6. `## Tests`: written by `criteria.py render`, never by hand: under each requirement, one Given/When/Then scenario per
    regression row with its test, its kind, what it guards, when it runs, its last result and date and when it was seen failing; **not enforced**
-   when no row passes; defect tests under `### Defect tests`.
+   when no row passes; then the workflow tests, then the defect tests, in the same table.
 
 Lines: `SECTIONS` (wrong, extra or out-of-order sections, or text before the first one), `REVIEW`, `PROBLEM`,
 `NONGOALS`, `METRICS`, `CRITERION`, `CAP`, `SCRIPT`, `USAGE`, `TESTS` (run `render`), `LOCKED`, `CHANGED`.

@@ -1,5 +1,297 @@
 # Changelog
 
+## v0.27.0 - 2026-11-11
+
+- lane-control: office-hours design (approved, spec review PASS after 3 rounds)
+- lane-control: slot pool (slots.py), lane.py and tables.py out of role.py, locked row writes, ship record check
+- lane-control: toy tests for the lane pool, operate waits and the load run (in progress)
+- Merge origin/main (v0.20+, 144 commits) into loop/lane-control
+- lane-control: a sweep stops only its own lane's toy processes; rows record pid and signal (issue 435)
+- lane-control: the lane-control and load toy tests source reap.sh and register cleanup with toy_on_exit
+- lane-control: a lane a poller may not signal (EPERM) counts as alive, not LANE_DIED
+- lane-control: done-line rows (goal slug:N) coexist with criteria; a missing done line fails with its fix (issue 128)
+- lane-control: test-lane-control passes 35/35; a hung prep commit no longer blocks the next one; the full Tests page is a prep path
+- lane-control: done lines count only for goals still being built (issue 143)
+- lane-control: merge.py refuses a moved PR head (exit 4) or a relevant base move (exit 2, fetch failure 3) (REG-4)
+- lane-control: check-reads hooks isolated Python launches instead of flagging them (issue 173)
+- lane-control: release notes and the CHANGELOG list each fixed issue with its defect test (REG-6)
+- lane-control: settings lane_limit (flow file, 2), goal_lane_minutes (10), full_suite_minutes (30), goal_levels, ci_levels (REG-8)
+- lane-control: test-summary and test-defect leave the repo root; regression.py reads suggests headers (issue 172, items 1 and 4)
+- lane-control: lanes.py never maps a path inside .git (issue 178)
+- lane-control: no-prompt guard in the new process-starting scripts; criteria-done control's goal is running; # reads: headers fixed; Tests page re-rendered
+- lane-control: test-defect's repo copy carries the goals and the origin URL the Tests page needs
+- Merge origin/main (owner re-review #497 and 36 more) into loop/lane-control
+- lane-control: a reopened issue's defect test shows failing (issue reopened) (REG-6)
+- lane-control: health warns on a goal lane over goal_lane_minutes or a full suite over full_suite_minutes (REG-7)
+- lane-control: goal.py pr records issue states and the lane's row results in one bookkeeping commit before it pushes
+- lane-control: prsteps writes no bytecode cache when it imports the regression modules
+- lane-control: goal tier (tiers.py): a goal lane runs the rows its change reaches, never FULL but at pr or with no merge-base; ROWS summary; FULL_TIMEOUT; run --kind (REG-4)
+- lane-control: Regression commands document --tier goal, its lines and --kind
+- lane-control: prsteps adds a new bookkeeping file before committing it, so pr never leaves it untracked
+- lane-control: each lane child gets its own TMPDIR and a leased port base (REG-8)
+- lane-control: references/lanes.md: which tests run when, every lane message with its exit and fix, clocks, settings, upgrade, alternatives
+- lane-control: test-lane-messages.sh: every lane message code has a row in references/lanes.md
+- lane-control: the workflow test kind, tests.py list --kind, one format checked across summary, wiki and health; defect rows owed only when the branch proved them (E-10)
+- lane-control: test-goal-release.sh takes a toy goal to merge and release; rows for the workflow kind, list --kind, one format and E-10
+- lane-control: the workflow kind, list --kind, one format, E-10 and goal-to-release rows seen failing on the old code
+- lane-control: results recorded for the workflow kind, list --kind, one format, E-10 and goal-to-release rows
+- lane-control: the pr bookkeeping commit re-renders the Tests tables it changes and says when it fails
+- lane-control: a local run's GitHub-issue code moves from actions.py to issues_gh.py, no behaviour change
+- lane-control: the pull request body carries the pr lane's LANE line and each row with why it ran (DX-21)
+- lane-control: FLAKY (REG-9): a row whose raw result flipped on one clean commit, runner and python is flagged, sticky, shown in list, wiki and health, never reused
+- lane-control: the plain run nightly records its suite time in the git common dir (SUITE_TIME); health.yml fetches CI's suite-time artifact
+- lane-control: regression.yml takes a checked dispatch target (BAD_TARGET), runs ci_levels on schedule and tags, and uploads its suite time
+- lane-control: narrow maps the modules an importlib user loads by quoted name; check-reads counts no read of a missing file (#173)
+- lane-control: rows for FLAKY, the suite time and the CI dispatch target and ci_levels
+- lane-control: the FLAKY, suite-time and CI target rows seen failing on the old code
+- lane-control: regression-runs.tsv writes the flaky cell only on a flagged line, so the upgrade and same-day merges change no other line
+- lane-control: results recorded for the FLAKY, suite-time and CI target rows
+- lane-control: issues_gh.py carries the no-prompt guard like every script that starts gh (DEL-10)
+- lane-control: the pr bookkeeping carries a lane row's flaky flag into regression-runs.tsv
+- release: fixes.py folds into wiki.py as fixes_lines and fixes_since
+- health: timing.py folds into cost.py as timing_rows
+- health: the workflow text says cost.py where it said timing.py
+- regression: flaky.py folds into tiers.py as flaky_apply
+- regression: issues_gh.py folds into runs.py as sync_issues
+- regression: references/lanes.md becomes the Lanes section of references/commands.md
+- listing: commands name fixes (tests.py) and reads (regression.py)
+- delivery: tables.py and prsteps.py become lanekit.py, with copies of the slots.py pieces lane.py uses
+- toy: test-tiers and test-ci-target declare the folders lanes_cli.py check says they read
+- monitoring: session_tool.py folds into session_bind.py
+- monitoring: board_runs.py, board_lag.py and status_graph.py fold into board_page.py
+- lane-control: record checks the step order before the lane; the pr-body defect check skips the folded lane rows
+- lane-control: the six rows seen failing on the old code, passing; Tests tables re-rendered
+- lane-control review: merge guards fail closed, wiki-only head moves merge, row timeouts hold, goal_levels and the over-limit note land
+- Merge remote-tracking branch 'origin/main' into loop/lane-control
+- lane-control review pass 2: orphan claims recover, a dead lane says LANE_DIED, the wiki-only move is the base's wiki folder only
+- Regression, Setup and Monitoring pages reviewed against lane-control's code commits (REG-4/7/8, SET-2 and the monitoring requirements already cover them; no wording change)
+- Tests tables re-rendered
+- lane-control review pass 3: wiki-only takes the trusted base and no symlinks, a status read never erases a live lane, fixes refuses without a known repo
+- lane-control review pass 3: rows seen failing, passing; Tests tables
+- lane-control qa: test-defect reads origin without -C $here (a root runner again), the reads headers declare the scripts folder, fixes accepts a non-GitHub origin
+- Lane: re-render the Tests tables
+- lane-control qa: test-lane-ports' 100-lease holder lives as long as the test, not a fixed 20 s
+- lane-control qa: a lane child with no port lease leaves LOOP_LANE_PORT_BASE unset instead of inheriting an outer lane's range
+- lane-control ship: merge.py refuses when a head was recorded but no base (it merged unchecked)
+- Tests tables re-rendered
+- Lane: re-render the Tests tables
+- Merge origin/main (step-budget) into loop/lane-control
+- Fit lanekit to test_budget_minutes: no FULL lane in the loop, deleted or unmapped files pick the rows that name them
+- Merge remote-tracking branch 'origin/main' into loop/lane-control
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+- Fixes #435: test two-lanes-toy-435, seen failing 2026-11-10, passing
+- Fixes #143: test done-lines-warning-143, seen failing 2026-11-10, passing
+- Fixes #173: test lanes-trace-hook-173, seen failing 2026-11-10, passing
+- Fixes #172: test narrow-root-172, seen failing 2026-11-10, passing
+- Fixes #178: test repo-narrow-178, seen failing 2026-11-10, passing
+
+### How to verify
+
+P is the package's skills folder (for example `P=~/.claude/skills` or this repo's `skills`).
+
+1. In an empty git repo run `python3 $P/workflow-setup/scripts/setup.py --bare`, add three land rows that can fail
+   (`python3 $P/workflow-regression/scripts/regression.py add r1 --level land --command "sleep 20; test ! -e broken"`,
+   r2 and r3 likewise), commit them, prove each with `regression.py red rN --break "touch broken"`, then start three
+   `LOOP_LANE_LIMIT=2 python3 $P/workflow-regression/scripts/regression.py run land` at once.
+   Expect: one prints `LANE_WAIT: 2 of 2 lane slots busy` naming the other two, and all three exit 0.
+2. While a goal's qa lane runs, run `python3 $P/workflow-delivery/scripts/role.py lane-wait SLUG qa`.
+   Expect: it blocks, then exits 0 with the `LANE qa ...` line.
+3. Rerun one row by id (`regression.py run r1`), then start the goal's lane with `role.py lane SLUG qa`.
+   Expect: `LANE_PREP: re-rendered the Tests tables (commit ...)`, then a passing lane.
+4. After a ship lane passes, make one commit and run `goal.py record SLUG ship --file F --in-session`.
+   Expect: `REFUSED (no try used): HEAD moved since the ship lane passed ...`; after `role.py lane SLUG ship`
+   passes, the same record goes through.
+5. On a toy goal that adds a file no row's `# reads:` header names, start its qa lane, then its pr lane.
+   Expect: both print `UNMAPPED <path>: no row declares it. Note: ...` and run AFFECTED (the rows that name the
+   file and the runners); neither prints `FULL`.
+6. On a toy goal whose branch added a defect row linked to an issue and seen failing, run `release.py cut SLUG`.
+   Expect: the CHANGELOG and the draft release notes list `Fixes #N: test <row>, seen failing <date>, passing`.
+7. Write `abc\tfull\t1900\t2026-11-10` into `<git common dir>/loop/suite-times.tsv` of a toy repo and run
+   `python3 $P/workflow-health/scripts/health.py check --family cost`.
+   Expect: `WARN performance full-suite time: 31 min (limit 30, the full-suite limit) ...`.
+
+## v0.26.0 - 2026-11-11
+
+- Time budgets: tiers fit an in-loop test run, step budgets bound review and ship
+- Budget rows seen failing then passing; REG-7 and DEL-8 Unreviewed; settings documented
+- A rerun step starts without its earlier budget hit (review finding)
+- Fold the test budget into runs.py: the package stays under 100 files; the guard against prompts
+- Tests tables rendered; ledger
+- Pages touched without a Usage edit, so no owner re-review is owed; header of test-budget
+- Pages rendered
+- Regression Usage: left rows are reused by a later lane
+- Tier order: a goal's new rows run first
+- Regression Usage: tier order
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.25.1 - 2026-11-11
+
+- No code changes
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.25.0 - 2026-11-10
+
+- WIP: monitoring-prd new modules (goal_state, dep_graph, issue_lines, prs, pool, replan, auto, govern_hook, checkin)
+- Merge remote-tracking branch 'origin/main' into loop/monitoring-prd
+- WIP: monitoring-prd call sites (live_board, sessions, session_bind, operate, board, monitor, watch, graph, settings, setup)
+- monitoring-prd: toy suite, docs, review fixes (branch delete only when merged into base, quote-aware govern parse, PR prefetch)
+- monitoring-prd: reviewed plan (unattended, gate pending) and review fixes
+- monitoring-prd: regression rows for MON-4, MON-6..MON-12 and issues 94, 97, 111-115, 122, 175; old toy tests follow the new MON-4/MON-8 behaviour; operate.py run --board
+- monitoring-prd: Verify by hand, wiki Usage lines, setup command map
+- monitoring-prd: preview-auto verb
+- monitoring-prd: commands reference for check-in, re-plan, full auto, pool and govern hook
+- monitoring-prd: rows green; Monitoring Tests re-rendered
+- review: a failed report frees its session without blocking a rebind; MON-9 timing assertion annotated
+- review: cleanup runs git from the main checkout (a worker reporting from its own worktree kept the branch); only executing operate.py claims the operation session; wrappers no longer hide git writes; more risky words; malformed held.json tolerated
+- review: specialist fixes (dead code, board uses its parallel PR lookup, auto.log escapes |, git pull and -c alias blocked, wrappers by basename, worker exit before git, stale health lock, offline fetch, repeated question keeps its auto decision, stronger MON-11 checks)
+- review cycle 2: claim only when operate.py is executed (python flags, ./operate.py); wrapper flag values skipped; one merge check for freed_from and cleanup; repeated question matched by its words; MON-7 test checks real claims
+- review final: the govern hook skips only wrappers, their flags and values, so a command that names git is never refused
+- qa: no-prompt guard in the new scripts that start processes; SKILL.md back under 150 lines (new verbs as agent requests); narrow # reads: header; Setup and Documentation pages updated
+- qa: govern hook sees through shell keywords; a non-number --attempt is refused; an unreadable config shows under Needs you; a bad since time is refused; pool add counts each id once
+- Merge origin/main (docs-format, v0.22.0) into loop/monitoring-prd: both row sets kept, docs-format's pages kept with this goal's Usage lines added
+- monitoring-prd: rows re-recorded after the merge; Monitoring and Tests pages re-rendered (MON-6..MON-12 rows now listed)
+- monitoring-prd: MON-9's slow GitHub is a wrapper in its own test; the shared fake gh is back to main's
+- Documentation page reviewed against this branch's fake gh commits: the fake gh is unchanged from main, no wording change needed
+- Documentation page rendered (trailing blank line dropped)
+- Rows re-run after the render; Tests re-rendered
+- Issue 321: the reply hook checks the claimed operation session, so a one-line scheduled check-in reply is blocked and told the five missing parts
+- Issue 321 row seen failing then passing; Tests re-rendered
+- Merge origin/main (estimate-model, automation-email, v0.24.0) into loop/monitoring-prd: estimate ranges kept beside the graph, pool and check-in changes; both row sets kept; Tests re-rendered
+- monitoring-prd: dep_graph.py, issue_lines.py and prs.py merged into board_lines.py, behaviour unchanged, so the skill package fits its 99-file cap with room (98)
+- monitoring-prd: goal_state.py merged into graph.py (its state logic), behaviour unchanged; the skill package is at 99 files
+
+### How to verify
+
+1. In the main checkout, run `python3 skills/workflow-monitoring/scripts/operate.py run --once`.
+   Expect: one headline line, then All sessions, Dependencies, Needs you and Coming up; no `LIVE BOARD` block.
+2. Run `python3 skills/workflow-monitoring/scripts/monitor.py report`.
+   Expect: the live board, with Dependencies drawn top to bottom (`[>]`, `[ ]`, `<-`, a `|`/`v` between bands and a legend), no line wider than 60 characters, and a HELD OR FREEZING section.
+3. Run `python3 skills/workflow-monitoring/scripts/pool.py status`.
+   Expect: one line `pool: F free, B busy, T total (target 20)` with this repo's counts.
+4. Pipe a routine question into the full-auto check: `echo "Which helper name?" | python3 skills/workflow-monitoring/scripts/auto.py decide-text --kind routine --recommend a`, then the same with "Delete the cache?".
+   Expect: `AUTO` for the first, `WAITS: it mentions delete` for the second.
+5. Pipe two commands into the govern check: `echo "git -C . commit -m x" | python3 skills/workflow-monitoring/scripts/govern_hook.py check`, then `echo "git status" | ...`.
+   Expect: `BLOCK: git commit`, then `PASS`.
+6. Run `python3 skills/workflow-monitoring/scripts/replan.py plan` twice.
+   Expect: the first run lists each running goal's start with its reason (or REPLAN: no change); the second prints `REPLAN: no change`.
+
+## v0.24.0 - 2026-11-10
+
+- Mail one digest per round, file issues on feature milestones, show round cost
+- Rows for the round's mail, milestones and cost; Automation wiki; Verify by hand
+- Keep the milestone title when milestones can't be read; settings reference; test expectations for feature placement
+- Review fixes: verify SMTP TLS, find placed issues locally, keep placement on failed moves, no milestone POSTs on unreadable lists, stale reruns mail nothing
+- Review pass 2: mail in its own job, keep placement on failed sets, make Backlog when missing
+- Review pass 3: fix the spend's run listing, keep placement when milestones can't be read
+- Disclose the mail hosts: api.cloudflare.com and the smtp_host
+- QA lane: rounds.py turns prompts off; the mail test declares the files it reads
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- test-automation-email.sh sources reap.sh (main's toy-cleanup rule) instead of its own trap
+- test: name the held-issue key so the secret scan doesn't read it as a credential
+- Rename templates.py to workflows.py: it holds the workflow texts, and a temp* name reads as scratch
+- test: setup plans mail-test.yml beside health.yml (ship coverage audit)
+- fix: a secret with a trailing newline neither leaks nor sticks a round; health still files when milestones can't be read
+- fix: review pass 2 on the secret fixes; leave the Automation page for the owner to re-review
+- fix: fix-check findings: owner local part from the trimmed address, no retry after a timeout, DONE names a closed milestone
+- docs: feature milestones, the mail job and mail-test.yml across the health, regression and setup docs
+- test: the mail test declares seed.py, which its setup case runs
+- Merge origin/main (v0.22.0, docs-format) into loop/automation-email
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- docs: Documentation Tests re-rendered for the ci-issue-backlog row
+- docs: Tests re-rendered after the merges
+- docs: Tests render matches the recorded runs
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- Merge remote-tracking branch 'origin/main' into loop/automation-email
+- Wiki: update pages for automation-email
+
+### How to verify
+
+1. Pick a sender and add its secrets in Settings, Secrets and variables, Actions: DIGEST_TO, DIGEST_FROM and either
+   CLOUDFLARE_ACCOUNT_ID with CLOUDFLARE_EMAIL_TOKEN (a domain onboarded to Cloudflare Email Sending), or
+   DIGEST_SMTP_USER with DIGEST_SMTP_PASSWORD plus `"digest_mail": "smtp"` in `.loop/config.json`. Time how long it takes.
+   Expect: under five minutes once the domain or app password exists.
+2. In the Actions tab, run the mail-test workflow.
+   Expect: its log ends `MAIL: test sent (MAIL_SENT)`, and a mail titled "Automation digest: test from <owner/repo>"
+   arrives within a minute.
+3. Run the health workflow by hand.
+   Expect: a new comment on the pinned Automation digest issue, grouped under milestone headings, with `round cost` and
+   `email` rows; the run summary has a `## Round` line; one mail arrives with the same text as the comment.
+4. Re-run that same health run (Re-run all jobs).
+   Expect: no second comment and no second mail; the Email the digest step says `already sent for run ... (MAIL_ALREADY)`.
+5. Open the health and regression issues on GitHub.
+   Expect: each sits on its feature's milestone (Backlog only when no feature fits). Move one to Backlog by hand, run the
+   health workflow again, and it stays on Backlog.
+6. Search the run logs, the digest comment and the issues for your address.
+   Expect: it appears nowhere.
+
+## v0.23.0 - 2026-11-10
+
+- Merge remote-tracking branch 'origin/main' into loop/setup-sync
+- Built-in default flow: steps mapped to built-in run delivery's own routine (issue 47)
+- Entry point (entry.py, START.md) and agent files (agents.py), wired by setup; agent_files and template_repo settings
+- update both ways: --check, the release source archive, the repo half (sync.py) on workflow-update-vX, local fixes and propose (propose.py); fake gh serves archives and issues
+- Board lag line for governed repos on an older template; test-sync parts for entry, agents, update, propose, board; MISSING only for stamped repos; no-hang guards
+- Rows for SET-4, SET-5 and SET-10
+- Docs: Setup SET-4, SET-5, SET-10 (approved wording, reviewed 2026-11-10), Usage with a sample; Monitoring, Documentation, Home, README, loop-files, skill pages; this repo's START.md, CLAUDE.md and AGENTS.md
+- Verify by hand steps; Usage sample as an indented block
+- update.py: shorter docstring
+- Split test-sync: narrow builtin/entry/agents keep exact # reads:, wide update/propose/board move to test-sync-update.sh; operate-fit-3 scopes its wiki assertion
+- entry.py write: splice the matched block (a stray close marker no longer multiplies the file), keep CRLF, accept a block at end of file; check reports stray markers (ENTRY_MARKER); docs check renders once
+- agents.py apply: say wire's refusals and a failed entry write, stage only files inside the repo and outside .git
+- update: a failed repo half no longer leaves an empty workflow-update-vX that reads as merged; a local fix matching the new copy is stamped, a dropped one is kept without holding check at behind; the repo half runs the sync.py just written; a checkout with no VERSION stamps nothing; PARTIAL whenever the skills were written
+- test-adopt SET-4: the update branch changes only config, START.md and the agent files; a linked skills folder is left alone
+- Docs: Setup and Documentation Usage for the review fixes (dropped local fix kept, a failed repo half safe to rerun, stray markers left for you)
+- agents.py wire refuses any file without exactly one block (the rule entry.py write follows); update flushes before the repo half and runs it in-process when sync.py itself is a kept local fix
+- test-sync-update: reset template_repo after the redirect check, so a full run passes
+- fix(qa): ISSUE-001 — test-sync.sh update/board ran nothing and said ALL PASS; forward them to test-sync-update.sh, refuse an unknown part (exit 2)
+- fix(qa): ISSUE-002 — entry.py read an indented example output's '- ' line as a Usage sub-bullet
+- Docs: Documentation notes the Features table leaves an indented example block out
+- test-sync.sh points update, propose and board at test-sync-update.sh instead of running it, so its rows stay narrow; Verify step 4 names that script
+- builtin-flow: watch's suite check moves to test-builtin-watch.sh so test-sync.sh stays narrow
+- test-sync.sh declares exact files; entry-adopt (same command as adopt-set-5) runs nightly, keeping a one-file change under half the land rows
+- Merge origin/main (v0.22.0 docs-format) into loop/setup-sync: both sides' rows kept, docs-format's reviewed pages win with this goal's Usage entries re-added; entry.py reads a bullet Problem
+- README front door rows for update, propose and agents; Home and Monitoring name the built-in routine and the lag line; workflow-docs SKILL.md back under 150 lines
+- Documentation: entry names what it reads from each PRD page
+- Merge origin/main (v0.22.1 estimate-model): both sides' rows kept, live board keeps the stall and lag lines; the lag line moves to board_lag.py so board_status.py stays under 20 KB
+
+### How to verify
+
+1. In this repo, open `.loop/START.md`.
+   Expect: a "First five minutes" list, one part each for Loop, Release, Operation and workers, Docs, Regression, Health and Settings, a Features table naming all seven feature pages (Home is not one) with how to use each, and a Settings table with every repo setting and its value.
+2. Open `CLAUDE.md` and `AGENTS.md` side by side.
+   Expect: the same `` block in both, telling a session to read `.loop/START.md` first and listing the seven workflow skills.
+3. Change one Usage bullet's first sentence in `docs/wiki/Setup.md`, then run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: `STALE .loop/START.md: ... (ENTRY_STALE)` and exit 1; `python3 skills/workflow-docs/scripts/docs.py audit` rewrites it, and the check is back to `DOCS OK`. Undo the edit.
+4. Run `bash dev/toy/test-sync-update.sh update` and `bash dev/toy/test-sync-update.sh board`.
+   Expect: `ALL PASS (update)` (check shows what is new, apply lands `workflow-update-v1.1.0` and keeps the repo's data) and `ALL PASS (board)` (the live board lists `oldharbor runs template v1.0.0, older than v1.1.0`).
+5. Run `bash dev/toy/test-sync.sh builtin`.
+   Expect: `ALL PASS (builtin)`: a goal with a flow file whose steps are all `built-in` and no probe runs every step through delivery's own routine.
+
+## v0.22.1 - 2026-11-10
+
+- estimate-model: estimates from goal size and similar finished goals, ranges, pace, stalled goals under Issues
+- estimate-model: docs name the estimate model; MON-4 scenarios rendered; rows seen failing once
+- estimate-model: narrow test-estimates reads header so test-tree's one-file narrowing check passes
+- test: status-graph comment matches the new step-time rule
+- fix(qa): a goal at an off-flow step after a done entry sits at the next step
+- docs: Monitoring Tests list est-offflow-done
+- Merge remote-tracking branch 'origin/main' into loop/estimate-model
+- test: estimate checks for worktree goal files, unlogged similar steps and held goals
+- test: record the three new estimate rows seen failing; Monitoring Tests list
+- docs: estimate rules in the Monitoring summary and monitoring references match the code
+- fix: test-estimates.sh sources reap.sh like every toy test
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.22.0 - 2026-11-10
 
 - docs-format: DOC-4, DOC-5 and DOC-6 back to Unreviewed for rewording

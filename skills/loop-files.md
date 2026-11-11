@@ -17,6 +17,10 @@ The workflow skills share this contract. `design-guide.md` beside it explains ho
 | `.loop/regression-issues.tsv` | Each defect test's issue or pull request: link, state, date; written only by `tests.py issues --write`, shown in the wiki Tests lines and the health report |
 | `.loop/regression-runs.tsv` | Each row's last run: id, PASS or FAIL, date; written by `regression.py run`, shown in the wiki Tests tables |
 | `.loop/regression-known.tsv` | Rows expected to fail, with a reason; they don't block |
+| `.loop/START.md` | The generated entry point every new session reads first (`entry.py write`); never edited by hand |
+| `CLAUDE.md`, `AGENTS.md` | Each agent's entry file; setup wires the same marked `<!-- workflow-loop -->` block into each (`agent_files`), text outside it is the repo's own |
+| `.loop/config.json` key `template_version` | The template version that last wrote the repo's generated files; `update` moves it, the board flags a repo behind |
+| `.loop/config.json` keys `template_repo`, `agent_files` | The template's GitHub repo, used when the installed package names none; the agent files setup wires |
 
 Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -->`, which marks it as safe to update.
 
@@ -40,7 +44,7 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
   (generated from `settings.py`). `setup.py` writes each repo setting into `config.json` and each private setting into the
   flow file, and keeps any value already set. Every script reads these files fresh on each run, so a change applies at once.
 - `parallel`: workers at once; `0` means unlimited, and it is the default.
-- `cadence`, `step_limit`, `token_budget`, `max_tries`, `routines`, `regression_cron`, and health's `test_budget_seconds` and `stale_branch_days` are optional repo settings; see the reference.
+- `cadence`, `step_limit`, `token_budget`, `max_tries`, `routines`, `regression_cron`, and `test_budget_minutes`, `step_budget_minutes` (neither under 15), and health's `stale_branch_days` are optional repo settings; see the reference.
 - `agent_command` runs a goal in the background; the prompt is its last argument.
 - `auto_approve` (default `false`): `true` approves what a flow step leaves for the owner, logged as auto-approved.
 - `review_depth` (default `full`): `full` makes the plan and review steps run their skill's whole pipeline and refuses a
@@ -50,7 +54,7 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
 - `auto_merge` (default `false`): `true` lets the release step's `merge.py` merge a goal's pull request.
 - `pr_bumps_version` moves the last number of the version file on a goal's branch, for repos whose CI needs a bump.
 - `mend` and `resume_on_limit` let `watch` restart a goal. `limit_wait`, `mend_wait` and `watch_interval` are optional, in seconds.
-- `criteria` (set `true` by `setup`) and `regression_cron` (default `17 */4 * * *`, the scheduled regression's cron, or `off`) are also read by the docs and regression skills; `health_cron` (default `47 */4 * * *`), `judge_env`, `judge_setup` and `digest_owner` set the scheduled health run and its digest (Automation page).
+- `criteria` (set `true` by `setup`) and `regression_cron` (default `17 */4 * * *`, the scheduled regression's cron, or `off`) are also read by the docs and regression skills; `health_cron` (default `47 */4 * * *`), `judge_env`, `judge_setup` and `digest_owner` set the scheduled health run and its digest, and `digest_mail` (default `cloudflare`, or `smtp` or `off`), `smtp_host` and `smtp_port` how the digest is emailed (Automation page).
 - Permissions are yours. These commands run as you set them, and nothing here turns them off.
 
 ### `goals/<slug>.md`
@@ -82,6 +86,8 @@ and the wiki pages on the `workflow-setup` branch and leaves existing values and
 ## Outside the repo: your skill flow
 
 `~/.workflow-loop/flow.json` (or the file `$LOOP_FLOW` names) is yours and is never committed. Delivery refuses without it.
+Setup writes one whose suite maps the five steps to `built-in`, delivery's own routine (`workflow-delivery/references/default-flow.md`),
+so it runs with no suite of your own; it fills a suite that was never configured (every value empty, no `steps`) the same way.
 
 ```json
 {
@@ -101,7 +107,9 @@ and the wiki pages on the `workflow-setup` branch and leaves existing values and
 
 - `command` runs one step; the prompt is its last argument. `env` is added to its environment.
 - `probe` runs under the same environment, and its output must hold `probe_expect`, or no step starts. Use it to prove
-  your skills will take their recommended answers, leave approvals pending, and never push.
+  your skills will take their recommended answers, leave approvals pending, and never push. Only a step mapped to a named
+  skill needs it; a `built-in` step doesn't, and an in-session step needs no `command`. The first `flow.py` call checks
+  every mapped step and refuses with the whole list (`FLOW_UNRUNNABLE`) before any step starts.
 - `suite` is your default skill for each step, and `steps` replaces the skill for any one step. The steps are `idea`,
   `plan`, `build`, `review`, `qa`, `ship`, `pr` and `release`; the first five must be mapped, and delivery runs `build`,
   `pr` and `release` itself unless you map them. `limit` stops a step after that many seconds.

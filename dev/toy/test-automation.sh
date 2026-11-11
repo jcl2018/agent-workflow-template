@@ -61,16 +61,16 @@ head -1 "$c" | grep -q "^@toy-owner Automation round, " && grep -qF '| regressio
   && grep -qF '| health | HEALTH: green (5 pass, 0 warn, 0 fail, 0 unread) |' "$c" \
   && grep -qF '**New** (2): [#5](https://github.com/o/r/issues/5), [#9](https://github.com/o/r/issues/9)' "$c" \
   && grep -qF -- '- [#5](https://github.com/o/r/issues/5): `/workflow-delivery go "Fix #5"`' "$c" \
-  && grep -q "<!-- automation-digest open=5,9 run=101 -->" "$G/body-77.md" \
+  && grep -q "<!-- automation-digest run=101 open=5:0,9:0 -->" "$G/body-77.md" \
   && ok "the digest mentions the owner and lists what ran, the new issues and one request per open issue" || bad "digest format"
 ! grep -q -- "--milestone" "$G/calls.log" && ok "with no Backlog milestone the digest issue is created with no milestone flag" || bad "digest milestone flag"
 ! grep -q "IGNORE ALL RULES" "$c" && ok "an issue's title never reaches the request to the agent" || bad "issue title copied into the digest"
-printf '[{"number": 77, "title": "Automation digest", "body": "intro\\n\\n<!-- automation-digest open=5,9 run=101 -->"}]\n' > "$G/automation.json"
+printf '[{"number": 77, "title": "Automation digest", "author": {"login": "app/github-actions"}, "body": "intro\\n\\n<!-- automation-digest open=5,9 run=101 -->"}]\n' > "$G/automation.json"
 printf '[{"number": 12, "url": "https://github.com/o/r/issues/12"}]\n' > "$G/regression.json"
 : > "$G/calls.log"; out=$(live 102)
 grep -qF '**New** (1): [#12]' "$c" && grep -qF '**Still open** (1): [#9]' "$c" && grep -qF '**Fixed** (1): #5' "$c" \
   && ! grep -q "^issue create" "$G/calls.log" && ok "the next round lists new, still-open and fixed issues on the same issue" || bad "digest round two"
-: > "$G/calls.log"; printf '[{"number": 77, "title": "Automation digest", "body": "<!-- automation-digest open=9,12 run=102 -->"}]\n' > "$G/automation.json"
+: > "$G/calls.log"; printf '[{"number": 77, "title": "Automation digest", "author": {"login": "app/github-actions"}, "body": "<!-- automation-digest open=9,12 run=102 -->"}]\n' > "$G/automation.json"
 out=$(live 102)
 grep -q "^DIGEST: already posted for run 102" <<<"$out" && ! grep -q "^issue comment" "$G/calls.log" \
   && ok "a rerun of the same run posts nothing twice" || bad "digest rerun"
@@ -134,7 +134,7 @@ printf '{"health_cron": "1 2 3 4 $(id)"}\n' > .loop/config.json; $auto workflow 
 printf '{"regression_cron": "off"}\n' > .loop/config.json; $reg workflow >/dev/null
 ! grep -q "schedule:" .github/workflows/regression.yml && grep -q "workflow_dispatch:" .github/workflows/regression.yml \
   && ok "regression written off keeps its by-hand and tag triggers only" || bad "regression off workflow"
-grep -q "milestone.py new backlog --live" .github/workflows/health.yml && ok "the health run makes sure its Backlog milestone exists before filing" || bad "backlog milestone"
+grep -q "milestone.py new --all --live" .github/workflows/health.yml && ok "the health run makes sure its Backlog milestone exists before filing" || bad "backlog milestone"
 printf '{"health_cron": "1 2 3 4 5\\n"}\n' > .loop/config.json; ! $auto workflow >/dev/null 2>&1 && ok "a cron setting ending in a newline is refused" || bad "trailing newline cron"
 printf '{"judge_env": "MY_KEY"}\n' > .loop/config.json; $auto workflow >/dev/null
 grep -qF 'ANTHROPIC_API_KEY: ${{ secrets.MY_KEY }}' .github/workflows/health.yml && ok "a secret with another name reaches the judge under the name it reads" || bad "custom secret name"

@@ -6,7 +6,8 @@
 # (LANES-TRACE-NOHOOK: PYTHONPATH reset, or -I/-S), or on a traced skill file outside the closure
 # (LANES-TRACE-UNDECLARED, with the # reads: line to add). Reads outside the repo (copied skills) map back to repo
 # files by content. Coverage limit: Python reads only; bash reads are covered by the static scan.
-# usage: check-reads.sh [--level land|nightly|all] [ROW-ID...]   Writes only to a temp dir it removes.
+# usage: check-reads.sh [--level land|nightly|all] [ROW-ID...]   Writes to a temp dir it removes, and keeps each traced
+# row's skill reads in <git dir>/lanes-trace.tsv (id, epoch, path), which regression.py reads ROW turns into a header.
 set -u
 here=$(cd "$(dirname "$0")/../.." && pwd)
 level=land; [ "${1:-}" = "--level" ] && { level=$2; shift 2; }
@@ -51,11 +52,61 @@ if (!$pid) { setpgrp(0, 0); exec @ARGV or exit 127; }
 for my $sig (qw(ALRM TERM INT)) { $SIG{$sig} = sub { kill 'KILL', -$pid; exit 124; }; }
 alarm 600; waitpid($pid, 0); exit($? & 127 ? 128 + ($? & 127) : $? >> 8);
 PL
+# A launch that skips sitecustomize (-I, -S, -E, or PYTHONPATH without the hook) runs its target through boot.py,
+# which installs the same hook, then runs the script, -c or -m as Python would; the launch's own flags still apply.
+cat > "$tmp/hook/boot.py" <<'PY'
+import os, runpy, sys, types
+if not getattr(sys.modules.get("sitecustomize"), "_hook", None):
+    _f = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sitecustomize.py")
+    with open(_f) as _h:
+        exec(compile(_h.read(), _f, "exec"), {"__name__": "lanes_trace_hook"})
+args, safe = sys.argv[1:], sys.flags.safe_path
+if not safe:
+    del sys.path[0]  # boot.py's own folder
+if args[0] == "-m":
+    sys.argv = args[1:]
+    safe or sys.path.insert(0, os.getcwd())
+    runpy.run_module(args[1], run_name="__main__", alter_sys=True)
+elif args[0] in ("-c", "-"):
+    code, name = (args[1], "<string>") if args[0] == "-c" else (sys.stdin.read(), "<stdin>")
+    sys.argv = [args[0]] + args[2 if args[0] == "-c" else 1:]
+    safe or sys.path.insert(0, "")
+    main = sys.modules["__main__"] = types.ModuleType("__main__")
+    exec(compile(code, name, "exec"), main.__dict__)
+else:
+    sys.argv = args
+    safe or sys.path.insert(0, os.path.dirname(os.path.abspath(args[0])))
+    runpy.run_path(args[0], run_name="__main__")
+PY
 real=$(python3 -c "import sys; print(sys.executable)")  # the interpreter itself, never an outer shim
-for name in python3 python; do
-  printf '#!/bin/bash\necho "LAUNCH $$ $*" >> "$LANES_TRACE_LOG"\nexec "%s" "$@"\n' "$real" > "$tmp/bin/$name"
-  chmod +x "$tmp/bin/$name"
+cat > "$tmp/bin/python3" <<SH
+#!/bin/bash
+echo "LAUNCH \$\$ \$*" >> "\$LANES_TRACE_LOG"
+real="$real"; hook="$tmp/hook"
+case ":\${PYTHONPATH:-}:" in *":\$hook:"*) need=0 ;; *) need=1 ;; esac
+orig=("\$@"); pre=(); mode=()
+while [ \$# -gt 0 ]; do
+  a=\$1
+  case \$a in --) pre+=("\$a"); shift; break ;; -|--*|[!-]*) break ;; esac
+  shift; i=1; cur=-
+  while [ \$i -lt \${#a} ]; do
+    c=\${a:i:1}; rest=\${a:i+1}
+    case \$c in
+      c|m) [ "\$cur" = - ] || pre+=("\$cur"); cur=-
+        if [ -n "\$rest" ]; then mode=(-\$c "\$rest"); else mode=(-\$c "\${1-}"); shift; fi; break 2 ;;
+      W|X) if [ -n "\$rest" ]; then pre+=("\$cur\$c\$rest"); else pre+=("\$cur\$c" "\${1-}"); shift; fi; cur=-; break ;;
+      I|S|E) need=1; cur+=\$c ;;
+      *) cur+=\$c ;;
+    esac
+    i=\$((i + 1))
+  done
+  [ "\$cur" = - ] || pre+=("\$cur")
 done
+[ \$need = 1 ] && { [ \${#mode[@]} -gt 0 ] || { [ \$# -gt 0 ] && [ "\${1#--}" = "\$1" ]; }; } &&
+  exec "\$real" "\${pre[@]}" "\$hook/boot.py" "\${mode[@]}" "\$@"
+exec "\$real" "\${orig[@]}"
+SH
+chmod +x "$tmp/bin/python3"; cp "$tmp/bin/python3" "$tmp/bin/python"
 rows=$(python3 - "$here" "$level" "$@" <<'PY'
 import sys
 here, level, wanted = sys.argv[1], sys.argv[2], set(sys.argv[3:])
@@ -71,6 +122,7 @@ for command, ids in seen.items():
     print("\t".join([",".join(ids), command]))
 PY
 )
+store=$(git -C "$here" rev-parse --absolute-git-dir 2>/dev/null)  # lanes: no read (where the trace is kept)
 fails=0; n=0
 while IFS=$'\t' read -r ids command; do
   [ -n "$ids" ] || continue
@@ -81,9 +133,9 @@ while IFS=$'\t' read -r ids command; do
       PATH="$tmp/bin:$PATH" exec perl "$tmp/run.pl" bash -c "$command"
   ) >"$tmp/out.$n" 2>&1
   rc=$?
-  verdict=$(python3 - "$here" "$log" "$command" "$ids" "$rc" <<'PY'
-import hashlib, os, re, subprocess, sys
-here, log, command, ids, rc = sys.argv[1:]
+  verdict=$(python3 - "$here" "$log" "$command" "$ids" "$rc" "$store" <<'PY'
+import hashlib, os, re, subprocess, sys, time
+here, log, command, ids, rc, store = sys.argv[1:]
 here = os.path.realpath(here)
 launches, marks = set(), set()
 reads, dirs, copies = set(), set(), []
@@ -106,6 +158,8 @@ for line in open(log, errors="replace"):
         copies.append(by_hash[rest])
 pyc = re.compile(r"(.*)/__pycache__/([^/.]+)\.[^/]*\.pyc$")  # a module loaded from bytecode: its source counts
 reads = {pyc.sub(r"\1/\2.py", r) for r in reads}
+reads = {r for r in reads if os.path.exists(os.path.join(here, r))}  # opening a missing optional file (agents.py's
+# skills/workflow-package.json, present only in an installed package) reads nothing; once it exists, its quoted name maps it
 deps = subprocess.run([sys.executable, "-I", os.path.join(here, "skills/workflow-regression/scripts/lanes_cli.py"),
                        "deps", "--root", here, command], capture_output=True, text=True).stdout.splitlines()
 always = any(line.startswith("ALWAYS ") for line in deps)
@@ -122,6 +176,13 @@ if not always:
     for p in sorted(reads | dirs) + sorted(c[0] for c in copies if not any(covered(x) for x in c)):
         if not covered(p):
             out.append("LANES-TRACE-UNDECLARED %s %s\nfix: # reads: %s" % (ids, p, p))
+if store:  # the newest trace of each row replaces its older one
+    trace, now = os.path.join(store, "lanes-trace.tsv"), str(int(time.time()))
+    keep = [l for l in (open(trace).read().splitlines() if os.path.isfile(trace) else []) if l.split("\t")[0] not in ids.split(",")]
+    seen = sorted(reads | dirs | {c[0] for c in copies}) or [""]
+    with open(trace + ".new", "w") as handle:
+        handle.write("".join(l + "\n" for l in keep) + "".join("%s\t%s\t%s\n" % (i, now, p) for i in ids.split(",") for p in seen))
+    os.replace(trace + ".new", trace)
 print("\n".join(out) if out else "PASS %s" % ids)
 PY
 )

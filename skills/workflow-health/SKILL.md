@@ -76,6 +76,9 @@ writes nothing. `file` is the only writer, for the named groups (or a saved revi
 - A repeat updates the issue, a fix closes it (only when its own rule ran), and a return reopens it.
 - An open issue that already names the finding's subject gets one link comment instead of a duplicate.
 - An issue closed in triage stays closed while its evidence is unchanged.
+- The marker also records where `file` put the issue (`placed=`): it moves to its feature only while it is still there, so an
+  issue you moved anywhere else, `Backlog` included, stays. Run `milestone.py new --all --live` first so each feature has
+  its milestone; a missing one falls back to `Backlog` (made when needed), and unreadable milestones move nothing.
 
 It creates a missing feature milestone and never edits a page. It refuses with no `--group` or `--review` (`REFUSED[file]`),
 and stops before any write when gh can't list the issues (`REFUSED[gh]`). Show the preview to the owner and file only what
@@ -92,12 +95,27 @@ It lists open health issues per feature by kind, count and age. `--close` prints
 `--yes` it closes exactly that list with the owner's words and the `health:closed` label. More than `--max` (20) is
 refused (`REFUSED[cap]`), and no `--why` is refused (`REFUSED[why]`).
 
-## Milestones and automation
+## Milestones and automation: `scripts/milestone.py`, `scripts/automation.py` and `scripts/mail.py`
 
-`scripts/milestone.py` (`features`, `new --all`, `attach <slug>`, `move <issue> <feature|backlog>`) makes and fills the
-feature milestones; `scripts/automation.py` (`workflow`, `digest`) writes the scheduled health workflow and posts its
-digest. Both print `WOULD` lines unless given `--live` or a token, and neither pushes. Details: `references/commands.md`
-and `references/milestones.md`.
+`milestone.py` (`features`, `new --all`, `attach <slug>`, `move <issue> <feature|backlog>`) makes and fills the feature
+milestones; it prints `WOULD` lines unless given `--live`. Details: `references/milestones.md`.
+
+```bash
+python3 scripts/automation.py workflow [--check]
+python3 scripts/automation.py digest
+python3 scripts/mail.py send
+python3 scripts/mail.py test
+```
+
+`workflow` writes `.github/workflows/health.yml` (workflows.py), which runs on `health_cron` (default every 4 hours;
+`off` makes a scheduled run write nothing) and by hand: check, file the groups a runner can read on their feature's
+milestone, the judge only with the `judge_env` secret, the digest, then the email. It also writes `mail-test.yml`, run
+by hand to send one test mail. `--check` names a workflow that is missing or older than the skills (each health run
+warns about it). `digest` posts one comment per round on the pinned `Automation digest` issue: what ran, the round's
+cost (rounds.py), the email's state, then per milestone the new, still-open and fixed issues, each open one with its
+request, mentioning `digest_owner`; with no token outside Actions it only prints it. `mail.py send` mails that comment
+once (`digest_mail`: cloudflare, smtp or off; the address and keys only from Actions secrets); `mail.py test` sends one
+fixed mail. Every outcome is one line ending in a code. None of them pushes. Details: `references/commands.md`.
 
 ## Rules
 
@@ -120,4 +138,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-health file --group docs` | `python3 scripts/health.py file --group docs` |
 | `/workflow-health triage` | `python3 scripts/health.py triage` |
 | `/workflow-health workflow` | `python3 scripts/automation.py workflow` |
+| `/workflow-health workflow --check` | `python3 scripts/automation.py workflow --check` |
 | `/workflow-health digest` | `python3 scripts/automation.py digest` |
+| `/workflow-health mail test` | `python3 scripts/mail.py test` |
+| `/workflow-health mail send` | `python3 scripts/mail.py send` |

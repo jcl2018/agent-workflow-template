@@ -22,6 +22,7 @@ import subprocess
 import sys
 import time
 
+import budget as limits
 import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -30,8 +31,11 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 STEPS = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
+BUDGETED = ("review", "ship")  # the steps held to step_budget_minutes
 NEEDED = ("idea", "plan", "review", "qa", "ship")  # the others may stay unmapped: delivery runs them itself
 FLOW_FILE = "~/.workflow-loop/flow.json"
+BUILTIN = "built-in"  # a step mapped to this runs delivery's own routine (references/default-flow.md): no skill suite needed
+ROUTINES = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "references", "default-flow.md")
 LANE = ("The regression lane (label regression, command `{lane}`) already passed on this content: reuse that run "
         "through your own check of recorded test runs instead of running the suite again; if your own test step runs "
         "that exact command, it reuses the record and returns at once.")
@@ -83,16 +87,63 @@ def flow():
     if not isinstance(spec, dict):
         spec = {}
     steps = spec["steps"] = dict(spec.get("suite") or {}, **(spec.get("steps") or {}))
-    if not (all(steps.get(step) for step in NEEDED) and spec.get("command") and spec.get("probe")):
-        sys.exit("REFUSED: no skill flow is set. Fix: write %s naming your idea, plan, review, test and ship skills and "
-                 "the command that runs them unattended (see loop-files.md)." % FLOW_FILE)
+    if not all(steps.get(step) for step in NEEDED):
+        sys.exit("REFUSED: no skill flow is set. Fix: write %s naming your idea, plan, review, test and ship skills (or "
+                 "\"built-in\" for delivery's own routine) and the command that runs them unattended (see loop-files.md)." % FLOW_FILE)
     return spec
 
 
-def unattended(spec):
+def skill_of(spec, step):
+    return ((spec.get("overrides") or {}).get(step) or {}).get("skill") or spec["steps"].get(step) or ""
+
+
+def runnable(spec, headless):
+    """Refuse up front, before any step starts, when a mapped step can't run in this mode: a named skill needs the probe,
+    a headless step needs the command. A built-in step needs no probe: delivery's own build and pr steps already run
+    under the same command and prompt rules, and the command's allowed tools set the real limit."""
+    gaps = []
+    for step in STEPS:
+        skill = skill_of(spec, step)
+        if skill and skill != BUILTIN and not spec.get("probe"):
+            gaps.append("%s (%s) has no probe" % (step, skill))
+        if skill and headless and not spec.get("command"):
+            gaps.append("%s runs headless and the flow has no command" % step)
+    if gaps:
+        sys.exit("REFUSED: the flow can't run every step: %s (FLOW_UNRUNNABLE). Fix: add \"probe\" and \"command\" to %s, "
+                 "or map those steps to \"built-in\"; no step was started." % ("; ".join(gaps), FLOW_FILE))
+
+
+def routine(step):
+    """This step's section of references/default-flow.md."""
+    try:
+        text = read(ROUTINES)
+    except OSError:
+        text = ""
+    found = re.search(r"^## %s\n(.*?)(?=^## |\Z)" % step, text, re.M | re.S)
+    if not found:
+        sys.exit("REFUSED: no %s section in %s (FLOW_SECTION_MISSING). Fix: reinstall workflow-delivery." % (step, ROUTINES))
+    return found.group(1).strip()
+
+
+def step_prompt(spec, args):
+    """(skill, prompt) for this step; a built-in step's prompt carries its routine in place of a skill's name."""
+    skill = skill_of(spec, args.step)
+    text = PROMPT.format(skill=skill, step=args.step, slug=args.slug, branch=git("branch", "--show-current"),
+                         purpose=PURPOSE[args.step].format(slug=args.slug, lane=role.lane_text()),
+                         note="The owner said: " + args.note + "\n" if args.note else "", depth=depth_rule(args.step)).rstrip()
+    if skill == BUILTIN:
+        head, rest = text.split("\n", 1)
+        text = "%s\nThe routine:\n%s\n%s" % (head.replace("Use the built-in skill for", "Run delivery's built-in routine for"),
+                                             routine(args.step), rest)
+    return skill, text
+
+
+def unattended(spec, step):
     """The probe must print probe_expect under the flow's environment, or no step starts: a skill run by a person's
-    rules could push, so it never runs here."""
+    rules could push, so it never runs here. A built-in step needs no probe (see runnable)."""
     env = dict(os.environ, **{key: str(value) for key, value in (spec.get("env") or {}).items()})
+    if skill_of(spec, step) == BUILTIN:
+        return env
     probe = [os.path.expanduser(part) for part in spec["probe"]]
     try:
         out = subprocess.run(probe, capture_output=True, text=True, env=env, timeout=60).stdout
@@ -140,7 +191,7 @@ def alive(pid):
 
 def start(args, runs, reply, job):
     spec = flow()
-    env = unattended(spec)
+    env = unattended(spec, args.step)
     command = step_command(spec, args.step)
     cfg = repo_config()
     budget = int(cfg.get("token_budget") or 0)
@@ -153,9 +204,7 @@ def start(args, runs, reply, job):
     if not shutil.which(command[0]):
         sys.exit("REFUSED: the flow's command %s isn't on this machine." % command[0])
     top = git("rev-parse", "--show-toplevel")
-    prompt = PROMPT.format(skill=((spec.get("overrides") or {}).get(args.step) or {}).get("skill") or spec["steps"][args.step], step=args.step, slug=args.slug,
-                           branch=git("branch", "--show-current"), purpose=PURPOSE[args.step].format(slug=args.slug, lane=role.lane_text()),
-                           note="The owner said: " + args.note + "\n" if args.note else "", depth=depth_rule(args.step))
+    prompt = step_prompt(spec, args)[1]
     if os.path.exists(reply):
         os.replace(reply, reply + ".last")
     if os.path.basename(command[0]) == "claude" and not any(part.startswith("--output-format") for part in command):
@@ -165,7 +214,10 @@ def start(args, runs, reply, job):
                                  stderr=err, start_new_session=True)
     role.begin(os.path.join(runs, args.slug + ".json"), args.step)
     with open(job, "w") as handle:
-        json.dump({"pid": child.pid, "started": time.time(), "limit": spec.get("limit") or int(cfg.get("step_limit") or 0) or args.limit}, handle)
+        limit = spec.get("limit") or int(cfg.get("step_limit") or 0) or args.limit
+        if args.step in BUDGETED:  # review and ship stop at min(the flow file's limit, step_budget_minutes)
+            limit = limits.seconds(cfg, "step_budget_minutes", limit)
+        json.dump({"pid": child.pid, "started": time.time(), "limit": limit}, handle)
     print("FLOW %s: running your %s skill unattended" % (args.step, args.step))
     print("RUNNING: run this same command again")
 
@@ -187,14 +239,20 @@ def in_session(args, runs, reply, base):
                 os.replace(reply, reply + ".last")
             role.begin(os.path.join(runs, args.slug + ".json"), args.step)
         open(asked, "a").close()
-        spec = flow()
-        skill = ((spec.get("overrides") or {}).get(args.step) or {}).get("skill") or spec["steps"][args.step]
-        print("IN SESSION %s: no headless agent; run the %s skill yourself in this session." % (args.step, skill))
-        print(PROMPT.format(skill=skill, step=args.step, slug=args.slug, branch=git("branch", "--show-current"),
-                            purpose=PURPOSE[args.step].format(slug=args.slug, lane=role.lane_text()),
-                            note="The owner said: " + args.note + "\n" if args.note else "", depth=depth_rule(args.step)).rstrip())
+        skill, text = step_prompt(flow(), args)
+        print("IN SESSION %s: no headless agent; run %s yourself in this session." % (
+            args.step, "delivery's built-in routine" if skill == BUILTIN else "the %s skill" % skill))
+        print(text)
+        if args.step in BUDGETED:
+            print("TIME BUDGET: %d minutes for this step. At the limit, stop, finish what you have, and add a line "
+                  "`BUDGET: left: <what you did not do>` before the DEPTH line; an overrun is recorded." % limits.minutes(
+                      repo_config(), "step_budget_minutes"))
         print("Write its reply, ending with the DEPTH line and then the STEP line, to %s, then run this same command again." % reply)
         return True
+    if args.step in BUDGETED:  # a session-run step that took longer than its budget is recorded, with what it said it left
+        mins = limits.minutes(repo_config(), "step_budget_minutes")
+        if os.path.getmtime(reply) - os.path.getmtime(asked) > mins * 60:
+            limits.hit(runs, args.slug, args.step, "step", mins, limits.left_of(text))
     os.remove(asked)
     open(base + ".ran", "w").close()
     print("\n".join(re.findall(r"^\W*(?:PENDING|STEP): .*", text, re.M)))
@@ -218,6 +276,11 @@ def main():
     if not os.path.isfile(os.path.join(runs, args.slug + ".json")):
         sys.exit("REFUSED: no goal named %s. Fix: start it with new." % args.slug)
     role.inbox(os.path.dirname(os.path.dirname(runs)), args.slug)
+    try:
+        headless = json.loads(read(os.path.join(runs, args.slug + ".json"))).get("worker") != "session"
+    except (OSError, ValueError):
+        headless = True
+    runnable(flow(), headless)
     base = os.path.join(runs, "%s.%s" % (args.slug, args.step))
     reply, job = base + ".txt", base + ".job"
     if args.step in ("qa", "ship") and not os.path.exists(job) and not os.path.exists(base + ".asked"):
@@ -248,7 +311,13 @@ def main():
             return 0
         os.killpg(held["pid"], signal.SIGTERM)
         with open(reply, "a") as out:
-            out.write("\nSTEP: failed the step passed its time limit\n")
+            if args.step in BUDGETED:  # it finishes with what it has done and says what it left; the goal goes on
+                mins = round(held["limit"] / 60, 1)
+                limits.hit(runs, args.slug, args.step, "step", mins, "whatever the stopped step had not finished; see its reply")
+                out.write("\nBUDGET: left: whatever the step had not finished at its %g-minute budget\nDEPTH: condensed\n"
+                          "STEP: done stopped at its %g-minute budget\n" % (mins, mins))
+            else:
+                out.write("\nSTEP: failed the step passed its time limit\n")
     os.remove(job)
     open(base + ".ran", "w").close()
     raw = read(reply)

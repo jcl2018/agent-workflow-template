@@ -8,7 +8,7 @@ usage: board.py <command> [options]
                         NEXT_DELAY and its path
   cadence [N|off]       minutes between check-ins, 1-60 (default 30), or off
   repos add PATH|list   follow another repo (~/.workflow-loop/repos), or list them
-  note SLUG TEXT        record a worker's latest message on its run (this and retire run in board_runs.py)
+  note SLUG TEXT        record a worker's latest message on its run (this and retire run in board_page.py)
   retire SLUG --reason TEXT
   handoff [--at TIME] [--out FILE]
                         write a file a new operation session can take over from
@@ -27,6 +27,10 @@ try:  # board.py runs alone with graph.py; without board_status.py there is no e
     import board_status  # noqa: E402
 except ImportError:
     board_status = None
+try:  # fast pull request states (MON-9), when board_lines.py is beside this file
+        import board_lines as prs  # noqa: E402  (its pull request lookups)
+except ImportError:
+    prs = None
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -34,7 +38,6 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
-QUIET = 1800
 RUN_COMMANDS = ("note", "retire")
 FIELDS = ("status", "step", "pr", "prstate", "checks", "quiet", "note", "waits_on", "report", "wiki_error", "release_error")
 
@@ -45,6 +48,8 @@ def git(*args, cwd=None):
 
 
 def pr_state(url, cwd):
+    if prs:
+        return (prs.state(url, cwd) or "unknown").lower()
     try:
         done = subprocess.run(["gh", "pr", "view", url, "--json", "state", "-q", ".state"], cwd=cwd, capture_output=True, text=True, timeout=20)
     except (OSError, subprocess.SubprocessError):
@@ -181,6 +186,11 @@ def collect(name, path, base, at):
             records.append(run)
     cfg = read_json(os.path.join(path, ".loop", "config.json")) or {}
     live = [r for r in records if r.get("status") in ("running", "waiting")]
+    taken = graph.assigned(graph.read_pool(os.path.join(base, "loop", "session-pool.json"))[0])
+    if prs:  # every pull request asked at once, in parallel, before the rows ask one by one from the cache (MON-9)
+        known = prs.lookup([clean(r.get("pr")) for r in records if r.get("pr") and not graph.merged(r)], path)
+    else:
+        known = {}
     rows, deps = [], []
     for run in records:
         begun, last = started(run), stamp(run.get("updated"))
@@ -190,12 +200,14 @@ def collect(name, path, base, at):
         found = [f for f in extra.get("findings") or [] if isinstance(f, dict)]
         if found and run.get("status") in ("done", "merged"):
             note = {"text": "finding after %s: %s" % (run["status"], found[-1].get("text", ""))}
-        quiet = bool(not run.get("pid") and run.get("status") == "running" and last and (at - last).total_seconds() >= QUIET)
+        last = graph.last_spoke(run) or last  # one silence rule for board and live board (MON-8)
+        limit = graph.silent_limit(cfg)
+        quiet = bool(run.get("status") == "running" and last and (at - last).total_seconds() >= limit)
         pr = clean(run.get("pr"))
         get = lambda field, size=300: clean(run.get(field), size)
         rows.append({
             "repo": run.get("repo") or name, "slug": run["slug"], "goal": get("goal", 80), "level": kind(run), "status": get("status"),
-            "step": get("step") or "-", "tries": run.get("tries", 0), "pr": pr, "prstate": pr_state(pr, path) if pr else "",
+            "step": get("step") or "-", "tries": run.get("tries", 0), "pr": pr, "prstate": ((known.get(pr) or "unknown").lower() if pr in known else pr_state(pr, path)) if pr else "",
             "wiki_error": "yes" if run.get("wiki_error") else "", "release_error": "yes" if run.get("release_error") else "",
             "checks": get("checks"), "quiet": "yes" if quiet else "no", "report": clean((run.get("report") or {}).get("text")),
             "note": clean(note.get("text")) if isinstance(note, dict) else "",
@@ -203,13 +215,16 @@ def collect(name, path, base, at):
             "elapsed": (at - begun).total_seconds() if begun else 0, "age": span((at - begun).total_seconds()) if begun else "0m",
             "took": (last - begun).total_seconds() if begun and last else 0, "last": run.get("updated") or "",
             "waits_on": ", ".join(run.get("waits_on") or []), "touches": list(dict.fromkeys(list(run.get("touches") or []) + list(extra.get("touches") or []))),
-            "merged": graph.merged(run), "left": board_status and board_status.left_time(run, records, at),
+            "merged": graph.merged(run), "held": bool(graph.held(run, taken)), "left": board_status and board_status.left_time(run, records, at),
             "eta": get("eta"), "next": get("next"), "branch": get("branch"), "reason": clean((run.get("retired") or {}).get("reason"))})
     by_slug = {r["slug"]: r for r in records}
     names = {goal["slug"] for goal in queue_of(path)}
-    used = sum(1 for r in live if graph.holds_slot(r))
+    used = sum(1 for r in live if graph.holds_slot(r, taken)) + sum(1 for slug in taken or {} if slug not in by_slug)
+    for slug in sorted(s for s in taken or {} if s not in by_slug):  # handed to a session, not frozen yet (issue 111)
+        deps.append({"repo": name, "slug": slug, "waits_on": "freezing in session %s" % (taken[slug].get("name") or taken[slug]["id"]),
+                     "on": "", "goal": "", "level": "goal", "touches": [], "left": None, "freezing": True})
     for goal in queue_of(path):
-        if goal["slug"] in by_slug:
+        if goal["slug"] in by_slug or goal["slug"] in (taken or {}):
             continue
         waits = graph.unmet(goal, by_slug, names)
         why = ", ".join("goal " + text for _, text in waits) if waits else "ready to start"
@@ -251,8 +266,10 @@ def build(at, since):
     count = lambda *kinds: sum(r["status"] in kinds for r in rows)
     held = (read_json(os.path.join(os.path.dirname(common()), ".loop", "config.json")) or {}) if common() else {}
     cadence = cadence_of(common(), held.get("cadence", "30")) if common() else "30"
-    digest = "%d runs: %d running, %d waiting on you, %d done, %d failed or stopped, %d queued, %d retired" % (
-        len(rows), count("running"), len(waiting), count("done"), count("failed", "stopped"), len(deps), count("retired"))
+    freezing = sum(1 for d in deps if d.get("freezing"))
+    digest = "%d runs: %d running, %d held, %d freezing, %d waiting on you, %d done, %d failed or stopped, %d queued, %d retired" % (
+        len(rows), count("running") - sum(r["held"] for r in rows), sum(r["held"] for r in rows), freezing, len(waiting),
+        count("done"), count("failed", "stopped"), len(deps) - freezing, count("retired"))
     delay = delay_of(cadence, bool(live))
     doc = {"generated": iso(at), "repos": names, "cadence": cadence, "digest": digest,
            "next_delay": delay, "next_at": "" if delay == "none" else (at + datetime.timedelta(seconds=int(delay))).strftime("%H:%M UTC"), "open": bool(live or waiting or deps), "waiting": waiting, "dependencies": deps, "runs": rows, "state": flat}
@@ -339,9 +356,9 @@ def cmd_handoff(args):
 
 def main():
     if sys.argv[1:2] and sys.argv[1] in RUN_COMMANDS:
-        helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "board_runs.py")
+        helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "board_page.py")
         if not os.path.exists(helper):
-            sys.exit("REFUSED: %s needs board_runs.py beside board.py." % sys.argv[1])
+            sys.exit("REFUSED: %s needs board_page.py beside board.py." % sys.argv[1])
         return subprocess.run([sys.executable, helper] + sys.argv[1:]).returncode
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
