@@ -219,7 +219,7 @@ def markers(step):
 HERE = os.path.dirname(os.path.abspath(__file__))
 from lane import NOTHING, alive, flow_spec, kill, lane, lane_argv, lane_status, lane_text, wait_for  # noqa: E402,F401
 import lanekit  # noqa: E402
-from lanekit import FILES, REG  # noqa: E402
+from lanekit import FILES, REG, generated  # noqa: E402
 
 
 def need_lane(runs, slug, reply, step="qa"):
