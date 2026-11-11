@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.27.3 - 2026-11-11
+
+- Preparation budget: prep_budget_minutes, the lane's three timed parts, LANE_PREP_BUDGET, board and health lines, toy test
+- Preparation budget toy test runs by section
+- Preparation budget rows seen failing; Tests tables
+- Wiki: update pages for prep-budget
+- Wiki: update pages for prep-budget
+- Review fixes: a test_record wrapper keeps the old rule, prep-alone cut recorded, race at the last moment, seconds with the override, steadier toy
+- Fold the preparation-budget helpers into budget.py: the skill package stays at its 99-file cap
+- Merge remote-tracking branch 'origin/main' into loop/prep-budget
+- Wiki: update pages for prep-budget
+- Wiki: update pages for prep-budget
+- Wiki: update pages for prep-budget
+- Wiki: update pages for prep-budget
+- Merge remote-tracking branch 'origin/main' into loop/prep-budget
+- Port the preparation budget onto main's layout (budget folded into lanekit.py, the pr bookkeeping and need_lane in role.py): the package stays at 99 files, every script under the cap
+- Lane: re-render the Tests tables
+- Wiki: update pages for prep-budget
+- Wiki: update pages for prep-budget
+- The pull request body's lane part drops the local log path (the private-name scan refused every body that held it); row
+- Tests tables
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.2 - 2026-11-11
 
 - delivery-prd: depth by size, set, resume and --again, goal budgets, private-name scan before pr, verdicts and GitHub touches; board budget and depth lines, mend resume step, bind self
