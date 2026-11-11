@@ -188,10 +188,10 @@
 | <a id="t-guide-marker-refused"></a>guide-marker-refused | requirement | DOC-1 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-ci-issue-backlog"></a>ci-issue-backlog | requirement | DOC-10 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-digest-backlog"></a>digest-backlog | requirement | DOC-10 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-deploy-section-optional"></a>deploy-section-optional | requirement | DOC-14 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-10 |
+| <a id="t-deploy-section-optional"></a>deploy-section-optional | requirement | DOC-14 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-deploy-table-refused"></a>deploy-table-refused | requirement | DOC-14 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-deploy-not-locked"></a>deploy-not-locked | requirement | DOC-14 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-10 |
-| <a id="t-deploy-doc14-reviewed"></a>deploy-doc14-reviewed | requirement | DOC-14 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-10 |
+| <a id="t-deploy-not-locked"></a>deploy-not-locked | requirement | DOC-14 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-deploy-doc14-reviewed"></a>deploy-doc14-reviewed | requirement | DOC-14 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 
 ## Health
 
@@ -375,7 +375,7 @@
 | <a id="t-lanes-pr-affected"></a>lanes-pr-affected | requirement | REG-4 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-09 |
 | <a id="t-prd-readers"></a>prd-readers | requirement | REG-1 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-09 |
 | <a id="t-toy-no-leftovers"></a>toy-no-leftovers | defect | [#100](https://github.com/jcl2018/agent-workflow-template/issues/100) state unknown | not run | - | local | 2026-11-09 |
-| <a id="t-lanes-headers"></a>lanes-headers | requirement | REG-4 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-10 |
+| <a id="t-lanes-headers"></a>lanes-headers | requirement | REG-4 | FAIL | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-lanes-declared"></a>lanes-declared | requirement | REG-4 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-lanes-folder-var"></a>lanes-folder-var | requirement | REG-4 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-lanes-always"></a>lanes-always | requirement | REG-4 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
