@@ -8,7 +8,7 @@
 # the same command run again passes; every LANE line and .last record the three parts; a cut in planning, a corrupt record and a
 # job without a budget are handled; the board and health list the hit with its part. A toy repo; the real lane, regression.py
 # and slots run, with the test-only LOOP_PREP_BUDGET (seconds) standing in for 15 minutes. No model is called.
-# usage: [PREP_ONLY=setting|times|stop|edges|board] test-prep-budget.sh [DIR]   (a row runs one section: one toy run per requirement)
+# usage: [PREP_ONLY=setting|times|stop|edges|board|body] test-prep-budget.sh [DIR]   (a row runs one section: one toy run per requirement)
 set -u
 unset LOOP_BATCH LOOP_SESSION_TOOL LOOP_OPERATION_SESSION GH_TOKEN GITHUB_TOKEN _LOOP_LANE_HELD LOOP_LANE_LIMIT LOOP_PREP_BUDGET
 export LOOP_ROLE=worker
@@ -159,6 +159,14 @@ import sys; sys.path.insert(0, sys.argv[1]); import lanekit
 sys.exit(0 if lanekit.label({"kind": "prep"}) == "preparation" and "pr preparation hit its 15-minute budget" in lanekit.lines({"slug": "h", "budget_hits": [{"step": "pr", "kind": "prep", "minutes": 15, "left": "x"}]})[0] else 1)
 PY'
 
+}
+
+want body && {
+echo "== the pull request body's lane part carries no local log path"
+printf '{"attempt": "x", "head": "h", "state": "pass", "line": "LANE pr AFFECTED 3/3 in 9s; before rows: prep 0s, planning 1s, slot wait 0s; rows: 3 selected (0 affected, 0 new, 0 root runners, 0 failure reruns), 0 reused, 0 unfinished; unmapped: 0; log: /home/someone/private/repo/.git/loop/runs/g.pr-lane.txt"}' > "$RUNS/g.pr-lane.last"
+printf 'SELECTED r1: new row\n' > "$RUNS/g.pr-lane.txt"
+out=$(python3 -c "import sys; sys.path.insert(0, sys.argv[1]); import role; print(role.lane_part('g'))" "$S" 2>&1)
+check "the lane part keeps the LANE line, the before-rows parts and the rows, and drops the log path" 'grep -q "^LANE pr AFFECTED 3/3 in 9s; before rows: prep 0s, planning 1s, slot wait 0s; rows: 3 selected" <<<"$out" && ! grep -q "/home/someone\|log:" <<<"$out" && grep -q "SELECTED r1: new row" <<<"$out"'
 }
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

@@ -282,7 +282,7 @@ def lane_part(slug):
     base = os.path.join(os.path.abspath(common), "loop", "runs", "%s.pr-lane" % slug) if common and slug else ""
     try:
         with open(base + ".last") as handle:
-            line = str(json.load(handle).get("line", "")).split("\n")[0]
+            line = re.sub(r"; log: \S+", "", str(json.load(handle).get("line", "")).split("\n")[0])  # no local log path in a pull request (DEL-9)
         with open(base + ".txt") as handle:
             rows = [text.rstrip() for text in handle if text.startswith(("SELECTED ", "FULL (", "UNMAPPED "))]
     except (OSError, ValueError):
