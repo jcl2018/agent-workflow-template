@@ -351,7 +351,10 @@ def lane_exec(rc, seconds, last, attempt, pool, argv):
     if lease is None:
         with open(rc + ".note", "a") as note:
             note.write("Note: %s; LOOP_LANE_PORT_BASE unset\n" % port)
-    env = dict(os.environ, **({"LOOP_LANE_PORT_BASE": str(port)} if lease is not None else {}))
+    env = dict(os.environ)
+    env.pop("LOOP_LANE_PORT_BASE", None)  # never an outer lane's range: no lease means unset, as the note says
+    if lease is not None:
+        env["LOOP_LANE_PORT_BASE"] = str(port)
     child, seen = subprocess.Popen(argv, env=env), None
     try:
         while True:

@@ -10,6 +10,7 @@ here=$(cd "$(dirname "$0")/../.." && pwd)
 # no_claim=real port binding (rows only read the variable)
 set -u
 export HOME=$(mktemp -d) LOOP_LANES_DIR=$(mktemp -d)/lanes
+export LOOP_LANE_PORT_BASE=20700  # as inside a lane (this test is a row): a nested lane with no lease must not inherit it
 d=$(mktemp -d); toy_on_exit 'rm -rf "$d" "$HOME" "$(dirname "$LOOP_LANES_DIR")"'
 fails=0
 ok() { echo "PASS: $1"; }
