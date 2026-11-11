@@ -98,4 +98,3 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a
 | - | requirement | SET-7 | no passing test | not enforced |
 | - | requirement | SET-8 | no passing test | not enforced |
 | [skill-size-116](Tests#t-skill-size-116) | defect | [#116](https://github.com/jcl2018/agent-workflow-template/issues/116) closed (2026-11-10) | Given the package's skills, when each SKILL.md is counted, then every one is under 150 lines, so test-board passes. | PASS 2026-11-10 |
-
