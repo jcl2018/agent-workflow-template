@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.25.1 - 2026-11-11
+
+- No code changes
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.25.0 - 2026-11-10
 
 - WIP: monitoring-prd new modules (goal_state, dep_graph, issue_lines, prs, pool, replan, auto, govern_hook, checkin)

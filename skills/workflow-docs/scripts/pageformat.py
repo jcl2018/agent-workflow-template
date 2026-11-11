@@ -10,7 +10,7 @@ import re
 
 GENERATED = {"Tests"}  # pages render writes; never mapped to paths, never a feature page
 GUIDE = "<!-- workflow-docs guide -->"  # a line marking a guide page: mapped and kept fresh, but not a feature page
-CHECKS = ("home", "frontdoor", "usage", "bullets", "problem", "tests")
+CHECKS = ("home", "frontdoor", "usage", "bullets", "problem", "tests", "deployments")  # deployments: deployments.py
 BANNED = "script, function, regex, json, tsv, stdout"
 MARKER = "<!-- workflow-docs -->"
 HOME = ("Feature", "What it does", "How to use", "Milestone")
