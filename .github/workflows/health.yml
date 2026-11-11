@@ -60,7 +60,7 @@ jobs:
             case "$id" in ''|*[!0-9]*) continue ;; esac  # a run number, never anything else
             gh run download "$id" --name suite-time --dir "$got" >/dev/null 2>&1 && break
           done
-          if [ -s "$got/suite-time.tsv" ]; then  # the regression run's line, marked ci for timing.py
+          if [ -s "$got/suite-time.tsv" ]; then  # the regression run's line, marked ci for cost.py
             awk -F'\t' 'NF >= 4 && $2 == "full" && $3 ~ /^[0-9]+$/ { print $1 "\t" $2 "\t" $3 "\t" $4 "\tci" }' "$got/suite-time.tsv" >> "$dir/suite-times.tsv"
             echo "SUITE_TIME: the newest regression run's full-suite time is in $dir/suite-times.tsv"
           else
