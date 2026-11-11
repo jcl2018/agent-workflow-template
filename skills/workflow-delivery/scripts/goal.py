@@ -13,7 +13,8 @@ Goal steps (step, record, pr) refuse outside a worker, which also sees what the 
   answer SLUG                 a waiting goal goes on
   finding SLUG TEXT           stops a live goal; a done or merged one is only noted
   resume SLUG --why T [--by W]    the operation revives a stopped session goal
-  touches SLUG --add PATH --why T the operation widens a goal's touches
+  touches SLUG --add PATH --why T the operation widens a goal's touches (a path, or github:wiki and the like)
+  set SLUG [--depth D] [--bump B] [--budget-minutes N] [--budget-tokens N] --why T   the owner's per-goal settings
   show SLUG
 A refusal that changes nothing uses no try: exit 2, the goal keeps running (guards.py).
 """
@@ -28,9 +29,9 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import defect  # noqa: E402
 import lanekit  # noqa: E402
 import guards  # noqa: E402
+import fit  # noqa: E402
 import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -219,6 +220,7 @@ def cmd_new(args):
     elif current != branch:
         no("on branch %s. Fix: go to %s or %s first." % (current, cfg["base"], branch))
     lines = ["%d. %s" % (index, " ".join(line.split())) for index, line in enumerate(args.done, 1)]
+    fields = fit.frozen_fields(sys.modules[__name__], args, lines, touches)
     path = goal_file(args.slug)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     write(path, TEMPLATE.format(goal=" ".join(args.goal.split()), slug=args.slug,
@@ -229,6 +231,7 @@ def cmd_new(args):
              "branch": branch, "worktree": root(), "touches": touches, "pid": None, "pr": "",
              "batch": bool(os.environ.get("LOOP_BATCH")), "done_sha": done_sha(lines),
              "release": args.release, "waiting": None, "finding": "", "log": []}
+    state.update(fields)
     guards.stamp(state, "idea")
     save(state, "frozen %d done lines" % len(lines))
     print("FROZEN %s branch=%s step=idea" % (args.slug, branch))
@@ -236,23 +239,11 @@ def cmd_new(args):
 
 
 def cmd_queue(args):
-    valid(args)
-    if any("|" in text for text in [args.goal, args.touches] + args.done):
-        no("no | in a queue line.")
-    path = os.path.join(root(), ".loop", "queue.md")
-    held = read(path) if os.path.exists(path) else ""
-    if os.path.exists(state_path(args.slug)) or "- slug: %s |" % args.slug in held:
-        no("%s already exists. Fix: pick a new slug." % args.slug)
-    parts = ["slug: " + args.slug]
-    if args.touches:
-        parts.append("touches: " + args.touches)
-    if args.depends_on:
-        parts.append("depends-on: " + args.depends_on)
-    parts.append("goal: " + " ".join(args.goal.split()))
-    parts += ["done: " + " ".join(line.split()) for line in args.done]
-    write(path, ("" if held.endswith("\n") or not held else "\n") + "- " + " | ".join(parts) + "\n", "a")
-    print("QUEUED %s in .loop/queue.md" % args.slug)
-    return 0
+    return fit.cmd_queue(sys.modules[__name__], args)
+
+
+def cmd_set(args):
+    return fit.cmd_set(sys.modules[__name__], args)
 
 
 def cmd_step(args):
@@ -307,6 +298,8 @@ def cmd_record(args):
     os.remove(ran)
     if result in ("done", "skipped") or pending or result == "pending":
         guards.clear_refusals(state)
+    if result in ("done", "skipped") or ((pending or result == "pending") and cfg.get("auto_approve") is True):
+        fit.keep(sys.modules[__name__], state, args.step, text)
     if (pending or result == "pending") and cfg.get("auto_approve") is True:
         took = "; ".join(pending) or why or "the step's pending gate"
         state["flow"][args.step] = "done: auto-approved: " + took[:200] + stamp
@@ -359,7 +352,7 @@ def cmd_pr(args):
     left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
     if left:
         no("the flow hasn't finished: %s. Fix: run flow.py %s %s." % (", ".join(left), args.slug, left[0]))
-    owed = defect.owed(root(), read(goal_file(args.slug)))
+    owed = fit.owed(root(), read(goal_file(args.slug)))
     if owed:
         no("no passing defect test, seen failing, for %s. Fix: regression.py add --category defect --link ..., then red." % ", ".join(owed))
     if git("status", "--porcelain", "--", "."):
@@ -374,6 +367,9 @@ def cmd_pr(args):
                    "fix the failing rows, commit, then run pr again")
         return 1
     lanekit.record(state, config()["base"])
+    known = run(["gh", "pr", "view", state["branch"], "--json", "url,state"])
+    info = json.loads(known.stdout) if known.returncode == 0 else {}
+    body = fit.pr_text(sys.modules[__name__], state)
     state["step"] = "pr"
     save(state, "pr")
     for wait in (2, 5, 0):
@@ -383,13 +379,8 @@ def cmd_pr(args):
         time.sleep(wait)
     if pushed.returncode:
         no("push failed:\n" + pushed.stderr)
-    known = run(["gh", "pr", "view", state["branch"], "--json", "url,state"])
-    info = json.loads(known.stdout) if known.returncode == 0 else {}
     url = info["url"] if info.get("state") == "OPEN" else ""
     if not url:
-        body = read(goal_file(args.slug))
-        flow = "".join("\n- %s: %s" % (step, state["flow"][step]) for step in FLOW)
-        body += "\n## Result\n\nSkill flow:%s\n%s" % (flow, state.get("pr_lane", ""))
         done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
                     "--title", state["goal"][:70], "--body", body], check=True)
         url = done.stdout.strip().splitlines()[-1]
@@ -422,7 +413,9 @@ def cmd_touches(args):
 
 
 def cmd_show(args):
-    print(json.dumps(load(args.slug), indent=2))
+    state = load(args.slug)
+    state["resume_at"] = fit.resume_at(state, guards.moved_since_plan(sys.modules[__name__], state))
+    print(json.dumps(state, indent=2))
     return 0
 
 
@@ -445,6 +438,8 @@ def main():
     add("finding", cmd_finding, ("text", {}))
     add("resume", cmd_resume, ("--why", {"required": True}), ("--by", {"default": "operation session"}))
     add("touches", cmd_touches, ("--add", {"required": True}), ("--why", {"required": True}))
+    add("set", cmd_set, ("--depth", {"choices": ("full", "condensed")}), ("--bump", {"choices": ("minor", "major")}),
+        ("--budget-minutes", {"type": int}), ("--budget-tokens", {"type": int}), ("--why", {"required": True}))
     for name, func in (("pr", cmd_pr), ("answer", cmd_answer), ("show", cmd_show)):
         add(name, func)
     args = parser.parse_args()

@@ -90,9 +90,10 @@ printf 'Shaped it.\nDEPTH: full\nSTEP: done\n' > "$R/b.idea.txt"
   && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/goal.py" record b idea --file "$R/b.idea.txt" > "$T/f3" 2>&1)
 check "the session's reply is recorded with goal.py record" 'grep -q "^NEXT: goal.py record b idea" "$T/f2" && grep -q "^RECORDED idea done" "$T/f3"'
 
-(cd "$C/loop/worktrees/b" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/flow.py" b idea > "$T/f4" 2>&1)
+(cd "$C/loop/worktrees/b" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/flow.py" b idea --again > "$T/f4" 2>&1)  # a recorded step reruns only on purpose (DEL-7)
 check "a reply left by an earlier try is never recorded again: the step is asked for afresh" 'grep -q "^IN SESSION idea" "$T/f4" && [ -e "$R/b.idea.txt.last" ] && [ ! -e "$R/b.idea.ran" ]'
 printf 'Planned it.\nDEPTH: full\nSTEP: done\n' > "$T/plan-reply.txt"
+(cd "$C/loop/worktrees/b" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/goal.py" record b idea --file "$T/plan-reply.txt" --in-session >/dev/null 2>&1)  # --again cleared idea: record it again
 (cd "$C/loop/worktrees/b" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/goal.py" record b plan --file "$T/plan-reply.txt" --in-session > "$T/f5" 2>&1)
 (cd "$C/loop/worktrees/d" && LOOP_ROLE=worker python3 "$here/skills/workflow-delivery/scripts/goal.py" record d idea --file "$T/plan-reply.txt" --in-session > "$T/f6" 2>&1)
 check "goal.py record --in-session records a step the worker session ran and stamps it in session; a goal with no session is refused" \

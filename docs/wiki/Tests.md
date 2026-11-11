@@ -100,6 +100,27 @@
 | <a id="t-del8-session-overrun"></a>del8-session-overrun | requirement | DEL-8 | not run | - | local | 2026-11-11 |
 | <a id="t-del8-board"></a>del8-board | requirement | DEL-8 | not run | - | local | 2026-11-11 |
 | <a id="t-del8-health"></a>del8-health | requirement | DEL-8 | not run | - | local | 2026-11-11 |
+| <a id="t-del6-depth-by-size"></a>del6-depth-by-size | requirement | DEL-6 | not run | - | local | 2026-11-10 |
+| <a id="t-del6-large-held-full"></a>del6-large-held-full | requirement | DEL-6 | not run | - | local | 2026-11-10 |
+| <a id="t-del6-owner-override"></a>del6-owner-override | requirement | DEL-6 | not run | - | local | 2026-11-10 |
+| <a id="t-del6-full-lane"></a>del6-full-lane | requirement | DEL-6 | not run | - | local | 2026-11-11 |
+| <a id="t-del5-patch-default"></a>del5-patch-default | requirement | DEL-5 | not run | - | local | 2026-11-10 |
+| <a id="t-del5-bump-set"></a>del5-bump-set | requirement | DEL-5 | not run | - | local | 2026-11-10 |
+| <a id="t-del5-release-pr"></a>del5-release-pr | requirement | DEL-5 | not run | - | local | 2026-11-10 |
+| <a id="t-del7-kill-resume"></a>del7-kill-resume | requirement | DEL-7 | not run | - | local | 2026-11-10 |
+| <a id="t-del7-recorded-refused"></a>del7-recorded-refused | requirement | DEL-7 | not run | - | local | 2026-11-10 |
+| <a id="t-del8-goal-budget"></a>del8-goal-budget | requirement | DEL-8 | not run | - | local | 2026-11-10 |
+| <a id="t-del8-board-over"></a>del8-board-over | requirement | DEL-8 | not run | - | local | 2026-11-10 |
+| <a id="t-del9-pr-refuses"></a>del9-pr-refuses | requirement | DEL-9 | not run | - | local | 2026-11-10 |
+| <a id="t-del9-merge-refuses"></a>del9-merge-refuses | requirement | DEL-9 | not run | - | local | 2026-11-10 |
+| <a id="t-del9-scan-sites"></a>del9-scan-sites | requirement | DEL-9 | not run | - | local | 2026-11-10 |
+| <a id="t-issue-38-verdicts"></a>issue-38-verdicts | defect | [#38](https://github.com/jcl2018/agent-workflow-template/issues/38) open (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-117-github-touches"></a>issue-117-github-touches | defect | [#117](https://github.com/jcl2018/agent-workflow-template/issues/117) open (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-129-docs-published"></a>issue-129-docs-published | defect | [#129](https://github.com/jcl2018/agent-workflow-template/issues/129) open (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-129-wiki-first-page"></a>issue-129-wiki-first-page | defect | [#129](https://github.com/jcl2018/agent-workflow-template/issues/129) open (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-134-protected-release"></a>issue-134-protected-release | defect | [#134](https://github.com/jcl2018/agent-workflow-template/issues/134) open (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-154-release-pr-merge"></a>issue-154-release-pr-merge | defect | [#154](https://github.com/jcl2018/agent-workflow-template/issues/154) closed (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-170-patch-on-remove"></a>issue-170-patch-on-remove | defect | [#170](https://github.com/jcl2018/agent-workflow-template/issues/170) open (2026-11-11) | not run | - | local | 2026-11-10 |
 
 ## Documentation
 
@@ -344,6 +365,7 @@
 | <a id="t-reply-checkin-321"></a>reply-checkin-321 | defect | [#321](https://github.com/jcl2018/agent-workflow-template/issues/321) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-pull-ff-only-passes"></a>pull-ff-only-passes | defect | [#495](https://github.com/jcl2018/agent-workflow-template/issues/495) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-pull-plain-blocked"></a>pull-plain-blocked | defect | [#495](https://github.com/jcl2018/agent-workflow-template/issues/495) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-issue-117-bind-self"></a>issue-117-bind-self | defect | [#117](https://github.com/jcl2018/agent-workflow-template/issues/117) open (2026-11-11) | not run | - | local | 2026-11-10 |
 
 ## Regression
 

@@ -4,7 +4,7 @@
 usage: sessions.py <command> [options]
 
   assign SLUG               give a frozen goal to a worker session (watch.py does this for every goal it starts)
-  bind SLUG ID [--name N] [--force] [--cwd DIR]
+  bind SLUG ID|self [--name N] [--force] [--cwd DIR]
                             record a session started with the app's own tools; before freezing it records the handoff
                             (ASSIGNED: the board shows it freezing), after goal.py new it binds (BOUND). --force: rebind
                             a session freed from the goal. Prints the WORKER command and the WORKTREE (session_bind.py)

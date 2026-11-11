@@ -17,7 +17,9 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import budget  # noqa: E402
+import fit  # noqa: E402
+import private  # noqa: E402
+import lanekit  # noqa: E402
 import role  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,7 +30,7 @@ FORMAT_RULE, NO_STEP_LINE, NOT_RUN_BY_FLOW = "FORMAT_RULE", "NO_STEP_LINE", "NOT
 WORKER_SELF_REPAIR, RESUME_STATUS, RESUME_NO_SESSION = "WORKER_SELF_REPAIR", "RESUME_STATUS", "RESUME_NO_SESSION"
 RESUME_NO_WORKTREE, SESSION_TAKEN, DONE_LINES_CHANGED = "RESUME_NO_WORKTREE", "SESSION_TAKEN", "DONE_LINES_CHANGED"
 TOUCHES_PATH, WAITING_OWNER, ANSWER_STATUS = "TOUCHES_PATH", "WAITING_OWNER", "ANSWER_STATUS"
-REFUSALS = "refused records in a row"
+REFUSALS, FINDING_LOCAL = "refused records in a row", "FINDING_LOCAL"
 
 
 def now():
@@ -66,10 +68,11 @@ def check_record(state, step, text, cfg, result):
         skipped.append("%s (v%s) not applied: %s started before it" % (rule, RULES[rule], step))
         return False
 
-    if result == "done" and budget.reached(state, step):  # stopped at its step budget: it finishes with what it has done
+    if result == "done" and lanekit.reached(state, step):  # stopped at its step budget: it finishes with what it has done
         state.setdefault("depth", {})[step] = "condensed"
         return " (stopped at its step budget)", None, None, skipped
-    setting = role.depth_of(cfg)
+    common = role.git("rev-parse", "--git-common-dir").stdout.strip()
+    setting = role.depth_of(cfg, state, os.path.join(os.path.abspath(common), "loop", "runs") if common else None)
     ends = list(role.STEP.finditer(text))
     body = text[:ends[-1].start()] if ends else text
     found = role.DEPTH.findall(body)
@@ -135,21 +138,31 @@ def extra(runs, slug):
     except (OSError, ValueError):
         found = {}
     found = found if isinstance(found, dict) else {}
-    return {key: list(found.get(key) or []) for key in ("touches", "findings", "log")}
+    data = {key: list(found.get(key) or []) for key in ("touches", "findings", "log")}
+    data["set"] = dict(found["set"]) if isinstance(found.get("set"), dict) else {}  # the owner's settings (fit.view)
+    return data
 
 
-def add_extra(runs, slug, key, item, line):
-    """Append item to the sidecar's key and line to its log, under an exclusive lock, atomically."""
+def add_extra(runs, slug, key, item, line, setting=False):
+    """Append item to the sidecar's key (or, with setting, set it in the owner's settings) and line to its log, under an
+    exclusive lock, atomically."""
     with open(os.path.join(runs, slug + ".extra.lock"), "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         data = extra(runs, slug)
-        data[key].append(item)
+        if setting:
+            data["set"][key] = item
+        else:
+            data[key].append(item)
         data["log"].append("%s %s" % (now(), line))
         temp = extra_path(runs, slug) + ".%d.tmp" % os.getpid()
         with open(temp, "w") as handle:
             json.dump(data, handle, indent=2)
         os.replace(temp, extra_path(runs, slug))
     return data
+
+
+def add_set(runs, slug, key, value, line):
+    return add_extra(runs, slug, key, value, line, setting=True)
 
 
 def touches_of(runs, state):
@@ -159,7 +172,10 @@ def touches_of(runs, state):
 
 def check_path(path, have):
     """None when PATH may widen touches, else the reason."""
-    if not path or os.path.isabs(path) or ".." in path.split("/") or path.startswith("~") or re.search(r"[,|\s\x00-\x1f]", path):
+    if path.startswith("github:"):  # a GitHub surface, never a file path (issue 117)
+        if path[7:] not in fit.SURFACES:
+            return "%r isn't a GitHub surface (one of github:%s)" % (path, ", github:".join(fit.SURFACES))
+    elif not path or os.path.isabs(path) or ".." in path.split("/") or path.startswith("~") or re.search(r"[,|\s\x00-\x1f]", path):
         return "%r isn't a repo-relative path" % path
     if path.rstrip("/") in [t.rstrip("/") for t in have]:
         return "%s is already in the goal's touches" % path
@@ -188,6 +204,13 @@ def write_finding(g, state, text):
     g.write(path, line, "a")
     g.git("add", ".loop/findings.md")
     g.git("commit", "-m", "Finding: %s" % state["slug"], "--", ".loop/findings.md", check=False)
+    found = private.scan(g.root(), g.base_ref(state))
+    stop = private.refusal(found, g.base_ref(state))
+    if stop:  # the finding commit stays local; the board shows why (X1)
+        state["finding_error"] = "%s. Fix: %s (%s)" % (stop[0][:300], stop[1][:200], FINDING_LOCAL)
+        g.save(state, "finding stays local: private-name scan (%s)" % stop[2])
+        print("NOTE: finding stays local: private-name scan: %s (%s)" % (stop[0][:300], FINDING_LOCAL))
+        return
     push = g.run(["git", "push", "-u", "origin", "HEAD"])
     if push.returncode:
         print("NOTE: finding stays local, push failed: " + push.stderr.strip()[:200])
@@ -313,15 +336,29 @@ def cmd_resume(g, args):
         with open(temp, "w") as handle:
             json.dump(pool, handle, indent=2)
         os.replace(temp, path)
-    message = "goal %s %s. Continue at %s in %s" % (slug, note, state.get("step") or "the next step", tree)
+    at = fit.resume_at(state, moved_since_plan(g, state, tree))
+    dirty = len([l for l in g.run(["git", "-C", tree, "status", "--porcelain"]).stdout.splitlines() if l.strip()])
+    head = g.run(["git", "-C", tree, "rev-parse", "--short", "HEAD"]).stdout.strip()
+    message = "goal %s %s. Continue at %s in %s: %s (HEAD %s, %d uncommitted file%s; resume reset the tries)" % (
+        slug, note, at, tree, fit.next_command(state, at), head, dirty, "" if dirty == 1 else "s")
     sent = g.run([sys.executable, tool, "send", slug, message])
     if sent.returncode:
-        print("RESUMED %s at %s (message not delivered)" % (slug, state.get("step")))
+        print("RESUMED %s at %s (message not delivered)" % (slug, at))
         print("NOTE: send failed; tell the session yourself: session %s; %s" % (sid, (sent.stdout + sent.stderr).strip()[:200]))
         print("NEXT: python3 %s send %s %s" % (os.path.abspath(tool), slug, json.dumps(message)))
         return 0
-    print("RESUMED %s at %s" % (slug, state.get("step")))
+    print("RESUMED %s at %s" % (slug, at))
+    print("NEXT: " + fit.next_command(state, at))
     return 0
+
+
+def moved_since_plan(g, state, tree="."):
+    """True when a commit landed after the plan was recorded (so build is done and review is next); None if unknown."""
+    head = state.get("plan_head")
+    if not head:
+        return None
+    done = g.run(["git", "-C", tree, "rev-list", "--count", head + "..HEAD"])
+    return bool(done.returncode == 0 and done.stdout.strip() not in ("", "0"))
 
 
 def cmd_touches(g, args):
@@ -333,6 +370,19 @@ def cmd_touches(g, args):
         g.no("%s (%s)" % (bad, TOUCHES_PATH))
     add_extra(g.state_dir(), args.slug, "touches", args.add, "touches +%s: %s" % (args.add, " ".join(args.why.split())))
     print("TOUCHES %s +%s" % (args.slug, args.add))
+    size = state.get("size") if isinstance(state.get("size"), dict) else None
+    if size and size.get("small"):  # widened touches can make a small goal large, never the reverse (E1)
+        tree = state.get("worktree") or g.root()
+        try:
+            text = g.read(os.path.join(tree, ".loop", "goals", args.slug + ".md"))
+        except OSError:
+            text = ""
+        part = text.split("## Done lines", 1)[-1].split("\n## ", 1)[0]
+        lines = [line for line in part.splitlines() if re.match(r"\s*\d+\. ", line)]
+        new = fit.size_of(lines, touches_of(g.state_dir(), state), tree)
+        if not new["small"]:
+            add_set(g.state_dir(), args.slug, "size", new, "re-sized: " + new["why"])
+            print("RESIZED %s: %s" % (args.slug, new["why"]))
     return 0
 
 

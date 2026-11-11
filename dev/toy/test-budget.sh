@@ -32,8 +32,8 @@ PY
 common=$(cd "$(git rev-parse --git-common-dir)" && pwd)
 
 echo "== the two settings refuse a value under 15 minutes"
-B="python3 -c 'import sys; sys.path.insert(0, \"$S/workflow-delivery/scripts\"); import budget; print(budget.minutes(json.loads(sys.argv[1]), sys.argv[2]))'"
-bm() { python3 -c 'import json, sys; sys.path.insert(0, sys.argv[1]); import budget; print(budget.minutes(json.loads(sys.argv[2]), sys.argv[3]))' "$S/workflow-delivery/scripts" "$@" 2>&1; }
+B="python3 -c 'import sys; sys.path.insert(0, \"$S/workflow-delivery/scripts\"); import lanekit as budget; print(budget.minutes(json.loads(sys.argv[1]), sys.argv[2]))'"
+bm() { python3 -c 'import json, sys; sys.path.insert(0, sys.argv[1]); import lanekit as budget; print(budget.minutes(json.loads(sys.argv[2]), sys.argv[3]))' "$S/workflow-delivery/scripts" "$@" 2>&1; }
 check "step_budget_minutes defaults to 30 and test_budget_minutes to 15" '[ "$(bm "{}" step_budget_minutes)" = 30 ] && [ "$(bm "{}" test_budget_minutes)" = 15 ]'
 out=$(bm '{"step_budget_minutes": 10}' step_budget_minutes)
 check "a step budget under 15 is refused with a fix line" 'grep -q "^REFUSED: step_budget_minutes is 10 in .loop/config.json, under the 15-minute floor. Fix: set it to 15 or more" <<<"$out"'
@@ -67,7 +67,7 @@ git switch -q -c lb-branch; runs="$common/loop/runs"; mkdir -p "$runs"; printf '
 rm -f "$common"/loop/tests/*.json
 out=$(python3 - "$S/workflow-delivery/scripts" "$runs" <<'PY'
 import json, sys, time
-sys.path.insert(0, sys.argv[1]); import budget, role
+sys.path.insert(0, sys.argv[1]); import lanekit as budget, role
 budget.minutes = lambda cfg, key: 0.05  # 3 seconds: a toy stand-in for a 15 minute budget
 while True:
     status, line, ids = role.lane(sys.argv[2], "lb", "qa", {}, {})
