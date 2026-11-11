@@ -2,6 +2,7 @@
 Automation	skills/workflow-health/scripts/automation.py,skills/workflow-health/scripts/rounds.py,skills/workflow-health/scripts/mail.py,skills/workflow-health/scripts/mail_render.py,skills/workflow-health/scripts/workflows.py,.github/workflows
 Delivery	skills/workflow-delivery,skills/workflow-release
 Documentation	skills/workflow-docs,skills/workflow-health/scripts/milestone.py,dev/toy/fakegh
+Guardrails	.loop/config.json
 Health	skills/workflow-health
 Home	README.md,FINDINGS.md,DECISIONS.md
 Monitoring	skills/workflow-monitoring
