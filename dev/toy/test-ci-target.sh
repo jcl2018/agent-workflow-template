@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/actions.py
-# reads: skills/workflow-regression/scripts/tests.py
+# reads: skills/workflow-regression/scripts/tests.py skills/
 # Proves the CI dispatch target (C-A1, E-7, F3, S23) in an adopted toy repo that has no skills/ folder: the written
 # regression.yml has an optional `target` input on workflow_dispatch; its run step (run as GitHub would, with bash and
 # the step's env) runs only the named row for target=ID; a target that is not land, nightly or a row id fails with

@@ -1,7 +1,7 @@
 #!/bin/bash
 # reads: skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/tiers.py
 # reads: skills/workflow-regression/scripts/lanes.py skills/workflow-regression/scripts/slots.py
-# reads: skills/workflow-delivery/scripts/lane.py skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-delivery/scripts/lane.py skills/workflow-setup/scripts/setup.py skills/workflow-delivery/scripts/
 # Proves the goal tier (REG-4, tiers.py) and `run --kind` (A1e): a goal lane runs only the rows the branch's change
 # reaches, new rows, root runners and a usable record's failures; an unmapped or deleted path is a Note at qa and FULL
 # at pr; no merge-base is FULL; a record is reused only on the same merge-base; the LANE line's ROWS counts match its
