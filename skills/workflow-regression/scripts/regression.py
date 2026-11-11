@@ -309,25 +309,13 @@ def cmd_run(args):
             ids = ", ".join(todo[:10]) + (", +%d more" % (len(todo) - 10) if len(todo) > 10 else "")
             print("AFFECTED %d of %d rows (%s): %s" % (len(todo), len(picked), ids,
                                                        " ".join(lanes.changed(root, old["commit"]) or [])[:400]))
-    if todo and args.target in ("land", "nightly") and (why or not args.reuse):  # a FULL lane waits for a lane slot
+    if todo and args.target in ("land", "nightly") and (why or not args.reuse):  # a lane with no plan to follow waits for a slot
         slot = slots.acquire(root, os.environ.get("_LOOP_LANE_LABEL") or os.path.basename(root) + " by hand", head, unclean)
     else:
         slots.started()
-    results = []
-    for row in [r for r in picked if r["id"] in todo]:
-        began = time.time()
-        code, text, pid, signal = lanes.run_row(row["command"], root, actions.row_env(), args.timeout)
-        state = "PASS" if code == 0 else ("KNOWN" if row["id"] in expected else "FAIL")
-        if code == 0 and row["id"] in expected:
-            print("FIXED %s: remove it from the known list" % row["id"])
-        reason = " (%s)" % expected[row["id"]] if state == "KNOWN" else ""
-        print("%s %s%s" % (state, row["id"], reason), flush=True)
-        if signal and state != "PASS":  # workflow-regression/references/commands.md
-            print("KILLED %s: signal %s (pid %d). Note: a signal stopped this row; see the lane log" % (row["id"], signal, pid))
-        if state == "FAIL" and args.reuse:
-            print("\n".join("    " + line for line in text.rstrip().splitlines()[-20:]), file=sys.stderr)
-        results.append({"id": row["id"], "state": state, "tail": text[-1500:], "seconds": round(time.time() - began, 1),
-                        "pid": pid, "rc": code, "signal": signal})
+    est = {key: item.get("seconds") or 0 for key, item in (old["rows"] if args.reuse and picked and old else {}).items()}
+    limit = (args.budget or runs.budget(root)) if args.reuse else None  # CI's plain run is the full suite: no budget
+    results, cut = runs.execute(root, picked, todo, est, limit, args.timeout, expected, args.reuse)
     for line in tiers.flaky_apply(record, results, head, not unclean):  # REG-9: advisory; the result decides
         print(line)
     if not args.reuse and results:  # a reusing run writes nothing in the worktree and opens no issue: CI's plain run owns both
@@ -342,8 +330,9 @@ def cmd_run(args):
         print("NOT RECORDED: the rows left uncommitted files: %s; record dropped" % ", ".join(left[:10]))
         if os.path.exists(record):
             os.remove(record)
-    elif results:
-        lanes.save(record, root, "regression.py run %s%s" % (args.target, " --reuse" if args.reuse else ""), results,
+    elif results or cut:
+        lanes.save(record, root, "regression.py run %s%s" % (args.target, " --reuse" if args.reuse else ""),
+                   results + [{"id": key, "state": "LEFT", "seconds": 0} for key in cut],
                    head, datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                    fresh=bool(args.reuse and why), base=tiers.BASE)
     never = [row["id"] for row in picked if not SEEN.match(row["seen_red"])]
@@ -392,8 +381,9 @@ def main():
     item.add_argument("--timeout", type=int, default=900)
     item.add_argument("--reuse", action="store_true", help="reuse this branch's last run; run only the rows a change can affect")
     item.add_argument("--live", action="store_true")
-    item.add_argument("--tier", choices=("goal",), help="a goal lane: affected rows only, never FULL but at pr (tiers.py)")
+    item.add_argument("--tier", choices=("goal",), help="a goal lane: the rows the branch's change reaches, in tier order, within the time budget (tiers.py)")
     item.add_argument("--kind", choices=tuple(tiers.KINDS))
+    item.add_argument("--budget", type=int, default=0, help="seconds a --reuse run may take (default: test_budget_minutes)")
     item.set_defaults(func=cmd_run)
     sub.add_parser("workflow").set_defaults(func=cmd_workflow)
     item = sub.add_parser("reads")

@@ -45,5 +45,6 @@
   "silent_minutes": 30,
   "govern_hook": true,
   "digest_mail": "cloudflare",
-  "full_suite_minutes": 100
+  "test_budget_minutes": 15,
+  "step_budget_minutes": 30
 }

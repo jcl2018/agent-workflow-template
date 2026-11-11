@@ -1,7 +1,7 @@
 # id	status	date	run	flaky
-adopt-set-1	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+adopt-set-1	PASS	2026-11-11	
 adopt-set-2	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-adopt-set-3	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+adopt-set-3	PASS	2026-11-11	
 adopt-set-4	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 adopt-set-5	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 affected-quiet-release	PASS	2026-11-11	
@@ -254,7 +254,7 @@ no-done-line-refused	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 no-flow-refused	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 no-line-in-governor	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 no-pid-left-alone	PASS	2026-11-09	
-no-prompts	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+no-prompts	PASS	2026-11-11	
 no-row-fail	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 no-token-dry-run	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 no-token-would	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -337,7 +337,7 @@ runs-upgrade	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 runs-url	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 same-lines	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 schedule-setting	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-scripts-no-hang	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+scripts-no-hang	PASS	2026-11-11	
 seal-sub-bullets	PASS	2026-11-10	
 session-answer	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 session-assign	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a

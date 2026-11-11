@@ -104,7 +104,7 @@ git checkout -q -- src/a.txt
 echo "== unmapped files, new rows, the known list and unproven rows"
 printf 'echo new\n' > dev/new.sh; git add dev/new.sh; git commit -qm "New dev file"
 fresh; out=$($reg run land --reuse); echo "$out"
-check "a new file under dev/ no row reads forces a full run" 'grep -q "^UNMAPPED dev/new.sh: full run" <<<"$out" && [ "$(ran)" = "a b " ]'
+check "a new file under dev/ no row reads no longer forces a full run" 'grep -q "^UNMAPPED dev/new.sh: ran the rows that name them" <<<"$out" && ! grep -q "^FULL" <<<"$out" && [ -z "$(ran)" ]'
 printf 'd\tland\techo d >> "$TOY_LOG"; cat dev/a.sh >/dev/null\tX-1\t2026-01-01\tD works.\tcriterion\t\n' >> .loop/regression.tsv
 git commit -qam "Row d"
 fresh; out=$($reg run land --reuse); echo "$out"

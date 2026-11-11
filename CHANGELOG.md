@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.26.0 - 2026-11-11
+
+- Time budgets: tiers fit an in-loop test run, step budgets bound review and ship
+- Budget rows seen failing then passing; REG-7 and DEL-8 Unreviewed; settings documented
+- A rerun step starts without its earlier budget hit (review finding)
+- Fold the test budget into runs.py: the package stays under 100 files; the guard against prompts
+- Tests tables rendered; ledger
+- Pages touched without a Usage edit, so no owner re-review is owed; header of test-budget
+- Pages rendered
+- Regression Usage: left rows are reused by a later lane
+- Tier order: a goal's new rows run first
+- Regression Usage: tier order
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.25.1 - 2026-11-11
 
 - No code changes

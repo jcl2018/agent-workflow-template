@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/1
 
-Review: **Reviewed 2026-11-10** <!-- prd P=7884b325 R=ed81bf41 N=9f4c33da M=f8cd4612 U=0c2c3b5a -->
+Review: **Unreviewed**
 
 ## Problem
 - I have more changes to make than time to babysit them: I want to hand over one sentence and walk away.
@@ -12,9 +12,9 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7884b325 R=ed81bf41 N=9f4c33da M=f8cd
 
 ## Usage
 - `goal.py new "GOAL" --done "LINE" [--done "LINE" ...] [--here]` — Freezes a goal and its done lines. Prints `FROZEN slug`. Refuses with no done line (exit 2, `REFUSED: a goal needs at least one done line`) or with no skill flow set up (exit 2).
-- `flow.py SLUG STEP` — Runs one step (idea, plan, review, qa, ship). In a worker session prints `IN SESSION` and the skill to run. Prints `RUNNING` until it ends.
+- `flow.py SLUG STEP` — Runs one step (idea, plan, review, qa, ship); a review or ship step stops at `step_budget_minutes` (default 30, never under 15), is recorded done with what it left and the goal goes on. In a worker session prints `IN SESSION` and the skill to run. Prints `RUNNING` until it ends.
 - `goal.py record SLUG STEP --in-session` — Records a finished step. Refuses a reply with no `DEPTH:` line, and a qa step with no passing lane on HEAD (`LANE_MISSING`).
-- `goal.py pr SLUG` — Merges the latest main, reruns the affected tests, pushes and opens the pull request. Prints the PR link. Never merges.
+- `goal.py pr SLUG` — Merges the latest main, reruns the affected tests within `test_budget_minutes` (default 15, never under 15; rows past it are left to the scheduled full suite and listed), pushes and opens the pull request. Prints the PR link. Never merges.
 - `merge.py SLUG` — The release step: docs check, merge (where auto_merge is on), version bump, changelog, GitHub release, wiki publish. Prints `MERGED <pr> into main`, `RELEASED vX.Y.Z <release link> (<bump> bump)` and `PUBLISHED <wiki link>`. Refuses while a page is stale.
 
 ## Requirements
@@ -46,8 +46,9 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7884b325 R=ed81bf41 N=9f4c33da M=f8cd
   - Done lines can't change once the goal starts; a change means a new goal.
 - DEL-7: **Reviewed 2026-11-10** Resumable <!-- reviewed 0f9f447b -->
   - A stopped or crashed goal resumes from its last recorded step, never from the start.
-- DEL-8: **Reviewed 2026-11-10** Budgeted <!-- reviewed a3d6e1fb -->
+- DEL-8: **Unreviewed** Budgeted
   - Each goal has a time and token budget, and going over shows on the board.
+  - Each review and ship step has a time limit, a setting no lower than 15 minutes; a step that reaches it finishes with what it has done, records what it left, and the goal goes on instead of restarting.
 - DEL-9: **Reviewed 2026-11-10** Nothing private ships <!-- reviewed ad7ed0f0 -->
   - Every commit and pull request passes the private-name scan before it is pushed.
 
@@ -71,7 +72,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7884b325 R=ed81bf41 N=9f4c33da M=f8cd
 | [pr-needs-flow](Tests#t-pr-needs-flow) | requirement | DEL-1 | Given a flow step not yet done, when a pull request is opened, then it is refused. | PASS 2026-11-09 |
 | [starts-at-idea](Tests#t-starts-at-idea) | requirement | DEL-1 | Given a new goal, when it starts, then it starts at the idea step. | PASS 2026-11-09 |
 | [steps-through-flow](Tests#t-steps-through-flow) | requirement | DEL-1 | Given a step reply, when it is recorded, then it is accepted only if the flow ran that step. | PASS 2026-11-09 |
-| [no-prompts](Tests#t-no-prompts) | requirement | DEL-1 | Given any tool, when it runs, then it never waits on a terminal prompt. | PASS 2026-11-10 |
+| [no-prompts](Tests#t-no-prompts) | requirement | DEL-1 | Given any tool, when it runs, then it never waits on a terminal prompt. | PASS 2026-11-11 |
 | [defect-flow-steps](Tests#t-defect-flow-steps) | requirement | DEL-1 | Given the flow, when it is checked, then it has no checks step and every step can be mapped, with a default suite and overrides. | PASS 2026-11-10 |
 | [depth-condensed-refused](Tests#t-depth-condensed-refused) | requirement | DEL-1 | Given review_depth full, when a plan or review reply says it ran condensed, then it is refused with no try used. | PASS 2026-11-10 |
 | [depth-auto-approve-gate](Tests#t-depth-auto-approve-gate) | requirement | DEL-1 | Given review_depth full and auto-approve on, when a condensed review leaves a gate, then it is refused, not approved. | PASS 2026-11-10 |
@@ -93,9 +94,16 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7884b325 R=ed81bf41 N=9f4c33da M=f8cd
 | - | requirement | DEL-6 | no passing test | not enforced |
 | [frozen-done-lines](Tests#t-frozen-done-lines) | requirement | DEL-2 | Given a running goal, when a frozen done line is changed, then the goal stops. | PASS 2026-11-09 |
 | - | requirement | DEL-7 | no passing test | not enforced |
+| [del8-floor-step](Tests#t-del8-floor-step) | requirement | DEL-8 | Given step_budget_minutes under 15, when a step reads it, then it is refused with a fix line. | not run |
+| [del8-step-stops](Tests#t-del8-step-stops) | requirement | DEL-8 | Given a review or ship step that reaches its limit, when it is stopped, then it is recorded done with what it left and the goal goes on without a failed try. | not run |
+| [del8-step-recorded](Tests#t-del8-step-recorded) | requirement | DEL-8 | Given a step that hit its budget, when the goal's record is read, then it names the step and what it left. | not run |
+| [del8-session-budget](Tests#t-del8-session-budget) | requirement | DEL-8 | Given a step run by the worker session, when it is asked for, then its instructions carry the step budget. | not run |
+| [del8-session-overrun](Tests#t-del8-session-overrun) | requirement | DEL-8 | Given a session-run step that took longer than its budget, when it is recorded, then the overrun and what it left are kept. | not run |
+| [del8-board](Tests#t-del8-board) | requirement | DEL-8 | Given a step or test run that hit its budget, when the monitoring report runs, then it lists the hit and what was left. | not run |
+| [del8-health](Tests#t-del8-health) | requirement | DEL-8 | Given a step or test run that hit its budget, when health runs, then it lists the hit and what was left. | not run |
 | - | requirement | DEL-8 | no passing test | not enforced |
 | - | requirement | DEL-9 | no passing test | not enforced |
-| [scripts-no-hang](Tests#t-scripts-no-hang) | defect | [#35](https://github.com/jcl2018/agent-workflow-template/issues/35) closed (2026-11-09) | Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. | PASS 2026-11-10 |
+| [scripts-no-hang](Tests#t-scripts-no-hang) | defect | [#35](https://github.com/jcl2018/agent-workflow-template/issues/35) closed (2026-11-09) | Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. | PASS 2026-11-11 |
 | [guards-rule-start](Tests#t-guards-rule-start) | defect | [#147](https://github.com/jcl2018/agent-workflow-template/issues/147) state unknown | Given a reply-format rule added after a step started, when that step is recorded, then the rule doesn't bind it, and a step started after it is refused naming the rule and the release that added it. | PASS 2026-11-10 |
 | [guards-no-try](Tests#t-guards-no-try) | defect | [#148](https://github.com/jcl2018/agent-workflow-template/issues/148) state unknown | Given a record refused for format (no DEPTH or STEP line) or a wrong HEAD, when it is refused, then no try is used, the goal keeps running and the fix is printed. | PASS 2026-11-10 |
 | [guards-touches-finding](Tests#t-guards-touches-finding) | defect | [#157](https://github.com/jcl2018/agent-workflow-template/issues/157) state unknown | Given a goal that needs more touches, or a finished goal with a finding, when the operation runs goal.py touches or finding, then touches widen with a logged reason and the finished goal is not stopped. | PASS 2026-11-10 |
