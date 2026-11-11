@@ -3,15 +3,22 @@
 
 usage: tests.py <command> [--root DIR]
 
-  list [--markdown|--tsv]           every test from the recorded runs, one group per feature
+  list [--markdown|--tsv] [--kind K]  every test from the recorded runs, one group per feature; --kind requirement,
+                                    workflow or defect lists only that kind
   summary --results FILE --took S   a GitHub run summary: one header with totals and the run time, then one table per
                                     feature, from that run's results file (id<TAB>state lines; # lines are skipped)
   issues [--write]                  read each defect test's issue or pull request state with gh; --write records them in
-                                    .loop/regression-issues.tsv (link, state, date) for the wiki and the health report
+                                    .loop/regression-issues.tsv (link, state, date, reopened_at) for the wiki and the
+                                    health report; a defect row whose open issue was reopened shows "failing (issue
+                                    reopened)" until the issue closes or a run on a later day passes
+  fixes --since REF                 one "Fixes #N: test ROW, seen failing DATE, passing" line per issue fixed since REF: a
+                                    defect row added, or whose seen-failing date was set, since REF, that links the
+                                    issue and passes in .loop/regression-runs.tsv (REG-6); the release notes list them
 
 A feature is the wiki page that holds the requirement a row guards (its goal, or its id); a row that guards none is in
-Other. Each test shows: test, kind (requirement or defect), what it guards (the requirement's ID and words, or the
-issue's link and state), what it checks, when it runs, its last result and date, and when it was seen failing.
+Other. Each test shows: test, kind (requirement, workflow or defect), what it guards (the requirement's ID and words, or the
+issue's link and state), what it checks, when it runs, its last result and date (then FLAKY when that result flipped on
+one clean commit, REG-9), and when it was seen failing.
 Stdlib only and self-contained: the regression workflow carries a copy of this file.
 """
 import argparse
@@ -32,7 +39,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 ID = re.compile(r"^[A-Z]{2,5}-\d+$")
 SEEN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-KIND = {"criterion": "requirement", "defect": "defect"}
+KIND = {"criterion": "requirement", "workflow": "workflow", "defect": "defect"}  # category: kind
 RUNS = {"land": "both", "nightly": "nightly", "covered": "by a person"}
 STATES = ("PASS", "FAIL", "SKIPPED", "KNOWN")
 COLUMNS = ("Test", "Kind", "Guards", "Checks", "Runs", "Last result", "Seen failing")
@@ -82,7 +89,9 @@ def key_of(row):
 
 
 def issues_of(root):
-    return {row[0]: (row[1], row[2] if len(row) > 2 else "") for row in tsv(root, "regression-issues.tsv") if len(row) > 1}
+    """{link: (state, date, reopened_at)}; reopened_at is the newest reopen time GitHub's timeline gave, or empty."""
+    return {row[0]: (row[1], row[2] if len(row) > 2 else "", row[3] if len(row) > 3 else "")
+            for row in tsv(root, "regression-issues.tsv") if len(row) > 1}
 
 
 def guard(row, found, issues, markdown):
@@ -92,7 +101,7 @@ def guard(row, found, issues, markdown):
         number = re.search(r"/(issues|pull)/(\d+)$", link)
         if not number:
             return link.replace("finding:", "finding ", 1)
-        state, day = issues.get(link, ("state unknown", ""))
+        state, day = issues.get(link, ("state unknown", ""))[:2]
         name = ("#" if number.group(1) == "issues" else "PR ") + number.group(2)
         shown = "[%s](%s)" % (name, link) if markdown else "%s %s" % (name, link)
         return "%s %s%s" % (shown, state.lower(), " (%s)" % day if day else "")
@@ -105,9 +114,12 @@ def guard(row, found, issues, markdown):
 def fields(row, found, ran, issues, markdown=False, raw=False):
     """The one fixed format for one row (all 8 columns of regression.tsv): test, kind, guards, checks, runs, last
     result and date, seen failing."""
-    status, day = ran.get(row[0], ("not run", ""))
+    status, day, flag = (tuple(ran.get(row[0], ("not run", ""))) + ("",))[:3]  # a caller's (status, date) has no flag
+    known = issues.get(row[7], ()) if row[6] == "defect" else ()
+    if len(known) > 2 and known[2] and known[0] == "open" and not (status == "PASS" and day > known[2][:10]):
+        status, day = "failing (issue reopened)", known[2][:10]  # REG-6: until the issue closes or a later day passes
     return [cell(item, raw) for item in (row[0], KIND.get(row[6] or "criterion", row[6]), guard(row, found, issues, markdown),
-                                    row[5] or "-", RUNS.get(row[1], row[1] or "-"), (status + " " + day).strip(),
+                                    row[5] or "-", RUNS.get(row[1], row[1] or "-"), (status + " " + day).strip() + flag,
                                     row[4] if SEEN.match(row[4]) else "no")]
 
 
@@ -115,9 +127,10 @@ def entries(root, results=None, markdown=False, raw=False):
     """[(feature, [fields])] in page order, then Other; rows in file order, draft rows left out. With results, only
     the rows that run reported, each with that run's state."""
     titles, found = features(root)
-    ran = {row[0]: (row[1], row[2] if len(row) > 2 else "") for row in tsv(root, "regression-runs.tsv") if len(row) > 1}
+    ran = {row[0]: ((row + [""] * 5)[1:3] + [" FLAKY" if (row + [""] * 5)[4] else ""]) for row in tsv(root, "regression-runs.tsv")
+           if len(row) > 1}  # REG-9: a 5th cell (the commit a result flipped on) adds FLAKY after the raw result
     if results is not None:
-        ran = {name: (state, "") for name, state in results.items()}
+        ran = {name: (state, "", "") for name, state in results.items()}
     issues, groups = issues_of(root), {}
     rows = {row[0]: (row + [""] * 8)[:8] for row in tsv(root, "regression.tsv")}
     order = [name for name in rows if rows[name][1] != "draft"] if results is None else list(results)
@@ -135,6 +148,9 @@ def table(header, lines):
 def cmd_list(args):
     out = []
     for feature, lines in entries(args.root, markdown=args.markdown, raw=args.tsv):
+        lines = [each for each in lines if each[1] == (args.kind or each[1])]
+        if not lines:
+            continue
         if args.tsv:
             out += ["\t".join([feature] + each) for each in lines]
         elif args.markdown:
@@ -189,6 +205,17 @@ def gh(*args):
         return subprocess.CompletedProcess(args, 1, "", str(err))
 
 
+def reopened(link):
+    """The newest time the issue's GitHub timeline says it was reopened, or "" (REG-6: sampled states miss a reopen)."""
+    parts = re.match(r"^https?://[^/]+/([^/]+)/([^/]+)/issues/(\d+)$", link)
+    if not parts:
+        return ""
+    done = gh("api", "--paginate", "repos/%s/%s/issues/%s/events" % parts.groups(), "--jq",
+              '.[] | select(.event == "reopened") | .created_at')  # every page: a busy issue's reopen is past the first
+    value = (done.stdout.split() or [""])[-1]
+    return value if done.returncode == 0 and re.match(r"^\d{4}-\d\d-\d\dT", value) else ""
+
+
 def cmd_issues(args):
     probe = gh("auth", "status")
     if probe.returncode:
@@ -204,15 +231,36 @@ def cmd_issues(args):
             continue
         done = gh("issue" if kind.group(1) == "issues" else "pr", "view", link, "--json", "state", "-q", ".state")
         state = done.stdout.strip().lower()
-        kept = old.get(link, ("unknown", day))  # a state that didn't change keeps its date, so a run leaves no churn
-        out[link] = kept if done.returncode or not state or state == kept[0] else (state, day)
+        kept = (old.get(link, ()) + ("unknown", day, ""))[:3] if link in old else ("unknown", day, "")
+        new = kept if done.returncode or not state or state == kept[0] else (state, day, kept[2])
+        out[link] = new[:2] + (reopened(link) or new[2],) if kind.group(1) == "issues" and state == "open" else new
         print("ISSUE %s %s" % (link, out[link][0]))
     if args.write and rows:  # no rows read: keep the recorded states rather than wipe them
         path = os.path.join(args.root, ".loop", "regression-issues.tsv")
         fd, new = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".regression-issues.")  # its own name per writer
         with os.fdopen(fd, "w") as handle:
-            handle.write("# link\tstate\tdate\n" + "".join("%s\t%s\t%s\n" % (k, *v) for k, v in sorted(out.items())))
+            handle.write("# link\tstate\tdate\treopened_at\n" + "".join("%s\t%s\t%s\t%s\n" % (k, *v) for k, v in sorted(out.items())))
         os.replace(new, path)  # whole or not at all
+    return 0
+
+
+def cmd_fixes(args):
+    """The release notes' proof lines (REG-6): defect rows this range added or proved, linked to an issue, passing now."""
+    shown = subprocess.run(["git", "show", "%s:.loop/regression.tsv" % args.since], cwd=args.root, capture_output=True,
+                           text=True, env=dict(os.environ, LC_ALL="C"))  # git's English messages, matched below
+    if shown.returncode and "exists on disk, but not in" not in shown.stderr and "does not exist" not in shown.stderr:
+        return refuse("cannot read .loop/regression.tsv at %s: %s" % (args.since, shown.stderr.strip()[:200]))
+    old = {cells[0]: cells for cells in (line.split("\t") for line in shown.stdout.splitlines()) if cells[0] and cells[0][0] != "#"}
+    ran = {row[0]: row[1:2] for row in tsv(args.root, "regression-runs.tsv")}
+    origin = subprocess.run(["git", "remote", "get-url", "origin"], cwd=args.root, capture_output=True, text=True).stdout
+    repo = re.search(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?\s*$", origin)  # only this repo's issues are its fixes
+    for row in tsv(args.root, "regression.tsv"):
+        row = (row + [""] * 8)[:8]
+        found = re.match(r"^https?://\S+/issues/(\d+)$", row[7])
+        found = found if not repo or re.match(r"^https?://github\.com/%s/issues/" % re.escape(repo.group(1)), row[7], re.I) else None  # no GitHub origin: nothing to compare
+        before = (old.get(row[0], []) + [""] * 8)[4]
+        if row[6] == "defect" and found and SEEN.match(row[4]) and row[4] != before and ran.get(row[0]) == ["PASS"]:
+            print("Fixes #%s: test %s, seen failing %s, passing" % (found.group(1), row[0], row[4]))
     return 0
 
 
@@ -223,11 +271,15 @@ def main():
     shape = item.add_mutually_exclusive_group()
     shape.add_argument("--markdown", action="store_true")
     shape.add_argument("--tsv", action="store_true")
+    item.add_argument("--kind", choices=tuple(KIND.values()))
     item.set_defaults(func=cmd_list)
     item = sub.add_parser("summary")
     item.add_argument("--results", required=True)
     item.add_argument("--took", required=True)
     item.set_defaults(func=cmd_summary)
+    item = sub.add_parser("fixes")
+    item.add_argument("--since", required=True)
+    item.set_defaults(func=cmd_fixes)
     item = sub.add_parser("issues")
     item.add_argument("--write", action="store_true")
     item.set_defaults(func=cmd_issues)

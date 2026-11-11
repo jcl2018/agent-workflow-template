@@ -59,8 +59,9 @@ no later commit to the page has it in its history. Merge commits don't count, so
 after a merge. Only a commit that changes the page clears `STALE`.
 
 With `"criteria": true` in the config, every feature page is a short PRD (`references/template.md` holds the rules and
-an example page): the Review line, then Problem, an optional Usage, Requirements, Non-goals, Success metrics and Tests,
-in that order and nothing else. Requirements are the owner's lines (`- DEL-1: **Unreviewed** text`, up to
+an example page): the Review line, then Problem, an optional Usage, Requirements, Non-goals, Success metrics, an
+optional Deployments (DOC-14: a Page table and/or a Delivery table for what the feature ships) and Tests, in that order
+and nothing else. Requirements are the owner's lines (`- DEL-1: **Unreviewed** text`, up to
 `criteria_max`, default 10); tests are for the machine: a regression row linked to one requirement by its goal column,
 described as one `Given ..., when ..., then ...` scenario, rendered under its requirement with its last result.
 
@@ -248,7 +249,7 @@ Detail the skill's SKILL.md points to, kept word for word so no instruction is l
 5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
 6. `## Tests`: written by `criteria.py render`, never by hand: under each requirement, one Given/When/Then scenario per
    regression row with its test, its kind, what it guards, when it runs, its last result and date and when it was seen failing; **not enforced**
-   when no row passes; defect tests under `### Defect tests`.
+   when no row passes; then the workflow tests, then the defect tests, in the same table.
 
 Lines: `SECTIONS` (wrong, extra or out-of-order sections, or text before the first one), `REVIEW`, `PROBLEM`,
 `NONGOALS`, `METRICS`, `CRITERION`, `CAP`, `SCRIPT`, `USAGE`, `TESTS` (run `render`), `LOCKED`, `CHANGED`.

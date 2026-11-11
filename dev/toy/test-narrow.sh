@@ -75,7 +75,7 @@ check "a row whose declaration cannot be resolved reruns on a change that does n
 # drops sourced helpers or the UNMAPPED rule; why_new=only the wide branch had these; seam=none; no_claim=none beyond protects
 check "a narrow change reruns only its rows and a change every row reaches reruns all" '[ "$(aff skills/b/scripts/solo.py)" = "tf, tm, tx" ] && [ "$(aff dev/common.sh)" = "ta, tb, tf, th, tm, tu, tx" ]'
 printf 'new\n' > "$n/src.txt"
-check "a file no row reads is a full run (UNMAPPED)" '$L affected --root "$n" src.txt | grep -q "^UNMAPPED src.txt: full run"'
+check "a file no row reads is a full run (UNMAPPED)" '$L affected --root "$n" src.txt | grep -q "^UNMAPPED src.txt: the rows that name it"'
 out=$($L check --root "$n" dev/tx.sh dev/tf.sh dev/tu.sh); rc=$?
 check "lanes_cli.py check names each problem with its code, file:line and a fix line" '[ $rc = 1 ] && grep -q "^LANES-DECL-MISSING dev/tx.sh:2: declared path does not exist: skills/a/scripts/gone.py" <<<"$out" && grep -q "^LANES-DECL-FOLDER dev/tf.sh:3: names skills/b/scripts/" <<<"$out" && grep -q "^LANES-DECL-NONE dev/tu.sh:1" <<<"$out" && [ "$(grep -c "^fix: " <<<"$out")" = 3 ]'
 check "deps --why prints the chain from the command to a file" '[ "$($L deps --root "$n" "bash dev/tm.sh" --why skills/b/scripts/helper.py)" = "dev/tm.sh -> skills/b/scripts/b.py -> skills/b/scripts/helper.py" ]'
@@ -108,7 +108,7 @@ printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nhere=$(pwd); (cd "$here" &&
 check "a script that runs tools on the repo's own files reruns on every change" '$L deps --root "$n" "bash dev/tq.sh" | grep -q "^ALWAYS bash dev/tq.sh: runs tools on this repo.s own files"'
 printf 'import os, helper\n' > "$n/skills/b/scripts/b2.py"; printf '#!/bin/bash\n# reads: skills/b/scripts/b2.py\npython3 skills/b/scripts/b2.py\n' > "$n/dev/tl.sh"
 check "every module of an import list is followed" '$L deps --root "$n" "bash dev/tl.sh" | grep -qx "skills/b/scripts/helper.py"'
-check "affected treats a deleted file as a full run and a table edit as never unmapped" '$L affected --root "$n" skills/a/scripts/nope.py | grep -q "^DELETED skills/a/scripts/nope.py: full run" && ! $L affected --root "$n" .loop/regression.tsv | grep -q UNMAPPED'
+check "affected picks the rows naming a deleted file, never a full run, and a table edit is never unmapped" '$L affected --root "$n" skills/a/scripts/nope.py | grep -q "^DELETED skills/a/scripts/nope.py: the rows that name it" && ! $L affected --root "$n" .loop/regression.tsv | grep -q UNMAPPED'
 # Value: protects=headerless rows keep today's mapping exactly; fails_when=the shared helpers change wide behavior;
 # why_new=parity oracle for the refactor (E7); seam=LANES_WIDE; no_claim=none beyond protects
 w2=$(LANES_WIDE=1 $L affected --root "$n" skills/a/scripts/a.py 2>&1)
@@ -116,7 +116,7 @@ check "LANES_WIDE=1 maps every row wide, as before headers" '[ "$(aff skills/a/s
 cd "$d/repo" 2>/dev/null && git switch -q main 2>/dev/null
 p1=$($L affected src/a.txt 2>&1); p2=$(LANES_WIDE=1 $L affected src/a.txt 2>&1)
 check "with no headers, affected is the same with and without LANES_WIDE (wide mapping unchanged)" '[ "$p1" = "AFFECTED 1 of 2 rows (a)" ] && [ "$p1" = "$p2" ]'
-# Value: protects=a deleted helper forces a full run even when a broad row maps it; fails_when=deletions are treated as
+# Value: protects=a deleted helper picks the rows that name or map it, never a full run; fails_when=deletions are treated as
 # edits; why_new=no deletion case existed; seam=none; no_claim=renames outside skills/ and dev/
 mkdir -p skills/k/scripts; printf 'import kh\n' > skills/k/scripts/k.py; printf 'Z = 1\n' > skills/k/scripts/kh.py
 printf '#!/bin/bash\n# reads: skills/k/scripts/k.py\nprintf "k\\n" >> "$TOY_LOG"\n' > dev/k.sh  # lanes: no read (toy repo file)
@@ -142,10 +142,10 @@ fresh; out=$($reg run land --reuse); echo "$out"
 check "a table edit reruns the edited declared row and the rows that run tools on the repo root, not every row" '[ "$(ran)" = "k t " ]'
 git rm -q skills/k/scripts/kh.py; git commit -qm "Delete kh"
 fresh; out=$($reg run land --reuse); echo "$out"
-check "a deleted skill file forces a full run even when a broad row maps it" 'grep -q "^FULL: deleted skills/k/scripts/kh.py" <<<"$out"'
+check "a deleted skill file selects the rows that name or reach it, not a full run" '! grep -q "^FULL" <<<"$out" && grep -q "^UNMAPPED skills/k/scripts/kh.py" <<<"$out" && [ "$(ran)" = "k r t w " ]'
 rm skills/k/scripts/k.py
 fresh; out=$($reg run land --reuse 2>&1); echo "$out"
-check "an uncommitted deletion forces a full run too" 'grep -q "^FULL: deleted skills/k/scripts/k.py" <<<"$out"'
+check "an uncommitted deletion selects rows the same way" '! grep -q "^FULL" <<<"$out" && grep -q "^UNMAPPED skills/k/scripts/k.py" <<<"$out" && [ "$(ran)" = "k r t w " ]'
 git checkout -q -- skills/k/scripts/k.py
 echo "== check-reads.sh: runtime reads outside a row's closure fail the trace"
 c="$d/trace"; mkdir -p "$c/dev/toy" "$c/skills/workflow-regression/scripts" "$c/skills/a/scripts" "$c/.loop"
@@ -156,16 +156,35 @@ printf 'import os\nopen(os.path.join(os.path.dirname(__file__), "c" + ".py")).re
 printf 'import os, shutil, subprocess, sys, tempfile\nt = tempfile.mkdtemp(); shutil.copy(os.path.join(os.path.dirname(__file__), "e" + ".py"), t + "/x.py")\nsubprocess.run(["python3", t + "/x.py"], check=True)\n' > "$c/skills/a/scripts/k.py"
 printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\npython3 skills/a/scripts/a.py\n' > "$c/dev/t1.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/a/scripts/g.py\npython3 skills/a/scripts/g.py\n' > "$c/dev/t2.sh"  # lanes: no read (toy repo file)
-printf '#!/bin/bash\n# reads: skills/a/scripts/a.py skills/a/scripts/b.py\npython3 skills/a/scripts/a.py; python3 -I skills/a/scripts/b.py\n' > "$c/dev/t3.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\npython3 skills/a/scripts/a.py; python3 -I skills/a/scripts/g.py\n' > "$c/dev/t3.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nPYTHONPATH= python3 -S skills/a/scripts/g.py\n' > "$c/dev/t5.sh"  # lanes: no read (toy repo file)
 printf '#!/bin/bash\n# reads: skills/a/scripts/k.py\npython3 skills/a/scripts/k.py\n' > "$c/dev/t4.sh"  # lanes: no read (toy repo file)
+printf 'import importlib\nimportlib.import_module("b")\n' > "$c/skills/a/scripts/h.py"  # by name, as health.py's sibling_module
+printf 'import os\ntry:\n    open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "gone.json"))\nexcept OSError:\n    pass\n' > "$c/skills/a/scripts/m.py"
+printf '#!/bin/bash\n# reads: skills/a/scripts/h.py\npython3 skills/a/scripts/h.py\n' > "$c/dev/t6.sh"  # lanes: no read (toy repo file)
+printf '#!/bin/bash\n# reads: skills/a/scripts/m.py\npython3 skills/a/scripts/m.py\n' > "$c/dev/t7.sh"  # lanes: no read (toy repo file)
 printf '# id\tlevel\tcommand\n' > "$c/.loop/regression.tsv"
-for r in 1 2 3 4; do printf 'r%s\tland\tbash dev/t%s.sh\n' $r $r >> "$c/.loop/regression.tsv"; done
+for r in 1 2 3 4 5 6 7; do printf 'r%s\tland\tbash dev/t%s.sh\n' $r $r >> "$c/.loop/regression.tsv"; done
+git -C "$c" init -q; before=$(cd "$c" && $reg reads r2 2>&1); brc=$?
 out=$(bash "$c/dev/toy/check-reads.sh" 2>&1); rc=$?; echo "$out"
+after=$(cd "$c" && $reg reads r2 2>&1)
 # Value: protects=a row's runtime Python reads outside its closure fail the nightly trace; fails_when=the hook or the
 # closure comparison is dropped; why_new=new tool; seam=sitecustomize + PATH shim; no_claim=bash-only reads
 check "check-reads passes a row whose runtime reads are inside its closure" 'grep -q "^PASS r1" <<<"$out"'
 check "check-reads fails a row that reads a skill file its closure misses, with the line to add" '[ $rc = 1 ] && grep -q "^LANES-TRACE-UNDECLARED r2 skills/a/scripts/c.py" <<<"$out" && grep -q "^fix: # reads: skills/a/scripts/c.py" <<<"$out"'
-check "check-reads fails a row with a Python launch the hook never saw (python3 -I)" 'grep -q "^LANES-TRACE-NOHOOK r3: 2 Python launches, 1 hooked" <<<"$out"'
+# Value: protects=an isolated child (-I, -S, a reset PYTHONPATH) is traced, not trusted (issue 173); fails_when=the
+# shim stops running such launches through boot.py; why_new=the workflow's python3 -I steps went unhooked; seam=PATH shim;
+# no_claim=interpreters started by absolute path
+check "check-reads hooks an isolated child (python3 -I) and fails its read outside the row's closure" 'grep -q "^LANES-TRACE-UNDECLARED r3 skills/a/scripts/c.py" <<<"$out" && grep -q "^LANES-TRACE-UNDECLARED r5 skills/a/scripts/c.py" <<<"$out" && ! grep -q "^LANES-TRACE-NOHOOK" <<<"$out"'
 check "check-reads maps a read of a copied skill file back to the repo file" 'grep -q "^LANES-TRACE-UNDECLARED r4 skills/a/scripts/e.py" <<<"$out"'
+# Value: protects=a module loaded by name (importlib.import_module("b"), health.py's sibling_module) is in the loader's
+# closure, and opening a missing optional file (agents.py's skills/workflow-package.json in a checkout) is no read (issue
+# 173); fails_when=narrow drops quoted module names of an importlib user, or check-reads counts a failed open;
+# why_new=lanes-trace failed on enforce.py, defects.py and workflow-package.json; seam=none; no_claim=__import__ or exec
+check "a module loaded by name is in the closure, and opening a missing file reads nothing" 'grep -q "^PASS r6" <<<"$out" && grep -q "^PASS r7" <<<"$out" && ! grep -q "UNDECLARED r[67] " <<<"$out"'
+# Value: protects=regression.py reads turns the newest trace into a header, and says how to get one (issue 172);
+# fails_when=check-reads stops keeping the trace or reads stops reading it; why_new=new command; seam=<git dir>/lanes-trace.tsv;
+# no_claim=bash reads (the trace sees Python only)
+check "regression.py reads suggests a row's # reads: header from the newest trace, and says how to make one" '[ $brc = 1 ] && grep -q "^NO TRACE r2: run bash dev/toy/check-reads.sh r2" <<<"$before" && grep -qx "# reads: skills/a/scripts/c.py skills/a/scripts/g.py" <<<"$after"'
 
 [ $fails = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

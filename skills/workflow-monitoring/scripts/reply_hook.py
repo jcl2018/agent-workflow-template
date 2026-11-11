@@ -10,7 +10,7 @@ every session across repos), Dependencies (a drawn graph), Needs you (numbered q
 answer, or "Nothing needs you") and, last, Coming up (the next expected events and what the owner will need to do), each
 heading on its own line (Markdown marks and a trailing colon are fine) with something under it.
 
-The hook checks only the operation session: a session whose transcript ran 'operate.py run' without a refusal, as its
+The hook checks only the operation session: one named in <git common dir>/loop/operation.id, or whose transcript ran 'operate.py run|claim' without a refusal, as its
 latest signal. A worker is never checked: a session that ran a flow step ('flow.py', 'goal.py step|record|pr') after that,
 or whose cwd is in <git common dir>/loop/worktrees/ before any signal. A session in another repo, or in a repo with no
 .loop/config.json, is never checked. Each stop reads only the transcript bytes added since the last one.
@@ -37,7 +37,7 @@ KEEP = 200  # log lines kept
 TAIL = 4 << 20  # bytes of the transcript read for the final reply
 STALE = 14 * 86400  # seconds before a finished session's state files are removed
 OPERATORS = {"&&", "||", ";", "|", "&", ";;", "(", ")"}
-KNOWN = {"goal.py": {"new", "queue", "step", "record", "wait", "finding", "pr", "answer", "show"}, "operate.py": {"run", "send"}}
+KNOWN = {"goal.py": {"new", "queue", "step", "record", "wait", "finding", "pr", "answer", "show"}, "operate.py": {"run", "send", "claim"}}
 FIRST = 16 << 20  # bytes read on a session's first stop: its recent history is enough to find its kind
 SESSION = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 FENCE = re.compile(r"^\s*(```|~~~)")
@@ -97,6 +97,15 @@ def write(path, text):
     with open(tmp, "w") as handle:
         handle.write(text)
     os.replace(tmp, path)
+
+
+def claimed(common):
+    """Session ids in <common>/loop/operation.id: the operation session even when it never runs operate.py run."""
+    try:
+        with open(os.path.join(common, "loop", "operation.id")) as handle:
+            return {line.strip() for line in handle if line.strip()}
+    except OSError:
+        return set()
 
 
 def off(config):
@@ -237,7 +246,7 @@ def signal(script, sub):
     """'worker', 'operation' or '' for one script run."""
     if script == "flow.py" or (script == "goal.py" and sub in ("step", "record", "pr")):
         return "worker"
-    return "operation" if (script, sub) == ("operate.py", "run") else ""
+    return "operation" if script == "operate.py" and sub in ("run", "claim") else ""
 
 
 def kind(found, known=""):
@@ -294,7 +303,8 @@ def problems(text):
         if spot is not None:
             spots[name] = at = spot
     if not spots:
-        return ["it is not in the check-in layout (no All sessions, Dependencies, Needs you or Coming up section)"]
+        return ["it is not in the check-in layout; missing all five parts: the headline line, All sessions, Dependencies, "
+                "Needs you and Coming up (a one-line reply is never a check-in, issue 321)"]
     found = ["missing section %s%s" % (name, " (or it is out of order)" if any(heading(l) == name.lower() for l in lines) else "")
              for name in SECTIONS if name not in spots]
     first = min(spots.values())
@@ -359,6 +369,8 @@ def decide(payload, session, common):
     if not known and os.path.realpath(str(payload.get("cwd"))).startswith(os.path.join(common, "loop", "worktrees") + os.sep):
         known = "worker"
     known, waiting = kind(new, known)
+    if known != "worker" and session in claimed(common):  # operate.py claim (or the govern hook) named it (issue 321)
+        known = "operation"
     keep = end if waiting is None or end - waiting > FIRST else waiting  # a call that never got its result stops holding
     write(base + ".kind", json.dumps({"kind": known, "offset": keep}))
     if known != "operation":

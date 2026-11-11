@@ -95,6 +95,7 @@ Frozen.
 
 ## Plan
 G
+mkdir -p "$(git rev-parse --git-common-dir)/loop/runs"; echo '{"status": "running"}' > "$(git rev-parse --git-common-dir)/loop/runs/add-median.json"  # done lines count while the goal runs (issue 143)
 $reg sync > "$d/o5"; rc=$?; cat "$d/o5"
 [ $rc = 1 ] && [ "$(grep -c '^GAP' "$d/o5")" = 2 ] && ok "two gaps" || bad "gaps"
 $reg sync --write >/dev/null
@@ -127,11 +128,13 @@ python3 -c 'import yaml; yaml.safe_load(open(".github/workflows/regression.yml")
 touch BROKEN; git add -A; git commit -qm "Break it" >/dev/null
 python3 ci-block.py; rc=$?
 [ $rc = 1 ] && [ "$(calls '^issue create')" = 1 ] && ok "CI block fails and opens an issue" || bad "CI block"
-# Value: protects=a regression issue goes on Backlog when the repo has that milestone, and carries no flag when it has
-#   none; fails_when=the CI block drops the --milestone flag or always adds it; why_new=no test had a Backlog milestone
-nomile=$(grep -c -- '--milestone' "$FAKE_GH_DIR/calls.log"); : > "$FAKE_GH_DIR/calls.log"; echo '[{"number": 1, "title": "Backlog", "state": "open"}]' > "$FAKE_GH_DIR/milestones.json"
-python3 ci-block.py >/dev/null 2>&1; [ "$nomile" = 0 ] && [ "$(calls '^issue create')" = 1 ] && grep -q -- "--milestone Backlog$" "$FAKE_GH_DIR/calls.log" \
-  && ok "the CI block opens a regression issue on Backlog when it exists, with no milestone flag otherwise" || bad "backlog milestone: $nomile"
+# Value: protects=a regression issue that fits no feature goes on Backlog (DOC-10), which is made once when missing and
+#   reused when it exists; fails_when=the CI block drops the --milestone flag or makes Backlog again; why_new=no test had a Backlog milestone
+made=$(grep -c -- '-X POST repos/{owner}/{repo}/milestones -f title=Backlog' "$FAKE_GH_DIR/calls.log"); first=$(grep -c -- "--milestone Backlog$" "$FAKE_GH_DIR/calls.log")
+: > "$FAKE_GH_DIR/calls.log"; echo '[{"number": 1, "title": "Backlog", "state": "open"}]' > "$FAKE_GH_DIR/milestones.json"
+python3 ci-block.py >/dev/null 2>&1; [ "$made" = 1 ] && [ "$first" = 1 ] && [ "$(calls '^issue create')" = 1 ] && grep -q -- "--milestone Backlog$" "$FAKE_GH_DIR/calls.log" \
+  && ! grep -q -- "-X POST repos/{owner}/{repo}/milestones" "$FAKE_GH_DIR/calls.log" \
+  && ok "the CI block opens a regression issue on Backlog, making Backlog once when the repo has none" || bad "backlog milestone: made=$made first=$first"
 rm -f "$FAKE_GH_DIR/milestones.json" "$FAKE_GH_DIR/issues.json"
 nap="31.$((RANDOM % 9000 + 1000))"  # a sleep no other run on this machine uses
 printf 'hang\tland\techo started-hang; sleep %s & sleep %s\t-\t2026-01-01\tA row that hangs.\tcriterion\t\n' "$nap" "$nap" >> .loop/regression.tsv

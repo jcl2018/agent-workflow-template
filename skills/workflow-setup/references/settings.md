@@ -22,14 +22,21 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `judge_env` | `ANTHROPIC_API_KEY` | The Actions secret holding the agent key; the scheduled judge runs only when it is set. |
 | `judge_setup` | `(empty)` | A command the scheduled health run uses to install judge_command's program, run only with the secret. |
 | `digest_owner` | `(empty)` | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). |
+| `digest_mail` | `cloudflare` | How the round's digest is mailed: cloudflare (Email Service), smtp, or off; the address and keys live only in Actions secrets. |
+| `smtp_host` | `smtp.gmail.com` | The SMTP server digest_mail smtp sends through (with DIGEST_SMTP_USER and DIGEST_SMTP_PASSWORD secrets). |
+| `smtp_port` | `465` | 465 (TLS) or 587 (STARTTLS) for digest_mail smtp. |
 | `review_depth` | `full` | full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run. |
 | `criteria` | `true` | true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests). |
 | `criteria_max` | `10` | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. |
 | `wiki_dir` | `docs/wiki` | The folder of wiki pages. |
 | `risky_paths` | `["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]` | Regexes for paths whose goals need extra care. |
 | `step_limit` | `0` | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. |
+| `goal_lane_minutes` | `10` | Minutes a goal's regression lane may take before health warns and its LANE line says over. |
+| `goal_levels` | `land` | Row levels a goal lane plans from: land, or nightly for land and nightly rows. |
+| `ci_levels` | `nightly` | Target of the scheduled and tag regression runs: nightly (every row) or land. |
 | `token_budget` | `0` | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
-| `test_budget_seconds` | `600` | Seconds the land test lane may take before health warns and names its slowest rows. |
+| `test_budget_minutes` | `15` | Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite. |
+| `step_budget_minutes` | `30` | Minutes one review or ship step may take, 15 or more; a step at its limit finishes with what it has done and records what it left. |
 | `stale_branch_days` | `14` | Days a local branch on no remote may sit before health lists it with its removal command. |
 | `mend` | `false` | true lets watch start a fresh agent for a failed goal. |
 | `mend_wait` | `120` | Seconds a failed goal waits before a mender starts. |
@@ -40,6 +47,10 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `agent_files` | `["CLAUDE.md", "AGENTS.md"]` | Agent entry files setup wires the workflow-loop block into; [] turns wiring off. |
 | `template_repo` | `(empty)` | The template's GitHub repo (owner/name) update reads releases from, when the installed package names none. |
 | `reply_hook` | `true` | false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session. |
+| `govern_hook` | `true` | false turns off the govern-only hook (setup.py --govern-hook installs it): edits, commits and pushes refused in the operation session. |
+| `full_auto` | `true` | true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait. |
+| `pool_size` | `20` | Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones. |
+| `silent_minutes` | `30` | Minutes a worker may send nothing before it shows under Needs you; LOOP_SESSION_QUIET (seconds) overrides it. |
 
 ## Private settings
 
@@ -59,5 +70,6 @@ Outside the repo, never committed: `~/.workflow-loop/flow.json` (or `$LOOP_FLOW`
 | `leak_prefixes` | `[]` | Flow file: case-insensitive regexes the package scan blocks in any file or file name, as your leak hook does. |
 | `full_markers` | `{}` | Flow file: per step, strings a full plan or review reply must contain, e.g. {"review": ["..."]}; none checked when empty. |
 | `limit` | `2700` | Flow file: seconds one flow step may run. |
+| `lane_limit` | `2` | Flow file: full regression lanes that may run at once on this machine; more wait their turn (0 is unlimited). |
 | `rules` | `[]` | Health file: your own health rules, each {name, command, fix}. |
 | `repos` | `[]` | Followed repos: one path a line in the repos file, shown on the board. |

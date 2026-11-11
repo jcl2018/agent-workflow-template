@@ -29,6 +29,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import defect  # noqa: E402
+import lanekit  # noqa: E402
 import guards  # noqa: E402
 import role
 
@@ -273,12 +274,12 @@ def cmd_record(args):
     """Apply what a flow step left: done or skipped moves on, pending waits, a failed run is a try; format slips cost none."""
     state = held(args.slug)
     guards.waiting_gate(sys.modules[__name__], state)
-    lane = role.need_lane(state_dir(), args.slug, args.file) if args.step == "qa" else None
-    if lane:
-        guards.refuse_no_try(state, *lane, save)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
     if args.in_session:  # the worker session ran the skill itself; its run record must name that session
         args.file = role.session_reply(state, args.slug, args.step, args.file, state_dir(), FLOW)
+    lane = role.need_lane(state_dir(), args.slug, args.file, args.step) if args.step in ("qa", "ship") else None
+    if lane:
+        guards.refuse_no_try(state, *lane, save)
     reply = os.path.realpath(args.file)
     if reply != os.path.realpath(os.path.join(state_dir(), "%s.%s.txt" % (args.slug, args.step))) or not os.path.exists(ran):
         guards.refuse_no_try(state, "%s wasn't run by flow.py" % args.step, "run flow.py %s %s until it prints NEXT" % (
@@ -351,7 +352,7 @@ def cmd_pr(args):
     if what == "merged":
         print("MERGED %s into the branch" % detail)
         state = held(args.slug)
-    guards.sync_touches(goal_file(args.slug), guards.touches_of(state_dir(), state))  # before bump and lane
+    guards.sync_touches(goal_file(args.slug), guards.touches_of(state_dir(), state))
     if git("status", "--porcelain", "--", goal_file(args.slug)):
         git("commit", "-m", "Goal: %s touches" % args.slug, "--", goal_file(args.slug))
     head = git("rev-parse", "HEAD")
@@ -372,6 +373,7 @@ def cmd_pr(args):
         failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
                    "fix the failing rows, commit, then run pr again")
         return 1
+    lanekit.record(state, config()["base"])
     state["step"] = "pr"
     save(state, "pr")
     for wait in (2, 5, 0):
@@ -387,7 +389,7 @@ def cmd_pr(args):
     if not url:
         body = read(goal_file(args.slug))
         flow = "".join("\n- %s: %s" % (step, state["flow"][step]) for step in FLOW)
-        body += "\n## Result\n\nSkill flow:%s\n" % flow
+        body += "\n## Result\n\nSkill flow:%s\n%s" % (flow, state.get("pr_lane", ""))
         done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
                     "--title", state["goal"][:70], "--body", body], check=True)
         url = done.stdout.strip().splitlines()[-1]
@@ -406,7 +408,7 @@ def cmd_pr(args):
 
 def cmd_finding(args):
     state = load(args.slug)
-    if state.get("status") in ("done", "merged"):  # a finished goal keeps its status: the finding is only noted
+    if state.get("status") in ("done", "merged"):  # a finished goal keeps its status
         return guards.note_finding(state_dir(), state, args.text)
     fail_stop(state, args.text)
 

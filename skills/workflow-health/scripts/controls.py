@@ -90,6 +90,7 @@ def f_criteria_rows(root):
 def f_criteria_done(root):
     repo(root)
     write(root, ".loop/goals/old.md", "# Old\n\n## Done lines\n\nFrozen.\n\n1. Calc adds.\n\n## Design\n")
+    write(root, ".git/loop/runs/old.json", '{"status": "running"}')  # done lines count while the goal runs
 
 
 def f_defect_tests(root):
@@ -134,13 +135,13 @@ def f_cost(root):
 
 
 def f_test_time(root):
-    repo(root, {"test_budget_seconds": 60})
+    repo(root, {"test_budget_minutes": 15})
     write(root, ".loop/regression.tsv", "# id\tlevel\tcommand\n" + "".join(
         "r%d\tland\tbash dev/toy/test-x.sh\n" % n for n in range(3)))
     commit(root, "rows")
     folder = os.path.join(root, ".git", "loop", "tests")
     os.makedirs(folder, exist_ok=True)
-    rows = {"r%d" % n: {"status": "PASS", "seconds": 40, "commit": "x"} for n in range(3)}
+    rows = {"r%d" % n: {"status": "PASS", "seconds": 400, "commit": "x"} for n in range(3)}
     with open(os.path.join(folder, "main-%s.json" % hashlib.sha1(b"main").hexdigest()[:8]), "w") as handle:  # main's own
         json.dump({"at": OLD, "rows": rows}, handle)
 

@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/9
 
-Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a58c6 U=fa5c5b02 -->
+Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a58c6 U=726b84e2 -->
 
 ## Problem
 - I want this toolset to be a workspace I can drop into any repo, for any agent: one install gives Claude Code, Codex or any agent that reads skills the same loop, docs, monitoring and settings, in the right format for each.
@@ -12,8 +12,9 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a
 
 ## Usage
 
-- `/workflow-setup setup [--dry-run] [--bare]` — Surveys the repo and commits its adoption on a `workflow-setup` branch (`--dry-run` previews it, `--bare` writes only the config, queue and findings). Prints `FOUND: <new|existing> repo, base <base>, ...`, then `WROTE the adoption on branch <branch> at <sha>` and `NEXT: review the branch, then merge it into <base>; ...`, or `DRY RUN: nothing written`, or `NO CHANGE: nothing to add or convert`. Refuses (exit 1) `REFUSED: git <args>: <error>`, `REFUSED to call this done: agent_command <cmd> grants no tools, ...` and `REFUSED: nothing written. Fix .gitignore, then run setup again.`
+- `/workflow-setup setup [--dry-run] [--bare]` — Surveys the repo and commits its adoption on a `workflow-setup` branch (`--dry-run` previews it, `--bare` writes only the config, queue and findings); with a check command it writes the scheduled `regression.yml`, and when the workflow-health skill is in the repo also `health.yml` and the by-hand `mail-test.yml`. Prints `FOUND: <new|existing> repo, base <base>, ...`, then `WROTE the adoption on branch <branch> at <sha>` and `NEXT: review the branch, then merge it into <base>; ...`, or `DRY RUN: nothing written`, or `NO CHANGE: nothing to add or convert`. Refuses (exit 1) `REFUSED: git <args>: <error>`, `REFUSED to call this done: agent_command <cmd> grants no tools, ...` and `REFUSED: nothing written. Fix .gitignore, then run setup again.`
 - `/workflow-setup reply-hook [--remove]` — Adds the operation session's reply-format Stop hook to the repo's machine-local Claude settings (`--remove` takes it out). Prints `HOOK: <added|updated|removed|already installed|not installed>`, plus `NOTE: start a new Claude Code session ... to load it; ...` after an install. Refuses (exit 1) `REFUSED: <script> is missing. Fix: install the workflow-monitoring skill beside workflow-setup`, `REFUSED: the hook's path <script> holds a single quote. ...`, `REFUSED: the hook (<script>) or the repo is inside a goal's worktree, ...`, `REFUSED: .claude/settings.local.json is committed, ...`, `REFUSED: <path> is not valid JSON (<error>); nothing was written. ...` and `REFUSED: <path> has hooks in a shape this can't edit safely; nothing was written. ...`
+- `/workflow-setup govern-hook` — Adds the operation session's govern-only PreToolUse hook (MON-7) to the repo's machine-local Claude settings; `reply-hook` adds it too, and `--remove` takes out only it. It refuses edits, commits and pushes in the operation session; `govern_hook: false` turns it off. Prints `HOOK: <added|updated|removed|already installed|not installed> (govern_hook.py)`, plus a `NOTE:` line after an install. Refuses (exit 1) as `reply-hook` does.
 - `/workflow-setup settings` — Shows the settings reference: every setting with its home, default and meaning. Prints the reference as a Markdown table, one `| <setting> | <home> | <default> | <meaning> |` row per setting. Refuses nothing.
 - `/workflow-setup fill-repo` — Adds every missing repo setting to the repo's loop config with its default, never overwriting one already there. Prints `FILLED <repo>/.loop/config.json: <settings added, or "nothing missing">`. Refuses (exit 1) `REFUSED: criteria_max is <value> in <path>. Fix: a whole number from 1 to 50 (default 10).` and `REFUSED: review_depth is <value> in <path>. Fix: full or condensed.`
 - `/workflow-setup update --check [--from ZIP|DIR] [--tag vX] [--template OWNER/NAME]` — Shows what a newer template version brings and writes nothing. Prints `INSTALLED: <v>`, `AVAILABLE: <v>`, `REPO: template_version <v>` (or `..., older than <v>: run update --apply`), the changelog under `WHAT'S NEW:`, an `add:`, `update:` or `remove:` line per skill file, a `LOCAL FIX: <file>` line per skill file edited here, and ends with `UP TO DATE` (exit 0) or `PREVIEW: nothing written. Ask for workflow-setup update to apply` (exit 1, behind). Refuses (exit 2) `REFUSED: no template repo is known (UPDATE_NO_TEMPLATE)`, `REFUSED: gh can't read <repo> releases: <why> (UPDATE_GH)`, `REFUSED: ... (UPDATE_TEMPLATE_MISMATCH)` and `REFUSED: can't read a package at <source>: <why> (UPDATE_BAD_ARCHIVE)`, each with its fix.
@@ -68,31 +69,31 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a
 
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
-| [adopt-set-1](Tests#t-adopt-set-1) | requirement | SET-1 | Given SET-1, when the toy adopt-and-update test runs, then it holds. | PASS 2026-11-10 |
-| [adopt-set-2](Tests#t-adopt-set-2) | requirement | SET-1 | Given SET-1 with suggest then apply, when the toy adopt-and-update test runs, then it holds. | PASS 2026-11-10 |
-| [setup-both-halves](Tests#t-setup-both-halves) | requirement | SET-1 | Given a repo, when setup runs, then it writes the repo half and, outside the repo, the private half. | PASS 2026-11-10 |
-| [settings-reference](Tests#t-settings-reference) | requirement | SET-2 | Given every repo and private setting, when the reference is read, then each is listed with its default and a one-line explanation. | PASS 2026-11-10 |
-| [parallel-unlimited](Tests#t-parallel-unlimited) | requirement | SET-2 | Given parallel is 0, when goals run, then it means unlimited, and it is the default. | PASS 2026-11-10 |
-| [settings-read-fresh](Tests#t-settings-read-fresh) | requirement | SET-2 | Given a changed setting, when the next run happens, then it takes effect. | PASS 2026-11-10 |
-| [criteria-max-setting](Tests#t-criteria-max-setting) | requirement | SET-2 | Given the repo settings, when they are read, then criteria_max is a repo setting with default 10 and a one-line explanation. | PASS 2026-11-10 |
+| [adopt-set-1](Tests#t-adopt-set-1) | requirement | SET-1 | Given SET-1, when the toy adopt-and-update test runs, then it holds. | PASS 2026-11-11 |
+| [adopt-set-2](Tests#t-adopt-set-2) | requirement | SET-1 | Given SET-1 with suggest then apply, when the toy adopt-and-update test runs, then it holds. | PASS 2026-11-11 |
+| [setup-both-halves](Tests#t-setup-both-halves) | requirement | SET-1 | Given a repo, when setup runs, then it writes the repo half and, outside the repo, the private half. | PASS 2026-11-11 |
+| [settings-reference](Tests#t-settings-reference) | requirement | SET-2 | Given every repo and private setting, when the reference is read, then each is listed with its default and a one-line explanation. | PASS 2026-11-11 |
+| [parallel-unlimited](Tests#t-parallel-unlimited) | requirement | SET-2 | Given parallel is 0, when goals run, then it means unlimited, and it is the default. | PASS 2026-11-11 |
+| [settings-read-fresh](Tests#t-settings-read-fresh) | requirement | SET-2 | Given a changed setting, when the next run happens, then it takes effect. | PASS 2026-11-11 |
+| [criteria-max-setting](Tests#t-criteria-max-setting) | requirement | SET-2 | Given the repo settings, when they are read, then criteria_max is a repo setting with default 10 and a one-line explanation. | PASS 2026-11-11 |
 | [depth-setup](Tests#t-depth-setup) | requirement | SET-2 | Given a new repo, when setup runs, then it writes review_depth full with a one-line explanation. | PASS 2026-11-10 |
 | [depth-reference](Tests#t-depth-reference) | requirement | SET-2 | Given the settings reference, when it is generated, then it lists review_depth with its default. | PASS 2026-11-10 |
 | [depth-fill-repo-help](Tests#t-depth-fill-repo-help) | requirement | SET-2 | Given a config that already has its _help explanations, when fill-repo runs, then it fills without error. | PASS 2026-11-10 |
-| [adopt-set-4](Tests#t-adopt-set-4) | requirement | SET-4 | Given SET-4, when the toy adopt-and-update test runs, then check shows the change, apply keeps the repo's data and lands the repo half on its branch. | PASS 2026-11-10 |
+| [adopt-set-4](Tests#t-adopt-set-4) | requirement | SET-4 | Given SET-4, when the toy adopt-and-update test runs, then check shows the change, apply keeps the repo's data and lands the repo half on its branch. | PASS 2026-11-11 |
 | [sync-check-preview](Tests#t-sync-check-preview) | requirement | SET-4 | Given a newer template release, when update --check runs, then it shows the installed and available versions, the repo's version, what is new and each changed file, writes nothing, and never offers a downgrade. | not run |
 | [sync-apply-keeps](Tests#t-sync-apply-keeps) | requirement | SET-4 | Given an adopted repo, when update applies a newer version, then the skills update, the repo half lands on workflow-update-vX with template_version stamped, and config values, pages and private settings are kept. | not run |
 | [sync-default-source](Tests#t-sync-default-source) | requirement | SET-4 | Given an update from the template's release source archive, when the next default check runs, then it still finds the template through the installed stamp. | not run |
 | [sync-template-redirect](Tests#t-sync-template-redirect) | requirement | SET-4 | Given a committed template_repo that differs from the installed stamp's repo, when update runs, then it refuses rather than read another repo's releases. | not run |
 | [sync-propose](Tests#t-sync-propose) | requirement | SET-4 | Given a skill file fixed in an adopted repo, when update runs, then it shows as a local fix, is kept, and --propose --file-issue files one issue on the template with its diff and no repo name. | not run |
 | [sync-board-lag](Tests#t-sync-board-lag) | requirement | SET-4 | Given a governed repo on an older template version, when the live board renders, then it lists that repo under Issues with the fix. | not run |
-| [adopt-set-5](Tests#t-adopt-set-5) | requirement | SET-5 | Given SET-5, when the toy adopt test runs, then the design guide is installed and setup's .loop/START.md holds the opener and every part. | PASS 2026-11-10 |
+| [adopt-set-5](Tests#t-adopt-set-5) | requirement | SET-5 | Given SET-5, when the toy adopt test runs, then the design guide is installed and setup's .loop/START.md holds the opener and every part. | PASS 2026-11-11 |
 | [entry-stale](Tests#t-entry-stale) | requirement | SET-5 | Given an adopted repo, when a PRD page's Usage changes, then the entry point check and the docs check fail STALE until docs.py audit regenerates it. | not run |
 | [entry-adopt](Tests#t-entry-adopt) | requirement | SET-5 | Given a repo, when setup adopts it, then .loop/START.md holds the first-five-minutes list and every part: loop, release, operation and workers, docs, regression, health, settings and features. | not run |
 | - | requirement | SET-6 | no passing test | not enforced |
 | - | requirement | SET-9 | no passing test | not enforced |
 | [agents-wire](Tests#t-agents-wire) | requirement | SET-10 | Given a repo, when setup or agents.py wire runs, then CLAUDE.md and AGENTS.md hold the same workflow-loop block, text outside it is kept, and a second run changes nothing. | not run |
 | - | requirement | SET-10 | no passing test | not enforced |
-| [adopt-set-3](Tests#t-adopt-set-3) | requirement | SET-3 | Given SET-3, when the toy adopt-and-update test runs, then it holds. | PASS 2026-11-10 |
+| [adopt-set-3](Tests#t-adopt-set-3) | requirement | SET-3 | Given SET-3, when the toy adopt-and-update test runs, then it holds. | PASS 2026-11-11 |
 | [skill-kept](Tests#t-skill-kept) | requirement | SET-3 | Given detail moved out of the workflow-delivery and workflow-docs SKILL.md files, when their references are read, then every moved sentence is there word for word and SKILL.md points to it. | PASS 2026-11-10 |
 | - | requirement | SET-7 | no passing test | not enforced |
 | - | requirement | SET-8 | no passing test | not enforced |

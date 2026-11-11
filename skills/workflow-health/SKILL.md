@@ -35,7 +35,7 @@ exit code is then 1. `--json` prints the same rows as records, with the verdict.
 | `size` | Each script under `skills/*/scripts` against 20 KB | 90% or more of it | Over it |
 | `criteria` | `regression.py sync` | Done lines with no regression row, as one row | A criterion with no row, a draft row, or a row never seen failing |
 | `docs` | `docs.py check` | A stale page | Any other gap: missing, unwritten, unmapped or a broken page |
-| `hygiene` | `.loop/findings.md`, the run records, local branches, the land lane record and the loop worktrees | Over 5 open findings, a run waiting over 24 hours, a `loop/` branch already merged; the land lane over `test_budget_seconds` (default 600), naming its slowest rows and scripts; loop worktrees no live goal names, and local branches on no remote older than `stale_branch_days` (default 14), one row per kind with the command that removes each | None |
+| `hygiene` | `.loop/findings.md`, the run records, local branches, the land lane record and the loop worktrees | Over 5 open findings, a run waiting over 24 hours, a `loop/` branch already merged; the land lane over `test_budget_minutes` (default 15, floor 15), a full run over 30 minutes, and each step or test run that hit its budget with what it left, naming its slowest rows and scripts; loop worktrees no live goal names, and local branches on no remote older than `stale_branch_days` (default 14), one row per kind with the command that removes each | None |
 | `cost` (shown as `performance`) | The last 10 finished goals' run records against `time_budget_minutes` and `token_budget` in `.loop/config.json` | A goal over either, naming its three slowest or costliest steps | None; no tokens recorded in any of them is `UNREAD`, and no budget set is `INFO` |
 | `mine` | The owner's own rules from `~/.workflow-loop/health.json` | exit 2 | exit 1; any other exit or an unreadable setting is `UNREAD` |
 | `controls` | Each rule's negative control in `controls.py`: a throwaway repo made to break that rule | None | A control that stays green: the rule cannot fire; a fixture that cannot be built, or a rule that cannot read on it, is `UNREAD` |
@@ -69,11 +69,12 @@ python3 scripts/health.py file --group size,docs
 
 `preview` lists each issue that would be opened, updated, closed or reopened, with its `health:<group>` tag, and writes
 nothing. `file --group` is the only writer: it files only the named groups, one issue per `WARN`, `FAIL` or `UNREAD` row
-on the `Backlog` milestone, labelled `health:<group>` (`size`, `criteria`, `docs`, `hygiene`, `performance`, `mine`) and
-`health`, with a hidden marker in its body. A repeat updates that issue, a fixed finding closes it, a returning one
-reopens it, and an issue moved to a feature stays there. With no `--group` it refuses. `mine` is filed only when named;
+on the milestone of the feature it is about (the `.loop/docs.tsv` page whose path holds its subject; `Backlog` when none
+fits), labelled `health:<group>` (`size`, `criteria`, `docs`, `hygiene`, `performance`, `mine`) and `health`, with a
+hidden marker in its body that also records where it was placed. A repeat updates that issue, a fixed finding closes it,
+a returning one reopens it, and an issue you moved anywhere else, `Backlog` included, stays there. With no `--group` it refuses. `mine` is filed only when named;
 the judge, which calls a model, runs only when `performance` is named. `run` is a deprecated alias of `preview`.
-Run `milestone.py new --all --live` once first, or the issues have no `Backlog` to land in. Show the preview to the owner
+Run `milestone.py new --all --live` once first so each feature has its milestone; `file` makes a missing `Backlog` itself. Show the preview to the owner
 and file only the groups they confirm.
 
 ## Milestones: `scripts/milestone.py`
@@ -90,18 +91,24 @@ missing and nothing twice. `attach` puts the goal's pull request in the mileston
 names, and `goal.py pr` runs it. `move` puts an issue in a feature's milestone. Each prints `WOULD` lines unless you pass
 `--live` or set a token. None closes, deletes or merges anything.
 
-## Automation: `scripts/automation.py`
+## Automation: `scripts/automation.py` and `scripts/mail.py`
 
 ```bash
-python3 scripts/automation.py workflow
+python3 scripts/automation.py workflow [--check]
 python3 scripts/automation.py digest
+python3 scripts/mail.py send
+python3 scripts/mail.py test
 ```
 
-`workflow` writes `.github/workflows/health.yml`, which runs on `health_cron` (default every 4 hours; `off` makes a
-scheduled run write nothing) and by hand: check, file the groups a runner can read, the judge only with the `judge_env` secret, then
-the digest. `digest` posts one comment per round on the pinned `Automation digest` issue: what ran, the new, still-open
-and fixed issues, and a request per open issue, mentioning `digest_owner`; with no token outside Actions it only prints
-it. Neither pushes. Details: `references/commands.md`.
+`workflow` writes `.github/workflows/health.yml` (workflows.py), which runs on `health_cron` (default every 4 hours;
+`off` makes a scheduled run write nothing) and by hand: check, file the groups a runner can read on their feature's
+milestone, the judge only with the `judge_env` secret, the digest, then the email. It also writes `mail-test.yml`, run
+by hand to send one test mail. `--check` names a workflow that is missing or older than the skills (each health run
+warns about it). `digest` posts one comment per round on the pinned `Automation digest` issue: what ran, the round's
+cost (rounds.py), the email's state, then per milestone the new, still-open and fixed issues, each open one with its
+request, mentioning `digest_owner`; with no token outside Actions it only prints it. `mail.py send` mails that comment
+once (`digest_mail`: cloudflare, smtp or off; the address and keys only from Actions secrets); `mail.py test` sends one
+fixed mail. Every outcome is one line ending in a code. None of them pushes. Details: `references/commands.md`.
 
 ## Rules
 
@@ -122,4 +129,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-health preview` | `python3 scripts/health.py preview` |
 | `/workflow-health file --group docs` | `python3 scripts/health.py file --group docs` |
 | `/workflow-health workflow` | `python3 scripts/automation.py workflow` |
+| `/workflow-health workflow --check` | `python3 scripts/automation.py workflow --check` |
 | `/workflow-health digest` | `python3 scripts/automation.py digest` |
+| `/workflow-health mail test` | `python3 scripts/mail.py test` |
+| `/workflow-health mail send` | `python3 scripts/mail.py send` |

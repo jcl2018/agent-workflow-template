@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
-import status_graph  # noqa: E402
+import board_page  # noqa: E402
 # board_log sets the no-prompt guard (GIT_TERMINAL_PROMPT and the rest) before any git or gh process starts.
 from board_log import (COMMON, FLOW, HOLD, STEPS, UNHOLD, after, current, flow_seconds, git, goal_file,  # noqa: E402,F401
                        holding, named, read_json, size_of, stamp)
@@ -62,9 +62,9 @@ def board_items(live, queue, freezing, lines, runs, at, root, waits, held=None):
         found = estimate_full(run, runs, at, root, held)
         return dict(slug=run["slug"], mark=mark, depends=waits(depends), stage=0, est=found and found[:4],
                     left=found[0] if found else None, partial=bool(found and found[4]))
-    out = [item(r, status_graph.mark(r.get("status")), r.get("waits_on") or []) for r in live]
+    out = [item(r, board_page.mark(r.get("status")), r.get("waits_on") or []) for r in live]
     out += [item(dict(g, status="queued"), "queued", g["depends"]) for g in queue]
-    out += [item(dict(lines.get(f["slug"]) or {"slug": f["slug"]}, status="queued"), status_graph.mark("running"),
+    out += [item(dict(lines.get(f["slug"]) or {"slug": f["slug"]}, status="queued"), board_page.mark("running"),
                  (lines.get(f["slug"]) or {}).get("depends") or []) for f in freezing]
     return out
 

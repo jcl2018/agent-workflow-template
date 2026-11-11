@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/graph.py
-# reads: skills/workflow-monitoring/scripts/live_board.py skills/workflow-monitoring/scripts/status_graph.py
+# reads: skills/workflow-monitoring/scripts/live_board.py skills/workflow-monitoring/scripts/board_page.py
 # reads: skills/workflow-monitoring/scripts/board_log.py skills/workflow-monitoring/scripts/board_model.py
 # reads: skills/workflow-monitoring/scripts/board_report.py skills/workflow-health/scripts/cost.py
 # reads: skills/workflow-regression/scripts/lanes_cli.py

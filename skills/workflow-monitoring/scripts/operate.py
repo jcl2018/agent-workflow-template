@@ -3,14 +3,20 @@
 
 usage: operate.py <command> [options]
 
-  run [--once] [--poll S] [--max N] [--skill-dir DIR]
+  run [--once] [--poll S] [--max N] [--skill-dir DIR] [--board]
       Each pass: watch.py watch --once (starts every queued goal and batch line whose dependencies are merged, up to
-      parallel; mends and resumes if the config allows), board.py board, board_page.py. It prints the full live board
-      (live_board.py) and the changes every pass, even when nothing changed. Then it waits the gap from `board.py cadence`,
+      parallel; mends and resumes if the config allows), board.py board, board_page.py. It prints the check-in every pass, even when nothing changed
+      (--board adds the live board and its changes). Then it waits the gap from `board.py cadence`,
       or less: a worker that reports (a run record changes) or a goal added to the queue starts the next pass at once.
       It stops when nothing is queued, running or waiting, or when the cadence is off. --once makes one pass.
-  send SLUG TEXT
-      send a worker an answer or a follow-up (worker.py send); the worker's agent sees it the next time it runs goal.py
+      Each pass also runs replan.py (MON-10) and auto.py pass (MON-11), and prints the check-in (checkin.py), not the
+      live board: the board prints only for report, dashboard and "where do things stand" (MON-4; --board adds it).
+  send SLUG TEXT [--source owner|auto]
+      send a worker an answer or a follow-up (worker.py send); the worker's agent sees it the next time it runs goal.py.
+      An answer to a waiting question is kept in <git common dir>/loop/answers.jsonl with its source (auto.py reads it)
+  claim
+      record this session as the operation session for the govern hook (MON-7): $CLAUDE_SESSION_ID or --id; the last
+      claim wins and names the one it replaced; refused in a worker
 
 An LLM asked to run the operation session runs `operate.py run` and nothing else. It never merges.
 """
@@ -68,9 +74,15 @@ def one_pass(top, common, args):
         since = ["--since", before]
     _, out = script("board.py", "board", *since, cwd=top)
     delay = next((line.split()[1] for line in out.splitlines() if line.startswith("NEXT_DELAY ")), "none")
-    print(graph.localize(out.rstrip()))
-    print(graph.localize(script("board_page.py", cwd=top)[1].rstrip()))
-    script("board_runs.py", "checkin", cwd=top)
+    if args.board:  # asked for "where do things stand": the live board and its changes, then the check-in
+        print(graph.localize(out.rstrip()))
+    script("board_page.py", cwd=top)  # board.html and the dashboard keep the live board; the check-in doesn't print it
+    for name, *more in (("replan.py", "plan"), ("auto.py", "pass")):
+        code, said = script(name, *more, cwd=top)
+        if code:
+            print(graph.localize(said.strip()))
+    print(graph.localize(script("checkin.py", cwd=top)[1].rstrip()))
+    script("board_page.py", "checkin", cwd=top)
     try:
         with open(board) as handle:
             busy = bool(json.load(handle).get("open"))
@@ -82,6 +94,8 @@ def one_pass(top, common, args):
 def cmd_run(args):
     top = git("rev-parse", "--show-toplevel")
     common = os.path.abspath(git("rev-parse", "--git-common-dir"))
+    if os.environ.get("CLAUDE_SESSION_ID"):
+        cmd_claim(argparse.Namespace(id=""))
     while True:
         seen = signature(top, common)  # before the pass, so a report that lands during it still starts the next one
         delay, busy = one_pass(top, common, args)
@@ -98,8 +112,40 @@ def cmd_run(args):
             time.sleep(args.poll)
 
 
+def remember(slug, text, source):
+    """Keep an answer to a waiting question (slug, its question key, the words, who answered) for auto.py."""
+    common = os.path.abspath(git("rev-parse", "--git-common-dir") or ".git")
+    try:
+        with open(os.path.join(common, "loop", "runs", slug + ".json")) as handle:
+            run = json.load(handle)
+    except (OSError, ValueError):
+        return
+    ask = (run.get("waiting") or {}).get("ask") if run.get("status") == "waiting" else ""
+    if ask:
+        with open(os.path.join(common, "loop", "answers.jsonl"), "a") as handle:
+            handle.write(json.dumps({"slug": slug, "key": " ".join(ask.lower().split()), "words": text, "source": source}) + "\n")
+
+
+def cmd_claim(args):
+    """The govern hook's record of the operation session; the last claim wins."""
+    sid = args.id or os.environ.get("CLAUDE_SESSION_ID", "")
+    common = os.path.abspath(git("rev-parse", "--git-common-dir") or ".git")
+    if os.environ.get("LOOP_ROLE") == "worker" or os.path.realpath(os.getcwd()).startswith(os.path.join(common, "loop", "worktrees") + os.sep):
+        sys.exit("REFUSED: a worker can't claim the operation session. Fix: run claim from the main checkout's operation session.")
+    if not sid:
+        sys.exit("REFUSED: no session id. Fix: operate.py claim --id <this session's id>.")
+    path = os.path.join(common, "loop", "operation.id")
+    old = open(path).read().strip() if os.path.exists(path) else ""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as handle:
+        handle.write(sid + "\n")
+    print("CLAIMED operation session %s%s" % (sid, " (replaced %s)" % old if old and old != sid else ""))
+    return 0
+
+
 def cmd_send(args):
     """The inbox always carries it; a goal in a worker session is also sent it by session message, which wakes it."""
+    remember(args.slug, args.text, args.source)
     code, said = script("worker.py", "send", args.slug, args.text)
     print(graph.localize(said.strip()))
     if not code and os.path.exists(os.path.join(HERE, "sessions.py")):
@@ -116,9 +162,13 @@ def main():
     item.add_argument("--poll", type=float, default=2)
     item.add_argument("--max", type=int, default=0)
     item.add_argument("--skill-dir", default="")
+    item.add_argument("--board", action="store_true", help="also print the live board each pass (where do things stand)")
     item = sub.add_parser("send")
     item.add_argument("slug")
     item.add_argument("text")
+    item.add_argument("--source", default="owner", choices=["owner", "auto"])
+    item = sub.add_parser("claim")
+    item.add_argument("--id", default="")
     args = parser.parse_args()
     return globals()["cmd_" + args.command](args)
 

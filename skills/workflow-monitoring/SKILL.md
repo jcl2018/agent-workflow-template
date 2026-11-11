@@ -88,7 +88,7 @@ go back to 0), and launches a new worker told to continue from the goal file and
 ## Operation session
 
 **The operation session is for governance only: it assigns, watches and reports, and never runs `go` itself; workers
-build.** `operate.py run` loops `watch --once`, `board.py board` and `board_page.py`, prints the full live board every pass, waits the `board.py cadence` gap (less when a worker reports), and stops when
+build.** `operate.py run` loops `watch --once`, `board.py board`, `board_page.py`, `replan.py` and `auto.py pass`, prints the check-in (`checkin.py`, not the live board) every pass (`replan.py` MON-10, `auto.py` with `full_auto` MON-11, `pool.py` with `pool_size` MON-6 and MON-12, `govern_hook.py` MON-7: `references/operation.md`; goal state lives in `graph.py`), waits the `board.py cadence` gap (less when a worker reports), and stops when
 nothing is left. `operate.py send SLUG "<text>"` gives a worker an answer or follow-up. `scripts/board.py` builds the progress board (`board`), keeps the check-in `cadence`, follows other repos
 (`repos add`), records a worker's latest message (`note SLUG TEXT`), retires a superseded goal (`retire SLUG --reason TEXT`) and writes a `handoff` file.
 `scripts/board_page.py` draws `board.html` and `board-artifact.html` from `board.json`, both carrying the live board.
@@ -105,8 +105,8 @@ agent ends, the worker sends its result back as a prompt message in the run reco
 `waiting`, with the pull request), which the board shows; each change of step or status is in `reports` as it happens.
 `worker.py met SLUG N` marks a done line met; `worker.py send SLUG TEXT` leaves a message its agent sees next; `worker.py cleanup [--dry-run]` deletes merged `loop/*` branches no worktree has checked out (`git branch -d`, local only).
 
-Each check-in prints the live board (`scripts/live_board.py`, run by `board_status.py`), and `dashboard` and `board-artifact.html` carry the same content, always in this format: a `LIVE BOARD` header (repo, local time, version, health); Issues (only what is open now, a stuck worker first, each with its fix in plain words and the exact words to answer);
-Running goals (a 10-cell bar with percent and a time-left range from the estimate model that backtests most accurate on finished goals, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current step in brackets, and a one-line next step); Queued goals; Dependencies between running and queued goals as arrows; and one finish time, with the model and its typical error under it. A step is stalled only past 3 times its estimate and 15 minutes; a held goal's time stops growing. Merged work, history and totals are left out. The loop is in `references/operation.md`.
+`report`, `dashboard` and "where do things stand" print the live board (`scripts/live_board.py`, run by `board_status.py`; a check-in never does, MON-4), and `board-artifact.html` carries the same content, always in this format: a `LIVE BOARD` header (repo, local time, version, health); Issues (only what is open now, a stuck worker first, each with its fix in plain words and the exact words to answer);
+Running goals (a 10-cell bar with percent and a time-left range from the estimate model that backtests most accurate on finished goals, the step flow idea, plan, build, review, qa, ship, pr, release with done steps ticked and the current step in brackets, and a one-line next step), then the session pool line; Queued goals; Dependencies as a top-to-bottom graph at most 60 columns wide with a legend; and one finish time, with the model and its typical error under it. A step is stalled only past 3 times its estimate and 15 minutes; a held goal's time stops growing. Merged work, history and totals are left out. The loop is in `references/operation.md`.
 Every operation-session check-in reply has one layout: a headline, All sessions, Dependencies, Needs you and, last, Coming up (`references/operation.md`); `scripts/reply_hook.py`, a Stop hook that `workflow-setup` installs with `setup.py --reply-hook`, blocks one that doesn't (never a worker's).
 
 ## Statuses
@@ -146,3 +146,4 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-monitoring cleanup` | `python3 scripts/worker.py cleanup` |
 | `/workflow-monitoring reply-check FILE` | `python3 scripts/reply_hook.py check FILE` |
 | `/workflow-monitoring reply-status` | `python3 scripts/reply_hook.py status` |
+| `/workflow-monitoring fill-pool ID...` | `python3 scripts/pool.py add ID...` |

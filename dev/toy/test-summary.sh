@@ -7,6 +7,7 @@ here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"
 export PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR=$(mktemp -d)
+top=$(mktemp -d); toy_on_exit 'rm -rf "$top" "$FAKE_GH_DIR"'  # between cases it stands here, never in the repo
 unset GH_TOKEN GITHUB_TOKEN GITHUB_STEP_SUMMARY GITHUB_ENV GITHUB_OUTPUT GITHUB_PATH GITHUB_STATE
 pass=0; fail=0
 ok() { echo "PASS: $1"; pass=$((pass + 1)); }
@@ -33,7 +34,7 @@ GITHUB_STEP_SUMMARY="$r/summary.md" GITHUB_ENV="$r/env.txt" GITHUB_OUTPUT="$r/ou
 grep -q "^real	PASS$" results.tsv && grep -q "^leak	PASS$" results.tsv && ! grep -q FIXTURE-LEAK summary.md env.txt out.txt results.tsv \
   && ok "a row cannot write into the run summary, env or outputs" || bad "a row wrote into the run summary, env or outputs"
 grep -q "^known-row	KNOWN$" results.tsv && ok "a known failure is recorded KNOWN" || bad "known row state"
-cd "$here"; rm -rf "$r"
+cd "$top"; rm -rf "$r"
 
 echo "== the one test format, grouped by feature (two features, requirement and defect tests)"
 tests="python3 -B $here/skills/workflow-regression/scripts/tests.py"
@@ -132,7 +133,7 @@ awk '/^TESTS$/{t=1; next} t && /^$/{exit} t' <<<"$out" | grep -qxF "NOTE: the te
 out=$(python3 -B "$c/skills/workflow-health/scripts/health.py" check --group size 2>/dev/null)
 ! grep -qx 'TESTS' <<<"$out" && tail -1 <<<"$out" | grep -q '^HEALTH: ' && ok "a health check of one group prints no TESTS block" || bad "group TESTS: $out"
 rm -rf "$c"
-cd "$here"; rm -rf "$r" "$g"
+cd "$top"; rm -rf "$r" "$g"
 
 echo "== an empty repo, an empty regression.tsv, and a local run's environment"
 # Value: protects=list on a repo with no rows prints NO TESTS; fails_when=it prints nothing or crashes; why_new=no empty-repo
@@ -157,7 +158,7 @@ GITHUB_STEP_SUMMARY="$g/summary.md" GH_TOKEN=fixture-token $reg run leak >/dev/n
 GITHUB_STEP_SUMMARY="$g/summary.md" GH_TOKEN=fixture-token $reg run token > run.txt 2>&1; rc=$?
 [ ! -s "$g/summary.md" ] && [ $rc = 0 ] && ! grep -q "FAIL" run.txt \
   && ok "a local run gives a row neither the run summary file nor GH_TOKEN" || bad "local run env (rc $rc): $(cat run.txt)"
-cd "$here"; rm -rf "$r" "$g"
+cd "$top"; rm -rf "$r" "$g"
 
 echo "== $pass passed, $fail failed"
 [ "$fail" = 0 ]

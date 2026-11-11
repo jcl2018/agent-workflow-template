@@ -6,7 +6,7 @@ their TILT of a second per unit only keeps a larger goal strictly longer. A leav
 the lowest median |ln(estimate / actual)|, recomputed when a run finishes (kept in MODEL per set of runs; a goal file edited
 inside one long-lived process is not seen until a run changes). Stall and overrun follow the chosen per-step table. A new
 candidate is a cell function in CELLS and its name in CANDIDATES, scored automatically. Imported by board_status.py, which
-re-exports every name here; it imports board_log.py, status_graph.py and the standard library, never board_status.py.
+re-exports every name here; it imports board_log.py, board_page.py and the standard library, never board_status.py.
 """
 import math
 import os
@@ -16,7 +16,7 @@ import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from board_log import STEPS, current, flow_seconds, git, size_of  # noqa: E402
-import status_graph  # noqa: E402
+import board_page  # noqa: E402
 
 SIMILAR = 5     # similar finished goals needed before an estimate stops being rough
 STEP_UP = 60    # seconds one more done line or touched area adds at least
@@ -27,7 +27,7 @@ TILT = 1        # seconds one more unit adds for the size-light candidates: only
 CANDIDATES = ("steps", "size", "blend")   # a new candidate is a cell function in CELLS and its name here; ties go first
 LABELS = {"steps": "step medians", "size": "size rule", "blend": "blend"}
 MODEL = {}
-span = status_graph.span
+span = board_page.span
 
 
 def step_left(est, spent):

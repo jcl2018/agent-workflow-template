@@ -5,10 +5,19 @@ the goal worktree, and refuse a session folder outside that worktree. Imported b
   WORKER <slug>: ...    the command form for goal steps (LOOP_ROLE=worker); no process can set another's environment
   WORKTREE <slug>: ...  the folder to work in; --cwd DIR, or a worker binding itself, outside it is CWD_OUTSIDE
 A failed or stopped goal is revived with the same fields as goal.py resume; a worker binding itself only attaches.
+
+It also holds the session tool (tool, call, HUNG, LAST_ERROR): the command that starts, renames and messages the app's
+worker sessions (`session_command` in .loop/config.json, or $LOOP_SESSION_TOOL), used by sessions.py.
 """
 import os
+import shlex
+import signal
+import subprocess
 import sys
+import tempfile
 
+# No terminal, no waiting: a prompt from git or gh in the tool must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
 
 def worker_line(slug):
@@ -23,7 +32,9 @@ def inside(folder, tree):
 
 def announce(g, args, tree, was, worker):
     """Print the WORKER and WORKTREE lines for whoever binds to pass on (assign's message already carries them)."""
-    lines = [worker_line(args.slug)] + (["WORKTREE %s: %s" % (args.slug, tree)] if tree else [])
+    attempt = (g.load(args.slug) or {}).get("attempt")
+    lines = [worker_line(args.slug) + (" (attempt %s: pass --attempt %s to sessions.py report)" % (attempt, attempt) if attempt else "")]
+    lines += ["WORKTREE %s: %s" % (args.slug, tree)] if tree else []
     if was in ("failed", "stopped") and worker:
         lines.append("NEXT: ask the operation session to resume %s (a worker binding itself only attaches)" % args.slug)
     print("\n".join(lines))
@@ -64,7 +75,12 @@ def cmd_bind(g, args):
                 state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
             elif was in ("queued", "", None):
                 state.update(status="running", finding="", report=None)
-            state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None, bound_at=g.now())
+            new = (state.get("session") or {}).get("id") != args.id or was in ("failed", "stopped")  # a new worker: next attempt
+            state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None, bound_at=g.now(),
+                         attempt=int(state.get("attempt") or 0) + (1 if new else 0))  # an older attempt's report is not applied (114)
+            state.pop("held_at", None)
+            found[args.id]["attempt"] = state["attempt"]
+            g.save_pool(found)
             g.save(state, "bound to session %s (%s)%s" % (args.id, name, "; revived by bind (was %s)" % was
                                                            if was in ("failed", "stopped") and not worker else ""))
     if not state:
@@ -73,3 +89,60 @@ def cmd_bind(g, args):
         return 0
     print("BOUND %s to session %s (%s)" % (args.slug, args.id, name))
     return announce(g, args, tree, was, worker)
+
+
+def tool(cfg):
+    if os.environ.get("LOOP_SESSION_TOOL"):
+        return shlex.split(os.environ["LOOP_SESSION_TOOL"])
+    found = cfg.get("session_command")
+    return [os.path.expanduser(str(part)) for part in found] if isinstance(found, list) and found else []
+
+
+HUNG = []  # set when a call times out: the tool is given up for the rest of this run
+LAST_ERROR = [""]  # the last call's failure: the tool's first stderr line, "cannot start", or "timed out"
+
+
+def timeout():
+    try:
+        return max(1.0, float(os.environ.get("LOOP_SESSION_TIMEOUT") or 30))
+    except ValueError:
+        return 30.0
+
+
+def call(command, *args):
+    """One session tool call: its last output line, or None when it can't start or reach a session. A call past the
+    timeout (LOOP_SESSION_TIMEOUT, default 30 s) is killed with its process group, then the tool is given up for the
+    run (watch.py clears that each round). Output goes to a file, so a helper the tool leaves running can't hold it."""
+    LAST_ERROR[0] = ""
+    if HUNG:
+        LAST_ERROR[0] = "the session tool timed out earlier in this run"
+        return None
+    with tempfile.TemporaryFile("w+") as out, tempfile.TemporaryFile("w+") as err:
+        try:
+            child = subprocess.Popen(command + list(args), stdout=out, stderr=err,
+                                     stdin=subprocess.DEVNULL, start_new_session=True)
+        except OSError as error:
+            LAST_ERROR[0] = "cannot start %s: %s" % (command[0], error.strerror or error)
+            return None
+        try:
+            child.wait(timeout=timeout())
+        except BaseException as error:  # a timeout, or an interrupt: never leave the tool running
+            try:
+                os.killpg(child.pid, signal.SIGKILL)
+            except OSError:
+                pass
+            try:
+                child.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+            if not isinstance(error, subprocess.TimeoutExpired):
+                raise
+            HUNG.append(" ".join(args[:1]))
+            LAST_ERROR[0] = "timed out after %d s" % timeout()
+            return None
+        out.seek(0)
+        lines = out.read().strip().splitlines()
+        if child.returncode:
+            err.seek(0)
+            LAST_ERROR[0] = (err.read().strip().splitlines() or ["exit %d" % child.returncode])[0][:200]
+    return (lines[-1].strip() if lines else "") if child.returncode == 0 else None

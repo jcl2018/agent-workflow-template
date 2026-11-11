@@ -40,6 +40,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 LINE = re.compile(r"^- ([A-Z]{2,5}-\d+): \*\*(Unreviewed|Reviewed (\d{4}-\d\d-\d\d))\*\* (\S.*?)(?: <!-- reviewed (\w+) -->)?$")
 ID = re.compile(r"^[A-Z]{2,5}-\d+$")
+GOAL = re.compile(r"^[a-z0-9][a-z0-9-]*:\d+$")  # slug:N, a goal's done line
 SCENARIO = re.compile(r"^Given .+, when .+, then .+", re.I)
 DAY = re.compile(r"^\d{4}-\d\d-\d\d$")
 SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
@@ -54,6 +55,7 @@ def rules():
             block = re.search(r"^```rules\n(.*?)^```", handle.read(), re.M | re.S)
         found = dict(line.split(":", 1) for line in block.group(1).splitlines() if ":" in line)
         found = {key.strip(): value.strip() for key, value in found.items()}
+        import deployments
         import pageformat
         listed = lambda key, default: [x.strip() for x in found.get(key, default).split(",") if x.strip()]
         on = listed("format", ",".join(pageformat.CHECKS))
@@ -63,7 +65,10 @@ def rules():
                 "metrics_lines": int(found["metrics_lines"]), "usage": found.get("usage_section", "Usage"),
                 "review": found["review_line"], "milestone": found["milestone_line"], "format": on,
                 "banned": listed("problem_banned", pageformat.BANNED),
-                "groups": listed("requirement_groups", ", ".join(pageformat.GROUPS))}
+                "groups": listed("requirement_groups", ", ".join(pageformat.GROUPS)),
+                "deploy": found.get("deployments_section", "Deployments"), "access": listed("deployments_access", "public, sign-in"),
+                "page_cols": listed("deployments_page", ", ".join(deployments.PAGE_COLS)),
+                "delivery_cols": listed("deployments_delivery", ", ".join(deployments.DELIVERY_COLS))}
     except (OSError, AttributeError, KeyError, ValueError):
         sys.exit("REFUSED: the rules block of skills/workflow-docs/references/template.md is missing or broken.")
 
@@ -147,7 +152,7 @@ def tsv(root, name):
 
 
 def test_rows(root):
-    """Real tests as {criterion: [row id]}, plus ids linked to none."""
+    """Requirement and workflow tests as {criterion: [row id]}, plus ids linked to none."""
     linked, loose = {}, []
     for row in tsv(root, "regression.tsv"):
         if row[6] == "defect":
@@ -157,9 +162,25 @@ def test_rows(root):
             continue
         if key:
             linked.setdefault(key, []).append(row[0])
+        elif GOAL.match(row[3]):  # a done-line row (issue 128): fine while its goal has that done line
+            slug, number = row[3].rsplit(":", 1)
+            have = done_count(root, slug)
+            if int(number) > have:
+                loose.append("%s: goal %s names no done line (%s has %d). Fix: point the row at an existing goal and done "
+                             "line, or use a requirement id" % (row[0], row[3], slug, have))
         elif row[3] != "-":
-            loose.append(row[0])
+            loose.append("row %s links to no requirement" % row[0])
     return linked, loose
+
+
+def done_count(root, slug):
+    """How many numbered done lines .loop/goals/SLUG.md has (0 when there is no such goal)."""
+    try:
+        with open(os.path.join(root, ".loop", "goals", slug + ".md")) as handle:
+            part = handle.read().split("## Done lines", 1)[-1].split("\n## ", 1)[0]
+    except OSError:
+        return 0
+    return len(re.findall(r"^\d+\.\s+\S", part, re.M))
 
 
 def defect_rows(root):
@@ -195,6 +216,7 @@ def blocks(lines):
 
 def contract(root, names, seen):
     """Page contract trouble for these feature pages, as (kind, page, detail). `seen` maps ids to their page."""
+    import deployments
     import pageformat as pf
     import prd
     import render
@@ -208,7 +230,9 @@ def contract(root, names, seen):
             text = handle.read()
         parts = sections(text)
         have = [name for name, _ in parts]
-        want = head[:1] + [rule["usage"]] + head[1:] if rule["usage"] in have else head
+        want = head[:1] + [rule["usage"]] + head[1:] if rule["usage"] in have else list(head)
+        if rule["deploy"] in have:  # optional, after Success metrics (before Tests)
+            want = want[:-1] + [rule["deploy"]] + want[-1:]
         if have != want:
             hint = ""
             if "Commands" in have:
@@ -250,6 +274,8 @@ def contract(root, names, seen):
         found += pf.bullets(page, head[1], numbered[head[1]][1], LINE, "bullets" in on, rule["groups"])
         if "usage" in on and rule["usage"] in numbered:
             found += pf.usage(page, rule["usage"], numbered[rule["usage"]][1], held, owns.get(page, []))
+        if "deployments" in on and rule["deploy"] in numbered:
+            found += deployments.deployments(page, rule["deploy"], numbered[rule["deploy"]][1], rule["page_cols"], rule["delivery_cols"], rule["access"])
         if "problem" in on:
             found += pf.problem(page, head[0], numbered[head[0]][1], rule["problem_lines"], rule["banned"])
         if "tests" in on:
@@ -257,8 +283,8 @@ def contract(root, names, seen):
     if "tests" in on:
         found += [("FORMAT", "Tests:1", "Tests: DOC-9 one anchor per row (got %s). Fix: rename one row id" % x)
                   for x in render.clashes([row[0] for row in tsv(root, "regression.tsv") if row[1] != "draft"])]
-    for name in loose:
-        found.append(("LINK", "regression", "row %s links to no requirement" % name))
+    for text in loose:
+        found.append(("LINK", "regression", text))
     for key in sorted(set(defect_rows(root)) - set(seen)):
         found.append(("LINK", "regression", "defect tests guard %s, which no page has" % key))
     for key in sorted(set(linked) - set(seen)):

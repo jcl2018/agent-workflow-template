@@ -3,7 +3,7 @@
 
 Imported by regression.py (`run ... --reuse`) and lanes_cli.py (`affected`, `deps`, `check`). The record lives in
 <git common dir>/loop/tests/<branch>-<sha8>.json: {schema, runner, worktree, command, at, commit,
-rows: {id: {status: PASS|FAIL|KNOWN, seconds, commit}}}. A row is reused only when it passed (or is a known failure)
+rows: {id: {status: PASS|FAIL|KNOWN, seconds, commit, clean, host, python, flaky}}} (tiers.py flaky_apply). A row is reused only when it passed (or is a known failure)
 on HEAD or an ancestor of HEAD and nothing it reads changed since; anything this file can't map reruns everything.
 A test script whose leading comment block has `# reads: <path>...` lines is mapped narrowly (declared entry points plus
 what they reach, no folder widening); a script without one keeps the wide mapping; LANES_WIDE=1 forces wide everywhere.
@@ -54,7 +54,7 @@ def git(root, *args):
 def runner():
     here = os.path.dirname(os.path.abspath(__file__))
     digest = hashlib.sha256()
-    for name in ("regression.py", "lanes.py", "narrow.py"):
+    for name in ("regression.py", "lanes.py", "narrow.py", "tiers.py"):
         with open(os.path.join(here, name), "rb") as handle:
             digest.update(handle.read())
     return digest.hexdigest()[:12]
@@ -77,7 +77,7 @@ def load(path, root):
         with open(path) as handle:
             data = json.load(handle)
         rows = data["rows"]
-        assert all(row["status"] in ("PASS", "FAIL", "KNOWN") and row["commit"] for row in rows.values())
+        assert all(row["status"] in ("PASS", "FAIL", "KNOWN", "LEFT") and row["commit"] for row in rows.values())
     except (OSError, ValueError, KeyError, TypeError, AssertionError) as error:
         return None, "record unreadable (%s)" % (type(error).__name__,)
     if data.get("schema") != SCHEMA or data.get("runner") != runner():
@@ -87,21 +87,64 @@ def load(path, root):
     return data, ""
 
 
-def save(path, root, command, results, head, at, fresh):
-    """Merge the rows this run ran into the record, under a lock; a fresh (full) run first drops the old rows."""
+def save(path, root, command, results, head, at, fresh, base=None):
+    """Merge the rows this run ran into the record, under a lock; a fresh (full) run, or a goal tier run on a new
+    merge-base (base), first drops the old rows. base is kept as the record's merge_base (tiers.py)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path + ".lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         old, _ = load(path, root)
-        rows = {} if fresh or not old else old["rows"]
+        rows = {} if fresh or not old or (base and old.get("merge_base") != base) else old["rows"]
         for item in results:
-            rows[item["id"]] = {"status": item["state"], "seconds": item["seconds"], "commit": head}
+            rows[item["id"]] = {"status": item["state"], "seconds": item["seconds"], "commit": head,
+                                "pid": item.get("pid"), "rc": item.get("rc"), "signal": item.get("signal")}
+            rows[item["id"]].update({k: item[k] for k in ("clean", "host", "python", "flaky") if k in item})  # tiers.py flaky_apply
         data = {"schema": SCHEMA, "runner": runner(), "worktree": root, "command": command, "at": at,
-                "commit": head, "rows": rows, "total_seconds": round(sum(r.get("seconds") or 0 for r in rows.values()), 1)}
+                "commit": head, "merge_base": base, "rows": rows, "total_seconds": round(sum(r.get("seconds") or 0 for r in rows.values()), 1)}
         temp = "%s.%d.tmp" % (path, os.getpid())
         with open(temp, "w") as handle:
             json.dump(data, handle, indent=1, sort_keys=True)
         os.replace(temp, path)
+
+
+def descendants(root_pid):
+    """Every live descendant pid of root_pid (ps), children first found, so a timeout can kill a row's whole tree."""
+    out = subprocess.run(["ps", "-A", "-o", "pid=,ppid="], capture_output=True, text=True).stdout
+    kids = {}
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            kids.setdefault(int(parts[1]), []).append(int(parts[0]))
+    found, todo = [], [root_pid]
+    while todo:
+        for child in kids.get(todo.pop(), []):
+            found.append(child)
+            todo.append(child)
+    return found
+
+
+def run_row(command, cwd, env, timeout):
+    """(code, output, pid, signal) for one row's shell (issue 435): signal names what stopped it, from a negative
+    status or a shell's 128+N exit status; None when it exited on its own. A timeout kills it and returns 124."""
+    import signal as sig
+    import tempfile
+    with tempfile.TemporaryFile("w+", errors="replace") as log:  # a file, not a pipe: a child left running can't hold it
+        proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
+        try:
+            code, tail = proc.wait(timeout=timeout), ""
+        except subprocess.TimeoutExpired:  # kill the row's whole tree, so nothing it started keeps ports or writes on
+            for pid in [proc.pid] + descendants(proc.pid):
+                try:
+                    os.kill(pid, sig.SIGKILL)
+                except OSError:
+                    pass
+            proc.wait()
+            code, tail = 124, "timed out after %s seconds" % timeout
+        log.seek(0)
+        out = log.read() + tail
+    num = -code if code < 0 else (code - 128 if 128 < code < 160 else 0)
+    names = {s.value: s.name for s in sig.Signals}
+    return code, out or "", proc.pid, names.get(num)
 
 
 def dirty(root):
@@ -141,6 +184,8 @@ def references(root, text, folder, wide=True):
     for raw in PATH.findall(text):
         raw = raw.rstrip(".")
         for cand in {raw, os.path.normpath(os.path.join(folder, raw))}:
+            if cand.split("/")[0] == ".git":  # git's own store: in a full clone .git/index names every file (issue 178)
+                continue
             full = os.path.join(root, cand)
             if os.path.isdir(full):
                 cand = cand.rstrip("/") + "/"
@@ -272,14 +317,33 @@ def table(root, commit, name, memo):
     return memo[commit, name]
 
 
+def no_effect(path):
+    return any(path == n or (n.endswith("/") and path.startswith(n)) for n in NO_EFFECT)
+
+
+def names_any(root, command, paths, cache):
+    """Whether a row's command, or a file it reaches, names one of paths (a file gone from the tree can't be mapped by reach)."""
+    deps, _ = closure(root, command, cache)
+    files = [p for p in deps if not p.endswith("/")] + [f for p in deps if p.endswith("/") for f in walk(root, p)]
+    texts = [command] + [read(root, p, cache) or "" for p in files]
+    for path in paths:
+        name = os.path.basename(path)
+        stem = re.escape(name[:-3]) if name.endswith(".py") else None  # `import stem` names a module without its path
+        if any(path in t or name in t or (stem and re.search(r"(?m)^\s*(?:from|import)\s+(?:[\w, ]*\b)?%s\b" % stem, t)) for t in texts):
+            return True
+    return False
+
+
 def plan(root, selected, record, current_tsv, current_known):
-    """Decide each selected row: (to_run ids, reused ids, notes, full reason or '')."""
+    """Decide each selected row: (to_run ids in tier order, reused ids, notes, why no row could be reused or '').
+    A deleted or unmapped file picks the rows that name it plus the rows that reach the runner; the caller fits the list
+    to the time budget, so nothing here ever widens a change into a full run on its own."""
     rows, cache, notes, memo = record["rows"], {}, [], {}
     every = [r["id"] for r in selected]
     failed = [r["id"] for r in selected if rows.get(r["id"], {}).get("status") == "FAIL"]
     if failed:
         return every, [], notes, "record has FAIL rows %s" % ", ".join(failed[:10])
-    run, reuse, since, kin = [], [], {}, {}
+    hot, rest, reuse, since, kin, odd = [], [], [], {}, {}, set()
     for row in selected:
         rid, prior = row["id"], rows.get(row["id"])
         deps, always = closure(root, row["command"], cache)
@@ -287,11 +351,9 @@ def plan(root, selected, record, current_tsv, current_known):
             notes.append("ALWAYS %s: %s" % (rid, cache["why", row["command"]]))
         if prior and prior["commit"] not in kin:
             kin[prior["commit"]] = ancestor(root, prior["commit"])
-            gone = deleted(root, prior["commit"]) if kin[prior["commit"]] else []
-            if gone:
-                return every, [], notes, "deleted %s" % " ".join(gone[:5])
-        if always or not prior or not kin[prior["commit"]]:
-            run.append(rid)
+            odd |= set(deleted(root, prior["commit"]) if kin[prior["commit"]] else [])
+        if always or not prior or prior.get("flaky") or not kin[prior["commit"]]:  # a flaky row is never reused
+            (rest if always and prior else hot).append(rid)  # a new row, or one with no usable record, is the goal's own: first
             continue
         if prior["commit"] not in since:
             since[prior["commit"]] = changed(root, prior["commit"])
@@ -304,10 +366,16 @@ def plan(root, selected, record, current_tsv, current_known):
                 stale = table(root, prior["commit"], "regression-known.tsv", memo).get(rid) != current_known.get(rid)
             elif touches(root, row["command"], path, cache):
                 stale = True
-            elif not any(hits(path, closure(root, other["command"], cache)[0]) for other in selected):
-                notes.append("UNMAPPED %s: full run" % path)
-                return every, [], notes, "unmapped change %s" % path
+            elif not no_effect(path) and not any(hits(path, closure(root, other["command"], cache)[0]) for other in selected):
+                odd.add(path)
             if stale:
                 break
-        (run if stale else reuse).append(rid)
-    return run, reuse, notes, ""
+        (hot if stale else reuse).append(rid)
+    if odd:
+        names = sorted(odd)
+        pick = [r["id"] for r in selected if r["id"] in reuse and (
+            names_any(root, r["command"], names, cache) or hits(RUNNER, closure(root, r["command"], cache)[0]))]
+        reuse = [k for k in reuse if k not in pick]
+        notes.append("UNMAPPED %s: ran the rows that name them and the runners (%d)" % (" ".join(names[:5]), len(pick)))
+        hot += pick
+    return hot + rest, reuse, notes, ""

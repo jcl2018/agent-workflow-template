@@ -2,9 +2,9 @@
 # reads: skills/workflow-delivery/scripts/defect.py skills/workflow-delivery/scripts/flow.py
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/role.py
 # reads: skills/workflow-monitoring/scripts/board.py skills/workflow-monitoring/scripts/board_page.py
-# reads: skills/workflow-monitoring/scripts/board_runs.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-monitoring/scripts/board_status.py
 # reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
-# reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-setup/scripts/setup.py
 # Proves the roadmap graph with a made-up queue: parallel and chained goals, the marks, the total as the longest chain, the same
 # graph on the board, and the step label changing when a step starts. No model is called. usage: test-status-graph.sh [DIR]
 set -u
@@ -63,7 +63,7 @@ check "the live board sections are in the fixed order" 'python3 -c "
 t=open(\"$T/block\").read()
 at=[t.index(\"\n%s\n\" % n) for n in (\"Issues\",\"Running goals\",\"Queued goals\",\"Dependencies\",\"Finish\")]
 assert at==sorted(at)"'
-check "chained goals are drawn as arrows between running and queued goals" 'grep -qx "b --> c" "$T/block" && grep -qx "c --> d" "$T/block" && ! grep -q "ghost -->" "$T/block"'
+check "chained goals are drawn as a graph between running and queued goals" 'grep -Eqx "\[.\] c <- b" "$T/block" && grep -Eqx "\[.\] d <- c" "$T/block" && ! grep -Eq "<-.*ghost" "$T/block"'
 check "a queued goal shows what it waits on, a standalone one waits on nothing" 'grep -q "^- c .*waits on b" "$T/block" && grep -q "^- d .*waits on c" "$T/block" && grep -q "^- e " "$T/block" && ! grep "^- e " "$T/block" | grep -q waits'
 check "merged goals are left out; a running goal has its bar and time left" '! grep -q "merged\|hist\|^- a " "$T/block" && grep -q "^- b  \[#---------\] 12%  44m to 44m left" "$T/block" && grep -q "^- c  1h01m to 1h01m left" "$T/block"'
 check "the finish is the longest chain b > c > d, not the sum (at least: later steps have no history)" 'grep -q "^at least finish about " "$T/block" && python3 -c "
@@ -80,7 +80,7 @@ check "a running goal shows its step flow with the current step in brackets" 'gr
 echo "== the pure graph"
 python3 - "$M" <<'PY' && ok "no estimate gives at least, a cycle is cut, an empty queue is empty" || bad "pure graph"
 import sys
-sys.path.insert(0, sys.argv[1]); import status_graph as g
+sys.path.insert(0, sys.argv[1]); import board_page as g
 def node(slug, mark="queued", depends=(), left=60):
     return dict(slug=slug, mark=mark, depends=list(depends), stage=0, left=left)
 assert g.total([node("a", left=600), node("b", depends=["a"], left=None)]).startswith("at least 10m"), g.total([node("a", left=600), node("b", depends=["a"], left=None)])

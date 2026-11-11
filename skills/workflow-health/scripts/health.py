@@ -221,7 +221,8 @@ def mine_rows(root):
 
 def cost_rows(root):
     cost = sibling_module("cost")
-    return cost.cost_rows(root, HERE) if cost else [row("UNREAD", "cost", "cost.py", "cost", "cost.py is missing")]
+    return (cost.cost_rows(root, HERE) + cost.timing_rows(root)) if cost else \
+        [row("UNREAD", "cost", "cost.py", "cost", "cost.py is missing")]  # timing_rows: REG-7
 
 
 def gather(root, family):
@@ -330,7 +331,7 @@ def plan_for(root, asked, with_judge):
     issues, why = filing.held(root)
     if issues is None:
         sys.exit("REFUSED: could not read the health issues: %s" % why)
-    return filing, filing.plan(rows, issues, groups, extra, judged), groups
+    return filing, filing.plan(rows, issues, groups, extra, judged, root), groups
 
 
 def cmd_preview(args):
