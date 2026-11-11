@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/scripts/budget.py skills/workflow-delivery/scripts/lane.py
-# reads: skills/workflow-delivery/scripts/lanekit.py skills/workflow-delivery/scripts/lanetime.py
+# reads: skills/workflow-delivery/scripts/lanekit.py
 # reads: skills/workflow-monitoring/scripts/monitor.py skills/workflow-health/scripts/lean.py
 # reads: skills/workflow-regression/scripts/slots.py skills/workflow-setup/scripts/setup.py
 # Proves the preparation budget (REG-7, DEL-8): prep_budget_minutes defaults to 15 and refuses a value under 15; a lane that
@@ -109,8 +109,8 @@ _LOOP_LANE_PREP_BY=$now _LOOP_LANE_QUEUED="$T/x.queued" _LOOP_LANE_STARTED="$T/x
 check "a lane that writes no marker before its budget is cut in planning: exit 125 and one .times record naming it" '[ "$(cat "$T/x.rc")" = 125 ] && python3 -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d[\"cut\"]==\"planning\" and d[\"wait\"]==0 and d[\"plan\"]>=1 else 1)" "$T/x.rc.times"'
 echo '{ nope' > "$T/y.rc.times"
 check "a corrupt or absent .times record reads as zeros with no part" 'python3 - "$S" "$T" <<PY
-import sys; sys.path.insert(0, sys.argv[1]); import lanetime
-sys.exit(0 if lanetime.timing({}, sys.argv[2] + "/y.rc") == (0.0, 0.0, "") and lanetime.timing({}, sys.argv[2] + "/none.rc") == (0.0, 0.0, "") else 1)
+import sys; sys.path.insert(0, sys.argv[1]); import budget
+sys.exit(0 if budget.timing({}, sys.argv[2] + "/y.rc") == (0.0, 0.0, "") and budget.timing({}, sys.argv[2] + "/none.rc") == (0.0, 0.0, "") else 1)
 PY'
 check "a job written without prep_by keeps the old 4x rule while queued or planning" 'python3 - "$S" "$T" <<PY
 import sys, time; sys.path.insert(0, sys.argv[1]); import lane
