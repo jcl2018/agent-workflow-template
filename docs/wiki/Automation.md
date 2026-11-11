@@ -54,8 +54,8 @@ Review: **Reviewed 2026-11-10** <!-- prd P=2f4bd05a R=759415cb N=d6d10cdd M=dad3
 
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
-| [ci-summary](Tests#t-ci-summary) | requirement | AUT-1 | Given the nightly run, when it ends, then it writes a results table to the job summary. | PASS 2026-11-10 |
-| [schedule-setting](Tests#t-schedule-setting) | requirement | AUT-1 | Given a changed schedule setting, when the workflow is rewritten, then the Actions schedule changes. | PASS 2026-11-10 |
+| [ci-summary](Tests#t-ci-summary) | requirement | AUT-1 | Given the nightly run, when it ends, then it writes a results table to the job summary. | PASS 2026-11-11 |
+| [schedule-setting](Tests#t-schedule-setting) | requirement | AUT-1 | Given a changed schedule setting, when the workflow is rewritten, then the Actions schedule changes. | PASS 2026-11-11 |
 | [aut-health-schedule](Tests#t-aut-health-schedule) | requirement | AUT-1 | Given health_cron in the config, when the health workflow is written, then it runs on that schedule and by hand, one run at a time. | PASS 2026-11-10 |
 | [aut-schedule-mismatch](Tests#t-aut-schedule-mismatch) | requirement | AUT-1 | Given a config schedule that differs from the written workflow, when the routine runs, then its summary names the difference and the command that fixes it. | PASS 2026-11-10 |
 | [aut-health-workflow-current](Tests#t-aut-health-workflow-current) | requirement | AUT-1 | Given this repo's config, when the health workflow is written, then it equals the committed workflow. | PASS 2026-11-10 |
@@ -85,7 +85,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=2f4bd05a R=759415cb N=d6d10cdd M=dad3
 | [aut-email-retry](Tests#t-aut-email-retry) | requirement | AUT-4 | Given a provider that throttles once, when the round's mail is sent, then it is retried once, and only when the provider cannot have accepted it. | PASS 2026-11-10 |
 | [aut-email-test](Tests#t-aut-email-test) | requirement | AUT-4 | Given the mail secrets, when the Mail test workflow runs, then one test mail goes out touching no issue, and a missing secret or mail off fails the run. | PASS 2026-11-10 |
 | [aut-email-digest](Tests#t-aut-email-digest) | requirement | AUT-4 | Given open issues on milestones, when a round ends, then the digest groups the new, still-open and fixed issues by feature with the cost and email rows, and an older or repeated run never posts twice. | PASS 2026-11-10 |
-| [bad-schedule-refused](Tests#t-bad-schedule-refused) | requirement | AUT-5 | Given a schedule setting that is not a cron time, when it is applied, then it is refused. | PASS 2026-11-10 |
+| [bad-schedule-refused](Tests#t-bad-schedule-refused) | requirement | AUT-5 | Given a schedule setting that is not a cron time, when it is applied, then it is refused. | PASS 2026-11-11 |
 | [aut-health-off](Tests#t-aut-health-off) | requirement | AUT-5 | Given health_cron off, when the health workflow runs, then it writes nothing and says the routine is off. | PASS 2026-11-10 |
 | [aut-regression-off](Tests#t-aut-regression-off) | requirement | AUT-5 | Given regression_cron off, when the regression workflow runs, then it writes nothing and says the routine is off. | PASS 2026-11-10 |
 | [aut-off-by-hand](Tests#t-aut-off-by-hand) | requirement | AUT-5 | Given a routine set off, when its workflow is written, then it has no schedule and can still be started by hand. | PASS 2026-11-10 |
