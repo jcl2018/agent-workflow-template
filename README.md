@@ -125,8 +125,8 @@ Say these to the agent:
 | You say | What happens |
 |---|---|
 | "Show me every guardrail" | You get the Guardrails page: each guardrail with what it protects against, the feature that owns it, its setting, and whether its Tests row says it is enforced. |
-| "Which guardrail settings are there?" | The settings reference lists every setting with its home, default and meaning, the budgets among them. |
-| "Check the budgets" | Health's performance group runs: goals within their time and token budgets, and test runs within their time limits. |
+| "Which guardrail settings are there?" | The settings reference lists each setting with its home, default and meaning: token_budget, step_budget_minutes, test_budget_minutes, goal_lane_minutes and silent_minutes among them (time_budget_minutes is not listed yet). |
+| "Check the budgets" | Health's performance group runs: it warns on any of the last 10 finished goals over its time or token budget, a goal's test lane over goal_lane_minutes, and a full suite over 30 minutes. |
 | "Which guardrails aren't enforced yet?" | Each guardrail whose Tests row reads not enforced is listed with the feature that owns the missing part. |
 
 ## What it aims to be
