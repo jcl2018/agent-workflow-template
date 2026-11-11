@@ -308,7 +308,7 @@ def plan(root, selected, record, current_tsv, current_known):
             kin[prior["commit"]] = ancestor(root, prior["commit"])
             odd |= set(deleted(root, prior["commit"]) if kin[prior["commit"]] else [])
         if always or not prior or not kin[prior["commit"]]:
-            rest.append(rid)
+            (rest if always and prior else hot).append(rid)  # a new row, or one with no usable record, is the goal's own: first
             continue
         if prior["commit"] not in since:
             since[prior["commit"]] = changed(root, prior["commit"])
