@@ -17,7 +17,7 @@ Rules (at most MAX_RULES; retire one before adding another):
             no row WARN; a closed issue or finding with no defect test FAILs (defects.py)
   docs      docs.py check: a stale page WARNs, any other gap FAILs; issues.py: an open issue with no milestone FAILs
   hygiene   open findings over 5, runs waiting over 24 hours, merged loop branches; lean.py: test time, stale
-            worktrees and local branches
+            worktrees, local branches, private-name hooks
   cost      a finished goal over time_budget_minutes or token_budget WARNs (cost.py); no tokens is UNREAD
   controls  each rule's negative control (controls.py) must fire; a rule with none makes health.py refuse (exit 2)
 
@@ -43,10 +43,10 @@ WARN_AT = LIMIT * 9 // 10
 FINDINGS_WARN = 5
 WAITING_HOURS = 24
 RULES = ("size", "criteria-rows", "criteria-done", "defect-tests", "docs-check", "findings", "waiting", "branches", "cost",
-         "test-time", "worktrees", "local-branches")
-MAX_RULES = 12  # raised on purpose: 9 for cost, 12 for HLT-6
+         "test-time", "worktrees", "local-branches", "hooks")
+MAX_RULES = 13  # raised on purpose: 9 cost, 12 HLT-6, 13 DEL-9 and SET-8
 assert len(RULES) <= MAX_RULES, "too many rules: retire one first"
-ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine", "controls")  # the fixed order of the groups in the report
+ORDER = ("size", "criteria", "docs", "hygiene", "cost", "mine", "controls")
 FAMILY = dict(zip(ORDER, ORDER))
 NAMES = sorted(FAMILY) + ["performance"]  # the Cost group's name in the report and its tag
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
@@ -203,7 +203,7 @@ def rule_functions():
               "docs-check": docs_rows, "findings": hygiene_rows, "waiting": hygiene_rows, "branches": hygiene_rows,
               "cost": cost_rows}
     if lean:
-        groups.update({"test-time": lean.test_rows, "worktrees": lean.worktree_rows, "local-branches": lean.branch_rows})
+        groups.update({"test-time": lean.test_rows, "worktrees": lean.worktree_rows, "local-branches": lean.branch_rows, "hooks": lean.hook_rows})
     return {name: groups[name] for name in RULES if name in groups}
 
 

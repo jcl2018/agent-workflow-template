@@ -59,6 +59,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-setup setup` | `python3 scripts/setup.py` (`--dry-run` previews, `--bare` writes only the config, queue and findings) |
 | `/workflow-setup reply-hook` | `python3 scripts/setup.py --reply-hook` (`--remove` takes it out): the operation session's reply-format Stop hook, in the repo's machine-local `.claude/settings.local.json` |
 | `/workflow-setup govern-hook` | `python3 scripts/setup.py --govern-hook` (`--remove` takes it out): the operation session's govern-only PreToolUse hook (MON-7), installed beside the reply hook too |
+| `/workflow-setup git-hooks` | `python3 scripts/setup.py --git-hooks` (`--remove` takes out only the stubs setup wrote; `--check [--json]` prints the list's and each hook's state): the private-name scan as `pre-commit`, `commit-msg` and `pre-push` hooks in `.git/hooks`; a default `setup` installs them too (`--no-git-hooks` or `LOOP_NO_GIT_HOOKS=1` skips) |
 | `/workflow-setup settings` | `python3 scripts/settings.py reference` |
 | `/workflow-setup fill-repo` | `python3 scripts/settings.py fill-repo` |
 | `/workflow-setup update --check` | `python3 scripts/update.py --check` (exit 1 means behind) |

@@ -25,7 +25,7 @@ field() { python3 -c "import json,sys;d=json.load(sys.stdin);print([r for r in d
 
 echo "== negative controls"
 out=$($health check --group controls); echo "$out"
-[ "$(grep -c '^PASS controls .* control: fires on its fixture' <<<"$out")" = 12 ] && ok "every rule's control fires" || bad "controls fire"
+[ "$(grep -c '^PASS controls .* control: fires on its fixture' <<<"$out")" = 13 ] && ok "every rule's control fires" || bad "controls fire"
 grep -q "/tmp\|/var/\|health-control-" <<<"$out" && bad "a control row shows a temp path" || ok "control rows carry no temp path"
 [ "$($health check --group controls)" = "$out" ] && ok "controls print the same lines twice" || bad "controls differ"
 # Value: protects=a rule that silently stops matching is reported as unable to fire; fails_when=controls only check
@@ -39,7 +39,8 @@ grep -q "^FAIL controls size control: cannot fire" <<<"$out" && grep -q "control
 grep -q "^PASS controls findings control" <<<"$out" && ok "the other rules' controls still fire" || bad "other controls"
 # Value: protects=a new rule cannot be added without its control; fails_when=the load check is dropped; why_new=new;
 #   seam=none; no_claim=none beyond protects
-sed -i.b 's/^         "test-time", "worktrees", "local-branches")$/         "test-time", "worktrees", "local-branches", "new-rule")/; s/^MAX_RULES = 12 /MAX_RULES = 13 /' "$broken/scripts/health.py" && rm "$broken/scripts/health.py.b"
+sed -i.b 's/^         "test-time", "worktrees", "local-branches", "hooks")$/         "test-time", "worktrees", "local-branches", "hooks", "new-rule")/; s/^MAX_RULES = 13 /MAX_RULES = 14 /' "$broken/scripts/health.py" && rm "$broken/scripts/health.py.b"
+grep -q '"hooks", "new-rule")$' "$broken/scripts/health.py" && grep -q '^MAX_RULES = 14 ' "$broken/scripts/health.py" && ok "both seds took effect" || bad "a sed did not take effect"
 out=$(python3 "$broken/scripts/health.py" check 2>&1); rc=$?
 grep -q '^REFUSED: rule new-rule has no negative control. Fix: add CONTROLS\["new-rule"\] in controls.py' <<<"$out" && [ $rc = 2 ] \
   && ! grep -q "^HEALTH" <<<"$out" && ok "a rule without a control is refused before any report" || bad "refused"

@@ -159,6 +159,15 @@ def f_local_branches(root):
     git(root, "checkout", "-q", "main")
 
 
+def f_hooks(root):
+    """A repo with no hooks; the returned environment is set around the rule call, so it fires on Actions and never reads
+    the real HOME or list."""
+    repo(root)
+    folder = os.path.dirname(root)
+    write(folder, "list", "# a control\nzq-control\n")
+    return {"LOOP_HEALTH_HOOKS": "1", "HOME": folder, "LOOP_PRIVATE_NAMES": os.path.join(folder, "list")}
+
+
 # rule name in health.RULES -> (group, the rule label report.rule_of gives its rows, fixture)
 CONTROLS = {
     "size": ("size", "limit", f_size),
@@ -174,6 +183,7 @@ CONTROLS = {
     "test-time": ("hygiene", "test-time", f_test_time),
     "worktrees": ("hygiene", "worktrees", f_worktrees),
     "local-branches": ("hygiene", "local-branches", f_local_branches),
+    "hooks": ("hygiene", "hooks", f_hooks),
 }
 
 
@@ -200,8 +210,11 @@ def one(rule, function, here, keep=False):
     os.makedirs(root)
     saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("GIT_")}  # all restored in finally
     os.environ.update(GIT_ENV)
+    put, was = {}, {}
     try:
-        fixture(root)
+        put = fixture(root) or {}
+        was = {k: os.environ.get(k) for k in put}
+        os.environ.update(put)
         found = function(root)
         fired = any(item["state"] in ("WARN", "FAIL") and item["family"] == group and label(item, here) == wanted
                     for item in found)
@@ -220,6 +233,8 @@ def one(rule, function, here, keep=False):
         for key in GIT_ENV:
             os.environ.pop(key, None)
         os.environ.update(saved)
+        for key in put:
+            os.environ.pop(key, None) if was.get(key) is None else os.environ.update({key: was[key]})
         if not keep:
             subprocess.run(["rm", "-rf", folder], capture_output=True)
             if os.path.exists(folder):

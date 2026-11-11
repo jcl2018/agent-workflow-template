@@ -81,6 +81,10 @@ defect-known	PASS	2026-11-11
 defect-owed	PASS	2026-11-11	
 defect-owed-branch-proved	PASS	2026-11-10	
 defect-wording	PASS	2026-11-11	
+del9-hooks	PASS	2026-11-11	
+del9-merge-refuses	PASS	2026-11-11	
+del9-pr-refuses	PASS	2026-11-11	
+del9-scan-sites	PASS	2026-11-11	
 dependencies-on-map	PASS	2026-11-09	
 dependency-held	PASS	2026-11-09	
 deploy-doc14-reviewed	PASS	2026-11-10	
@@ -120,7 +124,7 @@ done-lines-warning-143	PASS	2026-11-10
 estimates-shown	PASS	2026-11-11	
 every-row-described	PASS	2026-11-11	
 failed-waits-mender	PASS	2026-11-09	
-file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+file-one-group	PASS	2026-11-11	
 fixed-closes	PASS	2026-11-11	
 flaky-marked	PASS	2026-11-10	
 flaky-no-false-mark	PASS	2026-11-10	
@@ -147,11 +151,11 @@ guards-worktree	PASS	2026-11-10
 guide-marker-refused	PASS	2026-11-10	
 health-group-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 health-lists-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-health-not-enforced-fail	PASS	2026-11-10	
-health-not-enforced-warn	PASS	2026-11-10	
+health-not-enforced-fail	PASS	2026-11-11	
+health-not-enforced-warn	PASS	2026-11-11	
 health-tests-error	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 health-timing	PASS	2026-11-11	
-health-unreviewed-warn-issue-118	PASS	2026-11-10	
+health-unreviewed-warn-issue-118	PASS	2026-11-11	
 held-all	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-freezing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-off-flow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -351,6 +355,8 @@ session-reports	PASS	2026-11-11
 session-reuse	PASS	2026-11-11	
 session-tool-helper	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 session-tool-timeout	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+set8-hooks	PASS	2026-11-11	
+set8-setup-commit	PASS	2026-11-11	
 settings-read-fresh	PASS	2026-11-11	
 settings-reference	PASS	2026-11-11	
 setup-both-halves	PASS	2026-11-11	

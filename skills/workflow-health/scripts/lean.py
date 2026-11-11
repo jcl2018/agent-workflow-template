@@ -1,4 +1,4 @@
-"""Hygiene rules that keep the repo lean: test time, stale loop worktrees, stale local branches. Used by health.py.
+"""Hygiene rules that keep the repo lean: test time, stale loop worktrees, stale local branches, git hooks. Used by health.py.
 
 test-time reads the land lane record (regression.py's per-branch record under the git common folder's loop/tests/):
 the current branch's, else the newest one with a readable `at`. It counts only rows that are land rows in the current
@@ -9,6 +9,9 @@ worktrees lists loop worktrees (the git common folder's loop/worktrees/) that no
 branches with no upstream (or a gone one), checked out nowhere, not merged into the base and older than
 stale_branch_days (default 14). Each gets its removal command, shell-quoted; nothing is ever removed here. These rows
 hold machine-local paths and names, so file.py never files them.
+hooks (DEL-9, SET-8) runs `setup.py --git-hooks --check --json` and WARNs when a private-name hook is missing, foreign
+(no call to private.py) or calls a script that is gone, or when the list is broken; no list is not a finding (the board
+lists it). Skipped on GitHub Actions unless LOOP_HEALTH_HOOKS=1. Any other answer is one WARN to update the skills.
 """
 import glob
 import hashlib
@@ -287,8 +290,28 @@ def branch_rows(root):
     return summary("local-branches", items, "local branches")
 
 
+def hook_rows(root):
+    if os.environ.get("GITHUB_ACTIONS") and os.environ.get("LOOP_HEALTH_HOOKS") != "1":
+        return [row("PASS", "hooks", "hooks", "skipped on GitHub Actions: hooks live on a machine")]
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-setup", "scripts", "setup.py")
+    stale = [row("WARN", "hooks", "hooks", "cannot read the hook state", "update the skills so setup.py has --git-hooks --check")]
+    try:
+        done = subprocess.run([sys.executable, script, "--repo", root, "--git-hooks", "--check", "--json"],
+                              capture_output=True, text=True, timeout=60)
+        data = json.loads(done.stdout)
+        if done.returncode not in (0, 1) or data["version"] != 1:
+            return stale
+        found = ["%s: %s" % pair for pair in sorted(data["hooks"].items()) if pair[1] != "installed"]
+        found += ["the private-name list is broken (python3 private.py check names the line)"] * (data["list"] == "broken")
+        found += ["core.hooksPath is set: add the call lines to the hooks you use"] * (bool(found) and bool(data["hooks_path"]))
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
+        return stale
+    return [row("WARN", "hooks", "hooks", "; ".join(found), "run python3 workflow-setup/scripts/setup.py --git-hooks from the "
+                "installed skills")] if found else [row("PASS", "hooks", "hooks", "the private-name hooks are installed")]
+
+
 def rows(root):
-    return test_rows(root) + worktree_rows(root) + branch_rows(root)
+    return test_rows(root) + worktree_rows(root) + branch_rows(root) + hook_rows(root)
 
 
 def facts(root):
