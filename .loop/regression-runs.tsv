@@ -142,6 +142,9 @@ hlt6-run-times	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-test-quiet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-test-time	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-worktrees	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt7-fast-check	PASS	2026-11-10	
+hlt8-triage	PASS	2026-11-10	
+hlt9-evidence-or-nothing	PASS	2026-11-10	
 issue-closed-ignored	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 issue-gh-fail-unread	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 issue-keeps-state	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
