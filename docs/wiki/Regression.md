@@ -147,6 +147,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf
 | [merge-wiki-rename-refused](Tests#t-merge-wiki-rename-refused) | requirement | REG-4 | Given a commit that moves a code file into the wiki folder after the pr lane, when merge.py runs, then it refuses HEAD_MOVED. | PASS 2026-11-11 |
 | [merge-wiki-skill-refused](Tests#t-merge-wiki-skill-refused) | requirement | REG-4 | Given a commit that adds a SKILL.md in the wiki folder after the pr lane, when merge.py runs, then it refuses HEAD_MOVED. | PASS 2026-11-11 |
 | [pass3-symlink-page](Tests#t-pass3-symlink-page) | requirement | REG-4 | Given a commit that adds a symlink named like a wiki page after the pr lane, when merge.py runs, then it refuses HEAD_MOVED. | PASS 2026-11-11 |
+| [merge-base-unrecorded](Tests#t-merge-base-unrecorded) | requirement | REG-4 | Given a goal whose pr lane recorded a head but no base, when merge.py checks the base, then it refuses BASE_MOVED instead of merging unchecked. | PASS 2026-11-11 |
 | [known-no-block](Tests#t-known-no-block) | requirement | REG-5 | Given a known failure, when the run happens, then it does not block the run or open an issue. | PASS 2026-11-10 |
 | [no-token-dry-run](Tests#t-no-token-dry-run) | requirement | REG-5 | Given no GitHub token, when a run happens, then it only prints what it would do. | PASS 2026-11-10 |
 | [one-issue](Tests#t-one-issue) | requirement | REG-5 | Given a failing test, when the run reports it, then one GitHub issue is opened. | PASS 2026-11-10 |
