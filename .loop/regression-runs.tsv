@@ -328,6 +328,7 @@ session-tool-timeout	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 settings-read-fresh	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 settings-reference	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 setup-both-halves	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+size-budget	PASS	2026-11-11	
 size-fail	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 skill-kept	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 skill-says-governs	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
