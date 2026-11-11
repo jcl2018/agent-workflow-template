@@ -120,6 +120,7 @@ def begin(record, step):
         return
     state["step"] = step
     (state.get("depth") or {}).pop(step, None)  # a rerun step's earlier depth no longer stands
+    state["budget_hits"] = [h for h in state.get("budget_hits") or [] if not (h.get("step") == step and h.get("kind") == "step")]
     import guards  # lazily: guards imports role
     guards.stamp(state, step)  # the format rules this step started under
     state["updated"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
