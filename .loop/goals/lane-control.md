@@ -3,6 +3,10 @@
 - Slug: lane-control
 - Touches: skills/workflow-regression, skills/workflow-delivery, dev/toy, .loop/regression.tsv, docs/wiki
 
+Closes #150, closes #135, closes #152, closes #168, closes #151, closes #99, closes #128, closes #143, closes #172, closes #173, closes #178, closes #435.
+
+Beyond the six issues, the owner approved the Regression PRD (tiered goal lanes, workflow tests, release Fixes lines and reopened issues, health timing, lane settings, ports and temp folders, FLAKY marks) and issues 128, 143, 172 (items 1 and 4), 173 and 178, and the urgent 435 (the sweep reaps only its own lane's markers). Follow-ups: 172 items 2-3, the recycled-pid check before killpg in flow.py and mend.py, and tests for the health.yml fetch step and the fixes_lines fallbacks.
+
 ## Done lines
 
 Frozen. A wrong done line needs a new goal.
