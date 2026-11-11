@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/7
 
-Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf897b U=391e5104 -->
+Review: **Unreviewed**
 
 ## Problem
 - I can't trust a requirement or a fix unless a test proves it, and every fix I've ever shipped should stay fixed without me re-checking it.
@@ -14,7 +14,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf
 
 - `/workflow-regression add ID --level land --command "cmd" --goal DEL-1` — Adds or replaces a regression row. Prints `ROW <id> <level>: <command>`. Refuses (exit 1) `REFUSED: bad id. Fix: letters, digits, dots, dashes.`, `REFUSED: a defect row links to its issue or finding. Fix: add --link URL or finding:SLUG.` and `REFUSED: a row can't hold a tab or new line. Fix: use a script.`
 - `/workflow-regression red ID --break "cmd"` — Copies HEAD, runs the break command on the copy, and records that the row's test fails there. Prints `SEEN RED <id> on <YYYY-MM-DD>`, or `STILL GREEN <id>: the test passed on broken code, so it proves nothing.` with exit 1. Refuses (exit 1) `REFUSED: no row <id>. Fix: add it first.` and `REFUSED: the break command failed: ...`
-- `/workflow-regression run land` — Runs the land rows, records each result, and opens, updates or closes one issue per failing row. Prints `PASS <id>`, `FAIL <id>` or `KNOWN <id> (<reason>)` per row, `OPENED issue for <id>` or `WOULD open or update the issue for <id>`, and `RESULT <n> passed, <n> known, <n> failed, <n> unproven`. Refuses (exit 1) `REFUSED: no row or level called <target>.`, and `NO ROWS: run add first` when there are none.
+- `/workflow-regression run land` — Runs the land rows (with `--reuse`, the loop's run: within `test_budget_minutes`, printing `BUDGET <n> min: ran <a> of <b> rows; LEFT <k> to the scheduled full suite: <ids>` for rows it left), records each result, and opens, updates or closes one issue per failing row. Prints `PASS <id>`, `FAIL <id>` or `KNOWN <id> (<reason>)` per row, `OPENED issue for <id>` or `WOULD open or update the issue for <id>`, and `RESULT <n> passed, <n> known, <n> failed, <n> unproven`. Refuses (exit 1) `REFUSED: no row or level called <target>.`, and `NO ROWS: run add first` when there are none.
 - `/workflow-regression sync` — Lists done lines and criteria with no row, plus draft, never-seen-failing and undescribed rows. Prints `GAP <slug>:<n> <line>`, `DRAFT <id>: ...`, `UNPROVEN <id>: never seen failing. Run red.`, `NODESC <id>: ...`, or `SYNC OK: <n> rows`. Refuses nothing.
 - `/workflow-regression workflow` — Writes the GitHub Actions regression workflow on the schedule in regression_cron; its run files each failing row's `defect` issue on the milestone of the feature the row guards (Backlog when none, made once if missing; an issue you moved stays) and fails the step after the last row when an issue write failed (`FILED <n> issue writes; FAILED <m>: ... (FILE_FAILED)`). Prints `WROTE <repo>/.github/workflows/regression.yml`. Refuses (exit 1) `REFUSED: regression_cron is not five cron fields. ...`, `REFUSED: <path> exists, and this tool didn't write it. Fix: merge by hand.` and `REFUSED: tests.py contains <token>, which the workflow can't carry. ...`
 - `/workflow-regression list` — Lists every regression test from the recorded runs, grouped by feature. Prints `FEATURE <title>`, then `<test> | <kind> | <guards> | <checks> | <runs> | <last result> | seen failing <date|no>` per test, or `NO TESTS`. Refuses nothing.
@@ -45,8 +45,8 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf
   - A reopened issue's test is marked failing until it passes again.
 
 ### Non-functional
-- REG-7: **Reviewed 2026-11-10** Fast in the loop <!-- reviewed 0643c29e -->
-  - A goal's affected-rows run finishes in under 10 minutes; the full suite finishes in under 30 minutes; health flags either when it doesn't.
+- REG-7: **Unreviewed** Fast in the loop
+  - Every in-loop test run (qa, ship and the pull-request lane) stays within a time budget, a setting that defaults to 15 minutes and can't be set lower. A run that would go past it, including changes the row picker can't map such as a deleted file, runs the affected tier that fits and leaves the rest to the scheduled full suite, saying what it left; the loop never runs the full suite. The scheduled full suite finishes in under 30 minutes, and health flags it when it doesn't.
 - REG-8: **Reviewed 2026-11-10** Controllable <!-- reviewed e39ec809 -->
   - Which levels run where, the GitHub schedule, the time limits and how many test lanes run at once are settings.
   - Lanes running side by side never share files or ports or time each other out, and a lane over its limit says so.
@@ -118,7 +118,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf
 | [lanes-narrow-wide](Tests#t-lanes-narrow-wide) | requirement | REG-4 | Given declared rows, when a change reaches only some of them, then only those rerun, and a change every row reaches reruns them all. | PASS 2026-11-10 |
 | [lanes-repo-narrow](Tests#t-lanes-repo-narrow) | requirement | REG-4 | Given this repo's table, when one skill script changes, then fewer than half the land rows rerun and every row whose script declares it does. | PASS 2026-11-10 |
 | [lanes-glob](Tests#t-lanes-glob) | requirement | REG-4 | Given a script that globs a skill folder, when its header declares only a file in it, then the check refuses it until the folder is declared. | PASS 2026-11-10 |
-| [lanes-deleted](Tests#t-lanes-deleted) | requirement | REG-4 | Given a deleted skill file, when a reusing run happens, then every row runs even when a broad row maps the file. | PASS 2026-11-10 |
+| [lanes-deleted](Tests#t-lanes-deleted) | requirement | REG-4 | Given a deleted skill file, when a reusing run happens, then the rows that name or reach it run and no full run is forced. | PASS 2026-11-10 |
 | [lanes-check](Tests#t-lanes-check) | requirement | REG-4 | Given a header problem, when lanes_cli.py check runs, then it names the code, the file and line, and the line to fix. | PASS 2026-11-10 |
 | [lanes-wide-parity](Tests#t-lanes-wide-parity) | requirement | REG-4 | Given scripts with no header, when affected runs, then the mapping is the same as the wide one, and LANES_WIDE=1 forces it everywhere. | PASS 2026-11-10 |
 | [lanes-trace-check](Tests#t-lanes-trace-check) | requirement | REG-4 | Given a row whose run reads a skill file outside its closure, when check-reads runs, then that row fails with the line to add. | PASS 2026-11-10 |
@@ -132,6 +132,14 @@ Review: **Reviewed 2026-11-10** <!-- prd P=14b68802 R=73faed5f N=f86bd012 M=bdcf
 | [reg-defect-label](Tests#t-reg-defect-label) | requirement | REG-5 | Given a failing test, when a local live run reports it, then its issue is labelled defect. | PASS 2026-11-10 |
 | [reg-local-relabel](Tests#t-reg-local-relabel) | requirement | REG-5 | Given an older open issue for a failing test, when a local live run reports it, then the issue gains the defect label. | PASS 2026-11-10 |
 | - | requirement | REG-6 | no passing test | not enforced |
+| [reg7-floor-test](Tests#t-reg7-floor-test) | requirement | REG-7 | Given test_budget_minutes under 15, when a reusing test run starts, then it is refused with a fix line and runs nothing. | not run |
+| [reg7-budget-defaults](Tests#t-reg7-budget-defaults) | requirement | REG-7 | Given no budget settings, when they are read, then the step budget is 30 minutes and the test budget 15. | not run |
+| [reg7-budget-leaves](Tests#t-reg7-budget-leaves) | requirement | REG-7 | Given rows that would run past the test budget, when a loop test run happens, then it runs the rows that fit, stops at the budget and lists every row it left. | not run |
+| [reg7-budget-left-reused](Tests#t-reg7-budget-left-reused) | requirement | REG-7 | Given rows left at the budget, when the next lane runs on the same content, then it reuses them and runs none. | not run |
+| [reg7-budget-fit](Tests#t-reg7-budget-fit) | requirement | REG-7 | Given rows with recorded seconds, when they are fitted to a budget, then those that fit run in tier order and the rest are left. | not run |
+| [reg7-lane-hit](Tests#t-reg7-lane-hit) | requirement | REG-7 | Given a lane that stopped at its budget, when it ends, then it says what it left and the goal's record names the step, the limit and the rows. | not run |
+| [reg7-suite-time](Tests#t-reg7-suite-time) | requirement | REG-7 | Given a full suite run recorded over 30 minutes, when health runs, then it warns. | not run |
+| [reg7-unmapped-tier](Tests#t-reg7-unmapped-tier) | requirement | REG-7 | Given a new file no row reads, when a reusing run happens, then it picks the rows that name it and the runners and never forces a full run. | not run |
 | - | requirement | REG-7 | no passing test | not enforced |
 | - | requirement | REG-8 | no passing test | not enforced |
 | - | requirement | REG-9 | no passing test | not enforced |
