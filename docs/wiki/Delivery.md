@@ -49,6 +49,7 @@ Review: **Unreviewed**
 - DEL-8: **Unreviewed** Budgeted
   - Each goal has a time and token budget, and going over shows on the board.
   - Each review and ship step has a time limit, a setting no lower than 15 minutes; a step that reaches it finishes with what it has done, records what it left, and the goal goes on instead of restarting.
+  - A lane that stops at its preparation budget is recorded on the goal with the part that ran long, and the board and health list it beside the step and test budget hits.
 - DEL-9: **Reviewed 2026-11-10** Nothing private ships <!-- reviewed ad7ed0f0 -->
   - Every commit and pull request passes the private-name scan before it is pushed.
 

@@ -27,7 +27,7 @@ Feature pages live in `docs/wiki`, one PRD page per feature with numbered requir
 
 ## Regression
 
-Every requirement and every fixed defect has a regression row in `.loop/regression.tsv`, seen failing before its fix. The land lane runs once per goal, in qa, within 15 minutes (the budget; rows past it are left to the scheduled run); the scheduled run is `17 */4 * * *`.
+Every requirement and every fixed defect has a regression row in `.loop/regression.tsv`, seen failing before its fix. The land lane runs once per goal, in qa, within 15 minutes (the budget; rows past it are left to the scheduled run), after at most 15 minutes of preparing, planning and waiting for a slot before its first row; the scheduled run is `17 */4 * * *`.
 
 ## Health
 
@@ -79,6 +79,7 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `parallel` | 0 | Workers running at once; 0 means unlimited. |
 | `pool_size` | 20 | Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones. |
 | `pr_bumps_version` | false | true moves the last number of the version file once on a goal's branch. |
+| `prep_budget_minutes` | 15 | Minutes a lane may spend before its first test row (preparing, planning, waiting for a slot), 15 or more; a lane past it stops and says which part ran long. |
 | `regression_cron` | 17 */4 * * * | Five cron fields: when the regression routine runs in GitHub Actions; off turns it off. |
 | `reply_hook` | true | false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session. |
 | `resume_on_limit` | false | true lets watch resume a goal that hit a usage limit. |

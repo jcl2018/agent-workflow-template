@@ -28,6 +28,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 import budget
 
@@ -40,6 +41,8 @@ NOTHING = "the lane committed and pushed nothing"
 BOOKKEEPING = (".loop/regression-runs.tsv", ".loop/goals/", ".loop/queue.md", ".loop/findings.md")
 FILES = (".loop/regression-issues.tsv", ".loop/regression-runs.tsv")
 EXIT_WAIT, EXIT_STALE, POLL = 4, 5, 2.0
+EXIT_PREP = 125  # a lane stopped at its preparation budget, before any row
+TERMINAL = ("pass", "fail")
 COPIED = ('flow_file', '_flow', 'time_limit', 'lanes_dir', 'check', '_open', 'port_base', 'last_change', 'lane_limit', 'timeout_line', 'rows_line')  # from slots.py, kept identical (dev/toy/test-lane-control.sh)
 
 
@@ -136,6 +139,46 @@ def rows_line(text, ran, log):
     count, parts, reused, loose = found.groups()
     return "; rows: %s selected %s, %s reused, %d unfinished; unmapped: %s; log: %s" % (
         count, parts, reused, max(int(count) - ran, 0), loose, log)
+
+
+# Small lane helpers (moved from lane.py to keep it under the size cap).
+
+def mtime(path):
+    try:
+        return os.path.getmtime(path)
+    except OSError:
+        return None
+
+
+def drop(*paths):
+    for path in paths:
+        try:
+            os.remove(path)
+        except (FileNotFoundError, TypeError):  # another poller took it first, or no path
+            pass
+
+
+def read_json(path):
+    try:
+        data = json.load(open(path))
+        return data if isinstance(data, dict) else None
+    except (OSError, ValueError):
+        return None
+
+
+def set_last(path, attempt, **fields):
+    """Write .last under the lane's lock; pass and fail are terminal for their attempt and never replaced."""
+    with open(path + ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        old = read_json(path) or {}
+        if old.get("attempt") == attempt and old.get("state") in TERMINAL:
+            return old
+        data = dict(old if old.get("attempt") == attempt else {}, attempt=attempt, **fields)
+        temp = "%s.%d.tmp" % (path, os.getpid())
+        with open(temp, "w") as handle:
+            json.dump(data, handle, indent=1, sort_keys=True)
+        os.replace(temp, path)
+        return data
 
 
 # The lane's prep commit (was tables.py).
@@ -318,3 +361,24 @@ def record(state, base):
     head = git_out("rev-parse", "HEAD")
     state["pr_head"] = head
     state["pr_base"] = git_out("merge-base", head, "origin/" + base) or git_out("rev-parse", "origin/" + base)
+
+
+def need_lane(runs, slug, reply, step="qa"):
+    """(why, fix, code) when record qa|ship must refuse (no lane passed on HEAD), else None."""
+    text = open(reply).read() if os.path.isfile(reply) else ""
+    found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I)
+    if found and found[-1].lower() == "failed" and not re.search(r"^\W*PENDING:", text, re.M):
+        return None
+    head = git("rev-parse", "HEAD").stdout.strip()
+    try:
+        ok = open(os.path.join(runs, "%s.%s-lane.ok" % (slug, step))).read().strip()
+    except OSError:
+        ok = ""
+    fix = "python3 %s lane %s %s" % (os.path.join(HERE, "role.py"), slug, step)
+    if not ok:
+        return ("the %s lane has not passed on %s" % (step, head[:12]), fix, "LANE_MISSING")
+    if ok != head:
+        return ("HEAD moved since the %s lane passed (lane on %s, HEAD %s)" % (step, ok[:12], head[:12]),
+                fix + " (reruns only the rows the change can affect)",
+                "HEAD_MOVED")
+    return None

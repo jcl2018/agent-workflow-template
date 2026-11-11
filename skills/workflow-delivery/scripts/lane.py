@@ -24,10 +24,10 @@ sys.path.insert(0, HERE)
 import lanekit  # noqa: E402
 # No terminal, no waiting: a prompt from git or gh must fail, not block (lanekit sets it too).
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
-from lanekit import NOTHING, dirty, generated, git, prep  # noqa: E402,F401
+import lanetime  # noqa: E402
+from lanekit import NOTHING, TERMINAL, dirty, drop, generated, git, mtime, need_lane, prep, read_json, set_last  # noqa: E402,F401
 
 NAMES = ("qa", "ship", "pr")
-TERMINAL = ("pass", "fail")
 GRACE = 60  # seconds a claimed rc belongs to the caller finishing it; an older claim is an orphan the next caller finishes
 flow_spec = lanekit._flow  # the flow file as a dict ({} when missing or bad)
 
@@ -49,14 +49,6 @@ def kill(pid):
         pass
 
 
-def drop(*paths):
-    for path in paths:
-        try:
-            os.remove(path)
-        except (FileNotFoundError, TypeError):  # another poller took it first, or no path
-            pass
-
-
 def alive(pid):
     """A pid that runs and is no zombie. EPERM means it runs but this poller may not signal it (a sandbox): alive."""
     try:
@@ -68,13 +60,6 @@ def alive(pid):
     return subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()[:1] != "Z"
 
 
-def mtime(path):
-    try:
-        return os.path.getmtime(path)
-    except OSError:
-        return None
-
-
 def deadline(held):
     """The liveness clock: the limit from the started marker; 4x while queued or planning."""
     if "markers" not in held:
@@ -82,6 +67,8 @@ def deadline(held):
     began = mtime(held["rc"] + ".started")
     if began:
         return began + lanekit.lane_limit(held)[0], "past its time limit of %ds (%s)" % lanekit.lane_limit(held)
+    if held.get("prep_by"):  # before the first row the preparation budget rules (an older job has none: the 4x rule below)
+        return held["prep_by"], "past its preparation budget"
     if os.path.exists(held["rc"] + ".queued"):
         return max(held["started"], lanekit.last_change(held.get("pool") or lanekit.lanes_dir())) + 4 * held["limit"], \
             "queued or planning past %ds" % (4 * held["limit"])
@@ -91,29 +78,6 @@ def deadline(held):
 def live(held):
     """A lane job still ours and running: no exit status yet, inside its deadline."""
     return not os.path.exists(held["rc"]) and time.time() < deadline(held)[0] + 60 and alive(held["pid"])
-
-
-def read_json(path):
-    try:
-        data = json.load(open(path))
-        return data if isinstance(data, dict) else None
-    except (OSError, ValueError):
-        return None
-
-
-def set_last(path, attempt, **fields):
-    """Write .last under the lane's lock; pass and fail are terminal for their attempt and never replaced."""
-    with open(path + ".lock", "w") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        old = read_json(path) or {}
-        if old.get("attempt") == attempt and old.get("state") in TERMINAL:
-            return old
-        data = dict(old if old.get("attempt") == attempt else {}, attempt=attempt, **fields)
-        temp = "%s.%d.tmp" % (path, os.getpid())
-        with open(temp, "w") as handle:
-            json.dump(data, handle, indent=1, sort_keys=True)
-        os.replace(temp, path)
-        return data
 
 
 def job_of(runs, slug, name):
@@ -126,7 +90,7 @@ def stop(base, held):
         kill(held["pid"])
     drop(base + ".job")
     if held:
-        drop(*[held["rc"] + end for end in ("", ".queued", ".started", ".note", ".claimed")])
+        drop(*[held["rc"] + end for end in ("", ".queued", ".started", ".note", ".claimed", ".times")])
 
 
 def died(log):
@@ -172,24 +136,28 @@ def finalize(base, held, name):
     limit = limit if isinstance(limit, (int, float)) and not isinstance(limit, bool) and limit > 0 else 10
     if not kind.startswith("FULL") and took > limit * 60:  # S21: health warns too (REG-7)
         line += "; over %g min (goal_lane_minutes)" % limit
+    plan, wait, part = lanetime.timing(held, held["rc"])
     line += lanekit.budget_note(text, base, name)  # the run stopped at its budget: say what it left
     killed = re.findall(r"^KILLED (\S+): signal (\S+) \(pid (\d+)\)", text, re.M)  # issue 435: say what stopped a row
     if killed:
         line += "; " + ", ".join("%s killed by %s (pid %s)" % k for k in killed)
     if began and began - held["started"] >= 1:
         line += " (queued %ds)" % (began - held["started"])
-    line += lanekit.rows_line(text, ran, out)
+    line += lanetime.before_rows(held, plan, wait) + lanekit.rows_line(text, ran, out)
     status, made = "fail", generated(cfg)  # rendered Tests tables a row left are the next prep commit's (done line 5)
     after = [p for p in dirty() if p not in made]
     if rc == lanekit.EXIT_STALE:
         stop(base, held)
         set_last(base + ".last", held["attempt"], state="ended", rc=rc, note=notes, ended=now)
         return "running", "%s\nRUNNING: the lane restarts on the new plan; run this same command again" % notes, []
-    if not began and "markers" in held and rc:
+    if not began and "markers" in held and rc not in (0, lanekit.EXIT_PREP):
         line += "\nthe lane never reported its start (a test_record wrapper may strip _LOOP_LANE_* variables)"
     if after:
         line += "\nLANE_DIRTY at end: a row left %s. Fix: make it clean up; %s." % (", ".join(after[:10]), NOTHING)
         ids = []
+    elif rc == lanekit.EXIT_PREP:
+        line += "\n" + lanetime.cut_line(name, held, plan, wait, part)
+        lanetime.prep_hit(base, name, held, plan, wait, part)
     elif rc == 124:
         line += "\n" + lanekit.timeout_line(text, deadline(held)[1], held)
     elif rc == lanekit.EXIT_WAIT:
@@ -201,7 +169,8 @@ def finalize(base, held, name):
         status = "pass"
         with open(base + ".ok", "w") as handle:
             handle.write(held["head"])
-    set_last(base + ".last", held["attempt"], state=status, rc=rc, line=line, ids=ids, note=notes, ended=now)
+    set_last(base + ".last", held["attempt"], state=status, rc=rc, line=line, ids=ids, note=notes, ended=now,
+             prep_s=held.get("prep_s") or 0, plan_s=plan, wait_s=wait)
     stop(base, held)
     return status, line, ids
 
@@ -242,9 +211,13 @@ def lane(runs, slug, name, spec, cfg, wait=90):
         return "pass", done.get("line", ""), []
     if not held:
         top = git("rev-parse", "--show-toplevel").stdout.strip()
+        began_prep = time.time()
         line, refusal = prep(top, cfg, base + ".txt")
         if refusal:
             return "fail", refusal, []
+        spent, (budget_s, override) = time.time() - began_prep, lanekit.budget.prep_seconds(cfg)
+        if spent >= budget_s:  # preparing the Tests tables alone used the budget: no lane is started
+            return "fail", lanetime.cut_line(name, {"budget": budget_s, "prep_s": spent}, 0, 0, "preparing the Tests tables"), []
         head = git("rev-parse", "HEAD").stdout.strip()
         prefix = [os.path.expanduser(part) for part in spec.get("test_record") or []]
         if prefix and not (shutil.which(prefix[0]) or os.path.isfile(prefix[0])):
@@ -260,10 +233,11 @@ def lane(runs, slug, name, spec, cfg, wait=90):
             return "running", "RUNNING: run this same command again", []
         attempt = "%d-%d" % (os.getpid(), time.time() * 1000)
         held = {"head": head, "attempt": attempt, "started": time.time(), "limit": seconds, "source": source,
-                "rc": "%s.%s.rc" % (base, attempt), "pool": lanekit.lanes_dir(), "markers": 1}
+                "rc": "%s.%s.rc" % (base, attempt), "pool": lanekit.lanes_dir(), "markers": 1, "prep_s": spent,
+                "prep_by": began_prep + budget_s, "budget": budget_s, "override": override}
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", _LOOP_LANE_LABEL="%s/%s %s" % (os.path.basename(top), slug, name),
                    _LOOP_LANE_QUEUED=held["rc"] + ".queued", _LOOP_LANE_STARTED=held["rc"] + ".started",
-                   _LOOP_LANE_NOTE=held["rc"] + ".note")
+                   _LOOP_LANE_NOTE=held["rc"] + ".note", _LOOP_LANE_PREP_BY=str(held["prep_by"]))
         env.pop("_LOOP_LANE_HELD", None)
         env["TMPDIR"] = base + ".tmp"  # REG-8: its own temp folder, emptied at each start
         shutil.rmtree(env["TMPDIR"], ignore_errors=True)
@@ -327,30 +301,11 @@ def wait_for(runs, slug, name, timeout=None):
         time.sleep(lanekit.POLL)
 
 
-def need_lane(runs, slug, reply, step="qa"):
-    """(why, fix, code) when record qa|ship must refuse (no lane passed on HEAD), else None."""
-    text = open(reply).read() if os.path.isfile(reply) else ""
-    found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I)
-    if found and found[-1].lower() == "failed" and not re.search(r"^\W*PENDING:", text, re.M):
-        return None
-    head = git("rev-parse", "HEAD").stdout.strip()
-    try:
-        ok = open(os.path.join(runs, "%s.%s-lane.ok" % (slug, step))).read().strip()
-    except OSError:
-        ok = ""
-    fix = "python3 %s lane %s %s" % (os.path.join(HERE, "role.py"), slug, step)
-    if not ok:
-        return ("the %s lane has not passed on %s" % (step, head[:12]), fix, "LANE_MISSING")
-    if ok != head:
-        return ("HEAD moved since the %s lane passed (lane on %s, HEAD %s)" % (step, ok[:12], head[:12]),
-                fix + " (reruns only the rows the change can affect)",
-                "HEAD_MOVED")
-    return None
-
-
 def lane_exec(rc, seconds, last, attempt, pool, argv):
     """A lane's child: run the lane in its own group, kill it past deadline(), write .last ended, then the rc."""
-    held = {"rc": rc, "limit": seconds, "started": time.time(), "pool": pool, "markers": 1}
+    held = {"rc": rc, "limit": seconds, "started": time.time(), "pool": pool, "markers": 1,
+            "prep_by": float(os.environ.get("_LOOP_LANE_PREP_BY") or 0)}
+    marks = {}  # when the .queued and .started markers were first seen: the planning and the slot wait
     lease, port = lanekit.port_base()  # REG-8: its own ports, held while this child lives
     if lease is None:
         with open(rc + ".note", "a") as note:
@@ -368,22 +323,31 @@ def lane_exec(rc, seconds, last, attempt, pool, argv):
             except subprocess.TimeoutExpired:
                 pass
             state = "running" if os.path.exists(rc + ".started") else "queued" if os.path.exists(rc + ".queued") else None
+            if state and state not in marks:
+                marks[state] = time.time()
             if state and state != seen:
                 seen = set_last(last, attempt, state=state) and state
             if time.time() > deadline(held)[0]:
+                cut = held["prep_by"] and not os.path.exists(rc + ".started")  # before the first row: the preparation budget
+                marks["cut"] = "waiting for a slot" if "queued" in marks else "planning" if cut else ""
                 signal.signal(signal.SIGTERM, signal.SIG_IGN)
                 kill(os.getpgrp())
                 try:
                     child.wait(timeout=10)
                 except subprocess.TimeoutExpired:
                     child.kill()
-                code = 124
+                code = lanekit.EXIT_PREP if cut else 124
                 break
     except Exception:  # an unexpected failure: a compact trace in the lane log, and a failing status
         import traceback
         print("\n".join(traceback.format_exc().splitlines()[-20:]), flush=True)
         code = 1
     set_last(last, attempt, state="ended", rc=code)
+    now, queued, ran = time.time(), marks.get("queued"), marks.get("running")
+    with open(rc + ".times.tmp", "w") as handle:  # one atomic record: planning seconds, slot wait seconds, the part a cut found
+        json.dump({"plan": (queued or ran or now) - held["started"], "wait": (ran or now) - queued if queued else 0,
+                   "cut": marks.get("cut", "")}, handle)
+    os.replace(rc + ".times.tmp", rc + ".times")
     with open(rc + ".tmp", "w") as handle:
         handle.write(str(code))
     os.replace(rc + ".tmp", rc)

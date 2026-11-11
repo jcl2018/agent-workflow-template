@@ -2,7 +2,8 @@
 """The time budgets of the loop's steps: read and check the two settings, and record a step or test run that hit one.
 
 step_budget_minutes (default 30) bounds each review and ship step; test_budget_minutes (default 15) bounds each test
-run (regression's runs.py enforces it). Neither can be set under 15. A step that reaches its budget finishes with what
+run (regression's runs.py enforces it); prep_budget_minutes (default 15) bounds a lane's work before its first row (the
+Tests-table prep, planning and the slot wait together). None can be set under 15. A step that reaches its budget finishes with what
 it has done, and its record (budget_hits in the goal's run file) names what it left; the board and health show those.
 Imported by flow.py, role.py, guards.py and the monitoring and health reports.
 """
@@ -13,7 +14,7 @@ import sys
 import tempfile
 
 FLOOR = 15
-DEFAULTS = {"step_budget_minutes": 30, "test_budget_minutes": 15}
+DEFAULTS = {"step_budget_minutes": 30, "test_budget_minutes": 15, "prep_budget_minutes": 15}
 LEFT = re.compile(r"^\W*BUDGET:\s*left:\s*(.+)$", re.M | re.I)
 
 
@@ -24,6 +25,20 @@ def minutes(cfg, key):
         sys.exit("REFUSED: %s is %r in .loop/config.json, under the %d-minute floor. Fix: set it to %d or more." % (
             key, value, FLOOR, FLOOR))
     return value
+
+
+def prep_seconds(cfg):
+    """(seconds, override) a lane may spend before its first row: prep_budget_minutes, or the test-only LOOP_PREP_BUDGET
+    (whole seconds, never read from config), which the lane line then says is in effect."""
+    value = os.environ.get("LOOP_PREP_BUDGET", "")
+    if value.isdigit() and int(value) > 0:
+        return int(value), True
+    return minutes(cfg, "prep_budget_minutes") * 60, False
+
+
+def label(hit):
+    """What a budget hit was: a step, preparation (before a lane's first row) or tests."""
+    return {"step": "step", "prep": "preparation"}.get(hit.get("kind"), "tests")
 
 
 def seconds(cfg, key, limit=0):
@@ -61,5 +76,5 @@ def reached(state, step):
 def lines(state):
     """One line per budget hit of a run record, for the board and for health."""
     return ["%s: %s hit its %s-minute budget; left: %s" % (
-        state.get("slug", "?"), "%s %s" % (h.get("step"), "step" if h.get("kind") == "step" else "tests"), h.get("minutes"),
+        state.get("slug", "?"), "%s %s" % (h.get("step"), label(h)), h.get("minutes"),
         h.get("left")) for h in state.get("budget_hits") or [] if isinstance(h, dict)]

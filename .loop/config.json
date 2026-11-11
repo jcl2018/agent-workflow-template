@@ -46,5 +46,6 @@
   "govern_hook": true,
   "digest_mail": "cloudflare",
   "test_budget_minutes": 15,
-  "step_budget_minutes": 30
+  "step_budget_minutes": 30,
+  "prep_budget_minutes": 15
 }

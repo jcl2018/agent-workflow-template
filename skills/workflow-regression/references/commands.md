@@ -249,7 +249,11 @@ the record's merge-base with the base branch is the current one (else from the m
 brought in) and runs the rows a change reaches, new or edited rows, root runners and the record's failures; it takes a
 lane slot only when it has no plan to follow (FULL, no merge-base). It stays within `test_budget_minutes`: rows run in tier
 order while their estimated seconds fit, and the rest is left to the scheduled full suite (`BUDGET` line). Its own time
-limit is the flow file's, else `test_budget_minutes` plus five minutes. Without `--tier` nothing changes.
+limit is the flow file's, else `test_budget_minutes` plus five minutes. The work before the first row (the Tests-table prep,
+planning and the slot wait) has its own budget, `prep_budget_minutes` (default 15, not under 15), shared by the three parts: a lane
+that reaches it stops, prints `LANE_PREP_BUDGET` naming the part that ran long, and the same command can be run again. Every
+LANE line ends its text with `before rows: prep Xs, planning Ys, slot wait Zs`. `LOOP_PREP_BUDGET` (whole seconds) overrides the
+setting for tests only; the LANE line says when it is in effect. Without `--tier` nothing changes.
 
 | Line | Means |
 |---|---|
@@ -293,6 +297,7 @@ part is advice and never blocks.
 | LANE_WAIT_TIMEOUT | slots.py / lane.py | 4 / 2 | a hand run off a terminal waited 4x its time limit (4); `lane-wait --timeout` ran out while the lane keeps running (2) | run again later |
 | LANE_SLOTS_UNAVAILABLE | slots.py | — | the lanes folder can't be used; the lane runs without a slot | `chmod 700` it, or set `LOOP_LANES_DIR` |
 | LANE_STALE | slots.py | 5 | HEAD or the worktree changed while the lane waited; no rows ran | run the same command again |
+| LANE_PREP_BUDGET | lane.py | 125 | the lane's work before its first row (Tests-table prep, planning, slot wait) used prep_budget_minutes; names the part that ran long and who holds the slots; no row ran | run the same command again (it replans on this HEAD); raise prep_budget_minutes only if prep or planning ran long |
 | LANE_TIMEOUT | lane.py | 124 | past its time limit (flow file `limit`, else `step_limit`); killed, rows partly ran, nothing committed or pushed | run again, or raise the setting |
 | LANE_DIRTY | lane.py / lanekit.py | 1 | uncommitted changes at start, a hand edit above a page's Tests section, or a row left files behind | commit or revert them; make the row clean up |
 | LANE_PREP | lanekit.py | — | the lane first committed the re-rendered Tests tables and run dates | none |
