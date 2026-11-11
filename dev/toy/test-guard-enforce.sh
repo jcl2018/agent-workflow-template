@@ -72,10 +72,17 @@ check "commit -v puts the diff below the scissors line: a removed private line t
 printf '%s\nok\n; a comment %s\n; ------------------------ >8 ------------------------\nbelow %s\n' "fine subject" "$TOKEN" "$TOKEN" > "$T/msg1"
 r "cd $T/s1 && python3 $PV hook message $T/msg1"
 check "the hook strips comment lines of core.commentChar and everything below the scissors line (default #: the ; lines are text)" '[ $rc = 1 ] && has "commit message matches list line 2"'
-r "cd $T/s1 && git config core.commentChar ';'; python3 $PV hook message $T/msg1; git config --unset core.commentChar"
-check "with core.commentChar set to ; the comment and scissors lines are skipped and the message passes" '[ $rc = 0 ]'
-r "cd $T/s1 && git config core.commentChar auto; python3 $PV hook message $T/msg1; git config --unset core.commentChar"
-check "core.commentChar=auto does not crash the hook" '[ $rc = 0 ] || [ $rc = 1 ]'
+r "cd $T/s1 && git config core.commentChar ';'; python3 $PV hook message $T/msg1; echo exit=\$?; git config --unset core.commentChar"
+check "with core.commentChar set to ; the comment and scissors lines are skipped and the message passes" 'has "exit=0"'
+r "cd $T/s1 && git config core.commentChar auto; python3 $PV hook message $T/msg1; echo exit=\$?; git config --unset core.commentChar"
+check "core.commentChar=auto scans every line (the comment mark is not known), comment lines included" 'has "exit=1" && has "commit message matches"'
+printf 'a line holding %s\n' "$TOKEN" > "$T/msg2"
+r "cd $T/s1 && git config core.commentChar auto; python3 $PV hook message $T/msg2; echo exit=\$?; git config --unset core.commentChar"
+check "with core.commentChar=auto a private line starting with the letter a is still caught" 'has "exit=1" && ! has "$TOKEN"'
+printf 'caf\xc3\xa9-%s\n' "$TOKEN" > "$T/nlist"; printf 'caf\xc3\xa9-%s\n' "$TOKEN" > "$(printf "$T/s1/caf\xc3\xa9-%s.txt" "$TOKEN")"
+git -C "$T/s1" add -A; r "cd $T/s1 && LOOP_PRIVATE_NAMES=$T/nlist python3 $PV hook staged"
+check "a non-ASCII private file name is masked in every place (git's quoting does not hide it)" '[ $rc = 1 ] && ! has "caf" && ! has "303"'
+git -C "$T/s1" reset -q; rm -f "$T"/s1/caf*
 git -C "$T/s1" mv a.txt "$TOKEN-name.txt"; r "git -C $T/s1 commit -m rename"
 check "a private file name is refused with the name masked, never echoed" '[ $rc != 0 ] && has "file name <private>-name.txt matches list line 2" && ! has "$TOKEN"'
 git -C "$T/s1" reset -q --hard
@@ -95,6 +102,8 @@ mk s2; inst s2; printf '#!/bin/sh\necho mine\n' > "$T/s2/.git/hooks/pre-push"
 r "python3 $SETUP --repo $T/s2 --git-hooks --remove"
 check "--remove takes out only our hooks" '[ $rc = 0 ] && [ ! -e "$T/s2/.git/hooks/pre-commit" ] && [ ! -e "$T/s2/.git/hooks/commit-msg" ] && grep -q "echo mine" "$T/s2/.git/hooks/pre-push" && has "pre-push: kept, it is not the stub setup writes"'
 mk s2b; inst s2b; echo "# the owner added a line" >> "$T/s2b/.git/hooks/pre-commit"
+r "python3 $SETUP --repo $T/s2b --git-hooks"
+check "a second install does not overwrite a stub the owner edited" 'grep -q "the owner added a line" "$T/s2b/.git/hooks/pre-commit"'
 r "python3 $SETUP --repo $T/s2b --git-hooks --remove"
 check "--remove leaves a stub the owner edited (not a byte match) and says why" '[ -e "$T/s2b/.git/hooks/pre-commit" ] && has "pre-commit: kept, it is not the stub setup writes"'
 mk s3; printf '#!/bin/sh\necho owner hook\n' > "$T/s3/.git/hooks/pre-commit"

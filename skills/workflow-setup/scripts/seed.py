@@ -128,7 +128,7 @@ def git_hooks(repo, remove=False, adopting=False):
             if ours:
                 os.remove(path)
             print("HOOK %s: %s" % (name, "removed" if ours else "not installed" if not text else "kept, it is not the stub setup writes"))
-        elif text and not ours and state != "missing" and MARK not in text:  # the owner's own hook: never overwritten
+        elif text and not ours:  # the owner's own hook, or a stub the owner edited: never overwritten
             bad += state != "installed"
             print("HOOK %s: %s" % (name, "already calls the scan" if state == "installed" else
                                    "left alone, it is not ours. Add: python3 '%s' hook %s" % (priv, GUARD[name][0])))

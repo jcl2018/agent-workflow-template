@@ -2,7 +2,7 @@
 """The private-name scan: nothing private ships (DEL-9). Every push or GitHub write in delivery, release and monitoring
 runs it first; setup's git hooks run it as `hook staged | message FILE | push`.
 
-usage: private.py check                 say where the list is and how many patterns it holds (never a pattern)
+usage: private.py check                 say where the list is and how many patterns it holds
        private.py scan [--base REF]     scan this branch from REF (default origin/<base>) to HEAD
 
 The list lives outside the repo: `$LOOP_PRIVATE_NAMES` (a file path) or `~/.workflow-loop/private-names`, one regular
@@ -28,13 +28,13 @@ PRIVATE_NAME, PRIVATE_LIST = "PRIVATE_NAME", "PRIVATE_LIST"
 
 
 def source():
-    """(path to open, the name shown, never an expanded home path)."""
+    """(path to open, the name shown)."""
     given = os.environ.get("LOOP_PRIVATE_NAMES")
     return (given, "$LOOP_PRIVATE_NAMES") if given else (os.path.expanduser(DEFAULT), DEFAULT)
 
 
 def patterns():
-    """(state, [(list line, compiled)], error): state is none, off, on or broken."""
+    """(state, [(list line, compiled)], error); state: none, off, on or broken."""
     path, shown = source()
     if not os.path.exists(path):
         if os.environ.get("LOOP_PRIVATE_NAMES"):  # a list named on purpose that isn't there is a typo, not "no list"
@@ -59,7 +59,7 @@ def patterns():
 
 def git(top, *args, stop=None):
     try:
-        done = subprocess.run(["git"] + list(args), cwd=top, capture_output=True, text=True, errors="replace",
+        done = subprocess.run(["git", "-c", "core.quotepath=off"] + list(args), cwd=top, capture_output=True, text=True, errors="replace",
                               timeout=max(1, (stop or time.time() + LIMIT) - time.time()))
     except subprocess.TimeoutExpired:
         raise RuntimeError("git %s passed the %d second limit" % (" ".join(args[:2]), LIMIT))
@@ -92,7 +92,7 @@ def commit_places(top, sha, stop=None):
 
 
 def places(top, base, stop=None, head="HEAD"):
-    """Yield (place, text) for everything a push from base to head would publish."""
+    """(place, text) for everything a push from base to head would publish."""
     branch = git(top, "branch", "--show-current", stop=stop).strip() if head == "HEAD" else head.split("/", 1)[-1]
     if branch:
         yield "branch", branch
@@ -103,12 +103,12 @@ def places(top, base, stop=None, head="HEAD"):
 
 
 def windows(text):
-    """Overlapping WIDTH-character pieces: a long line is read to its end."""
+    """Overlapping WIDTH-character pieces."""
     return [text[at:at + WIDTH] for at in range(0, max(len(text), 1), WIDTH - 256)]
 
 
 def shown_place(place, found):
-    """The place as a hit names it, a private file name masked."""
+    """The place as a hit names it, masked."""
     for _, pattern in found:
         place = pattern.sub("<private>", place)
     return place
@@ -167,7 +167,8 @@ def hook_items(mode, arg):
             yield from added(git(".", "diff", "--cached", "-U0", "--no-color", "--no-ext-diff", "--no-renames",
                                  stop=stop).splitlines(), "staged")
         elif mode == "message":
-            char = git(".", "config", "--default", "#", "core.commentChar", stop=stop).strip()[:1]
+            char = git(".", "config", "--default", "#", "core.commentChar", stop=stop).strip()
+            char = "#" if char == "auto" else char[:1]  # auto: its comment lines are scanned
             for row in open(arg, errors="replace").read().splitlines():
                 if row.startswith(char + " ------------------------ >8"):
                     break
@@ -188,7 +189,7 @@ def hook_items(mode, arg):
 
 
 def hook(mode="", arg=""):
-    """Exit 1 a hit, 2 broken, 64 usage; the kernel ends a scan past LOOP_HOOK_DEADLINE seconds (default 30)."""
+    """Exit 1 a hit, 2 broken, 64 usage; a scan is killed past LOOP_HOOK_DEADLINE seconds (default 30)."""
     if mode not in ("staged", "push", "message") or (mode == "message" and not arg):
         print("usage: private.py hook staged | message FILE | push")
         return 64
