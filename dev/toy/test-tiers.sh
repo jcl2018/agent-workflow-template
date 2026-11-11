@@ -132,7 +132,7 @@ check "goal_levels nightly: a goal lane selects the nightly row a change reaches
 check "a goal lane over goal_lane_minutes adds '; over N min (goal_lane_minutes)' to its LANE line" 'grep -q "^LANE qa AFFECTED .*; over 0.0001 min (goal_lane_minutes)" <<<"$out"'
 t0=$(date +%s); rr=$(python3 -c "import sys;sys.path.insert(0,sys.argv[1]);import lanes;print(lanes.run_row('sleep 20 & echo \$! > $d/left.pid; exec sleep 20','.',None,1)[0])" "$here/skills/workflow-regression/scripts"); took=$(( $(date +%s) - t0 ))
 # Value: protects=a row's timeout holds even when its shell left a child holding the output (red team); fails_when=run_row waits for the pipe to close; why_new=run_row is new; seam=none; no_claim=none beyond protects
-check "a row past its timeout returns 124 within seconds even when a child it started still runs" '[ "$rr" = 124 ] && [ $took -lt 10 ]'
-kill "$(cat "$d/left.pid")" 2>/dev/null  # only the child this check left
+check "a row past its timeout returns 124 within seconds and its whole tree is killed, the child it started too" '[ "$rr" = 124 ] && [ $took -lt 10 ] && ! kill -0 "$(cat "$d/left.pid")" 2>/dev/null'
+kill "$(cat "$d/left.pid")" 2>/dev/null  # only the child this check left, if it survived
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

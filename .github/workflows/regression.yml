@@ -311,9 +311,12 @@ jobs:
                   return refuse("cannot read .loop/regression.tsv at %s: %s" % (args.since, shown.stderr.strip()[:200]))
               old = {cells[0]: cells for cells in (line.split("\t") for line in shown.stdout.splitlines()) if cells[0] and cells[0][0] != "#"}
               ran = {row[0]: row[1:2] for row in tsv(args.root, "regression-runs.tsv")}
+              origin = subprocess.run(["git", "remote", "get-url", "origin"], cwd=args.root, capture_output=True, text=True).stdout
+              repo = re.search(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?\s*$", origin)  # only this repo's issues are its fixes
               for row in tsv(args.root, "regression.tsv"):
                   row = (row + [""] * 8)[:8]
                   found = re.match(r"^https?://\S+/issues/(\d+)$", row[7])
+                  found = found if not repo or re.match(r"^https?://github\.com/%s/issues/" % re.escape(repo.group(1)), row[7]) else None
                   before = (old.get(row[0], []) + [""] * 8)[4]
                   if row[6] == "defect" and found and SEEN.match(row[4]) and row[4] != before and ran.get(row[0]) == ["PASS"]:
                       print("Fixes #%s: test %s, seen failing %s, passing" % (found.group(1), row[0], row[4]))
@@ -456,14 +459,14 @@ jobs:
           def marked(body):
               match = FOUND.search(body or "")
               return (match.group(1), urllib.parse.unquote(match.group(2) or "")) if match else (None, "")
-          red, start, cut = [], time.time(), False
+          red, start = [], time.time()
           with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
               handle.write("# started %d\n" % start)
           for row in rows(".loop/regression.tsv"):
               if len(row) < 3 or not wanted(row):
                   continue
               if time.time() - start + ROW_SECONDS > JOB_SECONDS:  # a row may run its full limit, so it must still fit
-                  code, said, skipped, cut = 125, "skipped: out of job time; this row did not run", True, True
+                  code, said, skipped = 125, "skipped: out of job time; this row did not run", True
               else:
                   (code, said), skipped = run(row[2]), False
               hits = [item for item in issues or [] if marked(item["body"])[0] == row[0]]
@@ -509,7 +512,7 @@ jobs:
                           write("move #" + n, "issue", "edit", n, "--body", hit["body"].replace(old, mark), *(["--milestone", title] if title else []))
                           by_number(n, closed, hit["body"])
                       write("comment #" + n, "issue", "comment", n, "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
-          if TARGET == "nightly" and not cut:  # the whole full suite ran: its time for health's REG-7 check (cost.py)
+          if TARGET == "nightly":  # the full suite's time (a cut-short run's too: at least that long) for health's REG-7 check
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
                   handle.write("%s\tfull\t%d\t%s\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime())))
@@ -790,9 +793,12 @@ jobs:
                   return refuse("cannot read .loop/regression.tsv at %s: %s" % (args.since, shown.stderr.strip()[:200]))
               old = {cells[0]: cells for cells in (line.split("\t") for line in shown.stdout.splitlines()) if cells[0] and cells[0][0] != "#"}
               ran = {row[0]: row[1:2] for row in tsv(args.root, "regression-runs.tsv")}
+              origin = subprocess.run(["git", "remote", "get-url", "origin"], cwd=args.root, capture_output=True, text=True).stdout
+              repo = re.search(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?\s*$", origin)  # only this repo's issues are its fixes
               for row in tsv(args.root, "regression.tsv"):
                   row = (row + [""] * 8)[:8]
                   found = re.match(r"^https?://\S+/issues/(\d+)$", row[7])
+                  found = found if not repo or re.match(r"^https?://github\.com/%s/issues/" % re.escape(repo.group(1)), row[7]) else None
                   before = (old.get(row[0], []) + [""] * 8)[4]
                   if row[6] == "defect" and found and SEEN.match(row[4]) and row[4] != before and ran.get(row[0]) == ["PASS"]:
                       print("Fixes #%s: test %s, seen failing %s, passing" % (found.group(1), row[0], row[4]))

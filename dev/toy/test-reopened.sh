@@ -29,7 +29,7 @@ esac
 G
 chmod +x bin/gh; export PATH="$d/bin:$PATH"
 T="python3 $here/skills/workflow-regression/scripts/tests.py"
-STUB_STATE=OPEN STUB_REOPENED=2026-02-01T10:00:00Z $T issues --write >/dev/null
+STUB_STATE=OPEN STUB_REOPENED=$'2025-12-01T09:00:00Z\n2026-02-01T10:00:00Z' $T issues --write >/dev/null  # two pages: the newest wins
 out=$($T list --tsv)
 grep -qF "failing (issue reopened) 2026-02-01" <<<"$out" && grep -q "issues/7	open	.*	2026-02-01T10:00:00Z" .loop/regression-issues.tsv \
   && ok "a reopened open issue's test shows failing (issue reopened) with the reopen date" || bad "reopened: $out"

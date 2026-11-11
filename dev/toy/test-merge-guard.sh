@@ -60,7 +60,14 @@ out=$(FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_HEAD=000000000000000000000000000000000000
 check "a pull request head that moved since the pr lane refuses HEAD_MOVED with its fix (exit 4), nothing merged" '[ $rc = 4 ] && grep -q "^REFUSED (HEAD_MOVED): the pull request head moved since the pr lane passed (lane on .*, PR head 000000000000). Fix: goal.py pr g, then merge.py g" <<<"$out" && [ ! -e "$FAKE_GH_DIR/merged" ]'
 mkdir -p docs/wiki; echo page > docs/wiki/Page.md; git add docs/wiki/Page.md; git commit -qm "wiki page"; wiki=$(git rev-parse HEAD)
 out=$(FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_HEAD=$wiki python3 "$M/merge.py" g 2>&1); rc=$?
-check "a head moved only by a wiki page commit (wiki.py prepare) is not HEAD_MOVED: it notes it and goes on to the base check" '[ $rc != 4 ] && grep -q "^NOTE: the pull request head moved only by wiki page commits (wiki.py prepare); merging ${wiki:0:12}" <<<"$out"'
+check "a head moved only by a wiki page commit (wiki.py prepare) is not HEAD_MOVED: it notes it and goes on to the base check" '[ $rc = 2 ] && grep -q "^REFUSED (BASE_MOVED)" <<<"$out" && grep -q "^NOTE: the pull request head moved only by wiki page commits (wiki.py prepare); merging ${wiki:0:12}" <<<"$out"'
+git mv src/b.txt docs/wiki/b.md; git commit -qm "move code into the wiki"; moved=$(git rev-parse HEAD)
+out=$(FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_HEAD=$moved python3 "$M/merge.py" g 2>&1); rc=$?
+check "a file moved into the wiki folder is no wiki-only move: HEAD_MOVED (exit 4)" '[ $rc = 4 ] && grep -q "^REFUSED (HEAD_MOVED)" <<<"$out"'
+git reset -q --hard "$wiki"; printf 'x\n' > docs/wiki/SKILL.md; git add docs/wiki/SKILL.md; git commit -qm "skill page"; skill=$(git rev-parse HEAD)
+out=$(FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_HEAD=$skill python3 "$M/merge.py" g 2>&1); rc=$?
+check "a SKILL.md, even in the wiki folder, is no wiki-only move: HEAD_MOVED (exit 4)" '[ $rc = 4 ]'
+git reset -q --hard "$wiki"
 echo x > src/c.txt; git add src/c.txt; git commit -qm code; code=$(git rev-parse HEAD)
 out=$(FAKE_GH_PR_STATE=OPEN FAKE_GH_PR_HEAD=$code python3 "$M/merge.py" g 2>&1); rc=$?
 check "a head moved by any other commit still refuses HEAD_MOVED (exit 4)" '[ $rc = 4 ] && grep -q "^REFUSED (HEAD_MOVED)" <<<"$out"'

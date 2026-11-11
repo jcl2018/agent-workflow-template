@@ -331,7 +331,7 @@ lane ends.
   adds `; over N min (goal_lane_minutes)` to its LANE line; the second is also a FULL
   goal lane's time limit.
 - `goal_levels` (land) and `ci_levels` (nightly): the levels a goal lane plans from (nightly adds the nightly rows a
-  change reaches) and the CI target. A CI run that skips rows for lack of job time records no full-suite time.
+  change reaches) and the CI target. A CI run cut short by its job time still records its time, so health warns.
 - Each lane child gets its own `TMPDIR` and `LOOP_LANE_PORT_BASE` (a leased range of 100 ports from 20000); a row that
   binds ports uses that range or picks a free port itself.
 - Internal handoff variables (`_LOOP_LANE_HELD`, `_LOOP_LANE_LABEL`, `_LOOP_LANE_QUEUED`, `_LOOP_LANE_STARTED`,

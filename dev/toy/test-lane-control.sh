@@ -287,4 +287,20 @@ out=$(PATH="$T/nogh:$PATH" python3 -c "import sys;sys.path.insert(0,sys.argv[1])
 # Value: protects=goal.py pr's bookkeeping commit takes only the issue and run files and re-rendered Tests pages (review finding); fails_when=it sweeps any dirty .md (the loop's findings, queue or goal files) into the pull request; why_new=prsteps is new; seam=none; no_claim=none beyond protects
 check "the pr bookkeeping commit takes the issue file and never the loop's own dirty findings" '[ "$(git log -1 --format=%s)" = "pr: record issue states and the lane'"'"'s results" ] && git show --name-only --format= HEAD | grep -qx .loop/regression-issues.tsv && ! git show --name-only --format= HEAD | grep -q findings.md && git status --porcelain | grep -q findings.md'
 
+python3 - "$RUNS" "$(git rev-parse HEAD)" <<'PY'
+import json, os, sys, time
+runs, head = sys.argv[1:]
+for name, claimed in (("orphan", True), ("dead", False)):
+    base = runs + "/%s.qa-lane" % name
+    json.dump({"head": head, "attempt": "o-1", "started": time.time() - 300, "limit": 60, "rc": base + ".rc", "pid": 999999, "markers": 1, "pool": "/nonexistent"}, open(base + ".job", "w"))
+    open(base + ".txt", "w").write("AFFECTED 1 of 1 rows (r1): x\nPASS r1\nRESULT 1 passed\n")
+    if claimed:  # its finisher was killed after the claim, 5 minutes ago
+        open(base + ".rc.claimed", "w").write("0"); os.utime(base + ".rc.claimed", (time.time() - 300,) * 2)
+PY
+$role lane-wait orphan qa --timeout 20 >"$T/or.out" 2>&1; orc=$?
+$role lane-wait dead qa --timeout 20 >"$T/de.out" 2>&1; drc=$?
+# Value: protects=a claim whose finisher died, or a lane that died with no exit status, ends lane-wait (review pass 2); fails_when=lane-wait reports RUNNING forever or NO LANE; why_new=claims and lane-wait are new; seam=none; no_claim=none beyond protects
+check "an orphaned claim (its finisher killed) is finished by the next caller, never RUNNING forever" '[ $orc = 0 ] && grep -q "^LANE qa" "$T/or.out"'
+check "a lane that died with no exit status ends lane-wait with LANE_DIED (exit 1), never NO LANE" '[ $drc = 1 ] && grep -q "^LANE_DIED" "$T/de.out"'
+
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

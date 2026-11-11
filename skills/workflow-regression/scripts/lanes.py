@@ -107,6 +107,22 @@ def save(path, root, command, results, head, at, fresh, base=None):
         os.replace(temp, path)
 
 
+def descendants(root_pid):
+    """Every live descendant pid of root_pid (ps), children first found, so a timeout can kill a row's whole tree."""
+    out = subprocess.run(["ps", "-A", "-o", "pid=,ppid="], capture_output=True, text=True).stdout
+    kids = {}
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            kids.setdefault(int(parts[1]), []).append(int(parts[0]))
+    found, todo = [], [root_pid]
+    while todo:
+        for child in kids.get(todo.pop(), []):
+            found.append(child)
+            todo.append(child)
+    return found
+
+
 def run_row(command, cwd, env, timeout):
     """(code, output, pid, signal) for one row's shell (issue 435): signal names what stopped it, from a negative
     status or a shell's 128+N exit status; None when it exited on its own. A timeout kills it and returns 124."""
@@ -116,8 +132,12 @@ def run_row(command, cwd, env, timeout):
         proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
         try:
             code, tail = proc.wait(timeout=timeout), ""
-        except subprocess.TimeoutExpired:
-            proc.kill()
+        except subprocess.TimeoutExpired:  # kill the row's whole tree, so nothing it started keeps ports or writes on
+            for pid in [proc.pid] + descendants(proc.pid):
+                try:
+                    os.kill(pid, sig.SIGKILL)
+                except OSError:
+                    pass
             proc.wait()
             code, tail = 124, "timed out after %s seconds" % timeout
         log.seek(0)

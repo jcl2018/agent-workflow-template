@@ -83,10 +83,18 @@ def moved(root, old, base):
     return (out or "").split()
 
 
+def ancestor(root, commit, memo):
+    """lanes.ancestor once per commit per plan: most rows of a full record share one commit."""
+    cache = memo.setdefault("anc", {})
+    if commit not in cache:
+        cache[commit] = lanes.ancestor(root, commit)
+    return cache[commit]
+
+
 def since(root, row, old, ok, base, memo):
     """(commit to compare the row's table line with, paths changed for this row)."""
     prior = (old or {}).get("rows", {}).get(row["id"])
-    seen = bool(prior) and lanes.ancestor(root, prior["commit"])
+    seen = bool(prior) and ancestor(root, prior["commit"], memo)
     if seen and ok:  # a usable record: only what changed since this row last ran
         return prior["commit"], changed(root, prior["commit"], memo)
     extra = changed(root, prior["commit"], memo) if seen else []

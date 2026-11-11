@@ -49,12 +49,20 @@ def reach(top, paths):
 
 
 def wiki_only(top, cfg, old, new):
-    """True when NEW descends from OLD (the head the pr lane passed) and every commit between edits only wiki pages."""
+    """True when NEW descends from OLD (the head the pr lane passed) and every commit between only adds or edits .md pages
+    in the base branch's wiki folder (wiki_dir from origin/<base>'s config: the branch can't widen it), no SKILL.md."""
     if run(["git", "merge-base", "--is-ancestor", old, new], cwd=top).returncode:
         return False
-    done, folder = run(["git", "diff", "--name-only", old, new], cwd=top), (cfg.get("wiki_dir") or "docs/wiki").rstrip("/") + "/"
-    paths = [p for p in done.stdout.split("\n") if p]
-    return not done.returncode and bool(paths) and all(p.startswith(folder) and p.endswith(".md") for p in paths)
+    shown = run(["git", "show", "origin/%s:.loop/config.json" % cfg.get("base", "main")], cwd=top)
+    try:
+        folder = (json.loads(shown.stdout).get("wiki_dir") if shown.returncode == 0 else None) or "docs/wiki"
+    except (ValueError, AttributeError):
+        folder = "docs/wiki"
+    done = run(["git", "diff", "--name-status", "--no-renames", old, new], cwd=top)  # a move into the wiki shows its source
+    rows = [line.split("\t") for line in done.stdout.split("\n") if line]
+    return not done.returncode and bool(rows) and all(
+        len(r) == 2 and r[0] in ("A", "M") and r[1].startswith(str(folder).rstrip("/") + "/") and r[1].endswith(".md")
+        and os.path.basename(r[1]) != "SKILL.md" for r in rows)
 
 
 def base_moved(state, cfg, top):
@@ -75,7 +83,7 @@ def base_moved(state, cfg, top):
     if now == was:
         return None
     def names(a, b):  # None when git can't diff (a commit missing here): unknown, so refused below
-        done = run(["git", "diff", "--name-only", a, b], cwd=top)
+        done = run(["git", "diff", "--name-only", "--no-renames", a, b], cwd=top)
         return None if done.returncode else [p for p in done.stdout.split("\n") if p]
     theirs, ours = [None if x is None else reach(top, x) for x in (names(was, now), names(was, state.get("pr_head") or "HEAD"))]
     if theirs is None or ours is None or theirs & ours:
@@ -124,7 +132,7 @@ def main():
         tested = state.get("pr_head")
         if tested and info.get("headRefOid") and info["headRefOid"] != tested and wiki_only(top, cfg, tested, info["headRefOid"]):
             print("NOTE: the pull request head moved only by wiki page commits (wiki.py prepare); merging %s" % info["headRefOid"][:12])
-            tested = info["headRefOid"]  # the wiki check above passed on it
+            tested = info["headRefOid"]  # only wiki pages changed since the lane: no row's code moved
         if tested and info.get("headRefOid") and info["headRefOid"] != tested:
             print("REFUSED (HEAD_MOVED): the pull request head moved since the pr lane passed (lane on %s, PR head %s). Fix: "
                   "goal.py pr %s, then merge.py %s" % (tested[:12], info["headRefOid"][:12], args.slug, args.slug), file=sys.stderr)

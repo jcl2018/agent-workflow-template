@@ -162,14 +162,14 @@ def tests_only(path):
     shown = git("show", "HEAD:" + path)
     if now is None or shown.returncode:
         return False
-    return outside(now) == outside(shown.stdout)
+    return outside(now) == outside(shown.stdout) if outside(shown.stdout) is not None else now == shown.stdout
 
 
 def outside(text):
     """A page without its ## Tests section (from that heading to the next ## heading): what a render never changes."""
     found = re.search(r"^## Tests[ \t]*$", text, re.M)
     if not found:
-        return text
+        return None  # a page with no Tests section: only an identical page is unchanged
     rest = re.search(r"^## ", text[found.end():], re.M)
     return text[:found.start()] + (text[found.end() + rest.start():] if rest else "")
 
@@ -269,6 +269,14 @@ def lane_part(slug):
     return "\n### Regression lane\n\n%s%s\n" % (line, folded) if line else ""
 
 
+def undo(top, paths):
+    """Put the uncommitted bookkeeping back to HEAD, so the next lane doesn't start on LANE_DIRTY."""
+    subprocess.run(["git", "reset", "-q", "--"] + paths, cwd=top, capture_output=True)
+    for path in paths:
+        if subprocess.run(["git", "cat-file", "-e", "HEAD:" + path], cwd=top, capture_output=True).returncode == 0:
+            subprocess.run(["git", "checkout", "-q", "HEAD", "--", path], cwd=top, capture_output=True)
+
+
 def record(state, base):
     """Refresh issue states and run results, commit them if they changed, then note the head and base for merge.py."""
     top = git_out("rev-parse", "--show-toplevel")
@@ -293,11 +301,13 @@ def record(state, base):
                                       timeout=60)
                 if done.returncode:
                     print("NOTE: the bookkeeping commit failed: %s" % ((done.stderr or done.stdout).strip().splitlines() or ["?"])[-1])
+                    undo(top, changed)
         except subprocess.TimeoutExpired as error:  # never crash pr after its lane passed
             print("NOTE: the bookkeeping step timed out (%s); nothing more committed" % " ".join(error.cmd[:3]))
             lock = os.path.join(top, git_out("rev-parse", "--git-path", "index.lock"))
-            if os.path.exists(lock):
+            if error.cmd[0] == "git" and os.path.exists(lock):  # only our killed commit's lock; a render takes none
                 os.remove(lock)
+            undo(top, changed)
     state["pr_lane"] = lane_part(state.get("slug", ""))
     head = git_out("rev-parse", "HEAD")
     state["pr_head"] = head

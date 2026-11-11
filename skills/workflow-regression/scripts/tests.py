@@ -252,9 +252,12 @@ def cmd_fixes(args):
         return refuse("cannot read .loop/regression.tsv at %s: %s" % (args.since, shown.stderr.strip()[:200]))
     old = {cells[0]: cells for cells in (line.split("\t") for line in shown.stdout.splitlines()) if cells[0] and cells[0][0] != "#"}
     ran = {row[0]: row[1:2] for row in tsv(args.root, "regression-runs.tsv")}
+    origin = subprocess.run(["git", "remote", "get-url", "origin"], cwd=args.root, capture_output=True, text=True).stdout
+    repo = re.search(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?\s*$", origin)  # only this repo's issues are its fixes
     for row in tsv(args.root, "regression.tsv"):
         row = (row + [""] * 8)[:8]
         found = re.match(r"^https?://\S+/issues/(\d+)$", row[7])
+        found = found if not repo or re.match(r"^https?://github\.com/%s/issues/" % re.escape(repo.group(1)), row[7]) else None
         before = (old.get(row[0], []) + [""] * 8)[4]
         if row[6] == "defect" and found and SEEN.match(row[4]) and row[4] != before and ran.get(row[0]) == ["PASS"]:
             print("Fixes #%s: test %s, seen failing %s, passing" % (found.group(1), row[0], row[4]))
