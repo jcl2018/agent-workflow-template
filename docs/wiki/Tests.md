@@ -224,7 +224,7 @@
 | <a id="t-stale-page-row"></a>stale-page-row | requirement | HLT-2 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-07 |
 | <a id="t-no-row-fail"></a>no-row-fail | requirement | HLT-2 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-07 |
 | <a id="t-unread-not-green"></a>unread-not-green | requirement | HLT-3 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-07 |
-| <a id="t-check-writes-nothing"></a>check-writes-nothing | requirement | HLT-1 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-07 |
+| <a id="t-check-writes-nothing"></a>check-writes-nothing | requirement | HLT-1 | PASS 2026-11-11 FLAKY | - | local | 2026-11-07 |
 | <a id="t-no-token-would"></a>no-token-would | requirement | HLT-4 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-07 |
 | <a id="t-update-in-place"></a>update-in-place | requirement | HLT-4 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-07 |
 | <a id="t-fixed-closes"></a>fixed-closes | requirement | HLT-4 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-07 |

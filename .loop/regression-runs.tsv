@@ -60,7 +60,7 @@ board-estimates-overrun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 board-sections	PASS	2026-11-09	
 breaking-asks	PASS	2026-11-09	
 cap-default-10	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-check-writes-nothing	PASS	2026-11-11	
+check-writes-nothing	PASS	2026-11-11		2e9bf1990847
 checkin-passes-hook	PASS	2026-11-10	
 ci-bad-target	PASS	2026-11-10	
 ci-issue-backlog	PASS	2026-11-10	
