@@ -173,7 +173,7 @@ PY
   pr-body) # the pull request body that said checks passed with no checks
     toy
     finish pb "calc has pb"; $goal pr pb >/dev/null || no "pr"
-    grep -qi "checks" "$d/gh/body-1" && no "the body talks about checks"
+    sed '/<details>/,/<\/details>/d' "$d/gh/body-1" | grep -qi "checks" && no "the body talks about checks"  # the folded lane rows list row ids, some named *checks
     grep -q "Skill flow:" "$d/gh/body-1" || no "the body lists no steps"
     exit 0;;
   pr-body-criterion) # DEL-4: the body carries the title, the done lines, the verify steps and each step's result

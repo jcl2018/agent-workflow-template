@@ -274,12 +274,12 @@ def cmd_record(args):
     """Apply what a flow step left: done or skipped moves on, pending waits, a failed run is a try; format slips cost none."""
     state = held(args.slug)
     guards.waiting_gate(sys.modules[__name__], state)
-    lane = role.need_lane(state_dir(), args.slug, args.file, args.step) if args.step in ("qa", "ship") else None
-    if lane:
-        guards.refuse_no_try(state, *lane, save)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
     if args.in_session:  # the worker session ran the skill itself; its run record must name that session
         args.file = role.session_reply(state, args.slug, args.step, args.file, state_dir(), FLOW)
+    lane = role.need_lane(state_dir(), args.slug, args.file, args.step) if args.step in ("qa", "ship") else None
+    if lane:
+        guards.refuse_no_try(state, *lane, save)
     reply = os.path.realpath(args.file)
     if reply != os.path.realpath(os.path.join(state_dir(), "%s.%s.txt" % (args.slug, args.step))) or not os.path.exists(ran):
         guards.refuse_no_try(state, "%s wasn't run by flow.py" % args.step, "run flow.py %s %s until it prints NEXT" % (
