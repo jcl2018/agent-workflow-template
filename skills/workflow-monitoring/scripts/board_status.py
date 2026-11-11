@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
-import status_graph  # noqa: E402
+import board_page  # noqa: E402
 
 FLOW = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
 STEPS = FLOW[:-1]
@@ -50,7 +50,7 @@ def stamp(text):
         return None
 
 
-span = status_graph.span
+span = board_page.span
 
 
 def seconds_by_step(run, at):
@@ -344,9 +344,9 @@ def board_items(live, queue, freezing, lines, runs, at, root, waits):
         found = estimate_full(run, runs, at, root)
         return dict(slug=run["slug"], mark=mark, depends=waits(depends), stage=0, est=found and found[:4],
                     left=found[0] if found else None, partial=bool(found and found[4]))
-    out = [item(r, status_graph.mark(r.get("status")), r.get("waits_on") or []) for r in live]
+    out = [item(r, board_page.mark(r.get("status")), r.get("waits_on") or []) for r in live]
     out += [item(dict(g, status="queued"), "queued", g["depends"]) for g in queue]
-    out += [item(dict(lines.get(f["slug"]) or {"slug": f["slug"]}, status="queued"), status_graph.mark("running"),
+    out += [item(dict(lines.get(f["slug"]) or {"slug": f["slug"]}, status="queued"), board_page.mark("running"),
                  (lines.get(f["slug"]) or {}).get("depends") or []) for f in freezing]
     return out
 

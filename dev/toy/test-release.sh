@@ -57,6 +57,10 @@ $rel show one | grep -qx "release=leave" && ok "release=leave recorded" || bad "
 
 echo "== 3. cut bumps VERSION, writes CHANGELOG, commits, makes a draft only"
 finish two
+# REG-6: a defect row this goal proved lists its issue with its test in the CHANGELOG and the release notes
+[ -s .loop/regression-runs.tsv ] || printf '# id\tstatus\tdate\trun\n' > .loop/regression-runs.tsv
+printf 'fix-two\tland\ttrue\t-\t2026-01-01\tGiven two, when it runs, then it works.\tdefect\thttps://example.test/o/r/issues/42\n' >> .loop/regression.tsv
+printf 'fix-two\tPASS\t2026-01-02\t\n' >> .loop/regression-runs.tsv; git add .loop; git commit -qm "fix row" >/dev/null
 $rel ask two >/dev/null
 $rel cut two
 echo "VERSION: $(cat VERSION)"; echo "--- CHANGELOG.md"; cat CHANGELOG.md; echo "---"
@@ -64,6 +68,8 @@ echo "VERSION: $(cat VERSION)"; echo "--- CHANGELOG.md"; cat CHANGELOG.md; echo 
 grep -q "^## v0.1.1 - $(date -u +%F)" CHANGELOG.md && grep -q "^- Add two to calc" CHANGELOG.md \
   && ! grep -q "Goal: two" CHANGELOG.md && ok "CHANGELOG entry, .loop-only commit left out" || bad "CHANGELOG"
 [ "$(git log -1 --format=%s)" = "Release v0.1.1" ] && ok "commit Release v0.1.1" || bad "commit"
+# Value: protects=each release lists the issues it fixed with their tests (REG-6); fails_when=the cut drops the Fixes line or lists an unproved row; why_new=release notes listed commit subjects only; seam=none; no_claim=GitHub's release page (fakegh)
+grep -qx -- "- Fixes #42: test fix-two, seen failing 2026-01-01, passing" CHANGELOG.md && grep -qx -- "- Fixes #42: test fix-two, seen failing 2026-01-01, passing" "$FAKE_GH_DIR/notes.log" && ok "the cut lists the fixed issue with its defect test in the CHANGELOG and the draft notes" || bad "Fixes line missing"
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/loop/two)" ] && ok "branch pushed" || bad "push"
 echo "--- gh calls.log"; cat "$FAKE_GH_DIR/calls.log"; echo "---"
 grep -q "^release create v0.1.1 --draft " "$FAKE_GH_DIR/calls.log" && ok "draft release create" || bad "draft call"

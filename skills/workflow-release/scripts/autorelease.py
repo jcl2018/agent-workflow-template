@@ -19,6 +19,7 @@ import sys
 import tempfile
 
 import release
+import wiki  # noqa: E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -133,7 +134,7 @@ def need_of(top, state):
 
 def stage_notes(top, state, cfg):
     if "release_bullets" not in state:
-        state["release_bullets"] = release.subjects(release.base_of(top, cfg), top)
+        state["release_bullets"] = release.subjects(release.base_of(top, cfg), top) + wiki.fixes_lines(top)
         state["release_steps"] = release.verify_steps(top, state["slug"]) or "No manual steps were recorded."
         release.save(state)
 

@@ -49,6 +49,23 @@ jobs:
             checked=$(python3 skills/workflow-health/scripts/automation.py workflow --check 2>&1) || printf '%s\n' "$checked" | while IFS= read -r said; do
               echo "::warning::$said"; echo "$said" >> "$GITHUB_STEP_SUMMARY"; done
           fi
+      - name: Fetch the newest full-suite time
+        if: steps.routine.outputs.on == 'true'
+        continue-on-error: true  # no artifact yet: health says the time is unknown
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          dir="$(git rev-parse --git-common-dir)/loop"; got=$(mktemp -d); mkdir -p "$dir"
+          for id in $(gh run list --workflow regression.yml --limit 20 --json databaseId -q '.[].databaseId' 2>/dev/null); do
+            case "$id" in ''|*[!0-9]*) continue ;; esac  # a run number, never anything else
+            gh run download "$id" --name suite-time --dir "$got" >/dev/null 2>&1 && break
+          done
+          if [ -s "$got/suite-time.tsv" ]; then  # the regression run's line, marked ci for cost.py
+            awk -F'\t' 'NF >= 4 && $2 == "full" && $3 ~ /^[0-9]+$/ { print $1 "\t" $2 "\t" $3 "\t" $4 "\tci" }' "$got/suite-time.tsv" >> "$dir/suite-times.tsv"
+            echo "SUITE_TIME: the newest regression run's full-suite time is in $dir/suite-times.tsv"
+          else
+            echo "NOTE: no suite-time artifact from the regression workflow yet; health shows the full-suite time as unknown"
+          fi
       - name: Health check
         if: steps.routine.outputs.on == 'true'
         env:

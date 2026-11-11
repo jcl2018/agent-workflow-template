@@ -23,6 +23,7 @@ import sys
 import time
 
 import fit
+import budget as limits
 import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -31,6 +32,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 STEPS = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
+BUDGETED = ("review", "ship")  # the steps held to step_budget_minutes
 NEEDED = ("idea", "plan", "review", "qa", "ship")  # the others may stay unmapped: delivery runs them itself
 FLOW_FILE = "~/.workflow-loop/flow.json"
 BUILTIN = "built-in"  # a step mapped to this runs delivery's own routine (references/default-flow.md): no skill suite needed
@@ -135,7 +137,7 @@ def step_prompt(spec, args):
     text = PROMPT.format(skill=skill, step=args.step, slug=args.slug, branch=git("branch", "--show-current"),
                          purpose=PURPOSE[args.step].format(slug=args.slug, lane=role.lane_text()),
                          note="The owner said: " + args.note + "\n" if args.note else "",
-                         depth=depth_rule(args.step, goal_state(RUNS(), args.slug), RUNS())).rstrip()
+                         depth=depth_rule(args.step, role.goal_state(RUNS(), args.slug), RUNS())).rstrip()
     if skill == BUILTIN:
         head, rest = text.split("\n", 1)
         text = "%s\nThe routine:\n%s\n%s" % (head.replace("Use the built-in skill for", "Run delivery's built-in routine for"),
@@ -194,13 +196,6 @@ def depth_rule(step, state=None, runs=None):
             "condense it on your own; a condensed reply is refused." % why)
 
 
-def goal_state(runs, slug):
-    try:
-        return json.loads(read(os.path.join(runs, slug + ".json")))
-    except (OSError, ValueError):
-        return {}
-
-
 def alive(pid):
     try:
         os.kill(pid, 0)
@@ -214,7 +209,7 @@ def start(args, runs, reply, job):
     env = unattended(spec, args.step)
     command = step_command(spec, args.step)
     cfg = repo_config()
-    state = goal_state(runs, args.slug)
+    state = role.goal_state(runs, args.slug)
     held, source = fit.budget(fit.view(state, runs), cfg)
     spent = fit.spent_tokens(state)
     if held["tokens"] and spent >= held["tokens"]:
@@ -233,7 +228,10 @@ def start(args, runs, reply, job):
                                  stderr=err, start_new_session=True)
     role.begin(os.path.join(runs, args.slug + ".json"), args.step)
     with open(job, "w") as handle:
-        json.dump({"pid": child.pid, "started": time.time(), "limit": spec.get("limit") or int(cfg.get("step_limit") or 0) or args.limit}, handle)
+        limit = spec.get("limit") or int(cfg.get("step_limit") or 0) or args.limit
+        if args.step in BUDGETED:  # review and ship stop at min(the flow file's limit, step_budget_minutes)
+            limit = limits.seconds(cfg, "step_budget_minutes", limit)
+        json.dump({"pid": child.pid, "started": time.time(), "limit": limit}, handle)
     print("FLOW %s: running your %s skill unattended" % (args.step, args.step))
     print("RUNNING: run this same command again")
 
@@ -259,44 +257,21 @@ def in_session(args, runs, reply, base):
         print("IN SESSION %s: no headless agent; run %s yourself in this session." % (
             args.step, "delivery's built-in routine" if skill == BUILTIN else "the %s skill" % skill))
         print(text)
+        if args.step in BUDGETED:
+            print("TIME BUDGET: %d minutes for this step. At the limit, stop, finish what you have, and add a line "
+                  "`BUDGET: left: <what you did not do>` before the DEPTH line; an overrun is recorded." % limits.minutes(
+                      repo_config(), "step_budget_minutes"))
         print("Write its reply, ending with the DEPTH line and then the STEP line, to %s, then run this same command again." % reply)
         return True
+    if args.step in BUDGETED:  # a session-run step that took longer than its budget is recorded, with what it said it left
+        mins = limits.minutes(repo_config(), "step_budget_minutes")
+        if os.path.getmtime(reply) - os.path.getmtime(asked) > mins * 60:
+            limits.hit(runs, args.slug, args.step, "step", mins, limits.left_of(text))
     os.remove(asked)
     open(base + ".ran", "w").close()
     print("\n".join(re.findall(r"^\W*(?:PENDING|STEP): .*", text, re.M)))
     print("NEXT: goal.py record %s %s --file %s" % (args.slug, args.step, reply))
     return True
-
-
-def recorded_gate(args, runs, base, job):
-    """A step the record already holds isn't run again by accident (DEL-7): it refuses with no try and names where the
-    goal resumes. --again reruns it on purpose: it clears that step and every later step, never tries or tokens."""
-    record = os.path.join(runs, args.slug + ".json")
-    state = goal_state(runs, args.slug)
-    if not fit.recorded(state, args.step):
-        return
-    if not args.again:
-        head = state.get("plan_head")
-        count = role.git("rev-list", "--count", head + "..HEAD") if head else None
-        at = fit.resume_at(state, bool(count and count.returncode == 0 and count.stdout.strip() not in ("", "0")))
-        print("REFUSED (no try used): %s is already recorded (%s). Fix: go on with %s, or rerun it on purpose with "
-              "flow.py %s %s --again (ALREADY_RECORDED)" % (args.step, state["flow"][args.step], fit.next_command(state, at),
-                                                              args.slug, args.step))
-        sys.exit(2)
-    if os.path.exists(job) and alive(json.loads(read(job)).get("pid") or 0):
-        sys.exit("REFUSED (no try used): %s is still running; let it end first (ALREADY_RECORDED)" % args.step)
-    cleared = fit.again(state, args.step)
-    for step in cleared:
-        for end in (".ran", ".asked"):
-            path = os.path.join(runs, "%s.%s%s" % (args.slug, step, end))
-            if os.path.exists(path):
-                os.remove(path)
-    state.setdefault("log", []).append("%s rerun %s on purpose: cleared %s" % (
-        time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), args.step, ", ".join(cleared)))
-    with open(record + ".%d.tmp" % os.getpid(), "w") as handle:
-        json.dump(state, handle, indent=2)
-    os.replace(record + ".%d.tmp" % os.getpid(), record)
-    print("AGAIN %s: cleared %s" % (args.step, ", ".join(cleared)))
 
 
 def main():
@@ -324,7 +299,7 @@ def main():
     base = os.path.join(runs, "%s.%s" % (args.slug, args.step))
     reply, job = base + ".txt", base + ".job"
     if args.step in fit.STEPS:
-        recorded_gate(args, runs, base, job)
+        role.recorded_gate(args, runs, job)
     if args.step in ("qa", "ship") and not os.path.exists(job) and not os.path.exists(base + ".asked"):
         status, line, ids = role.lane(runs, args.slug, args.step, flow(), repo_config(), args.wait)
         print(line)
@@ -353,7 +328,13 @@ def main():
             return 0
         os.killpg(held["pid"], signal.SIGTERM)
         with open(reply, "a") as out:
-            out.write("\nSTEP: failed the step passed its time limit\n")
+            if args.step in BUDGETED:  # it finishes with what it has done and says what it left; the goal goes on
+                mins = round(held["limit"] / 60, 1)
+                limits.hit(runs, args.slug, args.step, "step", mins, "whatever the stopped step had not finished; see its reply")
+                out.write("\nBUDGET: left: whatever the step had not finished at its %g-minute budget\nDEPTH: condensed\n"
+                          "STEP: done stopped at its %g-minute budget\n" % (mins, mins))
+            else:
+                out.write("\nSTEP: failed the step passed its time limit\n")
     os.remove(job)
     open(base + ".ran", "w").close()
     raw = read(reply)

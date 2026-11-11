@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/graph.py
-# reads: skills/workflow-monitoring/scripts/live_board.py skills/workflow-monitoring/scripts/status_graph.py
+# reads: skills/workflow-monitoring/scripts/live_board.py skills/workflow-monitoring/scripts/board_page.py
 # Goal estimates from size and similar finished goals (issue 96) and stalled goals under Issues (issue 37), on a made-up
 # repo of finished runs. No model is called. usage: test-estimates.sh [CHECK]  (no CHECK runs them all)
 set -u

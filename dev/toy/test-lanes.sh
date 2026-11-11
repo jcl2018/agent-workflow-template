@@ -1,10 +1,11 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/goal.py
 # reads: skills/workflow-delivery/scripts/role.py skills/workflow-regression/scripts/regression.py
-# reads: skills/workflow-setup/scripts/setup.py skills/workflow-regression/scripts/lanes.py
+# reads: skills/workflow-setup/scripts/setup.py skills/workflow-regression/scripts/lanes.py skills/workflow-regression/scripts/tiers.py
 # Proves regression.py run --reuse: a goal's suite runs once, then later runs reuse it, rerun only the rows a change can
 # affect, and never reuse a failing or missing run. Then delivery's lanes: qa runs the lane before the qa skill (through
-# the flow file's test_record prefix), record refuses qa without it, and pr reruns only what a base merge affected.
+# the flow file's test_record prefix), record refuses qa without it, and pr reruns only what a base merge and the goal
+# affected (the goal tier, tiers.py).
 # No model is called. usage: test-lanes.sh [DIR] [regression|delivery]
 set -u
 unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
@@ -103,7 +104,7 @@ git checkout -q -- src/a.txt
 echo "== unmapped files, new rows, the known list and unproven rows"
 printf 'echo new\n' > dev/new.sh; git add dev/new.sh; git commit -qm "New dev file"
 fresh; out=$($reg run land --reuse); echo "$out"
-check "a new file under dev/ no row reads forces a full run" 'grep -q "^UNMAPPED dev/new.sh: full run" <<<"$out" && [ "$(ran)" = "a b " ]'
+check "a new file under dev/ no row reads no longer forces a full run" 'grep -q "^UNMAPPED dev/new.sh: ran the rows that name them" <<<"$out" && ! grep -q "^FULL" <<<"$out" && [ -z "$(ran)" ]'
 printf 'd\tland\techo d >> "$TOY_LOG"; cat dev/a.sh >/dev/null\tX-1\t2026-01-01\tD works.\tcriterion\t\n' >> .loop/regression.tsv
 git commit -qam "Row d"
 fresh; out=$($reg run land --reuse); echo "$out"
@@ -193,9 +194,10 @@ check "record refuses qa before the qa lane passed on HEAD" 'grep -q "the qa lan
 printf 'STEP: failed old\nSTEP: done\n' > "$d/q1"; printf 'PENDING: x\nSTEP: failed\n' > "$d/q2"
 out=$($goal record lg qa --file "$d/q1" 2>&1; $goal record lg qa --file "$d/q2" 2>&1)
 check "an earlier STEP: failed or a PENDING line never skips the qa lane" '[ "$(grep -c "(LANE_MISSING)" <<<"$out")" = 2 ]'
-check "the lane command resolves from the installed package, not the repo (no skills folder here)" '[ ! -e skills ] && grep -q "^python3 $here/skills/workflow-regression/scripts/regression.py run land --reuse$" <<<"$lane"'
+check "the lane command resolves from the installed package, not the repo (no skills folder here)" '[ ! -e skills ] && grep -q "^python3 $here/skills/workflow-regression/scripts/regression.py run land --reuse --tier goal$" <<<"$lane"'
+printf '# the goal was here\n' >> dev/lib.sh; git commit -qam "The goal changes b's helper"
 out=$(step lg qa); echo "$out"
-check "qa runs the lane first: a full run on a branch with no record" 'grep -q "^LANE qa FULL \([0-9]*\)/\1 " <<<"$out" && grep -q "^FULL: no record" "$common/loop/runs/lg.qa-lane.txt"'
+check "qa runs the lane first: a goal lane with no record runs the rows the goal's change reaches, never FULL" 'grep -q "^LANE qa AFFECTED 1/1 " <<<"$out" && grep -q "^SELECTED b: reaches dev/lib.sh" "$common/loop/runs/lg.qa-lane.txt" && ! grep -q "^FULL" "$common/loop/runs/lg.qa-lane.txt"'
 check "the recorder got the exact lane command on the tested commit" 'grep -qF "commit=$(git rev-parse HEAD)	command=$lane" "$TOY_RECEIPTS"'
 check "qa is recorded once its lane passed" 'grep -q "^RECORDED qa" <<<"$out"'
 out=$(step lg ship); echo "$out"

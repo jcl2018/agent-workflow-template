@@ -1,9 +1,9 @@
 #!/bin/bash
 # reads: skills/workflow-monitoring/scripts/batch.py skills/workflow-monitoring/scripts/board.py
-# reads: skills/workflow-monitoring/scripts/board_runs.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-monitoring/scripts/board_status.py
 # reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
 # reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/monitor.py
-# reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/status_graph.py
+# reads: skills/workflow-monitoring/scripts/sessions.py
 # reads: skills/workflow-monitoring/scripts/watch.py skills/workflow-monitoring/scripts/worker.py
 # reads: skills/workflow-setup/scripts/setup.py
 # Proves assign -> worker loop -> report-back -> board with a stand-in agent. No model is called. usage: test-workers.sh [DIR]

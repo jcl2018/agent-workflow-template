@@ -63,9 +63,9 @@ default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (
 - **Tests** (`tests`, DOC-9): made by `criteria.py render`, never by hand: one table
   `| Test | Kind | Guards | Checks | Last result |`. Test links the row's entry on the full Tests page,
   `[row](Tests#t-<slug>)` (the row id lower-cased, anything but `a-z0-9-` turned into `-`; two rows sharing a slug are
-  refused). Kind is requirement or defect; Guards is the requirement's ID, or the defect's issue link and state; Checks
+  refused). Kind is requirement, workflow or defect; Guards is the requirement's ID, or the defect's issue link and state; Checks
   is the row's `scenario`; Last result is its last result and date. A requirement with no passing row gets a row whose
-  Last result is `not enforced`. Defect rows follow in the same table.
+  Last result is `not enforced`. Workflow rows, then defect rows, follow in the same table.
 
 ## Home, the README front door and the full Tests page
 

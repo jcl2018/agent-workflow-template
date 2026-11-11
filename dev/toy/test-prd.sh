@@ -4,7 +4,7 @@
 # reads: skills/workflow-health/scripts/milestone.py skills/workflow-monitoring/scripts/board_status.py
 # reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
 # reads: skills/workflow-health/scripts/judge.py
-# reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-regression/scripts/regression.py
+# reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-regression/scripts/regression.py
 # reads: skills/workflow-release/scripts/release.py skills/workflow-setup/scripts/setup.py
 # Test the PRD page format: section order, the owner's PRD review lock, Usage drift, Given/When/Then scenarios, the prd
 # command, convert, the requirement readers, and that this repo stays green. usage: test-prd.sh [DIR]

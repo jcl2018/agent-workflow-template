@@ -1,15 +1,17 @@
 # Regression: commands and flows
 
+Lane messages, which tests run when, clocks and lane settings: the Lanes section at the end of this page.
+
 Moved from the wiki page, which is now only a summary, criteria and tests.
 
 ## Commands
 
 ```text
-add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>] [--category criterion|defect --link <url>]
+add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>] [--category criterion|workflow|defect --link <url>]
 sync [--write]
 criteria
 red <id> --break "<command>"
-run [land|nightly|<id>] [--timeout S] [--live]
+run [land|nightly|<id>] [--timeout S] [--live] [--reuse [--tier goal]] [--kind requirement|workflow|defect]
 workflow
 ```
 
@@ -23,7 +25,9 @@ workflow
 - `add` adds or replaces a row. `--goal` ties it to a criterion or a goal's done line, and a changed command must be
   proved again. `--category defect --link <issue or pull request URL, or finding:SLUG>` makes it a defect test: it keeps a
   fixed issue, finding or bug fixed, shows under "Defect tests" on the page of the criterion in `--goal`, and never counts as
-  proof of that criterion. A row with no category reads as a criterion test; a defect row with no link is flagged by `sync`.
+  proof of that criterion. `--category workflow` makes it a workflow test: an end-to-end run of a whole flow on a toy
+  repo, shown as kind `workflow` after the requirement tests of its criterion. A row with no category reads as a
+  criterion test; a defect row with no link is flagged by `sync`.
 - `sync` lists done lines, and wiki criteria (a row whose id or `--goal` is the criterion id), with no row (`GAP`), `DRAFT` rows and `UNPROVEN` rows; `--write` adds drafts.
 - `criteria` runs the row of every wiki criterion and prints any that is missing, a draft or failing.
 - `red` copies `HEAD` to a temporary worktree, applies the break and records the date if the test fails. `STILL GREEN`
@@ -42,7 +46,8 @@ workflow
   that always runs writes the run summary: one header with totals and the run time, then one table per feature, or the
   plain results if that fails. Rows run with no GitHub token and none of the runner's own files in their environment
   (`regression.py run` too), and the checkout uses `persist-credentials: false`.
-- `tests.py list` prints every test in one fixed format, grouped by feature (`--markdown` tables, `--tsv` lines);
+- `tests.py list` prints every test in one fixed format, grouped by feature (`--markdown` tables, `--tsv` lines,
+  `--kind requirement|workflow|defect` only that kind);
   `summary` writes the GitHub run summary from a run's results; `issues --write` records each defect test's issue or
   pull request state. The wiki Tests lines and the health report use the same fields.
 
@@ -164,7 +169,7 @@ python3 scripts/tests.py list
 ```
 
 Every test in one fixed format, grouped by feature: the wiki page that holds the requirement a row guards, in page
-order, then `Other` for rows that guard none. Each test shows its name, kind (`requirement` or `defect`), what it guards
+order, then `Other` for rows that guard none. Each test shows its name, kind (`requirement`, `workflow` or `defect`), what it guards
 (the requirement's ID and words, or the issue or pull request link with its recorded state and date, or the finding),
 what it checks, when it runs (`both`, `nightly`, `by a person`), its last result and date, and when it was seen failing.
 Plain output has one `FEATURE <name>` line per group; `--markdown` gives one table per feature; `--tsv` gives one line
@@ -236,3 +241,109 @@ outside it. All three take `--root DIR` (default: the git top level), exit 2 on 
 audit hook and fails a row whose run read a skill file outside its closure (`LANES-TRACE-UNDECLARED`, with the line
 to add), whose Python launch the hook never saw (`LANES-TRACE-NOHOOK`), or whose command failed. It covers Python reads
 only; bash reads are covered by the static rules above.
+
+## Goal tier
+
+A goal lane runs `run land --reuse --tier goal` (`scripts/tiers.py`). It plans from the branch's record only when
+the record's merge-base with the base branch is the current one (else from the merge-base, plus what a base merge
+brought in) and runs the rows a change reaches, new or edited rows, root runners and the record's failures; it takes a
+lane slot only when it has no plan to follow (FULL, no merge-base). It stays within `test_budget_minutes`: rows run in tier
+order while their estimated seconds fit, and the rest is left to the scheduled full suite (`BUDGET` line). Its own time
+limit is the flow file's, else `test_budget_minutes` plus five minutes. Without `--tier` nothing changes.
+
+| Line | Means |
+|---|---|
+| `SELECTED <id>: <reason>` | Why a row runs: `reaches <file>`, `new row`, `root runner`, `names an unmapped path`, `failure rerun` or `FULL` |
+| `ROWS: S selected (A affected, N new, R root runners, F failure reruns), U reused; unmapped: K` | The plan; the LANE line repeats it with the unfinished count and the log path |
+| `UNMAPPED <file>: no row declares it. Note: ...` / `UNMAPPED <file>: deleted. Note: ...` | Every lane: advisory; the rows that name the file and the runners run, never the full suite |
+| `FULL (no merge-base with <base>): ...` | A shallow clone or a missing base ref: every row is a candidate and the time budget keeps what fits |
+
+## Lanes: what runs when, and every message a lane prints
+
+A lane is one background run of the regression rows for a goal's step (qa, ship or pr), started by
+`role.py lane SLUG NAME` (flow.py and goal.py call it). This section is the reference for its messages, clocks and
+settings. The Regression wiki page holds the requirements (REG-1..REG-9); this section is the tool's own manual.
+
+### Which tests run when
+
+| Where | Rows that run | Takes a lane slot |
+|---|---|---|
+| goal lane, qa and ship | rows whose closure reaches a file the goal changed since its merge-base, the goal's new or changed rows, rows that run tools on the repo root, and rows that failed last time | no |
+| goal lane, pr | the same; a path no row declares, or a deleted one, adds the rows that name it and the runners, never the full suite | no |
+| goal lane with no merge-base (shallow clone, missing base) | every row is a candidate (`FULL (no merge-base with <base>)`), kept to `test_budget_minutes` | yes |
+| hand run `regression.py run land\|nightly\|ID [--kind K]` | what you name; a plain `run nightly` is the full suite and records its time | when it is a full run |
+| GitHub Actions, on the `regression_cron` schedule (every 4 hours by default; `off` stops it) and every v* tag | `ci_levels` (default nightly: every row, the full suite; land: land rows only) | n/a (a runner) |
+| GitHub Actions, run by hand | its `target` input: land, nightly or a row id (empty: `ci_levels`); the workflow's own runner checks it, so a repo without the skills folder works | n/a |
+
+ship and release reuse the qa lane's results when no code changed since (`REUSED`). Before a pull request merges,
+merge.py checks the base: a move in paths this goal's rows reach refuses (`BASE_MOVED`); `goal.py pr` then merges the
+base and reruns the affected rows. Which levels run where is fixed by design (land: goal lanes, hand runs and CI;
+nightly: CI and hand runs); `goal_levels` and `ci_levels` change it.
+
+### Lane messages
+
+Status lines go to stdout, refusals and errors to stderr. A `Fix:` part is something to do before going on; a `Note:`
+part is advice and never blocks.
+
+| Code | Printed by | Exit | Meaning | What to do |
+|---|---|---|---|---|
+| LANE | lane.py | 0 / 1 | the lane ended: `LANE <step> <AFFECTED\|REUSED\|FULL> ran/total in Ns; rows: S selected (A affected, N new, R root runners, F failure reruns), U reused, X unfinished; unmapped: K; log: <path>` | read the log for each row's reason |
+| RUNNING / WAITING | lane.py | 0 | still planning or running / waiting for a lane slot or a sibling lane of the goal | run the same command again, or `role.py lane-wait SLUG NAME` |
+| LANE_WAIT | slots.py | — | all lane slots are busy; names the holders | none: it starts when one frees (`LOOP_LANE_LIMIT=0` skips the pool for one run) |
+| LANE_WAIT_TIMEOUT | slots.py / lane.py | 4 / 2 | a hand run off a terminal waited 4x its time limit (4); `lane-wait --timeout` ran out while the lane keeps running (2) | run again later |
+| LANE_SLOTS_UNAVAILABLE | slots.py | — | the lanes folder can't be used; the lane runs without a slot | `chmod 700` it, or set `LOOP_LANES_DIR` |
+| LANE_STALE | slots.py | 5 | HEAD or the worktree changed while the lane waited; no rows ran | run the same command again |
+| LANE_TIMEOUT | lane.py | 124 | past its time limit (flow file `limit`, else `step_limit`); killed, rows partly ran, nothing committed or pushed | run again, or raise the setting |
+| LANE_DIRTY | lane.py / lanekit.py | 1 | uncommitted changes at start, a hand edit above a page's Tests section, or a row left files behind | commit or revert them; make the row clean up |
+| LANE_PREP | lanekit.py | — | the lane first committed the re-rendered Tests tables and run dates | none |
+| LANE_PREP_FAILED | lanekit.py | 1 | that commit or the render failed or hung (60 s); nothing committed | make the commit pass, then run again |
+| LANE_RECORDER | lane.py | 1 | the flow file's `test_record` command isn't on this machine | install it or remove it |
+| LANE_DIED | lane.py | 1 | the lane ended with no exit status | the next call starts a new lane |
+| LANE_MISSING / HEAD_MOVED (record) | lane.py via goal.py | 2 | `goal.py record qa\|ship` with no passing lane on this HEAD; no try is used | run `role.py lane SLUG NAME` |
+| NO LANE | lane.py | 3 | `lane-wait` found no lane for this HEAD | start one with `role.py lane SLUG NAME` |
+| UNMAPPED | tiers.py | — | a changed or deleted path no row declares (Note) | declare it in the `# reads:` header of the row that tests it, or let pr run the full suite once |
+| KILLED | regression.py | — | a signal stopped a row: `KILLED <row>: signal <name> (pid <n>)` (Note) | see the lane log |
+| FLAKY | regression.py | per result | a row gave different results on the same clean commit, runner and python (Note): the raw result counts, the flag stays on that commit (regression-runs.tsv's flaky column, tests.py list, health's TESTS block) and the row is never reused | find the nondeterminism in the row's command; FLAKY clears when a later commit's clean run passes |
+| SUITE_TIME | regression.py / CI run step | — | a plain full run's time (`regression.py run nightly`, or a CI run whose target is nightly), appended to `<git common dir>/loop/suite-times.tsv` for health's REG-7 check; CI keeps its line as artifact `suite-time`, which the scheduled health job downloads with a `ci` column | none |
+| REFUSED (BAD_TARGET) | CI run step | 1 | the run-by-hand `target` input is not land, nightly or a row id: `REFUSED (BAD_TARGET): bad target "<value>": use land, nightly or a row id from regression.py list. Fix: rerun the workflow with one of those`; no row ran | rerun the workflow with one of those |
+| REFUSED (BASE_MOVED) | merge.py | 2 | the base moved in paths this goal's rows reach since the pr lane, or it can't tell (the planner or `git diff` failed): an unknown never merges | `goal.py pr SLUG`, then `merge.py SLUG` |
+| REFUSED (BASE_FETCH) | merge.py | 3 | origin can't be fetched to check the base; nothing merged | run `merge.py SLUG` again when the remote answers |
+| REFUSED (HEAD_MOVED) | merge.py | 4 | the pull request head moved since the pr lane by a commit that isn't only wiki pages (a `wiki.py prepare` commit only notes it and merges) | `goal.py pr SLUG`, then `merge.py SLUG` |
+
+Exit codes shared by every lane entry point: 0 pass (or still running for `role.py lane`), 1 fail, 2 lane-wait
+timeout, 3 no lane, 4 a hand run's slot wait timed out, 5 stale, 124 time limit.
+
+### Clocks
+
+A lane's time limit counts from its started marker (when it took its slot and began rows), never from launch. While
+it waits for a slot it has a queue span instead (4x the time limit, restarted whenever any slot changes), so a healthy
+backlog never kills a waiting lane; while planning it has 4x the time limit. A hand run on a terminal holding a slot has no deadline; off a terminal its slot wait stops after
+4x its time limit (flow file `limit`, else `step_limit`, else 2700 s). `lane-wait` with no `--timeout` waits until the
+lane ends.
+
+### Settings
+
+- `lane_limit` (flow file, default 2): full lanes that may run at once on this machine; 0 is unlimited. Best effort:
+  it limits concurrent full lanes, not the machine's load; AFFECTED, by-id and red runs take no slot.
+- `goal_lane_minutes` (10): health warns above it (REG-7), and a goal lane over it adds `; over N min (goal_lane_minutes)`
+  to its LANE line. The scheduled full suite has a fixed 30-minute limit that health warns above.
+- `goal_levels` (land) and `ci_levels` (nightly): the levels a goal lane plans from (nightly adds the nightly rows a
+  change reaches) and the CI target. A CI run cut short by its job time still records its time, so health warns.
+- Each lane child gets its own `TMPDIR` and `LOOP_LANE_PORT_BASE` (a leased range of 100 ports from 20000); a row that
+  binds ports uses that range or picks a free port itself.
+- Internal handoff variables (`_LOOP_LANE_HELD`, `_LOOP_LANE_LABEL`, `_LOOP_LANE_QUEUED`, `_LOOP_LANE_STARTED`,
+  `_LOOP_LANE_NOTE`) are set by the lane; a `test_record` wrapper must keep the environment.
+
+### Upgrading
+
+Updating the skills while lanes run is safe: a lane job written by the old code keeps the old rules until it ends.
+New: goal lanes no longer run the full suite at qa for an unmapped path (pr does, once); the lane commits re-rendered
+Tests tables before it starts; regression-issues.tsv gains a reopened_at column and old files still read; the
+regression workflow's run-by-hand gains a `target` input.
+
+### Alternatives considered
+
+GitHub's merge queue and "require branches to be up to date" make merges atomic on the platform; the loop keeps its
+own base check for repos without them, and the window between its check and the merge is closed only by those
+settings. Actions concurrency groups already keep one regression run at a time in CI. Running AFFECTED lanes in CI
+was left out: CI runs the full suite only (REG-4).

@@ -2,11 +2,11 @@
 # reads: skills/workflow-delivery/scripts/fit.py skills/workflow-delivery/scripts/flow.py
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/role.py
 # reads: skills/workflow-monitoring/scripts/batch.py skills/workflow-monitoring/scripts/board.py
-# reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-monitoring/scripts/board_runs.py
+# reads: skills/workflow-monitoring/scripts/board_page.py
 # reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/graph.py
 # reads: skills/workflow-monitoring/scripts/live_board.py skills/workflow-monitoring/scripts/mend.py
 # reads: skills/workflow-monitoring/scripts/operate.py skills/workflow-monitoring/scripts/sessions.py
-# reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-monitoring/scripts/watch.py
+# reads: skills/workflow-monitoring/scripts/watch.py
 # reads: skills/workflow-monitoring/scripts/worker.py skills/workflow-setup/scripts/setup.py
 # Proves the operation loop with a stand-in agent: the dependency-graph planner, the base merge before a pull request, the one
 # operate command, the worker guard, live reports and follow-ups, the status block and token records. No model is called.
@@ -42,9 +42,11 @@ for pair in sys.argv[2:]:
 json.dump(s, open(sys.argv[1], "w"))
 PY
 }
-until_file() { for _ in $(seq 150); do [ -e "$1" ] && return 0; sleep 0.1; done; return 1; }
-until_status() { for _ in $(seq 150); do [ "$(field "$1" status)" = "$2" ] && return 0; sleep 0.1; done; return 1; }
-until_text() { for _ in $(seq 150); do grep -q -- "$2" "$1" 2>/dev/null && return 0; sleep 0.1; done; return 1; }
+# Waits poll for the goal's own report, up to TOY_PATIENCE seconds (default 60): a busy machine is slow, not wrong (issue 99).
+tries=$(( ${TOY_PATIENCE:-60} * 10 ))
+until_file() { for _ in $(seq $tries); do [ -e "$1" ] && return 0; sleep 0.1; done; return 1; }
+until_status() { for _ in $(seq $tries); do [ "$(field "$1" status)" = "$2" ] && return 0; sleep 0.1; done; return 1; }
+until_text() { for _ in $(seq $tries); do grep -q -- "$2" "$1" 2>/dev/null && return 0; sleep 0.1; done; return 1; }
 
 # A stand-in agent: it steps through plan and build as a worker, polls for a message while held, then finishes.
 cat > "$T/agent.sh" <<'A'
@@ -58,6 +60,7 @@ while [ -e "$FAKE_AGENT/hold-$slug" ]; do
   if [ -e "$FAKE_AGENT/pick-$slug" ]; then rm "$FAKE_AGENT/pick-$slug"; python3 "$GOAL" step "$slug" build >> "$FAKE_AGENT/seen-$slug" 2>&1; fi
   sleep 0.1
 done
+sleep "${FAKE_AGENT_DELAY:-0}"  # a slow machine: the goal's last report comes late (defect row operate-wait-99)
 python3 - "$COMMON/loop/runs/$slug.json" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1])); s.update(status="done", step="release")
@@ -138,16 +141,21 @@ check "it starts a batch line by itself" 'until_file "$C/loop/runs/g.json"'
 check "the first pass prints the live board, on the cadence from board.py cadence" 'grep -q "^Finish" "$T/op.out" && grep -q "^NEXT_DELAY 120$" "$T/op.out"'
 until_status g done || bad "g never finished"  # on a busy machine g finishes late, and its report wakes the loop once more
 until_text "$T/op.out" "^CHANGE repo/g report:" || bad "the board never showed g's final report"  # its worker saves it after done, and that wakes one more pass
+# A quiet gap longer than one silent pass: a pass works 2-3 s before it prints, longer on a loaded machine. Time one board
+# pass now and wait twice that (at least 3 s, at most 20 s, the fallback); then wait until the output stops growing.
+began=$(python3 -c "import time;print(time.time())"); python3 "$M/board_status.py" >/dev/null 2>&1
+quiet=$(python3 -c "import sys,time;t=time.time()-float(sys.argv[1]);print(max(3,min(20,round(2*t+2))))" "$began" 2>/dev/null || echo 20)
+echo "settle: quiet gap ${quiet}s"
 settled=
-for _ in $(seq 12); do  # so wait until the output settles; a loop that prints on every poll never does
-  lines=$(wc -l < "$T/op.out"); sleep 5  # a pass ends with its check-in's last line, and the pass watch.py's own save wakes works 2-3 s before it prints
+for _ in $(seq $(( ${TOY_PATIENCE:-60} / quiet + 1 ))); do  # a loop that prints on every poll never settles; a pass ends with its check-in's last line
+  lines=$(wc -l < "$T/op.out"); sleep "$quiet"
   [ "$(wc -l < "$T/op.out")" = "$lines" ] && tail -n 1 "$T/op.out" | grep -q "^- next check-in in\|^- paused until" && settled=yes && break
 done
-[ -n "$settled" ] || bad "the output never settled within 60 seconds"
+[ -n "$settled" ] || bad "the output never settled within TOY_PATIENCE (${TOY_PATIENCE:-60} s)"
 lines=$(wc -l < "$T/op.out"); blocks=$(grep -c "^LIVE BOARD" "$T/op.out"); sleep 1.5
 check "nothing is printed while nothing changes" '[ "$(wc -l < "$T/op.out")" = "$lines" ]'
 touch "$C/loop/runs/c.json"
-for _ in $(seq 50); do [ "$(grep -c "^LIVE BOARD" "$T/op.out")" -gt "$blocks" ] && break; sleep 0.1; done
+for _ in $(seq $tries); do [ "$(grep -c "^LIVE BOARD" "$T/op.out")" -gt "$blocks" ] && break; sleep 0.1; done
 check "a worker's report wakes it before the cadence, and it prints the full board, never a one-line mode" '[ "$(grep -c "^LIVE BOARD" "$T/op.out")" -gt "$blocks" ] && ! grep -q "Nothing changed\|NO_CHANGE" "$T/op.out"'
 (cd "$C/loop/worktrees/c" && $goal step c review >/dev/null)
 until_text "$T/op.out" "step: build -> review"
@@ -156,7 +164,7 @@ rm "$FAKE_AGENT/hold-c"; until_status c done
 # The test plays the merge from outside while c's worker may still be saving its last record, which can write the
 # old release field back (in a real goal the worker itself merges, so nothing races). Set it until it holds.
 for _ in $(seq 50); do sets c 'release="merged"'; sleep 0.2; [ "$(field c release)" = merged ] && [ -e "$C/loop/runs/f.json" ] && break; done
-for _ in $(seq 200); do kill -0 $oppid 2>/dev/null || break; sleep 0.1; done
+for _ in $(seq $tries); do kill -0 $oppid 2>/dev/null || break; sleep 0.1; done
 check "a merged dependency starts the goal that waited, and it ends when nothing is left" '! kill -0 $oppid 2>/dev/null && [ -e "$C/loop/runs/f.json" ] && grep -q "^NOTHING LEFT TO OPERATE" "$T/op.out"'
 kill $oppid 2>/dev/null
 touch "$FAKE_AGENT/hold-h"; $W go "Add h" --done "h works" --slug h >/dev/null; $BO cadence off >/dev/null

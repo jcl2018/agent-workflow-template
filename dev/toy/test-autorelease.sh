@@ -1,7 +1,7 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-monitoring/scripts/board_status.py
 # reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
-# reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-release/scripts/merge.py
+# reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-release/scripts/merge.py
 # reads: skills/workflow-setup/scripts/setup.py
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Proves the automatic release on a throwaway toy repo with a fake gh. usage: test-autorelease.sh [DIR]

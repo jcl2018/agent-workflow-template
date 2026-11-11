@@ -26,7 +26,7 @@ judge   (alias: suggest)
   goals count, so two runs give the same lines.
 
 - `hygiene` also reads the land lane record (`regression.py`'s record of the current branch, else the newest one) and
-  warns when its land rows took longer than `test_budget_seconds`, naming the five slowest rows and the slowest toy
+  warns when its land rows took longer than `test_budget_minutes`, naming the five slowest rows and the slowest toy
   scripts. It lists loop worktrees that no live goal names (queued, running, waiting, failed, stopped, or done with its pull
   request still open) and local branches on no remote older than `stale_branch_days`, one row per kind with the first
   five and their removal commands (all of them under `--json`). A branch whose commits exist only on this machine says

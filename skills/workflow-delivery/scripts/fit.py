@@ -21,7 +21,9 @@ budget, the private-name scan, GitHub surfaces and scripts that may write back w
 
 And the defect-test check (was defect.py): `fit.py owed SLUG` prints the issues and findings the goal fixes ("fixes #N",
 closes, resolves, "fixes finding:ID") that still lack a regression row of category defect linked to them, seen failing
-on a date and passing now, and exits 1 if any; goal.py pr calls owed() and refuses on its answer.
+on a date and passing now, and exits 1 if any; the goal's branch must have added that row or set its seen-failing date
+(regression.tsv against the merge-base with origin/<base>, E-10: an old row merely edited does not count). goal.py pr
+calls owed() and refuses on its answer.
 """
 import json
 import os
@@ -299,6 +301,7 @@ def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
     held, source = budget(seen, cfg)
     parts = ["%dm" % held["minutes"] if held["minutes"] else "", "%s tokens" % format(held["tokens"], ",") if held["tokens"] else ""]
     body = goal_text + "\n## Result\n\nSkill flow:" + "".join(step_line(step, seen) for step in STEPS) + "\n"
+    body += seen.get("pr_lane", "")  # the lane's results (lanekit.record)
     body += "\nReview depth: %s (%s).\n" % (depth, why)
     body += "Budget: %s (%s); spent %s tokens.\n" % (", ".join(p for p in parts if p) or "none set", source,
                                                      format(spent_tokens(seen), ","))
@@ -333,13 +336,29 @@ def has(link, ref):
     return re.search(r"(?:issues/|#)%s\b" % re.escape(ref), link) if ref.isdigit() else re.search(r"finding:%s(?![\w-])" % re.escape(ref), link)
 
 
+def before(root):
+    """{row id: seen_red} at the merge-base with origin/<base> (else <base>); None when there is none to compare."""
+    try:
+        with open(os.path.join(root, ".loop", "config.json")) as handle:
+            base = json.load(handle).get("base") or "main"
+    except (OSError, ValueError):
+        base = "main"
+    git = lambda *a: subprocess.run(("git",) + a, cwd=root, capture_output=True, text=True, env=dict(os.environ, LC_ALL="C"))
+    found = next((x for x in (git("merge-base", "HEAD", ref).stdout.strip() for ref in ("origin/" + base, base)) if x), "")
+    shown = git("show", found + ":.loop/regression.tsv") if found else None
+    if not shown or shown.returncode and "exists on disk" not in shown.stderr and "does not exist" not in shown.stderr:
+        return None
+    return {c[0]: (c + [""] * 5)[4] for c in (line.split("\t") for line in shown.stdout.splitlines()) if c[0][:1] not in ("", "#")}
+
+
 def owed(root, text):
-    """The refs the text fixes with no defect row that was seen failing and passes now."""
-    owe = []
+    """The refs the text fixes with no defect row this branch added or proved, seen failing and passing now (E-10)."""
+    owe, old = [], before(root)
     for number, finding in FIXES.findall(text):
         ref = number or finding.lower()
-        if not any(SEEN.match(seen) and has(link, ref) and subprocess.run(command, shell=True, cwd=root, capture_output=True).returncode == 0
-                   for _, command, seen, link in rows(root)):
+        if not any(SEEN.match(seen) and has(link, ref) and (old is None or old.get(name) != seen)
+                   and subprocess.run(command, shell=True, cwd=root, capture_output=True).returncode == 0
+                   for name, command, seen, link in rows(root)):
             owe.append(("#" if number else "finding ") + ref)
     return owe
 

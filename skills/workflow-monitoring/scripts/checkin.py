@@ -31,7 +31,7 @@ import graph  # noqa: E402
 import live_board as lb  # noqa: E402
 import pool as pl  # noqa: E402
 import replan  # noqa: E402
-import status_graph  # noqa: E402
+import board_page  # noqa: E402
 
 MARK = {"running": "running", "held": "holding", "waiting": "waiting", "failed": "stuck", "stopped": "stuck",
         "silent": "silent", "done": "awaiting merge", "queued": "queued"}
@@ -63,7 +63,7 @@ def render(root=None, at=None, stamp=None):
         left = bs.left_time(run, runs, at)
         out.append("| %s | %s | %s | %s | %s %d/8 | %s | %s |" % (
             cell(lb.worker_of(run, taken), 30), os.path.basename(root), cell(run.get("goal"), 40), MARK.get(states[run["slug"]], states[run["slug"]]),
-            lb.FLOW[step], step + 1, "?" if left is None else status_graph.span(left), cell(lb.latest_report(run) or run.get("next"), 60)))
+            lb.FLOW[step], step + 1, "?" if left is None else board_page.span(left), cell(lb.latest_report(run) or run.get("next"), 60)))
     if not live:
         out.append("| - | %s | nothing running | - | - | - | - |" % os.path.basename(root))
     changes = replan.since(root, stamp)

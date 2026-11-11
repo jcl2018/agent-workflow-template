@@ -21,12 +21,11 @@ import sys
 import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import board_lag  # noqa: E402
-bb = board_lag  # budget, depth and private-name lines
 import board_lines  # noqa: E402
+bb = board_lines  # budget, depth and private-name lines (its section 4)
 import board_status as bs  # noqa: E402
 import graph  # noqa: E402
-import status_graph  # noqa: E402
+import board_page  # noqa: E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block (board_status sets the rest).
 os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")
@@ -107,7 +106,7 @@ def flow_lines(run, over=0):
         steps = ["[freezing]"] + list(FLOW)
     else:
         here = current(run)
-        steps = ["[%s%s]" % (step, " over by " + status_graph.span(over) if over >= 60 else "") if i == here
+        steps = ["[%s%s]" % (step, " over by " + board_page.span(over) if over >= 60 else "") if i == here
                  else step + "✓" if i < here else step for i, step in enumerate(FLOW)]
     lines, line = [], "    "
     for i, step in enumerate(steps):
@@ -228,8 +227,9 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
                       % (name, entry["slug"])]
     for key in sorted(graph.LAST_BAD.get(os.path.join(loop_dir(root), "session-pool.json"), {})):
         other += ["- pool entry %s is malformed and was set aside" % key, "    fix: look at session-pool.bad.json, then delete it"]
-    other += board_lag.template_lag(root)
+    other += board_page.template_lag(root)
     other += bs.stall_lines(runs, at, root, {r["slug"] for r in runs if is_held(r, taken)})
+    other += bb.issues(root, [r for r in runs if r["slug"] not in gone])
     found = bs.wiki_check(root)
     parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]
     for run in runs:
@@ -238,7 +238,6 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
             parts.append("saved: " + plain(run["wiki_error"], 120))
     if parts:
         other += ["- wiki pages are out of date: %s" % "; ".join(dict.fromkeys(parts)), "    fix: bring those wiki pages up to date, then run the docs audit"]
-    other += bb.issues(root, [r for r in runs if r["slug"] not in gone])
     return stuck + other or ["- (none)"]
 
 
@@ -262,7 +261,7 @@ def render(root=None, at=None):
     items = bs.board_items(live, queue, freezing, lines, runs, at, root, waits)
     cfg = bs.read_json(os.path.join(root, ".loop", "config.json")) or {}
     setting = "condensed" if cfg.get("review_depth") == "condensed" else "full"
-    folder = os.path.join(loop_dir(root), "runs")  # depth decided and budget lines (board_lag.py)
+    folder = os.path.join(loop_dir(root), "runs")  # depth decided and budget lines (board_lines.py section 4)
     fits = lambda run: [p + x for p, x in (("    depth decided: ", bb.depth(run, setting, folder)), ("    ", bb.line(run, cfg, at, folder))) if x]
     head = "LIVE BOARD  %s  %s  %s  health: %s" % (os.path.basename(root), graph.clock(at), version(root), health(root))
     if len(head) > WIDTH:
@@ -300,8 +299,8 @@ def render(root=None, at=None):
                                    "  waits on " + ", ".join(waits(goal["depends"])) if waits(goal["depends"]) else ""))
     out += ([] if queue or held else ["- (none)"]) + ["", "Dependencies"]
     out += board_lines.render([dict(i, mark="held" if i["slug"] in {r["slug"] for r in held} else i["mark"]) for i in items])
-    seconds, _, _ = status_graph.chain(items)
-    missing = status_graph.unknown(items) or any(i["partial"] for i in items) or held or freezing
+    seconds, _, _ = board_page.chain(items)
+    missing = board_page.unknown(items) or any(i["partial"] for i in items) or held or freezing
     finish = "nothing left" if not items else "no estimate yet" if not seconds else "%sfinish about %s" % (
         "at least " if missing else "", graph.clock(at + datetime.timedelta(seconds=seconds)))
     return fit(out + ["", "Finish", board_lines.paused(live) or finish])
