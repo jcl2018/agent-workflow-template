@@ -316,6 +316,7 @@ reply-hook-install	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reply-hook-mon5-wording	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reply-hook-off	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reply-hook-scope	PASS	2026-11-10	
+repo-full-suite-limit	PASS	2026-11-11	
 repo-narrow-178	PASS	2026-11-10	
 report-done-final	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 report-header	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
