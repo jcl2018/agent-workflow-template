@@ -20,3 +20,25 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Run `python3 skills/workflow-health/scripts/health.py check --skip controls` in this repo.
+   Expect: twelve group headings, each with its angle, then Mine and one `HEALTH:` line, in under a minute, and no file changes (`git status` stays clean).
+2. Run `python3 skills/workflow-health/scripts/health.py preview`.
+   Expect: only `WOULD` or `SAME` lines and a `PREVIEW: N to write, nothing written` line.
+3. Run `python3 skills/workflow-health/scripts/health.py triage`.
+   Expect: the open health issues per feature with kind, count and age, and nothing written.
+4. Run `python3 skills/workflow-health/scripts/health.py review` from a Claude session.
+   Expect: a `judge: session` line, then a `JUDGE UNAVAILABLE` line naming a prompt file for an in-session subagent (with no session, as in the scheduled run, it says `judge: claude -p (no session)`).
+
+Closes #124
+Closes #158
+Closes #159
+
+## Notes for the reviewer
+
+- Issue 118 is met by docs-format's fix on main (its `enforce.py` rule and defect rows `health-not-enforced-*` and `health-unreviewed-warn-issue-118`), so this goal adds no second rule; done line 9 counts it from there.
+- First inspection (done line 7), run on the owner's answer "c" (Everything) to "which groups to file": 79 issues opened (#322 to #400), 1 linked, 4 updated, 2 closed, each on its feature's milestone and none duplicated.
+- Judge rule, in the owner's words: "wanto to reconsitder it should use session first and then claud -p later". The judge and the review run in a session first and use `claude -p` only with no session; each report logs `judge: session` or `judge: claude -p (no session)`. The review then ran in a session: 1 shallow issue kept and updated (#358), 42 closed as not confirmed (#359 to #400), 14 new (#401 to #414), 3 linked (#129, #181, #268).
+- The package allows at most 99 files, and main was at 99, so the new modules are folded into existing ones (one new `rules.py`, `references/milestones.md` folded into `commands.md`): the package builds with exactly 99 files and every script this goal changed stays under 18 KB.
+- The Automation, Documentation, Health and Regression pages show STALE against this branch's commits and have sealed Reviewed text, so they need the owner's re-review; the Tests tables are current.
+- The qa lane ran 82 of 463 selected rows in its 15-minute budget (all passed); the other 381 run in the scheduled full suite.
