@@ -12,7 +12,6 @@ import sys
 import json
 import datetime
 
-import budget
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -104,6 +103,45 @@ def sync(base):
     return "conflict", ", ".join(files) or " ".join((done.stderr or done.stdout).split())[:200]
 
 
+def goal_state(runs, slug):
+    try:
+        return json.load(open(os.path.join(runs, slug + ".json")))
+    except (OSError, ValueError):
+        return {}
+
+
+def recorded_gate(args, runs, job):
+    """A step the record already holds isn't run again by accident (DEL-7): it refuses with no try and names where the
+    goal resumes. --again reruns it on purpose: it clears that step and every later step, never tries or tokens."""
+    record = os.path.join(runs, args.slug + ".json")
+    import fit  # lazily: fit imports role
+    state = goal_state(runs, args.slug)
+    if not fit.recorded(state, args.step):
+        return
+    if not args.again:
+        head = state.get("plan_head")
+        count = git("rev-list", "--count", head + "..HEAD") if head else None
+        at = fit.resume_at(state, bool(count and count.returncode == 0 and count.stdout.strip() not in ("", "0")))
+        print("REFUSED (no try used): %s is already recorded (%s). Fix: go on with %s, or rerun it on purpose with "
+              "flow.py %s %s --again (ALREADY_RECORDED)" % (args.step, state["flow"][args.step], fit.next_command(state, at),
+                                                              args.slug, args.step))
+        sys.exit(2)
+    if os.path.exists(job) and alive(json.load(open(job)).get("pid") or 0):
+        sys.exit("REFUSED (no try used): %s is still running; let it end first (ALREADY_RECORDED)" % args.step)
+    cleared = fit.again(state, args.step)
+    for step in cleared:
+        for end in (".ran", ".asked"):
+            path = os.path.join(runs, "%s.%s%s" % (args.slug, step, end))
+            if os.path.exists(path):
+                os.remove(path)
+    state.setdefault("log", []).append("%s rerun %s on purpose: cleared %s" % (
+        datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), args.step, ", ".join(cleared)))
+    with open(record + ".%d.tmp" % os.getpid(), "w") as handle:
+        json.dump(state, handle, indent=2)
+    os.replace(record + ".%d.tmp" % os.getpid(), record)
+    print("AGAIN %s: cleared %s" % (args.step, ", ".join(cleared)))
+
+
 def after(step):
     """The label once a flow step is recorded: what comes next, never the step that just finished."""
     return {"idea": "plan", "plan": "build"}.get(step, "checks")
@@ -134,7 +172,17 @@ DEPTH = re.compile(r"^[ \t*_]*DEPTH:\s*(full|condensed)[ \t*_.]*$", re.M | re.I)
 STEP = re.compile(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", re.M | re.I)
 
 
-def depth_of(cfg):
+def depth_of(cfg, state=None, runs=None):
+    """The depth a step must run at. With a goal's state: fit.depth_for over the setting and the goal (its size and the
+    owner's override, DEL-6). Without: the setting alone."""
+    setting = setting_of(cfg)
+    if state is None:
+        return setting
+    import fit  # lazily: fit is pure, but role is imported early by everything
+    return fit.depth_for(setting, fit.view(state, runs))[0]
+
+
+def setting_of(cfg):
     """review_depth from the base branch's .loop/config.json, which a worker's worktree can't change: condensed only
     when the base branch says so, full otherwise (the default). cfg is the worktree's config, read for its base name."""
     base = (cfg or {}).get("base") or "main"
@@ -169,7 +217,124 @@ def markers(step):
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-from lane import NOTHING, alive, flow_spec, kill, lane, lane_argv, lane_status, lane_text, need_lane, wait_for  # noqa: E402,F401
+from lane import NOTHING, alive, flow_spec, kill, lane, lane_argv, lane_status, lane_text, wait_for  # noqa: E402,F401
+import lanekit  # noqa: E402
+from lanekit import FILES, REG  # noqa: E402
+
+
+def need_lane(runs, slug, reply, step="qa"):
+    """(why, fix, code) when record qa|ship must refuse (no lane passed on HEAD), else None."""
+    text = open(reply).read() if os.path.isfile(reply) else ""
+    found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I)
+    if found and found[-1].lower() == "failed" and not re.search(r"^\W*PENDING:", text, re.M):
+        return None
+    head = git("rev-parse", "HEAD").stdout.strip()
+    try:
+        ok = open(os.path.join(runs, "%s.%s-lane.ok" % (slug, step))).read().strip()
+    except OSError:
+        ok = ""
+    fix = "python3 %s lane %s %s" % (os.path.join(HERE, "role.py"), slug, step)
+    if not ok:
+        return ("the %s lane has not passed on %s" % (step, head[:12]), fix, "LANE_MISSING")
+    if ok != head:
+        return ("HEAD moved since the %s lane passed (lane on %s, HEAD %s)" % (step, ok[:12], head[:12]),
+                fix + " (reruns only the rows the change can affect)",
+                "HEAD_MOVED")
+    return None
+
+
+# goal.py pr's bookkeeping (was in lanekit.py).
+
+def git_out(*args):
+    done = subprocess.run(["git"] + list(args), capture_output=True, text=True)
+    return done.stdout.strip() if done.returncode == 0 else ""
+
+
+def issues(top):
+    tests = os.path.join(REG, "tests.py")
+    if not os.path.exists(tests) or not os.path.exists(os.path.join(top, ".loop", "regression.tsv")):
+        return
+    try:
+        done = subprocess.run([sys.executable, tests, "issues", "--write", "--root", top], capture_output=True, text=True,
+                              timeout=120, stdin=subprocess.DEVNULL)
+        why = (done.stderr.strip().splitlines() or [""])[-1] if done.returncode else ""
+    except subprocess.TimeoutExpired:
+        why = "timed out"
+    if why:
+        print("NOTE: issue states not refreshed: %s" % why[:200])
+
+
+def results(top):
+    """Run results (DX-19): workflow-regression's lanes_cli.py merge-runs, run by path (a skill never imports another's)."""
+    cli = os.path.join(REG, "lanes_cli.py")
+    if not os.path.exists(cli):
+        return
+    done = subprocess.run([sys.executable, "-B", cli, "merge-runs", "--root", top], capture_output=True, text=True,
+                          stdin=subprocess.DEVNULL)  # -B: it must not write a cache into the skill folder
+    if done.returncode:
+        why = ((done.stderr or done.stdout).strip().splitlines() or ["exit %d" % done.returncode])[-1]
+        print("NOTE: lane results not recorded in regression-runs.tsv: %s" % why[:200])
+
+
+def lane_part(slug):
+    """The pull request body's lane part (DX-21): the pr lane's LANE line, and each row with why it ran, folded."""
+    common = git_out("rev-parse", "--git-common-dir")
+    base = os.path.join(os.path.abspath(common), "loop", "runs", "%s.pr-lane" % slug) if common and slug else ""
+    try:
+        with open(base + ".last") as handle:
+            line = str(json.load(handle).get("line", "")).split("\n")[0]
+        with open(base + ".txt") as handle:
+            rows = [text.rstrip() for text in handle if text.startswith(("SELECTED ", "FULL (", "UNMAPPED "))]
+    except (OSError, ValueError):
+        return ""
+    folded = "\n\n<details><summary>Rows and why they ran</summary>\n\n```\n%s\n```\n</details>" % "\n".join(rows) if rows else ""
+    return "\n### Regression lane\n\n%s%s\n" % (line, folded) if line else ""
+
+
+def undo(top, paths):
+    """Put the uncommitted bookkeeping back to HEAD, so the next lane doesn't start on LANE_DIRTY."""
+    subprocess.run(["git", "reset", "-q", "--"] + paths, cwd=top, capture_output=True)
+    for path in paths:
+        if subprocess.run(["git", "cat-file", "-e", "HEAD:" + path], cwd=top, capture_output=True).returncode == 0:
+            subprocess.run(["git", "checkout", "-q", "HEAD", "--", path], cwd=top, capture_output=True)
+
+
+def record(state, base):
+    """Refresh issue states and run results, commit them if they changed, then note the head and base for merge.py."""
+    top = git_out("rev-parse", "--show-toplevel")
+    if top:
+        issues(top)
+        results(top)
+        changed = [path for path in FILES if git_out("status", "--porcelain", "--", path)]
+        criteria = os.path.join(os.path.dirname(REG), "..", "workflow-docs", "scripts", "criteria.py")
+        try:
+            cfg = json.load(open(os.path.join(top, ".loop", "config.json")))
+        except (OSError, ValueError):
+            cfg = {}
+        cfg = cfg if isinstance(cfg, dict) else {}
+        try:
+            if changed and os.path.exists(os.path.join(top, ".loop", "docs.tsv")) and os.path.exists(criteria):
+                subprocess.run([sys.executable, criteria, "render"], cwd=top, capture_output=True, text=True, timeout=300)
+                changed += generated(cfg)  # only the Tests tables it re-rendered: never other dirty files
+            if changed:  # a new (untracked) file must be added before --only can commit it
+                subprocess.run(["git", "add", "--"] + changed, cwd=top, capture_output=True, text=True)
+                done = subprocess.run(["git", "commit", "--only", "-q", "-m", "pr: record issue states and the lane's results",
+                                       "--"] + changed, cwd=top, capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                                      timeout=60)
+                if done.returncode:
+                    print("NOTE: the bookkeeping commit failed: %s; those files were put back (a new file stays, untracked), so "
+                          "the next pr run derives them again" % ((done.stderr or done.stdout).strip().splitlines() or ["?"])[-1])
+                    undo(top, changed)
+        except subprocess.TimeoutExpired as error:  # never crash pr after its lane passed
+            print("NOTE: the bookkeeping step timed out (%s); nothing more committed" % " ".join(error.cmd[:3]))
+            lock = os.path.join(top, git_out("rev-parse", "--git-path", "index.lock"))
+            if error.cmd[0] == "git" and os.path.exists(lock):  # only our killed commit's lock; a render takes none
+                os.remove(lock)
+            undo(top, changed)
+    state["pr_lane"] = lane_part(state.get("slug", ""))
+    head = git_out("rev-parse", "HEAD")
+    state["pr_head"] = head
+    state["pr_base"] = git_out("merge-base", head, "origin/" + base) or git_out("rev-parse", "origin/" + base)
 
 
 def bump_version(g, state, head):

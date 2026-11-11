@@ -20,6 +20,12 @@
      commit plus that bookkeeping commit) and state["pr_base"] (the base commit it was merged with), for merge.py's
      HEAD_MOVED and BASE_MOVED checks.
 Exit codes and messages: workflow-regression/references/commands.md.
+
+4. The time budgets of the loop's steps (was budget.py, folded in to keep the package under its file cap):
+step_budget_minutes (default 30) bounds each review and ship step; test_budget_minutes (default 15) bounds each test
+run (regression's runs.py enforces it). Neither can be set under 15. A step that reaches its budget finishes with what
+it has done, and its record (budget_hits in the goal's run file) names what it left; the board and health show those.
+Imported by flow.py, role.py, guards.py and the monitoring and health reports.
 """
 import fcntl
 import glob
@@ -30,7 +36,7 @@ import subprocess
 import sys
 import time
 
-import budget
+import tempfile
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -126,7 +132,7 @@ def budget_note(text, base, name):
     cut = re.findall(r"^BUDGET (\d+) min: .*?LEFT \d+ to the scheduled full suite: (.*)$", text, re.M)
     if not cut:
         return ""
-    budget.hit(os.path.dirname(base), os.path.basename(base)[:-len(".%s-lane" % name)], name, "test", int(cut[-1][0]), cut[-1][1])
+    hit(os.path.dirname(base), os.path.basename(base)[:-len(".%s-lane" % name)], name, "test", int(cut[-1][0]), cut[-1][1])
     return "\n" + re.findall(r"^BUDGET .*$", text, re.M)[-1]
 
 
@@ -179,6 +185,68 @@ def set_last(path, attempt, **fields):
             json.dump(data, handle, indent=1, sort_keys=True)
         os.replace(temp, path)
         return data
+
+
+# The lane's preparation budget (REG-7, DEL-8): what a lane does before its first row (the Tests-table prep, planning and the
+# slot wait) shares one budget, prep_budget_minutes. The lane child (lane.py lane-exec) writes one `.times` record (planning
+# seconds, slot-wait seconds and, for a cut, the part that was running); lane.py's finalize reads it here, says the three parts
+# on every LANE line, and on a cut prints LANE_PREP_BUDGET and records the hit (kind prep) so the board and health list it.
+
+def holders(pool):
+    """Labels of the lanes holding slots now, for the cut line."""
+    out = []
+    for path in sorted(glob.glob(os.path.join(pool or "", "slot-*"))):
+        label = (read_json(path) or {}).get("label")
+        if label:
+            out.append(str(label)[:60])
+    return out
+
+
+def timing(held, rc):
+    """(plan, wait, cut) seconds and part from the lane child's one .times record; zeros when absent or malformed."""
+    data = read_json(rc + ".times") or {}
+    num = lambda key: float(data[key]) if isinstance(data.get(key), (int, float)) and not isinstance(data.get(key), bool) else 0.0
+    return num("plan"), num("wait"), str(data.get("cut") or "")
+
+
+def before_rows(held, plan, wait):
+    """The LANE line's before-rows part (appended after the existing text): prep, planning and slot wait seconds."""
+    note = "; before rows: prep %ds, planning %ds, slot wait %ds" % (held.get("prep_s") or 0, plan, wait)
+    return note + ("; LOOP_PREP_BUDGET in effect" if held.get("override") else "")
+
+
+def cut_line(name, held, plan, wait, part):
+    """The LANE_PREP_BUDGET text: which part ran long, all three parts, the one shared budget, who holds the slots."""
+    got = ", ".join(holders(held.get("pool"))) or "none"
+    return ("LANE_PREP_BUDGET: the %s lane used its %s preparation budget before any row ran: %s ran long (prep %ds, "
+            "planning %ds, slot wait %ds; the three share one budget); slots held by: %s; no row ran, %s beyond the prep "
+            "commit. Fix: run the same command again (it replans on this HEAD); raise prep_budget_minutes only if prep or "
+            "planning is the part that ran long." % (name, "%ds (LOOP_PREP_BUDGET)" % held["budget"] if held.get("override") else "%d-minute" % round(held.get("budget", 0) / 60),
+                                                      part or "preparation",
+                                                      held.get("prep_s") or 0, plan, wait, got, NOTHING))
+
+
+def prep_hit(base, name, held, plan, wait, part):
+    """Record the cut on the goal's run file (kind prep), so the board and health list it with the part."""
+    left = "%s ran long (prep %ds, planning %ds, slot wait %ds)" % (part or "preparation", held.get("prep_s") or 0, plan, wait)
+    hit(os.path.dirname(base), os.path.basename(base)[:-len(".%s-lane" % name)], name, "prep",
+               round(held.get("budget", 0) / 60), left)
+
+
+def died(log):
+    return "LANE_DIED: the lane ended with no exit status (log %s); the next call starts a new lane; %s." % (log, NOTHING)
+
+
+def running_line(held, other=None):
+    if other:
+        return "WAITING: the %s lane of this goal is still running; run this same command again, or block with role.py " \
+            "lane-wait SLUG %s" % (other, other)
+    queued = held["rc"] + ".queued"
+    if os.path.exists(queued):
+        return "WAITING: %s; run this same command again" % open(queued).read().strip()
+    if "markers" in held and not os.path.exists(held["rc"] + ".started"):
+        return "RUNNING: planning the lane; run this same command again"
+    return "RUNNING: the regression lane is running; run this same command again"
 
 
 # The lane's prep commit (was tables.py).
@@ -271,130 +339,69 @@ def prep(top, cfg, log):
 
 # goal.py pr's bookkeeping (was prsteps.py).
 
-def git_out(*args):
-    done = subprocess.run(["git"] + list(args), capture_output=True, text=True)
-    return done.stdout.strip() if done.returncode == 0 else ""
+# ---- the time budgets of the loop's steps (was budget.py)
+FLOOR = 15
+DEFAULTS = {"step_budget_minutes": 30, "test_budget_minutes": 15, "prep_budget_minutes": 15}
+LEFT = re.compile(r"^\W*BUDGET:\s*left:\s*(.+)$", re.M | re.I)
 
 
-def issues(top):
-    tests = os.path.join(REG, "tests.py")
-    if not os.path.exists(tests) or not os.path.exists(os.path.join(top, ".loop", "regression.tsv")):
-        return
+def minutes(cfg, key):
+    """The setting in whole minutes; exits with a fix line when it is under the 15-minute floor or not a whole number."""
+    value = cfg.get(key, DEFAULTS[key])
+    if isinstance(value, bool) or not isinstance(value, int) or value < FLOOR:
+        sys.exit("REFUSED: %s is %r in .loop/config.json, under the %d-minute floor. Fix: set it to %d or more." % (
+            key, value, FLOOR, FLOOR))
+    return value
+
+
+def prep_seconds(cfg):
+    """(seconds, override) a lane may spend before its first row: prep_budget_minutes, or the test-only LOOP_PREP_BUDGET
+    (whole seconds, never read from config), which the lane line then says is in effect."""
+    value = os.environ.get("LOOP_PREP_BUDGET", "")
+    if value.isdigit() and int(value) > 0:
+        return int(value), True
+    return minutes(cfg, "prep_budget_minutes") * 60, False
+
+
+def label(hit):
+    """What a budget hit was: a step, preparation (before a lane's first row) or tests."""
+    return {"step": "step", "prep": "preparation"}.get(hit.get("kind"), "tests")
+
+
+def seconds(cfg, key, limit=0):
+    """Seconds a step or run may take: the budget, or the flow file's own limit when that is shorter."""
+    budget = minutes(cfg, key) * 60
+    return min(budget, limit) if limit else budget
+
+
+def left_of(text):
+    """What a reply says it left, from its last `BUDGET: left: ...` line, else ''."""
+    found = LEFT.findall(text or "")
+    return " ".join(found[-1].split())[:300] if found else ""
+
+
+def hit(runs, slug, step, kind, limit, left):
+    """Record that STEP (kind step: the step itself, test: its test run) reached its budget of LIMIT minutes and what it left."""
+    path = os.path.join(runs, slug + ".json")
     try:
-        done = subprocess.run([sys.executable, tests, "issues", "--write", "--root", top], capture_output=True, text=True,
-                              timeout=120, stdin=subprocess.DEVNULL)
-        why = (done.stderr.strip().splitlines() or [""])[-1] if done.returncode else ""
-    except subprocess.TimeoutExpired:
-        why = "timed out"
-    if why:
-        print("NOTE: issue states not refreshed: %s" % why[:200])
-
-
-def results(top):
-    """Run results (DX-19): workflow-regression's lanes_cli.py merge-runs, run by path (a skill never imports another's)."""
-    cli = os.path.join(REG, "lanes_cli.py")
-    if not os.path.exists(cli):
-        return
-    done = subprocess.run([sys.executable, "-B", cli, "merge-runs", "--root", top], capture_output=True, text=True,
-                          stdin=subprocess.DEVNULL)  # -B: it must not write a cache into the skill folder
-    if done.returncode:
-        why = ((done.stderr or done.stdout).strip().splitlines() or ["exit %d" % done.returncode])[-1]
-        print("NOTE: lane results not recorded in regression-runs.tsv: %s" % why[:200])
-
-
-def lane_part(slug):
-    """The pull request body's lane part (DX-21): the pr lane's LANE line, and each row with why it ran, folded."""
-    common = git_out("rev-parse", "--git-common-dir")
-    base = os.path.join(os.path.abspath(common), "loop", "runs", "%s.pr-lane" % slug) if common and slug else ""
-    try:
-        with open(base + ".last") as handle:
-            line = str(json.load(handle).get("line", "")).split("\n")[0]
-        with open(base + ".txt") as handle:
-            rows = [text.rstrip() for text in handle if text.startswith(("SELECTED ", "FULL (", "UNMAPPED "))]
+        with open(path) as handle:
+            state = json.load(handle)
     except (OSError, ValueError):
-        return ""
-    folded = "\n\n<details><summary>Rows and why they ran</summary>\n\n```\n%s\n```\n</details>" % "\n".join(rows) if rows else ""
-    return "\n### Regression lane\n\n%s%s\n" % (line, folded) if line else ""
+        return
+    kept = [h for h in state.get("budget_hits") or [] if not (h.get("step") == step and h.get("kind") == kind)]
+    state["budget_hits"] = kept + [{"step": step, "kind": kind, "minutes": limit, "left": left or "not stated"}]
+    with tempfile.NamedTemporaryFile("w", dir=runs, delete=False, suffix=".tmp") as handle:
+        json.dump(state, handle, indent=2)
+    os.replace(handle.name, path)
 
 
-def undo(top, paths):
-    """Put the uncommitted bookkeeping back to HEAD, so the next lane doesn't start on LANE_DIRTY."""
-    subprocess.run(["git", "reset", "-q", "--"] + paths, cwd=top, capture_output=True)
-    for path in paths:
-        if subprocess.run(["git", "cat-file", "-e", "HEAD:" + path], cwd=top, capture_output=True).returncode == 0:
-            subprocess.run(["git", "checkout", "-q", "HEAD", "--", path], cwd=top, capture_output=True)
+def reached(state, step):
+    """Whether this goal's step was stopped at its step budget (recorded by flow.py, never by the step's own words)."""
+    return any(h.get("step") == step and h.get("kind") == "step" for h in state.get("budget_hits") or [])
 
 
-def record(state, base):
-    """Refresh issue states and run results, commit them if they changed, then note the head and base for merge.py."""
-    top = git_out("rev-parse", "--show-toplevel")
-    if top:
-        issues(top)
-        results(top)
-        changed = [path for path in FILES if git_out("status", "--porcelain", "--", path)]
-        criteria = os.path.join(os.path.dirname(REG), "..", "workflow-docs", "scripts", "criteria.py")
-        try:
-            cfg = json.load(open(os.path.join(top, ".loop", "config.json")))
-        except (OSError, ValueError):
-            cfg = {}
-        cfg = cfg if isinstance(cfg, dict) else {}
-        try:
-            if changed and os.path.exists(os.path.join(top, ".loop", "docs.tsv")) and os.path.exists(criteria):
-                subprocess.run([sys.executable, criteria, "render"], cwd=top, capture_output=True, text=True, timeout=300)
-                changed += generated(cfg)  # only the Tests tables it re-rendered: never other dirty files
-            if changed:  # a new (untracked) file must be added before --only can commit it
-                subprocess.run(["git", "add", "--"] + changed, cwd=top, capture_output=True, text=True)
-                done = subprocess.run(["git", "commit", "--only", "-q", "-m", "pr: record issue states and the lane's results",
-                                       "--"] + changed, cwd=top, capture_output=True, text=True, stdin=subprocess.DEVNULL,
-                                      timeout=60)
-                if done.returncode:
-                    print("NOTE: the bookkeeping commit failed: %s; those files were put back (a new file stays, untracked), so "
-                          "the next pr run derives them again" % ((done.stderr or done.stdout).strip().splitlines() or ["?"])[-1])
-                    undo(top, changed)
-        except subprocess.TimeoutExpired as error:  # never crash pr after its lane passed
-            print("NOTE: the bookkeeping step timed out (%s); nothing more committed" % " ".join(error.cmd[:3]))
-            lock = os.path.join(top, git_out("rev-parse", "--git-path", "index.lock"))
-            if error.cmd[0] == "git" and os.path.exists(lock):  # only our killed commit's lock; a render takes none
-                os.remove(lock)
-            undo(top, changed)
-    state["pr_lane"] = lane_part(state.get("slug", ""))
-    head = git_out("rev-parse", "HEAD")
-    state["pr_head"] = head
-    state["pr_base"] = git_out("merge-base", head, "origin/" + base) or git_out("rev-parse", "origin/" + base)
-
-
-def need_lane(runs, slug, reply, step="qa"):
-    """(why, fix, code) when record qa|ship must refuse (no lane passed on HEAD), else None."""
-    text = open(reply).read() if os.path.isfile(reply) else ""
-    found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I)
-    if found and found[-1].lower() == "failed" and not re.search(r"^\W*PENDING:", text, re.M):
-        return None
-    head = git("rev-parse", "HEAD").stdout.strip()
-    try:
-        ok = open(os.path.join(runs, "%s.%s-lane.ok" % (slug, step))).read().strip()
-    except OSError:
-        ok = ""
-    fix = "python3 %s lane %s %s" % (os.path.join(HERE, "role.py"), slug, step)
-    if not ok:
-        return ("the %s lane has not passed on %s" % (step, head[:12]), fix, "LANE_MISSING")
-    if ok != head:
-        return ("HEAD moved since the %s lane passed (lane on %s, HEAD %s)" % (step, ok[:12], head[:12]),
-                fix + " (reruns only the rows the change can affect)",
-                "HEAD_MOVED")
-    return None
-
-
-def died(log):
-    return "LANE_DIED: the lane ended with no exit status (log %s); the next call starts a new lane; %s." % (log, NOTHING)
-
-
-def running_line(held, other=None):
-    if other:
-        return "WAITING: the %s lane of this goal is still running; run this same command again, or block with role.py " \
-            "lane-wait SLUG %s" % (other, other)
-    queued = held["rc"] + ".queued"
-    if os.path.exists(queued):
-        return "WAITING: %s; run this same command again" % open(queued).read().strip()
-    if "markers" in held and not os.path.exists(held["rc"] + ".started"):
-        return "RUNNING: planning the lane; run this same command again"
-    return "RUNNING: the regression lane is running; run this same command again"
+def lines(state):
+    """One line per budget hit of a run record, for the board and for health."""
+    return ["%s: %s hit its %s-minute budget; left: %s" % (
+        state.get("slug", "?"), "%s %s" % (h.get("step"), label(h)), h.get("minutes"),
+        h.get("left")) for h in state.get("budget_hits") or [] if isinstance(h, dict)]

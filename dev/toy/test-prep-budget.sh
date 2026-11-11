@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-delivery/scripts/budget.py skills/workflow-delivery/scripts/lane.py
+# reads: skills/workflow-delivery/scripts/lane.py
 # reads: skills/workflow-delivery/scripts/lanekit.py
 # reads: skills/workflow-monitoring/scripts/monitor.py skills/workflow-health/scripts/lean.py
 # reads: skills/workflow-regression/scripts/slots.py skills/workflow-setup/scripts/setup.py
@@ -53,7 +53,7 @@ PY
 
 want setting && {
 echo "== the setting"
-bp() { python3 -c 'import json, sys; sys.path.insert(0, sys.argv[1]); import budget; print(budget.prep_seconds(json.loads(sys.argv[2])))' "$S" "$1" 2>&1; }
+bp() { python3 -c 'import json, sys; sys.path.insert(0, sys.argv[1]); import lanekit; print(lanekit.prep_seconds(json.loads(sys.argv[2])))' "$S" "$1" 2>&1; }
 check "prep_budget_minutes defaults to 15 minutes" '[ "$(bp "{}")" = "(900, False)" ]'
 out=$(bp '{"prep_budget_minutes": 14}')
 check "a prep budget under 15 is refused with a fix line" 'grep -q "^REFUSED: prep_budget_minutes is 14 in .loop/config.json, under the 15-minute floor. Fix: set it to 15 or more" <<<"$out"'
@@ -109,8 +109,8 @@ _LOOP_LANE_PREP_BY=$now _LOOP_LANE_QUEUED="$T/x.queued" _LOOP_LANE_STARTED="$T/x
 check "a lane that writes no marker before its budget is cut in planning: exit 125 and one .times record naming it" '[ "$(cat "$T/x.rc")" = 125 ] && python3 -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d[\"cut\"]==\"planning\" and d[\"wait\"]==0 and d[\"plan\"]>=1 else 1)" "$T/x.rc.times"'
 echo '{ nope' > "$T/y.rc.times"
 check "a corrupt or absent .times record reads as zeros with no part" 'python3 - "$S" "$T" <<PY
-import sys; sys.path.insert(0, sys.argv[1]); import budget
-sys.exit(0 if budget.timing({}, sys.argv[2] + "/y.rc") == (0.0, 0.0, "") and budget.timing({}, sys.argv[2] + "/none.rc") == (0.0, 0.0, "") else 1)
+import sys; sys.path.insert(0, sys.argv[1]); import lanekit
+sys.exit(0 if lanekit.timing({}, sys.argv[2] + "/y.rc") == (0.0, 0.0, "") and lanekit.timing({}, sys.argv[2] + "/none.rc") == (0.0, 0.0, "") else 1)
 PY'
 check "a job written without prep_by keeps the old 4x rule while queued or planning" 'python3 - "$S" "$T" <<PY
 import sys, time; sys.path.insert(0, sys.argv[1]); import lane
@@ -144,9 +144,9 @@ want board && {
 echo "== the board and health list it with the part"
 python3 - "$S" "$RUNS" <<'PY'
 import json, sys
-sys.path.insert(0, sys.argv[1]); import budget
+sys.path.insert(0, sys.argv[1]); import lanekit
 json.dump({"slug": "h", "status": "running"}, open(sys.argv[2] + "/h.json", "w"))
-budget.hit(sys.argv[2], "h", "pr", "prep", 0, "waiting for a slot ran long (prep 0s, planning 1s, slot wait 2s)")
+lanekit.hit(sys.argv[2], "h", "pr", "prep", 0, "waiting for a slot ran long (prep 0s, planning 1s, slot wait 2s)")
 PY
 out=$(python3 "$here/skills/workflow-monitoring/scripts/monitor.py" report 2>&1); echo "$out" | grep -A3 "BUDGET HITS"
 check "the report lists the lane that hit the preparation budget and the part that ran long" 'grep -q "^- h: pr preparation hit its 0-minute budget; left: waiting for a slot ran long" <<<"$out"'
@@ -154,9 +154,9 @@ out=$(python3 -c "
 import sys; sys.path.insert(0, sys.argv[1]); import lean
 for r in lean.hit_rows('.'): print(r['state'], r['detail'])" "$here/skills/workflow-health/scripts" 2>&1)
 check "health lists it too, in the same words" 'grep -q "^INFO h: pr preparation hit its 0-minute budget; left: waiting for a slot ran long" <<<"$out"'
-check "budget.py names a prep hit the same way" 'python3 - "$S" <<PY
-import sys; sys.path.insert(0, sys.argv[1]); import budget
-sys.exit(0 if budget.label({"kind": "prep"}) == "preparation" and "pr preparation hit its 15-minute budget" in budget.lines({"slug": "h", "budget_hits": [{"step": "pr", "kind": "prep", "minutes": 15, "left": "x"}]})[0] else 1)
+check "lanekit names a prep hit the same way" 'python3 - "$S" <<PY
+import sys; sys.path.insert(0, sys.argv[1]); import lanekit
+sys.exit(0 if lanekit.label({"kind": "prep"}) == "preparation" and "pr preparation hit its 15-minute budget" in lanekit.lines({"slug": "h", "budget_hits": [{"step": "pr", "kind": "prep", "minutes": 15, "left": "x"}]})[0] else 1)
 PY'
 
 }

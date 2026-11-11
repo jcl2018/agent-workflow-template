@@ -33,8 +33,8 @@ If the user gave no done lines, write them and show them before you start. Each 
 request, by a test or by what a person can see.
 
 **Run each step through `flow.py`.** In a worker session (the default) it prints `IN SESSION`, the skill and a reply path:
-run the skill yourself, unattended (recommended answers, approve nothing, never push) and at the depth `review_depth`
-sets (`full`: never condense), write its reply ending in `DEPTH:` then `STEP:` there, run `flow.py` again for `NEXT` (or `goal.py record --in-session` with any reply file), and message the operation session at each change. No session: a headless agent.
+run the skill yourself, unattended (recommended answers, approve nothing, never push) and at the depth the prompt names
+(`review_depth`, the goal's size, the owner's `set`; never condense a full one), write its reply (with any `VERDICT:` lines) ending in `DEPTH:` then `STEP:` there, run `flow.py` again for `NEXT` (or `goal.py record --in-session` with any reply file), and message the operation session at each change. No session: a headless agent.
 
 ```text
 freeze -> idea -> plan -> build -> review -> qa -> ship -> pr -> release
@@ -116,8 +116,8 @@ This repo has both on. Say so whenever you report a goal here.
 ## When a goal stops
 
 A failed step (or a background run with no `STEP:` line) costs a try; after 3 the script files a finding and stops (exit 3).
-Stop, report it, and leave the done lines as they are. The operation session revives it with `goal.py resume`, widens
-touches with `goal.py touches`, and a `finding` on a done or merged goal only notes (`references/commands.md`).
+Stop, report it, leave the done lines. The operation revives it from its last recorded step (`goal.py resume`; `flow.py`
+refuses a recorded step without `--again`), widens touches (`touches`), sets depth, bump or budget (`set`) (`references/commands.md`).
 
 If you need an answer only the user can give:
 

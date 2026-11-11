@@ -24,8 +24,7 @@ sys.path.insert(0, HERE)
 import lanekit  # noqa: E402
 # No terminal, no waiting: a prompt from git or gh must fail, not block (lanekit sets it too).
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
-import budget  # noqa: E402
-from lanekit import NOTHING, TERMINAL, died, dirty, drop, generated, git, mtime, need_lane, prep, read_json, running_line, set_last  # noqa: E402,F401
+from lanekit import NOTHING, TERMINAL, died, dirty, drop, generated, git, mtime, prep, read_json, running_line, set_last  # noqa: E402,F401
 
 NAMES = ("qa", "ship", "pr")
 GRACE = 60  # seconds a claimed rc belongs to the caller finishing it; an older claim is an orphan the next caller finishes
@@ -132,14 +131,14 @@ def finalize(base, held, name):
     limit = limit if isinstance(limit, (int, float)) and not isinstance(limit, bool) and limit > 0 else 10
     if not kind.startswith("FULL") and took > limit * 60:  # S21: health warns too (REG-7)
         line += "; over %g min (goal_lane_minutes)" % limit
-    plan, wait, part = budget.timing(held, held["rc"])
+    plan, wait, part = lanekit.timing(held, held["rc"])
     line += lanekit.budget_note(text, base, name)  # the run stopped at its budget: say what it left
     killed = re.findall(r"^KILLED (\S+): signal (\S+) \(pid (\d+)\)", text, re.M)  # issue 435: say what stopped a row
     if killed:
         line += "; " + ", ".join("%s killed by %s (pid %s)" % k for k in killed)
     if began and began - held["started"] >= 1:
         line += " (queued %ds)" % (began - held["started"])
-    line += budget.before_rows(held, plan, wait) + lanekit.rows_line(text, ran, out)
+    line += lanekit.before_rows(held, plan, wait) + lanekit.rows_line(text, ran, out)
     status, made = "fail", generated(cfg)  # rendered Tests tables a row left are the next prep commit's (done line 5)
     after = [p for p in dirty() if p not in made]
     if rc == lanekit.EXIT_STALE:
@@ -152,8 +151,8 @@ def finalize(base, held, name):
         line += "\nLANE_DIRTY at end: a row left %s. Fix: make it clean up; %s." % (", ".join(after[:10]), NOTHING)
         ids = []
     elif rc == lanekit.EXIT_PREP:
-        line += "\n" + budget.cut_line(name, held, plan, wait, part)
-        budget.prep_hit(base, name, held, plan, wait, part)
+        line += "\n" + lanekit.cut_line(name, held, plan, wait, part)
+        lanekit.prep_hit(base, name, held, plan, wait, part)
     elif rc == 124:
         line += "\n" + lanekit.timeout_line(text, deadline(held)[1], held)
     elif rc == lanekit.EXIT_WAIT:
@@ -199,18 +198,18 @@ def lane(runs, slug, name, spec, cfg, wait=90):
         line, refusal = prep(top, cfg, base + ".txt")
         if refusal:
             return "fail", refusal, []
-        spent, (budget_s, override) = time.time() - began_prep, lanekit.budget.prep_seconds(cfg)
+        spent, (budget_s, override) = time.time() - began_prep, lanekit.prep_seconds(cfg)
         if spent >= budget_s:  # preparing the Tests tables alone used the budget: no lane is started
             cut = {"budget": budget_s, "prep_s": spent, "override": override}
-            budget.prep_hit(base, name, cut, 0, 0, "preparing the Tests tables")
-            return "fail", budget.cut_line(name, cut, 0, 0, "preparing the Tests tables"), []
+            lanekit.prep_hit(base, name, cut, 0, 0, "preparing the Tests tables")
+            return "fail", lanekit.cut_line(name, cut, 0, 0, "preparing the Tests tables"), []
         head = git("rev-parse", "HEAD").stdout.strip()
         prefix = [os.path.expanduser(part) for part in spec.get("test_record") or []]
         if prefix and not (shutil.which(prefix[0]) or os.path.isfile(prefix[0])):
             return "fail", "LANE_RECORDER: the flow file's test_record command %s isn't on this machine. Fix: install it " \
                 "or remove \"test_record\" from the flow file; %s." % (prefix[0], NOTHING), []
         seconds, source = (float(spec["limit"]), "flow file limit") if spec.get("limit") else lanekit.time_limit(top)
-        tests = lanekit.budget.minutes(cfg, "test_budget_minutes") * 60  # rows stop at it; the lane limit is a backstop
+        tests = lanekit.minutes(cfg, "test_budget_minutes") * 60  # rows stop at it; the lane limit is a backstop
         if tests + 300 < seconds:
             seconds, source = tests + 300, "test_budget_minutes"
         try:

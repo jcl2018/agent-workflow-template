@@ -8,13 +8,26 @@ without that switch keeps the owner's merge: nothing here merges there. Then it 
 releases: one version bump, a CHANGELOG entry and a published GitHub release (autorelease.py). Any failure is recorded
 on the goal as `release_error`. Where .loop/docs.tsv maps pages, it first refuses while a page the goal's paths map to is stale,
 and after the merge it publishes the wiki through wiki.py; a refused publish is recorded as `wiki_error`, not undone.
+Before merging it scans the branch and the release notes for private names (refusing, nothing merged), and holds the
+merge (REQUIREMENT_MISSING) while a criterion row the goal adds names a requirement ID no wiki page on the base names,
+where the base's pages already use that ID's prefix; otherwise a missing ID is only a NOTE.
+
+Also here (the package stays under its file cap), the release pull request, which autorelease.py calls as
+`merge.advance` when the base takes no direct push (a `pull_request` rule, or a push refused for protection): it pushes
+the release commit to `release/vX-<slug>` (force-updating only that branch on a restart), opens `Release vX (<slug>)`
+with the release notes as its body, all scanned for private names first, and merges it itself with `gh pr merge
+--merge`, never `--admin`, never through main() here, so it can't start a second release. What `gh pr view` says decides
+the next move: MERGED: VERSION at the merge commit must be vX (else RELEASE_VERSION_MISMATCH) and the release targets
+that commit; OPEN: required checks pending wait (`release_pr_waiting`, no error; the next merge.py run retries), a
+required review or a block records RELEASE_PR_BLOCKED with the owner's command, a conflict closes it and starts again
+with the next version; CLOSED: forget it and start again on the new base.
 """
 import argparse
 import datetime
 import json
 import os
-import subprocess
 import re
+import subprocess
 import sys
 
 import autorelease
@@ -98,6 +111,130 @@ def base_moved(state, cfg, top):
     return None
 
 
+def missing_ids(top, cfg, head="HEAD"):
+    """(held, noted): requirement IDs of criterion rows this goal adds that no wiki page on origin/<base> names."""
+    base = "origin/" + cfg.get("base", "main")
+    folder = (cfg.get("wiki_dir") or "docs/wiki").strip("/")
+    added = run(["git", "diff", "-U0", base + "..." + head, "--", ".loop/regression.tsv"], cwd=top).stdout
+    ids = set()
+    for line in added.splitlines():
+        cells = line[1:].split("\t") if line.startswith("+") and not line.startswith("+++") else []
+        if len(cells) > 3 and (cells[6:7] in ([], [""], ["criterion"])) and re.match(r"^[A-Z]{2,5}-\d+$", cells[3]):
+            ids.add(cells[3])
+    if not ids:
+        return [], []
+    names = run(["git", "ls-tree", "--name-only", base, folder + "/"], cwd=top).stdout.split()
+    text = "\n".join(run(["git", "show", "%s:%s" % (base, name)], cwd=top).stdout for name in names if name.endswith(".md"))
+    mine = run(["git", "ls-tree", "--name-only", head, folder + "/"], cwd=top).stdout.split()  # a page this goal adds or edits counts too
+    own = "\n".join(run(["git", "show", head + ":" + name], cwd=top).stdout for name in mine if name.endswith(".md"))
+    gone = sorted(i for i in ids if not re.search(r"\b%s\b" % re.escape(i), text + "\n" + own))
+    held = [i for i in gone if names and re.search(r"\b%s\d+\b" % re.escape(i.split("-")[0] + "-"), text)]
+    return held, [i for i in gone if i not in held]
+
+
+
+# ---- the release pull request (DEL-5, issues 134 and 154)
+FIELDS = "state,mergeStateStatus,reviewDecision,mergeCommit,statusCheckRollup,url,number"
+REVIEW = ("REVIEW_REQUIRED", "CHANGES_REQUESTED")
+PENDING = ("QUEUED", "IN_PROGRESS", "WAITING", "PENDING", "REQUESTED", "EXPECTED")
+KEYS = ("release_pr", "release_pr_branch", "release_pr_version", "release_pushed", "release_pr_waiting")
+
+
+def title_of(version, slug):
+    return "Release v%s (%s)" % (version, slug)
+
+
+def view(top, ref):
+    got = autorelease.sh(["gh", "pr", "view", ref, "--json", FIELDS], cwd=top)
+    try:
+        seen = json.loads(got.stdout) if got.returncode == 0 else {}
+    except ValueError:
+        seen = {}
+    return seen if isinstance(seen, dict) else {}
+
+
+def forget(state, why):
+    for key in KEYS:
+        state.pop(key, None)
+    release.save(state, "release PR forgotten: " + why)
+    print("RESTART the release pull request: " + why)
+
+
+def start(top, cfg, state):
+    """Push release/vX-<slug> and open its pull request; records release_pr."""
+    base, slug = cfg.get("base", "main"), state["slug"]
+    version, _ = autorelease.push_release_commit(top, cfg, state, state["release_part"], to_branch=True)
+    branch = "release/v%s-%s" % (version, slug)
+    title, body = title_of(version, slug), autorelease.notes_text(state)
+    autorelease.check(state, top, None, {"release PR title": title, "release notes": body})
+    made = autorelease.sh(["gh", "pr", "create", "--base", base, "--head", branch, "--title", title, "--body", body],
+                          cwd=top)
+    url = (made.stdout.strip().splitlines() or [""])[-1] if made.returncode == 0 else ""
+    if not url:  # a restart may find its pull request still open
+        seen = view(top, branch)
+        url = seen.get("url", "") if seen.get("state") == "OPEN" else ""
+    if not url:
+        autorelease.fail(state, "gh pr create for %s failed: %s. Side effects: branch %s pushed, no pull request "
+                         "(partial). Fix: run merge.py %s again" % (branch, (made.stderr or "").strip()[-200:], branch, slug))
+    state.update(release_pr=url, release_pr_branch=branch, release_pr_version=version)
+    release.save(state, "release PR %s opened for v%s" % (url, version))
+    print("RELEASE PR %s (%s)" % (url, title))
+
+
+def pending(seen):
+    return any(isinstance(item, dict) and (item.get("status") in PENDING or item.get("state") in PENDING)
+               for item in seen.get("statusCheckRollup") or [])
+
+
+def advance(top, cfg, state, again=False):
+    """(version, merge commit) once the release PR is merged, None while it waits. Records any error and stops."""
+    if not state.get("release_pr"):
+        start(top, cfg, state)
+    url, version, slug = state["release_pr"], state["release_pr_version"], state["slug"]
+    seen, said = view(top, url), ""
+    if seen.get("state") == "OPEN":
+        autorelease.check(state, top, None, {"release PR title": title_of(version, slug),
+                                             "release notes": autorelease.notes_text(state)})
+        merged = autorelease.sh(["gh", "pr", "merge", url, "--merge"], cwd=top)
+        said = (merged.stderr or merged.stdout).strip()[-200:]
+        seen = view(top, url)
+    status, number = seen.get("state"), seen.get("number") or url.rstrip("/").split("/")[-1]
+    if status == "MERGED":
+        oid = (seen.get("mergeCommit") or {}).get("oid") or ""
+        autorelease.sh(["git", "fetch", "-q", "origin", cfg.get("base", "main")], cwd=top)
+        found = autorelease.sh(["git", "show", "%s:%s" % (oid, cfg.get("version_file") or "VERSION")], cwd=top)
+        if oid and found.stdout.strip() != version:  # the owner set VERSION on the base by hand: release at its tip
+            tip = autorelease.sh(["git", "rev-parse", "origin/" + cfg.get("base", "main")], cwd=top).stdout.strip()
+            fixed = autorelease.sh(["git", "show", "origin/%s:%s" % (cfg.get("base", "main"), cfg.get("version_file") or "VERSION")], cwd=top)
+            oid, found = (tip, fixed) if tip and fixed.stdout.strip() == version else (oid, found)
+        if not oid or found.stdout.strip() != version:
+            autorelease.fail(state, "the release PR %s merged, but VERSION at its merge commit %s is %r, not %s; no "
+                             "release was created. Fix: set VERSION on the base by hand, then run merge.py %s "
+                             "(RELEASE_VERSION_MISMATCH)" % (url, oid[:12] or "(none)", found.stdout.strip(), version, slug))
+        state.pop("release_pr_waiting", None)
+        print("MERGED the release PR %s at %s" % (url, oid[:12]))
+        return version, oid
+    if not again and (status == "CLOSED" or (status == "OPEN" and seen.get("mergeStateStatus") in ("DIRTY", "BEHIND"))):
+        if status == "OPEN":  # another release moved VERSION first: the next version, on the new base
+            autorelease.sh(["gh", "pr", "close", url], cwd=top)
+        forget(state, "%s was %s" % (url, "closed unmerged" if status == "CLOSED" else "behind the base"))
+        return advance(top, cfg, state, again=True)
+    if status == "OPEN" and seen.get("reviewDecision") not in REVIEW and (pending(seen) or seen.get("mergeStateStatus") == "UNKNOWN"):
+        state["release_pr_waiting"] = "checks pending on %s (#%s)" % (url, number)
+        state.pop("release_error", None)
+        release.save(state, "waiting: " + state["release_pr_waiting"])
+        print("WAITING %s: required checks are pending on the release PR %s; the next merge.py %s run merges it"
+              % (slug, url, slug))
+        return None
+    state["release_tries"] = state.get("release_tries", 0) + 1
+    why = "a review is required" if seen.get("reviewDecision") in REVIEW else "it is %s, %s" % (
+        status or "unreadable", seen.get("mergeStateStatus") or said or "no reason given")
+    autorelease.fail(state, "the release PR %s (#%s) can't merge: %s; it needs the owner to approve and merge it. Fix: "
+                     "gh pr merge %s --merge, then merge.py %s. Side effects: branch %s pushed and the pull request open "
+                     "(partial); try %d (RELEASE_PR_BLOCKED)" % (url, number, why, number, slug,
+                                                                 state.get("release_pr_branch"), state["release_tries"]))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("slug")
@@ -146,9 +283,20 @@ def main():
         if moved:
             print(moved[1], file=sys.stderr)
             return moved[0]
-        autorelease.run_routines(top, cfg, state)
         autorelease.stage_notes(top, state, cfg)
         autorelease.stage_part(top, state)
+        head = "origin/" + state.get("branch", "")  # the pull request's own tip, wherever merge.py runs
+        if not state.get("branch") or run(["git", "fetch", "-q", "origin", state["branch"]], cwd=top).returncode:
+            autorelease.fail(state, "could not fetch the goal branch %s to scan it; nothing was merged (PRIVATE_LIST)" % state.get("branch"))
+        autorelease.check(state, top, "origin/" + cfg.get("base", "main"), {"release notes": autorelease.notes_text(state)}, True, head)
+        held, noted = missing_ids(top, cfg, head)
+        if held:
+            autorelease.fail(state, "criterion rows name %s, which no wiki page on origin/%s names; nothing was merged. Fix: "
+                             "merge the goal that adds their text, then merge.py %s (REQUIREMENT_MISSING)" % (
+                                 ", ".join(held), cfg.get("base", "main"), args.slug))
+        if noted:
+            print("NOTE: no wiki page on the base names %s yet; merging anyway" % ", ".join(noted))
+        autorelease.run_routines(top, cfg, state)
         done = run(["gh", "pr", "merge", state["pr"], "--merge"] + (["--match-head-commit", tested] if tested else []))
         if done.returncode:
             autorelease.fail(state, "gh could not merge %s: %s" % (state["pr"], done.stderr.strip()[-300:]))

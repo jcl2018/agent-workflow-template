@@ -283,7 +283,7 @@ out=$(python3 -c "import json,sys;sys.path.insert(0,sys.argv[1]);import lane;pri
 # Value: protects=a lane lane-wait already finished as a pass on this HEAD is not run again (review finding); fails_when=lane() preps and starts a new lane; why_new=lane-wait finalizes lanes; seam=none; no_claim=none beyond protects
 check "a lane that already passed on this HEAD returns its pass and starts nothing" '[ "$out" = "('"'"'pass'"'"', '"'"'LANE qa REUSED 1/1 in 1s'"'"')" ] && [ ! -e "$RUNS/rp.qa-lane.job" ]'
 echo "note" >> .loop/findings.md; printf '# link\tstate\tdate\treopened_at\nhttps://example.test/o/r/issues/1\topen\t2026-01-01\t\n' > .loop/regression-issues.tsv
-out=$(PATH="$T/nogh:$PATH" python3 -c "import sys;sys.path.insert(0,sys.argv[1]);import lanekit;s={'slug':'rp'};lanekit.record(s,'main')" "$S" 2>&1)
+out=$(PATH="$T/nogh:$PATH" python3 -c "import sys;sys.path.insert(0,sys.argv[1]);import role;s={'slug':'rp'};role.record(s,'main')" "$S" 2>&1)
 # Value: protects=goal.py pr's bookkeeping commit takes only the issue and run files and re-rendered Tests pages (review finding); fails_when=it sweeps any dirty .md (the loop's findings, queue or goal files) into the pull request; why_new=prsteps is new; seam=none; no_claim=none beyond protects
 check "the pr bookkeeping commit takes the issue file and never the loop's own dirty findings" '[ "$(git log -1 --format=%s)" = "pr: record issue states and the lane'"'"'s results" ] && git show --name-only --format= HEAD | grep -qx .loop/regression-issues.tsv && ! git show --name-only --format= HEAD | grep -q findings.md && git status --porcelain | grep -q findings.md'
 
