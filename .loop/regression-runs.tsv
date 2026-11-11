@@ -262,6 +262,7 @@ one-format-everywhere	PASS	2026-11-10
 one-issue	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 one-link	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 one-way-to-run	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+operate-10-under-load	PASS	2026-11-11	
 operate-all	PASS	2026-11-09	
 operate-wakes-on-report	PASS	2026-11-09	
 page-shape	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
