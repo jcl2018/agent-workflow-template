@@ -46,7 +46,7 @@ real() { # a git copy of what the repo-wide checks read (skills, docs, README, t
       "$here/.loop/regression-known.tsv" "$here/.loop/docs.tsv" "$here/.loop/config.json" "$d/real/.loop/" \
     && cp -R "$here/.loop/goals" "$d/real/.loop/" \
     && cd "$d/real" && git init -q && git add -A && git -c user.name=t -c user.email=t@t commit -qm copy \
-    && { u=$(git -C "$here" remote get-url origin 2>/dev/null) && git remote add origin "$u" || true; } || no "cannot copy the repo"  # the Tests page links runs to origin
+    && { u=$(git -C "$here/." remote get-url origin 2>/dev/null) && git remote add origin "$u" || true; } || no "cannot copy the repo"  # the Tests page links runs to origin; "$here/." not "$here": the plain form is a root runner again (issue 172)
 }
 finish() { # finish SLUG TEXT: a goal whose flow is done, with a change committed
   $goal new "$1" --here --goal "Add $1" --done "$2" >/dev/null || no "new"

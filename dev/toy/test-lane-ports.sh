@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-delivery/scripts/lane.py skills/workflow-regression/scripts/slots.py
+# reads: skills/workflow-delivery/scripts/lane.py skills/workflow-regression/scripts/slots.py skills/workflow-regression/scripts/
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
 # REG-8: lanes running side by side never share ports or temp files. Each lane child leases its own port base from
