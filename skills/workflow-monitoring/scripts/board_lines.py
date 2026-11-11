@@ -39,7 +39,7 @@ import shutil
 import subprocess
 import sys
 import time
-import status_graph
+import board_page
 
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")  # no prompt ever blocks
 
@@ -87,7 +87,7 @@ def render(items, width=WIDTH):
     known = {node["slug"] for node in items}
     nodes = [dict(node, depends=[d for d in node.get("depends") or [] if d in known]) for node in items]
     cut = cycled(nodes)
-    bands = status_graph.levels(nodes)
+    bands = board_page.levels(nodes)
     out = pack([box(node, cut) for node in bands[0]], width) if bands else []
     for band in bands[1:]:
         out += ["  |", "  v"]

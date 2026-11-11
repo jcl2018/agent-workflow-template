@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-monitoring/scripts/auto.py skills/workflow-monitoring/scripts/board.py skills/workflow-monitoring/scripts/board_lines.py
-# reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-monitoring/scripts/board_runs.py
+# reads: skills/workflow-monitoring/scripts/board_page.py
 # reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/checkin.py
 # reads:
 # reads: skills/workflow-monitoring/scripts/govern_hook.py skills/workflow-monitoring/scripts/graph.py
@@ -10,7 +10,7 @@
 # reads: skills/workflow-monitoring/scripts/replan.py
 # reads: skills/workflow-monitoring/scripts/reply_hook.py skills/workflow-monitoring/scripts/session_bind.py
 # reads: skills/workflow-monitoring/scripts/sessions.py
-# reads: skills/workflow-monitoring/scripts/status_graph.py skills/workflow-monitoring/scripts/watch.py
+# reads: skills/workflow-monitoring/scripts/watch.py
 # reads: skills/workflow-monitoring/scripts/worker.py skills/workflow-setup/scripts/setup.py
 # reads: skills/workflow-setup/scripts/settings.py skills/workflow-setup/scripts/survey.py
 # reads: skills/workflow-setup/scripts/seed.py dev/toy/fakegh/gh dev/toy/fakegh/fake.py

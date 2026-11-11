@@ -8,7 +8,7 @@ usage: board.py <command> [options]
                         NEXT_DELAY and its path
   cadence [N|off]       minutes between check-ins, 1-60 (default 30), or off
   repos add PATH|list   follow another repo (~/.workflow-loop/repos), or list them
-  note SLUG TEXT        record a worker's latest message on its run (this and retire run in board_runs.py)
+  note SLUG TEXT        record a worker's latest message on its run (this and retire run in board_page.py)
   retire SLUG --reason TEXT
   handoff [--at TIME] [--out FILE]
                         write a file a new operation session can take over from
@@ -356,9 +356,9 @@ def cmd_handoff(args):
 
 def main():
     if sys.argv[1:2] and sys.argv[1] in RUN_COMMANDS:
-        helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "board_runs.py")
+        helper = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "board_page.py")
         if not os.path.exists(helper):
-            sys.exit("REFUSED: %s needs board_runs.py beside board.py." % sys.argv[1])
+            sys.exit("REFUSED: %s needs board_page.py beside board.py." % sys.argv[1])
         return subprocess.run([sys.executable, helper] + sys.argv[1:]).returncode
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
