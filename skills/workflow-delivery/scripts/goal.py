@@ -29,7 +29,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import defect  # noqa: E402
-import prsteps  # noqa: E402
+import lanekit  # noqa: E402
 import guards  # noqa: E402
 import role
 
@@ -373,7 +373,7 @@ def cmd_pr(args):
         failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
                    "fix the failing rows, commit, then run pr again")
         return 1
-    prsteps.record(state, config()["base"])
+    lanekit.record(state, config()["base"])
     state["step"] = "pr"
     save(state, "pr")
     for wait in (2, 5, 0):

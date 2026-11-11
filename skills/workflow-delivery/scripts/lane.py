@@ -6,7 +6,7 @@ Imported by role.py, which re-exports lane, need_lane, lane_text, lane_argv and 
 for HEAD ends; never starts one) and `lane.py lane-exec ...` (a lane's child).
 A lane tests committed HEAD and never pushes. Before it starts it may make one commit: the re-rendered Tests tables and
 the run dates they come from. One lane per goal runs at a time; a lane on an older HEAD is stopped first. Its latest
-result is always at <runs>/<slug>.<name>-lane.last. Exit codes and messages: slots.py, workflow-regression/references/commands.md.
+result is always at <runs>/<slug>.<name>-lane.last. Exit codes and messages: lanekit.py, workflow-regression/references/commands.md.
 """
 import fcntl
 import json
@@ -21,10 +21,9 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REG = os.path.normpath(os.path.join(HERE, "..", "..", "workflow-regression", "scripts"))
-sys.path.insert(0, REG)
-import slots  # noqa: E402
 sys.path.insert(0, HERE)
-from tables import generated, prep  # noqa: E402
+import lanekit  # noqa: E402
+from lanekit import generated, prep  # noqa: E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -50,7 +49,7 @@ def lane_text():
 
 def flow_spec():
     try:
-        spec = json.load(open(slots.flow_file()))
+        spec = json.load(open(lanekit.flow_file()))
     except (OSError, ValueError):
         spec = {}
     return spec if isinstance(spec, dict) else {}
@@ -101,9 +100,9 @@ def deadline(held):
         return held["started"] + held["limit"], "past its time limit of %ds" % held["limit"]
     began = mtime(held["rc"] + ".started")
     if began:
-        return began + slots.lane_limit(held)[0], "past its time limit of %ds (%s)" % slots.lane_limit(held)
+        return began + lanekit.lane_limit(held)[0], "past its time limit of %ds (%s)" % lanekit.lane_limit(held)
     if os.path.exists(held["rc"] + ".queued"):
-        return max(held["started"], slots.last_change(held.get("pool") or slots.lanes_dir())) + 4 * held["limit"], \
+        return max(held["started"], lanekit.last_change(held.get("pool") or lanekit.lanes_dir())) + 4 * held["limit"], \
             "queued or planning past %ds" % (4 * held["limit"])
     return held["started"] + 4 * held["limit"], "queued or planning past %ds" % (4 * held["limit"])
 
@@ -178,7 +177,7 @@ def finalize(base, held, name):
         line += "; " + ", ".join("%s killed by %s (pid %s)" % k for k in killed)
     if began and began - held["started"] >= 1:
         line += " (queued %ds)" % (began - held["started"])
-    line += slots.rows_line(text, ran, out)
+    line += lanekit.rows_line(text, ran, out)
     status = "fail"
     try:  # rendered Tests tables a row left are the next prep commit's, not dirt (done line 5)
         wiki = json.load(open(os.path.join(git("rev-parse", "--show-toplevel").stdout.strip(), ".loop", "config.json")))
@@ -186,7 +185,7 @@ def finalize(base, held, name):
         wiki = {}
     made = generated(wiki if isinstance(wiki, dict) else {})
     after = [p for p in dirty() if p not in made]
-    if rc == slots.EXIT_STALE:
+    if rc == lanekit.EXIT_STALE:
         stop(base, held)
         set_last(base + ".last", held["attempt"], state="ended", rc=rc, note=notes, ended=now)
         return "running", "%s\nRUNNING: the lane restarts on the new plan; run this same command again" % notes, []
@@ -196,8 +195,8 @@ def finalize(base, held, name):
         line += "\nLANE_DIRTY at end: a row left %s. Fix: make it clean up; %s." % (", ".join(after[:10]), NOTHING)
         ids = []
     elif rc == 124:
-        line += "\n" + slots.timeout_line(text, deadline(held)[1], held)
-    elif rc == slots.EXIT_WAIT:
+        line += "\n" + lanekit.timeout_line(text, deadline(held)[1], held)
+    elif rc == lanekit.EXIT_WAIT:
         line += "\nLANE_BUG: the lane's child stopped waiting for a slot (exit 4), which a lane never does; %s." % NOTHING
     elif rc:
         line += "\nLANE_FAIL %s (log %s). Reproduce one: python3 %s run <id>; %s." % (
@@ -253,14 +252,14 @@ def lane(runs, slug, name, spec, cfg, wait=90):
         if prefix and not (shutil.which(prefix[0]) or os.path.isfile(prefix[0])):
             return "fail", "LANE_RECORDER: the flow file's test_record command %s isn't on this machine. Fix: install it " \
                 "or remove \"test_record\" from the flow file; %s." % (prefix[0], NOTHING), []
-        seconds, source = (float(spec["limit"]), "flow file limit") if spec.get("limit") else slots.time_limit(top)
+        seconds, source = (float(spec["limit"]), "flow file limit") if spec.get("limit") else lanekit.time_limit(top)
         try:
             handle = os.open(base + ".job", os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError:
             return "running", "RUNNING: run this same command again", []
         attempt = "%d-%d" % (os.getpid(), time.time() * 1000)
         held = {"head": head, "attempt": attempt, "started": time.time(), "limit": seconds, "source": source,
-                "rc": "%s.%s.rc" % (base, attempt), "pool": slots.lanes_dir(), "markers": 1}
+                "rc": "%s.%s.rc" % (base, attempt), "pool": lanekit.lanes_dir(), "markers": 1}
         env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", _LOOP_LANE_LABEL="%s/%s %s" % (os.path.basename(top), slug, name),
                    _LOOP_LANE_QUEUED=held["rc"] + ".queued", _LOOP_LANE_STARTED=held["rc"] + ".started",
                    _LOOP_LANE_NOTE=held["rc"] + ".note")
@@ -323,7 +322,7 @@ def wait_for(runs, slug, name, timeout=None):
                   "%s %s again" % (name, slug, "waiting" if line.startswith("WAITING") else "running", timeout, slug, name),
                   file=sys.stderr)
             return 2
-        time.sleep(slots.POLL)
+        time.sleep(lanekit.POLL)
 
 
 def need_lane(runs, slug, reply, step="qa"):
@@ -353,7 +352,7 @@ def lane_exec(rc, seconds, last, attempt, pool, argv):
     """A lane's child: run the lane in this process's own group; enforce the deadline (time limit from the started marker,
     the queue span while queued, 4x while planning) by killing the group; write .last ended, then the exit status."""
     held = {"rc": rc, "limit": seconds, "started": time.time(), "pool": pool, "markers": 1}
-    lease, port = slots.port_base()  # REG-8: its own ports, held while this child lives
+    lease, port = lanekit.port_base()  # REG-8: its own ports, held while this child lives
     if lease is None:
         with open(rc + ".note", "a") as note:
             note.write("Note: %s; LOOP_LANE_PORT_BASE unset\n" % port)

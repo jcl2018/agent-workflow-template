@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Lane slots and row-file locks. Imported by regression.py and by workflow-delivery's lane.py; not a command.
+"""Lane slots and row-file locks. Imported by regression.py and lanes_cli.py; not a command. workflow-delivery's
+lanekit.py holds exact copies of the pieces its lane.py uses (lanekit.COPIED, and EXIT_WAIT, EXIT_STALE, POLL), and
+dev/toy/test-lane-control.sh fails when a copy differs from the function here: change both together.
 
 The pool: `lane_limit` slots per machine (flow file, default 2, 0 is unlimited; LOOP_LANE_LIMIT overrides it) in
 ~/.workflow-loop/lanes (or $LOOP_LANES_DIR), a folder that must be yours and closed to others. Only a FULL lane takes a

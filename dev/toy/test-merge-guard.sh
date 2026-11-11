@@ -2,7 +2,7 @@
 # reads: skills/workflow-release/scripts/merge.py skills/workflow-release/scripts/autorelease.py
 # reads: skills/workflow-release/scripts/release.py skills/workflow-release/scripts/wiki.py
 # reads: skills/workflow-regression/scripts/lanes_cli.py skills/workflow-regression/scripts/lanes.py
-# reads: skills/workflow-regression/scripts/narrow.py skills/workflow-delivery/scripts/prsteps.py dev/toy/fakegh/gh
+# reads: skills/workflow-regression/scripts/narrow.py skills/workflow-delivery/scripts/lanekit.py skills/workflow-regression/scripts/lanes_cli.py dev/toy/fakegh/gh
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
 # REG-4 (Amendment A1c, V2, E-8): before merging, merge.py refuses when the pull request head moved since the pr lane

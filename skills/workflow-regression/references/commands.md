@@ -295,9 +295,9 @@ part is advice and never blocks.
 | LANE_STALE | slots.py | 5 | HEAD or the worktree changed while the lane waited; no rows ran | run the same command again |
 | LANE_TIMEOUT | lane.py | 124 | past its time limit (flow file `limit`, else `step_limit`); killed, rows partly ran, nothing committed or pushed | run again, or raise the setting |
 | LANE_TIMEOUT (FULL_TIMEOUT) | lane.py | 124 | a FULL goal lane passed `full_suite_minutes`; not retryable by the worker | the owner raises `full_suite_minutes` or narrows rows |
-| LANE_DIRTY | lane.py / tables.py | 1 | uncommitted changes at start, a hand edit above a page's Tests section, or a row left files behind | commit or revert them; make the row clean up |
-| LANE_PREP | tables.py | — | the lane first committed the re-rendered Tests tables and run dates | none |
-| LANE_PREP_FAILED | tables.py | 1 | that commit or the render failed or hung (60 s); nothing committed | make the commit pass, then run again |
+| LANE_DIRTY | lane.py / lanekit.py | 1 | uncommitted changes at start, a hand edit above a page's Tests section, or a row left files behind | commit or revert them; make the row clean up |
+| LANE_PREP | lanekit.py | — | the lane first committed the re-rendered Tests tables and run dates | none |
+| LANE_PREP_FAILED | lanekit.py | 1 | that commit or the render failed or hung (60 s); nothing committed | make the commit pass, then run again |
 | LANE_RECORDER | lane.py | 1 | the flow file's `test_record` command isn't on this machine | install it or remove it |
 | LANE_DIED | lane.py | 1 | the lane ended with no exit status | the next call starts a new lane |
 | LANE_MISSING / HEAD_MOVED (record) | lane.py via goal.py | 2 | `goal.py record qa\|ship` with no passing lane on this HEAD; no try is used | run `role.py lane SLUG NAME` |

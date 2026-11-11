@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-regression/scripts/ skills/workflow-delivery/scripts/
-# reads: skills/workflow-delivery/scripts/tables.py skills/workflow-delivery/scripts/role.py
+# reads: skills/workflow-delivery/scripts/lanekit.py skills/workflow-delivery/scripts/role.py
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-docs/scripts/criteria.py
 # reads: skills/workflow-docs/scripts/docs.py skills/workflow-setup/scripts/setup.py
 # Proves lane-control (issues 150, 135, 152, 168, 151): lane slots that a FULL lane waits for, FIFO and fail-open;
@@ -241,5 +241,35 @@ done
 check "two callers finishing the same lane 20 times never report LANE_DIED and leave one terminal pass" '[ $died = 0 ] && for i in $(seq 20); do python3 -c "import json,sys;assert json.load(open(sys.argv[1]))[\"state\"]==\"pass\"" "$RUNS/race$i.qa-lane.last" || exit 1; done'
 $role lane-wait nolane qa >"$T/o.out" 2>"$T/o.err"; rc=$?
 check "status lines go to stdout and the exit code says what happened (3: no lane)" '[ $rc = 3 ] && grep -q "^NO LANE" "$T/o.out" && [ ! -s "$T/o.err" ]'
+
+# Value: protects=lanekit.py's copies of the slots.py pieces lane.py uses stay the same code; fails_when=a copied
+# function (lanekit.COPIED) or EXIT_WAIT, EXIT_STALE, POLL differs from slots.py, or a name in COPIED is missing;
+# why_new=a skill may not import another's scripts, so delivery keeps copies that could drift; seam=none; no_claim=behaviour
+out=$(python3 - "$S/lanekit.py" "$R/slots.py" <<'PY'
+import ast, sys
+def parts(path):
+    text = open(path).read()
+    tree = ast.parse(text)
+    funcs = {n.name: ast.get_source_segment(text, n) for n in tree.body if isinstance(n, ast.FunctionDef)}
+    names = {}
+    for n in tree.body:
+        if isinstance(n, ast.Assign):
+            for target in n.targets:
+                for name in (target.elts if isinstance(target, ast.Tuple) else [target]):
+                    if isinstance(name, ast.Name):
+                        names[name.id] = ast.unparse(n.value)
+    return funcs, names, tree
+kit, kitnames, tree = parts(sys.argv[1])
+slots, slotnames, _ = parts(sys.argv[2])
+copied = ast.literal_eval(next(n.value for n in tree.body if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", "") == "COPIED"))
+drift = [name for name in copied if name not in kit or kit[name] != slots.get(name)]
+drift += [k for k in ("EXIT_WAIT", "EXIT_STALE", "POLL") if k not in kitnames or kitnames[k] != slotnames.get(k)]
+for name in ("flow_file", "lane_limit", "lanes_dir", "last_change", "port_base", "rows_line", "timeout_line", "time_limit"):
+    if name not in copied:
+        drift.append("%s not in COPIED" % name)
+print("drift: " + ", ".join(drift) if drift else "same")
+PY
+)
+check "every function lanekit.py copies from slots.py has exactly the same source, and the shared constants match" '[ "$out" = same ]'
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
