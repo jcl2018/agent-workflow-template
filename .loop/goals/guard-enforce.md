@@ -1,7 +1,7 @@
 # The private-name scan the template promises actually runs: setup installs a commit and pre-push check in every loop repo that scans the change against the repo's private pattern, and a push that skips the hooks is caught, so DEL-9 and SET-8 move from not enforced to enforced (owner, 2026-11-11: "create that milestone and plan ... deliver it as fast as possible"; guardrails-prd found DEL-9 and SET-8 not enforced)
 
 - Slug: guard-enforce
-- Touches: skills/workflow-setup, skills/workflow-delivery, dev/toy, .loop/regression.tsv, docs/wiki/Setup.md, docs/wiki/Delivery.md
+- Touches: skills/workflow-setup, skills/workflow-delivery, dev/toy, .loop/regression.tsv, docs/wiki/Setup.md, docs/wiki/Delivery.md, skills/workflow-release, skills/workflow-health, listing.json, docs/wiki/Tests.md
 
 ## Done lines
 
