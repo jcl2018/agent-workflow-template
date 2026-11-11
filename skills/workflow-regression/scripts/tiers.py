@@ -177,7 +177,7 @@ def summary(picked, todo, why, count, full, old):
 def suite_time(root, args, head, results, day):
     """REG-7 (S14, S25): only the plain full run `regression.py run nightly` (no row id, --reuse, --tier or --kind)
     appends `<sha> TAB full TAB <seconds> TAB <date>` to <git common dir>/loop/suite-times.tsv, outside the worktree so
-    it never dirties a lane, and prints SUITE_TIME; health's timing.py reads the newest line."""
+    it never dirties a lane, and prints SUITE_TIME; health's cost.py reads the newest line."""
     if args.target != "nightly" or args.reuse or args.tier or args.kind or not results:
         return
     seconds = int(round(sum(item["seconds"] for item in results)))
