@@ -36,12 +36,14 @@ PY
 )
 [ "$out" = "20 20" ] && ok "20 leases held at once get 20 distinct bases" || bad "leases: $out"
 python3 - "$here/skills/workflow-regression/scripts" "$d/holder.ready" <<'PY' &
-import sys, time
+import os, sys, time
 sys.path.insert(0, sys.argv[1]); import slots
+parent = os.getppid()
 held = [slots.port_base() for _ in range(100)]
-open(sys.argv[2], "w").write(str(sum(fd is not None for fd, _ in held))); time.sleep(20)
+open(sys.argv[2], "w").write(str(sum(fd is not None for fd, _ in held)))
+while os.getppid() == parent: time.sleep(0.2)  # held as long as this test lives, however slow a busy machine starts lane c
 PY
-hp=$!; for _ in $(seq 100); do [ -s "$d/holder.ready" ] && break; sleep 0.1; done
+hp=$!; for _ in $(seq 1200); do [ -s "$d/holder.ready" ] && break; sleep 0.1; done
 run_lane c; kill $hp 2>/dev/null
 [ "$(cat "$d/holder.ready")" = 100 ] && grep -q "^Note: no port lease free (100 in use); LOOP_LANE_PORT_BASE unset" "$d/c.rc.note" \
   && [ "$(cut -d' ' -f1 "$d/c.out")" = "" ] && ok "with all 100 leases held a lane runs without one and its note says so" || bad "all held: $(cat "$d/c.rc.note" 2>/dev/null)"
