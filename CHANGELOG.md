@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.27.1 - 2026-11-11
+
+- guardrails-prd: the Guardrails feature page (GRD-1..GRD-10, all Unreviewed), its Home row, README section, docs.tsv row and START.md entry
+- guardrails-prd: review fixes (citations match their owners, no sentence claims a guardrail is on, README lines true today, docs.tsv sorted)
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Open docs/wiki/Guardrails.md (or the published wiki's Guardrails page).
+   Expect: Problem, Usage, Requirements, Non-goals, Success metrics and Tests; GRD-1 to GRD-10, each **Unreviewed**, each part naming its owner feature and requirement ID or "new"; every Tests row reads not enforced.
+2. Open the wiki's Home page and the README's "How to use Guardrails" section.
+   Expect: a Guardrails row linking the page, the README section and milestone 11; the README table's four lines.
+3. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: `DOCS OK`.
+
 ## v0.27.0 - 2026-11-11
 
 - lane-control: office-hours design (approved, spec review PASS after 3 rounds)
