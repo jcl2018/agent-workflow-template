@@ -1,5 +1,116 @@
 # Changelog
 
+## v0.27.0 - 2026-11-11
+
+- lane-control: office-hours design (approved, spec review PASS after 3 rounds)
+- lane-control: slot pool (slots.py), lane.py and tables.py out of role.py, locked row writes, ship record check
+- lane-control: toy tests for the lane pool, operate waits and the load run (in progress)
+- Merge origin/main (v0.20+, 144 commits) into loop/lane-control
+- lane-control: a sweep stops only its own lane's toy processes; rows record pid and signal (issue 435)
+- lane-control: the lane-control and load toy tests source reap.sh and register cleanup with toy_on_exit
+- lane-control: a lane a poller may not signal (EPERM) counts as alive, not LANE_DIED
+- lane-control: done-line rows (goal slug:N) coexist with criteria; a missing done line fails with its fix (issue 128)
+- lane-control: test-lane-control passes 35/35; a hung prep commit no longer blocks the next one; the full Tests page is a prep path
+- lane-control: done lines count only for goals still being built (issue 143)
+- lane-control: merge.py refuses a moved PR head (exit 4) or a relevant base move (exit 2, fetch failure 3) (REG-4)
+- lane-control: check-reads hooks isolated Python launches instead of flagging them (issue 173)
+- lane-control: release notes and the CHANGELOG list each fixed issue with its defect test (REG-6)
+- lane-control: settings lane_limit (flow file, 2), goal_lane_minutes (10), full_suite_minutes (30), goal_levels, ci_levels (REG-8)
+- lane-control: test-summary and test-defect leave the repo root; regression.py reads suggests headers (issue 172, items 1 and 4)
+- lane-control: lanes.py never maps a path inside .git (issue 178)
+- lane-control: no-prompt guard in the new process-starting scripts; criteria-done control's goal is running; # reads: headers fixed; Tests page re-rendered
+- lane-control: test-defect's repo copy carries the goals and the origin URL the Tests page needs
+- Merge origin/main (owner re-review #497 and 36 more) into loop/lane-control
+- lane-control: a reopened issue's defect test shows failing (issue reopened) (REG-6)
+- lane-control: health warns on a goal lane over goal_lane_minutes or a full suite over full_suite_minutes (REG-7)
+- lane-control: goal.py pr records issue states and the lane's row results in one bookkeeping commit before it pushes
+- lane-control: prsteps writes no bytecode cache when it imports the regression modules
+- lane-control: goal tier (tiers.py): a goal lane runs the rows its change reaches, never FULL but at pr or with no merge-base; ROWS summary; FULL_TIMEOUT; run --kind (REG-4)
+- lane-control: Regression commands document --tier goal, its lines and --kind
+- lane-control: prsteps adds a new bookkeeping file before committing it, so pr never leaves it untracked
+- lane-control: each lane child gets its own TMPDIR and a leased port base (REG-8)
+- lane-control: references/lanes.md: which tests run when, every lane message with its exit and fix, clocks, settings, upgrade, alternatives
+- lane-control: test-lane-messages.sh: every lane message code has a row in references/lanes.md
+- lane-control: the workflow test kind, tests.py list --kind, one format checked across summary, wiki and health; defect rows owed only when the branch proved them (E-10)
+- lane-control: test-goal-release.sh takes a toy goal to merge and release; rows for the workflow kind, list --kind, one format and E-10
+- lane-control: the workflow kind, list --kind, one format, E-10 and goal-to-release rows seen failing on the old code
+- lane-control: results recorded for the workflow kind, list --kind, one format, E-10 and goal-to-release rows
+- lane-control: the pr bookkeeping commit re-renders the Tests tables it changes and says when it fails
+- lane-control: a local run's GitHub-issue code moves from actions.py to issues_gh.py, no behaviour change
+- lane-control: the pull request body carries the pr lane's LANE line and each row with why it ran (DX-21)
+- lane-control: FLAKY (REG-9): a row whose raw result flipped on one clean commit, runner and python is flagged, sticky, shown in list, wiki and health, never reused
+- lane-control: the plain run nightly records its suite time in the git common dir (SUITE_TIME); health.yml fetches CI's suite-time artifact
+- lane-control: regression.yml takes a checked dispatch target (BAD_TARGET), runs ci_levels on schedule and tags, and uploads its suite time
+- lane-control: narrow maps the modules an importlib user loads by quoted name; check-reads counts no read of a missing file (#173)
+- lane-control: rows for FLAKY, the suite time and the CI dispatch target and ci_levels
+- lane-control: the FLAKY, suite-time and CI target rows seen failing on the old code
+- lane-control: regression-runs.tsv writes the flaky cell only on a flagged line, so the upgrade and same-day merges change no other line
+- lane-control: results recorded for the FLAKY, suite-time and CI target rows
+- lane-control: issues_gh.py carries the no-prompt guard like every script that starts gh (DEL-10)
+- lane-control: the pr bookkeeping carries a lane row's flaky flag into regression-runs.tsv
+- release: fixes.py folds into wiki.py as fixes_lines and fixes_since
+- health: timing.py folds into cost.py as timing_rows
+- health: the workflow text says cost.py where it said timing.py
+- regression: flaky.py folds into tiers.py as flaky_apply
+- regression: issues_gh.py folds into runs.py as sync_issues
+- regression: references/lanes.md becomes the Lanes section of references/commands.md
+- listing: commands name fixes (tests.py) and reads (regression.py)
+- delivery: tables.py and prsteps.py become lanekit.py, with copies of the slots.py pieces lane.py uses
+- toy: test-tiers and test-ci-target declare the folders lanes_cli.py check says they read
+- monitoring: session_tool.py folds into session_bind.py
+- monitoring: board_runs.py, board_lag.py and status_graph.py fold into board_page.py
+- lane-control: record checks the step order before the lane; the pr-body defect check skips the folded lane rows
+- lane-control: the six rows seen failing on the old code, passing; Tests tables re-rendered
+- lane-control review: merge guards fail closed, wiki-only head moves merge, row timeouts hold, goal_levels and the over-limit note land
+- Merge remote-tracking branch 'origin/main' into loop/lane-control
+- lane-control review pass 2: orphan claims recover, a dead lane says LANE_DIED, the wiki-only move is the base's wiki folder only
+- Regression, Setup and Monitoring pages reviewed against lane-control's code commits (REG-4/7/8, SET-2 and the monitoring requirements already cover them; no wording change)
+- Tests tables re-rendered
+- lane-control review pass 3: wiki-only takes the trusted base and no symlinks, a status read never erases a live lane, fixes refuses without a known repo
+- lane-control review pass 3: rows seen failing, passing; Tests tables
+- lane-control qa: test-defect reads origin without -C $here (a root runner again), the reads headers declare the scripts folder, fixes accepts a non-GitHub origin
+- Lane: re-render the Tests tables
+- lane-control qa: test-lane-ports' 100-lease holder lives as long as the test, not a fixed 20 s
+- lane-control qa: a lane child with no port lease leaves LOOP_LANE_PORT_BASE unset instead of inheriting an outer lane's range
+- lane-control ship: merge.py refuses when a head was recorded but no base (it merged unchecked)
+- Tests tables re-rendered
+- Lane: re-render the Tests tables
+- Merge origin/main (step-budget) into loop/lane-control
+- Fit lanekit to test_budget_minutes: no FULL lane in the loop, deleted or unmapped files pick the rows that name them
+- Merge remote-tracking branch 'origin/main' into loop/lane-control
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+- Fixes #435: test two-lanes-toy-435, seen failing 2026-11-10, passing
+- Fixes #143: test done-lines-warning-143, seen failing 2026-11-10, passing
+- Fixes #173: test lanes-trace-hook-173, seen failing 2026-11-10, passing
+- Fixes #172: test narrow-root-172, seen failing 2026-11-10, passing
+- Fixes #178: test repo-narrow-178, seen failing 2026-11-10, passing
+
+### How to verify
+
+P is the package's skills folder (for example `P=~/.claude/skills` or this repo's `skills`).
+
+1. In an empty git repo run `python3 $P/workflow-setup/scripts/setup.py --bare`, add three land rows that can fail
+   (`python3 $P/workflow-regression/scripts/regression.py add r1 --level land --command "sleep 20; test ! -e broken"`,
+   r2 and r3 likewise), commit them, prove each with `regression.py red rN --break "touch broken"`, then start three
+   `LOOP_LANE_LIMIT=2 python3 $P/workflow-regression/scripts/regression.py run land` at once.
+   Expect: one prints `LANE_WAIT: 2 of 2 lane slots busy` naming the other two, and all three exit 0.
+2. While a goal's qa lane runs, run `python3 $P/workflow-delivery/scripts/role.py lane-wait SLUG qa`.
+   Expect: it blocks, then exits 0 with the `LANE qa ...` line.
+3. Rerun one row by id (`regression.py run r1`), then start the goal's lane with `role.py lane SLUG qa`.
+   Expect: `LANE_PREP: re-rendered the Tests tables (commit ...)`, then a passing lane.
+4. After a ship lane passes, make one commit and run `goal.py record SLUG ship --file F --in-session`.
+   Expect: `REFUSED (no try used): HEAD moved since the ship lane passed ...`; after `role.py lane SLUG ship`
+   passes, the same record goes through.
+5. On a toy goal that adds a file no row's `# reads:` header names, start its qa lane, then its pr lane.
+   Expect: both print `UNMAPPED <path>: no row declares it. Note: ...` and run AFFECTED (the rows that name the
+   file and the runners); neither prints `FULL`.
+6. On a toy goal whose branch added a defect row linked to an issue and seen failing, run `release.py cut SLUG`.
+   Expect: the CHANGELOG and the draft release notes list `Fixes #N: test <row>, seen failing <date>, passing`.
+7. Write `abc\tfull\t1900\t2026-11-10` into `<git common dir>/loop/suite-times.tsv` of a toy repo and run
+   `python3 $P/workflow-health/scripts/health.py check --family cost`.
+   Expect: `WARN performance full-suite time: 31 min (limit 30, the full-suite limit) ...`.
+
 ## v0.26.0 - 2026-11-11
 
 - Time budgets: tiers fit an in-loop test run, step budgets bound review and ship
