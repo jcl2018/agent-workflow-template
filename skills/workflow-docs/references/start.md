@@ -27,7 +27,7 @@ The criteria contract is `{criteria}`. The docs command finds stale pages, and t
 
 ## Regression
 Every requirement and every fixed defect has a regression row in `.loop/regression.tsv`, seen failing before its fix.
-The land lane runs once per goal, in qa, within {test_budget_seconds} seconds; the scheduled run is `{regression_cron}`.
+The land lane runs once per goal, in qa, within {test_budget_minutes} minutes (the budget; rows past it are left to the scheduled run); the scheduled run is `{regression_cron}`.
 
 ## Health
 Health checks the repo with fixed rules that give the same answer every time, on the schedule `{health_cron}`; a

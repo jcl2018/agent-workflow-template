@@ -75,7 +75,7 @@ check "a row whose declaration cannot be resolved reruns on a change that does n
 # drops sourced helpers or the UNMAPPED rule; why_new=only the wide branch had these; seam=none; no_claim=none beyond protects
 check "a narrow change reruns only its rows and a change every row reaches reruns all" '[ "$(aff skills/b/scripts/solo.py)" = "tf, tm, tx" ] && [ "$(aff dev/common.sh)" = "ta, tb, tf, th, tm, tu, tx" ]'
 printf 'new\n' > "$n/src.txt"
-check "a file no row reads is a full run (UNMAPPED)" '$L affected --root "$n" src.txt | grep -q "^UNMAPPED src.txt: full run"'
+check "a file no row reads is a full run (UNMAPPED)" '$L affected --root "$n" src.txt | grep -q "^UNMAPPED src.txt: the rows that name it"'
 out=$($L check --root "$n" dev/tx.sh dev/tf.sh dev/tu.sh); rc=$?
 check "lanes_cli.py check names each problem with its code, file:line and a fix line" '[ $rc = 1 ] && grep -q "^LANES-DECL-MISSING dev/tx.sh:2: declared path does not exist: skills/a/scripts/gone.py" <<<"$out" && grep -q "^LANES-DECL-FOLDER dev/tf.sh:3: names skills/b/scripts/" <<<"$out" && grep -q "^LANES-DECL-NONE dev/tu.sh:1" <<<"$out" && [ "$(grep -c "^fix: " <<<"$out")" = 3 ]'
 check "deps --why prints the chain from the command to a file" '[ "$($L deps --root "$n" "bash dev/tm.sh" --why skills/b/scripts/helper.py)" = "dev/tm.sh -> skills/b/scripts/b.py -> skills/b/scripts/helper.py" ]'
@@ -108,7 +108,7 @@ printf '#!/bin/bash\n# reads: skills/a/scripts/a.py\nhere=$(pwd); (cd "$here" &&
 check "a script that runs tools on the repo's own files reruns on every change" '$L deps --root "$n" "bash dev/tq.sh" | grep -q "^ALWAYS bash dev/tq.sh: runs tools on this repo.s own files"'
 printf 'import os, helper\n' > "$n/skills/b/scripts/b2.py"; printf '#!/bin/bash\n# reads: skills/b/scripts/b2.py\npython3 skills/b/scripts/b2.py\n' > "$n/dev/tl.sh"
 check "every module of an import list is followed" '$L deps --root "$n" "bash dev/tl.sh" | grep -qx "skills/b/scripts/helper.py"'
-check "affected treats a deleted file as a full run and a table edit as never unmapped" '$L affected --root "$n" skills/a/scripts/nope.py | grep -q "^DELETED skills/a/scripts/nope.py: full run" && ! $L affected --root "$n" .loop/regression.tsv | grep -q UNMAPPED'
+check "affected picks the rows naming a deleted file, never a full run, and a table edit is never unmapped" '$L affected --root "$n" skills/a/scripts/nope.py | grep -q "^DELETED skills/a/scripts/nope.py: the rows that name it" && ! $L affected --root "$n" .loop/regression.tsv | grep -q UNMAPPED'
 # Value: protects=headerless rows keep today's mapping exactly; fails_when=the shared helpers change wide behavior;
 # why_new=parity oracle for the refactor (E7); seam=LANES_WIDE; no_claim=none beyond protects
 w2=$(LANES_WIDE=1 $L affected --root "$n" skills/a/scripts/a.py 2>&1)
@@ -116,7 +116,7 @@ check "LANES_WIDE=1 maps every row wide, as before headers" '[ "$(aff skills/a/s
 cd "$d/repo" 2>/dev/null && git switch -q main 2>/dev/null
 p1=$($L affected src/a.txt 2>&1); p2=$(LANES_WIDE=1 $L affected src/a.txt 2>&1)
 check "with no headers, affected is the same with and without LANES_WIDE (wide mapping unchanged)" '[ "$p1" = "AFFECTED 1 of 2 rows (a)" ] && [ "$p1" = "$p2" ]'
-# Value: protects=a deleted helper forces a full run even when a broad row maps it; fails_when=deletions are treated as
+# Value: protects=a deleted helper picks the rows that name or map it, never a full run; fails_when=deletions are treated as
 # edits; why_new=no deletion case existed; seam=none; no_claim=renames outside skills/ and dev/
 mkdir -p skills/k/scripts; printf 'import kh\n' > skills/k/scripts/k.py; printf 'Z = 1\n' > skills/k/scripts/kh.py
 printf '#!/bin/bash\n# reads: skills/k/scripts/k.py\nprintf "k\\n" >> "$TOY_LOG"\n' > dev/k.sh  # lanes: no read (toy repo file)
@@ -142,10 +142,10 @@ fresh; out=$($reg run land --reuse); echo "$out"
 check "a table edit reruns the edited declared row and the rows that run tools on the repo root, not every row" '[ "$(ran)" = "k t " ]'
 git rm -q skills/k/scripts/kh.py; git commit -qm "Delete kh"
 fresh; out=$($reg run land --reuse); echo "$out"
-check "a deleted skill file forces a full run even when a broad row maps it" 'grep -q "^FULL: deleted skills/k/scripts/kh.py" <<<"$out"'
+check "a deleted skill file selects the rows that name or reach it, not a full run" '! grep -q "^FULL" <<<"$out" && grep -q "^UNMAPPED skills/k/scripts/kh.py" <<<"$out" && [ "$(ran)" = "k r t w " ]'
 rm skills/k/scripts/k.py
 fresh; out=$($reg run land --reuse 2>&1); echo "$out"
-check "an uncommitted deletion forces a full run too" 'grep -q "^FULL: deleted skills/k/scripts/k.py" <<<"$out"'
+check "an uncommitted deletion selects rows the same way" '! grep -q "^FULL" <<<"$out" && grep -q "^UNMAPPED skills/k/scripts/k.py" <<<"$out" && [ "$(ran)" = "k r t w " ]'
 git checkout -q -- skills/k/scripts/k.py
 echo "== check-reads.sh: runtime reads outside a row's closure fail the trace"
 c="$d/trace"; mkdir -p "$c/dev/toy" "$c/skills/workflow-regression/scripts" "$c/skills/a/scripts" "$c/.loop"

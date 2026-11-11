@@ -22,6 +22,7 @@ import subprocess
 import sys
 import time
 
+import budget as limits
 import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -30,6 +31,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 STEPS = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
+BUDGETED = ("review", "ship")  # the steps held to step_budget_minutes
 NEEDED = ("idea", "plan", "review", "qa", "ship")  # the others may stay unmapped: delivery runs them itself
 FLOW_FILE = "~/.workflow-loop/flow.json"
 BUILTIN = "built-in"  # a step mapped to this runs delivery's own routine (references/default-flow.md): no skill suite needed
@@ -212,7 +214,10 @@ def start(args, runs, reply, job):
                                  stderr=err, start_new_session=True)
     role.begin(os.path.join(runs, args.slug + ".json"), args.step)
     with open(job, "w") as handle:
-        json.dump({"pid": child.pid, "started": time.time(), "limit": spec.get("limit") or int(cfg.get("step_limit") or 0) or args.limit}, handle)
+        limit = spec.get("limit") or int(cfg.get("step_limit") or 0) or args.limit
+        if args.step in BUDGETED:  # review and ship stop at min(the flow file's limit, step_budget_minutes)
+            limit = limits.seconds(cfg, "step_budget_minutes", limit)
+        json.dump({"pid": child.pid, "started": time.time(), "limit": limit}, handle)
     print("FLOW %s: running your %s skill unattended" % (args.step, args.step))
     print("RUNNING: run this same command again")
 
@@ -238,8 +243,16 @@ def in_session(args, runs, reply, base):
         print("IN SESSION %s: no headless agent; run %s yourself in this session." % (
             args.step, "delivery's built-in routine" if skill == BUILTIN else "the %s skill" % skill))
         print(text)
+        if args.step in BUDGETED:
+            print("TIME BUDGET: %d minutes for this step. At the limit, stop, finish what you have, and add a line "
+                  "`BUDGET: left: <what you did not do>` before the DEPTH line; an overrun is recorded." % limits.minutes(
+                      repo_config(), "step_budget_minutes"))
         print("Write its reply, ending with the DEPTH line and then the STEP line, to %s, then run this same command again." % reply)
         return True
+    if args.step in BUDGETED:  # a session-run step that took longer than its budget is recorded, with what it said it left
+        mins = limits.minutes(repo_config(), "step_budget_minutes")
+        if os.path.getmtime(reply) - os.path.getmtime(asked) > mins * 60:
+            limits.hit(runs, args.slug, args.step, "step", mins, limits.left_of(text))
     os.remove(asked)
     open(base + ".ran", "w").close()
     print("\n".join(re.findall(r"^\W*(?:PENDING|STEP): .*", text, re.M)))
@@ -298,7 +311,13 @@ def main():
             return 0
         os.killpg(held["pid"], signal.SIGTERM)
         with open(reply, "a") as out:
-            out.write("\nSTEP: failed the step passed its time limit\n")
+            if args.step in BUDGETED:  # it finishes with what it has done and says what it left; the goal goes on
+                mins = round(held["limit"] / 60, 1)
+                limits.hit(runs, args.slug, args.step, "step", mins, "whatever the stopped step had not finished; see its reply")
+                out.write("\nBUDGET: left: whatever the step had not finished at its %g-minute budget\nDEPTH: condensed\n"
+                          "STEP: done stopped at its %g-minute budget\n" % (mins, mins))
+            else:
+                out.write("\nSTEP: failed the step passed its time limit\n")
     os.remove(job)
     open(base + ".ran", "w").close()
     raw = read(reply)

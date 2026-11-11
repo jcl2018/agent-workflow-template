@@ -34,7 +34,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
-import actions, lanes, runs  # noqa: E401,E402
+import actions, lanes, runs, tiers  # noqa: E401,E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -344,23 +344,9 @@ def cmd_run(args):
             ids = ", ".join(todo[:10]) + (", +%d more" % (len(todo) - 10) if len(todo) > 10 else "")
             print("AFFECTED %d of %d rows (%s): %s" % (len(todo), len(picked), ids,
                                                        " ".join(lanes.changed(root, old["commit"]) or [])[:400]))
-    results = []
-    for row in [r for r in picked if r["id"] in todo]:
-        began = time.time()
-        try:
-            done = subprocess.run(row["command"], shell=True, cwd=root, capture_output=True, text=True, env=actions.row_env(),
-                                  timeout=args.timeout)
-            code, text = done.returncode, done.stdout + done.stderr
-        except subprocess.TimeoutExpired:
-            code, text = 124, "timed out after %s seconds" % args.timeout
-        state = "PASS" if code == 0 else ("KNOWN" if row["id"] in expected else "FAIL")
-        if code == 0 and row["id"] in expected:
-            print("FIXED %s: remove it from the known list" % row["id"])
-        reason = " (%s)" % expected[row["id"]] if state == "KNOWN" else ""
-        print("%s %s%s" % (state, row["id"], reason), flush=True)
-        if state == "FAIL" and args.reuse:
-            print("\n".join("    " + line for line in text.rstrip().splitlines()[-20:]), file=sys.stderr)
-        results.append({"id": row["id"], "state": state, "tail": text[-1500:], "seconds": round(time.time() - began, 1)})
+    est = {key: item.get("seconds") or 0 for key, item in (old["rows"] if args.reuse and picked and old else {}).items()}
+    limit = (args.budget or tiers.budget(root)) if args.reuse else None  # CI's plain run is the full suite: no budget
+    results, cut = tiers.execute(root, picked, todo, est, limit, args.timeout, expected, args.reuse)
     if not args.reuse:  # a reusing run writes nothing in the worktree and opens no issue: CI's plain run owns both
         runs.write(root, results, today(), head)
     left = sorted(set(lanes.dirty(root)) - set(unclean)) if record and not unclean else []
@@ -372,8 +358,9 @@ def cmd_run(args):
         print("NOT RECORDED: the rows left uncommitted files: %s; record dropped" % ", ".join(left[:10]))
         if os.path.exists(record):
             os.remove(record)
-    elif results:
-        lanes.save(record, root, "regression.py run %s%s" % (args.target, " --reuse" if args.reuse else ""), results,
+    elif results or cut:
+        lanes.save(record, root, "regression.py run %s%s" % (args.target, " --reuse" if args.reuse else ""),
+                   results + [{"id": key, "state": "LEFT", "seconds": 0} for key in cut],
                    head, datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                    fresh=bool(args.reuse and why))
     never = [row["id"] for row in picked if not SEEN.match(row["seen_red"])]
@@ -422,6 +409,7 @@ def main():
     item.add_argument("--timeout", type=int, default=900)
     item.add_argument("--reuse", action="store_true", help="reuse this branch's last run; run only the rows a change can affect")
     item.add_argument("--live", action="store_true")
+    item.add_argument("--budget", type=int, default=0, help="seconds a --reuse run may take (default: test_budget_minutes)")
     item.set_defaults(func=cmd_run)
     sub.add_parser("workflow").set_defaults(func=cmd_workflow)
     args = parser.parse_args()

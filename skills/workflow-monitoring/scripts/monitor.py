@@ -203,6 +203,13 @@ def status_block(fragment=False):
     return subprocess.run([sys.executable, helper] + ["--html"] * fragment, capture_output=True, text=True, cwd=root()).stdout
 
 
+def over_budget(states):
+    """(slug, line) for each step or test run that reached its time budget, with what it left (the run file's budget_hits)."""
+    return [(state["slug"], "%s %s hit its %s-minute budget; left: %s" % (
+        hit.get("step"), "step" if hit.get("kind") == "step" else "tests", hit.get("minutes"), hit.get("left")))
+        for state in states for hit in state.get("budget_hits") or [] if isinstance(hit, dict)]
+
+
 def cmd_report(args):
     states, held = facts()
     print(status_block())
@@ -230,6 +237,10 @@ def cmd_report(args):
         print("- %s (%s): %s" % (state["slug"], state["status"], " ".join(str(state.get("finding", "")).split())))
     if not found:
         print("(none)")
+    over = over_budget(states)
+    if over:  # shown only when there is one, so the usual report keeps its layout
+        print("\nBUDGET HITS")
+        print("\n".join("- %s: %s" % item for item in over))
     print("\nREVIEWED CRITERIA CHANGED")
     back = returned()
     print("\n".join("- %s (%s): %s" % item for item in back) if back else "(none)")
@@ -291,7 +302,9 @@ def cmd_dashboard(args):
     found = [state for state in states if state.get("status") in ("stopped", "failed")]
     out.extend("<li><b>%s</b> (%s): %s</li>" % (e(state["slug"]), e(state["status"]), e(state.get("finding")))
                for state in found)
-    out.append(("" if found else "<li>None.</li>") + "</ul><h2>Queued, not started</h2><ul>")
+    over = over_budget(states)
+    out.append(("" if found else "<li>None.</li>") + "</ul>" + ("<h2>Budget hits</h2><ul>" + "".join(
+        "<li><b>%s</b>: %s</li>" % (e(slug), e(line)) for slug, line in over) + "</ul>" if over else "") + "<h2>Queued, not started</h2><ul>")
     out.extend("<li><b>%s</b>: %s</li>" % (e(goal["slug"]), e(why)) for goal, why in held)
     out.append(("" if held else "<li>None.</li>") + "</ul></body></html>\n")
     path = os.path.abspath(args.out) if args.out else os.path.join(loop_dir(), "dashboard.html")
