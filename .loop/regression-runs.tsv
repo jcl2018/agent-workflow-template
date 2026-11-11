@@ -189,7 +189,9 @@ landed-left-alone	PASS	2026-11-09
 lane-died-wait	PASS	2026-11-11	
 lane-messages-table	PASS	2026-11-11	
 lane-orphan-claim	PASS	2026-11-11	
+lane-orphan-poll	PASS	2026-11-11	
 lane-over-minutes	PASS	2026-11-11	
+lane-pass-dirty	PASS	2026-11-11	
 lane-pass-reused	PASS	2026-11-11	
 lane-ports-tmpdir	PASS	2026-11-11	
 lane-start-mark-once	PASS	2026-11-11	
@@ -264,6 +266,7 @@ operate-all	PASS	2026-11-09
 operate-wakes-on-report	PASS	2026-11-09	
 page-shape	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 parallel-unlimited	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+pass3-symlink-page	PASS	2026-11-11	
 pending-waits	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 pool-edges-122	PASS	2026-11-10	
 pr-body-criterion	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
