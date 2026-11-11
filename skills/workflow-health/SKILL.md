@@ -37,7 +37,7 @@ The report: `HEALTH REPORT`, the groups run and skipped, each group under a head
 (`== Tests (a skeptic's angle: do the tests prove anything?) ==`) and every rule it checked, then the last line,
 `HEALTH: green (...)` or `HEALTH: not green (...)`. Only `FAIL` and `UNREAD` turn it red (exit 1). `--json` prints the rows.
 
-The twelve groups and their rules are in `scripts/groups.py`; what each rule checks is in `references/commands.md`
+The twelve groups and their rules are in `scripts/report.py`; what each rule checks is in `references/commands.md`
 (Rules). There are exactly twelve: adding one means retiring one or raising the cap on purpose. Mine runs your own
 rules from `~/.workflow-loop/health.json`, outside the read-only and same-answer promises. Every rule has a negative
 control (`controls.py`): a throwaway repo made to break it, run by the Controls group; a rule with none stops health.py
@@ -71,7 +71,7 @@ python3 scripts/health.py file --review review.json --feature Health
 
 `preview` lists each issue that would be opened, updated, closed, reopened or linked, with its milestone and tag, and
 writes nothing. `file` is the only writer, for the named groups (or a saved review) only:
-- One issue per finding, on the milestone of the feature it is about (`feature.py`), Backlog when none fits.
+- One issue per finding, on the milestone of the feature it is about (`issues.py`), Backlog when none fits.
 - Labels: `health` plus `health:<group>`, or `health:review-<kind>` for a review finding.
 - A repeat updates the issue, a fix closes it (only when its own rule ran), and a return reopens it.
 - An open issue that already names the finding's subject gets one link comment instead of a duplicate.
@@ -98,7 +98,7 @@ refused (`REFUSED[cap]`), and no `--why` is refused (`REFUSED[why]`).
 ## Milestones and automation: `scripts/milestone.py`, `scripts/automation.py` and `scripts/mail.py`
 
 `milestone.py` (`features`, `new --all`, `attach <slug>`, `move <issue> <feature|backlog>`) makes and fills the feature
-milestones; it prints `WOULD` lines unless given `--live`. Details: `references/milestones.md`.
+milestones; it prints `WOULD` lines unless given `--live`. Details: `references/commands.md` (Milestones).
 
 ```bash
 python3 scripts/automation.py workflow [--check]

@@ -3,7 +3,7 @@ preview and file.
 
 plan() works out what each finding does: open, update, reopen, close, link or same. preview prints the plan and has no
 write path; file carries it out for the named groups (and --feature) only.
-- Each issue goes on the milestone of the feature the finding is about (feature.py), Backlog when that milestone isn't
+- Each issue goes on the milestone of the feature the finding is about (issues.py), Backlog when that milestone isn't
   there (milestone.py new --all makes them), labelled health and health:<group> (review findings: health:review-<kind>).
 - Its marker `<!-- loop-health KEY evidence=H placed=P -->` names the finding, a hash of its stable evidence and where
   file put it. An issue moves to its feature only while it is still on P, so one the owner moved stays. A repeat updates,
@@ -23,10 +23,9 @@ import subprocess
 import sys
 import urllib.parse
 
-import feature
-import ghcache
-import groups as G
-from filekeys import covering, evidence_of, key_of, legacy, title_of
+import report as G
+import issues as IS
+from issues import covering, evidence_of, key_of, legacy, title_of
 
 # No terminal, no waiting: a prompt from gh or the judge must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -36,7 +35,7 @@ if not sys.stdin or not sys.stdin.isatty():
 MARK = "<!-- loop-health %s evidence=%s placed=%s -->"
 LINK = "<!-- loop-health-link %s evidence=%s -->"
 FOUND = re.compile(r"<!-- loop-health (.+?)(?: evidence=(\w+))?(?: placed=(\S*))? -->")  # a key may hold spaces (/workflow-x verb)
-BACKLOG = feature.BACKLOG
+BACKLOG = IS.BACKLOG
 GROUPS = tuple(g for g in G.ORDER if g != "controls") + ("review",)
 DEFAULT = tuple(g for g in G.ORDER if g not in ("mine", "controls"))  # a preview with no group names these, never mine
 BAD = ("WARN", "FAIL", "UNREAD")
@@ -99,13 +98,13 @@ def held(root):
 
 def held_all(root):
     """({marker key: issue} of the health issues, every issue, why) or (None, None, why) when gh can't list them all."""
-    found, why = ghcache.issues(root)
+    found, why = IS.fetch(root)
     if found is None:
         return None, None, why
     out = {}
     for issue in sorted(found, key=lambda one: one["number"]):
         match = FOUND.search(issue.get("body") or "")
-        if match and ghcache.is_health(issue):
+        if match and IS.is_health(issue):
             seen = out.get(match.group(1))
             if seen is None or (seen.get("state") != "open" and issue.get("state") == "open"):  # an open duplicate wins
                 home = urllib.parse.unquote(match.group(3)) if match.group(3) is not None else (
@@ -122,7 +121,7 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
     miles = milestones(root) if root and found else {}
     blind = miles is None  # unreadable: keep each home by title and move nothing this run
     for item in found:
-        stone = feature.feature_of(root, item, cache)
+        stone = IS.feature_of(root, item, cache)
         if only and stone != only:
             continue
         home = BACKLOG if (not blind and miles and stone not in miles) else stone  # a missing milestone: Backlog
@@ -139,7 +138,7 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
             out.append(dict(act, kind="link", number=str(cover["number"])) if cover else dict(act, kind="open"))
             continue
         act["number"] = str(issue["number"])
-        names = [l.get("name") if isinstance(l, dict) else l for l in issue.get("labels") or []]  # gh's dicts or ghcache's names
+        names = [l.get("name") if isinstance(l, dict) else l for l in issue.get("labels") or []]  # gh's dicts or fetch's names
         act["stale"] = [t for t in names if t.startswith("health:") and t not in (act["tag"], "health:closed")]
         closed = issue.get("state", "").lower() != "open"
         if closed and "health:closed" in names and issue.get("evidence") == mark:

@@ -25,7 +25,7 @@ field() { python3 -c "import json,sys;d=json.load(sys.stdin);print([r for r in d
 
 echo "== negative controls"
 out=$($health check --group controls); echo "$out"
-n=$(cd "$S" && python3 -c "import groups; print(len(groups.RULES))")
+n=$(cd "$S" && python3 -c "import report; print(len(report.RULES))")
 [ "$n" -ge 34 ] && [ "$(grep -c '^PASS controls .* control: fires on its fixture' <<<"$out")" = "$n" ] && [ "$(grep -c '^[A-Z]* controls ' <<<"$out")" = "$n" ] && ok "every rule's control fires ($n)" || bad "controls fire"
 grep -q "/tmp\|/var/\|health-control-" <<<"$out" && bad "a control row shows a temp path" || ok "control rows carry no temp path"
 [ "$($health check --group controls)" = "$out" ] && ok "controls print the same lines twice" || bad "controls differ"
@@ -40,8 +40,8 @@ grep -q "^FAIL controls scripts control: cannot fire" <<<"$out" && grep -q "cont
 grep -q "^PASS controls findings control" <<<"$out" && ok "the other rules' controls still fire" || bad "other controls"
 # Value: protects=a new rule cannot be added without its control; fails_when=the load check is dropped; why_new=new;
 #   seam=none; no_claim=none beyond protects
-sed -i.b 's/"worktrees", "local-branches", "idle-sessions")),$/"worktrees", "local-branches", "idle-sessions", "new-rule")),/' "$broken/scripts/groups.py" && rm "$broken/scripts/groups.py.b"
-grep -q '"idle-sessions", "new-rule"))' "$broken/scripts/groups.py" || bad "the groups.py edit did not apply"
+sed -i.b 's/"worktrees", "local-branches", "idle-sessions")),$/"worktrees", "local-branches", "idle-sessions", "new-rule")),/' "$broken/scripts/report.py" && rm "$broken/scripts/report.py.b"
+grep -q '"idle-sessions", "new-rule"))' "$broken/scripts/report.py" || bad "the report.py edit did not apply"
 out=$(python3 "$broken/scripts/health.py" check 2>&1); rc=$?
 grep -q '^REFUSED: rule new-rule has no negative control. Fix: add CONTROLS\["new-rule"\] in controls.py' <<<"$out" && [ $rc = 2 ] \
   && ! grep -q "^HEALTH" <<<"$out" && ok "a rule without a control is refused before any report" || bad "refused"

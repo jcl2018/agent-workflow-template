@@ -2,18 +2,18 @@
 """Check a repo's health with fixed rules. Same repo, same answer. check writes no file and calls no model.
 
 usage: health.py check [--json] [--group NAME[,NAME]] [--skip NAME[,NAME]]
-       health.py review [--feature NAME] [--json]          (review.py; judge and suggest are aliases)
+       health.py review [--feature NAME] [--json]          (judge.py; judge and suggest are aliases)
        health.py preview [--group NAME[,NAME]] [--feature NAME] [--review FILE]
        health.py file --group NAME[,NAME] [--feature NAME] [--review FILE]
        health.py triage [--feature NAME] [--close --kind K --why WORDS [--older DAYS] [--yes] [--max N]]
 
-check prints the formal report (report.py): the twelve groups of groups.py, each under a heading with its angle, every
+check prints the formal report (report.py): the twelve groups of report.py, each under a heading with its angle, every
 rule marked pass, warn, fail or unread with its fix, then one verdict, HEALTH: green or not green. Only FAIL and UNREAD
 turn it red (exit 1). Every rule has a negative control (controls.py); a rule with none makes health.py refuse (exit 2).
 docs-check also fails an open issue with no milestone (issues.py, DOC-10); its unread row never turns the verdict red.
 preview lists what file would do and writes nothing; file writes GitHub issues on each finding's feature milestone
-(file.py, feature.py); triage lists and closes them in batches (triage.py). Rules live here and in rules_trace.py,
-rules_fresh.py and rules_guard.py; --json prints the rows.
+(file.py, issues.py); triage lists and closes them in batches (issues.py). Rules live here and in defects.py
+and rules.py; --json prints the rows.
 """
 import argparse
 import datetime
@@ -34,7 +34,7 @@ if not sys.stdin or not sys.stdin.isatty():
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    import groups as G  # noqa: E402
+    import report as G  # noqa: E402
 except ImportError:  # a lone health.py: only the rules it holds itself, in four groups, no angles
     class G:
         RULES_OF = {"size": ("scripts",), "requirements": ("rows", "proof", "done"), "docs": ("docs-check",),
@@ -215,7 +215,7 @@ def hard_unread(item):
 def rule_functions():
     """Each rule -> the function that checks it (and that its control calls)."""
     lean, extra = sibling_module("lean"), {}
-    for name in ("rules_trace", "rules_fresh", "rules_guard"):
+    for name in ("defects", "rules"):
         module = sibling_module(name)
         extra.update(module.FUNCTIONS if module else {})
     found = {"scripts": size_rows, "rows": criteria_rows, "proof": criteria_rows, "done": criteria_rows,
@@ -354,7 +354,7 @@ def tests_block(root):
 
 
 def main():
-    commands = sibling_module("commands")
+    commands = sibling_module("report")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     item = sub.add_parser("check", help="run the fixed rules")

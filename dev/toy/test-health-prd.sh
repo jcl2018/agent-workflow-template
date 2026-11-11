@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-health/scripts/ skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/donelines.py
+# reads: skills/workflow-health/scripts/
 # reads: dev/toy/fakegh/gh dev/toy/fakegh/fake.py
 # Proves the owner-approved Health PRD on throwaway repos with a stand-in for GitHub and stand-in judges: the twelve groups
 # and their angles (HLT-2), feature milestones, links and migration (HLT-4), the review and its evidence (HLT-5, HLT-9),
@@ -40,10 +40,10 @@ out=$($H check 2>&1)
 heads=$(grep '^== ' <<<"$out" | sed 's/ (.*//; s/^== //' | tr '\n' '|')
 check "check runs exactly the twelve groups in order, plus Mine" '[ "$heads" = "Requirements|Traceability|Consistency|Docs|Freshness|Tests|Performance|Security and privacy|Size|Hygiene|Adoption|Mine|Controls|" ]'
 check "each group heading prints its angle" 'grep -q "^== Tests (a skeptic.s angle: do the tests prove anything?) ==" <<<"$out" && grep -q "^== Security and privacy (a leak.s angle: can anything private escape?) ==" <<<"$out"'
-n=$(python3 -c "import sys;sys.path.insert(0,'$S');import groups;print(len(groups.RULES))")
+n=$(python3 -c "import sys;sys.path.insert(0,'$S');import report;print(len(report.RULES))")
 check "every rule has a negative control that fires" '[ "$(grep -c "^PASS controls .* control: fires on its fixture" <<<"$out")" = "$n" ] && [ "$n" -ge 30 ]'
-mkdir -p "$d/g13"; sed 's/^GROUPS = (/GROUPS = (("extra", "Extra", "x", ()),/' "$S/groups.py" > "$d/g13/groups.py"
-check "groups.py refuses a thirteenth group" 'python3 -c "import sys;sys.path.insert(0,\"$d/g13\");import groups" 2>&1 | grep -q "AssertionError: exactly 12 groups"'
+mkdir -p "$d/g13"; sed 's/^GROUPS = (/GROUPS = (("extra", "Extra", "x", ()),/' "$S/report.py" > "$d/g13/report.py"
+check "report.py refuses a thirteenth group" 'python3 -c "import sys;sys.path.insert(0,\"$d/g13\");import report" 2>&1 | grep -q "AssertionError: exactly 12 groups"'
 fi
 
 if want h4; then
@@ -61,7 +61,7 @@ PY
 out=$($H preview --group size,consistency 2>&1)
 check "an old marker is moved to the new key, not closed" 'grep -q "^WOULD update #1 size:skills/calc/scripts/near.py:scripts on Calc" <<<"$out" && ! grep -q "close #1" <<<"$out"'
 check "a finding with no feature lands on Backlog, tagged with its group" 'grep -q "^WOULD open issue .health: consistency /workflow-zzz frob usage-readme. on Backlog \[health:consistency\]" <<<"$out"'
-pf=$(r=$PWD; cd "$S" && python3 -B -c "import feature; print(feature.feature_of('$r', {'subject': 'Calc', 'evidence': 'Calc'}))" 2>&1)
+pf=$(r=$PWD; cd "$S" && python3 -B -c "import issues; print(issues.feature_of('$r', {'subject': 'Calc', 'evidence': 'Calc'}))" 2>&1)
 check "a page-level finding (a stale page) lands on that page's milestone ($pf)" '[ "$pf" = Calc ]'
 $H file --group size,consistency >/dev/null 2>&1
 m=$(python3 -c "import json;print([i['milestone']['title'] for i in json.load(open('$FAKE_GH_DIR/issues.json')) if i['number']==1][0])")
@@ -180,17 +180,10 @@ fi
 
 
 if want i124; then
-echo "== issue 124: older repos can go green: goals without tokens, done lines before adoption"
-# Value: protects=#124; fails_when=no tokens recorded turns health red, or old goals' done lines keep sync from ever passing;
+echo "== issue 124: older repos can go green: goals without tokens"
+# Value: protects=#124; fails_when=no tokens recorded turns health red;
 # why_new=defect test; seam=none; no_claim=none beyond protects
 mkrepo
-mkdir -p .loop/goals; printf '# Old\n\n## Done lines\n\n1. Calc adds.\n' > .loop/goals/old.md
-git add -A; GIT_COMMITTER_DATE=2020-01-01T00:00:00 git commit -qm old
-mkdir -p .git/loop/runs; printf '{"slug": "old", "status": "running"}' > .git/loop/runs/old.json  # a goal still being built owes its done lines
-out=$(python3 "$here/skills/workflow-regression/scripts/regression.py" sync 2>&1)
-python3 -c "import json;c=json.load(open('.loop/config.json'));c['done_lines_since']='2021-01-01';json.dump(c,open('.loop/config.json','w'))"
-out2=$(python3 "$here/skills/workflow-regression/scripts/regression.py" sync 2>&1)
-check "with done_lines_since set, a goal frozen before it owes no done-line row" 'grep -q "^GAP old:1" <<<"$out" && ! grep -q "^GAP old:1" <<<"$out2"'
 mkdir -p .git/loop/runs; printf '{"slug": "old", "status": "done", "updated": "2026-01-01T03:00:00Z", "log": ["2026-01-01T00:00:00Z queued", "2026-01-01T01:00:00Z build"]}' > .git/loop/runs/old.json
 out=$($H check --group performance 2>&1)
 check "a finished goal with no tokens recorded is INFO, never UNREAD, and the check stays green" 'grep -q "^INFO performance tokens cost: no tokens recorded" <<<"$out" && ! grep -q "^UNREAD" <<<"$out" && tail -1 <<<"$out" | grep -q "^HEALTH: green"'

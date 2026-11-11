@@ -18,7 +18,7 @@ hygiene, adoption, mine, controls (criteria and cost still work for one release,
 
 ## Rules
 
-Each rule belongs to one group (`scripts/groups.py`) and has a negative control (`controls.py`, plus each rule module's
+Each rule belongs to one group (`scripts/report.py`) and has a negative control (`controls.py`, plus each rule module's
 `CONTROLS`). A rule that needs gh says `INFO: gh not available here` without it; a rule about this machine says
 `not applicable here` where its state is absent. Ages and counts appear only in a warning's detail, so two checks of an
 unchanged repo print the same lines.
@@ -27,7 +27,7 @@ unchanged repo print the same lines.
 |---|---|---|
 | Requirements (is every promise I approved proven?) | `rows` | a criterion has no regression row (FAIL) |
 | | `proof` | a row is a draft with no command or level (FAIL) |
-| | `done` | done lines have no regression row, as one WARN; goals frozen before `done_lines_since` owe none |
+| | `done` | done lines of a goal still being built have no regression row, as one WARN |
 | Traceability (can I follow any work end to end?) | `defect-tests` | closed work has no defect test (FAIL) |
 | | `row-requirement` | a row guards an id no page defines and isn't a done line `slug:N` (FAIL) |
 | Consistency (do the pages agree?) | `ids-unique` | a requirement id is defined on two pages (FAIL) |
@@ -74,7 +74,7 @@ Mine runs the owner's own rules from `~/.workflow-loop/health.json` (or `LOOP_HE
 anything else UNREAD. It runs the owner's commands, so it is outside the read-only and same-answer promises, and it is
 filed only when named.
 
-Adding a rule: write `fn(root) -> rows` in a rule module, add its name to its group in `groups.py`, list it in the
+Adding a rule: write `fn(root) -> rows` in a rule module, add its name to its group in `report.py`, list it in the
 module's `FUNCTIONS`, and add a fixture to its `CONTROLS` that makes it fire. Health refuses to load until the control exists.
 
 ## Review, filing and triage
@@ -212,3 +212,81 @@ written workflow older than the skills (`STALE_WORKFLOW`) or one not written by 
 `mail.py send` (the `mail` job, after the digest) mails the round's comment at most once, by Cloudflare Email or SMTP
 (`digest_mail`), to the address in the `DIGEST_TO` secret; `mail.py test` (`mail-test.yml`, by hand) sends one fixed mail.
 Codes and fixes are in the Automation wiki page.
+
+## Milestones: commands and flows
+
+Moved from the wiki page, which is now only a summary, criteria and tests.
+
+### Milestone commands
+
+```text
+features
+new FEATURE|backlog|--all [--live]
+attach SLUG [--live]
+move ISSUE FEATURE|backlog [--live]
+```
+
+- `features` lists the features: the pages in the page map except Home.
+- `new` creates the milestone for one feature, the `Backlog`, or all of them, and nothing that already exists.
+- `attach` puts a goal's pull request in the milestone of the feature its touched files belong to. The pull request step
+  of the delivery skill runs it, and a failure never stops the goal.
+- `move` puts an issue in a feature's milestone, or back on the `Backlog`.
+
+Each one prints what it would do and writes nothing unless you pass `--live` or set `GH_TOKEN` or `GITHUB_TOKEN`. None
+of them closes, deletes or merges anything. The `file --group` command of [Health](Health) files findings on their feature's milestone, or on the `Backlog` when
+no feature fits.
+
+### Stage charts
+
+Amber marks where the command stops for the owner. [Home](Home) says what each status means. "Toy test" means a throwaway repo with stand-ins for GitHub.
+
+#### `new`
+
+```mermaid
+flowchart LR
+  a["Read the milestones that exist"]
+  b["Create the missing ones"]
+  a --> b
+```
+
+Status: built and proven: Read the milestones that exist; Create the missing ones. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests with a stand-in for GitHub. No real milestone exists on this repo yet.
+
+#### `attach`
+
+```mermaid
+flowchart LR
+  a["Find the feature from the goal's touches"]
+  b["Put the pull request in its milestone"]
+  a --> b
+```
+
+Status: built and proven: Find the feature from the goal's touches; Put the pull request in its milestone. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests with a stand-in for GitHub. It has never run on a real pull request.
+
+#### `move`
+
+```mermaid
+flowchart LR
+  a["Choose the feature or the Backlog"]
+  b["Put the issue in that milestone"]
+  a --> b
+```
+
+Status: built and proven: Choose the feature or the Backlog; Put the issue in that milestone. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests with a stand-in for GitHub.
+
+#### `features`
+
+```mermaid
+flowchart LR
+  a["List the pages in the page map except Home"]
+  a
+```
+
+Status: built and proven: List the pages in the page map except Home. Built only: none. Planned: none.
+Stops for the owner: none.
+Proof: toy tests use it through `new --all`.

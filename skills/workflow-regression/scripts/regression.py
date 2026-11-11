@@ -20,7 +20,7 @@ usage: regression.py <command> [options]
 
 Rows live in .loop/regression.tsv: id, level, command, goal, seen_red, description, category, link. Each run records its rows' last status and
 date and run (Actions URL or commit sha) in .loop/regression-runs.tsv (runs.py), which the wiki Tests tables show. Known failures live in .loop/regression-known.tsv: id, reason. A known failure never blocks. A row never seen failing does.
-Goals frozen before done_lines_since (config) owe no done-line rows. Issues dry-run unless GH_TOKEN or GITHUB_TOKEN is set, or you pass --live. It runs git, gh and your test
+Issues dry-run unless GH_TOKEN or GITHUB_TOKEN is set, or you pass --live. It runs git, gh and your test
 commands, and nothing else.
 """
 import argparse
@@ -147,8 +147,17 @@ def active(root, slug):
 
 
 def gaps(root):
-    import donelines  # done lines with no row; goals frozen before done_lines_since owe none (issue 124)
-    return donelines.gaps(root, read_rows(root), path_of, done_lines, active)
+    rows = read_rows(root)
+    covered = {row["goal"] for row in rows.values() if row["goal"]}
+    out = []
+    for path in sorted(glob.glob(path_of(root, "goals/*.md"))):
+        slug = os.path.basename(path)[:-3]
+        if not active(root, slug):  # issue 143: a finished goal's done lines are history, its criteria rows guard them
+            continue
+        for number, line in done_lines(path):
+            if "%s:%s" % (slug, number) not in covered:
+                out.append((slug, number, line))
+    return out
 
 
 def criteria_ids(root):

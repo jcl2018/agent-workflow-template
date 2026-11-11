@@ -31,7 +31,7 @@ class Leaked(Exception):
 
 
 def clear_cache():
-    module = sys.modules.get("ghcache")
+    module = sys.modules.get("issues")
     if module:
         module.CACHE.clear()
 
@@ -200,7 +200,7 @@ CONTROLS = {
     "worktrees": ("hygiene", "worktrees", f_worktrees),
     "local-branches": ("hygiene", "local-branches", f_local_branches),
 }
-for _module in ("rules_trace", "rules_fresh", "rules_guard"):
+for _module in ("defects", "rules"):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     try:
         CONTROLS.update(importlib.import_module(_module).CONTROLS)
