@@ -37,7 +37,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
-import actions, issues_gh, lanes, runs, slots, tiers  # noqa: E401,E402
+import actions, lanes, runs, slots, tiers  # noqa: E401,E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -352,7 +352,7 @@ def cmd_run(args):
             key, os.path.abspath(__file__), key))
     if not args.reuse:
         live = args.live or bool(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
-        issues_gh.sync_issues(results, live, today())
+        runs.sync_issues(results, live, today())
     failed = [item["id"] for item in results if item["state"] == "FAIL"]
     kept = [old["rows"][key]["status"] for key in reused]  # a reused known failure still counts as known
     passed = sum(item["state"] == "PASS" for item in results) + kept.count("PASS")
