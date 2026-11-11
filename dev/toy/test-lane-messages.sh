@@ -13,7 +13,7 @@ ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 doc="$here/skills/workflow-regression/references/commands.md"
 codes=$(cat "$here"/skills/workflow-regression/scripts/*.py "$here"/skills/workflow-delivery/scripts/*.py "$here/skills/workflow-release/scripts/merge.py" \
-  | grep -oE '\b(LANE_[A-Z_]+|UNMAPPED|FULL_TIMEOUT|FLAKY|KILLED|SUITE_TIME|BASE_MOVED|BASE_FETCH|HEAD_MOVED|NO LANE|WAITING)\b' | sort -u)
+  | grep -oE '\b(LANE_[A-Z_]+|UNMAPPED|FLAKY|KILLED|SUITE_TIME|BASE_MOVED|BASE_FETCH|HEAD_MOVED|NO LANE|WAITING)\b' | sort -u)
 missing=""
 for c in $codes; do grep -q "^| [^|]*$c" "$doc" || missing="$missing $c"; done
 [ -n "$codes" ] && [ -z "$missing" ] && ok "every code the scripts print has a row in references/commands.md ($(echo $codes | wc -w | tr -d ' ') codes)" || bad "codes with no row:$missing"

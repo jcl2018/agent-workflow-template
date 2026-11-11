@@ -32,9 +32,10 @@ GRACE = 60  # seconds a claimed rc belongs to the caller finishing it; an older 
 flow_spec = lanekit._flow  # the flow file as a dict ({} when missing or bad)
 
 
-def lane_argv():
+def lane_argv(seconds=0):
     """The one lane command, resolved from this package: every prompt, run and receipt uses exactly this."""
-    return ["python3", os.path.join(REG, "regression.py"), "run", "land", "--reuse", "--tier", "goal"]
+    return ["python3", os.path.join(REG, "regression.py"), "run", "land", "--reuse", "--tier", "goal"] + (
+        ["--budget", str(int(seconds))] if seconds else [])
 
 
 def lane_text():
@@ -75,7 +76,7 @@ def mtime(path):
 
 
 def deadline(held):
-    """The liveness clock: the limit from the started marker; 4x while queued (from the last slot change) or planning."""
+    """The liveness clock: the limit from the started marker; 4x while queued or planning."""
     if "markers" not in held:
         return held["started"] + held["limit"], "past its time limit of %ds" % held["limit"]
     began = mtime(held["rc"] + ".started")
@@ -88,7 +89,7 @@ def deadline(held):
 
 
 def live(held):
-    """A lane job still ours and running: no exit status yet, inside its deadline (else the pid may be another's)."""
+    """A lane job still ours and running: no exit status yet, inside its deadline."""
     return not os.path.exists(held["rc"]) and time.time() < deadline(held)[0] + 60 and alive(held["pid"])
 
 
@@ -125,7 +126,7 @@ def stop(base, held):
         kill(held["pid"])
     drop(base + ".job")
     if held:
-        drop(*[held["rc"] + end for end in ("", ".queued", ".started", ".note", ".claimed", ".limit")])
+        drop(*[held["rc"] + end for end in ("", ".queued", ".started", ".note", ".claimed")])
 
 
 def died(log):
@@ -171,6 +172,7 @@ def finalize(base, held, name):
     limit = limit if isinstance(limit, (int, float)) and not isinstance(limit, bool) and limit > 0 else 10
     if not kind.startswith("FULL") and took > limit * 60:  # S21: health warns too (REG-7)
         line += "; over %g min (goal_lane_minutes)" % limit
+    line += lanekit.budget_note(text, base, name)  # the run stopped at its budget: say what it left
     killed = re.findall(r"^KILLED (\S+): signal (\S+) \(pid (\d+)\)", text, re.M)  # issue 435: say what stopped a row
     if killed:
         line += "; " + ", ".join("%s killed by %s (pid %s)" % k for k in killed)
@@ -249,6 +251,9 @@ def lane(runs, slug, name, spec, cfg, wait=90):
             return "fail", "LANE_RECORDER: the flow file's test_record command %s isn't on this machine. Fix: install it " \
                 "or remove \"test_record\" from the flow file; %s." % (prefix[0], NOTHING), []
         seconds, source = (float(spec["limit"]), "flow file limit") if spec.get("limit") else lanekit.time_limit(top)
+        tests = lanekit.budget.minutes(cfg, "test_budget_minutes") * 60  # rows stop at it; the lane limit is a backstop
+        if tests + 300 < seconds:
+            seconds, source = tests + 300, "test_budget_minutes"
         try:
             handle = os.open(base + ".job", os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError:
@@ -267,7 +272,7 @@ def lane(runs, slug, name, spec, cfg, wait=90):
             if line:
                 log.write(line + "\n")
             child = subprocess.Popen([sys.executable, os.path.abspath(__file__), "lane-exec", held["rc"], str(seconds),
-                                      base + ".last", attempt, held["pool"], "--"] + prefix + lane_argv(), stdout=log,
+                                      base + ".last", attempt, held["pool"], "--"] + prefix + lane_argv(tests), stdout=log,
                                      stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, start_new_session=True, env=env)
         held["pid"] = child.pid
         os.write(handle, json.dumps(held).encode())
@@ -288,8 +293,7 @@ def lane(runs, slug, name, spec, cfg, wait=90):
 
 
 def lane_status(runs, slug, name):
-    """Status-and-finalize without spawning, killing, rendering or committing: (state, line); state is running, pass,
-    fail or none (no lane for HEAD)."""
+    """Status-and-finalize without spawning or committing: (state, line): running, pass, fail or none."""
     head = git("rev-parse", "HEAD").stdout.strip()
     base, held = job_of(runs, slug, name)
     if held and held.get("head") == head:
@@ -308,7 +312,7 @@ def lane_status(runs, slug, name):
 
 
 def wait_for(runs, slug, name, timeout=None):
-    """role.py lane-wait: block while this HEAD's lane runs; exit 0 pass, 1 fail, 2 timeout (it keeps running), 3 none."""
+    """role.py lane-wait: block while this HEAD's lane runs; exit 0 pass, 1 fail, 2 timeout, 3 none."""
     until = time.time() + timeout if timeout else None
     while True:
         state, line = lane_status(runs, slug, name)
@@ -324,7 +328,7 @@ def wait_for(runs, slug, name, timeout=None):
 
 
 def need_lane(runs, slug, reply, step="qa"):
-    """(why, fix, code) when record qa|ship must refuse (no lane passed on HEAD), else None; a failed-try reply skips it."""
+    """(why, fix, code) when record qa|ship must refuse (no lane passed on HEAD), else None."""
     text = open(reply).read() if os.path.isfile(reply) else ""
     found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I)
     if found and found[-1].lower() == "failed" and not re.search(r"^\W*PENDING:", text, re.M):
@@ -339,13 +343,13 @@ def need_lane(runs, slug, reply, step="qa"):
         return ("the %s lane has not passed on %s" % (step, head[:12]), fix, "LANE_MISSING")
     if ok != head:
         return ("HEAD moved since the %s lane passed (lane on %s, HEAD %s)" % (step, ok[:12], head[:12]),
-                fix + " (reruns only the rows the change can affect; a path no row maps is left to the full suite)",
+                fix + " (reruns only the rows the change can affect)",
                 "HEAD_MOVED")
     return None
 
 
 def lane_exec(rc, seconds, last, attempt, pool, argv):
-    """A lane's child: run the lane in its own group, kill the group past deadline(), write .last ended, then the rc."""
+    """A lane's child: run the lane in its own group, kill it past deadline(), write .last ended, then the rc."""
     held = {"rc": rc, "limit": seconds, "started": time.time(), "pool": pool, "markers": 1}
     lease, port = lanekit.port_base()  # REG-8: its own ports, held while this child lives
     if lease is None:
@@ -398,7 +402,7 @@ def main(argv):
         cfg = json.load(open(os.path.join(git("rev-parse", "--show-toplevel").stdout.strip(), ".loop", "config.json")))
         status, line, _ = lane(runs, argv[1], argv[2], flow_spec(), cfg)
         print(line, file=sys.stderr if status == "fail" else sys.stdout)
-        return 0 if status != "fail" else 124 if "(FULL_TIMEOUT)" in line else 1
+        return 0 if status != "fail" else 1
     print("usage: role.py lane SLUG qa|ship|pr            start or poll a goal's regression lane\n"
           "       role.py lane-wait SLUG qa|ship|pr [--timeout S]   block until the lane for HEAD ends")
     return 0 if argv in ([], ["-h"], ["--help"]) else 2

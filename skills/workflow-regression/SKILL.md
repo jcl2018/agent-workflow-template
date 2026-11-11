@@ -89,8 +89,7 @@ the files they name (narrowly under a `# reads:` header, below; else a skill fol
 | `REUSED <n> rows from <commit> (<time>)` | Nothing changed: no test ran |
 | `AFFECTED <n> of <m> rows (<ids>): <files>` | Only the rows the changed files can affect ran |
 | `FULL: <reason>` | Every row ran: no record, an unreadable one, one with a failing row, or a moved base |
-| `UNMAPPED <file>: full run` | A changed file no row reads, outside the docs and release files: every row ran |
-| `FULL: deleted <file>` | A file outside the release and loop files was deleted: every row ran |
+| `UNMAPPED <file>: ...` | A changed or deleted file no row maps: the rows that name it and the runners ran, never every row |
 | `ALWAYS <id>: <code> <what>` | A row whose header has a problem; it runs on every change until fixed |
 | `NOT RECORDED: <reason>` | Uncommitted changes or a detached HEAD: tested, but the record is unchanged |
 | `NOT RECORDED: the rows left uncommitted files: <files>; record dropped` | The rows left files behind: the record is deleted, so the next run is full |

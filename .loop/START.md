@@ -65,7 +65,6 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `digest_mail` | cloudflare | How the round's digest is mailed: cloudflare (Email Service), smtp, or off; the address and keys live only in Actions secrets. |
 | `digest_owner` | none | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). |
 | `full_auto` | true | true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait. |
-| `full_suite_minutes` | 30 | Minutes the full suite may take before health warns; also a full goal lane's time limit. |
 | `goal_lane_minutes` | 10 | Minutes a goal's regression lane may take before health warns and its LANE line says over. |
 | `goal_levels` | land | Row levels a goal lane plans from: land, or nightly for land and nightly rows. |
 | `govern_hook` | true | false turns off the govern-only hook (setup.py --govern-hook installs it): edits, commits and pushes refused in the operation session. |

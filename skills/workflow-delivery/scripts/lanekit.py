@@ -29,6 +29,8 @@ import re
 import subprocess
 import sys
 
+import budget
+
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
@@ -106,20 +108,23 @@ def last_change(pool):
 
 
 def lane_limit(held):
-    """(seconds, source) of a lane's time limit: a FULL goal lane's full_suite_minutes (tiers.py writes <rc>.limit)."""
-    try:
-        return float(open(held["rc"] + ".limit").read()), "full_suite_minutes"
-    except (OSError, ValueError, KeyError):
-        return held["limit"], held.get("source", "flow file limit")
+    """(seconds, source) of a lane's time limit."""
+    return held["limit"], held.get("source", "flow file limit")
 
 
 def timeout_line(text, why, held):
-    """The LANE_TIMEOUT line; a FULL goal lane's is FULL_TIMEOUT, which the worker never reruns (DX-16)."""
-    if re.search(r"^FULL \(", text, re.M):
-        return ("LANE_TIMEOUT (FULL_TIMEOUT): the full suite passed its %g min limit; not retryable by the worker. Fix: the "
-                "owner raises full_suite_minutes or narrows rows; rerunning times out again" % (lane_limit(held)[0] / 60))
+    """The LANE_TIMEOUT line."""
     return ("LANE_TIMEOUT: %s; the lane was killed, rows partly ran, nothing committed or pushed. Fix: run the same "
             "command again, or raise the flow file \"limit\" (else step_limit)." % why)
+
+
+def budget_note(text, base, name):
+    """The BUDGET line of a run that stopped at its test budget (kept on the goal's record), else ''."""
+    cut = re.findall(r"^BUDGET (\d+) min: .*?LEFT \d+ to the scheduled full suite: (.*)$", text, re.M)
+    if not cut:
+        return ""
+    budget.hit(os.path.dirname(base), os.path.basename(base)[:-len(".%s-lane" % name)], name, "test", int(cut[-1][0]), cut[-1][1])
+    return "\n" + re.findall(r"^BUDGET .*$", text, re.M)[-1]
 
 
 def rows_line(text, ran, log):

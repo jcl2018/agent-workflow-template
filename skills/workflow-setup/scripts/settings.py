@@ -47,7 +47,6 @@ TABLE = [
     ("risky_paths", REPO, RISKY, "Regexes for paths whose goals need extra care."),
     ("step_limit", REPO, 0, "Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit."),
     ("goal_lane_minutes", REPO, 10, "Minutes a goal's regression lane may take before health warns and its LANE line says over."),
-    ("full_suite_minutes", REPO, 30, "Minutes the full suite may take before health warns; also a full goal lane's time limit."),
     ("goal_levels", REPO, "land", "Row levels a goal lane plans from: land, or nightly for land and nightly rows."),
     ("ci_levels", REPO, "nightly", "Target of the scheduled and tag regression runs: nightly (every row) or land."),
     ("token_budget", REPO, 0, "Tokens a goal may spend over all steps before no new step starts; 0 means no budget."),

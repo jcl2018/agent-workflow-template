@@ -5,9 +5,9 @@ same answer twice. Seconds per step come from the log gaps (board_status.seconds
 Budgets are time_budget_minutes and token_budget in .loop/config.json. No model, no network.
 
 timing_rows is REG-7 for the same cost group: a goal's regression lane over goal_lane_minutes, or the newest full suite
-over full_suite_minutes, is a WARN row (rule time, counted under the cost rule). Goal lanes: each
+over 30 minutes (SUITE_LIMIT), is a WARN row (rule time, counted under the cost rule). Goal lanes: each
 `<slug>.<name>-lane.last` in <git common dir>/loop/runs of a goal still being built (its run record not done, failed,
-retired or stopped); its LANE line gives the time. FULL lanes are left to full_suite_minutes. The full suite: the newest
+retired or stopped); its LANE line gives the time. A lane that planned FULL has no merge-base and is left out. The full suite: the newest
 `full` line of <git common dir>/loop/suite-times.tsv (sha, kind, seconds, date), written by a plain
 `regression.py run nightly` here or downloaded from the CI run by the scheduled health job. No line: an INFO row saying
 how to get one. Reads only local files: no network. workflow-regression/references/commands.md.
@@ -128,6 +128,9 @@ def timing_row(state, subject, detail, fix=""):
     return {"state": state, "family": "cost", "subject": subject, "rule": "time", "detail": detail, "fix": fix}
 
 
+SUITE_LIMIT = 30  # minutes the scheduled full suite may take before health warns (REG-7)
+
+
 def limits(root):
     try:
         with open(os.path.join(root, ".loop", "config.json")) as handle:
@@ -136,7 +139,7 @@ def limits(root):
         cfg = {}
     cfg = cfg if isinstance(cfg, dict) else {}
     num = lambda key, default: cfg[key] if isinstance(cfg.get(key), (int, float)) and cfg[key] > 0 else default  # noqa: E731
-    return num("goal_lane_minutes", 10), num("full_suite_minutes", 30), cfg
+    return num("goal_lane_minutes", 10), SUITE_LIMIT, cfg
 
 
 def common(root):
@@ -182,9 +185,9 @@ def suite_rows(common_dir, suite_limit, cfg):
                     else "the scheduled health job downloads CI's time; locally, run regression.py run nightly")]
     sha, _, seconds, day = full[-1][:4]
     minutes, source = int(seconds) // 60, "CI artifact" if len(full[-1]) > 4 and full[-1][4] == "ci" else "local run"
-    text = "%d min (limit %d, full_suite_minutes), from %s on %s (%s)" % (minutes, suite_limit, source, day, sha[:12])
+    text = "%d min (limit %d, the full-suite limit), from %s on %s (%s)" % (minutes, suite_limit, source, day, sha[:12])
     if int(seconds) > suite_limit * 60:
-        return [timing_row("WARN", "full-suite", text, "narrow the rows (regression.py reads ROW) or raise full_suite_minutes")]
+        return [timing_row("WARN", "full-suite", text, "narrow the rows (regression.py reads ROW) or move the slowest to nightly")]
     return [timing_row("PASS", "full-suite", "suite: " + text)]
 
 

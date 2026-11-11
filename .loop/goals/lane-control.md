@@ -38,10 +38,10 @@ P is the package's skills folder (for example `P=~/.claude/skills` or this repo'
    Expect: `REFUSED (no try used): HEAD moved since the ship lane passed ...`; after `role.py lane SLUG ship`
    passes, the same record goes through.
 5. On a toy goal that adds a file no row's `# reads:` header names, start its qa lane, then its pr lane.
-   Expect: qa prints `UNMAPPED <path>: no row declares it. Note: ...` and runs AFFECTED; pr prints
-   `FULL (unmapped <path> at pr)`.
+   Expect: both print `UNMAPPED <path>: no row declares it. Note: ...` and run AFFECTED (the rows that name the
+   file and the runners); neither prints `FULL`.
 6. On a toy goal whose branch added a defect row linked to an issue and seen failing, run `release.py cut SLUG`.
    Expect: the CHANGELOG and the draft release notes list `Fixes #N: test <row>, seen failing <date>, passing`.
 7. Write `abc\tfull\t1900\t2026-11-10` into `<git common dir>/loop/suite-times.tsv` of a toy repo and run
    `python3 $P/workflow-health/scripts/health.py check --family cost`.
-   Expect: `WARN performance full-suite time: 31 min (limit 30, full_suite_minutes) ...`.
+   Expect: `WARN performance full-suite time: 31 min (limit 30, the full-suite limit) ...`.

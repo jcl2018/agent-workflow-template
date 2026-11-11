@@ -247,16 +247,16 @@ only; bash reads are covered by the static rules above.
 A goal lane runs `run land --reuse --tier goal` (`scripts/tiers.py`). It plans from the branch's record only when
 the record's merge-base with the base branch is the current one (else from the merge-base, plus what a base merge
 brought in) and runs the rows a change reaches, new or edited rows, root runners and the record's failures; it takes a
-lane slot only when FULL, and a FULL goal lane's time limit is `full_suite_minutes`. Without `--tier` nothing changes.
+lane slot only when it has no plan to follow (FULL, no merge-base). It stays within `test_budget_minutes`: rows run in tier
+order while their estimated seconds fit, and the rest is left to the scheduled full suite (`BUDGET` line). Its own time
+limit is the flow file's, else `test_budget_minutes` plus five minutes. Without `--tier` nothing changes.
 
 | Line | Means |
 |---|---|
-| `SELECTED <id>: <reason>` | Why a row runs: `reaches <file>`, `new row`, `root runner`, `failure rerun` or `FULL` |
+| `SELECTED <id>: <reason>` | Why a row runs: `reaches <file>`, `new row`, `root runner`, `names an unmapped path`, `failure rerun` or `FULL` |
 | `ROWS: S selected (A affected, N new, R root runners, F failure reruns), U reused; unmapped: K` | The plan; the LANE line repeats it with the unfinished count and the log path |
-| `UNMAPPED <file>: no row declares it. Note: ...` / `UNMAPPED <file>: deleted. Note: ...` | qa and ship: advisory; the pr lane runs the full suite once for it |
-| `FULL (unmapped <file> at pr): ...` / `FULL (deleted <file>): ...` | The pr lane runs every row once for a path no row maps |
-| `FULL (no merge-base with <base>): ...` | A shallow clone or a missing base ref: every row runs |
-| `LANE_TIMEOUT (FULL_TIMEOUT): ...` | A FULL goal lane passed `full_suite_minutes` (exit 124); the worker does not rerun it |
+| `UNMAPPED <file>: no row declares it. Note: ...` / `UNMAPPED <file>: deleted. Note: ...` | Every lane: advisory; the rows that name the file and the runners run, never the full suite |
+| `FULL (no merge-base with <base>): ...` | A shallow clone or a missing base ref: every row is a candidate and the time budget keeps what fits |
 
 ## Lanes: what runs when, and every message a lane prints
 
@@ -269,8 +269,8 @@ settings. The Regression wiki page holds the requirements (REG-1..REG-9); this s
 | Where | Rows that run | Takes a lane slot |
 |---|---|---|
 | goal lane, qa and ship | rows whose closure reaches a file the goal changed since its merge-base, the goal's new or changed rows, rows that run tools on the repo root, and rows that failed last time | no |
-| goal lane, pr | the same, plus the full suite once when the goal changed a path no row declares, or deleted one (`FULL (unmapped <path> at pr)`) | only when FULL |
-| goal lane with no merge-base (shallow clone, missing base) | every row (`FULL (no merge-base with <base>)`) | yes |
+| goal lane, pr | the same; a path no row declares, or a deleted one, adds the rows that name it and the runners, never the full suite | no |
+| goal lane with no merge-base (shallow clone, missing base) | every row is a candidate (`FULL (no merge-base with <base>)`), kept to `test_budget_minutes` | yes |
 | hand run `regression.py run land\|nightly\|ID [--kind K]` | what you name; a plain `run nightly` is the full suite and records its time | when it is a full run |
 | GitHub Actions, on the `regression_cron` schedule (every 4 hours by default; `off` stops it) and every v* tag | `ci_levels` (default nightly: every row, the full suite; land: land rows only) | n/a (a runner) |
 | GitHub Actions, run by hand | its `target` input: land, nightly or a row id (empty: `ci_levels`); the workflow's own runner checks it, so a repo without the skills folder works | n/a |
@@ -294,7 +294,6 @@ part is advice and never blocks.
 | LANE_SLOTS_UNAVAILABLE | slots.py | — | the lanes folder can't be used; the lane runs without a slot | `chmod 700` it, or set `LOOP_LANES_DIR` |
 | LANE_STALE | slots.py | 5 | HEAD or the worktree changed while the lane waited; no rows ran | run the same command again |
 | LANE_TIMEOUT | lane.py | 124 | past its time limit (flow file `limit`, else `step_limit`); killed, rows partly ran, nothing committed or pushed | run again, or raise the setting |
-| LANE_TIMEOUT (FULL_TIMEOUT) | lane.py | 124 | a FULL goal lane passed `full_suite_minutes`; not retryable by the worker | the owner raises `full_suite_minutes` or narrows rows |
 | LANE_DIRTY | lane.py / lanekit.py | 1 | uncommitted changes at start, a hand edit above a page's Tests section, or a row left files behind | commit or revert them; make the row clean up |
 | LANE_PREP | lanekit.py | — | the lane first committed the re-rendered Tests tables and run dates | none |
 | LANE_PREP_FAILED | lanekit.py | 1 | that commit or the render failed or hung (60 s); nothing committed | make the commit pass, then run again |
@@ -318,8 +317,7 @@ timeout, 3 no lane, 4 a hand run's slot wait timed out, 5 stale, 124 time limit.
 
 A lane's time limit counts from its started marker (when it took its slot and began rows), never from launch. While
 it waits for a slot it has a queue span instead (4x the time limit, restarted whenever any slot changes), so a healthy
-backlog never kills a waiting lane; while planning it has 4x the time limit. A FULL goal lane's limit is
-`full_suite_minutes`. A hand run on a terminal holding a slot has no deadline; off a terminal its slot wait stops after
+backlog never kills a waiting lane; while planning it has 4x the time limit. A hand run on a terminal holding a slot has no deadline; off a terminal its slot wait stops after
 4x its time limit (flow file `limit`, else `step_limit`, else 2700 s). `lane-wait` with no `--timeout` waits until the
 lane ends.
 
@@ -327,9 +325,8 @@ lane ends.
 
 - `lane_limit` (flow file, default 2): full lanes that may run at once on this machine; 0 is unlimited. Best effort:
   it limits concurrent full lanes, not the machine's load; AFFECTED, by-id and red runs take no slot.
-- `goal_lane_minutes` (10) and `full_suite_minutes` (30): health warns above them (REG-7), and a goal lane over the first
-  adds `; over N min (goal_lane_minutes)` to its LANE line; the second is also a FULL
-  goal lane's time limit.
+- `goal_lane_minutes` (10): health warns above it (REG-7), and a goal lane over it adds `; over N min (goal_lane_minutes)`
+  to its LANE line. The scheduled full suite has a fixed 30-minute limit that health warns above.
 - `goal_levels` (land) and `ci_levels` (nightly): the levels a goal lane plans from (nightly adds the nightly rows a
   change reaches) and the CI target. A CI run cut short by its job time still records its time, so health warns.
 - Each lane child gets its own `TMPDIR` and `LOOP_LANE_PORT_BASE` (a leased range of 100 ports from 20000); a row that
