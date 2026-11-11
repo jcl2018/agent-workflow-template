@@ -220,6 +220,7 @@ live-board-no-oneline	PASS	2026-11-10
 local-row-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lock-in-report	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 merge-guard-base-head	PASS	2026-11-11	
+merge-reach-fail-closed	PASS	2026-11-11	
 merged-frees-175	PASS	2026-11-10	
 milestone-links	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 milestones-once	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
