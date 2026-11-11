@@ -44,5 +44,6 @@
   "pool_size": 20,
   "silent_minutes": 30,
   "govern_hook": true,
-  "digest_mail": "cloudflare"
+  "digest_mail": "cloudflare",
+  "full_suite_minutes": 100
 }
