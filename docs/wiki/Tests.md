@@ -100,6 +100,7 @@
 | <a id="t-del8-session-overrun"></a>del8-session-overrun | requirement | DEL-8 | not run | - | local | 2026-11-11 |
 | <a id="t-del8-board"></a>del8-board | requirement | DEL-8 | not run | - | local | 2026-11-11 |
 | <a id="t-del8-health"></a>del8-health | requirement | DEL-8 | not run | - | local | 2026-11-11 |
+| <a id="t-del8-prep-board"></a>del8-prep-board | requirement | DEL-8 | not run | - | local | 2026-11-11 |
 
 ## Documentation
 
@@ -456,6 +457,10 @@
 | <a id="t-reg7-suite-time"></a>reg7-suite-time | requirement | REG-7 | not run | - | local | 2026-11-11 |
 | <a id="t-reg7-unmapped-tier"></a>reg7-unmapped-tier | requirement | REG-7 | not run | - | local | 2026-11-11 |
 | <a id="t-lane-limit-test-budget"></a>lane-limit-test-budget | requirement | REG-7 | not run | - | local | 2026-11-11 |
+| <a id="t-reg7-prep-setting"></a>reg7-prep-setting | requirement | REG-7 | not run | - | local | 2026-11-11 |
+| <a id="t-reg7-prep-times"></a>reg7-prep-times | requirement | REG-7 | not run | - | local | 2026-11-11 |
+| <a id="t-reg7-prep-stop"></a>reg7-prep-stop | requirement | REG-7 | not run | - | local | 2026-11-11 |
+| <a id="t-reg7-prep-edges"></a>reg7-prep-edges | requirement | REG-7 | not run | - | local | 2026-11-11 |
 
 ## Setup
 
