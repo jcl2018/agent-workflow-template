@@ -186,7 +186,9 @@ keeps-seen-red	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 known-no-block	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 known-recorded	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 landed-left-alone	PASS	2026-11-09	
+lane-died-wait	PASS	2026-11-11	
 lane-messages-table	PASS	2026-11-11	
+lane-orphan-claim	PASS	2026-11-11	
 lane-over-minutes	PASS	2026-11-11	
 lane-pass-reused	PASS	2026-11-11	
 lane-ports-tmpdir	PASS	2026-11-11	
@@ -228,6 +230,8 @@ merge-base-undiffable	PASS	2026-11-11
 merge-guard-base-head	PASS	2026-11-11	
 merge-reach-fail-closed	PASS	2026-11-11	
 merge-wiki-head	PASS	2026-11-11	
+merge-wiki-rename-refused	PASS	2026-11-11	
+merge-wiki-skill-refused	PASS	2026-11-11	
 merged-frees-175	PASS	2026-11-10	
 milestone-links	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 milestones-once	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
