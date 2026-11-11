@@ -142,8 +142,8 @@ def hit_rows(root):
         for hit in state.get("budget_hits") or []:
             if isinstance(hit, dict):
                 found.append(row("INFO", "budget", "test-time", "%s: %s %s hit its %s-minute budget; left: %s" % (
-                    state["slug"], hit.get("step"), "step" if hit.get("kind") == "step" else "tests", hit.get("minutes"),
-                    hit.get("left")), "run what it left with regression.py run land, or raise the budget"))
+                    state["slug"], hit.get("step"), {"step": "step", "prep": "preparation"}.get(hit.get("kind"), "tests"),
+                    hit.get("minutes"), hit.get("left")), "run what it left with regression.py run land, or raise the budget"))
     return found
 
 

@@ -44,7 +44,7 @@ Wiki pages live in `docs/wiki/`. Each starts with the line `<!-- workflow-docs -
   (generated from `settings.py`). `setup.py` writes each repo setting into `config.json` and each private setting into the
   flow file, and keeps any value already set. Every script reads these files fresh on each run, so a change applies at once.
 - `parallel`: workers at once; `0` means unlimited, and it is the default.
-- `cadence`, `step_limit`, `token_budget`, `max_tries`, `routines`, `regression_cron`, and `test_budget_minutes`, `step_budget_minutes` (neither under 15), and health's `stale_branch_days` are optional repo settings; see the reference.
+- `cadence`, `step_limit`, `token_budget`, `max_tries`, `routines`, `regression_cron`, and `test_budget_minutes`, `step_budget_minutes`, `prep_budget_minutes` (none under 15), and health's `stale_branch_days` are optional repo settings; see the reference.
 - `agent_command` runs a goal in the background; the prompt is its last argument.
 - `auto_approve` (default `false`): `true` approves what a flow step leaves for the owner, logged as auto-approved.
 - `review_depth` (default `full`): `full` makes the plan and review steps run their skill's whole pipeline and refuses a
