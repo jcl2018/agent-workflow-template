@@ -95,7 +95,7 @@ s = open(p).read()
 i = s.index("\n## Requirements")
 open(p, "w").write(s[:i] + "\n## Runbook\n\n" + body + "\n" + s[i:])
 PY
-  check "a Reviewed page that gains a Runbook is not locked or marked changed" '! out | grep -qE "^(LOCKED|CHANGED) Monitoring"'
+  check "a Reviewed page that gains a Runbook is not locked, marked changed or called out of order" '! out | grep -qE "^(LOCKED|CHANGED|SECTIONS) Monitoring"'
   cp "$T/mon.orig" "$M"
 }
 
