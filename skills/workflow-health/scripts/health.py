@@ -75,7 +75,9 @@ def size_rows(root):
     for path in sorted(glob.glob(os.path.join(root, "skills", "*", "scripts", "*.*"))):
         if not path.endswith((".py", ".sh")):
             continue
-        size, name = os.path.getsize(path), os.path.relpath(path, root)
+        with open(path, "rb") as handle:  # committed (LF) bytes: a Windows CRLF checkout reads the same
+            size = len(handle.read().replace(b"\r\n", b"\n"))
+        name = os.path.relpath(path, root)
         if size > LIMIT:
             rows.append(row("FAIL", "size", name, "scripts", "%d bytes, over %d" % (size, LIMIT), "split it into modules"))
         elif size >= WARN_AT:

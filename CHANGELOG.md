@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.27.39 - 2026-11-12
+
+- Size and skill-lines rules judge committed (LF) bytes and lines
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/size-rule-lf
+- Merge remote-tracking branch 'origin/main' into loop/size-rule-lf
+- pr: record issue states and the lane's results
+- Wiki: update pages for size-rule-lf
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.38 - 2026-11-12
 
 - Regression green: stale row, narrow lanes, CI leftovers, issue flood, test-tree once
