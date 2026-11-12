@@ -66,10 +66,10 @@ def kill(pid):
 
 def alive(pid):
     """A pid that runs and is no zombie. EPERM means it runs but this poller may not signal it (a sandbox): alive."""
-    if os.name == "nt":
-        return proctree.alive(pid)
     try:
-        os.kill(pid, 0)
+        proctree.probe(pid)
+        if os.name == "nt":  # no ps there
+            return True
     except PermissionError:
         pass
     except (OSError, TypeError):

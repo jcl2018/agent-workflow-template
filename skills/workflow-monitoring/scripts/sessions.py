@@ -28,6 +28,7 @@ import argparse
 import contextlib
 import datetime
 import portlock as fcntl
+import proctree
 import json
 import os
 import re
@@ -233,7 +234,7 @@ def bad_slug(slug):
 
 def alive(pid):
     try:
-        os.kill(int(pid), 0)
+        proctree.probe(int(pid))
     except PermissionError:
         return True
     except (OSError, ValueError, TypeError):

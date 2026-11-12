@@ -198,10 +198,8 @@ def depth_rule(step, state=None, runs=None):
 
 
 def alive(pid):
-    if os.name == "nt":
-        return proctree.alive(pid)
     try:
-        os.kill(pid, 0)
+        proctree.probe(pid)
     except OSError:
         return False
     return True

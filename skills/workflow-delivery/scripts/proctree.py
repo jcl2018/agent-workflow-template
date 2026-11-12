@@ -1,7 +1,7 @@
 """Stop a whole process tree, and tell whether a pid runs, on every platform.
 
 usage: import proctree   then proctree.kill(pid, signal.SIGTERM) for a child started with start_new_session=True,
-and proctree.alive(pid) on Windows.
+proctree.probe(pid) where os.kill(pid, 0) was (ProcessLookupError when gone), and proctree.alive(pid) on Windows.
 
 POSIX: kill is os.killpg, so the child's whole session goes. Windows has no process group a signal reaches (and
 os.kill(pid, 0) there sends Ctrl+C), so kill runs taskkill /T /F, which stops the child and every process it started,
@@ -34,6 +34,10 @@ if os.name == "nt":
             return bool(k32.GetExitCodeProcess(handle, ctypes.byref(code))) and code.value == 259  # STILL_ACTIVE
         finally:
             k32.CloseHandle(handle)
+
+    def probe(pid):
+        if not alive(pid):
+            raise ProcessLookupError(pid)
 else:
     import signal
 
@@ -42,6 +46,9 @@ else:
             os.killpg(pid, sig)
         except OSError:  # already gone
             pass
+
+    def probe(pid):
+        os.kill(pid, 0)
 
 
 if __name__ == "__main__":

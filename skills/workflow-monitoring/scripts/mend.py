@@ -105,10 +105,8 @@ def runs():
 
 
 def alive(pid):
-    if os.name == "nt":
-        return proctree.alive(pid)
     try:
-        os.kill(pid, 0)
+        proctree.probe(pid)
     except (OSError, TypeError):
         return False
     return True

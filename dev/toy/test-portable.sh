@@ -57,4 +57,6 @@ cmp -s "$S/workflow-delivery/scripts/proctree.py" "$S/workflow-monitoring/script
 left=$(cd "$S" && grep -n "os\.killpg\|os\.getpgrp()" workflow-delivery/scripts/flow.py workflow-delivery/scripts/lane.py \
   workflow-delivery/scripts/lanekit.py workflow-monitoring/scripts/mend.py workflow-monitoring/scripts/session_bind.py)
 [ -z "$left" ] && ok "no stop site calls os.killpg or os.getpgrp itself" || bad "POSIX-only stops left: $left"
+probes=$(cd "$S" && grep -rn "os\.kill([^)]*, 0)" --include=*.py . | grep -v "proctree.py")  # Ctrl+C to the target on Windows
+[ -z "$probes" ] && ok "no liveness probe is os.kill(pid, 0), which sends Ctrl+C on Windows" || bad "os.kill probes left: $probes"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "FAILED $fails"; exit 1; }
