@@ -195,7 +195,7 @@ def args_of(act):
             "close": ["issue", "close", n, "--comment", "No longer found by health.py file."]}[act["kind"]]
 
 
-def body_of(act):
+def issue_text(act):
     """The long text of an open or update action: run() passes it as --body-file."""
     return act["body"] if act["kind"] in ("open", "update") else None
 
@@ -256,12 +256,12 @@ def apply(acts, root, groups):
             done = run(["issue", "comment", act["number"]], root, "%s\nHealth finds this here: %s" % (
                 LINK % (act["key"], act["evidence"]), act["body"].split("\n\n")[1]))
         else:
-            done = run(args_of(act), root, body_of(act))
+            done = run(args_of(act), root, issue_text(act))
             if done.returncode not in (0, 127) and "label" in done.stderr.lower() and act.get("feature") and act["kind"] in ("open", "update"):
                 # a refused label never loses the report (a timeout, 127, is never retried: the issue may exist)
                 print("FAILED label %s: %s" % (act["feature"], done.stderr.strip()[:160]))
                 act = dict(act, feature="")
-                done = run(args_of(act), root, body_of(act))
+                done = run(args_of(act), root, issue_text(act))
             if act["kind"] == "reopen" and act.get("unclose") and not done.returncode:  # the owner's close no longer holds
                 run(["issue", "edit", act["number"], "--remove-label", "health:closed"], root)
         print(("FAILED %s: %s" % (words(act), done.stderr.strip()[:160])) if done.returncode else "DONE " + words(act))
