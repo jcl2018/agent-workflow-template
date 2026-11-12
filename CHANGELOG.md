@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.27.7 - 2026-11-12
+
+- Merge remote-tracking branch 'origin/main' into loop/worker-push-guard
+- Worker push guard: private.py where and worker_push, toy test, commands.md
+- Worker push guard: rows seen red, Tests table, verify by hand
+- Worker push guard: review fixes (symlink kept inside temp dir, INTERNAL fix text)
+- Wiki: update pages for worker-push-guard
+- Merge origin/main into loop/worker-push-guard
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. In a goal worktree run `python3 skills/workflow-delivery/scripts/private.py where`. Expect: `WORKER <slug>`; the same in the main checkout prints `NOT A WORKER (not a goal worktree)`.
+2. In a goal worktree run `git push origin HEAD:refs/heads/main` with the hooks installed. Expect: `REFUSED: a worker session for goal <slug> may push only loop/<slug> ... (WORKER_PUSH)` and nothing on origin changes.
+3. Run `git push origin HEAD:refs/heads/loop/<slug>` in the same worktree. Expect: the push goes through.
+4. In the main checkout run `git push origin main`. Expect: the push goes through (the operation session is unaffected).
+
 ## v0.27.6 - 2026-11-12
 
 - Fix issue 116: size splits of criteria.py, docs.py and regression.py (skill-size-2)
