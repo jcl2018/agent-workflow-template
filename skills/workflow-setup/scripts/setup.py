@@ -269,6 +269,8 @@ def adopt(args, repo):
         except KeyboardInterrupt:
             undo(tx, "REFUSED: interrupted; rolled back, nothing written (SETUP_INTERRUPTED)")
             return 130
+        except SystemExit as error:  # git() above exits on a failed git call: that too is a refusal, so it rolls back
+            return undo(tx, "%s; rolled back, nothing written" % (error.code if isinstance(error.code, str) else "REFUSED: a step stopped (exit %s)" % error.code))
         except Exception as error:
             trace = os.path.join(tx.gd, "workflow-setup-trace.txt")
             open(trace, "w").write("\n".join(update.mask(l) for l in traceback.format_exc().splitlines()) + "\n")

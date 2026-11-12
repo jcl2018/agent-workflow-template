@@ -333,6 +333,11 @@ if want setup-refusal-writes-120; then
   rm -f .git/hooks/pre-commit; rm -f .git/index.lock
   out=$($setup 2>&1); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q 'SETUP_RECOVERED' && git log -1 --format=%s | grep -q 'Adopt the workflow loop' || no "the next run did not recover and adopt: rc=$rc $(echo "$out" | head -3)"
+  # a failed git call mid-adoption (setup's git() exits) rolls back like any refusal
+  mk rfD; mkdir -p "$d/shim"; real=$(command -v git); printf '#!/bin/bash\n[[ " $* " == *" add -A "* ]] && { echo "fatal: simulated" >&2; exit 128; }\nexec %s "$@"\n' "$real" > "$d/shim/git"; chmod +x "$d/shim/git"
+  b=$(state "$d/rfD/repo"); out=$(PATH="$d/shim:$PATH" $setup 2>&1); rc=$?
+  [ $rc = 1 ] && echo "$out" | grep -q 'rolled back, nothing written' || no "a failed git call: rc=$rc $(echo "$out" | tail -3)"
+  same "$d/rfD/repo" "$b" "a failed git call"
   # a restore that cannot finish is half undone (exit 4)
   mk rfC; mkdir -p docs/wiki; printf '# Notes\n' > docs/wiki/Notes.md; git add -A; git commit -qm "wiki"; chmod a-w docs/wiki
   out=$($setup 2>&1); rc=$?; chmod -R u+w docs
