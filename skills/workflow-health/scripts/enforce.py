@@ -204,7 +204,7 @@ def wiki_gaps(root, g, info):
         try:
             err = proc.communicate(timeout=30)[1]
         except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGKILL)
+            os.killpg(proc.pid, signal.SIGKILL) if hasattr(os, "killpg") else proc.kill()
             proc.communicate()
             return g("MIG_WIKI_UNREADABLE", "wiki", "timed out after 30 s reading %s" % shown, fix)
         if proc.returncode:
