@@ -119,7 +119,7 @@ docs-check-same	PASS	2026-11-12
 docs-check-speed	PASS	2026-11-12	
 docs-count-defect-tests-issue-106	PASS	2026-11-12	
 docs-count-indented-code-issue-105	PASS	2026-11-12	
-docs-count-mismatch	PASS	2026-11-11	
+docs-count-mismatch	PASS	2026-11-12	
 docs-count-other-id-issue-107	PASS	2026-11-12	
 docs-count-word-gap-issue-104	PASS	2026-11-12	
 docs-counts-issue-39	PASS	2026-11-12	
@@ -243,7 +243,7 @@ list-kind-filter	PASS	2026-11-10
 list-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 list-tsv-raw	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 live-board-arrows	PASS	2026-11-12	
-live-board-cadence	PASS	2026-11-11	
+live-board-cadence	PASS	2026-11-12	
 live-board-flow	PASS	2026-11-12	
 live-board-header	PASS	2026-11-12	
 live-board-issues	PASS	2026-11-12	
@@ -380,13 +380,13 @@ schedule-setting	PASS	2026-11-12
 scripts-no-hang	PASS	2026-11-12	
 seal-sub-bullets	PASS	2026-11-12	
 session-answer	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-session-assign	PASS	2026-11-11	
+session-assign	PASS	2026-11-12	
 session-board-issue98	PASS	2026-11-11	
 session-ended-waiting	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 session-fallback	PASS	2026-11-11	
 session-holds-slot	PASS	2026-11-11	
 session-quiet	PASS	2026-11-10	
-session-rename	PASS	2026-11-11	
+session-rename	PASS	2026-11-12	
 session-reports	PASS	2026-11-11	
 session-reuse	PASS	2026-11-11	
 session-tool-helper	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -413,7 +413,7 @@ skill-says-governs	PASS	2026-11-12
 skill-size-116	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 slot-pool-112	PASS	2026-11-10	
 stale-found	PASS	2026-11-12	
-stale-groups-defect	PASS	2026-11-11	
+stale-groups-defect	PASS	2026-11-12	
 stale-merge-order	PASS	2026-11-12	
 stale-page-row	PASS	2026-11-12	
 starts-at-idea	PASS	2026-11-09	

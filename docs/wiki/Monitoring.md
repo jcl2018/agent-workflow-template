@@ -109,8 +109,8 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde
 | [worker-per-goal](Tests#t-worker-per-goal) | requirement | MON-1 | Given several goals, when they run, then each runs in its own process and worktree. | PASS 2026-11-12 |
 | [one-way-to-run](Tests#t-one-way-to-run) | requirement | MON-1 | Given the tools, when a goal is started, then no old way to start it remains. | PASS 2026-11-12 |
 | [operate-all](Tests#t-operate-all) | requirement | MON-1 | Given the operate command's toy suite, when it runs, then the whole suite passes. | PASS 2026-11-09 |
-| [session-assign](Tests#t-session-assign) | requirement | MON-1 | Given a ready goal, when it is assigned, then it gets its own worker session in the app. | PASS 2026-11-11 |
-| [session-rename](Tests#t-session-rename) | requirement | MON-1 | Given a worker session, when it takes a goal, then it is renamed after that goal. | PASS 2026-11-11 |
+| [session-assign](Tests#t-session-assign) | requirement | MON-1 | Given a ready goal, when it is assigned, then it gets its own worker session in the app. | PASS 2026-11-12 |
+| [session-rename](Tests#t-session-rename) | requirement | MON-1 | Given a worker session, when it takes a goal, then it is renamed after that goal. | PASS 2026-11-12 |
 | [session-reuse](Tests#t-session-reuse) | requirement | MON-1 | Given a finished worker session, when a goal is ready, then the session is given the next ready goal. | PASS 2026-11-11 |
 | [steps-in-session](Tests#t-steps-in-session) | requirement | MON-1 | Given a worker session, when it runs steps, then it runs each step itself with no headless agent. | PASS 2026-11-11 |
 | [record-in-session](Tests#t-record-in-session) | requirement | MON-1 | Given a step a worker session ran, when it is recorded, then it is recorded as in session and a goal with no session is refused. | PASS 2026-11-11 |
@@ -177,7 +177,7 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde
 | [no-change-quiet](Tests#t-no-change-quiet) | requirement | MON-5 | Given a board field the old board lacked or gh not answering, when boards are compared, then it counts as no change. | PASS 2026-11-09 |
 | [operate-wakes-on-report](Tests#t-operate-wakes-on-report) | requirement | MON-5 | Given a worker's report, when it arrives before the cadence, then operate wakes and every pass prints the full board. | PASS 2026-11-09 |
 | [live-board-no-oneline](Tests#t-live-board-no-oneline) | requirement | MON-5 | Given an unchanged pass, when the operation session checks in, then the full check-in is printed again and there is no one-line mode. | PASS 2026-11-12 |
-| [live-board-cadence](Tests#t-live-board-cadence) | requirement | MON-5 | Given no cadence setting, when check-ins are scheduled, then the cadence is 30 minutes. | PASS 2026-11-11 |
+| [live-board-cadence](Tests#t-live-board-cadence) | requirement | MON-5 | Given no cadence setting, when check-ins are scheduled, then the cadence is 30 minutes. | PASS 2026-11-12 |
 | [reply-hook-blocks](Tests#t-reply-hook-blocks) | requirement | MON-5 | Given an operation-session check-in reply, when it stops without the headline, All sessions, Dependencies, Needs you and Coming up last, then the hook blocks it and says what is missing, and a reply in that layout passes. | PASS 2026-11-10 |
 | [reply-hook-scope](Tests#t-reply-hook-scope) | requirement | MON-5 | Given a worker session or a session in another repo, when it stops with any reply, then the hook never checks it, and only the operation session is checked. | PASS 2026-11-10 |
 | [reply-hook-off](Tests#t-reply-hook-off) | requirement | MON-5 | Given reply_hook set to false in the config, when the operation session stops without the board, then the hook lets it through. | PASS 2026-11-10 |
