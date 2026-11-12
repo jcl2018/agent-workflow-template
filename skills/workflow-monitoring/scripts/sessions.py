@@ -36,6 +36,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.modules.setdefault("sessions", sys.modules[__name__])  # run as a script, pool.py's import finds this same module
 import graph  # noqa: E402
+import proctree  # noqa: E402
 import session_bind  # noqa: E402
 from session_bind import HUNG, LAST_ERROR, call, fcntl, tool  # noqa: E402  (watch.py clears sessions.HUNG)
 
@@ -232,7 +233,7 @@ def bad_slug(slug):
 
 def alive(pid):
     try:
-        os.kill(int(pid), 0)
+        proctree.probe(int(pid))
     except PermissionError:
         return True
     except (OSError, ValueError, TypeError):

@@ -22,6 +22,11 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   esac
 fi
 [ -z "${_toy_reap_on:-}" ] || return 0
+# The toy tests are written for POSIX (bash, /tmp shared with python, a script named gh that CreateProcess cannot launch).
+# On native Windows only a test marked "# windows: ok" runs; the rest exit 77 (the lane reports SKIPPED, not FAIL) and write
+# $TOY_SKIP_FILE when a lane set one, since a row's `| grep -q` hides the exit status. Linux CI is their check.
+toy_skip() { echo "SKIP: $*"; [ -z "${TOY_SKIP_FILE:-}" ] || echo skip > "$TOY_SKIP_FILE"; exit 77; }
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) grep -q "^# windows: ok" "$0" || toy_skip "$(basename "$0") is not marked '# windows: ok'";; esac
 export LOOP_NO_GIT_HOOKS=1  # a toy never installs git hooks into its repos (the guard-enforce test unsets it)
 export LOOP_NO_HEALTH=1 LOOP_NO_ISSUES=1  # setup's two health runs and its issue filing are off in a toy; the setup-adopt rows that test them unset these
 _toy_reap_on=1
@@ -63,3 +68,7 @@ trap '_toy_reap_sig 130' INT
 trap '_toy_reap_sig 143' TERM
 trap '_toy_reap_sig 129' HUP
 trap '_toy_reap_sig 141' PIPE
+
+# toy_need_posix WHY: a test that cannot run on native Windows (no /tmp shared with python, backslash paths, fake gh
+# on PATH) says so with exit 77, which the regression lane reports as SKIPPED instead of failing the lane.
+toy_need_posix() { case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) toy_skip "$@";; esac; }

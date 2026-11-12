@@ -23,6 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REG = os.path.normpath(os.path.join(HERE, "..", "..", "workflow-regression", "scripts"))
 sys.path.insert(0, HERE)
 import lanekit  # noqa: E402
+import proctree  # noqa: E402
 fcntl = lanekit.fcntl
 # No terminal, no waiting.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -35,7 +36,7 @@ GRACE = 60  # seconds a claimed rc belongs to its finisher
 def tmp_for(top, slug, name):
     """REG-8: the prefix of the lane's own temp folder, outside every git checkout; "" when the system temp is in one."""
     root = here = os.path.realpath(tempfile.gettempdir())
-    while not os.path.lexists(here + "/.git") and here != "/":
+    while not os.path.lexists(here + "/.git") and os.path.dirname(here) != here:
         here = os.path.dirname(here)
     return "" if os.path.lexists(here + "/.git") else "%s/loop-lane-%08x-%s-%s-" % (root, zlib.crc32(os.path.realpath(top).encode()), slug, name)
 
@@ -60,26 +61,25 @@ def lane_text():
 
 
 def kill(pid, start="", base="", why=""):
-    """SIGTERM pid's group while pid still began at start; audited in runs/kills.log."""
+    """Stop pid's tree while pid still began at start; audited in runs/kills.log."""
     if not lanekit.same(pid, start):
         return
     lanekit.audit(os.path.dirname(base) or ".", os.path.basename(base), pid, why)
-    try:
-        os.killpg(pid, signal.SIGTERM)
-    except OSError:
-        pass
+    proctree.kill(pid, signal.SIGTERM)
 
 
 def alive(pid, start=""):
     """A pid that runs, is no zombie and, given a start, still began then."""
     try:
-        os.kill(pid, 0)
+        proctree.probe(pid)
     except PermissionError:
         pass
     except (OSError, TypeError):
         return False
     if start and not lanekit.same(pid, start):
         return False
+    if os.name == "nt":
+        return True
     return subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()[:1] != "Z"
 
 
@@ -321,7 +321,7 @@ def lane_exec(rc, seconds, last, attempt, pool, argv):
     """A lane's child: run the lane in its group, stop it past deadline() or on a signal, write .last ended, then the rc."""
     held = {"rc": rc, "limit": seconds, "started": time.time(), "pool": pool, "markers": 1,
             "prep_by": float(os.environ.get("_LOOP_LANE_PREP_BY") or 0)}
-    marks = {}  # when .queued and .started were first seen
+    marks = {}  # first-seen times
     lease, port = lanekit.port_base()  # REG-8: its own ports
     if lease is None:
         with open(rc + ".note", "a") as note:
@@ -331,7 +331,7 @@ def lane_exec(rc, seconds, last, attempt, pool, argv):
     if lease is not None:
         env["LOOP_LANE_PORT_BASE"] = str(port)
     child, seen, hit = subprocess.Popen(argv, env=env), None, []
-    for num in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):  # signalled from outside: name it, then stop
+    for num in (signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGINT), signal.SIGINT):  # name a signal from outside
         signal.signal(num, lambda got, _f: hit.append(got))
     try:
         while True:
@@ -349,7 +349,7 @@ def lane_exec(rc, seconds, last, attempt, pool, argv):
                 cut = held["prep_by"] and not os.path.exists(rc + ".started")
                 marks["cut"] = "waiting for a slot" if "queued" in marks else "planning" if cut else ""
                 signal.signal(signal.SIGTERM, signal.SIG_IGN)
-                os.killpg(os.getpgrp(), signal.SIGTERM)
+                proctree.kill(getattr(os, "getpgrp", lambda: child.pid)(), signal.SIGTERM)
                 try:
                     child.wait(timeout=10)
                 except subprocess.TimeoutExpired:
