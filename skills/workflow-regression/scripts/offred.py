@@ -9,7 +9,7 @@ import re
 import subprocess
 import sys
 
-WINDOWS = re.compile(r"win(dows|32|64)?\b|msys|mingw|cygwin", re.I)  # a Windows machine can only skip a bash row
+WINDOWS = re.compile(r"\b(win(dows)?(32|64)?|msys\d*|mingw\d*|cygwin)\b|\b(msys|mingw)\w*", re.I)  # a Windows machine can only skip a bash row
 SHA = re.compile(r"^[0-9a-f]{7,40}$")
 
 
