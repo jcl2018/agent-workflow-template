@@ -36,7 +36,7 @@ GRACE = 60  # seconds a claimed rc belongs to its finisher
 def tmp_for(top, slug, name):
     """REG-8: the prefix of the lane's own temp folder, outside every git checkout; "" when the system temp is in one."""
     root = here = os.path.realpath(tempfile.gettempdir())
-    while not os.path.lexists(here + "/.git") and here != "/":
+    while not os.path.lexists(here + "/.git") and os.path.dirname(here) != here:
         here = os.path.dirname(here)
     return "" if os.path.lexists(here + "/.git") else "%s/loop-lane-%08x-%s-%s-" % (root, zlib.crc32(os.path.realpath(top).encode()), slug, name)
 
