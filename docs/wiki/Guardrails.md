@@ -10,6 +10,7 @@ Review: **Unreviewed**
 - My guardrails are scattered across six features, some are promised but not built, and I can't see in one place what protects me, where it is enforced and whether it is on.
 - Runs can quietly cost too much: CI minutes on superseded or no-code runs, a step spending far more tokens than usual, a run going far longer than usual.
 - I want one set of guardrails that the health checks prove are on and that every adopted repo gets, each one showing what it protects against, where it lives and the setting that controls it.
+- On a native Windows PC the guardrails still hold: a step or child stopped for a timeout or a mend takes its whole process tree with it, and a lane leases its ports without POSIX user ids.
 
 ## Usage
 

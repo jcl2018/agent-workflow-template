@@ -9,6 +9,7 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde
 - I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
 - I want one session that only governs: it starts every ready goal in its own worker session, passes my answers along, and never builds anything itself.
 - I want the work to finish as fast as it safely can and run unattended: re-plan the graph from real progress, run as much as possible in parallel, answer workers' routine questions with the recommended option, and only ask me for what's truly mine.
+- I run the loop on a Windows PC with native Python and no WSL: a goal stopped for its time limit or a mend must take its whole process tree with it, and no liveness check may send a signal to a live process.
 
 ## Usage
 
