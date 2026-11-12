@@ -413,8 +413,7 @@ def cmd_pr(args):
         no("push failed:\n" + pushed.stderr)
     url = info["url"] if info.get("state") == "OPEN" else ""
     if not url:
-        done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
-                    "--title", state["goal"][:70], "--body", body], check=True)
+        done = fit.pr_create(sys.modules[__name__], state, body)
         url = done.stdout.strip().splitlines()[-1]
     state["pr"] = url
     state["statuses"] = "ok" if private.pr_result(root(), config()["base"], head, state["branch"], True) else "failed"

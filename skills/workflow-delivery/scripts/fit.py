@@ -259,6 +259,18 @@ def pr_text(g, state):
     return body.replace("\n## Result\n", "\n## Result\n\n" + found["note"] + "\n", 1)
 
 
+def pr_create(g, state, body):
+    """gh pr create with the body in a temp file: a long body never goes on the command line (WinError 206)."""
+    import tempfile
+    with tempfile.NamedTemporaryFile("w", suffix=".md", prefix="pr-body-", delete=False, encoding="utf-8", newline="\n") as f:
+        f.write(body)
+    try:
+        return g.run(["gh", "pr", "create", "--base", g.config()["base"], "--head", state["branch"],
+                      "--title", state["goal"][:70], "--body-file", f.name], check=True)
+    finally:
+        os.remove(f.name)
+
+
 # ---- the pull request body (was prbody.py)
 VERDICT = re.compile(r"^\W*VERDICT:\s*(.+?)\s*$", re.M)
 

@@ -23,6 +23,7 @@ cat > "$G/gh" <<'PYGH'
 """A stub gh: logs calls, serves issues, comments, milestones and runs from $STUB, and applies writes to them."""
 import json, os, re, sys
 d, a = os.environ["STUB"], sys.argv[1:]
+if "--body-file" in a: i = a.index("--body-file"); a[i:i + 2] = ["--body", open(a[i + 1]).read()]  # a text in a file reads as --body TEXT
 open(os.path.join(d, "calls.log"), "a").write(" ".join(a) + "\n")
 def load(name, default):
     try:

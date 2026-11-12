@@ -95,8 +95,16 @@ jobs:
               sys.exit(1)
           def wanted(row):  # a row id runs that row alone; land runs land rows; nightly runs land and nightly rows
               return row[0] == TARGET if TARGET not in ("land", "nightly") else row[1] in ("land", TARGET)
-          def gh(*args):
-              return subprocess.run(("gh",) + args, capture_output=True, text=True)
+          def gh(*args, body=None):  # a long text goes in a file as --body-file, never on the command line (Windows caps it)
+              if body is not None:
+                  with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8", newline="\n") as f:
+                      f.write(body)
+                  args += ("--body-file", f.name)
+              try:
+                  return subprocess.run(("gh",) + args, capture_output=True, text=True)
+              finally:
+                  if body is not None:
+                      os.remove(f.name)
           def seconds(name, default):  # a bad or non-positive value falls back to the default
               try:
                   value = int(os.environ.get(name) or default)
@@ -142,8 +150,8 @@ jobs:
           except (OSError, ValueError, AttributeError):
               LABELS_ON = False
           failed, filed = [], [0]
-          def write(what, *args):  # every issue write is checked: a failure is named, and the step fails after the last row
-              done = gh(*args)
+          def write(what, *args, body=None):  # every issue write is checked: a failure is named, and the step fails after the last row
+              done = gh(*args, body=body)
               if done.returncode:
                   failed.append(what)
                   print("FAILED %s: %s (FILE_FAILED)" % (what, done.stderr.strip()[:160]))
@@ -193,11 +201,11 @@ jobs:
                   body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "was skipped" if skipped else "fails", about,
                                                                  said[-1500:].replace("`" * 3, "'" * 3))
                   if not hit:
-                      make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect", "--body", body]
-                      made = gh(*make, *(["--label", label] if label else []))
+                      make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect"]
+                      made = gh(*make, *(["--label", label] if label else []), body=body)
                       if made.returncode and label and "label" in made.stderr.lower():  # a refused label never loses the report
                           print("FAILED label %s: %s" % (label, made.stderr.strip()[:160]))
-                          made = gh(*make)
+                          made = gh(*make, body=body)
                       if made.returncode:
                           failed.append("issue for " + row[0])
                           print("FAILED issue for %s: %s (FILE_FAILED)" % (row[0], made.stderr.strip()[:160]))
@@ -212,7 +220,7 @@ jobs:
                           write("label #" + n, "issue", "edit", n, "--add-label", "defect")
                       if label and label not in names:
                           write("feature label #" + n, "issue", "edit", n, "--add-label", label)
-                      write("comment #" + n, "issue", "comment", n, "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
+                      write("comment #" + n, "issue", "comment", n, body="Skipped: out of job time; not run." if skipped else "Still failing.")
           if TARGET == "nightly":  # the full suite's time (a cut-short run's too: at least that long) for health's REG-7 check
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:

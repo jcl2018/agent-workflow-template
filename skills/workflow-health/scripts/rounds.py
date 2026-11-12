@@ -32,11 +32,19 @@ RUN = re.compile(r"[0-9]+|none|local")
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
 
-def gh(*args):
+def gh(*args, body=None):
+    """gh with a long text (body=) in a temp file passed as --body-file, never on the command line (Windows caps it)."""
+    if body is not None:
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8", newline="\n") as f:
+            f.write(body)
+        args += ("--body-file", f.name)
     try:
         return subprocess.run(("gh",) + args, capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.SubprocessError) as err:
         return subprocess.CompletedProcess(args, 1, "", str(err))
+    finally:
+        if body is not None:
+            os.remove(f.name)
 
 
 def loads(done, default):
