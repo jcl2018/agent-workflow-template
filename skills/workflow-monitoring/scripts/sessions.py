@@ -203,6 +203,7 @@ def assign(state, prompt, cfg):
             return True
         current.update(worker="session", worker_why="", session={"id": sid, "name": name_of(slug)}, pid=None,
                        status="running", bound_at=now())
+        graph.stamp(current)
         save(current, "assigned to session %s (%s)%s" % (sid, name_of(slug), ", reused" if reused else ""))
         state.update(current)
     return True
@@ -220,6 +221,7 @@ def held(slug):
             sys.exit("REFUSED: %s is assigned to session %s but not frozen yet. Fix: the worker runs goal.py new %s --here "
                      "in its worktree, then sessions.py bind %s %s." % (slug, entry.get("name") or entry["id"], slug, slug, entry["id"]))
         sys.exit("REFUSED: no run named %s." % slug)
+    graph.refuse(state)
     return state
 
 

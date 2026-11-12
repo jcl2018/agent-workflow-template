@@ -21,6 +21,7 @@ A refusal that changes nothing uses no try: exit 2, the goal keeps running (guar
 import argparse
 import datetime
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -33,6 +34,19 @@ import lanekit  # noqa: E402
 import guards  # noqa: E402
 import fit  # noqa: E402
 import role
+
+
+def _pods():  # pods and the merge lock (MON-15) live in workflow-monitoring's graph.py, loaded by path; None without it
+    try:
+        spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:
+        return None
+
+
+pods = _pods()
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -233,6 +247,7 @@ def cmd_new(args):
              "release": args.release, "waiting": None, "finding": "", "log": []}
     state.update(fields)
     guards.stamp(state, "idea")
+    pods and pods.stamp(state)
     save(state, "frozen %d done lines" % len(lines))
     print("FROZEN %s branch=%s step=idea" % (args.slug, branch))
     return 0
@@ -405,6 +420,7 @@ def cmd_finding(args):
 
 
 def cmd_resume(args):
+    pods and pods.refuse(load(args.slug) or {})
     return guards.cmd_resume(sys.modules[__name__], args)
 
 
