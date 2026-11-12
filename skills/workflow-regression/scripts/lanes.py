@@ -8,7 +8,7 @@ on HEAD or an ancestor of HEAD and nothing it reads changed since; anything this
 A test script whose leading comment block has `# reads: <path>...` lines is mapped narrowly (declared entry points plus
 what they reach, no folder widening); a script without one keeps the wide mapping; LANES_WIDE=1 forces wide everywhere.
 """
-import fcntl
+import portlock as fcntl
 import hashlib
 import json
 import os
@@ -88,8 +88,7 @@ def load(path, root):
 
 
 def save(path, root, command, results, head, at, fresh, base=None):
-    """Merge the rows this run ran into the record, under a lock; a fresh (full) run, or a goal tier run on a new
-    merge-base (base), first drops the old rows. base is kept as the record's merge_base (tiers.py)."""
+    """Merge this run's rows into the record, under a lock; a fresh run, or a goal run on a new merge-base, drops the old rows first."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path + ".lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
@@ -108,7 +107,7 @@ def save(path, root, command, results, head, at, fresh, base=None):
 
 
 def descendants(root_pid):
-    """Every live descendant pid of root_pid (ps), children first found, so a timeout can kill a row's whole tree."""
+    """Every live descendant pid of root_pid (ps), so a timeout can kill a row's whole tree."""
     out = subprocess.run(["ps", "-A", "-o", "pid=,ppid="], capture_output=True, text=True).stdout
     kids = {}
     for line in out.splitlines():
@@ -124,8 +123,8 @@ def descendants(root_pid):
 
 
 def run_row(command, cwd, env, timeout):
-    """(code, output, pid, signal) for one row's shell (issue 435): signal names what stopped it, from a negative
-    status or a shell's 128+N exit status; None when it exited on its own. A timeout kills it and returns 124."""
+    """(code, output, pid, signal) for one row's shell (issue 435); signal names what stopped it (a negative or 128+N status),
+    else None. A timeout kills it and returns 124."""
     import signal as sig
     import tempfile
     with tempfile.TemporaryFile("w+", errors="replace") as log:  # a file, not a pipe: a child left running can't hold it
@@ -219,9 +218,12 @@ def scan(root, rel, cache):
     return files[rel]
 
 
-def walk(root, prefix):
-    return [os.path.relpath(os.path.join(here, n), root) for here, _, names in os.walk(os.path.join(root, prefix))
-            for n in names if "__pycache__" not in here]
+def walk(root, prefix, cache=None):
+    if cache is not None and ("walk", prefix) in cache:
+        return cache["walk", prefix]
+    found = [os.path.relpath(os.path.join(here, n), root) for here, _, names in os.walk(os.path.join(root, prefix))
+             for n in names if "__pycache__" not in here]
+    return found if cache is None else cache.setdefault(("walk", prefix), found)
 
 
 def wide_closure(root, command, cache):
@@ -232,7 +234,7 @@ def wide_closure(root, command, cache):
     always = whole or not deps
     todo, seen = [p for p in deps if not p.endswith("/")], set()
     for prefix in [p for p in deps if p.endswith("/")]:
-        todo += walk(root, prefix)
+        todo += walk(root, prefix, cache)
     while todo:
         rel = todo.pop()
         if rel in seen:
@@ -240,7 +242,7 @@ def wide_closure(root, command, cache):
         seen.add(rel)
         for path in scan(root, rel, cache) - deps:
             deps.add(path)
-            todo += walk(root, path) if path.endswith("/") else [path]
+            todo += walk(root, path, cache) if path.endswith("/") else [path]
     cache["wide", command] = (deps, always)
     return cache["wide", command]
 
@@ -324,7 +326,7 @@ def no_effect(path):
 def names_any(root, command, paths, cache):
     """Whether a row's command, or a file it reaches, names one of paths (a file gone from the tree can't be mapped by reach)."""
     deps, _ = closure(root, command, cache)
-    files = [p for p in deps if not p.endswith("/")] + [f for p in deps if p.endswith("/") for f in walk(root, p)]
+    files = [p for p in deps if not p.endswith("/")] + [f for p in deps if p.endswith("/") for f in walk(root, p, cache)]
     texts = [command] + [read(root, p, cache) or "" for p in files]
     for path in paths:
         name = os.path.basename(path)
@@ -335,9 +337,8 @@ def names_any(root, command, paths, cache):
 
 
 def plan(root, selected, record, current_tsv, current_known):
-    """Decide each selected row: (to_run ids in tier order, reused ids, notes, why no row could be reused or '').
-    A deleted or unmapped file picks the rows that name it plus the rows that reach the runner; the caller fits the list
-    to the time budget, so nothing here ever widens a change into a full run on its own."""
+    """(to_run ids in tier order, reused ids, notes, why no row could be reused or ''). A deleted or unmapped file picks the
+    rows that name it and the rows that reach the runner; the caller fits the list to the budget, never a full run."""
     rows, cache, notes, memo = record["rows"], {}, [], {}
     every = [r["id"] for r in selected]
     failed = [r["id"] for r in selected if rows.get(r["id"], {}).get("status") == "FAIL"]

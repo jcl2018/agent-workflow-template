@@ -26,3 +26,29 @@ Open (from board-held's ship review, 2026-11-10; non-blocking, for the health-re
 - watch-go-unreadable-pool: watch.py go treats an unreadable pool as empty when choosing a slug, so it can queue a goal under a slug a session already holds but hasn't frozen.
 - automation-email: Failed 3 tries. Last: merging main conflicts in: .loop/regression.tsv, skills/workflow-setup/SKILL.md
 - delivery-prd: Failed 3 tries. Last: qa failed: regression lane: LANE_TIMEOUT: past its limit of 4500s (flow file "limit", else step_limit); the lane committed and pushed nothing.
+
+Open (from the issue-cleanup triage of the open non-regression issues, 2026-11-12; one line per piece of work, each names its issues; none starts with a closing word):
+- size-split-scripts: trim or split the scripts the size check warns on before they pass the 20 KB limit: goal.py, release.py, role.py, reply_hook.py, watch.py, fit.py, flow.py, guards.py, lanekit.py, lanes.py, merge.py and lane.py (lane.py also in goal skill-size-2; sessions.py is the sessions-size finding above); the health run keeps these issues open until each passes (live_board.py too: health would reopen #353) (issues #138, #142, #352, #353, #354, #355, #356, #529, #828, #829, #830, #831, #833, #834)
+- rows-for-set-grd: add a regression row, or mark covered, for each Setup requirement SET-6, SET-7 and SET-9 and Guardrails requirement GRD-1 to GRD-10 that health reports as not enforced (issues #338, #339, #341, #815, #816, #817, #818, #819, #820, #821, #822, #823, #824)
+- usage-readme-gaps: the README names /workflow-docs init, /workflow-release cut and /workflow-release leave that no page's Usage names; add each to its page's Usage or drop it from the README (issues #343, #344, #345)
+- findings-hygiene: retire the findings lines that landed, since the hygiene check warns while findings stay open (issue #357)
+- prd-wording-fixes: from the review findings: DEL-6 says every goal runs its full test lane against REG-4 (#404), the depth rows are linked to DEL-1 (#405), Health Usage omits review and triage (#408), Monitoring Usage and Command map omit cleanup --dry-run (#409), MON-1, MON-2 and MON-5 title lines are over long (#410), duplicate adopt-set rows remain (#414)
+- regression-job-timeout: the regression job allows 90 minutes against AUT-7's 45; make the job and the requirement agree (issue #403)
+- runs-column-rows: re-run the runs-url and runs-partial rows and find why the lane recorded FAIL while the toy test passes locally (issue #407)
+- setup-like-option: build the setup --like option SET-9 asks for (issue #411)
+- setup-zero-tests: setup picks a test command that can run 0 tests (it accepts *_test.py for unittest discover); prove the chosen check runs at least one test, with a defect test (issue #119)
+- setup-refused-writes: setup prints REFUSED on a bare agent_command but still writes and commits; write nothing, or do not call it a refusal, with a defect test (issue #120)
+- tsv-ban-repos: the loop files are .tsv, which repos that ban tracked .tsv files reject; offer another format or a setup-written exemption (issue #127)
+- criteria-user-assertion: criteria.py --user is still only an assertion that the owner said so, though the LOCKED hint is fixed and LOOP_OWNER_WORDS is needed without a terminal (issue #133)
+- app-hook-worktree: the app's own edit hook still blocks a goal's worktree when the session started elsewhere; outside the repo's reach, tracked by the loop-guards design (issue #160)
+- health-new-groups: add the CI, Portability and Process flow rule groups after retiring a group or raising the cap; Process flow is also in health-prd (issues #179, #180, #181)
+- goal-pr-try-budget: a merge conflict from a moving main and a dead lane burn the 3-try budget, and finding text carries absolute paths; retry without spending a try, use repo-relative paths, skip the push when the remote has HEAD (issues #436, #610)
+- goal-done-line-private: refuse a done line with a private name or absolute path before freezing, and give the operation a done --reword that records old, new and approver (issue #451)
+- report-no-release-for-worker: sessions.py report --status waiting --pr must record the PR only unless the role is operation, and a resume must honour release ask when auto_merge is on, each with a regression row (issues #494, #812)
+- reply-hook-checkin-only: reply_hook should check only check-in turns, accept Dependency graph, and have negative-control rows (issue #496)
+- deployments-followups: extend the address check to every Deployments cell, fix cells() last character, prd.py convert order and the guide-page Deployments shape, one seen-failing row each (issue #519)
+- lane-new-rows-first: order a goal's new and changed rows before reach rows in the qa, ship and pr lanes (issue #531)
+- board-test-fix: dev/toy/test-board.sh fails three rows on main: restore the operation.md phrases "one chat line" and "6 lines" (or update the rows) and free room in watch.py (issue #607)
+- release-draft-wording-no-wiki: the release skill still describes a draft when auto_merge is off while DEL-5 says there is no draft step, and the first-page wiki message does not cover a repo with no GitHub wiki (issue #129, reopened by this triage)
+- lane-plan-cache-proof: add a regression row proving lane planning stays under 60 s at load 20 with an unchanged row set; the loop/lane-plan-cache goal carries it (issue #710)
+- guard-enforce-red: Failed 3 tries. Last: merging main conflicts in: docs/wiki/Tests.md

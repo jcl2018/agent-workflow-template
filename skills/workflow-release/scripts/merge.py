@@ -3,27 +3,26 @@
 
 usage: merge.py SLUG
 
-It refuses unless `"auto_merge": true` is in .loop/config.json, the goal is done and its pull request is open. A repo
-without that switch keeps the owner's merge: nothing here merges there. Then it runs the routines listed in .loop/config.json on the base branch and refuses if one fails, merges, and
-releases: one version bump, a CHANGELOG entry and a published GitHub release (autorelease.py). Any failure is recorded
-on the goal as `release_error`. Where .loop/docs.tsv maps pages, it first refuses while a page the goal's paths map to is stale,
-and after the merge it publishes the wiki through wiki.py; a refused publish is recorded as `wiki_error`, not undone.
-Before merging it scans the branch and the release notes for private names (refusing, nothing merged), and holds the
-merge (REQUIREMENT_MISSING) while a criterion row the goal adds names a requirement ID no wiki page on the base names,
-where the base's pages already use that ID's prefix; otherwise a missing ID is only a NOTE.
+It refuses unless `"auto_merge": true` is in .loop/config.json, the goal is done and its pull request is open (a repo
+without that switch keeps the owner's merge). Then it runs the routines listed in .loop/config.json on the base branch and refuses if one fails, merges, and
+releases: one version bump, a CHANGELOG entry and a published GitHub release (autorelease.py); a failure is recorded as
+`release_error`. Where .loop/docs.tsv maps pages, it first refuses while a page the goal's paths map to is stale, and after the merge
+publishes the wiki through wiki.py; a refused publish is recorded as `wiki_error`, not undone.
+Before merging it scans the branch and release notes for private names (refusing, nothing merged), and holds the merge
+(REQUIREMENT_MISSING) while a criterion row the goal adds names a requirement ID no base wiki page names, where the base's
+pages already use that ID's prefix; otherwise a missing ID is only a NOTE.
 
-Also here (the package stays under its file cap), the release pull request, which autorelease.py calls as
-`merge.advance` when the base takes no direct push (a `pull_request` rule, or a push refused for protection): it pushes
-the release commit to `release/vX-<slug>` (force-updating only that branch on a restart), opens `Release vX (<slug>)`
-with the release notes as its body, all scanned for private names first, and merges it itself with `gh pr merge
---merge`, never `--admin`, never through main() here, so it can't start a second release. What `gh pr view` says decides
-the next move: MERGED: VERSION at the merge commit must be vX (else RELEASE_VERSION_MISMATCH) and the release targets
-that commit; OPEN: required checks pending wait (`release_pr_waiting`, no error; the next merge.py run retries), a
-required review or a block records RELEASE_PR_BLOCKED with the owner's command, a conflict closes it and starts again
-with the next version; CLOSED: forget it and start again on the new base.
+Takes <common>/loop/merge.lock for the whole step (one merge per repo across pods) and refuses another pod's goal.
+
+Also here, the release pull request (autorelease.py calls `merge.advance` when the base takes no direct push): it pushes
+the release commit to `release/vX-<slug>`, opens `Release vX (<slug>)` with the notes as its body (scanned for private
+names first) and merges it with `gh pr merge --merge`, never `--admin`. `gh pr view` decides the next move: MERGED: VERSION
+at the merge commit must be vX (else RELEASE_VERSION_MISMATCH); OPEN: pending checks wait (`release_pr_waiting`), a review
+or a block records RELEASE_PR_BLOCKED with the owner's command, a conflict starts again with the next version; CLOSED: start again.
 """
 import argparse
 import datetime
+import importlib.util
 import json
 import os
 import re
@@ -33,6 +32,19 @@ import sys
 import autorelease
 import release
 import wiki
+
+
+def _pods():  # pods and the merge lock (MON-15) live in workflow-monitoring's graph.py, loaded by path; None without it
+    try:
+        spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:
+        return None
+
+
+pods = _pods()
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -259,6 +271,9 @@ def main():
         sys.exit("REFUSED: no goal named %s." % args.slug)
     if state.get("status") != "done" or not state.get("pr"):
         sys.exit("REFUSED: %s has no finished pull request. Fix: run goal.py pr first." % args.slug)
+    if pods:
+        pods.refuse(state)
+        pods.merge_lock(os.path.abspath(common))  # one merge per repo at a time, across pods
     view = run(["gh", "pr", "view", state["pr"], "--json", "state,headRefOid"])
     info = json.loads(view.stdout or "{}") if view.returncode == 0 else {}
     known = info.get("state", "")

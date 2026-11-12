@@ -36,3 +36,4 @@ branch or worktree older than {stale_branch_days} days is stale. The judge runs 
 ## Settings
 Every repo setting, its value and its one-line explanation is in the Settings table below; add any missing one with
 `/workflow-setup fill-repo`. Private settings live in `~/.workflow-loop/` and never appear here.
+The wiki Home page also carries a Settings section (each setting's meaning, how to set it, its default and this repo's value, marked overridden) and an Automation section (each routine on or off, its cadence, where it runs, its last run and any step you still owe); the README repeats both and names the template repo it came from. `/workflow-docs render` refreshes them.

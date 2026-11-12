@@ -10,7 +10,7 @@ Imported by goal.py (and role.begin); run only as `guards.py known`, which print
              of the run record can erase them.
 """
 import datetime
-import fcntl
+import portlock as fcntl
 import json
 import os
 import re
@@ -97,6 +97,26 @@ def check_record(state, step, text, cfg, result):
                             "rerun the %s step at full depth, then record again" % step, "%s full-markers" % FORMAT_RULE), None, skipped
     state.setdefault("depth", {})[step] = depth
     return " (depth %s%s)" % (depth, ", skipped" if result == "skipped" else ""), None, None, skipped
+
+
+NO_ITEM = re.compile(r"(none|nothing|n/?a|no decisions?)?", re.I)
+ENDS = re.compile(r"\W*(?:STEP|DEPTH|PENDING|VERDICT|BUDGET):")
+
+
+def pending_items(text):
+    """Owner decisions in a reply: each PENDING: line, or line under a bare one; none, nothing, n/a are not."""
+    lines, got = text.splitlines(), []
+    for n, line in enumerate(lines):
+        found = re.match(r"\W*PENDING:[ \t]*(.*)", line)
+        if found:
+            got.append(found.group(1))
+            if not re.search(r"\w", found.group(1)):  # a heading
+                for under in lines[n + 1:]:
+                    if not under.strip() or ENDS.match(under):
+                        break
+                    got.append(under)
+    got = [" ".join(item.split()) for item in got]
+    return [item for item in got if not NO_ITEM.fullmatch((re.search(r"\w.*\w|\w", item) or [""])[0])]
 
 
 def refuse_no_try(state, why, fix, code, save):

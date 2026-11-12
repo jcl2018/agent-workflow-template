@@ -6,14 +6,14 @@ usage: goal.py <command> <slug> [options]
   new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
   queue SLUG --goal TEXT --done LINE [--touches A,B] [--depends-on A,B]
   step SLUG NAME [--note TEXT] [--tokens N]
-  record SLUG STEP --file REPLY [--in-session]  record a flow step flow.py or the goal's worker session ran
+  record SLUG STEP --file REPLY [--in-session]
   pr SLUG  merge the latest base, push, open the PR
-Goal steps (step, record, pr) refuse outside a worker, which also sees what the operation session sent it.
+Goal steps (step, record, pr) refuse outside a worker.
   wait SLUG --ask TEXT --words W [--words W]
   answer SLUG                 a waiting goal goes on
   finding SLUG TEXT           stops a live goal; a done or merged one is only noted
   resume SLUG --why T [--by W]    the operation revives a stopped session goal
-  touches SLUG --add PATH --why T the operation widens a goal's touches (a path, or github:wiki and the like)
+  touches SLUG --add PATH --why T the operation widens a goal's touches
   set SLUG [--depth D] [--bump B] [--budget-minutes N] [--budget-tokens N] --why T   the owner's per-goal settings
   show SLUG
 A refusal that changes nothing uses no try: exit 2, the goal keeps running (guards.py).
@@ -21,6 +21,7 @@ A refusal that changes nothing uses no try: exit 2, the goal keeps running (guar
 import argparse
 import datetime
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -34,6 +35,19 @@ import guards  # noqa: E402
 import fit  # noqa: E402
 import private  # noqa: E402
 import role
+
+
+def _pods():  # pods and the merge lock (MON-15) live in workflow-monitoring's graph.py, loaded by path; None without it
+    try:
+        spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:
+        return None
+
+
+pods = _pods()
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -234,6 +248,7 @@ def cmd_new(args):
              "release": args.release, "waiting": None, "finding": "", "log": []}
     state.update(fields)
     guards.stamp(state, "idea")
+    pods and pods.stamp(state)
     save(state, "frozen %d done lines" % len(lines))
     print("FROZEN %s branch=%s step=idea" % (args.slug, branch))
     return 0
@@ -279,7 +294,7 @@ def cmd_record(args):
     text = read(reply)
     found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b[ :.-]*(.*)$", text, re.M | re.I)
     result, why = (found[-1][0].lower(), found[-1][1].strip()) if found else ("", "")
-    pending = [" ".join(item.split()) for item in re.findall(r"^\W*PENDING:\s*(.+)$", text, re.M)]
+    pending = guards.pending_items(text)
     session = args.in_session or state.get("worker") == "session"
     if not result and not pending and session:  # flow.py's session route
         guards.refuse_no_try(state, "the %s reply has no STEP line" % args.step, "end the reply with the DEPTH line and a "
@@ -407,6 +422,7 @@ def cmd_finding(args):
 
 
 def cmd_resume(args):
+    pods and pods.refuse(load(args.slug) or {})
     return guards.cmd_resume(sys.modules[__name__], args)
 
 
