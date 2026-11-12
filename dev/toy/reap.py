@@ -111,8 +111,28 @@ def guarded(procs):
     return keep
 
 
-def find(test, procs=None):
-    """[(pid, start, argv, ppid)] whose environment passes test(env), plus [(pid, why)] live unreadable."""
+def started_at(start):
+    """A process's start as epoch seconds, from table()'s start field, or None if it can't be read."""
+    try:
+        if LINUX:
+            with open("/proc/stat") as f:
+                boot = next(int(line.split()[1]) for line in f if line.startswith("btime "))
+            return boot + int(start) / os.sysconf("SC_CLK_TCK")
+        return time.mktime(time.strptime(start, "%a %b %d %H:%M:%S %Y"))
+    except (OSError, ValueError, StopIteration):
+        return None
+
+
+def since_of(marker):
+    """The epoch a toy marker was made (reap.sh's toy-PID-EPOCH-..., test-no-leftovers' outer-PID-EPOCH-N), or None."""
+    m = re.search(r"=[a-z]+-\d+-(\d{9,})-", marker)
+    return int(m.group(1)) if m else None
+
+
+def find(test, procs=None, since=None):
+    """[(pid, start, argv, ppid)] whose environment passes test(env), plus [(pid, why)] live unreadable. With since
+    (epoch seconds), an unreadable process that started before it is left out: it can't carry a marker made later,
+    as a CI runner's own processes, whose environments the runner user may not read (EACCES), never do."""
     procs = table() if procs is None else procs
     keep, hits, unread, hidden, other = guarded(procs), [], [], [], set()
     for pid, (ppid, start, zombie) in sorted(procs.items()):
@@ -121,8 +141,10 @@ def find(test, procs=None):
         try:
             argv, env = procargs(pid)
         except OSError as e:
-            unread.append((pid, start, errno.errorcode.get(e.errno, str(e.errno))))
             other.add(pid)
+            began = started_at(start) if since is not None else None
+            if began is None or began >= since - 1:
+                unread.append((pid, start, errno.errorcode.get(e.errno, str(e.errno))))
             continue
         if test(env):
             hits.append((pid, start, argv, ppid))
@@ -221,7 +243,7 @@ def main(argv):
     cmd, args = argv[0], argv[1:]
     try:
         if cmd == "list" and len(args) == 1 and "=" in args[0]:
-            hits, unread = find(entry_is(args[0]))
+            hits, unread = find(entry_is(args[0]), since=since_of(args[0]))
             for pid, _s, a, ppid in hits:
                 print("%d %d %s" % (pid, ppid, short(a)))
             for pid, why in unread:
