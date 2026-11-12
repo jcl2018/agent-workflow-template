@@ -174,8 +174,8 @@ def problems(root, base):
             continue
         skip = ["^" + sha for sha in seen + [base] + merged if sha]  # merges add nothing
         mine = paths + [":(exclude).loop/config.json"] * pageformat.is_guide(text)  # a guide isn't about settings values
-        changed = git("log", "--no-merges", "--full-history", "--format=%h %s", "HEAD", *skip, "--", *mine,
-                      cwd=root).splitlines()
+        changed = counting.real(root, git("log", "--no-merges", "--full-history", "--format=%h %s", "HEAD", *skip, "--", *mine,
+                                          cwd=root).splitlines(), mine)  # block-only commits say nothing
         if changed:
             found.append(("STALE", page, "%d commits since the page: %s" % (len(changed), changed[0][:70])))
     held = os.path.join(root, folder)
@@ -350,26 +350,8 @@ def cmd_publish(args):
     return 0
 
 
-def live(root):
-    import render
-    """Print each routine's live state: a workflow's newest run, a launch agent loaded or not."""
-    for e in render.entries(root):
-        kind, _, target = str(e.get("runs", "")).partition(":")
-        if kind == "github":
-            done = subprocess.run(["gh", "run", "list", "--workflow", target, "--limit", "1", "--json", "conclusion,createdAt",
-                                   "-q", ".[0] | \"\\(.conclusion) \\(.createdAt)\""], capture_output=True, text=True)
-            said = done.stdout.strip() if done.returncode == 0 and done.stdout.strip() else "no run found or gh unavailable"
-        elif kind == "mac":
-            done = subprocess.run(["launchctl", "list", target], capture_output=True, text=True)
-            said = "loaded" if done.returncode == 0 else "not loaded"
-        else:
-            said = "a Claude scheduled task is checked in the Claude app"
-        print("%s: %s" % (e["name"], said))
-    return 0
-
-
 def cmd_automation(_args):
-    return live(top())
+    return counting.live(top())
 
 
 def cmd_restore(_args):

@@ -2,14 +2,22 @@
 """The numbers the docs state that the repo can check: skills, feature pages, and a feature page's criteria and tests.
 
 docs.py check, audit and publish call counts() through docs.counts(root). prose() is the text a reader sees: no fenced
-or indented code, comments or code spans. The page map of docs.py (map_path, read_map, write_map) sits at the end.
+or indented code, comments or code spans. The page map of docs.py (map_path, read_map, write_map),
+and its live() and render.py's cadence(), moved unchanged, and real(), which drops block-only commits from its staleness, sit at the end.
 """
 import glob
 import os
 import re
+import subprocess
+import sys
 
 import criteria
 import pageformat
+
+# No terminal, no waiting: a prompt from git must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 WORDS = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split()
 NOUNS = {"skill": "skill", "skills": "skill", "feature page": "page", "feature pages": "page", "criterion": "criteria",
@@ -176,3 +184,59 @@ def write_map(root, rows):
         handle.write("# page<TAB>paths it describes, comma separated\n")
         for page in sorted(rows):
             handle.write("%s\t%s\n" % (page, ",".join(rows[page])))
+
+
+BLOCK = re.compile(r"<!-- (settings|automation|template):begin -->\n.*?<!-- \1:end -->\n", re.S)  # render.py's blocks
+
+
+def real(root, changed, paths):
+    """changed ('<sha> <subject>' lines) without the commits whose change to paths lies only inside the generated
+    blocks of README.md or a Home.md: a block refresh (or setup's insert) says nothing about the pages mapped there."""
+    if not changed:
+        return changed
+    git = lambda *a: subprocess.run(["git", "-C", root] + list(a), capture_output=True, text=True)  # noqa: E731
+    names = {}  # one git call for every commit's files
+    for chunk in git("log", "--no-walk=unsorted", "--no-renames", "--format=%x01%h", "--name-only",
+                     *[c.split()[0] for c in changed], "--", *paths).stdout.split("\x01")[1:]:
+        sha, *files = chunk.strip("\n").split("\n")
+        names[sha] = [f for f in files if f]
+
+    def blocks_only(sha, rel):
+        old, new = git("show", "%s^:%s" % (sha, rel)), git("show", "%s:%s" % (sha, rel))
+        bare = lambda t: re.sub(r"\n{3,}", "\n\n", BLOCK.sub("", t)).strip()  # noqa: E731 an insert leaves a blank line
+        return not old.returncode and not new.returncode and bare(old.stdout) == bare(new.stdout)
+
+    return [c for c in changed if not (names.get(c.split()[0]) and all(
+        os.path.basename(rel) in ("README.md", "Home.md") and blocks_only(c.split()[0], rel) for rel in names[c.split()[0]]))]
+
+
+def live(root):
+    import render
+    """Print each routine's live state: a workflow's newest run, a launch agent loaded or not."""
+    for e in render.entries(root):
+        kind, _, target = str(e.get("runs", "")).partition(":")
+        if kind == "github":
+            done = subprocess.run(["gh", "run", "list", "--workflow", target, "--limit", "1", "--json", "conclusion,createdAt",
+                                   "-q", ".[0] | \"\\(.conclusion) \\(.createdAt)\""], capture_output=True, text=True)
+            said = done.stdout.strip() if done.returncode == 0 and done.stdout.strip() else "no run found or gh unavailable"
+        elif kind == "mac":
+            done = subprocess.run(["launchctl", "list", target], capture_output=True, text=True)
+            said = "loaded" if done.returncode == 0 else "not loaded"
+        else:
+            said = "a Claude scheduled task is checked in the Claude app"
+        print("%s: %s" % (e["name"], said))
+    return 0
+
+
+def cadence(cron):  # render.py's Automation block cadence, moved here unchanged
+    if cron == "off":
+        return "off"
+    f = cron.split()
+    if len(f) == 5 and f[2:] == ["*", "*", "*"]:
+        if f[1].startswith("*/") and f[1][2:].isdigit():
+            return "every %s hours" % f[1][2:]
+        if f[0].isdigit() and f[1].isdigit():
+            return "daily at %02d:%02d" % (int(f[1]), int(f[0]))
+        if f[1] == "*" and f[0].startswith("*/") and f[0][2:].isdigit():
+            return "every %s minutes" % f[0][2:]
+    return "cron `%s`" % cron

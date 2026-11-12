@@ -31,7 +31,7 @@ The land lane runs once per goal, in qa, within {test_budget_minutes} minutes (t
 
 ## Health
 Health checks the repo with fixed rules that give the same answer every time, on the schedule `{health_cron}`; a
-branch or worktree older than {stale_branch_days} days is stale. The judge's environment: {judge_env}.
+branch or worktree older than {stale_branch_days} days is stale. The judge runs on the Mac with your own claude login.
 
 ## Settings
 Every repo setting, its value and its one-line explanation is in the Settings table below; add any missing one with

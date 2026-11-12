@@ -25,7 +25,7 @@
   "mend": true,
   "resume_on_limit": false,
   "criteria": true,
-  "criteria_max": 15,
+  "criteria_max": 16,
   "auto_approve": true,
   "auto_merge": true,
   "regression_cron": "17 */4 * * *",
@@ -38,7 +38,8 @@
   "token_budget": 3000000,
   "review_depth": "full",
   "_help": {
-    "review_depth": "full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run."
+    "review_depth": "full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run.",
+    "criteria_max": "Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it."
   },
   "full_auto": true,
   "pool_size": 20,
@@ -47,5 +48,25 @@
   "digest_mail": "cloudflare",
   "test_budget_minutes": 15,
   "step_budget_minutes": 30,
-  "prep_budget_minutes": 15
+  "prep_budget_minutes": 25,
+  "cadence": "30",
+  "smtp_host": "smtp.gmail.com",
+  "smtp_port": 465,
+  "step_limit": 0,
+  "goal_lane_minutes": 10,
+  "goal_levels": "land",
+  "ci_levels": "nightly",
+  "stale_branch_days": 14,
+  "mend_wait": 120,
+  "max_tries": 3,
+  "limit_wait": 1800,
+  "watch_interval": 20,
+  "agent_files": [
+    "CLAUDE.md",
+    "AGENTS.md"
+  ],
+  "template_repo": "",
+  "reply_hook": true,
+  "feature_labels": false,
+  "template_version": "0.27.17"
 }

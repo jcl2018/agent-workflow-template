@@ -1,34 +1,21 @@
 #!/usr/bin/env python3
-"""The lane's kit, imported by lane.py and goal.py; not a command. Three parts:
+"""The lane's kit, imported by lane.py and goal.py; not a command. Five parts:
 
-1. Copies of the slots.py pieces lane.py uses (EXIT_WAIT, EXIT_STALE, POLL, flow_file, time_limit, lanes_dir,
-   port_base, last_change, lane_limit, timeout_line, rows_line and the helpers they call): a skill imports only its own
-   scripts, so workflow-delivery keeps these copies. Each copied function (COPIED) must have exactly the same source as
-   in workflow-regression/scripts/slots.py; dev/toy/test-lane-control.sh fails when one drifts. Change both together.
+1. Copies of the slots.py pieces lane.py uses (EXIT_WAIT, EXIT_STALE, POLL, flow_file, time_limit, lanes_dir, port_base,
+   last_change, lane_limit, timeout_line, rows_line and their helpers): a skill imports only its own scripts. Each copy
+   (COPIED) must match workflow-regression/scripts/slots.py exactly; dev/toy/test-lane-control.sh fails on drift.
 2. The one commit a lane may make before it starts (prep, generated): the re-rendered wiki Tests tables and the run
-   dates they come from. A page counts only when its edits are all in its ## Tests section (what criteria.py renders),
-   or it is the full Tests page render writes whole; any other change refuses with LANE_DIRTY and nothing is rendered or
-   committed. The commit is `git commit --only` of those paths with a 60 s timeout; a refused or hung commit unstages
-   them and starts nothing (LANE_PREP_FAILED).
-3. What goal.py pr does after its pr lane passes, before it pushes (record(state, base)):
-  1. issue states (V5): `tests.py issues --write` once, bounded to 120 s; a failure leaves the file and prints NOTE;
-  2. run results (DX-19): `lanes_cli.py merge-runs` merges the branch's lane record's row results, with any flaky flag,
-     into .loop/regression-runs.tsv under the row lock, so the rows a goal ran show on the wiki and in health once it
-     merges; a failure prints NOTE;
-  3. one commit of those two files when they changed, with the wiki Tests tables re-rendered from them, then
-  4. state["pr_lane"] (the pull request body's lane part), state["pr_head"] (the head goal.py pr pushes: the lane's
-     commit plus that bookkeeping commit) and state["pr_base"] (the base commit it was merged with), for merge.py's
-     HEAD_MOVED and BASE_MOVED checks.
-Exit codes and messages: workflow-regression/references/commands.md.
-
-4. The time budgets of the loop's steps (was budget.py, folded in to keep the package under its file cap):
-step_budget_minutes (default 30) bounds each review and ship step; test_budget_minutes (default 15) bounds each test
-run (regression's runs.py enforces it). Neither can be set under 15. A step that reaches its budget finishes with what
-it has done, and its record (budget_hits in the goal's run file) names what it left; the board and health show those.
-Imported by flow.py, role.py, guards.py and the monitoring and health reports.
+   dates they come from, as `git commit --only` of those paths (60 s timeout). Any other change refuses with LANE_DIRTY;
+   a refused or hung commit unstages and starts nothing (LANE_PREP_FAILED).
+3. What goal.py pr does after its lane passes, before it pushes (record(state, base)): issue states (`tests.py issues
+   --write`, 120 s), run results merged into .loop/regression-runs.tsv (`lanes_cli.py merge-runs`), one commit of
+   those two files with the Tests tables re-rendered, then state["pr_lane"], ["pr_head"] and ["pr_base"] for
+   merge.py's HEAD_MOVED and BASE_MOVED checks. Messages: workflow-regression/references/commands.md.
+4. The step budgets: step_budget_minutes (default 30) bounds a review or ship step, test_budget_minutes (15) a test
+run; neither goes under 15; budget_hits in the run file names what a stopped step left.
+5. Who may signal a lane: pstart/same (a pid counts only while its start time matches the stored one), audit
+(runs/kills.log, a line per signal sent) and died/death (LANE_DIED names the signal that ended a lane).
 """
-import portlock as fcntl
-import proctree
 import glob
 import json
 import os
@@ -38,6 +25,32 @@ import sys
 import time
 
 import tempfile
+import proctree
+from proctree import pstart  # noqa: F401
+try:
+    import fcntl
+except ImportError:  # Windows: msvcrt locks
+    import msvcrt
+    import types
+
+    def _flock(handle, op):
+        fd = handle if isinstance(handle, int) else handle.fileno()
+        here = os.lseek(fd, 0, 1)
+        os.lseek(fd, 0x7FFFFFFF, 0)  # one far byte: readers never block
+        try:
+            while True:
+                try:
+                    return msvcrt.locking(fd, msvcrt.LK_UNLCK if op & 8 else msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    if op & 8:
+                        return  # not held: no-op
+                    if op & 4:
+                        raise BlockingIOError("locked")
+                    time.sleep(0.05)
+        finally:
+            os.lseek(fd, here, 0)
+
+    fcntl = types.SimpleNamespace(LOCK_SH=1, LOCK_EX=2, LOCK_NB=4, LOCK_UN=8, flock=_flock)
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -50,7 +63,7 @@ FILES = (".loop/regression-issues.tsv", ".loop/regression-runs.tsv")
 EXIT_WAIT, EXIT_STALE, POLL = 4, 5, 2.0
 EXIT_PREP = 125  # a lane stopped at its preparation budget, before any row
 TERMINAL = ("pass", "fail")
-COPIED = ('flow_file', '_flow', 'time_limit', 'lanes_dir', 'check', '_open', 'port_base', 'last_change', 'lane_limit', 'timeout_line', 'rows_line')  # from slots.py, kept identical (dev/toy/test-lane-control.sh)
+COPIED = ('flow_file', '_flow', 'time_limit', 'lanes_dir', 'check', '_open', 'port_base', 'last_change', 'lane_limit', 'timeout_line', 'rows_line')  # from slots.py, kept identical
 
 
 def flow_file():
@@ -84,7 +97,7 @@ def lanes_dir():
 def check(pool):
     """Create the pool 0700; refuse one that isn't yours or that others can write (OSError names why)."""
     os.makedirs(pool, mode=0o700, exist_ok=True)
-    if os.name == "nt":  # no uid or group bits: the pool sits in the user's own profile, private by its ACL
+    if os.name == "nt":  # no uid or group bits: the pool is in the user's own profile, private by its ACL
         return
     info = os.stat(pool)
     if info.st_uid != os.getuid() or info.st_mode & 0o022:
@@ -190,10 +203,8 @@ def set_last(path, attempt, **fields):
         return data
 
 
-# The lane's preparation budget (REG-7, DEL-8): what a lane does before its first row (the Tests-table prep, planning and the
-# slot wait) shares one budget, prep_budget_minutes. The lane child (lane.py lane-exec) writes one `.times` record (planning
-# seconds, slot-wait seconds and, for a cut, the part that was running); lane.py's finalize reads it here, says the three parts
-# on every LANE line, and on a cut prints LANE_PREP_BUDGET and records the hit (kind prep) so the board and health list it.
+# Prep budget (REG-7, DEL-8): Tests-table prep, planning and slot wait share prep_budget_minutes. lane-exec writes a
+# `.times` record; lane.py's finalize reads it, names the parts on each LANE line, and on a cut prints LANE_PREP_BUDGET.
 
 def holders(pool):
     """Labels of the lanes holding slots now, for the cut line."""
@@ -236,8 +247,24 @@ def prep_hit(base, name, held, plan, wait, part):
                round(held.get("budget", 0) / 60), left)
 
 
-def died(log):
-    return "LANE_DIED: the lane ended with no exit status (log %s); the next call starts a new lane; %s." % (log, NOTHING)
+def same(pid, start):
+    """pid still began at start; with none stored it is never ours to signal."""
+    return bool(start) and pstart(pid) == start
+
+
+def audit(runs, who, pid, why):
+    """One line per signal the loop sends: a lane that dies traces to it, or shows there was none."""
+    with open(os.path.join(runs, "kills.log"), "a") as handle:
+        handle.write("%s %s -> %s (%s): %s\n" % (time.strftime("%FT%T"), who, pid, pstart(pid), why))
+
+
+def died(log, sig=""):
+    return "LANE_DIED: the lane ended with no exit status%s (log %s); %s" % (" (killed by %s)" % sig if sig else "", log, NOTHING)
+
+
+def death(base, log, sig=""):
+    """A lane that ended with no exit status, or was signalled from outside: LANE_DIED, naming the signal."""
+    return "fail", died(log, sig), []
 
 
 def running_line(held, other=None):

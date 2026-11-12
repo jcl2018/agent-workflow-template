@@ -1,0 +1,10 @@
+#!/bin/bash
+# Test double for launchctl. Records calls to $LOOP_SCHEDULE_HOME/launchctl.log; "print" answers loaded only after a bootstrap. Dev only.
+h=${LOOP_SCHEDULE_HOME:?}; mkdir -p "$h"
+echo "$*" >> "$h/launchctl.log"
+case "$1" in
+  bootstrap) touch "$h/.loaded";;
+  bootout) rm -f "$h/.loaded";;
+  print) [ -f "$h/.loaded" ] || exit 113;;
+esac
+exit 0

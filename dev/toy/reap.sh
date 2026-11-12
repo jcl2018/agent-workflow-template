@@ -26,7 +26,8 @@ fi
 # with exit 77, and writes $TOY_SKIP_FILE when a lane set one, since a row's `| grep -q` hides the exit status.
 toy_skip() { echo "SKIP: $*"; [ -z "${TOY_SKIP_FILE:-}" ] || echo skip > "$TOY_SKIP_FILE"; exit 77; }
 case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) grep -q fakegh "$0" && toy_skip "$(basename "$0") needs the gh fake, which native Windows cannot launch";; esac
-export LOOP_NO_GIT_HOOKS=1  # a toy never installs git hooks into its repos (test-guard-enforce.sh unsets it)
+export LOOP_NO_GIT_HOOKS=1  # a toy never installs git hooks into its repos (the guard-enforce test unsets it)
+export LOOP_NO_HEALTH=1 LOOP_NO_ISSUES=1  # setup's two health runs and its issue filing are off in a toy; the setup-adopt rows that test them unset these
 _toy_reap_on=1
 _toy_reap_py="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/reap.py"
 _toy_reap_label=$(basename "$0")
@@ -39,6 +40,11 @@ TOY_REAP_ID="toy-$$-$(date +%s)-$RANDOM-L$TOY_REAP_LANE"
 export TOY_REAP_ID TOY_REAP_LANE
 toy_on_exit() { _toy_reap_cbs="${_toy_reap_cbs}${1}
 "; }
+# The local schedule never touches the real home: its registry, launch agent folder and launchctl are per-test fakes.
+_toy_sched=$(mktemp -d); toy_on_exit 'rm -rf "$_toy_sched"'
+export LOOP_REPO_VISIBILITY=public  # a toy repo is public unless a test unsets this and uses the fake gh
+export LOOP_SCHEDULE_PROGRAM="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/skills/workflow-health/scripts/automation.py"  # install is not refused in a worktree
+export LOOP_SCHEDULE_HOME="$_toy_sched/schedule" LOOP_AGENTS_DIR="$_toy_sched/agents" LOOP_LAUNCHCTL="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fakegh/launchctl"
 toy_list() { python3 "$_toy_reap_py" list "$1=$2"; }
 toy_reap() { python3 "$_toy_reap_py" reap "$1=$2" --label "$_toy_reap_label"; }
 _toy_reap_exit() {

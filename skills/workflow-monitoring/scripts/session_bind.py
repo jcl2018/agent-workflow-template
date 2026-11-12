@@ -15,6 +15,31 @@ import shlex
 import subprocess
 import sys
 import tempfile
+try:
+    import fcntl
+except ImportError:  # native Windows msvcrt byte-range locks under flock's names
+    import msvcrt
+    import time
+    import types
+
+    def _flock(handle, op):
+        fd = handle if isinstance(handle, int) else handle.fileno()
+        here = os.lseek(fd, 0, 1)
+        os.lseek(fd, 0x7FFFFFFF, 0)  # one byte far past any content: readers never block
+        try:
+            while True:
+                try:
+                    return msvcrt.locking(fd, msvcrt.LK_UNLCK if op & 8 else msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    if op & 8:
+                        return  # unlock of a lock not held: a no-op, as with flock
+                    if op & 4:
+                        raise BlockingIOError("locked")
+                    time.sleep(0.05)
+        finally:
+            os.lseek(fd, here, 0)
+
+    fcntl = types.SimpleNamespace(LOCK_SH=1, LOCK_EX=2, LOCK_NB=4, LOCK_UN=8, flock=_flock)
 
 import proctree
 
@@ -89,9 +114,9 @@ def cmd_bind(g, args):
         if state:
             was = state.get("status")
             if was in ("failed", "stopped") and not worker:  # the same fields as goal.py resume (guards.revive)
-                state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
+                state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report={})
             elif was in ("queued", "", None):
-                state.update(status="running", finding="", report=None)
+                state.update(status="running", finding="", report={})
             new = (state.get("session") or {}).get("id") != args.id or was in ("failed", "stopped")  # a new worker: next attempt
             state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None, bound_at=g.now(),
                          attempt=int(state.get("attempt") or 0) + (1 if new else 0))  # an older attempt's report is not applied (114)
