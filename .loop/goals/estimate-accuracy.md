@@ -23,3 +23,7 @@ Frozen. A wrong done line needs a new goal.
    Expect: one row per candidate, and the `chosen:` line names the candidate with the lowest loo score, the same model the board's last line names.
 3. Look at Issues on the live board for any goal whose current step has run under 15 minutes, and for any goal marked held.
    Expect: none of them is listed as stalled.
+
+## Owner re-review: Documentation (CHANGED)
+
+The Documentation page's Usage gained one factual sentence, on the `render` entry: "The package folds keep the scripts the docs name under 100 files: the digest mail renderer sits in health `rounds.py`, the private rules in `enforce.py` and the issue proposal in setup `sync.py`." It says where three small scripts moved; no requirement changed. The owner's re-review of the Documentation Usage is open.
