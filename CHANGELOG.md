@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.27.34 - 2026-11-12
+
+- Automation budgets: one 30 minute regression budget, sharded matrix, TRUNCATED digest, health waits for regression
+- Seen-red marks and regenerated tests tables for automation-budgets
+- Review fix: the suite-time fetch reads the per-shard artifacts and takes the slowest
+- Merge origin/main into loop/automation-budgets
+- Regenerate Tests after merge
+- Wiki: update pages for automation-budgets
+- Merge remote-tracking branch 'origin/main' into loop/automation-budgets
+- Merge remote-tracking branch 'origin/main' into loop/automation-budgets
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.33 - 2026-11-12
 
 - setup-machine-prd: SET-11..SET-15 and the golden adoption fixture
