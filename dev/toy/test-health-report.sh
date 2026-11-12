@@ -141,7 +141,7 @@ grep -q "PRIVATE-OUTPUT" "$FAKE_GH_DIR/issues.json" && bad "mine output filed" |
 mkdir -p "$d/badgh"; printf '#!/bin/bash\necho "$*" >> "%s/badgh/calls"\necho "HTTP 502" >&2; exit 1\n' "$d" > "$d/badgh/gh"; chmod +x "$d/badgh/gh"
 p=$(PATH="$d/badgh:$PATH" $health preview --group size 2>&1); prc=$?; f=$(PATH="$d/badgh:$PATH" $health file --group size 2>&1); frc=$?
 grep -q "^REFUSED\[gh\]: can't list the issues (.*HTTP 502.*). Nothing was written." <<<"$p" && grep -q "^REFUSED\[gh\]: can't list the issues" <<<"$f" \
-  && [ $prc = 2 ] && [ $frc = 2 ] && ! grep -qEv "^api --paginate --slurp repos/\{owner\}/\{repo\}/issues" "$d/badgh/calls" && ok "an unreadable issue list refuses, writes nothing" || bad "gh unreadable"
+  && [ $prc = 2 ] && [ $frc = 2 ] && ! grep -qEv "^api repos/\{owner\}/\{repo\}/issues\?state=" "$d/badgh/calls" && ok "an unreadable issue list refuses, writes nothing" || bad "gh unreadable"
 [ "$(cd "$here/skills/workflow-health/scripts" && python3 -c "import file, health; print(file.tag_of(health.groups_of('cost')[0]))")" = health:performance ] && ok "the Cost group is tagged health:performance" || bad "performance tag"
 for f in health report file; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 18432 ] && ok "$f.py under the size warning" || bad "$f.py size"; done
 
