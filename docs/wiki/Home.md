@@ -72,7 +72,7 @@ Every repo setting from the template's settings reference, with this repo's valu
 <!-- automation:begin -->
 ## Automation
 
-Health and regression, then each `automation` entry in `.loop/config.json`; to add one, add an entry. Health runs on the owner's Mac for every repo and never in GitHub Actions; regression runs in GitHub Actions for a public repo and on the Mac for a private one.
+Health and regression, then each `automation` entry in `.loop/config.json`; to add one, add an entry.
 
 | Routine | What it does | State | Cadence | Runs on | Last run | Owed by you |
 |---|---|---|---|---|---|---|
