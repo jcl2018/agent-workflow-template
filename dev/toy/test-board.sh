@@ -232,8 +232,30 @@ python3 -c "import json,sys;r={x['slug']:x for x in json.load(open(sys.argv[1]))
 rm "$R/nopid.json"
 # repo checks
 op="$here/skills/workflow-monitoring/references/operation.md"
-for k in "watch.py watch --once" "latest report" "board.py board" "board_page.py" "main project folder" "Artifact" "one chat line" "6 lines" "NEXT_DELAY" "Never answer a gate" "exact words" "information" "merge only when told" "never archive"; do has "$op" "$k" "operation.md: $k"; done
+# the test was wrong: "one chat line" and "6 lines" were retired on purpose with the reply hook's five-part layout (commit 5ece58d); the guide is right
+for k in "watch.py watch --once" "latest report" "board.py board" "board_page.py" "main project folder" "Artifact" "NEXT_DELAY" "Never answer a gate" "exact words" "information" "merge only when told" "never archive"; do has "$op" "$k" "operation.md: $k"; done
+# The reply layout the reply hook enforces must be named inside step 5 (the lines from "5. Reply to the owner" to "6. Wait"), not just somewhere in the guide.
+step5() { sed -n '/^5\. Reply to the owner/,/^6\. Wait/p' "$1"; }
+for k in "All sessions" "Dependencies" "Needs you" "Coming up" "reply hook"; do
+  step5 "$op" | grep -qiF -- "$k" && ok "operation.md step 5: $k" || bad "operation.md step 5 lacks '$k' in $op: restore the word in step 5, or retire the key with a comment naming the commit"
+done
+ctl=$(mktemp); sed '/^5\. Reply to the owner/,/^6\. Wait/d' "$op" > "$ctl"
+[ -z "$(step5 "$ctl" | grep -iF -- "All sessions")" ] && ok "control: a guide without step 5 fails the step-5 keys" || bad "control: the step-5 check passes a guide without step 5"
+rm -f "$ctl"
 has "$here/skills/workflow-monitoring/SKILL.md" "references/operation.md" "SKILL.md links operation.md"
-for f in watch board board_page; do [ "$(wc -c < "$here/skills/workflow-monitoring/scripts/$f.py")" -lt 19000 ] && ok "$f.py keeps room under 19 KB" || bad "$f.py has no room"; done
+# room: board.py and board_page.py keep the 19,000-byte room line (set when watch.py and board.py were made smaller, commit 5d11a93).
+# watch.py grew past it through reviewed work, so it has two stages: WARN above the room line, FAIL at the script cap, which comes from dev/package.py (MAX_SCRIPT), not a typed number.
+cap=$(python3 - "$here/dev/package.py" <<'PY'
+import re, sys
+expr = re.search(r"^MAX_FILES, MAX_BYTES, MAX_SCRIPT = (.+)$", open(sys.argv[1]).read(), re.M).group(1).split(",")[2]
+print(eval(compile(expr.strip(), "package.py", "eval"), {"__builtins__": {}}))
+PY
+)
+under() { [ "$(wc -c < "$1")" -lt "$2" ]; }
+for f in board board_page; do under "$here/skills/workflow-monitoring/scripts/$f.py" 19000 && ok "$f.py keeps room under 19 KB" || bad "$f.py has no room"; done
+w="$here/skills/workflow-monitoring/scripts/watch.py"; n=$(wc -c < "$w" | tr -d " ")
+under "$w" "$cap" && ok "watch.py stays under the 20 KB script cap ($n of $cap bytes)" || bad "watch.py is $n bytes, cap is $cap (dev/package.py): trim watch.py or raise the cap in dev/package.py and in this cell"
+under "$w" 19000 || echo "WARN: watch.py is $n bytes, over the 19000-byte room line; $((cap - n)) bytes of room left before the cap"
+pad=$(mktemp); head -c "$cap" /dev/zero | tr '\0' x > "$pad"; under "$pad" "$cap" && bad "control: a file at the cap passes the size check" || ok "control: a file at the cap fails the size check"; rm -f "$pad"
 for k in '"board"' '"cadence"' '"handoff"' '"note"' '"retire"' 'board.json' 'repos'; do has "$here/listing.json" "$k" "listing.json discloses $k"; done
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

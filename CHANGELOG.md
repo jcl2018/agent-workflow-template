@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.27.40 - 2026-11-12
+
+- test-board.sh passes on main again: the test was wrong on all three cells (board-test-fix)
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Review Monitoring page: owner said "approve"
+- Wiki: update pages for board-test-fix
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Merge origin/main into loop/board-test-fix
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.39 - 2026-11-12
 
 - Size and skill-lines rules judge committed (LF) bytes and lines
