@@ -338,6 +338,23 @@ if want setup-refusal-writes-120; then
   b=$(state "$d/rfD/repo"); out=$(PATH="$d/shim:$PATH" $setup 2>&1); rc=$?
   [ $rc = 1 ] && echo "$out" | grep -q 'rolled back, nothing written' || no "a failed git call: rc=$rc $(echo "$out" | tail -3)"
   same "$d/rfD/repo" "$b" "a failed git call"
+  # a wiki_dir that is not a folder inside the repo is refused before anything is copied or written
+  mk rfE; mkdir -p .loop; printf '{"wiki_dir": "."}\n' > .loop/config.json; git add -A; git commit -qm "odd wiki_dir"
+  b=$(state "$d/rfE/repo"); out=$($setup 2>&1); rc=$?
+  [ $rc = 1 ] && echo "$out" | grep -q 'SETUP_WIKI_DIR' || no "wiki_dir .: rc=$rc $(echo "$out" | tail -3)"; same "$d/rfE/repo" "$b" "a wiki_dir of ."
+  [ ! -d .git/workflow-setup-txn ] || no "a refused wiki_dir left a journal"
+  # the journal does not outlive the commit, and a stale one whose HEAD moved is dropped, never restored over newer work
+  mk rfF; $setup >/dev/null 2>&1 || no "rfF adoption failed"
+  [ ! -d .git/workflow-setup-txn ] || no "a committed adoption left its journal"
+  mkdir -p .git/workflow-setup-txn; python3 - "$(git rev-parse HEAD~1)" <<'PY' || no "could not write a stale journal"
+import json, sys
+json.dump({"branch": "workflow-setup", "tops": [".loop", ".github/workflows", ".gitignore", "README.md"], "orig": "main", "head": sys.argv[1], "tip": "", "tree": "", "files": {}}, open(".git/workflow-setup-txn/journal.json", "w"))
+PY
+  b=$(state "$d/rfF/repo"); out=$($setup 2>&1); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q 'SETUP_RECOVERED' && [ -f .loop/config.json ] && [ "$(state "$d/rfF/repo")" = "$b" ] || no "a stale journal with a moved HEAD: rc=$rc $(echo "$out" | head -3)"
+  # a worktree on a branch that only starts with the setup branch's name is not the branch in another worktree
+  mk rfG; git worktree add -q -b workflow-setup-2 "$d/rfG/wt2" >/dev/null 2>&1; out=$($setup 2>&1); rc=$?
+  [ $rc = 0 ] && git log -1 --format=%s | grep -q 'Adopt the workflow loop' || no "a prefix-named worktree branch refused the adoption: rc=$rc $(echo "$out" | head -3)"
   # a restore that cannot finish is half undone (exit 4)
   mk rfC; mkdir -p docs/wiki; printf '# Notes\n' > docs/wiki/Notes.md; git add -A; git commit -qm "wiki"; chmod a-w docs/wiki
   out=$($setup 2>&1); rc=$?; chmod -R u+w docs

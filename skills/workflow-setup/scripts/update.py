@@ -107,7 +107,7 @@ def step(name, fix, run, failed):
     try:
         with contextlib.redirect_stdout(out):
             code = run()
-    except Exception as error:
+    except (Exception, SystemExit) as error:
         out.write("FAILED %s\n" % type(error).__name__)
         code = 1
     sys.stdout.write(out.getvalue())

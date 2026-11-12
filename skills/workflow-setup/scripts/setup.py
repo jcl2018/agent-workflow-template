@@ -18,9 +18,7 @@ hooks (pre-commit, commit-msg, pre-push); a default run installs them after its 
 LOOP_NO_GIT_HOOKS=1. A hook that is not ours is never touched; --check [--json] prints their state.
 """
 import argparse
-import contextlib
 import errno
-import io
 import json
 import os
 import re
@@ -107,12 +105,6 @@ def merged(repo, old, borrowed=None):
     return config
 
 
-def on_branch(repo, branch, path):
-    """The file's text on a branch, or None."""
-    done = subprocess.run(["git", "-C", repo, "show", "%s:%s" % (branch, path)], capture_output=True, text=True)
-    return done.stdout if done.returncode == 0 else None
-
-
 try:  # moved to agents.py; kept importable from here (an older agents.py has none: adopt() refuses with SETUP_MIXED_VERSION)
     refuse, HOOKS, reply_hook = agents.refuse, agents.HOOKS, agents.reply_hook
 except AttributeError:
@@ -181,6 +173,10 @@ def adopt(args, repo):
     if args.bare and "criteria" not in old:
         config["criteria"] = False
     found = survey.survey(repo, config)
+    wiki = found["wiki"]
+    if os.path.isabs(wiki) or ".." in wiki.split("/") or wiki.strip("./") == "" or wiki.split("/")[0] == ".git":
+        print("REFUSED: wiki_dir %s is not a folder inside the repo (SETUP_WIKI_DIR). Fix: set wiki_dir in .loop/config.json to a relative folder such as docs/wiki; nothing written." % wiki)
+        return 1
     print(survey.found_line(found, config))
     files = git(repo, "ls-files").splitlines()
     for note in survey.checks(repo, files)[1] + survey.version_habit(repo, files)[1]:
@@ -266,6 +262,7 @@ def adopt(args, repo):
                 print("\n".join(update.mask(l) for l in out.strip().splitlines()[-20:]))
                 return undo(tx, "REFUSED: the repo's own commit hook refused the adoption commit (SETUP_HOOK_REFUSED). Fix: if it refuses tracked "
                                 "data files, exempt .loop/*.tsv (docs, regression rows and runs) there, then run setup again; nothing written.")
+            shutil.rmtree(tx.dir, ignore_errors=True)  # committed: the journal must not outlive the commit (a later run would roll back merged work)
         except KeyboardInterrupt:
             undo(tx, "REFUSED: interrupted; rolled back, nothing written (SETUP_INTERRUPTED)")
             return 130

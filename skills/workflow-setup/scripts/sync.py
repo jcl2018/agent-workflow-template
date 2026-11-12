@@ -84,7 +84,7 @@ class Txn:
         if tip and tip not in (j["tip"], j["head"]):
             shutil.rmtree(self.dir, ignore_errors=True)
             return None
-        self.g("read-tree", j["tree"])
+        bad += ["index"] * bool(subprocess.run(["git", "-C", self.repo, "read-tree", j["tree"]], capture_output=True).returncode)
         for n, top in enumerate(j["tops"]):
             full, kept = os.path.join(self.repo, top), os.path.join(self.dir, str(n))
             try:
@@ -103,7 +103,7 @@ class Txn:
         if j["orig"] and self.g("branch", "--show-current") != j["orig"] and subprocess.run(["git", "-C", self.repo, "checkout", "-q", j["orig"]], capture_output=True).returncode:
             bad.append("branch " + j["orig"])
         if j["branch"] != j["orig"]:
-            self.g(*(["branch", "-f", j["branch"], j["tip"]] if j["tip"] else ["branch", "-D", j["branch"]]))
+            bad += ["branch " + j["branch"]] * bool(subprocess.run(["git", "-C", self.repo, *(["branch", "-f", j["branch"], j["tip"]] if j["tip"] else ["branch", "-D", j["branch"]])], capture_output=True).returncode)
         if not bad:
             shutil.rmtree(self.dir, ignore_errors=True)
         return bad
@@ -120,7 +120,11 @@ class Txn:
         except (OSError, ValueError):
             return None
         txn = cls(repo, j["branch"], tuple(j["tops"][4:]), j)
-        bad = txn.rollback()
+        if git(repo, "rev-parse", "HEAD", check=False) != j["head"]:  # HEAD moved (committed, merged or switched): restoring would undo newer work
+            shutil.rmtree(txn.dir, ignore_errors=True)
+            bad = None
+        else:
+            bad = txn.rollback()
         return txn.failed(bad) if bad else "NOTE: an interrupted adoption had already committed; it is kept (SETUP_RECOVERED)" if bad is None else "NOTE: recovered an interrupted adoption (SETUP_RECOVERED); it was rolled back"
 
 

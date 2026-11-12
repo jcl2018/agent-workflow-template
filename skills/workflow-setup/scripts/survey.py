@@ -341,7 +341,7 @@ def precheck(repo, branch):
     """The refusal line when the repo's state makes an adoption unsafe, else None."""
     gd = git(repo, "rev-parse", "--absolute-git-dir")
     busy = [n for n in ("MERGE_HEAD", "rebase-merge", "rebase-apply", "CHERRY_PICK_HEAD", "REVERT_HEAD") if os.path.exists(os.path.join(gd, n))]
-    other = [w for w in git(repo, "worktree", "list", "--porcelain").split("\n\n") if "\nbranch refs/heads/%s" % branch in w
+    other = [w for w in git(repo, "worktree", "list", "--porcelain").split("\n\n") if "branch refs/heads/%s" % branch in w.split("\n")
              and os.path.realpath(w.split("\n")[0][9:]) != os.path.realpath(repo)]
     if busy or other or not (git(repo, "symbolic-ref", "--quiet", "HEAD") and git(repo, "rev-parse", "--verify", "--quiet", "HEAD")):
         return ("REFUSED: a merge, rebase or cherry-pick is in progress, HEAD is detached or has no commit, or %s is checked out in another "

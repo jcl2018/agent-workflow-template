@@ -234,7 +234,7 @@ def put(repo, path, text):
     crlf = os.path.exists(full) and "\r\n" in open(full, newline="").read()
     os.makedirs(os.path.dirname(full), exist_ok=True)
     with open(full, "w", newline="") as handle:
-        handle.write(text.replace("\n", "\r\n") if crlf else text)
+        handle.write(text.replace("\r\n", "\n").replace("\n", "\r\n") if crlf else text)
 
 
 def apply(repo, config, found, acts):
