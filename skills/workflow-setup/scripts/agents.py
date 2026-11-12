@@ -145,6 +145,91 @@ def apply(repo):
             if os.path.exists(os.path.join(repo, p)) and inside(root, os.path.realpath(os.path.join(repo, p)))]
 
 
+def git(repo, *args, check=True):
+    done = subprocess.run(["git", "-C", repo] + list(args), capture_output=True, text=True)
+    if check and done.returncode:
+        sys.exit("REFUSED: git %s: %s" % (" ".join(args), done.stderr.strip()))
+    return done.stdout.strip() if done.returncode == 0 else ""
+
+
+def refuse(what, fix):
+    sys.stderr.write("REFUSED: %s. Fix: %s\n" % (what, fix))
+    return 1
+
+
+HOOKS = {"reply_hook.py": ("Stop", None, "it checks only the operation session's reply layout"),
+         "govern_hook.py": ("PreToolUse", "Edit|Write|MultiEdit|NotebookEdit|Bash",
+                            'it blocks edits and git commit/push/merge in the operation session; off: "govern_hook": false')}
+
+
+def reply_hook(repo, remove, name="reply_hook.py"):
+    """Add (or with remove, take out) one operation-session hook (HOOKS) in the repo's machine-local Claude settings."""
+    event, matcher, what = HOOKS[name]
+    script = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-monitoring",
+                                           "scripts", name))
+    common = os.path.realpath(os.path.join(repo, git(repo, "rev-parse", "--git-common-dir")))
+    path = os.path.join(repo, ".claude", "settings.local.json")
+    if not remove:
+        if not os.path.exists(script):
+            return refuse("%s is missing" % script, "install the workflow-monitoring skill beside workflow-setup")
+        if "'" in script:
+            return refuse("the hook's path %s holds a single quote" % script, "move the skills to a folder without one")
+        if (script + os.sep).startswith(os.path.join(common, "loop", "worktrees") + os.sep) or \
+                os.path.realpath(repo).startswith(os.path.join(common, "loop", "worktrees") + os.sep):
+            return refuse("the hook (%s) or the repo is inside a goal's worktree, which goes away when the goal ends" % script,
+                          "run setup.py from the main checkout or an installed copy of the skills")
+    if not remove and git(repo, "ls-files", ".claude/settings.local.json", check=False):
+        return refuse(".claude/settings.local.json is committed, so the hook's local path would be committed too",
+                      "git rm --cached .claude/settings.local.json, commit that, then run again")
+    try:
+        with open(path) as handle:
+            data = json.load(handle)
+    except FileNotFoundError:
+        data = {}
+    except (OSError, ValueError) as error:
+        return refuse("%s is not valid JSON (%s); nothing was written" % (path, error), "correct or move the file, then run again")
+    stops = data.get("hooks", {}).get(event, []) if isinstance(data, dict) and isinstance(data.get("hooks", {}), dict) else None
+    if not isinstance(stops, list) or not all(isinstance(g, dict) and isinstance(g.get("hooks", []), list) for g in stops):
+        return refuse("%s has hooks in a shape this can't edit safely; nothing was written" % path,
+                      'make "hooks" an object whose "%s" is a list of {"hooks": [...]} groups' % event)
+    command = "if [ -f '%s' ]; then python3 '%s'; fi" % (script, script)
+    mine = lambda h: isinstance(h, dict) and "/%s'" % name in str(h.get("command", ""))
+    had = [h for g in stops for h in g.get("hooks", []) if mine(h)]
+    if remove and not had:
+        print("HOOK: not installed%s" % ("" if name == "reply_hook.py" else " (%s)" % name))
+        return 0
+    if not remove and [h.get("command") for h in had] == [command]:
+        print("HOOK: already installed%s" % ("" if name == "reply_hook.py" else " (%s)" % name))
+        return 0
+    kept = []  # every other group and hook as it was; a group left empty only by taking ours out goes
+    for group in stops:
+        rest = [h for h in group.get("hooks", []) if not mine(h)]
+        if rest or not any(mine(h) for h in group.get("hooks", [])):
+            kept.append(dict(group, hooks=rest) if "hooks" in group else group)
+    if not remove:
+        kept.append(dict({"matcher": matcher} if matcher else {}, hooks=[{"type": "command", "command": command}]))
+    if not subprocess.run(["git", "-C", repo, "check-ignore", "-q", ".claude/settings.local.json"]).returncode == 0:
+        exclude = os.path.join(repo, git(repo, "rev-parse", "--git-path", "info/exclude"))
+        os.makedirs(os.path.dirname(exclude), exist_ok=True)
+        held = open(exclude).read() if os.path.exists(exclude) else ""
+        if "/.claude/settings.local.json" not in held.splitlines():
+            with open(exclude, "a") as handle:
+                handle.write(("" if not held or held.endswith("\n") else "\n") + "/.claude/settings.local.json\n")
+    data = data if isinstance(data, dict) else {}
+    data.setdefault("hooks", {})[event] = kept
+    if not kept:
+        del data["hooks"][event]
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = "%s.%d.tmp" % (path, os.getpid())
+    with open(tmp, "w") as handle:
+        handle.write(json.dumps(data, indent=2) + "\n")
+    os.replace(tmp, path)
+    print("HOOK: %s%s" % ("removed" if remove else "updated" if had else "added", "" if name == "reply_hook.py" else " (%s)" % name))
+    if not remove:
+        print("NOTE: start a new Claude Code session (or open /hooks) to load it; %s" % what)
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("command", choices=("wire",))
