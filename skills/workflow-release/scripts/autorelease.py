@@ -97,8 +97,11 @@ def sh(args, cwd=None):
 def fail(state, text):
     """Record the failure on the goal and stop."""
     state["release_error"] = text if len(text) <= 400 else text[:330] + " ... " + text[-65:]  # keeps the (CODE)
-    report = state.setdefault("report", {})
-    report["text"] = ("%s Release failed: %s" % (report.get("text", ""), text)).strip()[:600]
+    report, note = state.get("report"), ""
+    if not isinstance(report, dict):  # a goal reset leaves report null; a hand edit can leave anything
+        note = "" if report is None else "(the stored report was a %s and was reset) " % type(report).__name__
+        report = state["report"] = {}
+    report["text"] = ("%s %sRelease failed: %s" % (str(report.get("text") or ""), note, text)).strip()[:600]
     release.save(state, "release failed: " + text[:200])
     sys.exit("REFUSED: " + text)
 
