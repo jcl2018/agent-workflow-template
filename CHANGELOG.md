@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.27.11 - 2026-11-12
+
+- Release refusals never crash on a goal state with no usable report (autorelease-fail-crash)
+- Merge remote-tracking branch 'origin/main' into loop/autorelease-fail-crash
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.10 - 2026-11-12
 
 - Merge remote-tracking branch 'origin/main' into loop/milestone-freeform
