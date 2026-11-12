@@ -72,18 +72,13 @@ $health check --json | python3 -c "import json,sys; d=json.load(sys.stdin); c=d[
 out=$($health check --group docs)
 sed -n 2p <<<"$out" | grep -q "^groups run: Docs; skipped: Requirements (not asked), Traceability (not asked), Consistency (not asked), Freshness (not asked), Tests (not asked), Performance (not asked), Security and privacy (not asked), Size (not asked), Hygiene (not asked), Adoption (not asked), Mine (not asked), Controls (not asked)$" \
   && ! grep -Eq "^PASS (requirements|traceability|consistency|freshness|tests|performance|security|size|hygiene|adoption) " <<<"$out" && ok "a named group run lists the rest as skipped, none shown passing" || bad "named group header"
-# Value: protects=an unread issue list (SOFT) never hides the passing docs check row; fails_when=complete() counts the
-#   SOFT milestone row as the docs group's check row; why_new=no test ran complete() with only a SOFT row; seam=none
-(cd "$here/skills/workflow-health/scripts" && python3 -B -c "import report; r = report.complete([{'state': 'UNREAD', 'family': 'docs', 'subject': 'issues', 'rule': 'milestone', 'detail': 'x', 'fix': ''}], ['docs']); exit(not any(x['state'] == 'PASS' and x['rule'] == 'docs-check' for x in r))") \
-  && ok "an UNREAD issue list still shows the PASS docs check row" || bad "soft row hid the docs check"
-
 echo "== preview writes nothing"
 before=$(writes)
 out=$($health preview); echo "$out"
-grep -q "^WOULD open issue 'health: size skills/x/scripts/near.py scripts' on Backlog \[health:size\]" <<<"$out" \
-  && grep -q "^WOULD open issue 'health: requirements REL-1 rows' on Calc \[health:requirements\]" <<<"$out" \
-  && grep -q "^WOULD open issue 'health: docs Ghost missing' on Ghost \[health:docs\]" <<<"$out" \
-  && grep -q "\[health:hygiene\]" <<<"$out" && ! grep -q "\[health:criteria\]" <<<"$out" && ok "each issue it would open shows with its tag and feature milestone" || bad "preview lines"
+grep -q "^WOULD open issue 'health: size skills/x/scripts/near.py scripts' \[health:size\]" <<<"$out" \
+  && grep -q "^WOULD open issue 'health: requirements REL-1 rows' \[health:requirements\]" <<<"$out" \
+  && grep -q "^WOULD open issue 'health: docs Ghost missing' \[health:docs\]" <<<"$out" \
+  && grep -q "\[health:hygiene\]" <<<"$out" && ! grep -q "\[health:criteria\]" <<<"$out" && ! grep -qi "milestone\|backlog" <<<"$out" && ok "each issue it would open shows with its tag and no milestone" || bad "preview lines"
 [ "$(writes)" = "$before" ] && [ ! -f "$FAKE_GH_DIR/issues.json" ] && ok "preview made no write call" || bad "preview wrote"
 GH_TOKEN=x $health preview >/dev/null; [ "$(writes)" = "$before" ] && ok "a token does not make preview write" || bad "token"
 # Value: protects=the old run --live (cron, habit) now only previews and writes nothing; fails_when=run is pointed back at
@@ -94,11 +89,11 @@ out=$($health file 2>&1); rc=$?; grep -q "^REFUSED\[file\]: file needs --group" 
 echo "== file --group writes only the named groups"
 $health file --group docs >/dev/null
 [ "$(count health:docs OPEN)" = 1 ] && [ "$(count health)" = 1 ] && ok "file --group docs opened only the docs issue" || bad "docs only"
-$health file --group size | tee "$d/out" ; python3 - <<'PYEND' && ok "size issue: tagged health:size, on Backlog" || bad "size issue"
+$health file --group size | tee "$d/out" ; python3 - <<'PYEND' && ok "size issue: tagged health:size, on no milestone" || bad "size issue"
 import json, os
 issues = json.load(open(os.environ["FAKE_GH_DIR"] + "/issues.json"))
 size = [i for i in issues if "size:" in i["body"]]
-assert len(size) == 1 and size[0]["milestone"]["title"] == "Backlog"
+assert len(size) == 1 and not size[0]["milestone"]
 names = [l["name"] for l in size[0]["labels"]]
 assert "health:size" in names and "health" in names and "health:docs" not in names, names
 assert len(issues) == 2

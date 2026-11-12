@@ -52,6 +52,7 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `full_auto` | `true` | true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait. |
 | `pool_size` | `20` | Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones. |
 | `silent_minutes` | `30` | Minutes a worker may send nothing before it shows under Needs you; LOOP_SESSION_QUIET (seconds) overrides it. |
+| `feature_labels` | `false` | true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label; off by default, so issues carry their group or regression label only. |
 
 ## Private settings
 

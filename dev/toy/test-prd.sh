@@ -1,7 +1,7 @@
 #!/bin/bash
 # reads: skills/workflow-docs/scripts/criteria.py skills/workflow-docs/scripts/docs.py
 # reads: skills/workflow-docs/scripts/prd.py skills/workflow-health/scripts/health.py
-# reads: skills/workflow-health/scripts/milestone.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-monitoring/scripts/board_status.py
 # reads: skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
 # reads: skills/workflow-health/scripts/judge.py
 # reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-regression/scripts/regression.py
@@ -94,8 +94,7 @@ PY
 }
 check() { $docs check 2>&1; }
 MS=""; page "$USAGE"
-python3 "$here/skills/workflow-health/scripts/milestone.py" new --all --live >/dev/null
-MS=$(grep "^Milestone: " $P); page "$USAGE"; git add -A; git commit -qm "Toy PRD" >/dev/null
+MS="Milestone: https://example.test/milestone/1"; page "$USAGE"; git add -A; git commit -qm "Toy PRD" >/dev/null
 
 echo "== 1. the sections, in order, and nothing else"
 check | grep -q "DOCS OK" && ok "a PRD page passes" || bad "PRD page: $(check)"
@@ -281,9 +280,8 @@ grep -q "^Review: \*\*Unreviewed\*\*$" docs/wiki/Delight.md && grep -q "^- DELI-
 out=$(check); grep -q "^UNMAPPED" <<<"$out" && bad "the draft is unmapped" || ok "the draft is mapped in docs.tsv"
 grep -q "^UNWRITTEN Delight" <<<"$out" && ! grep -q "^SECTIONS Delight" <<<"$out" && ok "the draft is UNWRITTEN until its placeholders are replaced" || bad "unwritten: $out"
 python3 -c "
-import sys; sys.path.insert(0, '$here/skills/workflow-docs/scripts')
-import audit; p = 'docs/wiki/Delight.md'; t = open(p).read(); open(p, 'w').write(audit.milestone_line(t, 'Milestone', 'https://example.test/m/1'))"
-grep -v '^$' docs/wiki/Delight.md | sed -n '2,4p' | tr '\n' '~' | grep -q "^# Delight~Milestone: https://example.test/m/1~Review: \*\*Unreviewed\*\*~$" && ! check | grep -q "^REVIEW Delight" && ok "the audit's Milestone fix goes under the title and keeps Review next" || bad "milestone order"
+p = 'docs/wiki/Delight.md'; t = open(p).read(); open(p, 'w').write(t.replace('# Delight\n', '# Delight\n\nMilestone: https://example.test/m/1\n', 1))"
+grep -v '^$' docs/wiki/Delight.md | sed -n '2,4p' | tr '\n' '~' | grep -q "^# Delight~Milestone: https://example.test/m/1~Review: \*\*Unreviewed\*\*~$" && ! check | grep -q "^REVIEW Delight" && ok "an optional Milestone line goes under the title and keeps Review next" || bad "milestone order"
 $prd new Qq "x" --paths calc.py --prefix DEL 2>&1 | grep -q "REFUSED: --prefix DEL must be 2 to 5 capital letters not already in use" && ok "a used --prefix is refused" || bad "prefix"
 git checkout -q -- .; rm -f docs/wiki/Delight.md
 

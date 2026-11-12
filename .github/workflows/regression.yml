@@ -406,11 +406,15 @@ jobs:
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           gh("label", "create", "defect", "--description", "A test that guards it is failing")  # an existing one keeps its colour
           guards = {cells[1]: cells for cells in rows(os.environ.get("REGRESSION_MAP") or os.devnull) if len(cells) > 4}
-          out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body,labels,milestone")
+          out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body,labels")
           issues = json.loads(out.stdout or "[]") if out.returncode == 0 else None  # unread: change no issue, or each would repeat
           if issues is None:
               print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
-          FEATURES = {row[0] for row in rows(".loop/docs.tsv") if row and row[0] and row[0] != "Home"}  # milestone.py's features
+          FEATURES = {row[0] for row in rows(".loop/docs.tsv") if row and row[0] and row[0] != "Home"}  # the pages
+          try:  # the feature_labels setting (default off): only when true is a feature label made or set
+              LABELS_ON = json.load(open(".loop/config.json")).get("feature_labels") is True
+          except (OSError, ValueError, AttributeError):
+              LABELS_ON = False
           failed, filed = [], [0]
           def write(what, *args):  # every issue write is checked: a failure is named, and the step fails after the last row
               done = gh(*args)
@@ -420,42 +424,16 @@ jobs:
               else:
                   filed[0] += 1
               return done
-          def milestones():
-              done = gh("api", "--paginate", "--slurp", "repos/{owner}/{repo}/milestones?state=all&per_page=100")
-              try:
-                  data = json.loads(done.stdout) if done.returncode == 0 else None
-              except ValueError:
-                  data = None
-              if not isinstance(data, list):
-                  return None  # unreadable: create nothing, let gh place issues by title
-              flat = [m for page in data for m in (page if isinstance(page, list) else [page])]
-              return {m["title"]: (m.get("number"), m.get("state") or "open") for m in flat if isinstance(m, dict) and m.get("title")}
-          MILES = milestones() if issues is not None else {}
-          READ = MILES is not None
-          MILES = MILES or {}
-          def place(feature):  # a docs.tsv feature's milestone, else Backlog; nothing else is ever created
-              title = feature if feature in FEATURES else "Backlog"
-              if title not in MILES and not READ:
-                  return title, None
-              if title not in MILES:
-                  made = gh("api", "-X", "POST", "repos/{owner}/{repo}/milestones", "-f", "title=" + title)
-                  try:
-                      MILES[title] = (json.loads(made.stdout)["number"], "open")
-                  except (ValueError, KeyError, TypeError):
-                      MILES.update(milestones() or {})  # made meanwhile (422 already exists): read again
-                      if title not in MILES:
-                          failed.append("milestone " + title)
-                          print("FAILED milestone %s: %s (FILE_FAILED)" % (title, made.stderr.strip()[:160]))
-                          MILES[title] = (None, "failed")  # once per run
-              number, state = MILES[title]
-              if state == "failed":
-                  return "", None
-              return title, (number if state == "closed" else None)  # gh --milestone finds open ones; a closed one is set by number
-          def by_number(number, closed, body):  # a closed milestone by number; on failure write back body (the placed= it had) so the next run retries
-              if closed and number and write("milestone of #%s" % number, "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/%s" % number,
-                                             "-F", "milestone=%s" % closed).returncode:
-                  write("placed of #%s" % number, "issue", "edit", str(number), "--body", body)
-          FOUND = re.compile(r"<!-- loop-regression (\S+?)(?: placed=(\S*))? -->")
+          def label_for(page):  # the page's feature label, made first; "" when off, for no page, or if it can't be made
+              if not LABELS_ON or page not in FEATURES:
+                  return ""
+              label = "feature:" + "".join(c for c in page if c != "," and c.isprintable())[:42]  # issues.feature_label
+              made = gh("label", "create", label, "--force", "--description", "Issues about one feature")
+              if made.returncode:
+                  print("FAILED label %s: %s" % (label, made.stderr.strip()[:160]))
+                  return ""
+              return label
+          FOUND = re.compile(r"<!-- loop-regression (\S+?)(?: placed=(\S*))? -->")  # placed= is written empty; older ones still parse
           def marked(body):
               match = FOUND.search(body or "")
               return (match.group(1), urllib.parse.unquote(match.group(2) or "")) if match else (None, "")
@@ -483,34 +461,31 @@ jobs:
                   if issues is None:
                       continue
                   cells = guards.get(row[0]) or [""] * 5
-                  title, closed = place(cells[0])
-                  where, title = title, ("" if closed else title)
-                  mark = "<!-- loop-regression %s placed=%s -->" % (row[0], urllib.parse.quote(where, safe=""))
+                  label = label_for(cells[0])
+                  mark = "<!-- loop-regression %s placed= -->" % row[0]
                   about = "- Feature: %s\n- Guards: %s\n- Checks: %s\n\n" % (cells[0] or "-", cells[3] or "-", cells[4] or "-")
                   body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "was skipped" if skipped else "fails", about,
                                                                  said[-1500:].replace("`" * 3, "'" * 3))
                   if not hit:
-                      made = gh("issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect",
-                                "--body", body, "--milestone", title) if title and not READ else None  # by title, unchecked
-                      if made is not None and not made.returncode:
-                          filed[0] += 1
+                      make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect", "--body", body]
+                      made = gh(*make, *(["--label", label] if label else []))
+                      if made.returncode and label and "label" in made.stderr.lower():  # a refused label never loses the report
+                          print("FAILED label %s: %s" % (label, made.stderr.strip()[:160]))
+                          made = gh(*make)
+                      if made.returncode:
+                          failed.append("issue for " + row[0])
+                          print("FAILED issue for %s: %s (FILE_FAILED)" % (row[0], made.stderr.strip()[:160]))
                       else:
-                          if made is not None:  # no such milestone yet: on none, placed= empty
-                              body = FOUND.sub(lambda m: m.group(0).split(" placed=")[0] + " placed= -->", body, count=1)
-                          made = write("issue for " + row[0], "issue", "create", "--title", "Regression: " + row[0], "--label", "regression",
-                                       "--label", "defect", "--body", body, *(["--milestone", title] if title and made is None else []))
-                      by_number((re.findall(r"/issues/(\d+)", made.stdout) or [""])[-1], closed, FOUND.sub(lambda m: m.group(0).split(" placed=")[0] + " placed= -->", body, count=1))
+                          filed[0] += 1
                   else:
                       n = str(hit["number"])
+                      names = [label.get("name") for label in hit.get("labels") or []]
                       if hit["state"] != "OPEN":
                           write("reopen #" + n, "issue", "reopen", n)
-                      if "defect" not in [label.get("name") for label in hit.get("labels") or []]:
+                      if "defect" not in names:
                           write("label #" + n, "issue", "edit", n, "--add-label", "defect")
-                      now = (hit.get("milestone") or {}).get("title") or ""
-                      if now == marked(hit["body"])[1] and where and where != now:  # still where the automation put it
-                          old = FOUND.search(hit["body"]).group(0)
-                          write("move #" + n, "issue", "edit", n, "--body", hit["body"].replace(old, mark), *(["--milestone", title] if title else []))
-                          by_number(n, closed, hit["body"])
+                      if label and label not in names:
+                          write("feature label #" + n, "issue", "edit", n, "--add-label", label)
                       write("comment #" + n, "issue", "comment", n, "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
           if TARGET == "nightly":  # the full suite's time (a cut-short run's too: at least that long) for health's REG-7 check
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()

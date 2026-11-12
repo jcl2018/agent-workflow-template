@@ -128,14 +128,40 @@ python3 -c 'import yaml; yaml.safe_load(open(".github/workflows/regression.yml")
 touch BROKEN; git add -A; git commit -qm "Break it" >/dev/null
 python3 ci-block.py; rc=$?
 [ $rc = 1 ] && [ "$(calls '^issue create')" = 1 ] && ok "CI block fails and opens an issue" || bad "CI block"
-# Value: protects=a regression issue that fits no feature goes on Backlog (DOC-10), which is made once when missing and
-#   reused when it exists; fails_when=the CI block drops the --milestone flag or makes Backlog again; why_new=no test had a Backlog milestone
-made=$(grep -c -- '-X POST repos/{owner}/{repo}/milestones -f title=Backlog' "$FAKE_GH_DIR/calls.log"); first=$(grep -c -- "--milestone Backlog$" "$FAKE_GH_DIR/calls.log")
-: > "$FAKE_GH_DIR/calls.log"; echo '[{"number": 1, "title": "Backlog", "state": "open"}]' > "$FAKE_GH_DIR/milestones.json"
-python3 ci-block.py >/dev/null 2>&1; [ "$made" = 1 ] && [ "$first" = 1 ] && [ "$(calls '^issue create')" = 1 ] && grep -q -- "--milestone Backlog$" "$FAKE_GH_DIR/calls.log" \
-  && ! grep -q -- "-X POST repos/{owner}/{repo}/milestones" "$FAKE_GH_DIR/calls.log" \
-  && ok "the CI block opens a regression issue on Backlog, making Backlog once when the repo has none" || bad "backlog milestone: made=$made first=$first"
-rm -f "$FAKE_GH_DIR/milestones.json" "$FAKE_GH_DIR/issues.json"
+# Value: protects=a failing row's issue is filed with no milestone read, made or set (done line 2) and, while feature_labels
+#   is off, with no feature label call either; fails_when=the CI block reads milestones, passes --milestone or makes
+#   Backlog, or makes a feature label with the switch off; why_new=the old block placed every issue on a milestone or Backlog;
+#   seam=fake gh; no_claim=GitHub's own label and milestone API
+f0=$fails
+[ -s "$FAKE_GH_DIR/calls.log" ] && ok "the fake gh saw the CI block (calls.log exists)" || bad "calls.log absent, real gh may have run. Fix: put dev/toy/fakegh first on PATH"
+! grep -q -- "milestone" "$FAKE_GH_DIR/calls.log" && ! grep -q "label create feature:" "$FAKE_GH_DIR/calls.log" && ! grep -q "FILE_FAILED" "$FAKE_GH_DIR/calls.log" \
+  && ok "the CI block opens its regression issue with no milestone call and no feature label call (feature_labels off)" || bad "milestone call: $(cat "$FAKE_GH_DIR/calls.log")"
+grep -q "^issue create .*--label regression --label defect" "$FAKE_GH_DIR/calls.log" && ! grep -q "feature:" "$FAKE_GH_DIR/calls.log" && ok "the issue carries regression and defect only" || bad "labels off"
+cp -p .loop/docs.tsv "$d/docs.bak" 2>/dev/null; printf 'Calc\tcalc.py\n' >> .loop/docs.tsv; printf 'Calc\tflag\t-\tDOC-1\tNo BROKEN file\n' > map.tsv
+python3 -c "import json;c=json.load(open('.loop/config.json'));c['feature_labels']=True;json.dump(c,open('.loop/config.json','w'))"
+rm -f "$FAKE_GH_DIR/issues.json" "$FAKE_GH_DIR/labels.json"; : > "$FAKE_GH_DIR/calls.log"
+REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py >/dev/null 2>&1
+grep -q "^label create feature:Calc --force" "$FAKE_GH_DIR/calls.log" && grep -q -- "--label feature:Calc" "$FAKE_GH_DIR/calls.log" && ! grep -q -- "milestone" "$FAKE_GH_DIR/calls.log" \
+  && ok "with feature_labels on the issue is tagged feature:Calc, made first, still with no milestone" || bad "labels on: $(cat "$FAKE_GH_DIR/calls.log")"
+rm -f "$FAKE_GH_DIR/issues.json" "$FAKE_GH_DIR/labels.json"; : > "$FAKE_GH_DIR/calls.log"
+out=$(FAKE_GH_LABEL_FAIL=feature: REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py 2>&1)
+grep -q "^FAILED label feature:Calc" <<<"$out" && [ "$(calls '^issue create --title Regression: flag')" = 1 ] && ! grep -q -- "--label feature:" "$FAKE_GH_DIR/calls.log" \
+  && ok "a feature label that can't be made still files the issue, without it, with a FAILED label line" || bad "label create fails: $out"
+rm -f "$FAKE_GH_DIR/issues.json" "$FAKE_GH_DIR/labels.json"; : > "$FAKE_GH_DIR/calls.log"
+out=$(FAKE_GH_ISSUE_LABEL_FAIL=feature: REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py 2>&1)
+grep -q "^FAILED label feature:Calc" <<<"$out" && [ "$(calls '^issue create --title Regression: flag')" = 2 ] && [ "$(grep -c -- "--label feature:Calc" "$FAKE_GH_DIR/calls.log")" = 1 ] \
+  && ok "an issue create that fails on the label is filed again without it" || bad "label on issue fails: $out"
+printf 'Hostile "q" `b` $(touch HOSTILE),x\xc3\xa9\tcalc.py\n' >> .loop/docs.tsv; printf 'Hostile "q" `b` $(touch HOSTILE),x\xc3\xa9\tflag\t-\tDOC-1\tx\n' > map.tsv
+rm -f "$FAKE_GH_DIR/issues.json" "$FAKE_GH_DIR/labels.json"; : > "$FAKE_GH_DIR/calls.log"
+REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py >/dev/null 2>&1
+[ ! -e HOSTILE ] && grep -q '^label create feature:Hostile "q" `b` $(touch HOSTILE)x' "$FAKE_GH_DIR/calls.log" && ! grep -q "Hostile" .github/workflows/regression.yml \
+  && ok "a hostile page name is only data: no command runs, no comma in the label, nothing in the workflow text" || bad "hostile: $(cat "$FAKE_GH_DIR/calls.log" | head -3)"
+python3 -c "import json;c=json.load(open('.loop/config.json'));c.pop('feature_labels');json.dump(c,open('.loop/config.json','w'))"
+if [ -f "$d/docs.bak" ]; then cp -p "$d/docs.bak" .loop/docs.tsv; else rm -f .loop/docs.tsv; fi; : > "$FAKE_GH_DIR/calls.log"
+FAKE_GH_ISSUE_OPEN=1 FAKE_GH_ISSUE_PLACED=1 python3 ci-block.py >/dev/null 2>&1
+grep -q "^issue comment 7 --body Still failing" "$FAKE_GH_DIR/calls.log" && ! grep -q -- "milestone\|^issue edit 7 --body" "$FAKE_GH_DIR/calls.log" && ok "an older marker (placed=Alpha) still finds its issue, and nothing moves it" || bad "old marker: $(cat "$FAKE_GH_DIR/calls.log")"
+[ "$fails" = "$f0" ] && echo "PASS milestone-freeform:regression-issue-no-milestone"
+rm -f "$FAKE_GH_DIR/milestones.json" "$FAKE_GH_DIR/issues.json" map.tsv
 nap="31.$((RANDOM % 9000 + 1000))"  # a sleep no other run on this machine uses
 printf 'hang\tland\techo started-hang; sleep %s & sleep %s\t-\t2026-01-01\tA row that hangs.\tcriterion\t\n' "$nap" "$nap" >> .loop/regression.tsv
 printf 'own-124\tland\techo own-exit; exit 124\t-\t2026-01-01\tA row that exits 124 itself.\tcriterion\t\n' >> .loop/regression.tsv

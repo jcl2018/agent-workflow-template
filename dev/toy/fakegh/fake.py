@@ -37,6 +37,14 @@ def rest(i):
 
 if args[0] == "api" and any("/issues" in a for a in args):
     print(json.dumps([[rest(i) for i in issues]] if "--slurp" in args else [rest(i) for i in issues]))
+elif args[:2] == ["label", "create"]:  # recorded in labels.json; FAKE_GH_LABEL_FAIL=<prefix> makes a matching label fail
+    if os.environ.get("FAKE_GH_LABEL_FAIL") and args[2].startswith(os.environ["FAKE_GH_LABEL_FAIL"]):
+        sys.exit("could not create label " + args[2])
+    names = load("labels.json")
+    if args[2] not in names:
+        save("labels.json", names + [args[2]])
+elif args[:2] == ["label", "list"]:
+    print(json.dumps([{"name": n} for n in load("labels.json")]))
 elif args[:2] == ["issue", "view"]:
     print(json.dumps(next(({"comments": i.get("comments") or [], "state": i["state"]} for i in issues
                            if str(i["number"]) == args[2]), {"comments": []})))
@@ -60,6 +68,8 @@ elif args[:2] == ["issue", "list"]:
             and flag("--state") in (None, "all", i["state"].lower())]
     print(json.dumps(pick[:int(flag("--limit"))] if flag("--limit") else pick))
 elif args[:2] == ["issue", "create"]:
+    if os.environ.get("FAKE_GH_ISSUE_LABEL_FAIL") and any(n.startswith(os.environ["FAKE_GH_ISSUE_LABEL_FAIL"]) for n in flags("--label")):
+        sys.exit("could not add label to the new issue")
     number = len(issues) + 1
     body = open(flag("--body-file")).read() if flag("--body-file") else flag("--body")
     issues.append({"number": number, "title": flag("--title"), "body": body, "state": "OPEN", "repo": flag("--repo"),
@@ -72,12 +82,16 @@ elif args[:2] in (["issue", "edit"], ["issue", "close"], ["issue", "reopen"], ["
     for i in issues:
         if str(i["number"]) == args[2]:
             if args[1] == "edit":
+                if os.environ.get("FAKE_GH_ISSUE_LABEL_FAIL") and any(n.startswith(os.environ["FAKE_GH_ISSUE_LABEL_FAIL"]) for n in flags("--add-label")):
+                    sys.exit("could not add label to the issue")
                 if flag("--body") is not None:
                     i["body"] = flag("--body")
                 i.setdefault("labels", []).extend({"name": n} for n in flags("--add-label"))
                 i["labels"] = [lab for lab in i["labels"] if lab.get("name") not in flags("--remove-label")]
                 if flag("--milestone"):
                     i["milestone"] = {"title": flag("--milestone")}
+                if "--remove-milestone" in args:
+                    i["milestone"] = None
             elif args[1] == "comment":
                 i.setdefault("comments", []).append({"body": flag("--body")})
             if args[1] == "close" and flag("--comment"):

@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/9
 
-Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a58c6 U=726b84e2 -->
+Review: **Unreviewed**
 
 ## Problem
 - I want this toolset to be a workspace I can drop into any repo, for any agent: one install gives Claude Code, Codex or any agent that reads skills the same loop, docs, monitoring and settings, in the right format for each.
@@ -12,7 +12,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a
 
 ## Usage
 
-- `/workflow-setup setup [--dry-run] [--bare]` — Surveys the repo and commits its adoption on a `workflow-setup` branch (`--dry-run` previews it, `--bare` writes only the config, queue and findings); with a check command it writes the scheduled `regression.yml`, and when the workflow-health skill is in the repo also `health.yml` and the by-hand `mail-test.yml`. Prints `FOUND: <new|existing> repo, base <base>, ...`, then `WROTE the adoption on branch <branch> at <sha>` and `NEXT: review the branch, then merge it into <base>; ...`, or `DRY RUN: nothing written`, or `NO CHANGE: nothing to add or convert`. Refuses (exit 1) `REFUSED: git <args>: <error>`, `REFUSED to call this done: agent_command <cmd> grants no tools, ...` and `REFUSED: nothing written. Fix .gitignore, then run setup again.`
+- `/workflow-setup setup [--dry-run] [--bare]` — Surveys the repo and commits its adoption on a `workflow-setup` branch, making and asking for no milestone (`--dry-run` previews it, `--bare` writes only the config, queue and findings); with a check command it writes the scheduled `regression.yml`, and when the workflow-health skill is in the repo also `health.yml` and the by-hand `mail-test.yml`. Prints `FOUND: <new|existing> repo, base <base>, ...`, then `WROTE the adoption on branch <branch> at <sha>` and `NEXT: review the branch, then merge it into <base>; ...`, or `DRY RUN: nothing written`, or `NO CHANGE: nothing to add or convert`. Refuses (exit 1) `REFUSED: git <args>: <error>`, `REFUSED to call this done: agent_command <cmd> grants no tools, ...` and `REFUSED: nothing written. Fix .gitignore, then run setup again.`
 - `/workflow-setup reply-hook [--remove]` — Adds the operation session's reply-format Stop hook to the repo's machine-local Claude settings (`--remove` takes it out). Prints `HOOK: <added|updated|removed|already installed|not installed>`, plus `NOTE: start a new Claude Code session ... to load it; ...` after an install. Refuses (exit 1) `REFUSED: <script> is missing. Fix: install the workflow-monitoring skill beside workflow-setup`, `REFUSED: the hook's path <script> holds a single quote. ...`, `REFUSED: the hook (<script>) or the repo is inside a goal's worktree, ...`, `REFUSED: .claude/settings.local.json is committed, ...`, `REFUSED: <path> is not valid JSON (<error>); nothing was written. ...` and `REFUSED: <path> has hooks in a shape this can't edit safely; nothing was written. ...`
 - `/workflow-setup govern-hook` — Adds the operation session's govern-only PreToolUse hook (MON-7) to the repo's machine-local Claude settings; `reply-hook` adds it too, and `--remove` takes out only it. It refuses edits, commits and pushes in the operation session; `govern_hook: false` turns it off. Prints `HOOK: <added|updated|removed|already installed|not installed> (govern_hook.py)`, plus a `NOTE:` line after an install. Refuses (exit 1) as `reply-hook` does.
 - `/workflow-setup git-hooks [--remove | --check [--json]]` — Installs the private-name scan as `pre-commit`, `commit-msg` and `pre-push` hooks in the repo's git hooks folder, each calling workflow-delivery's `private.py hook` by absolute path (a default `setup` run installs them too, after scanning its own staged files; `--no-git-hooks` or `LOOP_NO_GIT_HOOKS=1` skips that). Prints `HOOK <name>: written|removed|not installed|already calls the scan|kept, it is not the stub setup writes|left alone, it is not ours. Add: <call>`, then `list: PRIVATE LIST: ...` and each hook as `installed`, `stale`, `foreign` or `missing`; `--check --json` prints the same with `"version": 1`. A hook that is not ours is never overwritten. Refuses (exit 1) `REFUSED: core.hooksPath is set, ...`, `REFUSED: private.py or the repo is inside a goal's worktree, ...` and `REFUSED: a path holds a quote, newline or percent sign, ...`, each with the line or step to fix; `REFUSED: a staged adoption file holds a private name` stops `setup` before its commit. Exit codes of the hooks: `skills/workflow-delivery/references/commands.md`, "Private-name hooks".
@@ -26,10 +26,10 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a
 ## Requirements
 
 ### Functional
-- SET-1: **Reviewed 2026-11-10** One command adopts a repo <!-- reviewed 890df4f8 -->
-  - One command sets up a new or existing repo: the loop config, PRD feature pages in the docs format, the Home table and README How to use, a milestone per feature plus Backlog, the nightly regression in GitHub Actions, the health groups, and every setting with its default.
+- SET-1: **Unreviewed** One command adopts a repo
+  - One command sets up a new or existing repo: the loop config, PRD feature pages in the docs format, the Home table and README How to use, the nightly regression in GitHub Actions, the health groups, and every setting with its default.
   - It shows what it found and would change first, then applies it on a branch through the loop, adapting what is there instead of overwriting.
-  - It never blocks: what doesn't fit is listed and filed as issues on the right milestone, and the rest is adopted.
+  - It never blocks: what doesn't fit is listed and filed as issues tagged with the right feature, and the rest is adopted.
   - Health is the first and last step: before adopting, a health check records where the repo starts; after adopting, the full health check (every group, Adoption included) must come back green or name each gap with its fix, and that verdict is the adoption result, because if health works, the rest works.
 - SET-2: **Reviewed 2026-11-10** Layered settings <!-- reviewed 4adab145 -->
   - Settings come in three layers: the template's defaults, the repo's settings (committed and shared), and my local settings (private, outside the repo); a later layer overrides an earlier one.
