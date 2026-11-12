@@ -51,23 +51,16 @@ found = [r for r in cost.timing_rows(".") if r["subject"] == "full-suite"]
 assert found and found[0]["state"] == "PASS" and "from local run" in found[0]["detail"], found
 PY
 
-echo "== CI keeps its line as artifact suite-time; health's job fetches it"
-# Value: protects=the CI run's time reaches health (S14): regression.yml uploads suite-time, health.yml downloads the
+echo "== CI keeps its line as artifact suite-time; the Mac's tick fetches it"
+# Value: protects=the CI run's time reaches health (S14): regression.yml uploads suite-time, the local tick downloads the
 #   newest one with gh run download and marks it ci; fails_when=either step is missing or the ci column is dropped;
 #   why_new=CI times never left the runner; seam=none; no_claim=GitHub's artifact service (a stub gh stands in)
-$reg workflow >/dev/null; python3 "$here/skills/workflow-health/scripts/automation.py" workflow >/dev/null
+$reg workflow >/dev/null
 python3 - <<'PY' && ok "regression.yml uploads the CI run's suite-time file as artifact suite-time" || bad "no upload step"
 text = open(".github/workflows/regression.yml").read()
 part = text.split("uses: actions/upload-artifact@v4", 1)[1].split("\n      - ", 1)[0]
 assert "name: suite-time" in part and "path: ${{ runner.temp }}/suite-time.tsv" in part and "if-no-files-found: ignore" in part
 assert "SUITE_TIME_FILE: ${{ runner.temp }}/suite-time.tsv" in text
-PY
-python3 - "$r/fetch.sh" <<'PY'
-import sys
-text = open(".github/workflows/health.yml").read()
-part = text.split("      - name: Fetch the newest full-suite time\n", 1)[1].split("\n      - ", 1)[0]
-assert "continue-on-error: true" in part and "gh run download" in part
-open(sys.argv[1], "w").write("\n".join(line[10:] for line in part.split("        run: |\n", 1)[1].split("\n")))
 PY
 mkdir -p "$r/stub"; cat > "$r/stub/gh" <<'SH'
 #!/bin/bash
@@ -79,10 +72,16 @@ case "$1 $2" in
 esac
 SH
 chmod +x "$r/stub/gh"
-out=$(PATH="$r/stub:$PATH" bash "$r/fetch.sh" 2>&1); rc=$?
+fetch() { PATH="$r/stub:$PATH" python3 - "$here" <<'PY'
+import os, sys
+sys.path.insert(0, sys.argv[1] + "/skills/workflow-health/scripts"); import rounds, workflows
+print(rounds.fetch_suite_time(".", dict(os.environ), open(os.devnull, "w"), workflows.child))
+PY
+}
+out=$(fetch 2>&1); rc=$?
 [ "$rc" = 0 ] && grep -q "^NOTE: no suite-time artifact" <<<"$out" && [ "$(lines)" = 1 ] \
   && ok "with no artifact yet the fetch step says so and continues" || bad "no artifact: rc=$rc $out"
-out=$(STUB_ARTIFACT=1 PATH="$r/stub:$PATH" bash "$r/fetch.sh" 2>&1); rc=$?
+out=$(STUB_ARTIFACT=1 fetch 2>&1); rc=$?
 [ "$rc" = 0 ] && [ "$(tail -1 "$times")" = "cafe	full	2400	2026-11-09	ci" ] && python3 - "$here" <<'PY' \
   && ok "the newest run's artifact is added with the ci column and health reads it as a CI artifact" || bad "fetch: rc=$rc $out $(cat "$times")"
 import sys

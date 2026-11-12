@@ -1,4 +1,5 @@
 #!/bin/bash
+# windows: ok
 # reads: skills/workflow-delivery/scripts/lane.py skills/workflow-regression/scripts/slots.py skills/workflow-regression/scripts/
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"

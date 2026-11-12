@@ -29,7 +29,7 @@ check "criteria_max defaults to 10 with a one-line explanation" 'grep -q "^| .cr
 check "this repo commits parallel 0" '[ "$(python3 -c "import json;print(json.load(open(\"$here/.loop/config.json\"))[\"parallel\"])")" = 0 ]'
 
 cd "$T/repo" || exit 1
-python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null || true  # a bare agent_command exits 1 after writing
+python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null || true  # a bare agent_command is a gap, not a refusal (exit 0)
 all=$(python3 - <<PY
 import json, sys
 sys.path.insert(0, "$here/skills/workflow-setup/scripts")
