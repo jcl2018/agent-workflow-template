@@ -17,10 +17,9 @@ the same host and python count, in either order, and the mark stays on that comm
 tree, `regression.py red`, another runner or an older record never marks. The exit status follows the actual result, and a
 flaky row is never reused (lanes.plan, tiers.reason). workflow-regression/references/commands.md.
 
-Plan cache: each row's closure is kept per branch in <git common dir>/loop/plans/, keyed by HEAD, .loop/regression.tsv, the
-planner's code, LANES_WIDE and the loop's uncommitted files (key, narrow.warm, narrow.store). A dirty tree never uses it, and a
-plan that read an ignored file or one outside the repo is not saved; LANES_NO_CACHE=1 turns it off. `PLAN_CACHE: <state>`, the
-planner's first output line, names what happened (commands.md `## Plan cache`).
+Plan cache: each row's closure is kept per branch in <git common dir>/loop/plans/, keyed by HEAD, the rows file, the planner's
+code, LANES_WIDE and the loop's uncommitted files. A dirty tree, or a plan that read an ignored or outside-repo file, never
+uses or saves it; LANES_NO_CACHE=1 turns it off. First output line: `PLAN_CACHE: <state>` (commands.md).
 """
 import hashlib
 import json

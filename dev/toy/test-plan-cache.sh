@@ -407,9 +407,9 @@ m_sizes() {
   cur=sizes
   echo "== sizes: the files this goal edits stay inside their ceilings, the package stays at 99 files"
   local r="$here/skills/workflow-regression/scripts" size
-  # Value: protects=the planner change stays inside the size budget (done line 5, read as: lanes.py does not grow past 19,559; tiers.py and narrow.py stay under 18,432); fails_when=lanes.py grows or tiers.py or narrow.py reaches the health warn line; why_new=the cache code lives in scripts near their ceilings; seam=none; no_claim=files this goal does not edit, and the literal done-line text (27 scripts already exceed 18 KB)
+  # Value: protects=the planner change stays inside the size budget (done line 5, read as: lanes.py does not grow past 19,710 (its size on main at v0.27.12); tiers.py and narrow.py stay under 18,432); fails_when=lanes.py grows or tiers.py or narrow.py reaches the health warn line; why_new=the cache code lives in scripts near their ceilings; seam=none; no_claim=files this goal does not edit, and the literal done-line text (27 scripts already exceed 18 KB)
   size=$(wc -c < "$r/lanes.py" | tr -d ' ')
-  if [ "$size" -le 19559 ]; then ok "lanes.py is $size bytes (ceiling 19559)"; else fail "lanes.py size" "<= 19559" "$size"; fi
+  if [ "$size" -le 19710 ]; then ok "lanes.py is $size bytes (ceiling 19710)"; else fail "lanes.py size" "<= 19710" "$size"; fi
   for f in tiers.py narrow.py; do
     size=$(wc -c < "$r/$f" | tr -d ' ')
     if [ "$size" -lt 18432 ]; then ok "$f is $size bytes (under 18432)"; else fail "$f size" "< 18432" "$size"; fi
