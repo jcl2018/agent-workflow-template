@@ -115,15 +115,6 @@ def f_docs_check(root):
     commit(root, "map a page that is missing")
 
 
-def f_docs_issues(root):
-    """A GitHub remote and a stand-in gh (beside the repo, never on PATH) with one open issue on no milestone."""
-    repo(root)
-    git(root, "remote", "add", "origin", "https://github.com/health-control/toy.git")
-    fake = os.path.join(os.path.dirname(root), "gh")
-    write(root, fake, "#!/bin/sh\necho '[{\"number\": 1, \"title\": \"loose\", \"milestone\": null}]'\n")
-    os.chmod(fake, 0o755)
-
-
 def f_findings(root):
     repo(root)
     write(root, ".loop/findings.md", "# Findings\n\n" + "".join("- f%d: open\n" % n for n in range(6)))
@@ -199,7 +190,6 @@ CONTROLS = {
     "seen-red": ("tests", "seen-red", f_seen_red),
     "defect-tests": ("traceability", "defect-tests", f_defect_tests),
     "docs-check": ("docs", "docs-check", f_docs_check),
-    "docs-issues": ("docs", "docs-check", f_docs_issues),  # docs-check's issue rows (issues.py): checked inside its row
     "findings": ("hygiene", "findings", f_findings),
     "waiting": ("hygiene", "waiting", f_waiting),
     "branches": ("hygiene", "branches", f_branches),
@@ -283,30 +273,9 @@ def one(rule, function, here, keep=False):
     return result, (root if keep else "")
 
 
-def extra(rules, here):
-    """Controls for rows a rule composes from another module: docs-check's issue rows, read with the fixture's own gh."""
-    sys.path.insert(0, here)
-    try:
-        import issues
-    except ImportError:
-        return {}
-    finally:
-        sys.path.pop(0)
-    return {"docs-issues": lambda root: issues.rows(root, os.path.join(os.path.dirname(root), "gh"))} if "docs-check" in rules else {}
-
-
 def run(rules, here):
-    """One controls row per rule, in the order of rules (a dict: rule name -> function(root) -> rows). An extra()
-    control rides on its rule's row: docs-check passes only when its issue rows fire too (still one row per rule)."""
-    out, more = [], extra(rules, here)
-    for rule, function in rules.items():
-        result = one(rule, function, here)[0]
-        if rule == "docs-check" and result["state"] == "PASS" and "docs-issues" in more:
-            part = one("docs-issues", more["docs-issues"], here)[0]
-            if part["state"] != "PASS":
-                result = dict(part, subject=rule, detail="its issue rows: " + part["detail"])
-        out.append(result)
-    return out
+    """One controls row per rule, in the order of rules (a dict: rule name -> function(root) -> rows)."""
+    return [one(rule, function, here)[0] for rule, function in rules.items()]
 
 
 def missing(names):
@@ -332,7 +301,7 @@ def main():
     sys.path.insert(0, HERE)
     import health
     functions = health.rule_functions()
-    result, kept = one(args.rule, dict(functions, **extra(functions, HERE))[args.rule], HERE, keep=args.keep)
+    result, kept = one(args.rule, functions[args.rule], HERE, keep=args.keep)
     print("%(state)s controls %(subject)s: %(detail)s" % result + (" -> fix: " + result["fix"] if result["fix"] else ""))
     if kept:
         print("KEPT " + kept)

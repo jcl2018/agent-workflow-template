@@ -292,7 +292,7 @@ def main():
     git(repo, "commit", "-m", "Adopt the workflow loop", "--allow-empty")
     hooked()
     print("WROTE the adoption on branch %s at %s" % (args.branch, git(repo, "rev-parse", "--short", "HEAD")))
-    print("NEXT: review the branch, then merge it into %s; then run milestone.py new --all --live" % config["base"])
+    print("NEXT: review the branch, then merge it into %s" % config["base"])
     return code
 
 

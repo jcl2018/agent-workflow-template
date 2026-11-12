@@ -5,9 +5,9 @@ usage: docs.py audit [--base REF] [--dry-run]
 
 It checks the pages against the template sheet (references/template.md), the code (stale pages), the tests (the Tests
 Tests, rows not
-written as Given/When/Then, and which Reviewed requirements have no test or tests that no longer match), and the required docs (each feature
-page's Milestone line, the Backlog milestone, a release note per tag). It fixes the mechanical trouble itself (the
-Tests tables, the full Tests page and a missing Milestone line) and prints the rest as REWRITE lines for a person or agent. It never
+written as Given/When/Then, and which Reviewed requirements have no test or tests that no longer match), and the required docs (a release note per tag; a
+milestone is optional and never checked). It fixes the mechanical trouble itself (the
+Tests tables and the full Tests page) and prints the rest as REWRITE lines for a person or agent. It never
 deletes a page and never changes a criterion's wording. --dry-run only says what it would fix. Exit 0 only when
 nothing is left. UNTESTED lines are written to untested.tsv (id, reason) in the repo's .git/loop folder for the loop to queue goals from, and
 do not fail the audit. It runs git and gh, and nothing else.
@@ -15,7 +15,6 @@ do not fail the audit. It runs git and gh, and nothing else.
 import argparse
 import contextlib
 import io
-import json
 import os
 import re
 import subprocess
@@ -31,67 +30,6 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 REWRITE = {"CAP", "SCRIPT", "STALE", "UNWRITTEN", "PROBLEM", "SECTIONS", "CRITERION", "NONGOALS", "METRICS", "REVIEW", "SCENARIO", "FORMAT"}
-TITLE = re.compile(r"^# .*$", re.M)
-
-
-def milestones(root):
-    """The repo's milestones as {title: url}, or None when gh gives no answer."""
-    try:
-        done = subprocess.run(["gh", "api", "repos/{owner}/{repo}/milestones?state=all&per_page=100"], cwd=root,
-                              capture_output=True, text=True, timeout=60)
-        return {item["title"]: item["html_url"] for item in json.loads(done.stdout)}
-    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
-        return None
-
-
-def milestone_line(text, label, url):
-    """The page text with a '<label>: <url>' line under its title, or None when it already has one."""
-    if re.search(r"^%s: \S" % re.escape(label), text.partition("\n## ")[0], re.M):
-        return None
-    return TITLE.sub(lambda m: "%s\n\n%s: %s" % (m.group(0), label, url), text, 1)
-
-
-def milestone_of(page, text, held, label):
-    """The url of the page's milestone: the one its own '<label>: <url>' line names (by url or number), else the one
-    titled like the page, hyphens read as spaces and case ignored; None when there is none."""
-    loose = lambda name: " ".join(name.replace("-", " ").lower().split())
-    line = re.search(r"^%s: (\S+)" % re.escape(label), text.partition("\n## ")[0], re.M)
-    if line:
-        number = re.search(r"/milestone/(\d+)/?$", line.group(1))
-        return next((url for url in held.values() if url == line.group(1) or (number and url.endswith("/milestone/" + number.group(1)))), None)
-    return held.get(page) or next((url for title, url in held.items() if loose(title) == loose(page)), None)
-
-
-def features(root):
-    return docs.feature_pages(root)
-
-
-def milestone_trouble(root, fix):
-    """(kind, page, detail) for the milestone links and the Backlog; fixes a missing link unless fix is false."""
-    held = milestones(root)
-    if held is None:
-        print("SKIP milestones: no answer from gh")
-        return [], []
-    label, found, fixed = criteria.rules()["milestone"], [], []
-    if "Backlog" not in held:
-        found.append(("MILESTONE", "Backlog", "missing. Fix: milestone.py new backlog --live"))
-    for page in features(root):
-        rel = os.path.join(root, docs.wiki_dir(root), page + ".md")
-        if not os.path.exists(rel):
-            continue
-        with open(rel) as handle:
-            text = handle.read()
-        url = milestone_of(page, text, held, label)
-        if not url:
-            found.append(("MILESTONE", page, "no milestone. Fix: milestone.py new %s --live" % page))
-            continue
-        fresh = milestone_line(text, label, url)
-        if fresh is not None:
-            fixed.append("%s: add the %s line" % (page, label))
-            if fix:
-                with open(rel, "w") as handle:
-                    handle.write(fresh)
-    return found, fixed
 
 
 def release_trouble(root):
@@ -161,8 +99,7 @@ def audit(root, base, dry):
         return 1
     if config_criteria(root):
         would += ["%s: re-render the Tests table" % name for name in render(not fix)]
-    found, moved = milestone_trouble(root, fix)
-    would += moved
+    found = []
     # The entry point and a stale agent block are generated: rewriting them is mechanical (a missing block needs agents.py).
     stale = [path for kind, path, why in entry.problems(root) if path == entry.ENTRY and kind in ("STALE", "MISSING") or
              kind == "STALE" and path in entry.agent_files(docs.config(root)) and "ENTRY_MARKER" not in why]

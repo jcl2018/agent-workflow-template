@@ -3,12 +3,12 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599a537 U=689852ab -->
+Review: **Unreviewed**
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
 - Pages drift from the code, and each repo writes them its own way, so reviewing them takes too long.
-- I need my approved requirements to stay exactly as I wrote them, while the loop keeps tests, Usage and milestones up to date for me.
+- I need my approved requirements to stay exactly as I wrote them, while the loop keeps tests and Usage up to date for me.
 
 ## Usage
 - `/workflow-docs audit [--base REF] [--dry-run]` — Checks every page against the template, fixes the mechanical (the Tests tables) and lists wording to rewrite; on a Reviewed page it lists each requirement with no passing test as `UNTESTED ID: <why>`. Ends with `DOCS OK: N pages`, or `DOCS: N to do` and exit 1 while any is left.
@@ -22,7 +22,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599
 - `/workflow-docs convert` — Turns old Summary/Criteria pages into PRD pages, keeping IDs and Reviewed stamps. A preview prints `DRY RUN: nothing written.` Refuses a page without the needed sections (`REFUSED N page(s). ...`).
 - `/workflow-docs publish [--dry-run] [--adopt PAGE]` — Copies the pages to the GitHub wiki and prints `PUBLISHED <wiki link>`. Never deletes a page. Refuses (exit 1) while the check finds problems other than CHANGED (`REFUSED: fix the pages above first.`), when a page lost its marker, when the wiki has a page this tool didn't write and it isn't named with --adopt (`REFUSED: the wiki already has X, and this tool didn't write it. Nothing was published.`), or when the push fails.
 - `/workflow-docs restore` — Reverts the last publish and prints `RESTORED the wiki: reverted <pages>`. Refuses (exit 1) with no publish on record (`REFUSED: no publish on record.`) or when the wiki changed since (`REFUSED: the wiki changed after the last publish, so nothing was reverted.`).
-- `/workflow-docs milestones` — Makes each feature's milestone and the Backlog. Prints `CREATED <name>`, `EXISTS <name>` or `LINKED <page> to its milestone`, and `WOULD create milestone <name>` when it can't write to GitHub; running it again creates nothing. Refuses when GitHub can't be read or a milestone can't be made (exit 1, `REFUSED: could not read the milestones: ...`).
+- `/workflow-docs milestone new TITLE | move ISSUE TITLE` — Optional, for planning by version: `new` makes a free-form milestone such as v1.0 and `move` puts an issue on an existing one (or `none` clears it; a title that doesn't exist is refused). Prints `CREATED <title>`, `EXISTS <title>` or `WOULD create milestone <title> (dry run; add --live)`; running it again creates nothing. Refuses (exit 1) `REFUSED: no milestone <title> (issue <n> unchanged). Fix: milestone.py new <title> --live` and `REFUSED: no GitHub token, nothing created. ...`. No check ever runs it.
 
 ## Requirements
 
@@ -37,8 +37,8 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599
 - DOC-3: **Reviewed 2026-11-08** Tests follow on their own <!-- reviewed 2e9e1c3f -->
   - Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes.
   - I never write or manage tests.
-- DOC-4: **Reviewed 2026-11-10** Home is one table <!-- reviewed 4ee8099b -->
-  - Home holds one table with four columns: Feature, What it does, How to use (a link to the README section), Milestone.
+- DOC-4: **Unreviewed** Home is one table
+  - Home holds one table with four columns: Feature, What it does, How to use (a link to the README section), Milestone (optional: empty, or a link to the free-form milestone the feature is planned on).
   - Nothing else is on Home.
 - DOC-5: **Reviewed 2026-11-10** The front door is natural language <!-- reviewed 885694d1 -->
   - Every feature has a README "How to use" table: what I say to the agent, and what happens.
@@ -58,10 +58,10 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599
   - Tests is a table: Test, Kind, Guards, Checks, Last result.
   - Each test name links to its entry on the full Tests page.
   - Every requirement and every defect has at least one row.
-- DOC-10: **Reviewed 2026-11-10** One Tests page, every issue on a milestone, every release noted <!-- reviewed 4ea5bba8 -->
+- DOC-10: **Unreviewed** One Tests page, every release noted, milestones optional
   - One full Tests page is generated, listing every test with its latest result.
-  - Every open issue is on its feature's milestone, or on Backlog only when it fits no feature.
   - Every release has a release note.
+  - A milestone is optional and free form, used to plan by version (for example v1.0); nothing requires a feature page, issue or pull request to have one, and no check fails or warns for lacking one.
 - DOC-14: **Reviewed 2026-11-10** A feature page lists what it ships: the pages people open and the deliveries people receive <!-- reviewed 6920f546 -->
   - A feature page that ships something people can open, or a delivery people receive (for example a scheduled email), has a Deployments section; it is optional otherwise.
   - Pages: one row per public or private page, with its link, who can open it (public or sign-in), what it shows, and the live build (the sha in build.txt).
@@ -142,9 +142,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599
 | [format-problem](Tests#t-format-problem) | requirement | DOC-8 | Given a Problem that names code internals, when the docs check runs, then it fails naming the page, Problem and DOC-8. | PASS 2026-11-10 |
 | [problem-plural](Tests#t-problem-plural) | requirement | DOC-8 | Given a Problem with a banned word in the plural, when the docs check runs, then it fails. | PASS 2026-11-10 |
 | [format-tests-table](Tests#t-format-tests-table) | requirement | DOC-9 | Given a hand-edited Tests table, when the docs check runs, then it fails naming the page, Tests and DOC-9. | PASS 2026-11-10 |
-| [milestones-once](Tests#t-milestones-once) | requirement | DOC-10 | Given milestones already created, when milestones runs again, then nothing new is created. | PASS 2026-11-12 |
-| [pr-in-milestone](Tests#t-pr-in-milestone) | requirement | DOC-10 | Given a pull request, when milestones runs, then the pull request goes into its milestone. | PASS 2026-11-12 |
-| [milestone-links](Tests#t-milestone-links) | requirement | DOC-10 | Given a feature page, when the check runs, then it links to its GitHub milestone and a missing Backlog is found. | PASS 2026-11-12 |
+| [milestones-once](Tests#t-milestones-once) | requirement | DOC-10 | Given a free-form milestone title such as v1.0, when new runs twice, then one milestone is made and the second run says it exists. | PASS 2026-11-12 |
 | [release-note-found](Tests#t-release-note-found) | requirement | DOC-10 | Given a release with no release note, when the check runs, then it is found. | PASS 2026-11-12 |
 | [tests-page-stale](Tests#t-tests-page-stale) | requirement | DOC-10 | Given a full Tests page behind the runs, when the docs check runs, then it is reported stale with its first differing line. | PASS 2026-11-10 |
 | [tests-page-run-link](Tests#t-tests-page-run-link) | requirement | DOC-10 | Given a runs file with a run column, when the Tests page is rendered, then each result links its Actions run, or that day's CI runs when the cell is empty. | PASS 2026-11-10 |
@@ -153,14 +151,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599
 | [runs-partial](Tests#t-runs-partial) | requirement | DOC-10 | Given only some GITHUB_* vars, when a row runs, then the run cell is empty. | FAIL 2026-11-10 |
 | [runs-upgrade](Tests#t-runs-upgrade) | requirement | DOC-10 | Given an old 3-column runs file, when a row runs, then every row has 4 columns and old rows have an empty run. | PASS 2026-11-10 |
 | [runs-keep](Tests#t-runs-keep) | requirement | DOC-10 | Given a recorded row, when only another row runs, then its run cell is unchanged. | PASS 2026-11-10 |
-| [issue-no-milestone-fails](Tests#t-issue-no-milestone-fails) | requirement | DOC-10 | Given an open issue with no milestone, when health checks, then a FAIL row names it. | PASS 2026-11-10 |
-| [issue-milestone-passes](Tests#t-issue-milestone-passes) | requirement | DOC-10 | Given an open issue on a milestone, when health checks, then no row names it. | PASS 2026-11-10 |
-| [issue-gh-fail-unread](Tests#t-issue-gh-fail-unread) | requirement | DOC-10 | Given gh fails, when health checks, then one UNREAD row shows and the verdict is unchanged. | PASS 2026-11-10 |
-| [issue-truncated-unread](Tests#t-issue-truncated-unread) | requirement | DOC-10 | Given 1000 open issues come back, when health checks, then it reads UNREAD truncated. | PASS 2026-11-10 |
-| [issue-closed-ignored](Tests#t-issue-closed-ignored) | requirement | DOC-10 | Given a closed issue with no milestone, when health checks, then no row names it. | PASS 2026-11-10 |
 | [runs-same-day](Tests#t-runs-same-day) | requirement | DOC-10 | Given two branches running the same rows on one day, when each records its run, then the run files are identical. | PASS 2026-11-10 |
-| [ci-issue-backlog](Tests#t-ci-issue-backlog) | requirement | DOC-10 | Given a regression issue that fits no feature, when CI opens it, then it is on Backlog, and a missing Backlog is made once. | PASS 2026-11-10 |
-| [digest-backlog](Tests#t-digest-backlog) | requirement | DOC-10 | Given a Backlog milestone, when the digest issue is created, then it is on Backlog. | PASS 2026-11-10 |
 | [deploy-section-optional](Tests#t-deploy-section-optional) | requirement | DOC-14 | Given a feature page with no Deployments section, a good Page table, a good Delivery table or both, when the docs check runs, then it passes, and a Deployments section before Success metrics is refused as out of order. | PASS 2026-11-10 |
 | [deploy-table-refused](Tests#t-deploy-table-refused) | requirement | DOC-14 | Given a Deployments section with prose, no table, a wrong header, two tables of a kind, no row, a wrong cell count, an empty cell, a bad link, access, build or an email address, when the docs check runs, then it refuses it naming the table and column, and never prints the address. | PASS 2026-11-10 |
 | [deploy-not-locked](Tests#t-deploy-not-locked) | requirement | DOC-14 | Given a Reviewed page that gains a Deployments section, when the docs check, the owner's review and render run, then the page is neither locked nor changed, the review works and render keeps the section byte for byte. | PASS 2026-11-10 |
