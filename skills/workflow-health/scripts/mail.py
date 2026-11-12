@@ -295,7 +295,7 @@ def cmd_send(args):
         raise Stop("MAIL_MARKED_LATE", "sent for run %s, but couldn't mark the comment mailed; it keeps mailing, so a rerun "
                    "won't send again. Fix: nothing to do" % run)
     if body_state and rounds.order(body_state["run"]) < rounds.order(run):  # the digest couldn't save its state
-        rounds.gh("issue", "edit", str(number), "--body", body.split("<!-- automation-digest")[0].rstrip() + "\n\n"
+        rounds.gh("issue", "edit", str(number), body=body.split("<!-- automation-digest")[0].rstrip() + "\n\n"
                   + rounds.marker(run, state["open"]))
     say("sent for run %s%s" % (run, " (after 1 retry)" if retried else ""), "MAIL_SENT")
     return 0
