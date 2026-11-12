@@ -20,6 +20,17 @@ Review: **Unreviewed**
 - `/workflow-regression list` — Lists every regression test from the recorded runs, grouped by feature. Prints `FEATURE <title>`, then `<test> | <kind> | <guards> | <checks> | <runs> | <last result> | seen failing <date|no>` per test, or `NO TESTS`. Refuses nothing.
 - `/workflow-regression issues` — Reads each defect test's issue or pull request state from GitHub and records it. Prints `ISSUE <link> <state>`. Refuses (exit 1) `ISSUES: cannot read issues (gh: <cause>). Fix: gh auth login, or set GH_TOKEN`
 
+## Runbook
+
+### regression-round
+- **Serves:** REG-4, REG-5, REG-9, AUT-1, AUT-2.
+- **Schedule:** every 4 hours (`regression_cron` in `.loop/config.json`, default `17 */4 * * *`), on every release tag, and by hand: the Actions tab (Run workflow on `regression`, with `target` land, nightly or one row id) or `gh workflow run regression.yml`. `off` stops the schedule only.
+- **Steps:** Start the `regression` workflow (`.github/workflows/regression.yml`): its "Run the rows" step runs every land and nightly row of `.loop/regression.tsv`, keeps one issue per failing row, and its summary step writes the run summary, one table per feature. A local `regression.py run` is not this run: it can write records and, with a token or `--live`, open issues, so do not use it in place of the workflow. The health round that follows reads the newest suite-time artifact this workflow keeps.
+- **Full run:** a full run executes every row of the levels the run covers, which on the schedule and on release tags is every land and nightly row in `.loop/regression.tsv` (draft and covered rows are not run; a by-hand run with target land runs land rows only and is not a full run) against the checked-out repo with no row left out and no reuse of an earlier result, and records each real result as the row ends. It opens, updates or closes one `defect` issue per failing row, tagged with its feature only when `feature_labels` is true. A row that exits 77 is `SKIPPED`, never `PASS`, and opens no issue. A row skipped because the job ran out of time is also `SKIPPED` but still files its issue; a run with such a row is not a full run, so say so and run it again.
+- **Output:** the run summary (a header with totals and the run time, then one table per feature) and one open issue per failing row; the regression digest is the failing-test part of the health round's digest comment and email, which the health round posts after this run.
+- **Never:** never run a subset, `--reuse` or `--tier` on a scheduled run; never report a row as passed that did not run; never write results by hand into `.loop/regression-runs.tsv`; never close an issue while its row fails; never push, merge or release.
+- **Check:** the run summary's passed, known, failed and skipped counts add up to the number of land and nightly rows in `.loop/regression.tsv` (draft and covered rows excluded); each failing row has exactly one open issue; every `SKIPPED` row names its reason (cannot run here, or out of job time); the run time is real and under the time budget.
+
 ## Requirements
 
 ### Functional
