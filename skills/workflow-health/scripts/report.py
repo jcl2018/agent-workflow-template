@@ -29,7 +29,7 @@ GROUPS = (
     ("performance", "Performance", "my clock's and my wallet's angle: is it fast and cheap enough?",
      ("cost", "test-time", "check-time")),
     ("security", "Security and privacy", "a leak's angle: can anything private escape?",
-     ("private", "scan-hook", "workflow-permissions")),
+     ("private", "scan-hook", "hooks", "workflow-permissions")),
     ("size", "Size", "a maintainer's angle: can someone still read this?", ("scripts", "skill-lines", "requirements-per-page")),
     ("hygiene", "Hygiene", "a janitor's angle: is anything left lying around?",
      ("findings", "waiting", "branches", "worktrees", "local-branches", "idle-sessions")),

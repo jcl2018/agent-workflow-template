@@ -2,7 +2,7 @@
 """The numbers the docs state that the repo can check: skills, feature pages, and a feature page's criteria and tests.
 
 docs.py check, audit and publish call counts() through docs.counts(root). prose() is the text a reader sees: no fenced
-or indented code, comments or code spans.
+or indented code, comments or code spans. The page map of docs.py (map_path, read_map, write_map) sits at the end.
 """
 import glob
 import os
@@ -150,3 +150,29 @@ def counts(root, folder, rows, on):
                 if want is not None and said != want:
                     found.append(("COUNT", rel, "says %s, the repo has %d" % (match.group(0), want)))
     return found
+
+
+# The page map of docs.py, moved here unchanged (size); docs.py imports it back.
+def map_path(root):
+    return os.path.join(root, ".loop", "docs.tsv")
+
+
+def read_map(root):
+    rows = {}
+    try:
+        with open(map_path(root)) as handle:
+            for line in handle:
+                if line.strip() and not line.startswith("#"):
+                    page, _, paths = line.rstrip("\n").partition("\t")
+                    rows[page] = [item.strip() for item in paths.split(",") if item.strip()]
+    except OSError:
+        pass
+    return rows
+
+
+def write_map(root, rows):
+    os.makedirs(os.path.dirname(map_path(root)), exist_ok=True)
+    with open(map_path(root), "w") as handle:
+        handle.write("# page<TAB>paths it describes, comma separated\n")
+        for page in sorted(rows):
+            handle.write("%s\t%s\n" % (page, ",".join(rows[page])))

@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.27.6 - 2026-11-12
+
+- Fix issue 116: size splits of criteria.py, docs.py and regression.py (skill-size-2)
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `wc -c skills/workflow-docs/scripts/criteria.py skills/workflow-docs/scripts/docs.py skills/workflow-regression/scripts/regression.py`.
+   Expect: criteria.py, docs.py and regression.py are each under 18432 bytes.
+2. Run `python3 skills/workflow-health/scripts/health.py check | grep "WARN size"`.
+   Expect: criteria.py, docs.py and regression.py are not listed.
+3. Run `bash dev/toy/test-defect.sh size-139`, then add one line `def rules(): pass` to the end of `skills/workflow-docs/scripts/criteria.py` and run it again.
+   Expect: the first run prints nothing and exits 0; the second prints a `leftovers:` line naming `rules`. Undo the edit with `git checkout -- skills/workflow-docs/scripts/criteria.py`.
+4. Run `wc -l skills/workflow-delivery/SKILL.md skills/workflow-docs/SKILL.md`.
+   Expect: each is under 150 lines.
+
+## v0.27.5 - 2026-11-12
+
+- Private-name hooks: pre-commit, commit-msg and pre-push scan through private.py, installed by setup, flagged by health (guard-enforce)
+- Review fixes: commentChar=auto bypass, non-ASCII name leak, keep edited stubs (guard-enforce)
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- Setup page: name the two other hook outcomes (guard-enforce)
+- Merge main into guard-enforce
+- Merge main (v0.27.4, health-prd) into guard-enforce: hooks rule registered in the Security group
+- Merge remote-tracking branch 'origin/main' into loop/guard-enforce
+- Merge remote-tracking branch 'origin/main' into loop/guard-enforce
+- pr: record issue states and the lane's results
+- Wiki: update pages for guard-enforce
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.4 - 2026-11-12
 
 - health-prd: cost leaves out goals with no tokens (124); the judge error names its stderr (158)

@@ -414,6 +414,35 @@ $ python3 scripts/goal.py pr my-goal
 REFUSED (no try used): a private name would be pushed: notes.txt:1 (commit:1a2b3c4) matches list line 2; nothing was pushed. Fix: remove the text, then squash ... (PRIVATE_NAME)
 ```
 
+<a id="private-name-hooks"></a>
+### Private-name hooks (DEL-9, SET-8)
+
+`python3 skills/workflow-setup/scripts/setup.py --git-hooks` (a default `setup` run does it too; `--no-git-hooks` or
+`LOOP_NO_GIT_HOOKS=1` skips) writes `pre-commit`, `commit-msg` and `pre-push` into the git common dir's `hooks` folder.
+Each runs `private.py hook staged | message "$1" | push` by absolute path with the same list. They are early feedback:
+the push scan and the scans before every GitHub write stay the authority. Needs python3 3.8 or later. A repo with
+`core.hooksPath`, or a hook of your own, gets the exact call line to add instead; a hook that already holds the call
+counts as installed. `--check` prints the list and each hook (`installed`, `stale`, `foreign`, `missing`); health's `hooks`
+rule warns on the last three and on a broken list.
+
+<a id="private-name-hook-exit-codes"></a>
+
+| Exit | Hook says | Means and what to do |
+|---|---|---|
+| 0 | nothing | clean, no list (`private.py check` says so), or a list of only comments (off on purpose) |
+| 1 | `REFUSED: a private name would be committed\|pushed: <place> matches list line <n>; nothing was committed\|pushed ... (PRIVATE_NAME)` | remove the text from that place and commit or push again; for a false positive edit that list line. A pre-push hit means a commit already holds it: amend or squash, then push |
+| 2 | `REFUSED: the private-name list or scan is broken: ... (PRIVATE_LIST)` | the list file is missing or unreadable, a pattern is invalid or matches ordinary text such as an empty line, or git couldn't be read (a push over 500 commits: set `LOOP_HOOK_RANGE=<rev>` to scan from that rev). Nothing was committed or pushed; repair the line named |
+| 64 | `the hook is wired wrong` | the stub calls a mode `private.py` doesn't have; rerun `setup.py --git-hooks` |
+| 142 | `the scan took too long and was killed` | a pattern is too slow (`LOOP_HOOK_DEADLINE` seconds, default 30); shorten the pattern |
+| other | `private.py is gone`, `python3 is not on PATH` or `the scan failed unexpectedly` | the skills moved or python3 is gone: rerun `python3 .../setup.py --git-hooks`. To skip one commit or push git's own `--no-verify` is yours to decide; the push scan and the merge step still scan it |
+
+"My commit was refused": the message names the place (`file:line (staged)`, `commit message`, `file name <private>...`,
+`ref name ...`) and the list line, never the text; nothing was committed, so fix it and commit again. A file name that
+matches is masked as `<private>`. `commit -a`, `--amend` and partial staging scan what git is about to commit; the lines
+under `commit -v`'s scissors line and the comment lines are not scanned. A rebase, cherry-pick or `commit-tree` skips the
+commit hooks; the push scan reads the commits a push would publish (up to 500, 4 MB of diff is the practical bound).
+Annotated tag messages are not scanned. Windows has no alarm, so the time limit is not enforced there.
+
 ### Issue 38 and 117 extras
 
 A step reply's `VERDICT: <who>: <verdict>` lines are kept on the run record and listed under their step in the pull
@@ -426,7 +455,7 @@ goal deletes; it may write it back`. A worker session binds itself with `session
 
 | Code | Where | Fix |
 |---|---|---|
-| `PRIVATE_NAME` | `goal.py pr` | remove the text and squash, or edit that list line for a false positive |
+| `PRIVATE_NAME` | `goal.py pr`, the git hooks | remove the text and squash, or edit that list line for a false positive |
 | `PRIVATE_LIST` | every scan | repair the list; `private.py check` names the line |
 | `FINDING_LOCAL` | a finding's push | the finding stays local; fix the hit, then push |
 | `ALREADY_RECORDED` | `flow.py` | go on with the step it names, or `--again` |
