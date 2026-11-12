@@ -26,3 +26,4 @@ Open (from board-held's ship review, 2026-11-10; non-blocking, for the health-re
 - watch-go-unreadable-pool: watch.py go treats an unreadable pool as empty when choosing a slug, so it can queue a goal under a slug a session already holds but hasn't frozen.
 - automation-email: Failed 3 tries. Last: merging main conflicts in: .loop/regression.tsv, skills/workflow-setup/SKILL.md
 - delivery-prd: Failed 3 tries. Last: qa failed: regression lane: LANE_TIMEOUT: past its limit of 4500s (flow file "limit", else step_limit); the lane committed and pushed nothing.
+- single-operation: superseded by pod-layers: the owner clarified that several independent operation sessions may run at once, so nothing may refuse a second one
