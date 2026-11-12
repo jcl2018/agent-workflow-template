@@ -98,8 +98,6 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde
 
 ## Tests
 
-The live board selects its estimate model by typical error on time-ordered goals: each goal is predicted only from goals finished before it started. `board_report.py` shows the selection score and a separate leave-one-out diagnostic.
-
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
 | [dependency-held](Tests#t-dependency-held) | requirement | MON-1 | Given a goal that depends on an unmerged goal, when the queue runs, then it is held until that goal merges. | PASS 2026-11-09 |
