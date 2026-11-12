@@ -40,13 +40,17 @@ case "$1 $2" in
      [ -f "${FAKE_GH_ARCHIVE:-}" ] || { echo "release not found" >&2; exit 1; }; cp "$FAKE_GH_ARCHIVE" "$dir/";;
   "auth token") [ -n "${FAKE_GH_NO_AUTH:-}" ] && { echo "not logged in" >&2; exit 1; }; echo "fake-token";;
   "pr list") echo "[]";;
-  "issue list") python3 -c '
+  "issue list") FAKE_GH_LIMIT=$(grep -o -- '--limit [0-9]*' <<<"$*" | cut -d' ' -f2) python3 -c '
 import datetime, json, os
 state = "OPEN" if os.environ.get("FAKE_GH_ISSUE_OPEN") else "CLOSED" if os.environ.get("FAKE_GH_ISSUE_CLOSED") else ""
 day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
 notes = [{"body": "Failing on %s." % day}] if os.environ.get("FAKE_GH_ISSUE_COMMENTED") else []
 mark = "<!-- loop-regression flag placed=Alpha -->" if os.environ.get("FAKE_GH_ISSUE_PLACED") else "<!-- loop-regression flag -->"
-print(json.dumps([{"number": 7, "state": state, "body": mark, "comments": notes}] if state else []))
+rows = [{"number": 7, "state": state, "body": mark, "comments": notes}] if state else []
+pad = int(os.environ.get("FAKE_GH_ISSUE_COUNT") or 0)  # unrelated marked issues listed first (newer), the real one last (oldest)
+rows = [{"number": 100 + i, "state": "OPEN", "body": "<!-- loop-regression pad-%d -->" % i, "comments": []} for i in range(pad)] + rows
+limit = int(os.environ.get("FAKE_GH_LIMIT") or len(rows))
+print(json.dumps(rows[:limit]))  # newest first, so a long list loses its oldest
 ';;
   "issue create") echo "https://example.test/issues/7";;
   *) exit 0;;

@@ -130,10 +130,14 @@ jobs:
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           gh("label", "create", "defect", "--description", "A test that guards it is failing")  # an existing one keeps its colour
           guards = {cells[1]: cells for cells in rows(os.environ.get("REGRESSION_MAP") or os.devnull) if len(cells) > 4}
-          out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200", "--json", "number,state,body,labels")
+          ISSUE_LIMIT = 5000  # gh pages through them itself; a list this long may be cut off
+          out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", str(ISSUE_LIMIT), "--json", "number,state,body,labels")
           issues = json.loads(out.stdout or "[]") if out.returncode == 0 else None  # unread: change no issue, or each would repeat
           if issues is None:
               print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
+          elif len(issues) >= ISSUE_LIMIT:  # an older issue may be missing, so a row would open a duplicate: file nothing
+              print("NOTE: the issue list may be cut off at %d, so none changed" % ISSUE_LIMIT)
+              issues = None
           FEATURES = {row[0] for row in rows(".loop/docs.tsv") if row and row[0] and row[0] != "Home"}  # the pages
           try:  # the feature_labels setting (default off): only when true is a feature label made or set
               LABELS_ON = json.load(open(".loop/config.json")).get("feature_labels") is True
@@ -180,7 +184,7 @@ jobs:
                   for item in hits:
                       if item["state"] == "OPEN":
                           gh("issue", "close", str(item["number"]), "--comment", "Passing again.")
-              elif row[0] not in known and code != 77:  # 77: the row says it cannot run here (SKIPPED), not a failure
+              elif row[0] not in known and code != 77 and not skipped:  # 77 or no job time left: SKIPPED, not a failure, so no issue
                   red.append(row[0])
                   if issues is None:
                       continue
@@ -188,7 +192,7 @@ jobs:
                   label = label_for(cells[0])
                   mark = "<!-- loop-regression %s placed= -->" % row[0]
                   about = "- Feature: %s\n- Guards: %s\n- Checks: %s\n\n" % (cells[0] or "-", cells[3] or "-", cells[4] or "-")
-                  body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "was skipped" if skipped else "fails", about,
+                  body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "fails", about,
                                                                  said[-1500:].replace("`" * 3, "'" * 3))
                   if not hit:
                       make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect", "--body", body]
@@ -210,7 +214,7 @@ jobs:
                           write("label #" + n, "issue", "edit", n, "--add-label", "defect")
                       if label and label not in names:
                           write("feature label #" + n, "issue", "edit", n, "--add-label", label)
-                      write("comment #" + n, "issue", "comment", n, "--body", "Skipped: out of job time; not run." if skipped else "Still failing.")
+                      write("comment #" + n, "issue", "comment", n, "--body", "Still failing.")
           if TARGET == "nightly":  # the full suite's time (a cut-short run's too: at least that long) for health's REG-7 check
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:

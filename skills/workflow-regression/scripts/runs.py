@@ -39,6 +39,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 NAME = "regression-runs.tsv"
 HEADER = "# id\tstatus\tdate\trun\tflaky\n"
+ISSUE_LIMIT = 5000  # gh pages through them itself; a list this long may be cut off
 SKIP_CODE = 77  # a row exits 77 when it cannot run on this machine (no Codex): SKIPPED, never PASS, never FAIL
 LABELS = ("regression", "defect")  # the tool's own label, and the defect label every failing row's issue carries
 MARK = "<!-- loop-regression %s -->"
@@ -88,12 +89,15 @@ def sync_issues(results, live, day):
     if live:
         gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
         gh("label", "create", "defect", "--description", "A test that guards it is failing")
-        out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "200",
+        out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", str(ISSUE_LIMIT),
                  "--json", "number,state,body,comments,labels")
         if out.returncode:
             print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
             return
         issues = json.loads(out.stdout or "[]")
+        if len(issues) >= ISSUE_LIMIT:  # an older issue may be missing, so a row would open a duplicate: file nothing
+            print("NOTE: the issue list may be cut off at %d, so none changed" % ISSUE_LIMIT)
+            return
     for item in results:
         mark = MARK % item["id"]
         hits = [issue for issue in issues if re.search(r"<!-- loop-regression %s(?: placed=\S*)? -->" % re.escape(item["id"]), issue.get("body", ""))]
