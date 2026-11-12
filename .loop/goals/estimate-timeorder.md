@@ -13,4 +13,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root .` in a repo with finished goal runs.
+   Expect: the table labels the selection column `time score`, labels leave-one-out under `diagnostics: loo`, and names the chosen model.
+2. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root . --json`.
+   Expect: each candidate has a `time_ordered` score and a separate `leave_one_out` score; `chosen` names the time-ordered winner when at least ten goals are scorable.

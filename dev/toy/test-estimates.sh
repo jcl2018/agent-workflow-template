@@ -76,9 +76,10 @@ def need(cond, why):
         raise AssertionError(why)
 
 
-def history(repo, size, totals, prefix):
+def history(repo, size, totals, prefix, chronological=True):
     for i, minutes in enumerate(totals):
-        repo.done("%s%d" % (prefix, i), size[0], size[1], minutes)
+        repo.done("%s%d" % (prefix, i), size[0], size[1], minutes,
+                  start=-20000000 + len(repo.records()) * 50000 if chronological else -20000000)
 
 
 def est(repo, run):
@@ -255,8 +256,8 @@ def check_stalled():
 def check_issue_96():
     repo = Repo()
     small, large = [10, 15, 20, 25, 30, 12], [90, 105, 120, 135, 150, 100]   # six each, so the size rule wins its backtest
-    history(repo, (2, 1), small, "s")
-    history(repo, (7, 5), large, "l")
+    history(repo, (2, 1), small, "s", chronological=False)
+    history(repo, (7, 5), large, "l", chronological=False)
     repo.queued("small-goal", 2, 1)
     repo.queued("large-goal", 7, 5)
     lines = repo.board()
@@ -391,14 +392,17 @@ def check_backtest_best():
     for name, repo, want in (("A", a, ("size",)), ("B", b, ("steps", "blend"))):
         scores, n, pick = chooses(repo)
         print("  set %s: n=%d %s chosen %s" % (name, n, {k: round(v, 3) for k, v in scores.items()}, pick))
-        need(n == 12, "set %s: 12 goals score (the goal with no time is left out): %s" % (name, n))
+        need(n == 11, "set %s: 11 goals score (the goal with no time is left out): %s" % (name, n))
         need(pick == min(bm.CANDIDATES, key=lambda c: (scores[c], bm.CANDIDATES.index(c))) and pick in want,
              "set %s: the board's model is the backtest's lowest score and %s: %s %s" % (name, want, pick, scores))
         code, out, err = report(repo, "--json")
         found = json.loads(out)
         need(code == 0 and found["chosen"] == pick and found["n"] == n, "set %s: board_report --json agrees: %s" % (name, out[:300]))
+        need(all(c["time_ordered"]["score"] == c["score"] and c["leave_one_out"]["n"] == 12
+                 for c in found["candidates"]), "the report marks the selector and keeps 12 leave-one-out diagnostics")
         code, text, _ = report(repo)
-        need("chosen: %s, " % pick in text and "%d scorable goals" % n in text, "set %s: the text says the same: %s" % (name, text[:300]))
+        need("chosen: %s, " % pick in text and "%d scorable goals" % n in text and "diagnostics: loo" in text,
+             "set %s: the text says the same: %s" % (name, text[:300]))
     need(scores["size"] - scores["steps"] >= 0.1, "set B: the size rule is off by at least 0.1 more than step medians: %s" % scores)
     need("exact tie" in text, "set B: step medians and blend tie exactly and the tie goes to step medians: %s" % text)
     need("garbled.json" in report(a)[2] and "(BAD_RUN)" in report(a)[2] and "skipped 1 of" in report(a)[2], "a garbled run file is skipped with BAD_RUN")
@@ -455,7 +459,7 @@ def check_time_order_selector():
         loo = bm.folds(bm.model(runs, AT, repo.root)["hist"], bm.CANDIDATES)
         need(bs.score(loo, "future") < bs.score(loo, "steady"), "future model wins leave-one-out")
         scores, n = bm.backtest(runs, AT, repo.root)
-        need(n == 11 and scores["steady"] < scores["future"], "time order rejects future-data model: %s" % scores)
+        need(n == 11 and scores["steady"] < scores["future"], "time order rejects future-data model: n=%s scores=%s" % (n, scores))
         need(bm.chosen(runs, AT, repo.root) == "steady", "the board selects the time-ordered winner")
         need("time-ordered" in bm.accuracy_text(runs, AT, repo.root), "the board names the error's time order")
     finally:
@@ -469,12 +473,12 @@ def check_accuracy_line():
     repo = set_a()
     lines = repo.board()
     after = lines[lines.index("Finish") + 2]
-    need(re.match(r"^estimates: size rule, whole goal off x\d+\.\d \(12 goals\)$", after) and len(after) <= 60,
+    need(re.match(r"^estimates: size rule, time-ordered off x\d+\.\d \(11 goals\)$", after) and len(after) <= 60,
          "with 12 goals the line under the finish names the model and its error: %s" % after)
     few = Repo()
     history(few, (3, 2), [20, 30, 40, 50], "h")
     lines = few.board()
-    need(lines[-1] == "estimates: size rule, error not known yet (4 of 10 goals)", "under 10 goals the error is not known yet: %s" % lines[-1])
+    need(lines[-1] == "estimates: size rule, error not known yet (3 of 10 goals)", "under 10 goals the error is not known yet: %s" % lines[-1])
 
 
 def check_backtest_fails():
@@ -578,7 +582,8 @@ def check_module_size():
 def spread_history(repo, count, most):
     for i in range(count):
         d, a = 1 + i % most[0], 1 + (i // most[0]) % most[1]
-        repo.done("g%d" % i, d, a, {s: 5 + (i * 7 + k * 3) % 40 for k, s in enumerate(STEPS)})
+        repo.done("g%d" % i, d, a, {s: 5 + (i * 7 + k * 3) % 40 for k, s in enumerate(STEPS)},
+                  start=-20000000 + i * 50000)
 
 
 def check_backtest_speed():
@@ -590,7 +595,7 @@ def check_backtest_speed():
     scores, n = bs.backtest(runs, AT, repo.root)
     took = time.process_time() - began
     print("  backtest over %d goals: %.2fs" % (n, took))
-    need(n == 100 and took < 3, "the backtest over 100 finished goals takes under 3s: %.2fs" % took)
+    need(n == 99 and took < 3, "the backtest over 100 finished goals takes under 3s: %.2fs" % took)
     big = Repo()
     spread_history(big, 300, (10, 8))
     began = time.process_time()
