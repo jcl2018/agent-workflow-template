@@ -199,3 +199,22 @@ Until the owner labels issues (the `feature_labels` setting is off, so no featur
 ### Not in this goal
 
 Live backfill of feature labels on open GitHub issues; a docs check flagging two page names that share their first 42 characters; the `feature_labels` setting is off by default.
+
+### Seen-red evidence (the row's own failing line on the broken tree, no traceback from the break)
+
+| Row | Failing line on the old rule |
+|---|---|
+| no-milestone-issue-ok | `FAIL docs #3 milestone: Loose ends -> fix: gh issue edit 3 --milestone` |
+| no-milestone-page-ok | `FAIL: milestone line` (a MILESTONE line printed) |
+| home-milestone-optional | `FAIL: home milestone` (a Home refusal for a non-link cell) |
+| pr-no-milestone | `FAIL: pr milestone` (a `pr edit --milestone` call) |
+| health-file-no-milestone, hlt4-feature-milestones, aut-email-file | `FAIL: file leaves an issue the owner put on a milestone where it is, and makes and sets none` (a `--milestone` on the created issue) |
+| regression-issue-no-milestone, aut-email-regression | `FAIL: milestone call` (a `--milestone` on the defect issue) |
+| digest-no-milestone | `FAIL: digest milestone flag` |
+| aut-email-digest | the digest heading check (a `### No milestone` section) |
+| setup-no-milestone-step | `FAIL: setup mentions a milestone` (the NEXT line) |
+| health-workflow-no-milestone | `FAIL: milestone step` |
+| milestone-v1-free-form | `FAIL: grouping: v1.0 Backlog No feature Calc Calc No feature` |
+| milestones-once | `FAIL: idempotent` |
+| milestone-wording-unreviewed | `FAIL: wording: DOC-10 says "on its feature's milestone"; ...` |
+| milestone-rows-seen-red | a cleared `seen_red` cell on pr-no-milestone |
