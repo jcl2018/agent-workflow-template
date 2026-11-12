@@ -173,7 +173,6 @@ Review: **Unreviewed**
 | [lane-over-minutes](Tests#t-lane-over-minutes) | requirement | REG-7 | Given a goal lane that runs longer than goal_lane_minutes, when it ends, then its LANE line says '; over N min (goal_lane_minutes)'. | PASS 2026-11-11 |
 | [reg7-floor-test](Tests#t-reg7-floor-test) | requirement | REG-7 | Given test_budget_minutes under 15, when a reusing test run starts, then it is refused with a fix line and runs nothing. | not run |
 | [reg7-budget-defaults](Tests#t-reg7-budget-defaults) | requirement | REG-7 | Given no budget settings, when they are read, then the step budget is 30 minutes and the test budget 15. | not run |
-| [reg7-budget-leaves](Tests#t-reg7-budget-leaves) | requirement | REG-7 | Given rows that would run past the test budget, when a loop test run happens, then it runs the rows that fit, stops at the budget and lists every row it left. | not run |
 | [reg7-budget-left-reused](Tests#t-reg7-budget-left-reused) | requirement | REG-7 | Given rows left at the budget, when the next lane runs on the same content, then it reuses them and runs none. | not run |
 | [reg7-budget-fit](Tests#t-reg7-budget-fit) | requirement | REG-7 | Given rows with recorded seconds, when they are fitted to a budget, then those that fit run in tier order and the rest are left. | not run |
 | [reg7-lane-hit](Tests#t-reg7-lane-hit) | requirement | REG-7 | Given a lane that stopped at its budget, when it ends, then it says what it left and the goal's record names the step, the limit and the rows. | not run |

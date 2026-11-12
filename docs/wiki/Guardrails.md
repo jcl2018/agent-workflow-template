@@ -13,8 +13,8 @@ Review: **Unreviewed**
 
 ## Usage
 
-- `/workflow-health check [--group NAME] [--skip controls] [--json]` — Runs the fixed rules and prints one line per finding, then the verdict. Prints `HEALTH REPORT`, then `<STATE> <group> <subject> <rule>: <detail>` per row, and last `HEALTH: green|not green (<p> pass, <w> warn, <f> fail, <u> unread)` (with `--json`, one object with green, counts, rows and verdict); exits 1 when not green. Refuses (exit 1) `REFUSED: unknown group <names>. Groups: ...` and `REFUSED: not inside a git repo.`; (exit 2) `REFUSED: --skip leaves no group to check` and `REFUSED: rule <name> has no negative control. ...`
-- `/workflow-setup settings` — Shows the settings reference: every setting with its home, default and meaning. Prints the reference as a Markdown table, one `| <setting> | <home> | <default> | <meaning> |` row per setting. Refuses nothing. This repo's `.loop/config.json` holds every setting the v0.27.17 template update writes, with `template_version` naming the template it came from.
+- `/workflow-health check [--group NAME] [--skip controls] [--json]` — Runs the fixed rules, among them the one per guardrail that proves it is on (GRD-9); the Health page holds the whole entry. Prints one line per finding and last `HEALTH: green|not green (<p> pass, <w> warn, <f> fail, <u> unread)`; exits 1 when not green. Refuses what the Health page lists.
+- `/workflow-setup settings` — Shows the settings reference: every setting with its home, default and meaning. Prints the reference as a Markdown table, one `| <setting> | <home> | <default> | <meaning> |` row per setting. Refuses nothing. This repo's `.loop/config.json` holds every setting the reference lists, with `template_version` naming the template it came from.
 
 ## Requirements
 
@@ -37,7 +37,7 @@ Review: **Unreviewed**
   - Where the scanned names live: SET-8 (SET-2 for the private layer).
 - GRD-4: **Unreviewed** A worker writes only its own goal's work, never shared loop state or its own limits
   - A worker can't widen its own goal's touches, resume itself or change its own budget; only the operation session can (Delivery, new: today a role check, not a boundary).
-  - Shared loop state (run records, the session pool, the queue) is written only by the operation session or the main checkout, never from a goal's worktree (Monitoring, new).
+  - A worker changes shared loop state only for its own goal and only through the goal's commands (`goal.py step`, `record` and `pr`, `sessions.py bind` and `report`); the queue, other goals' run records and the session pool's other sessions are the operation session's to change (Monitoring, new: today the commands scope a worker to its own slug, and nothing stops a hand edit).
   - The operation session never edits code, commits or pushes: MON-7.
 - GRD-5: **Unreviewed** Nothing is written to GitHub without an explicit `--live`
   - Every command that writes issues, comments, milestones or releases previews by default and writes only behind an explicit `--live` switch; a token in the environment does not turn writing on (Health, HLT-4, REG-5 and AUT-5 hold the wording; Regression new: today it writes whenever a token is present).
@@ -81,8 +81,11 @@ None
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
 | - | requirement | GRD-1 | no passing test | not enforced |
+| [reg7-budget-leaves](Tests#t-reg7-budget-leaves) | requirement | GRD-2 | Given rows that would run past the test budget, when a loop test run happens, then it runs the rows that fit, stops at the budget and lists every row it left. | not run |
+| [del8-step-stops](Tests#t-del8-step-stops) | requirement | GRD-2 | Given a review or ship step that reaches its limit, when it is stopped, then it is recorded done with what it left and the goal goes on without a failed try. | not run |
 | - | requirement | GRD-2 | no passing test | not enforced |
-| - | requirement | GRD-3 | no passing test | not enforced |
+| [del9-pr-refuses](Tests#t-del9-pr-refuses) | requirement | GRD-3 | Given a branch that adds a private name from the list, when goal.py pr runs, then nothing is pushed and the refusal names the place, never the text. | not run |
+| [del9-hooks](Tests#t-del9-hooks) | requirement | GRD-3 | Given the pre-push hook and a branch whose commit holds a private line, when it is pushed, then the hook refuses naming file and line, and nothing reaches the remote. | PASS 2026-11-12 |
 | - | requirement | GRD-4 | no passing test | not enforced |
 | - | requirement | GRD-5 | no passing test | not enforced |
 | - | requirement | GRD-6 | no passing test | not enforced |
@@ -91,3 +94,5 @@ None
 | - | requirement | GRD-9 | no passing test | not enforced |
 | - | requirement | GRD-10 | no passing test | not enforced |
 | [stop-tree-step-limit](Tests#t-stop-tree-step-limit) | defect | [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) closed (2026-11-12) | Given a step or lane past its time limit, when it is stopped on any platform, then its whole process tree goes with it. | not run |
+| [guards-touches-finding](Tests#t-guards-touches-finding) | defect | [#157](https://github.com/jcl2018/agent-workflow-template/issues/157) closed (2026-11-11) | Given a goal that needs more touches, or a finished goal with a finding, when the operation runs goal.py touches or finding, then touches widen with a logged reason and the finished goal is not stopped. | PASS 2026-11-12 |
+| [guards-worker-role](Tests#t-guards-worker-role) | defect | [#121](https://github.com/jcl2018/agent-workflow-template/issues/121) closed (2026-11-11) | Given a goal step run without LOOP_ROLE=worker, when it is refused, then the refusal gives the exact LOOP_ROLE=worker command for the goal's bound session, and bind prints it. | PASS 2026-11-10 |
