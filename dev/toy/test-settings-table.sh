@@ -42,6 +42,7 @@ c = json.load(open('.loop/config.json'))
 c = {k: v for k, v in c.items() if k in ('base', 'wiki_dir', 'criteria', 'version_file')}; c['parallel'] = 3  # every other setting at its default
 json.dump(c, open('.loop/config.json', 'w'), indent=2)
 PY
+python3 "$here/skills/workflow-docs/scripts/render.py" blocks >/dev/null 2>&1  # setup's insert: a render alone never inserts
 $cri render >/dev/null 2>&1
 H=docs/wiki/Home.md
 over=$(sed -n '/settings:begin/,/settings:end/p' $H | grep -c 'overridden')
