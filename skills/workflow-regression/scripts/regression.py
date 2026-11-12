@@ -15,7 +15,8 @@ usage: regression.py <command> [options]
   run [land|nightly|ID] [--timeout S] [--live] [--reuse [--tier goal]] [--kind requirement|workflow|defect]
                                 run the rows (of one kind), then open, update or close one issue per failing row;
                                 --tier goal plans a goal lane (tiers.py); a plain run nightly records its time (SUITE_TIME)
-  workflow                      write .github/workflows/regression.yml, on the schedule in regression_cron
+  workflow [--visibility V]     a public repo: write regression.yml (schedule in regression_cron) and regression-pr.yml (the rows
+                                a change reaches, on pull_request and push); a private repo's regression runs on the Mac: nothing
   reads ROW                     suggest a # reads: header for ROW's script from the newest check-reads trace
 
 Rows live in .loop/regression.tsv: id, level, command, goal, seen_red, description, category, link. Each run records its rows' last status and
@@ -37,7 +38,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
-import actions, lanes, runs, slots, tiers  # noqa: E401,E402
+import actions, lanes, lanes_cli, runs, slots, tiers  # noqa: E401,E402
 from runs import chosen, clean, criteria_ids, criterion_rows, done_lines, lines_of, today  # noqa: E402,F401
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -305,8 +306,8 @@ def cmd_run(args):
     return 1 if failed or never else 0
 
 
-def cmd_workflow(_args):
-    return actions.write(top(), CRON)
+def cmd_workflow(args):
+    return lanes_cli.workflow(top(), args.visibility, lambda: actions.write(top(), CRON))
 
 
 def main():
@@ -339,7 +340,9 @@ def main():
     item.add_argument("--kind", choices=tuple(tiers.KINDS))
     item.add_argument("--budget", type=int, default=0, help="seconds a --reuse run may take (default: test_budget_minutes)")
     item.set_defaults(func=cmd_run)
-    sub.add_parser("workflow").set_defaults(func=cmd_workflow)
+    item = sub.add_parser("workflow")
+    item.add_argument("--visibility", choices=("public", "private"), help="skip the probe (the regression_runs setting says it too)")
+    item.set_defaults(func=cmd_workflow)
     item = sub.add_parser("reads")
     item.add_argument("id")
     item.set_defaults(func=lambda a: lanes.narrow.suggest(top(), a.id))
