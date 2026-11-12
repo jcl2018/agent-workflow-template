@@ -11,6 +11,7 @@ job's completedAt - startedAt; the health run counted so far) is flagged over 45
 every regression and health run started since the previous round's health run, each job's minutes rounded up.
 """
 import datetime
+import glob
 import html
 import json
 import math
@@ -32,11 +33,19 @@ RUN = re.compile(r"[0-9]+|none|local")
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
 
-def gh(*args):
+def gh(*args, body=None):
+    """gh with a long text (body=) in a temp file passed as --body-file, never on the command line (Windows caps it)."""
+    if body is not None:
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8", newline="\n") as f:
+            f.write(body)
+        args += ("--body-file", f.name)
     try:
         return subprocess.run(("gh",) + args, capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.SubprocessError) as err:
         return subprocess.CompletedProcess(args, 1, "", str(err))
+    finally:
+        if body is not None:
+            os.remove(f.name)
 
 
 def loads(done, default):
@@ -269,8 +278,11 @@ def fetch_suite_time(tree, env, log, child):
     into = tempfile.mkdtemp()
     try:
         for number in ids:
-            if child(["gh", "run", "download", number, "--name", "suite-time", "--dir", into], tree, env, 60, log)[0] == 0 and os.path.exists(into + "/suite-time.tsv"):
-                rows = [c[:4] + ["ci"] for c in (r.split("\t") for r in open(into + "/suite-time.tsv").read().splitlines()) if len(c) >= 4 and c[1] == "full" and c[2].isdigit()]
+            got = child(["gh", "run", "download", number, "--pattern", "suite-time*", "--dir", into], tree, env, 60, log)[0] == 0
+            files = glob.glob(into + "/suite-time.tsv") + glob.glob(into + "/*/suite-time.tsv")  # one per shard, or the old single artifact
+            if got and files:
+                rows = [c[:4] + ["ci"] for f in files for c in (r.split("\t") for r in open(f).read().splitlines()) if len(c) >= 4 and c[1] == "full" and c[2].isdigit()]
+                rows = sorted(rows, key=lambda c: int(c[2]))[-1:]  # the shards run side by side: the suite took as long as the slowest
                 where = os.path.join(tree, subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=tree, capture_output=True, text=True).stdout.strip(), "loop")
                 os.makedirs(where, exist_ok=True)
                 open(os.path.join(where, "suite-times.tsv"), "a").write("".join("\t".join(r) + "\n" for r in rows))

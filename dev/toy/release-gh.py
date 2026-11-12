@@ -1,6 +1,7 @@
 """Test-local gh: the release PR, the rules endpoint and releases. Everything else goes to dev/toy/fakegh."""
 import json, os, subprocess, sys, tempfile
 d, a = os.environ["FAKE_GH_DIR"], sys.argv[1:]
+if "--body-file" in a: i = a.index("--body-file"); a[i:i + 2] = ["--body", open(a[i + 1]).read()]  # a text in a file reads as --body TEXT
 def log(): open(os.path.join(d, "calls.log"), "a").write(" ".join(a) + "\n")
 def flag(n): return a[a.index(n) + 1] if n in a else None
 def load(n):
