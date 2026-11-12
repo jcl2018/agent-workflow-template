@@ -1,9 +1,9 @@
 # id	status	date	run	flaky
-adopt-set-1	PASS	2026-11-12	
-adopt-set-2	PASS	2026-11-12	
-adopt-set-3	PASS	2026-11-12	
-adopt-set-4	PASS	2026-11-12	
-adopt-set-5	PASS	2026-11-12	
+adopt-set-1	FAIL	2026-11-12	
+adopt-set-2	FAIL	2026-11-12	
+adopt-set-3	FAIL	2026-11-12	
+adopt-set-4	FAIL	2026-11-12	
+adopt-set-5	FAIL	2026-11-12	
 affected-quiet-release	PASS	2026-11-11	
 agents-wire	PASS	2026-11-12	
 attempt-114	PASS	2026-11-10	
@@ -80,7 +80,7 @@ criteria-max-setting	PASS	2026-11-11
 criteria-no-scripts	PASS	2026-11-12	
 cut-draft	PASS	2026-11-09	
 cut-needs-verify	PASS	2026-11-12	
-defect-categories	PASS	2026-11-12	
+defect-categories	FAIL	2026-11-12	
 defect-flow-steps	PASS	2026-11-12	
 defect-health	PASS	2026-11-12	
 defect-known	PASS	2026-11-12	
