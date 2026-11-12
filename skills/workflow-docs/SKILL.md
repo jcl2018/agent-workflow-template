@@ -136,7 +136,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-docs convert` | `python3 scripts/prd.py convert --write` |
 | `/workflow-docs render` | `python3 scripts/criteria.py render` |
 | `/workflow-docs automation` | `python3 scripts/docs.py automation` |
-| `/workflow-docs entry` | `python3 scripts/entry.py write` (`check`, `render`, `block`) |
+| `/workflow-docs entry` | `python3 scripts/entry.py write` (`check`, `render`, `block`, `lag [--new SLUG]` the version line) |
 | `/workflow-docs publish` | `python3 scripts/docs.py publish` |
 | `/workflow-docs restore` | `python3 scripts/docs.py restore` |
 | `/workflow-docs milestone new TITLE \| move ISSUE TITLE` | `python3 scripts/milestone.py new TITLE` or `move ISSUE TITLE` (optional, free form) |

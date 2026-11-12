@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """The repo's entry point, .loop/START.md, and the marked block in each agent's entry file, built from the repo's data.
 
-usage: entry.py render|write|check|block [--repo DIR]
+usage: entry.py render|write|check|block|lag [--repo DIR]
 
   render   print .loop/START.md as it would be written
   write    write .loop/START.md and refresh the marked block in each agent file that already holds one
   check    STALE or MISSING lines (exit 1), LAG lines (exit 0), or ENTRY OK
   block    print the agent block (workflow-setup's agents.py writes it into CLAUDE.md and AGENTS.md)
+  lag      print one line when the repo is behind the installed template, nothing when current (exit 0); --new SLUG exits 3
+           with REFUSED when the majors differ (a migrate- slug passes)
 
 START.md opens with a first-five-minutes list, then one part each for the loop, release, operation and workers, docs,
 regression, health and settings (filled from .loop/config.json through references/start.md), then a Features table
@@ -156,7 +158,8 @@ def render(root):
              "1. Read this page: how the parts fit together, every feature and how to use it, and every setting.",
              "2. Ask for `workflow-monitoring report` to see what is running and what waits on you.",
              "3. Start a goal by asking for `workflow-monitoring go \"goal\" --done \"line\"`.",
-             "4. Each skill's Command map, in its SKILL.md, names the exact script behind every ask.", ""]
+             "4. Each skill's Command map, in its SKILL.md, names the exact script behind every ask.",
+             "5. Run `entry.py lag`; if it prints a line, this repo is behind the template: tell the owner.", ""]
     lines += narrative(cfg)
     lines += ["## Features", "", "| Feature | Milestone | What it is for | How to use it |", "|---|---|---|---|"]
     lines += features(root, cfg) or ["| none | | | |"]
@@ -182,7 +185,8 @@ def block():
              "- Read `.loop/START.md` first: how the loop fits together, every feature and how to use it, every setting.",
              "- Run a command by asking for `<skill> <command>`. Each skill's Command map, in its SKILL.md, names the exact "
              "`python3 scripts/...` command, run from that skill's folder.",
-             "- A merge conflict in this block or in `.loop/START.md`: take either side, run `entry.py write`, commit.", "", "Skills:", ""]
+             "- A merge conflict in this block or in `.loop/START.md`: take either side, run `entry.py write`, commit.",
+             "- Run `entry.py lag` (workflow-docs) when a session starts; if it prints a line, tell the owner.", "", "Skills:", ""]
     lines += ["- `%s`: %s" % pair for pair in skills()]
     return "\n".join(lines + [CLOSE]) + "\n"
 
@@ -208,7 +212,10 @@ def agent_files(cfg):
 
 
 def installed():
-    """The installed template version from workflow-package.json beside the skills; empty for a checkout (never LAG)."""
+    """The installed template version from workflow-package.json beside the skills; empty for a checkout (never LAG).
+    A toy may set LOOP_INSTALLED_VERSION, honoured only with LOOP_TEST=1."""
+    if os.environ.get("LOOP_TEST") == "1" and os.environ.get("LOOP_INSTALLED_VERSION"):
+        return os.environ["LOOP_INSTALLED_VERSION"]
     try:
         return str(json.loads(read(os.path.join(SKILLS, "workflow-package.json"), "{}")).get("version") or "")
     except ValueError:
@@ -222,13 +229,32 @@ def lagging(root, cfg):
     return version_key(installed()) > version_key(cfg.get("template_version"))
 
 
+NOTE = "this repo is at v%s, the template is at v%s, run the migrate goal"
+
+
+def lag(root, new=""):
+    """(line, refusal): the version nag for a repo behind the installed template, '' when current. The refusal is set only for
+    goal.py new (new = the slug) when both majors are known and differ; a migrate- slug is exempt."""
+    want, held = installed(), config(root).get("template_version")
+    if not want or os.path.realpath(SKILLS).startswith(os.path.realpath(root) + os.sep):
+        return "", ""
+    known = isinstance(held, str) and re.fullmatch(r"\d+\.\d+\.\d+", held)
+    if known and version_key(held) >= version_key(want):
+        return "", ""
+    name = re.sub(r"[^a-z0-9]+", "-", os.path.basename(os.path.realpath(root)).lower()).strip("-")
+    line = NOTE % (held if known else "0", want) + " (slug migrate-%s)" % name
+    if known and new and not new.startswith("migrate-") and version_key(held)[0] != version_key(want)[0]:
+        return line, "REFUSED: this repo is at v%s and the template at v%s (different major). Fix: start it as a migrate-%s goal; nothing was changed" % (held, want, name)
+    return line, ""
+
+
 def problems(root):
     """(kind, path, detail) for the entry point and the agent blocks; LAG never fails a check."""
     cfg, found = config(root), []
     want, have = render(root), read(os.path.join(root, ENTRY), None)
     lag = lagging(root, cfg)
     fix = "Fix: python3 <workflow-docs>/scripts/entry.py write (or docs.py audit)"
-    note = "installed v%s, repo v%s: ask for workflow-setup update" % (installed(), cfg.get("template_version") or "unknown")
+    note = NOTE % (cfg.get("template_version") or "0", installed())
     # MISSING applies once a repo was set up by a version that writes the entry point (it holds template_version), or
     # to the template's own checkout; a repo adopted before keeps passing until update writes it.
     owed = cfg.get("criteria") and (cfg.get("template_version") or os.path.realpath(SKILLS).startswith(os.path.realpath(root) + os.sep))
@@ -281,8 +307,9 @@ def write(root):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("command", choices=("render", "write", "check", "block"))
+    parser.add_argument("command", choices=("render", "write", "check", "block", "lag"))
     parser.add_argument("--repo", default="")
+    parser.add_argument("--new", default="")
     args = parser.parse_args()
     root = os.path.abspath(args.repo) if args.repo else subprocess.run(
         ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or os.getcwd()
@@ -290,6 +317,11 @@ def main():
         sys.stdout.write(render(root))
     elif args.command == "block":
         sys.stdout.write(block())
+    elif args.command == "lag":
+        line, refusal = lag(root, args.new)
+        if refusal or line:
+            print(refusal or line, file=sys.stderr if refusal else sys.stdout)
+        return 3 if refusal else 0
     elif args.command == "write":
         print("\n".join(write(root)) or "NO CHANGE " + ENTRY)
     else:
