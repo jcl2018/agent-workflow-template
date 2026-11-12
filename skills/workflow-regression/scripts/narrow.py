@@ -168,7 +168,7 @@ def scan(root, rel, cache):
                 files |= index.get(name, set())
                 if os.path.isfile(os.path.join(root, base, name)):
                     files.add(os.path.join(base, name))
-            elif "/" in lit and os.path.isdir(os.path.join(root, os.path.normpath(lit))) and not lit.startswith(".."):
+            elif "/" in lit and not lit.startswith("/") and not os.path.normpath(lit).startswith("..") and os.path.isdir(os.path.join(root, os.path.normpath(lit))):  # "/abs" is not in the repo
                 folders.add(os.path.normpath(lit) + "/")  # Path("skills/a/scripts").glob(...)
             elif skill and "/" not in lit:
                 for here in [os.path.join(skill, lit)] + [os.path.join(skill, d, lit) for d in ("scripts", "references")]:
