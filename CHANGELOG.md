@@ -1,5 +1,70 @@
 # Changelog
 
+## v0.27.31 - 2026-11-12
+
+- fix: lanes, slots and step timeouts on native Windows Python (#1396)
+- Seen red: port-base-windows, stop-takes-tree
+- proctree: declare the Windows handle types (review)
+- Lane: re-render the Tests tables
+- fix: tmp_for ends at a Windows drive root instead of looping forever
+- fix: dev/toy/reap.py is a no-op on Windows (no ps, uid or SIGPIPE) so toy tests keep their own status
+- fix: liveness probes stop sending Ctrl+C on Windows
+- fix: Windows lane results: CTRL_C_EVENT mislabel, killpg in the generated runner, toy rows that cannot run there
+- Windows-only skips: three rows exit 77 on native Windows instead of being known failures everywhere
+- Windows: toy tests that need the gh fake are skipped (exit 77) and the lane counts them SKIPPED through a row's pipe
+- Merge origin/main into loop/win-posix-calls
+- fix: tmp_for ends at a drive root again after the merge
+- fix: lane-exec's signal names do not need SIGHUP on Windows
+- Windows: the toy suite runs only tests marked '# windows: ok'; the rest are SKIPPED, Linux CI is their check
+- Windows: the lane runs a row with bash; shorten two row descriptions over 400 characters
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-calls
+- pr: record issue states and the lane's results
+- docs: Monitoring and Guardrails name the native Windows case
+- Revert "docs: Monitoring and Guardrails name the native Windows case"
+- Wiki: update pages for win-posix-calls
+- Fixes #1396: test stop-takes-tree, seen failing 2026-11-12, passing
+
+### How to verify
+
+1. On a Windows PC with native Python (no WSL), from the repo root run `cd skills/workflow-regression/scripts` and then
+   `python -c "import slots; print(slots.port_base())"`.
+   Expect: it prints a pair like `(3, 20000)`, not an AttributeError about getuid or O_NOFOLLOW.
+2. In the same folder run `python -c "import subprocess, sys, time, proctree; p = subprocess.Popen([sys.executable, '-c', 'import subprocess, sys, time; subprocess.Popen([sys.executable, \"-c\", \"import time; time.sleep(60)\"]); time.sleep(60)']); time.sleep(2); proctree.kill(p.pid)"`
+   and watch Task Manager (or `tasklist | findstr python`) while it runs.
+   Expect: the two sleeping python processes it started are gone right after it returns.
+
+## v0.27.30 - 2026-11-12
+
+- Add red time-ordered model regression
+- Select estimates by time-ordered backtest
+- Lane: re-render the Tests tables
+- Document time-ordered estimate selection
+- Keep Monitoring review header adjacent
+- Place estimate note with Monitoring tests
+- Lane: re-render the Tests tables
+- Record Monitoring criterion and red proof
+- Revert "Lane: re-render the Tests tables"
+- Refresh generated estimate regression docs
+- Merge origin/main (v0.27.15) into loop/estimate-timeorder: rows kept, Tests re-rendered
+- Exclude a goal from its own time-ordered past; add time_order_edges check and point mon4 at it
+- Restore board_model docstring caveats; re-render Monitoring test table
+- estimate-timeorder: commands.md says the time-ordered score picks the model; the board_report sample is a real run
+- estimate-timeorder: Monitoring Usage names the time-ordered estimate line (CHANGED until the owner re-reviews); the goal file quotes the sentence
+- Merge origin/main into loop/estimate-timeorder: rows kept, Tests re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+- Merge origin/main (v0.27.18) into estimate-timeorder
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+- Merge origin/main (v0.27.29) into estimate-timeorder
+- Remove merge markers left in the regression rows
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+
+### How to verify
+
+1. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root .` in a repo with finished goal runs.
+   Expect: the table labels the selection column `time score`, labels leave-one-out under `diagnostics: loo`, and names the chosen model.
+2. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root . --json`.
+   Expect: each candidate has a `time_ordered` score and a separate `leave_one_out` score; `chosen` names the time-ordered winner when at least ten goals are scorable.
+
 ## v0.27.29 - 2026-11-12
 
 - Goal reset writes an empty report; goal state saved under a lock with merge of concurrent writers
