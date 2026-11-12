@@ -162,6 +162,7 @@ Review: **Unreviewed**
 | [merge-base-unrecorded](Tests#t-merge-base-unrecorded) | requirement | REG-4 | Given a goal whose pr lane recorded a head but no base, when merge.py checks the base, then it refuses BASE_MOVED instead of merging unchecked. | PASS 2026-11-11 |
 | [lanes-abs-not-walked](Tests#t-lanes-abs-not-walked) | requirement | REG-4 | Given a script that quotes an absolute folder outside the repo, when its reach is analysed, then that folder is not walked. | not run |
 | [lanes-abs-same-reach](Tests#t-lanes-abs-same-reach) | requirement | REG-4 | Given a script that quotes an outside folder, when its reach is analysed, then the rows it picks are the same as without it. | not run |
+| [lanes-dotdot-not-walked](Tests#t-lanes-dotdot-not-walked) | requirement | REG-4 | Given a script whose path climbs out of the repo with .., when its reach is analysed, then that folder is not walked. | not run |
 | [known-no-block](Tests#t-known-no-block) | requirement | REG-5 | Given a known failure, when the run happens, then it does not block the run or open an issue. | PASS 2026-11-12 |
 | [no-token-dry-run](Tests#t-no-token-dry-run) | requirement | REG-5 | Given no GitHub token, when a run happens, then it only prints what it would do. | PASS 2026-11-12 |
 | [one-issue](Tests#t-one-issue) | requirement | REG-5 | Given a failing test, when the run reports it, then one GitHub issue is opened. | PASS 2026-11-12 |
