@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Live-board estimate candidates, time-ordered selection, and per-goal predictions."""
+"""Live-board estimate candidates, time-ordered selection, and per-goal predictions. Scores are kept in MODEL per set of
+runs; a goal file edited inside one long-lived process is not seen until a run changes. Never imports board_status.py."""
 import math
 import os
 import statistics
