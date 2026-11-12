@@ -11,4 +11,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- One or more numbered steps a person can follow, each with an Expect: line. Every release needs this. -->
+1. Run `out=$(bash dev/toy/test-prd.sh 2>&1); echo "$out" | grep "PASS: an optional Milestone line goes under the title"`.
+   Expect: the PASS line prints, so the `prd-new` row's last check finds its line.
+2. Run `python3 dev/toy/reap.py` with no arguments on native Windows.
+   Expect: a usage message, not an AttributeError about SIGPIPE.
