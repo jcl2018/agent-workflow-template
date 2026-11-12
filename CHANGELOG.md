@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.27.48 - 2026-11-12
+
+- V1 section in the roadmap, README status points at it
+- Tests table and seen-red mark for v1-roadmap
+- Home: point at the V1 section
+- Seen-red mark for v1-roadmap-section
+- Wiki: update pages for v1-roadmap
+- Drop the V1 roadmap row: no requirement owns it
+- Roadmap V1: health facts from the review of v0.27.34
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+- Roadmap V1: states after spec-decisions, review-findings and the Windows merges
+- Wiki: update pages for v1-roadmap
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.47 - 2026-11-12
 
 - Merge origin/main into loop/migration-check
