@@ -69,6 +69,11 @@ Review: **Unreviewed**
   - Deliveries: one row each, with its channel, recipients as a group (never an email address), what is sent and its status.
   - The docs check refuses a malformed Deployments table, naming the table and the column.
   - A listed public link that doesn't answer, or a live build that isn't the promoted one, fails the deploying repo's own check for now; the template takes that check over later.
+- DOC-16: **Unreviewed** A feature page carries a runbook for each routine it owns
+  - A page that owns a scheduled or on-demand routine has an optional Runbook section, one subsection per routine, saying what an agent given only "run routine X" must read first: the requirement ids it serves, the schedule, the exact steps or command, what a full run is (live sources and real output, never a dry run or a fixture on a scheduled run), the one output and where it goes, the forbidden shortcuts, and how to tell the run was real.
+  - The docs check fails a routine listed in the routine registry whose page has no runbook for it, and a runbook missing any of those fields, naming the page, the routine and the field.
+  - A runbook's Serves field (continuation lines included) must name requirement ids that a page defines, and each routine and field appears once; a page whose sections are out of order is reported for that, not for its ids.
+  - The runbook is not locked by the PRD review: an agent corrects it as it learns, and the owner's review of the requirements stays valid.
 
 - DOC-15: **Unreviewed** Home and the README show how the repo is set up and what runs by itself.
   - Home and the README carry a Settings section: each setting's name, what it means, how to set it, its default and this repo's value, marked overridden only when it differs from the default.
@@ -163,6 +168,11 @@ Review: **Unreviewed**
 | [deploy-table-refused](Tests#t-deploy-table-refused) | requirement | DOC-14 | Given a Deployments section with prose, no table, a wrong header, two tables of a kind, no row, a wrong cell count, an empty cell, a bad link, access, build or an email address, when the docs check runs, then it refuses it naming the table and column, and never prints the address. | PASS 2026-11-12 |
 | [deploy-not-locked](Tests#t-deploy-not-locked) | requirement | DOC-14 | Given a Reviewed page that gains a Deployments section, when the docs check, the owner's review and render run, then the page is neither locked nor changed, the review works and render keeps the section byte for byte. | FAIL 2026-11-12 |
 | [deploy-doc14-reviewed](Tests#t-deploy-doc14-reviewed) | requirement | DOC-14 | Given this repo's Documentation page, when the docs check runs, then it carries DOC-14 Reviewed with both owner messages and passes. | FAIL 2026-11-12 |
+| [runbook-good](Tests#t-runbook-good) | requirement | DOC-16 | Given a feature page with a well-formed Runbook section after its Usage, when the docs check runs, then it passes, and a Runbook placed before Usage is refused as out of order. | not run |
+| [runbook-refused](Tests#t-runbook-refused) | requirement | DOC-16 | Given a Runbook missing its Full run or Output field, with a field too short, an unknown field, loose prose, no routine heading or a bad routine name, when the docs check runs, then each is refused naming the page, the routine and the field. | not run |
+| [runbook-registry](Tests#t-runbook-registry) | requirement | DOC-16 | Given a routine in the routine registry whose page has no runbook for it, or a registry row naming no page, when the docs check runs, then it fails; it passes once the page carries the runbook, and with no registry file. | not run |
+| [runbook-not-locked](Tests#t-runbook-not-locked) | requirement | DOC-16 | Given a Reviewed feature page that gains a Runbook section, when the docs check runs, then the page is neither locked nor marked changed. | not run |
+| - | requirement | DOC-16 | no passing test | not enforced |
 | [settings-overridden](Tests#t-settings-overridden) | requirement | DOC-15 | Given a toy repo with one overridden setting, when render runs, then Home's Settings table marks exactly that one overridden with its value. | PASS 2026-11-12 |
 | [settings-stale](Tests#t-settings-stale) | requirement | DOC-15 | Given a setting changed after render, when docs check runs, then it says STALE Settings. | PASS 2026-11-12 |
 | [automation-cron-words](Tests#t-automation-cron-words) | requirement | DOC-15 | Given a daily cron, a workflow file and a routine added as one config entry, when render runs, then Automation reads the cadence in words, where it runs and the added routine. | PASS 2026-11-12 |
