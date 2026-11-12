@@ -14,12 +14,10 @@ and ship it. A private file outside the repo, `~/.workflow-loop/flow.json`, name
 environment that puts them in their own unattended mode, and a probe that proves it. Setup fills it with `built-in`
 steps (`references/default-flow.md`), so it runs standalone; with no flow file, every command refuses. `loop-files.md`.
 
-The operation session is for governance only: it assigns and watches, and never runs `go` itself.
-
 ## `go "<goal>" --done "<line>" ... [--touches "<file,file>"]`
 
-**One session governs, and the others build.** In an interactive session, don't build the goal yourself. Hand it to
-`workflow-monitoring`, then watch:
+**One session governs, and the others build.** In an interactive session, don't build the goal yourself (the operation
+session assigns and watches, and never runs `go`). Hand it to `workflow-monitoring`, then watch:
 
 ```bash
 python3 <workflow-monitoring>/scripts/watch.py go "<goal>" --done "<line>" --touches "<file,file>"
@@ -84,14 +82,12 @@ lane) has its rules: the `test_record` prefix, `LANE_DIRTY`, `LANE_MISSING` and 
 Run `goal.py step <slug> build`. Make the change the plan describes, add tests for each done line, and commit.
 
 Then fill in `## Verify by hand` in the goal file, and commit it: the steps a person follows to see the change work with
-their own eyes. A release refuses without at least one.
+their own eyes, not what the tests already prove. A release refuses without at least one.
 
 ```markdown
 1. Run `python3 calc.py median 1 2 3`.
    Expect: it prints 2.
 ```
-
-Write what they can see, not what the tests already prove.
 
 ### 4. Pull request
 
