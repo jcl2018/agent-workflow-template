@@ -168,3 +168,6 @@ D. Statuses via a GitHub App or bypass: rejected; plain statuses need neither.
 ## The Assignment
 After merge, run `automation.py local install` in one private repo, load it, run `local tick` once by hand and confirm the
 digest line `Last ran` appears and a PR of that repo merges with no click.
+
+## Spike result (owner-run, 2026-11-12)
+On a throwaway private repository whose ruleset required the status checks `checks` and `scan` (no integration pinned, the shape of the real private repos), a pull request read BLOCKED. After the owner posted commit statuses `checks` and `scan` as success on the head with their own token, it read CLEAN and `gh pr merge --merge` merged it with no `--admin` and no click. Done line 7's mechanism therefore works as designed; the plan's merge gate for it is cleared.
