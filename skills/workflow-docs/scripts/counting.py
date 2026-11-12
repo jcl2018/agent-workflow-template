@@ -9,9 +9,15 @@ import glob
 import os
 import re
 import subprocess
+import sys
 
 import criteria
 import pageformat
+
+# No terminal, no waiting: a prompt from git must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 WORDS = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split()
 NOUNS = {"skill": "skill", "skills": "skill", "feature page": "page", "feature pages": "page", "criterion": "criteria",
