@@ -117,9 +117,9 @@ case_mon7() {
   check "MON-7: a command that only names operate.py run claims nothing" '[ "$(cat "$L/operation.id")" = op1 ]'
   check "MON-7: wrappers such as timeout and nohup don't hide a push" 'hook "$(b op1 "$R" "timeout -s KILL 60 git push")" | grep -q deny && hook "$(b op1 "$R" "nohup git push")" | grep -q deny'
   hook "$(b op3 "$R" "python3 -u $S/operate.py run --once")" >/dev/null
-  check "MON-7: running operate.py run claims the session" '[ "$(cat "$L/operation.id")" = op3 ]'; echo op1 > "$L/operation.id"
-  check "MON-7: claim records the session and a worker can't claim" \
-    'python3 "$S/operate.py" claim --id op2 | grep -q "replaced op1" && ! LOOP_ROLE=worker python3 "$S/operate.py" claim --id w 2>/dev/null'
+  check "MON-7: running operate.py run claims the session" 'grep -qx op3 "$L/operation.id" && grep -qx op1 "$L/operation.id"'; echo op1 > "$L/operation.id"
+  check "MON-7, MON-13: claim adds the session beside the others and a worker can't claim" \
+    'python3 "$S/operate.py" claim --id op2 | grep -qx "CLAIMED operation session op2" && grep -qx op1 "$L/operation.id" && grep -qx op2 "$L/operation.id" && ! LOOP_ROLE=worker python3 "$S/operate.py" claim --id w 2>/dev/null'
 }
 
 case_mon8() {

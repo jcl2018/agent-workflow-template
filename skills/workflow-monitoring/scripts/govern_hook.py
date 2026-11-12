@@ -6,7 +6,7 @@ usage: govern_hook.py          the PreToolUse hook: reads the hook's JSON on std
        govern_hook.py check    read a Bash command on stdin, print BLOCK with why, or PASS (tests and by hand)
 
 Which session: the operation session only, known by its id in <git common dir>/loop/operation.id (`operate.py claim`
-writes it, the last claim wins and says whom it replaced) or by the reply hook's record that the session ran
+adds its session and keeps the others: several independent operation sessions may run at once) or by the reply hook's record that the session ran
 `operate.py run`. A session whose folder is a goal worktree is a worker and is never checked, nor is any other repo.
 What it blocks there: Edit, Write and NotebookEdit; and each Bash segment (split on && || ; | and new lines, with
 `env X=Y`, `bash -c` and `sh -c` bodies read once more) that runs git, after any -C, -c, --git-dir or --work-tree
@@ -148,9 +148,9 @@ def claim(payload, common):
         return
     old = operation_ids(common)
     if session not in old:
-        with open(os.path.join(common, "loop", "operation.id"), "w") as handle:
+        with open(os.path.join(common, "loop", "operation.id"), "a") as handle:
             handle.write(session + "\n")
-        log(common, "claimed %s from its operate.py call%s" % (session, " (replaced %s)" % ", ".join(sorted(old)) if old else ""))
+        log(common, "added %s to operation.id from its operate.py call" % session)
 
 
 def log(common, text):
