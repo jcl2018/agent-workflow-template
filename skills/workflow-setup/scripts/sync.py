@@ -80,6 +80,12 @@ class Txn:
     def rollback(self):
         """Undo the adoption: the paths not restored, or None when the branch moved (it was committed; kept)."""
         j, bad = self.j, []
+        subprocess.run(["pkill", "-KILL", "-P", str(os.getpid())], capture_output=True)  # a tool still writing would outlive the restore
+        try:
+            while True:
+                os.waitpid(-1, 0)
+        except ChildProcessError:
+            pass
         tip = self.g("rev-parse", "--verify", "--quiet", "refs/heads/" + j["branch"])
         if tip and tip not in (j["tip"], j["head"]):
             shutil.rmtree(self.dir, ignore_errors=True)

@@ -333,6 +333,24 @@ if want setup-refusal-writes-120; then
   rm -f .git/hooks/pre-commit; rm -f .git/index.lock
   out=$($setup 2>&1); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q 'SETUP_RECOVERED' && git log -1 --format=%s | grep -q 'Adopt the workflow loop' || no "the next run did not recover and adopt: rc=$rc $(echo "$out" | head -3)"
+  # a tool child that outlives the signal (the Popen window run() cannot kill) must not write after the restore
+  mk rfH; mkdir -p "$d/pp"; cat > "$d/pp/sitecustomize.py" <<'PY'
+import os, subprocess, sys, time
+a = sys.argv[0] if sys.argv else ""
+if a.endswith("docs.py"):
+    time.sleep(2)
+elif a.endswith("setup.py"):
+    _run = subprocess.run
+    def run(args, *x, **k):
+        if "docs.py" in " ".join(map(str, args)) and "add" in args:
+            subprocess.Popen(args, cwd=k.get("cwd"))
+            raise KeyboardInterrupt
+        return _run(args, *x, **k)
+    subprocess.run = run
+PY
+  b=$(state "$d/rfH/repo"); out=$(PYTHONPATH="$d/pp" $setup 2>&1); rc=$?; sleep 4
+  [ $rc = 130 ] && echo "$out" | grep -q 'SETUP_INTERRUPTED' || no "a stray tool child: rc=$rc $(echo "$out" | tail -3)"
+  same "$d/rfH/repo" "$b" "a tool child that outlived the signal"
   # a failed git call mid-adoption (setup's git() exits) rolls back like any refusal
   mk rfD; mkdir -p "$d/shim"; real=$(command -v git); printf '#!/bin/bash\n[[ " $* " == *" add -A "* ]] && { echo "fatal: simulated" >&2; exit 128; }\nexec %s "$@"\n' "$real" > "$d/shim/git"; chmod +x "$d/shim/git"
   b=$(state "$d/rfD/repo"); out=$(PATH="$d/shim:$PATH" $setup 2>&1); rc=$?
