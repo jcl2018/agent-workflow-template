@@ -126,4 +126,3 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
 | [health-unreviewed-warn-issue-118](Tests#t-health-unreviewed-warn-issue-118) | defect | [#118](https://github.com/jcl2018/agent-workflow-template/issues/118) closed (2026-11-11) | Given an Unreviewed requirement with no test, when health runs, then it warns and never fails. | PASS 2026-11-10 |
 | [health-docs-159](Tests#t-health-docs-159) | defect | [#159](https://github.com/jcl2018/agent-workflow-template/issues/159) closed (2026-11-11) | Given the health skill's docs, when they are read, then they describe check's twelve groups, review, filing and triage, and no stale run chart. | not run |
 | [judge-cause-158](Tests#t-judge-cause-158) | defect | [#158](https://github.com/jcl2018/agent-workflow-template/issues/158) closed (2026-11-11) | Given a judge command that fails, when review runs, then JUDGE UNAVAILABLE names the command's last output and stderr lines. | not run |
-
