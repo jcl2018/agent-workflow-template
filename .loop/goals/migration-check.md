@@ -22,14 +22,3 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
-
-1. In a repo adopted before v0.27.17, run `python3 skills/workflow-setup/scripts/setup.py migration-check`. Time the run; on the toy repos a run takes about one second.
-   Expect: GAP lines for the missing Settings and Automation blocks, the missing `template_version` and the missing local task, each with a Fix line, and exit 1.
-2. In that repo run `python3 skills/workflow-setup/scripts/update.py --apply`, merge the branch it prints, then run the check again with `--pr`.
-   Expect: `MIGRATION OK (--pr: state codes not checked)` and exit 0; the full check then lists only the local task and wiki gaps, each with its fix.
-3. Run `python3 skills/workflow-health/scripts/automation.py local install`, remove each orphan wiki page the check names (`git rm -- <page>.md` in a clone of the wiki, commit, push), run `docs.py publish`, then run the full check.
-   Expect: `MIGRATION OK` and exit 0.
-4. In a repo that is behind the installed template, start a goal with `goal.py new`.
-   Expect: the one line `this repo is at vY, the template is at vX, run the migrate goal`, and a REFUSED only when the major versions differ (a `migrate-` slug is let through).
-5. After a template release, run `python3 skills/workflow-monitoring/scripts/operate.py run --once` in the operation session.
-   Expect: one `migrate-<repo>` line in the `.loop/queue.md` of each followed repo that is behind, and none for a repo that is current.
