@@ -12,3 +12,6 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. In a worktree at main, run `python3 skills/workflow-docs/scripts/docs.py check`. Expect: no line starting STALE.
+2. Run `python3 dev/render_tables_check.py`. Expect: `OK: render --tables left README.md and Home.md alone; a plain render repaired them`.
