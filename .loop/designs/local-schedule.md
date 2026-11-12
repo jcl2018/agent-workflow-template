@@ -171,3 +171,6 @@ digest line `Last ran` appears and a PR of that repo merges with no click.
 
 ## Spike result (owner-run, 2026-11-12)
 On a throwaway private repository whose ruleset required the status checks `checks` and `scan` (no integration pinned, the shape of the real private repos), a pull request read BLOCKED. After the owner posted commit statuses `checks` and `scan` as success on the head with their own token, it read CLEAN and `gh pr merge --merge` merged it with no `--admin` and no click. Done line 7's mechanism therefore works as designed; the plan's merge gate for it is cleared.
+
+## Prep budget (owner words, relayed 2026-11-12)
+The qa lane was cut during planning four times at the 15-minute prep budget (planning alone ran 900 s with the lane pool skipped). The operation session relayed the owner's answer to "Raise the template's check planning limit from 15 to 25 minutes?": "Yes, 225." read as 25, the value asked. `prep_budget_minutes` is therefore 25 in `.loop/config.json` on this branch; it takes effect only if the owner merges this pull request, and the owner can correct the number there. The words were relayed by the operation session, not typed to the worker session.
