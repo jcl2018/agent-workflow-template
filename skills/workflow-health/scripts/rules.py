@@ -98,7 +98,7 @@ def unreleased(root):
 
 
 def finding_age(root):
-    found, why = IS.fetch(root)
+    found, why = IS.fetch(root, "health")
     if found is None:
         return [row("INFO", "freshness", "findings", "finding-age", why)]
     return [row("WARN", "freshness", "#%d" % i["number"], "finding-age", "open since %s" % str(i.get("created_at"))[:10],
