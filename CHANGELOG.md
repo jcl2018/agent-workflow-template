@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.27.37 - 2026-11-12
+
+- Migration lessons: 12 dated findings, Delivery wording (DEL-10, DEL-11), a row that checks them
+- Verify by hand: migration-lessons
+- Merge remote-tracking branch 'origin/main' into loop/migration-lessons
+- fix: goal.py pr passes the PR body as a file, not a command line
+- Merge remote-tracking branch 'origin/main' into loop/migration-lessons
+- Docs: Delivery Tests table, Home names native Windows
+- Merge origin/main into loop/migration-lessons: my Delivery wording is DEL-12 and DEL-13 (goal-adopt took DEL-10 and DEL-11)
+
+### How to verify
+
+1. Open FINDINGS.md and read the last twelve entries.
+   Expect: twelve entries dated 2026-11-12, "migration, lesson 1" to "lesson 12", each ending in the issue, pull request or release that tracks it.
+2. Run `gh issue list --search "migration" --limit 3` or open issues 2871 to 2877.
+   Expect: seven new open issues, one per lesson that nothing tracked, each starting with "Found in the 2026-11-11/12 migration".
+
 ## v0.27.36 - 2026-11-12
 
 - goal-adopt: goal.py adopt (build)
