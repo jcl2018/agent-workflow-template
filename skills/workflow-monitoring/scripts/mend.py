@@ -23,6 +23,9 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import graph  # noqa: E402
+
 LIMIT = re.compile(r"(?i)usage limit|rate limit|limit reached|quota exceeded|too many requests|out of credits")
 RESUME_PROMPT = """Use the workflow-delivery skill to continue the goal {slug} in this git worktree, on branch {branch}.
 {where}
@@ -97,7 +100,7 @@ def save(state, note=None):
 
 def runs():
     found = [load(name[:-5]) for name in sorted(os.listdir(loop_dir("runs"))) if name.endswith(".json")]
-    return [state for state in found if state and state.get("slug")]
+    return [state for state in found if state and state.get("slug") and not graph.foreign(state)]
 
 
 def alive(pid):
@@ -286,6 +289,7 @@ def resume(slug, cfg, skill_dir):
     state = load(slug)
     if not state:
         sys.exit("REFUSED: no run named %s." % slug)
+    graph.refuse(state)
     was = state.get("status")
     if not state.get("branch") or was not in ("failed", "stopped"):
         sys.exit("REFUSED: %s is %s; resume takes a failed or stopped goal." % (slug, was))

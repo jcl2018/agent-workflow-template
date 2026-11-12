@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.27.13 - 2026-11-12
+
+- Pods: one shared owner check and merge lock, claim adds sessions, per-repo check-in blocks
+- Pods: regression rows and size budgets
+- Pods: rows seen red, Tests tables, LOOP_POD_ID in the usage
+- Pods: review fixes (atomic stale-lock takeover, free and worker send refuse, read-only others, watch skips foreign goals)
+- Merge origin/main into loop/pods
+- Pods: graph.py sets the no-prompt guard its git calls need
+- Lane: re-render the Tests tables
+- Pods: test the package from a clean export, check only the review lock
+- Merge remote-tracking branch 'origin/main' into loop/pods
+- Monitoring page: MON-15 names the skipped goals and the read-only questions
+- Merge origin/main into loop/pods
+- Merge remote-tracking branch 'origin/main' into loop/pods
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. In one repo run `CLAUDE_SESSION_ID=pod-a python3 skills/workflow-monitoring/scripts/operate.py claim`, then the same with `pod-b`. Expect: both print `CLAIMED operation session` with no REFUSED, WARN or `replaced`; `cat .git/loop/operation.id` lists pod-a and pod-b.
+2. Queue a goal as pod-a (`LOOP_POD_ID=pod-a python3 skills/workflow-monitoring/scripts/watch.py watch --once`), then `cat .git/loop/runs/<slug>.json`. Expect: `"pod": "pod-a"`.
+3. As pod-b run `LOOP_POD_ID=pod-b python3 skills/workflow-monitoring/scripts/operate.py send <slug> hi`. Expect: exactly one line `REFUSED: goal <slug> is owned by pod pod-a. Fix: ...`, exit status 2, the record unchanged.
+4. Run `python3 skills/workflow-monitoring/scripts/checkin.py` as pod-b. Expect: the goal reads `owned by pod-a` and no question for it is numbered under Needs you; as pod-a it has no such words.
+5. In two shells run `python3 skills/workflow-release/scripts/merge.py <slug>` for two goals of one auto_merge repo at once. Expect: the second prints `WAITING: another pod is merging into this repo` and starts only after the first ends; `.git/loop/merge.lock` is gone afterwards.
+6. Write a dead pid into `.git/loop/merge.lock` (`echo 999999 > ...`) and run a merge. Expect: it takes the lock at once (no WAITING).
+7. Run `python3 skills/workflow-monitoring/scripts/checkin.py` with two followed repos in `~/.workflow-loop/repos`. Expect: one `== name ==` block per repo, no line over 60 characters, `Between repos` for a `repo/slug` dependency, the legend once.
+
 ## v0.27.12 - 2026-11-12
 
 - Codex proof: a SKIPPED result for rows that cannot run, setup survives a read-only home, the Codex harness and pod-collision tests
