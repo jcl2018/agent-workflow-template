@@ -201,6 +201,10 @@
 | <a id="t-runbook-refused"></a>runbook-refused | requirement | DOC-16 | not run | - | local | 2026-11-12 |
 | <a id="t-runbook-registry"></a>runbook-registry | requirement | DOC-16 | not run | - | local | 2026-11-12 |
 | <a id="t-runbook-not-locked"></a>runbook-not-locked | requirement | DOC-16 | not run | - | local | 2026-11-12 |
+| <a id="t-blocks-no-insert"></a>blocks-no-insert | requirement | DOC-15 | not run | - | local | 2026-11-12 |
+| <a id="t-blocks-format"></a>blocks-format | requirement | DOC-15 | not run | - | local | 2026-11-12 |
+| <a id="t-blocks-no-cascade"></a>blocks-no-cascade | requirement | DOC-15 | not run | - | local | 2026-11-12 |
+| <a id="t-blocks-setup-clean"></a>blocks-setup-clean | requirement | DOC-15 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 
 ## Health
 
@@ -505,8 +509,8 @@
 
 | Test | Kind | Guards | Result | Date | Run | Seen failing |
 |---|---|---|---|---|---|---|
-| <a id="t-adopt-set-1"></a>adopt-set-1 | requirement | SET-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
-| <a id="t-adopt-set-2"></a>adopt-set-2 | requirement | SET-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
+| <a id="t-adopt-set-1"></a>adopt-set-1 | requirement | SET-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
+| <a id="t-adopt-set-2"></a>adopt-set-2 | requirement | SET-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-adopt-set-3"></a>adopt-set-3 | requirement | SET-3 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
 | <a id="t-adopt-set-4"></a>adopt-set-4 | requirement | SET-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
 | <a id="t-adopt-set-5"></a>adopt-set-5 | requirement | SET-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
