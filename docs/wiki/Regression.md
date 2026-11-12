@@ -70,7 +70,7 @@ Review: **Unreviewed**
 
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
-| [refused-unmet](Tests#t-refused-unmet) | requirement | REG-1 | Given a criterion with no test, when a release is cut, then it is refused. | FAIL 2026-11-12 |
+| [refused-unmet](Tests#t-refused-unmet) | requirement | REG-1 | Given a criterion with no test, when a release is cut, then it is refused. | PASS 2026-11-12 |
 | [defect-owed](Tests#t-defect-owed) | requirement | REG-1 | Given a goal that fixes an issue, when it opens its pull request without a defect test seen failing, then it is refused. | PASS 2026-11-12 |
 | [defect-known](Tests#t-defect-known) | requirement | REG-1 | Given issues 35 and 58 and the two worker defects, when the tests are listed, then defect tests exist for each. | PASS 2026-11-12 |
 | [prd-readers](Tests#t-prd-readers) | requirement | REG-1 | Given pages under the Requirements heading or the old Criteria heading, when the release, regression, health and docs readers run, then they all find the same requirement IDs and the release refuses an unmet one. | PASS 2026-11-10 |

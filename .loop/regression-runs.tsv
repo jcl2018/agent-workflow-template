@@ -302,7 +302,7 @@ pull-ff-only-passes	PASS	2026-11-10
 pull-plain-blocked	PASS	2026-11-10	
 record-in-session	PASS	2026-11-11	
 refuse-replace	PASS	2026-11-12	
-refused-unmet	FAIL	2026-11-12	
+refused-unmet	PASS	2026-11-12	
 reg-defect-label	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reg-local-relabel	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reg-same-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
