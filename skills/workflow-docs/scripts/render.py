@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 
+import counting
 import criteria
 import pageformat
 
@@ -100,8 +101,8 @@ def render(args):
         with open(os.path.join(root, rel)) as handle:
             text = handle.read()
         parts = criteria.sections(text)
-        if [n for n, _ in parts if n not in (criteria.rules()["usage"], criteria.rules()["deploy"])] != criteria.rules()["sections"]:
-            continue
+        if [n for n, _ in parts if n not in (criteria.rules()["usage"], criteria.rules()["deploy"], criteria.rules()["runbook"])] != criteria.rules()["sections"] or parts[-1][0] != "Tests":
+            continue  # a section after Tests (a misplaced Runbook) would be cut off by the rewrite: leave the page for the check to name
         ids = [(m.group(1), m.group(4)) for _, m in criteria.criteria_of(dict(parts)[criteria.rules()["sections"][1]]) if m]
         head, _, _ = text.partition("\n## Tests")
         out.append((rel, text, head + "\n## Tests\n\n" + "\n".join(table(root, ids, linked)) + "\n"))
@@ -291,20 +292,6 @@ def settings_block(root):
                       + body + ["<!-- settings:end -->", ""])
 
 
-def cadence(cron):
-    if cron == "off":
-        return "off"
-    f = cron.split()
-    if len(f) == 5 and f[2:] == ["*", "*", "*"]:
-        if f[1].startswith("*/") and f[1][2:].isdigit():
-            return "every %s hours" % f[1][2:]
-        if f[0].isdigit() and f[1].isdigit():
-            return "daily at %02d:%02d" % (int(f[1]), int(f[0]))
-        if f[1] == "*" and f[0].startswith("*/") and f[0][2:].isdigit():
-            return "every %s minutes" % f[0][2:]
-    return "cron `%s`" % cron
-
-
 BUILT_IN = (("health", "Checks the repo and files each finding.", "health_cron", "47 */4 * * *", "health.yml"),
             ("regression", "Runs every regression row, files each failure.", "regression_cron", "17 */4 * * *", "regression.yml"),
             ("digest email", "Mails one digest per health round.", None, "", "health.yml"))
@@ -342,7 +329,7 @@ def automation_block(root):
             where, state, owed = "not set", "off", 'add "runs": github:FILE, mac:LABEL or claude:TASK'
         if e["name"] == "digest email" and on and str(e.get("cadence")) != "off":
             owed = "set the digest address and keys as Actions secrets (yours, outside git)" if owed == "none" else owed
-        rows.append([str(e["name"]), str(e.get("does", "")), state, cadence(str(e.get("cadence", ""))), where, last, owed])
+        rows.append([str(e["name"]), str(e.get("does", "")), state, counting.cadence(str(e.get("cadence", ""))), where, last, owed])
     head = ["Routine", "What it does", "State", "Cadence", "Runs on", "Last run", "Owed by you"]
     return "\n".join(["<!-- automation:begin -->", "## Automation", "",
                        "Health and regression, then each `automation` entry in `.loop/config.json`; to add one, add an entry.", ""] + pageformat.table(head, rows) + ["<!-- automation:end -->", ""])

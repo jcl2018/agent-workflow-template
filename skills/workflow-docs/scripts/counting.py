@@ -2,8 +2,8 @@
 """The numbers the docs state that the repo can check: skills, feature pages, and a feature page's criteria and tests.
 
 docs.py check, audit and publish call counts() through docs.counts(root). prose() is the text a reader sees: no fenced
-or indented code, comments or code spans. The page map of docs.py (map_path, read_map, write_map)
-and its live(), moved unchanged, and real(), which drops block-only commits from its staleness, sit at the end.
+or indented code, comments or code spans. The page map of docs.py (map_path, read_map, write_map),
+and its live() and render.py's cadence(), moved unchanged, and real(), which drops block-only commits from its staleness, sit at the end.
 """
 import glob
 import os
@@ -226,3 +226,17 @@ def live(root):
             said = "a Claude scheduled task is checked in the Claude app"
         print("%s: %s" % (e["name"], said))
     return 0
+
+
+def cadence(cron):  # render.py's Automation block cadence, moved here unchanged
+    if cron == "off":
+        return "off"
+    f = cron.split()
+    if len(f) == 5 and f[2:] == ["*", "*", "*"]:
+        if f[1].startswith("*/") and f[1][2:].isdigit():
+            return "every %s hours" % f[1][2:]
+        if f[0].isdigit() and f[1].isdigit():
+            return "daily at %02d:%02d" % (int(f[1]), int(f[0]))
+        if f[1] == "*" and f[0].startswith("*/") and f[0][2:].isdigit():
+            return "every %s minutes" % f[0][2:]
+    return "cron `%s`" % cron

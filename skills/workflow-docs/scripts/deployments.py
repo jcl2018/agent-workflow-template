@@ -83,6 +83,56 @@ CRITERIA_MAX_DEFAULT = 10  # the owner: "make that cap as like a config as well,
 SHEET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "template.md")
 
 
+def owed(root, books, name):
+    """DOC-16: every routine in .loop/routines.tsv (`routine<TAB>page`, # lines are comments) has its '### routine' runbook on
+    its page. `books` maps every page to the lines of its Runbook section ([] when none). No file means no registry."""
+    out, path = [], os.path.join(root, ".loop", "routines.tsv")
+    try:
+        with open(path, encoding="utf-8-sig") as handle:
+            rows = [(n, line.rstrip("\n").split("\t")) for n, line in enumerate(handle, 1) if line.strip() and not line.lstrip().startswith("#")]
+    except FileNotFoundError:
+        return out
+    except (OSError, ValueError) as error:
+        return [bad("routines.tsv", 1, "Runbook", 16, "a readable routine registry", short(getattr(error, "strerror", None) or "not UTF-8 text"), "fix .loop/routines.tsv")]
+    seen = set()
+    for number, row in rows:
+        routine, page = (row + ["", ""])[:2]
+        if routine in seen:
+            out.append(bad("routines.tsv", number, "Runbook", 16, "each routine once", short(routine), "remove the duplicate row"))
+        seen.add(routine)
+        if page not in books:
+            out.append(bad("routines.tsv", number, "Runbook", 16, "a routine on a feature page", short(routine), "name a page from .loop/docs.tsv in .loop/routines.tsv"))
+        elif not any(line.rstrip() == "### " + routine for _, line in books[page]):
+            out.append(bad(page, 1, name, 16, "a '### %s' runbook, the routine .loop/routines.tsv gives this page" % routine, "none",
+                           "add the Runbook section with '### %s' and its fields" % routine))
+    return out
+
+
+def unserved(books, seen, name):
+    """DOC-16: each routine's Serves field (its indented continuation lines too) names at least one requirement id, and
+    every id it names is on some page."""
+    out = []
+    for page, lines in books.items():
+        fields, cur = [], None
+        for number, line in lines:
+            head = re.match(r"^- \*\*Serves:\*\*(.*)$", line)
+            if head:
+                cur = [number, head.group(1)]
+                fields.append(cur)
+            elif line.startswith(("- ", "#")):
+                cur = None
+            elif line[:1].isspace() and cur:
+                cur[1] += " " + line.strip()
+        for number, text in fields:
+            ids = re.findall(r"[A-Z]{2,5}-\d+", text)
+            if not ids:
+                out.append(bad(page, number, name, 16, "a Serves field naming a requirement id such as DOC-14", short(text), "name the ids the routine serves"))
+            for key in ids:
+                if key not in seen:
+                    out.append(bad(page, number, name, 16, "a Serves id that a page defines", key, "name a requirement from a feature page"))
+    return out
+
+
 def rules():
     """The page rules from the fenced rules block of the template sheet. Refuses when it is missing or incomplete."""
     try:
@@ -101,6 +151,8 @@ def rules():
                 "review": found["review_line"], "milestone": found["milestone_line"], "format": on,
                 "banned": listed("problem_banned", pageformat.BANNED),
                 "groups": listed("requirement_groups", ", ".join(pageformat.GROUPS)),
+                "runbook": found.get("runbook_section", "Runbook"),
+                "fields": listed("runbook_fields", "Serves, Schedule, Steps, Full run, Output, Never, Check"),
                 "deploy": found.get("deployments_section", "Deployments"), "access": listed("deployments_access", "public, sign-in"),
                 "page_cols": listed("deployments_page", ", ".join(deployments.PAGE_COLS)),
                 "delivery_cols": listed("deployments_delivery", ", ".join(deployments.DELIVERY_COLS))}

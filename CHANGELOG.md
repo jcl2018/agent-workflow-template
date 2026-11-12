@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.27.23 - 2026-11-12
+
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Automation: routines run where they can run fully
+- Automation: review fixes to AUT-1, 2, 3, 6 and Non-goals
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.22 - 2026-11-12
+
+- Runbook section (DOC-16): format check, routine registry, Health and Regression runbooks, toy tests
+- runbook test: a Reviewed page's Runbook is not out of order either
+- Re-render the Tests tables for the runbook rows
+- Merge origin/main into loop/routine-runbooks; criteria_max 16 for DOC-15 and DOC-16
+- Re-render Home, README and START after the merge
+- Runbooks corrected against the workflows; runbook check hardened (repeats, duplicates, registry, render guard); tests extended
+- Runbook check: Serves ids must exist, a misordered page is not also 'no runbook', registry read as UTF-8, template and runbook wording corrected; tests added
+- Documentation DOC-16: Serves ids must exist, each routine and field once
+- Runbook check: Serves reads continuation lines; no false Serves finding on a misordered page
+- Merge origin/main (v0.27.18) into loop/routine-runbooks; Tests tables re-rendered
+- runbook test: compare against the copy's own check output (another page may be CHANGED for its owner)
+- Merge remote-tracking branch 'origin/main' into loop/routine-runbooks
+- Merge origin/main (v0.27.21) into loop/routine-runbooks; Tests tables re-rendered
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.21 - 2026-11-12
 
 - Capacity audit for setup-adopt-2 (no code change)
