@@ -10,6 +10,10 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
+BUDGET_MINUTES = 30  # one budget for a scheduled regression job: REG-7 names it, AUT-7's 45-minute round is this plus 15 for health
+SHARDS = 2  # the suite is split over this many jobs so each fits the budget
+
+
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
             "REGRESSION_RESULTS", "REGRESSION_MAP", "RUNNER_TEMP", "SUITE_TIME_FILE")
 
@@ -46,7 +50,11 @@ concurrency:
 jobs:
   regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: @BUDGET@  # the regression budget (REG-7); the suite is sharded so each job fits it
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: @MATRIX@
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,6 +87,7 @@ jobs:
           REGRESSION_TARGET: ${{ inputs.target }}  # by hand; checked below, never in a shell line
           REGRESSION_CLEANUP: ${{ inputs.cleanup }}
           REGRESSION_LEVELS: "@LEVELS@"  # the schedule and v* tags run ci_levels
+          REGRESSION_SHARD: "${{ matrix.shard }}/@SHARDS@"  # this job runs one wanted row in @SHARDS@
         run: |
           here=$(mktemp -d)  # what each row guards, read before any row runs
           cat > "$here/tests.py" <<'TESTS_PY_EOF'
@@ -109,7 +118,7 @@ jobs:
               except ValueError:
                   return default
               return value if value > 0 else default
-          ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", 88 * 60)
+          ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", (@BUDGET@ - 2) * 60)
           ROW_ENV = {k: v for k, v in os.environ.items() if k not in @ROWDROP@}  # no token, no runner file a row could write into
           def run(command):  # own group, output to a file
               with tempfile.TemporaryFile("w+", errors="replace") as log:
@@ -120,18 +129,11 @@ jobs:
                       child.wait(timeout=ROW_SECONDS)
                   except subprocess.TimeoutExpired:
                       timed_out = True
-                      stuck = []  # so a hang names itself
-                      for pid in [p for p in os.listdir("/proc") if p.isdigit()] if os.path.isdir("/proc") else []:
-                          try:
-                              stat = open("/proc/%s/stat" % pid).read().rsplit(")", 1)[1].split()
-                              if stat[2] != str(child.pid):
-                                  continue
-                              args = open("/proc/%s/cmdline" % pid, "rb").read().replace(b"\0", b" ").decode(errors="replace")[:100]
-                              fd = os.readlink("/proc/%s/fd/1" % pid) if os.path.exists("/proc/%s/fd/1" % pid) else "-"
-                              stuck.append("%s %s %s %s %s %s" % (pid, stat[0], stat[1], open("/proc/%s/wchan" % pid).read(), fd, args))
-                          except (OSError, IndexError):
-                              pass
-                      log.write("\nprocesses at the timeout (pid state ppid wchan stdout args):\n" + "\n".join(stuck))
+                      try:  # so a hang names itself
+                          ps = subprocess.run(["ps", "-o", "pid,ppid,stat,wchan:20,args", "-s", str(child.pid)], capture_output=True, text=True)
+                          log.write("\nprocesses at the timeout:\n" + ps.stdout)
+                      except OSError:
+                          pass
                   try:
                       os.killpg(child.pid, 9)
                   except OSError:
@@ -167,10 +169,9 @@ jobs:
               if CLEANUP:
                   time.sleep(float(os.environ.get("REGRESSION_PACE") or 20))
               done = gh(*args)
-              if done.returncode and "rate limit" in done.stderr.lower():
-                  halt.append(what)
               if done.returncode:
                   failed.append(what)
+                  halt += ["rate limit"] * ("rate limit" in done.stderr.lower())
                   print("FAILED %s: %s (FILE_FAILED)" % (what, done.stderr.strip()[:160]))
               else:
                   filed[0] += 1
@@ -191,8 +192,13 @@ jobs:
           red, start, dupes = [], time.time(), [600 if CLEANUP else 20]
           with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
               handle.write("# started %d\n" % start)
+          mine, seen = (os.environ.get("REGRESSION_SHARD") or "0/1").split("/"), 0
+          mine, shards = int(mine[0]), int(mine[1])
           for row in rows(".loop/regression.tsv"):
               if len(row) < 3 or not wanted(row):
+                  continue
+              seen += 1
+              if (seen - 1) % shards != mine:  # another shard's row
                   continue
               if CLEANUP and time.time() - start > JOB_SECONDS - 120:
                   break
@@ -206,7 +212,7 @@ jobs:
               sk = lambda i: (i["body"] or "").split("\n")[1:2] == ["The row `%s` was skipped." % row[0]]
               hit = next((i for i in hits if i["state"] == "OPEN" and not sk(i)), None) or next(
                   (i for i in hits if i["state"] == "OPEN"), hits[0] if hits else None)
-              for item in [i for i in hits if i["state"] == "OPEN" and i is not hit]:  # keep the oldest open
+              for item in [i for i in hits if i["state"] == "OPEN" and i is not hit]:
                   if dupes[0] > 0:
                       dupes[0] -= 1
                       write("close duplicate #%d" % item["number"], "issue", "close", str(item["number"]), "--comment",
@@ -222,7 +228,7 @@ jobs:
                       if item["state"] == "OPEN" and sk(item) and dupes[0] > 0:
                           dupes[0] -= 1
                           write("close skipped #%d" % item["number"], "issue", "close", str(item["number"]), "--comment",
-                                "Closed: a skipped row no longer files an issue; this row did not run, it did not fail.")
+                                "Closed: a skipped row files no issue.")
               elif row[0] not in known and code != 77:  # 77: cannot run here (SKIPPED)
                   red.append(row[0])
                   if issues is None:
@@ -278,7 +284,7 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: suite-time
+          name: suite-time-${{ matrix.shard }}
           path: ${{ runner.temp }}/suite-time.tsv
           if-no-files-found: ignore
           retention-days: 30
@@ -306,11 +312,11 @@ jobs:
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "TESTS_PY_EOF")  # what Actions or this writer would read as its own
+UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@MATRIX@", "@SHARDS@", "TESTS_PY_EOF")  # what Actions or this writer would read as its own
 
 
 def render(cron, levels="nightly"):
-    """The workflow text for this cron and ci_levels, carrying tests.py (an adopting repo has no skills/ folder)."""
+    """The workflow text for this cron and ci_levels."""
     with open(os.path.join(HERE, "tests.py")) as handle:
         source = handle.read()
     bad = [token for token in UNSAFE if token in source]
@@ -319,6 +325,7 @@ def render(cron, levels="nightly"):
     body = "\n".join(("          " + line).rstrip() for line in source.rstrip("\n").split("\n"))
     schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron  # off: by hand only, and the run says so
     return WORKFLOW.replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
+        .replace("@BUDGET@", str(BUDGET_MINUTES)).replace("@SHARDS@", str(SHARDS)).replace("@MATRIX@", str(list(range(SHARDS)))) \
         .replace("@TESTS@", body)
 
 
