@@ -15,6 +15,8 @@ import subprocess
 import sys
 import time
 
+import proctree
+
 os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")  # no terminal, no waiting: git must fail, not prompt
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 LIVE = ("running", "waiting")
@@ -369,7 +371,7 @@ def merge_lock(common):
                 age = time.time() - os.stat(path).st_mtime
                 seen = open(path).read()
                 pid = int(seen.split()[0])
-                os.kill(pid, 0)
+                proctree.probe(pid)
             except ProcessLookupError:
                 dead = True
             except FileNotFoundError:

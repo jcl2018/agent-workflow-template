@@ -66,6 +66,7 @@ subprocess.run(['gh', 'x'], timeout=20)" ) < /dev/null || no "a script left a pr
       grep -q "GIT_TERMINAL_PROMPT" "$s" || ! grep -q "^import subprocess\|subprocess\." "$s" || no "$s starts processes without the guard"
     done;;
   DEL-4-verify)
+    toy_need_posix "the goal flow needs a GitHub remote and POSIX paths"
     finish none ""
     $rel cut none >/dev/null 2>&1 && no "cut with no verify steps"
     git switch -q main
