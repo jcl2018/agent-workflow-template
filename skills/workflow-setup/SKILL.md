@@ -92,6 +92,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-setup update --check` | `python3 scripts/update.py --check` (exit 1 means behind) |
 | `/workflow-setup update` | `python3 scripts/update.py --apply` (`--take FILE`, `--tag vX`, `--from ZIP\|DIR`, `--template OWNER/NAME`) |
 | `/workflow-setup update --propose` | `python3 scripts/update.py --propose` (`--file-issue` files it) |
+| `/workflow-setup machine` | `python3 scripts/machine.py` (no verb is the dry run `plan`; `apply`, `check`, `record-task NAME MODE`; `--repo DIR`, `--platform mac\|windows`): a second Mac or Windows machine's setup, run from a git clone, see the wiki Setup page |
 | `/workflow-setup agents` | `python3 scripts/agents.py wire` (`--dry-run`, `--repo DIR`) |
 
 Update's exit codes: 0 done or nothing to do, 1 behind or waiting on you, 2 refused. Every refusal names its code and

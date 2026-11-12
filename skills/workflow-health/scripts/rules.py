@@ -11,6 +11,7 @@
   scheduled         the regression or health workflow is missing, or has no schedule (WARN)
   no-fit            an open [adoption] line in .loop/findings.md, written by setup: one WARN row each (report.py)
   agent-tools       agent_command (or the flow file's command) grants its agent no tools (WARN) (report.py)
+  machine           machine.py check lists a gap on this machine, one WARN each (only where the skills are installed)
 Security and privacy, Size, Performance check-time and Hygiene idle-sessions rules (also read-only):
   private                tracked files matching a leak pattern (leak_patterns in the private flow file): FAIL with
                          file:line and the pattern's number only, never the matched text; INFO with no pattern set
@@ -168,9 +169,22 @@ def scheduled(root):
     return out
 
 
+def machine(root):
+    """Where the skills are installed, workflow-setup's machine.py check must pass: one WARN row per gap, with its fix."""
+    tool = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-setup", "scripts", "machine.py")
+    if os.environ.get("CI") or not os.path.isdir(os.path.expanduser("~/.claude/skills/workflow-health")) or not os.path.exists(tool):
+        return []
+    try:
+        text = subprocess.run([sys.executable, tool, "check", "--repo", root], capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [row("WARN", "adoption", m[1], "machine", m[2], m[3], m[1]) for m in
+            (re.match(r"GAP ([^:]+): (.*?) -> (.*)$", line) for line in text.splitlines()) if m]
+
+
 FUNCTIONS = {"nightly": nightly, "unreleased": unreleased, "finding-age": finding_age, "skipped": skipped,
              "network": network, "config": config, "checks-run-tests": checks_run_tests,
-             "template-version": template_version, "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools}
+             "template-version": template_version, "scheduled": scheduled, "machine": machine, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools}
 
 
 def _c():
@@ -230,12 +244,20 @@ def f_scheduled(root):
     c.write(root, ".github/workflows/health.yml", "name: health\n")
 
 
+def f_machine(root):
+    c = _c(); c.repo(root)
+    home = os.path.join(root, "home")
+    os.makedirs(os.path.join(home, ".claude", "skills", "workflow-health"))
+    os.environ["HOME"] = home
+    os.environ.pop("CI", None)
+
+
 CONTROLS = {"nightly": ("freshness", "nightly", f_nightly), "unreleased": ("freshness", "unreleased", f_unreleased),
             "finding-age": ("freshness", "finding-age", f_finding_age), "skipped": ("tests", "skipped", f_skipped),
             "network": ("tests", "network", f_network), "config": ("adoption", "config", f_config),
             "checks-run-tests": ("adoption", "checks-run-tests", f_checks_run_tests),
             "template-version": ("adoption", "template-version", f_template_version),
-            "scheduled": ("adoption", "scheduled", f_scheduled)}
+            "scheduled": ("adoption", "scheduled", f_scheduled), "machine": ("adoption", "machine", f_machine)}
 
 
 

@@ -284,7 +284,7 @@ From install to one finished goal.
 
 1. **Install.** Run `dev/install-local.sh`. It links each `skills/workflow-*` folder into `~/.claude/skills` (or
    `$CLAUDE_SKILLS_DIR`) and prints `LINKED <name>`. It skips a name that is already a real folder. For another agent,
-   copy the `skills/` folders into its skills folder.
+   copy the `skills/` folders into its skills folder. A second machine (Mac or Windows) follows the New machine steps under `/workflow-setup machine` in [Setup](docs/wiki/Setup#usage): clone, `machine.py`, the owner steps, `machine.py check`.
 2. **Set up your repo.** Run `/workflow-setup`. It writes `.loop/config.json`, `.loop/queue.md` and `.loop/findings.md`
    on a branch called `workflow-setup`. Preview with `/workflow-setup setup --dry-run`, using the path to the skill's
    folder. Then allow the
@@ -420,8 +420,9 @@ Every repo setting from the template's settings reference, with this repo's valu
 | `pr_bumps_version` | true moves the last number of the version file once on a goal's branch. | set "pr_bumps_version" in .loop/config.json | `false` | default |
 | `version_file` | The file that holds the version; a release bumps it and writes the changelog. | set "version_file" in .loop/config.json | `VERSION` | default |
 | `routines` | Commands the release step runs on the base branch before it merges. | set "routines" in .loop/config.json | `[]` | default |
-| `regression_cron` | Five cron fields: when the full regression runs: in GitHub Actions for a public repo, with each Mac tick for a private one; off turns it off. | set "regression_cron" in .loop/config.json | `17 */4 * * *` | default |
+| `regression_cron` | Five cron fields: when the full regression runs: in GitHub Actions for a public repo, with each Mac tick for a private one; off turns it off. | set "regression_cron" in .loop/config.json | `17 */4 * * *` | **overridden:** `off` |
 | `health_cron` | Five cron fields (every N hours, or fixed hours): when health with the judge and its digest run on the Mac; off turns it off. | set "health_cron" in .loop/config.json | `47 */4 * * *` | default |
+| `machine_setup` | This repo's own machine setup items (allow rule, routine, secret, connector), applied by machine.py only where the repo is adopted. | set "machine_setup" in .loop/config.json | `[]` | default |
 | `judge_env` | No longer read: the judge runs on the Mac with your own claude login. Kept so old configs stay valid. | set "judge_env" in .loop/config.json | `ANTHROPIC_API_KEY` | default |
 | `judge_setup` | No longer read: kept so old configs stay valid. | set "judge_setup" in .loop/config.json | `(empty)` | default |
 | `digest_owner` | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). | set "digest_owner" in .loop/config.json | `(empty)` | default |
@@ -467,6 +468,6 @@ Health and regression, then each `automation` entry in `.loop/config.json`; to a
 | Routine | What it does | State | Cadence | Runs on | Last run | Owed by you |
 |---|---|---|---|---|---|---|
 | health | Checks the repo and files each finding. | off | every 4 hours | not deployed | docs.py automation | run workflow-setup to write .github/workflows/health.yml |
-| regression | Runs every regression row, files each failure. | on | every 4 hours | GitHub Actions (regression.yml) | docs.py automation | none |
+| regression | Runs every regression row, files each failure. | off | off | GitHub Actions (regression.yml) | docs.py automation | none |
 | digest email | Mails one digest per health round. | off | cron `with each health round` | not deployed | docs.py automation | run workflow-setup to write .github/workflows/health.yml |
 <!-- automation:end -->

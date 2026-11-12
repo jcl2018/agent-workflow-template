@@ -1,0 +1,1 @@
+Read {guide} and follow it: its "Check-in prompt" section is the whole prompt. It holds the check-in layout, the full-auto rules, the decision log and the held-line conventions. Nothing else belongs in this file.

@@ -37,6 +37,7 @@ TABLE = [
     ("routines", REPO, [], "Commands the release step runs on the base branch before it merges."),
     ("regression_cron", REPO, "17 */4 * * *", "Five cron fields: when the full regression runs: in GitHub Actions for a public repo, with each Mac tick for a private one; off turns it off."),
     ("health_cron", REPO, "47 */4 * * *", "Five cron fields (every N hours, or fixed hours): when health with the judge and its digest run on the Mac; off turns it off."),
+    ("machine_setup", REPO, [], "This repo's own machine setup items (allow rule, routine, secret, connector), applied by machine.py only where the repo is adopted."),
     ("judge_env", REPO, "ANTHROPIC_API_KEY", "No longer read: the judge runs on the Mac with your own claude login. Kept so old configs stay valid."),
     ("judge_setup", REPO, "", "No longer read: kept so old configs stay valid."),
     ("digest_owner", REPO, "", "Who the digest comment mentions; empty means the repo owner (an organisation notifies no one)."),

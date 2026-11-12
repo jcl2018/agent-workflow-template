@@ -1,8 +1,6 @@
 # Written by workflow-regression. It reads .loop/regression.tsv and .loop/regression-known.tsv.
 name: regression
 on:
-  schedule:
-    - cron: "17 */4 * * *"
   push:
     tags: ["v*"]
   workflow_dispatch:
@@ -42,8 +40,8 @@ jobs:
             exit 0
           fi
           echo "on=true" >> "$GITHUB_OUTPUT"
-          if [ -n "$cron" ] && [ "$cron" != "17 */4 * * *" ]; then
-            said="SCHEDULE: this workflow runs on '17 */4 * * *' but .loop/config.json says '$cron'. Fix: python3 skills/workflow-regression/scripts/regression.py workflow"
+          if [ -n "$cron" ] && [ "$cron" != "off" ]; then
+            said="SCHEDULE: this workflow runs on 'off' but .loop/config.json says '$cron'. Fix: python3 skills/workflow-regression/scripts/regression.py workflow"
             echo "::warning::$said"; echo "$said" >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Run the rows, and keep one issue per failing row

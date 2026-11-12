@@ -23,13 +23,13 @@ Review: **Unreviewed**
 
 ### Functional
 - AUT-1: **Unreviewed** Routines run where they can run fully
-  - Health runs on my Mac for every repo. Regression runs in GitHub Actions for a public repo and on my Mac for a private one.
-  - Each routine runs on a schedule set in the repo's config (every 4 hours by default), and I can also start it by hand.
+  - Health and the full regression run on my machine for every repo, public or private, as one scheduled task per adopted repo named `<repo>-health-regression`, every 4 hours with starts staggered across repos, and one email per repo. Repo-specific routines from the routine registry (an hourly mail triage, a newsletter) register the same way on the machine that adopts that repo (SET-11).
+  - Each task's cadence is registered with it (machine setup prints it), and I can also start it by hand.
   - A Mac routine missed while the Mac sleeps runs once at next wake, regression before health.
   - Each run's report says whether it ran on my Mac or in GitHub Actions, naming no host or path.
 - AUT-2: **Unreviewed** Regression every few hours
-  - The full regression suite runs on the schedule (every 4 hours by default) and on every release, in GitHub Actions for a public repo and on my Mac for a private one; the report names every test it skipped and why.
-  - A push or pull request runs only the tests its change affects, in the same place as the full suite.
+  - The full regression suite runs every 4 hours on my machine (the repo's scheduled task) and on every release; the report names every test it skipped and why.
+  - A push or pull request runs only the tests its change affects, in GitHub Actions for a public repo; a public repo's workflow has no schedule.
   - No check this tool writes ever blocks a private repo's merge.
   - A failing test opens or updates one issue labeled defect, tagged with the feature it guards, naming the test and the requirement; it closes by itself when the test passes again.
 - AUT-3: **Unreviewed** Health every few hours
