@@ -255,7 +255,7 @@ def check_stalled():
 
 def check_issue_96():
     repo = Repo()
-    small, large = [10, 15, 20, 25, 30, 12], [90, 105, 120, 135, 150, 100]   # six each, so the size rule wins its backtest
+    small, large = [10, 15, 20, 25, 30, 12], [90, 105, 120, 135, 150, 100]   # six each, out of time order, so the backtest has no earlier goals and the size rule stays the fallback
     history(repo, (2, 1), small, "s", chronological=False)
     history(repo, (7, 5), large, "l", chronological=False)
     repo.queued("small-goal", 2, 1)
@@ -467,6 +467,37 @@ def check_time_order_selector():
         bm.CELLS.clear(); bm.CELLS.update(old_cells)
         bm.LABELS.clear(); bm.LABELS.update(old_labels)
         bm.MODEL.clear()
+
+
+def check_time_order_edges():
+    repo = Repo()
+    # unique sizes: (1,1)=ga ... (7,7)=gi; times in seconds from AT, each goal's build takes 600
+    for slug, size, start in (("ga", 1, -10000), ("gb", 2, -9000), ("ge", 3, -600), ("go", 4, -300), ("gt", 5, 0), ("gl", 6, 1000)):
+        repo.done(slug, size, size, {"build": 10}, start=start)
+    # inverted stamps: starts at 3000 but its entries are stamped 2000 and 2400, so finish < start and build still sums to 400
+    log = [stamp(3000) + " frozen 7 done lines", stamp(2000) + " idea done in session", stamp(2400) + " build done in session"]
+    repo.write("gi", status="done", step="pr", release="merged", log=log, updated=stamp(2400))
+    repo.goal("gi", 7, 7)
+    runs = repo.records()
+    bm.MODEL.clear()
+    hist = bm.model(runs, AT, repo.root)["hist"]
+    need(sum(dict((s, t) for s, _, t in hist.done)["gi"].values()) > 0, "the inverted goal has logged time")
+    seen, kept = {}, bm.table
+
+    def spy(name, past, size, out=None):
+        seen[size] = sorted(slug for slug, _, _ in past.done)
+        return kept(name, past, size, out)
+    bm.table = spy
+    try:
+        rows = bm.time_folds(runs, hist, bm.CANDIDATES)
+    finally:
+        bm.table = kept
+        bm.MODEL.clear()
+    want = {(2, 2): ["ga"], (3, 3): ["ga", "gb"], (4, 4): ["ga", "gb"], (5, 5): ["ga", "gb"],
+            (6, 6): ["ga", "gb", "ge", "go", "gt"], (7, 7): ["ga", "gb", "ge", "gl", "go", "gt"]}
+    need(seen == want, "each goal is predicted from exactly the goals finished strictly before it started: %s" % seen)
+    need((1, 1) not in seen, "the first goal has no earlier goal, so no fold")
+    need("ga" not in [r["slug"] for r in rows], "ga has no earlier goal, so it is never a fold")
 
 
 def check_accuracy_line():

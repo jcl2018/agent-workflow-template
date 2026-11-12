@@ -211,7 +211,7 @@ def time_folds(runs, hist, names=CANDIDATES):
         actual = sum(seconds.get(s, 0) for s in STEPS)
         if not start or not finish or actual <= 0:
             continue
-        earlier = [item for item in hist.done if windows.get(item[0], (None, None))[1] and windows[item[0]][1] < start]
+        earlier = [item for item in hist.done if item[0] != slug and windows.get(item[0], (None, None))[1] and windows[item[0]][1] < start]
         if not earlier:
             continue
         past = History(earlier)
