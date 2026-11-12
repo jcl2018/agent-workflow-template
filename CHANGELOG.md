@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.27.27 - 2026-11-12
+
+- Only setup inserts the Settings and Automation blocks; a render refreshes them where their markers are
+- Page format: blank the template line too, so a README that opens with How to use passes DOC-5
+- Docs staleness: a commit that only refreshes the generated blocks stales no page
+- test-adopt: build the package only for SET-3, SET-4 and SET-5, which use it
+- test-docs-blocks and four rows for the render-readme-guard done lines
+- Mark adopt-set-1 and adopt-set-2 seen red; drop their known entries; Tests, Documentation and Setup usage
+- Guard the blocks rows on DOC-15, so they list in the Documentation Tests table
+- Point adopt-set-3..5 known entries at package-cap-3; say why SET-1/2 skip the package
+- Review: refresh a PRD Home's leftover blocks, render.py usage exit, real() early return, safer no-insert test
+- Documentation: render usage names the Home rule
+- counting.py: the no-prompt guard, since real() now runs git
+- Documentation: check skips block-only commits
+- size-140: move docs.py's live() unchanged into counting.py (docs.py 87% of the cap); drop its known entry; record the added done line
+- Merge origin/main (v0.27.22) into loop/render-readme-guard: Tests re-rendered; render.py's cadence() moved unchanged into counting.py to keep render.py under the size limit
+- Merge origin/main (v0.27.24) into loop/render-readme-guard: both sides' new rows kept; Tests re-rendered
+- pr: record issue states and the lane's results
+- Merge remote-tracking branch 'origin/main' into loop/render-readme-guard
+- Lane: re-render the Tests tables
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.26 - 2026-11-12
 
 - Statuses: a private repo's pr lane posts its real result under every required check
