@@ -8,12 +8,7 @@
 | <a id="t-ci-summary"></a>ci-summary | requirement | AUT-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-07 |
 | <a id="t-schedule-setting"></a>schedule-setting | requirement | AUT-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
 | <a id="t-bad-schedule-refused"></a>bad-schedule-refused | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
-| <a id="t-aut-health-schedule"></a>aut-health-schedule | requirement | AUT-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-schedule-mismatch"></a>aut-schedule-mismatch | requirement | AUT-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-health-workflow-current"></a>aut-health-workflow-current | requirement | AUT-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-defect-issue"></a>aut-defect-issue | requirement | AUT-2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-judge-no-secret"></a>aut-judge-no-secret | requirement | AUT-3 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-judge-no-program"></a>aut-judge-no-program | requirement | AUT-3 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-digest-create"></a>aut-digest-create | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-digest-format"></a>aut-digest-format | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-digest-rounds"></a>aut-digest-rounds | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
@@ -21,35 +16,25 @@
 | <a id="t-aut-digest-no-title"></a>aut-digest-no-title | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-digest-org"></a>aut-digest-org | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-digest-pin-fails"></a>aut-digest-pin-fails | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-health-off"></a>aut-health-off | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-regression-off"></a>aut-regression-off | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-off-by-hand"></a>aut-off-by-hand | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-missing-skills"></a>aut-missing-skills | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-digest-no-token"></a>aut-digest-no-token | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-secret-name"></a>aut-secret-name | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-no-push"></a>aut-no-push | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-by-hand-runs"></a>aut-by-hand-runs | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-cron-check"></a>aut-cron-check | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-regression-off-written"></a>aut-regression-off-written | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-digest-comment-fails"></a>aut-digest-comment-fails | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-digest-list-fails"></a>aut-digest-list-fails | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-old-issue-relabel"></a>aut-old-issue-relabel | requirement | AUT-2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-issue-list-fails"></a>aut-issue-list-fails | requirement | AUT-2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-cron-newline"></a>aut-cron-newline | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-secret-mapped"></a>aut-secret-mapped | requirement | AUT-3 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-judge-fails-green"></a>aut-judge-fails-green | requirement | AUT-3 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-foreign-workflow"></a>aut-foreign-workflow | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-digest-dry-run"></a>aut-digest-dry-run | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-off-push-runs"></a>aut-off-push-runs | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-off-dispatch-runs"></a>aut-off-dispatch-runs | requirement | AUT-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-regression-schedule-mismatch"></a>aut-regression-schedule-mismatch | requirement | AUT-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-setup-health-only-with-skill"></a>aut-setup-health-only-with-skill | requirement | AUT-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-email-mail"></a>aut-email-mail | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-email-retry"></a>aut-email-retry | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-email-test"></a>aut-email-test | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-email-digest"></a>aut-email-digest | requirement | AUT-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
-| <a id="t-aut-email-upgrade"></a>aut-email-upgrade | requirement | AUT-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
-| <a id="t-aut-email-secrets"></a>aut-email-secrets | requirement | AUT-6 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
+| <a id="t-aut-email-secrets"></a>aut-email-secrets | requirement | AUT-6 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-aut-email-rounds"></a>aut-email-rounds | requirement | AUT-7 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-aut-email-file"></a>aut-email-file | requirement | AUT-3 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-aut-email-regression"></a>aut-email-regression | requirement | AUT-2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
@@ -594,7 +579,6 @@
 | <a id="t-regression-issue-no-milestone"></a>regression-issue-no-milestone | requirement | done line milestone-freeform:2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-digest-no-milestone"></a>digest-no-milestone | requirement | done line milestone-freeform:2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-setup-no-milestone-step"></a>setup-no-milestone-step | requirement | done line milestone-freeform:2 | not run | - | local | 2026-11-12 |
-| <a id="t-health-workflow-no-milestone"></a>health-workflow-no-milestone | requirement | done line milestone-freeform:2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-milestone-v1-free-form"></a>milestone-v1-free-form | requirement | done line milestone-freeform:3 | not run | - | local | 2026-11-12 |
 | <a id="t-milestone-wording-unreviewed"></a>milestone-wording-unreviewed | requirement | done line milestone-freeform:1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-milestone-rows-seen-red"></a>milestone-rows-seen-red | requirement | done line milestone-freeform:4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
@@ -621,3 +605,35 @@
 | <a id="t-plan-seconds-nightly"></a>plan-seconds-nightly | requirement | done line lane-plan-cache:1 | not run | - | local | 2026-11-12 |
 | <a id="t-pending-none-goes-on"></a>pending-none-goes-on | requirement | done line pending-none:1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-pending-real-waits"></a>pending-real-waits | requirement | done line pending-none:2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
+| <a id="t-ls-plist"></a>ls-plist | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-registry"></a>ls-registry | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-no-health-workflow"></a>ls-no-health-workflow | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-private-tick"></a>ls-private-tick | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-public-tick"></a>ls-public-tick | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-digest-parity"></a>ls-digest-parity | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-private-no-workflow"></a>ls-private-no-workflow | requirement | done line local-schedule:2 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-blocks-named"></a>ls-blocks-named | requirement | done line local-schedule:2 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-narrow-triggers"></a>ls-narrow-triggers | requirement | done line local-schedule:3 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-missed-run"></a>ls-missed-run | requirement | done line local-schedule:4 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-dry-run"></a>ls-dry-run | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-log-bounded"></a>ls-log-bounded | requirement | done line local-schedule:4 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-hung-child"></a>ls-hung-child | requirement | done line local-schedule:4 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-offline-keeps-last"></a>ls-offline-keeps-last | requirement | done line local-schedule:4 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-judge-login"></a>ls-judge-login | requirement | done line local-schedule:5 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-usage-steps"></a>ls-usage-steps | requirement | done line local-schedule:5 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-messages-table"></a>ls-messages-table | requirement | done line local-schedule:5 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-nothing-in-repo"></a>ls-nothing-in-repo | requirement | done line local-schedule:6 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-size-budget"></a>ls-size-budget | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-scheduled-rule"></a>ls-scheduled-rule | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-regression-setting"></a>ls-regression-setting | requirement | done line local-schedule:2 | not run | - | local | 2026-11-12 |
+| <a id="t-st-pass"></a>st-pass | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-fail-never-success"></a>st-fail-never-success | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-public-zero"></a>st-public-zero | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-unreadable-zero"></a>st-unreadable-zero | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-rerun-failed-head"></a>st-rerun-failed-head | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-union-contexts"></a>st-union-contexts | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-merge-wiki-head"></a>st-merge-wiki-head | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-release-pr"></a>st-release-pr | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-no-bypass"></a>st-no-bypass | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-post-fails"></a>st-post-fails | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-setup-readonly"></a>st-setup-readonly | requirement | done line local-schedule:2 | not run | - | local | 2026-11-12 |
