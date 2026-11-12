@@ -9,3 +9,6 @@ Out of scope: other toys that fail the header check on main (test-runbook.sh, te
 
 DEPTH: full
 STEP: done
+
+## Review amendments (independent review, 2026-11-12)
+The review found a `..`-climbing quoted literal and shell glob still reached os.walk, and a shared spy list in the toy test. Fixed: `lanes.walk()` refuses an absolute or `..` prefix (its only os.walk), toy cases c and d added with a spy per closure, row `lanes-dotdot-not-walked` seen red. Reach of all 616 rows identical before and after (0 differ), measured with main's lanes.py and narrow.py on the same tree.

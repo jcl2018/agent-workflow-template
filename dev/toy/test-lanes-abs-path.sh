@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-regression/scripts/lanes.py skills/workflow-regression/scripts/narrow.py skills/workflow-regression/scripts/portlock.py
+# reads: skills/
 # Proves lanes-abs-path (REG-4): a lane's reach analysis never walks a folder outside the repo. A script that quotes an
 # absolute folder (os.path.join(root, "/abs/dir") is "/abs/dir") once had that whole folder walked, per row; the analysis now
 # skips it, and the paths a row reaches are the same as for the same repo without the quoted folder. Invented files in a
