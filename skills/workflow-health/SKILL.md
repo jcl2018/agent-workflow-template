@@ -69,18 +69,16 @@ python3 scripts/health.py file --group size,docs
 python3 scripts/health.py file --review review.json --feature Health
 ```
 
-`preview` lists each issue that would be opened, updated, closed, reopened or linked, with its milestone and tag, and
+`preview` lists each issue that would be opened, updated, closed, reopened or linked, with its tags, and
 writes nothing. `file` is the only writer, for the named groups (or a saved review) only:
-- One issue per finding, on the milestone of the feature it is about (`issues.py`), Backlog when none fits.
-- Labels: `health` plus `health:<group>`, or `health:review-<kind>` for a review finding.
+- One issue per finding, tagged with its group and placed on no milestone (`issues.py`).
+- Labels: `health` plus `health:<group>`, or `health:review-<kind>` for a review finding; `feature:<Page>` too when `feature_labels` is on.
 - A repeat updates the issue, a fix closes it (only when its own rule ran), and a return reopens it.
 - An open issue that already names the finding's subject gets one link comment instead of a duplicate.
 - An issue closed in triage stays closed while its evidence is unchanged.
-- The marker also records where `file` put the issue (`placed=`): it moves to its feature only while it is still there, so an
-  issue you moved anywhere else, `Backlog` included, stays. Run `milestone.py new --all --live` first so each feature has
-  its milestone; a missing one falls back to `Backlog` (made when needed), and unreadable milestones move nothing.
+- No milestone is made or set; one you put an issue on stays.
 
-It creates a missing feature milestone and never edits a page. It refuses with no `--group` or `--review` (`REFUSED[file]`),
+It never edits a page. It refuses with no `--group` or `--review` (`REFUSED[file]`),
 and stops before any write when gh can't list the issues (`REFUSED[gh]`). Show the preview to the owner and file only what
 they confirm. `run` is a deprecated alias of `preview`.
 
@@ -97,8 +95,8 @@ refused (`REFUSED[cap]`), and no `--why` is refused (`REFUSED[why]`).
 
 ## Milestones and automation: `scripts/milestone.py`, `scripts/automation.py` and `scripts/mail.py`
 
-`milestone.py` (`features`, `new --all`, `attach <slug>`, `move <issue> <feature|backlog>`) makes and fills the feature
-milestones; it prints `WOULD` lines unless given `--live`. Details: `references/commands.md` (Milestones).
+`milestone.py` (`new TITLE`, `move <issue> <TITLE|none>`) is the owner's, for free-form milestones such as v1.0; nothing
+requires one. It prints `WOULD` lines unless given `--live`. Details: `references/commands.md` (Milestones).
 
 ```bash
 python3 scripts/automation.py workflow [--check]
@@ -108,11 +106,11 @@ python3 scripts/mail.py test
 ```
 
 `workflow` writes `.github/workflows/health.yml` (workflows.py), which runs on `health_cron` (default every 4 hours;
-`off` makes a scheduled run write nothing) and by hand: check, file the groups a runner can read on their feature's
-milestone, the judge only with the `judge_env` secret, the digest, then the email. It also writes `mail-test.yml`, run
+`off` makes a scheduled run write nothing) and by hand: check, file the groups a runner can read as tagged issues,
+the judge only with the `judge_env` secret, the digest, then the email. It also writes `mail-test.yml`, run
 by hand to send one test mail. `--check` names a workflow that is missing or older than the skills (each health run
 warns about it). `digest` posts one comment per round on the pinned `Automation digest` issue: what ran, the round's
-cost (rounds.py), the email's state, then per milestone the new, still-open and fixed issues, each open one with its
+cost (rounds.py), the email's state, then per feature the new, still-open and fixed issues, each open one with its
 request, mentioning `digest_owner`; with no token outside Actions it only prints it. `mail.py send` mails that comment
 once (`digest_mail`: cloudflare, smtp or off; the address and keys only from Actions secrets); `mail.py test` sends one
 fixed mail. Every outcome is one line ending in a code. None of them pushes. Details: `references/commands.md`.

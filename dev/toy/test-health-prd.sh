@@ -2,7 +2,7 @@
 # reads: skills/workflow-health/scripts/
 # reads: dev/toy/fakegh/gh dev/toy/fakegh/fake.py
 # Proves the owner-approved Health PRD on throwaway repos with a stand-in for GitHub and stand-in judges: the twelve groups
-# and their angles (HLT-2), feature milestones, links and migration (HLT-4), the review and its evidence (HLT-5, HLT-9),
+# and their angles (HLT-2), tagged issues, links and migration (HLT-4), the review and its evidence (HLT-5, HLT-9),
 # triage (HLT-8), controls (HLT-6), same answer and no writes (HLT-1), and issues 124, 158
 # and 159. No model is called. usage: test-health-prd.sh [DIR] [h1|h2|h4|h5|hj|h6|h8|i124|i158|i159]   (HLT-7: test-health-time.sh)   (no part: all)
 set -u
@@ -31,6 +31,8 @@ mkrepo() {  # a repo with one feature (Calc, skills/calc) and a near-limit scrip
   git add -A; git commit -qm toy; echo '[]' > "$FAKE_GH_DIR/issues.json"; echo '[{"number": 1, "title": "Backlog", "state": "open"}, {"number": 2, "title": "Calc", "state": "open"}]' > "$FAKE_GH_DIR/milestones.json"
 }
 
+fl_on() { python3 -c "import json;c=json.load(open('.loop/config.json'));c['feature_labels']=True;json.dump(c,open('.loop/config.json','w'))"; git commit -qam labels-on; }  # the feature tag is off by default
+
 if want h2; then
 echo "== HLT-2: exactly twelve groups, each with its angle, every rule with a control"
 # Value: protects=HLT-2; fails_when=a group is added, dropped or loses its angle, or a rule has no firing control;
@@ -47,11 +49,11 @@ check "report.py refuses a thirteenth group" 'python3 -c "import sys;sys.path.in
 fi
 
 if want h4; then
-echo "== HLT-4: findings land on their feature's milestone; repeat, fix, return; covering issues linked; old markers moved"
-# Value: protects=HLT-4; fails_when=a finding lands on Backlog though a feature fits, a covered finding is duplicated, an
-# old marker is closed instead of moved, or a fix closes the wrong issue; why_new=every issue went to Backlog; seam=fake gh;
-# no_claim=GitHub's own milestone API
-mkrepo
+echo "== HLT-4: findings become tagged issues with no milestone; repeat, fix, return; covering issues linked; old markers moved"
+# Value: protects=HLT-4; fails_when=a finding is placed on a milestone, a covered finding is duplicated, an old marker is
+# closed instead of moved, a fix closes the wrong issue, or the feature tag appears with feature_labels off; why_new=every
+# issue used to be placed on its feature's milestone or Backlog; seam=fake gh; no_claim=GitHub's own label and milestone API
+mkrepo; f0=$fails
 python3 - "$FAKE_GH_DIR/issues.json" <<'PY'
 import json, sys
 json.dump([{"number": 1, "title": "old size finding", "state": "OPEN", "labels": [{"name": "health"}, {"name": "health:size"}],
@@ -59,13 +61,14 @@ json.dump([{"number": 1, "title": "old size finding", "state": "OPEN", "labels":
             "body": "<!-- loop-health size:skills/calc/scripts/near.py:limit -->\nold"}], open(sys.argv[1], "w"))
 PY
 out=$($H preview --group size,consistency 2>&1)
-check "an old marker is moved to the new key, not closed" 'grep -q "^WOULD update #1 size:skills/calc/scripts/near.py:scripts on Calc" <<<"$out" && ! grep -q "close #1" <<<"$out"'
-check "a finding with no feature lands on Backlog, tagged with its group" 'grep -q "^WOULD open issue .health: consistency /workflow-zzz frob usage-readme. on Backlog \[health:consistency\]" <<<"$out"'
-pf=$(r=$PWD; cd "$S" && python3 -B -c "import issues; print(issues.feature_of('$r', {'subject': 'Calc', 'evidence': 'Calc'}))" 2>&1)
-check "a page-level finding (a stale page) lands on that page's milestone ($pf)" '[ "$pf" = Calc ]'
+check "an old marker is moved to the new key, not closed" 'grep -q "^WOULD update #1 size:skills/calc/scripts/near.py:scripts \[health:size\]" <<<"$out" && ! grep -q "close #1" <<<"$out"'
+check "a finding is tagged with its group and no milestone is named" 'grep -q "^WOULD open issue .health: consistency /workflow-zzz frob usage-readme. \[health:consistency\]" <<<"$out" && ! grep -qi "milestone\|backlog" <<<"$out"'
+pf=$(r=$PWD; cd "$S" && python3 -B -c "import issues; print(issues.feature_of('$r', {'subject': 'Calc', 'evidence': 'Calc'}), issues.feature_of('$r', {'subject': 'nothing/here.py', 'evidence': ''}))" 2>&1)
+check "a page-level finding (a stale page) is about that page, one that fits none about none ($pf)" '[ "$pf" = "Calc None" ]'
+: > "$FAKE_GH_DIR/calls.log"
 $H file --group size,consistency >/dev/null 2>&1
 m=$(python3 -c "import json;print([i['milestone']['title'] for i in json.load(open('$FAKE_GH_DIR/issues.json')) if i['number']==1][0])")
-check "file puts the size finding on the Calc milestone" '[ "$m" = Calc ]'
+check "file leaves an issue the owner put on a milestone where it is, and makes and sets none" '[ "$m" = Backlog ] && ! grep -q -- "milestone" "$FAKE_GH_DIR/calls.log" && ! grep -q "feature:" "$FAKE_GH_DIR/calls.log"'
 out=$($H preview --group size,consistency 2>&1)
 check "a repeat is SAME, a key with a space (a /workflow command) included" 'grep -q "^SAME #1 " <<<"$out" && grep -q "^SAME #2 consistency:/workflow-zzz frob:usage-readme" <<<"$out" && grep -q "PREVIEW: 0 to write" <<<"$out"'
 printf '# small\n' > skills/calc/scripts/near.py; git commit -qam fixed
@@ -77,21 +80,25 @@ check "a return reopens it" '$H preview --group size 2>&1 | grep -q "^WOULD reop
 python3 - "$FAKE_GH_DIR/issues.json" <<'PY'
 import json, sys
 p = sys.argv[1]; s = json.load(open(p))
-s.append({"number": 9, "title": "Calc: the docs page lies about CAL-1", "state": "OPEN", "labels": [], "milestone": {"title": "Calc"},
+s.append({"number": 9, "title": "Calc: the docs page lies about CAL-1", "state": "OPEN", "labels": [], "milestone": None,
           "createdAt": "2026-01-01T00:00:00Z", "body": "see CAL-1"})
 json.dump(s, open(p, "w"))
 PY
 out=$($H preview --group requirements 2>&1)
-check "an open issue that already names the subject is linked, not duplicated" 'grep -q "^WOULD link #9 (already covers requirements:CAL-1:rows, on Calc)" <<<"$out" && ! grep -q "open issue .health: requirements CAL-1" <<<"$out"'
+check "an open issue that already names the subject is linked, not duplicated" 'grep -q "^WOULD link #9 (already covers requirements:CAL-1:rows) \[health:requirements\]" <<<"$out" && ! grep -q "open issue .health: requirements CAL-1" <<<"$out"'
 $H file --group requirements >/dev/null 2>&1; $H file --group requirements >/dev/null 2>&1
 check "the link comment is written once" '[ "$(python3 -c "import json;print(sum(\"loop-health-link requirements:CAL-1:rows\" in c[\"body\"] for i in json.load(open(\"$FAKE_GH_DIR/issues.json\")) for c in i.get(\"comments\") or []))")" = 1 ]'
+python3 -c "import json;c=json.load(open('.loop/config.json'));c['feature_labels']=True;json.dump(c,open('.loop/config.json','w'))"; git commit -qam labels-on
+out=$($H preview --group size,consistency 2>&1)
+check "with feature_labels on, a finding about a feature is also tagged feature:<Page>, one about none is not" 'grep -q "^WOULD update #1 .*\[health:size, feature:Calc\]" <<<"$out" && grep -q "^SAME #2 " <<<"$out" && ! grep -q "feature:" <<<"$(grep consistency <<<"$out")"'
+[ "$fails" = "$f0" ] && echo "PASS milestone-freeform:hlt4-feature-milestones"
 fi
 
 if want h5; then
 echo "== HLT-5 and HLT-9: review per feature, every finding with evidence, unverifiable ones dropped, writes nothing"
 # Value: protects=HLT-5, HLT-9; fails_when=a finding without checkable evidence is kept, review writes a file, or a failing
 # judge hides its cause; why_new=no review existed; seam=stand-in judges; no_claim=a real model's judgment
-mkrepo
+mkrepo; fl_on
 printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|conflict|a reader.s angle|CAL-1 and CAL-2 pull apart|CAL-1,docs/wiki/Calc.md:3|merge them"\necho "FINDING|Calc|weak-test|a skeptic.s angle|no test|nowhere/x.py:9|drop"\necho "FINDING|Ghost|gap|x|z|CAL-1|y"\n' > "$d/judge.sh"; chmod +x "$d/judge.sh"
 python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command']=['$d/judge.sh'];json.dump(c,open('.loop/config.json','w'))"
 git commit -qam judge; before=$(git status --porcelain)
@@ -105,7 +112,7 @@ printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|gap|a|first gap|CAL-1|x"
 python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command']=['$d/two.sh'];json.dump(c,open('.loop/config.json','w'))"
 $H review --json > "$d/two.json"; $H file --review "$d/two.json" >/dev/null 2>&1
 check "two findings of one kind on one feature are two issues, and file --review files only review findings" '[ "$(python3 -c "import json;print(sum(1 for i in json.load(open(\"$FAKE_GH_DIR/issues.json\")) if \"review-gap\" in str(i[\"labels\"]) and \"gap\" in i[\"title\"]))")" = 2 ] && ! grep -q "health:size\|health:docs" "$FAKE_GH_DIR/issues.json"'
-check "review --json is versioned, and file --review files it as health:review-<kind> on its feature" 'grep -q "\"version\": 1" "$d/r.json" && $H preview --review "$d/r.json" 2>&1 | grep -q "on Calc \[health:review-conflict\]"'
+check "review --json is versioned, and file --review files it as health:review-<kind> on its feature" 'grep -q "\"version\": 1" "$d/r.json" && $H preview --review "$d/r.json" 2>&1 | grep -q "\[health:review-conflict, feature:Calc\]"'
 printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|gap|a|one|CAL-1|same fix"\necho "FINDING|Calc|gap|a|two|CAL-2|same fix"\n' > "$d/same.sh"; chmod +x "$d/same.sh"
 python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command']=['$d/same.sh'];json.dump(c,open('.loop/config.json','w'))"
 check "next steps name each distinct fix once" '$H review 2>&1 | grep -qx "next steps: 1. same fix"'
@@ -115,7 +122,7 @@ if want h8; then
 echo "== HLT-8: triage per feature; a closed batch keeps the owner's words and is not refiled"
 # Value: protects=HLT-8; fails_when=triage writes without --yes, closes more than it listed, or file reopens a finding the
 # owner closed with unchanged evidence; why_new=no triage existed; seam=fake gh; no_claim=GitHub's label colors
-mkrepo
+mkrepo; fl_on
 $H file --group size >/dev/null 2>&1
 out=$($H triage 2>&1)
 check "triage lists open findings per feature by kind and age" 'grep -q "^== Calc: 1 ==" <<<"$out" && grep -q "size .* 1 open, oldest [0-9]* days" <<<"$out"'

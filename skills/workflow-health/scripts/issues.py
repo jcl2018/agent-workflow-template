@@ -1,12 +1,9 @@
-"""DOC-10 for health.py's docs-check rule: every open issue sits on a milestone (its feature's, or Backlog).
+"""What the health commands read from gh and from the pages. A milestone is optional and free form: nothing here requires one.
 
-rows(root) runs `gh issue list --state open --limit 1000 --json number,title,milestone` and gives one FAIL row per open
-issue with no milestone. When gh is missing, fails, or returns exactly LIMIT issues (the list may be cut), it gives one
-UNREAD row instead; report.py shows that row but never lets it turn the verdict red (SOFT). A repo with no GitHub remote
-has no issues to read, so it gives no row and makes no gh call. Read-only: it never edits an issue.
-It also holds what the other commands read from gh and from the pages: the cached list of every issue (fetch), the feature
-a finding is about (feature_of, from .loop/docs.tsv), an issue's marker key and evidence hash (key_of, legacy, evidence_of,
-covering), and triage (listing, close): open findings per feature, closed in a batch only with the owner's words.
+It holds the cached list of every issue (fetch), the feature a finding is about (feature_of, from .loop/docs.tsv) and the
+feature an issue is about (feature_group: its feature:<Page> label, else a milestone named like a page, else No feature),
+an issue's marker key and evidence hash (key_of, legacy, evidence_of, covering), and triage (listing, close): open
+findings per feature, closed in a batch only with the owner's words. Read-only apart from close, which needs --yes.
 """
 import datetime
 import hashlib
@@ -22,50 +19,6 @@ from defects import defined, table
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
-
-LIMIT = 1000
-RULE = "milestone"
-FIX_UNREAD = "gh auth login, then rerun health.py check"
-
-
-def row(state, subject, detail, fix):
-    return {"state": state, "family": "docs", "subject": subject, "rule": RULE, "detail": detail, "fix": fix}
-
-
-def on_github(root):
-    """True when a remote points at a GitHub host: only then can the repo have issues."""
-    try:
-        done = subprocess.run(["git", "remote", "-v"], cwd=root, capture_output=True, text=True, timeout=30)
-    except (OSError, subprocess.SubprocessError):
-        return False
-    return "github" in done.stdout.lower()
-
-
-def unread(text):
-    first = next((line.strip() for line in (text or "").splitlines() if line.strip()), "no answer")
-    return [row("UNREAD", "issues", first[:120], FIX_UNREAD)]
-
-
-def rows(root, gh="gh"):
-    if not on_github(root):
-        return []
-    args = [gh, "issue", "list", "--state", "open", "--limit", str(LIMIT), "--json", "number,title,milestone"]
-    try:
-        done = subprocess.run(args, cwd=root, capture_output=True, text=True, timeout=120)
-    except (OSError, subprocess.SubprocessError) as error:
-        return unread(str(error))
-    try:
-        issues = json.loads(done.stdout) if not done.returncode else None
-    except ValueError:
-        issues = None
-    if not isinstance(issues, list):
-        return unread(done.stderr or done.stdout)
-    if len(issues) >= LIMIT:
-        return unread("truncated at %d open issues" % LIMIT)
-    return [row("FAIL", "#%s" % one.get("number"), (one.get("title") or "")[:120],
-                "gh issue edit %s --milestone <Feature|Backlog>" % one.get("number"))
-            for one in sorted(issues, key=lambda one: one.get("number") or 0) if not one.get("milestone")]
-
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -148,20 +101,21 @@ def title_of(stone):
     return (stone.get("title") if isinstance(stone, dict) else stone) or ""
 
 
-def covering(item, issues, stone):
-    """An open non-health issue on the finding's milestone naming its subject as a whole token."""
+def covering(item, issues):
+    """An open non-health issue naming the finding's subject as a whole token."""
     subject = (item.get("evidence") or item["subject"]).split(",")[0].strip()
     if not re.search(r"[/.]|^[A-Z]{2,5}-\d+", subject) or len(subject) < 4:  # a path or an id, never a plain word
         return None
     pattern = re.compile(r"(?<![\w./-])%s(?![\w/-])" % re.escape(subject))
     for issue in issues:
-        if issue.get("state") == "open" and not is_health(issue) and issue.get("milestone") == stone and \
+        if issue.get("state") == "open" and not is_health(issue) and \
                 pattern.search("%s\n%s" % (issue.get("title") or "", issue.get("body") or "")):
             return issue
     return None
 
 
-BACKLOG = "Backlog"
+NO_FEATURE = "No feature"
+FEATURE_LABELS_DEFAULT = False  # the feature_labels setting (workflow-setup settings.py): off until the owner turns it on
 ID = re.compile(r"^[A-Z]{2,5}-\d+[a-z]?$")
 
 
@@ -193,13 +147,41 @@ def by_path(path, pages):
     return best
 
 
+def feature_label(page):
+    """The label that tags an issue with its feature: feature: plus the page name, without commas, newlines or control
+    characters, cut on code points at 42 (GitHub allows 50 in all). The one helper for writing and reading it."""
+    return "feature:" + "".join(c for c in page if c != "," and c.isprintable())[:42]
+
+
+def feature_labels_on(root):
+    """The feature_labels setting of .loop/config.json: only when true does any code create or apply a feature label."""
+    try:
+        with open(os.path.join(root, ".loop", "config.json")) as handle:
+            value = json.load(handle).get("feature_labels", FEATURE_LABELS_DEFAULT)
+    except (OSError, ValueError, AttributeError):
+        value = FEATURE_LABELS_DEFAULT
+    return value is True
+
+
+def feature_group(issue, pages):
+    """The feature (page name) an issue is about: the page whose feature_label it carries (two pages with one label give
+    No feature), else its milestone's title when that is a page's name (an old feature milestone), else No feature. A
+    free-form milestone such as v1.0 never makes a feature."""
+    names = {str(n).lower() for n in issue.get("labels") or []}
+    tagged = [p for p in pages if feature_label(p).lower() in names]
+    if tagged:
+        return tagged[0] if len(tagged) == 1 else NO_FEATURE
+    stone = title_of(issue.get("milestone"))
+    return stone if stone in pages else NO_FEATURE
+
+
 def feature_of(root, item, cache=None):
-    """The feature (page name) a finding is about, or Backlog."""
+    """The feature (page name) a finding is about, or None."""
     cache = cache if cache is not None else {}
     pages = cache.setdefault("pages", features(root))
     named = item.get("feature")
     if named:
-        return named if named in pages else BACKLOG
+        return named if named in pages else None
     known = cache.setdefault("ids", defined(root))
     rows = cache.setdefault("rows", {r["id"]: r for r in table(root)})
     for text in (item.get("subject") or "", item.get("evidence") or ""):
@@ -208,20 +190,20 @@ def feature_of(root, item, cache=None):
             continue
         if ID.match(text) and text in known:
             page = known[text][0]
-            return page if page in pages else BACKLOG
+            return page if page in pages else None
         if text in rows and rows[text]["goal"] in known:
             page = known[rows[text]["goal"]][0]
-            return page if page in pages else BACKLOG
+            return page if page in pages else None
         if text.startswith("#") and text[1:].isdigit():
             found, _ = fetch(root)
-            stone = next((i.get("milestone") for i in found or [] if str(i["number"]) == text[1:]), None)
-            if stone in pages:
-                return stone
+            page = next((feature_group(i, pages) for i in found or [] if str(i["number"]) == text[1:]), NO_FEATURE)
+            if page != NO_FEATURE:
+                return page
             continue
         page = text if text in pages else by_path(text, pages)  # a page-level finding (docs stale) names its page
         if page:
             return page
-    return BACKLOG
+    return None
 
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -248,8 +230,9 @@ def open_findings(root, only=None):
     found, why = fetch(root)
     if found is None:
         return None, why
+    pages = features(root)
     return [i for i in found if i.get("state") == "open" and is_health(i)
-            and (not only or (i.get("milestone") or "Backlog") == only)], ""
+            and (not only or feature_group(i, pages) == only)], ""
 
 
 def listing(root, only=None):
@@ -260,9 +243,9 @@ def listing(root, only=None):
     if not found:
         print("TRIAGE: no open findings%s" % (" on " + only if only else ""))
         return 0
-    table = {}
+    table, pages = {}, features(root)
     for issue in found:
-        table.setdefault(issue.get("milestone") or "Backlog", {}).setdefault(kind_of(issue), []).append(age(issue))
+        table.setdefault(feature_group(issue, pages), {}).setdefault(kind_of(issue), []).append(age(issue))
     print("TRIAGE: %d open findings on %d features" % (len(found), len(table)))
     for stone in sorted(table, key=lambda s: (-sum(len(v) for v in table[s].values()), s)):
         print("== %s: %d ==" % (stone, sum(len(v) for v in table[stone].values())))
@@ -283,8 +266,9 @@ def close(root, kind, why, only=None, older=0, yes=False, most=CAP):
     if not match:
         print("NOTHING TO CLOSE: no open %s findings%s%s" % (kind, " on " + only if only else "", " %d days or older" % older if older else ""))
         return 0
+    pages = features(root)
     for issue in match:
-        print("  #%d %s (%d days, %s)" % (issue["number"], issue.get("title") or "", age(issue), issue.get("milestone") or "Backlog"))
+        print("  #%d %s (%d days, %s)" % (issue["number"], issue.get("title") or "", age(issue), feature_group(issue, pages)))
     if len(match) > most:
         print("REFUSED[cap]: %d match, over --max %d. Narrow it with --feature or --older, or raise --max." % (len(match), most))
         return 2

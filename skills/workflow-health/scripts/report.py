@@ -7,8 +7,7 @@ groups: adding one means retiring one or raising the cap on purpose.
 Report (pure formatting, no I/O; used by check, judge and review): a header naming every group run and any skipped, then each
 group in the fixed order under a heading that states its angle, with every rule it checked (PASS, WARN, FAIL or UNREAD, a fix
 on each line that is not a pass), then one verdict. A rule that gave no row passes only when its function ran; a rule whose
-source could not be read, or whose function did not run, is UNREAD, never a pass (HLT-3). A SOFT UNREAD row (the open issue
-list, issues.py) is shown but not counted, so it never turns the verdict red.
+source could not be read, or whose function did not run, is UNREAD, never a pass (HLT-3).
 
 Commands (each takes the health module h): review, judge, preview, file and triage. Refusals print REFUSED[code] and exit 2:
 [group] an unknown group (health.py), [file] file with no group, [gh] the issues can't be listed (nothing is written), [review]
@@ -77,13 +76,6 @@ def shown(name):
     return TITLE.get(name, name)
 
 
-SOFT = {("docs", "milestone")}  # UNREAD rows shown but never counted: an unreadable issue list (issues.py) is not red
-
-
-def counted(item):
-    return item["state"] != "UNREAD" or (item["family"], item["rule"]) not in SOFT
-
-
 def line_of(item):
     text = "%s %s %s %s: %s" % (item["state"], item["family"], item["subject"], item["rule"], item["detail"])
     return text + (" -> fix: " + item["fix"] if item["fix"] else "")
@@ -95,7 +87,7 @@ def complete(rows, ran, ran_rules=None):
     out = list(rows)
     blind = {SOURCE[rule_of(item)] for item in rows if item["state"] == "UNREAD" and rule_of(item) in SOURCE}
     for name in ran:
-        seen = {rule_of(item) for item in rows if item["family"] == name and counted(item)}  # a soft UNREAD is never a pass
+        seen = {rule_of(item) for item in rows if item["family"] == name}
         for rule in RULES_OF.get(name, ()):
             if rule in seen:
                 continue
@@ -128,7 +120,7 @@ def build(rows, asked=None, ran_rules=None):
     """(lines, counts, green, verdict, ran, skipped, rows) for the fixed template."""
     ran, skipped = groups(rows, asked)
     rows = complete(rows, [name for name in ran if name != "mine"], ran_rules)
-    counts = {state: sum(1 for item in rows if item["state"] == state and counted(item)) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
+    counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
     green = not counts["FAIL"] and not counts["UNREAD"]
     verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % (
         "green" if green else "not green", counts["PASS"], counts["WARN"], counts["FAIL"], counts["UNREAD"])
@@ -267,7 +259,7 @@ def add(sub, h):
     for name, func in (("preview", cmd_preview), ("run", cmd_preview), ("file", cmd_file)):
         item = sub.add_parser(name, help="file findings as issues" if name == "file" else "list what file would do")
         item.add_argument("--group", "--family", dest="group", help="NAME[,NAME]: " + ", ".join(h.NAMES))
-        item.add_argument("--feature", help="only findings on this feature's milestone")
+        item.add_argument("--feature", help="only findings about this feature")
         item.add_argument("--review", help="a saved health.py review --json to file too")
         item.add_argument("--live", action="store_true", help="(ignored)")
         answer_flag(item)

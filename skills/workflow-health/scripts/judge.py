@@ -247,9 +247,10 @@ def deterministic(root, name, text, paths):
         out.append(finding(name, "gap", "a reader's angle", "the page has no non-functional requirement (performance, safety, privacy)",
                            "docs/wiki/%s.md" % name, "add one under Non-functional, or say none applies", "rule"))
     found, _ = IS.fetch(root)
+    pages = IS.features(root)
     for issue in found or []:
         body = "%s %s" % (issue.get("title") or "", issue.get("body") or "")
-        if issue.get("state") == "open" and issue.get("milestone") == name and not IS.is_health(issue) \
+        if issue.get("state") == "open" and IS.feature_group(issue, pages) == name and not IS.is_health(issue) \
                 and not re.search(r"\b[A-Z]{2,5}-\d+\b", body):
             out.append(finding(name, "gap", "an auditor's angle", "open issue #%d names no requirement" % issue["number"],
                                "#%d" % issue["number"], "tie it to a requirement, or add one", "rule"))

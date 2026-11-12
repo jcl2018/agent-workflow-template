@@ -6,7 +6,7 @@
 # reads: skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/tests.py
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-setup/scripts/settings.py
 # Test the docs fixes for four issues: a guide page skips the PRD contract (125), the audit takes a page's own
-# Milestone line and matches titles loosely (130), the LOCKED hints never say review and --user needs the owner's
+# Milestone line, found or not (130), the LOCKED hints never say review and --user needs the owner's
 # words without a terminal (133), and commits merged in from the base branch don't stale a page (156).
 # usage: test-docs-issues.sh [DIR]
 set -u
@@ -146,17 +146,7 @@ git commit -qam "Milestone line" >/dev/null
 out=$($docs audit --dry-run 2>&1)
 ! grep -q "^MILESTONE Delivery" <<<"$out" && ok "a page whose Milestone line names a real milestone has its milestone (issue 130)" || bad "milestone line: $out"
 edit $P "milestone/2" "milestone/9"; out=$($docs audit --dry-run 2>&1); reset
-grep -q "^MILESTONE Delivery" <<<"$out" && ok "a Milestone line naming no milestone is still found (issue 130)" || bad "milestone ghost: $out"
-got=$(python3 - "$here" <<'PY'
-import os, sys
-sys.path.insert(0, os.path.join(sys.argv[1], "skills", "workflow-docs", "scripts"))
-import audit
-held = {"Bloom hedge-fund demo": "https://github.com/o/r/milestone/3", "Other": "https://github.com/o/r/milestone/4"}
-print(audit.milestone_of("Bloom-hedge-fund-demo", "# Bloom\n", held, "Milestone"),
-      audit.milestone_of("X", "# X\n\nMilestone: https://github.com/o/r/milestone/4\n", held, "Milestone"))
-PY
-)
-[ "$got" = "https://github.com/o/r/milestone/3 https://github.com/o/r/milestone/4" ] && ok "a hyphenated page name matches a milestone titled with spaces (issue 130)" || bad "loose title: $got"
+! grep -q "MILESTONE" <<<"$out" && ok "a Milestone line naming no milestone is no trouble either (issue 130)" || bad "milestone ghost: $out"
 
 echo "== issue 133: LOCKED hints never say review, and --user needs the owner's words without a terminal"
 $cri review DEL-1 --user </dev/null 2>&1 | grep -q "REFUSED: .*LOOP_OWNER_WORDS" && ! grep -q "Reviewed" $P && ok "review --user with no terminal and no owner words is refused (issue 133)" || bad "unchecked user"

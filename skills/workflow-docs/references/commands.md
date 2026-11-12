@@ -241,7 +241,7 @@ Detail the skill's SKILL.md points to, kept word for word so no instruction is l
 
 ### The PRD page
 
-1. the title, a `Milestone:` line once the milestone exists, then `Review: **Unreviewed**` (or the owner's Reviewed line);
+1. the title, an optional free-form `Milestone:` line, then `Review: **Unreviewed**` (or the owner's Reviewed line);
 2. `## Problem`: who it's for and what it solves, at most `problem_lines` lines;
 3. `## Usage` (optional): the commands, as `/skill verb` asks or plain requests;
 4. `## Requirements`: up to `criteria_max` (default 10) lines `- DEL-3: **Unreviewed** what must hold`, short and plain,
