@@ -42,7 +42,7 @@ workflow
   made or set, and a failed issue write fails the step after the last row (`FILE_FAILED`). The job has 90 minutes; each
   row runs in its own process group with a 15-minute limit and starts only if that limit still fits an 88-minute
   budget (`REGRESSION_ROW_SECONDS` and `REGRESSION_JOB_SECONDS` in the step's environment override them). A row that
-  doesn't fit is skipped (`SKIPPED`) and fails with an issue. Each result is saved as the row ends, and a last step
+  doesn't fit is skipped (`SKIPPED`) and fails with an issue. A row that exits 77 says it cannot run on this machine (no Codex signed in, say): it is `SKIPPED` too, never `PASS`, never reused by a later lane (`SKIPPED <id>` is printed and `RESULT` ends `, <n> skipped`), does not fail the lane, opens no issue, and `red` refuses a break run that exits 77. Each result is saved as the row ends, and a last step
   that always runs writes the run summary: one header with totals and the run time, then one table per feature, or the
   plain results if that fails. Rows run with no GitHub token and none of the runner's own files in their environment
   (`regression.py run` too), and the checkout uses `persist-credentials: false`.
