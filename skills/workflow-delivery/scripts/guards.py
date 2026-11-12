@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-"""Keep goals stopping only for real failures: format rules that bind only the steps started after them, refusals that
-cost no try, the operation's repairs (resume, touches, a finding on a finished goal) and the data only they write.
-Imported by goal.py (and role.begin); run only as `guards.py known`, which prints the rule ids as JSON.
+"""Keep goals stopping only for real failures: rules that bind only the steps started after them, refusals and dead lanes
+that cost no try, and the operation's repairs (resume, touches, a finding on a finished goal). Imported by goal.py;
+`guards.py known` prints the rule ids as JSON.
 
-  rules      RULES maps each format rule id to the release that added it. A step records the ids known when it started
-             (state["rules_at"][step]); a rule binds the step only if its id is there. No rules_at: every rule binds.
-  refusals   refuse_no_try: exit 2, tries, status, step and the ran marker untouched; the 5th in a row leaves a note.
-  extra      <runs>/<slug>.extra.json: touches and findings only operation commands add, under an flock, so no writer
-             of the run record can erase them.
+  rules      RULES maps each format rule id to the release that added it; a step binds the ids in state["rules_at"][step].
+  refusals   refuse_no_try: exit 2, no try, status, step or ran marker changed; the 5th in a row leaves a note.
+  extra      <runs>/<slug>.extra.json: touches and findings only operation commands add, under an flock.
 """
 import datetime
 import json
@@ -42,7 +40,7 @@ def known():
 
 
 def stamp(state, step):
-    """Record the rules known now as the ones step started under; a later start overwrites an earlier entry."""
+    """The rules known now are the ones step started under."""
     if not isinstance(state.get("rules_at"), dict):  # missing, or null in an older record
         state["rules_at"] = {}
     state["rules_at"][step] = known()
@@ -58,8 +56,8 @@ def named(rule):
 
 
 def check_record(state, step, text, cfg, result):
-    """(stamp, refusal, ask, skipped) for a step that advances. refusal is (why, fix, code) and costs no try; ask is a
-    question for the owner (a malformed flow file); skipped lists the rules a step started before and so isn't held to."""
+    """(stamp, refusal, ask, skipped) for a step that advances: refusal is (why, fix, code), ask a question for the owner,
+    skipped the rules a step started before and so isn't held to."""
     skipped = []
 
     def held(rule):
@@ -120,10 +118,9 @@ def pending_items(text):
 
 
 def refuse_no_try(state, why, fix, code, save):
-    """A refusal that changes nothing the goal depends on: no try is used and the goal keeps running. Only a counter is
-    kept; at NOTE_AT in a row the run record's note says so, and the board shows it to the operation."""
+    """A refusal that changes nothing: no try, the goal keeps running; at NOTE_AT in a row the run record's note says so."""
     state["refusals"] = int(state.get("refusals") or 0) + 1
-    if state["refusals"] >= WAIT_AT:  # a worker that can't fix its reply: the owner decides, never a silent loop
+    if state["refusals"] >= WAIT_AT:  # the owner decides, never a silent loop
         state["status"], state["waiting"] = "waiting", {"ask": "%d %s: %s" % (state["refusals"], REFUSALS, why),
                                                         "words": ["go on " + state["slug"], "stop " + state["slug"]]}
     if state["refusals"] >= NOTE_AT:
@@ -143,7 +140,7 @@ def clear_refusals(state):
 def revive(state, how, by, why):
     """The one revival of a failed or stopped goal (resume; sessions.py bind keeps the same fields, a toy test checks).
     Returns the log line."""
-    state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
+    state.update(status="running", tries=0, free=0, refusals=0, finding="", waiting=None, note=None, report={})
     return "%s by %s: %s" % (how, by, " ".join(why.split())) if why else "%s by %s" % (how, by)
 
 
@@ -237,6 +234,7 @@ def write_finding(g, state, text):
 
 
 def fail_stop(g, state, text):
+    text = private.plain(text)
     state["status"] = "stopped"
     state["finding"] = text
     state["waiting"] = None
@@ -247,10 +245,16 @@ def fail_stop(g, state, text):
 
 
 def failed_try(g, state, why, step, fix):
+    why = private.plain(why)
+    if re.search(r"^(regression lane failed|\w+ failed: regression lane): LANE_DIED:", why) and state.get("free", 0) < 3:
+        state["free"], state["step"] = state.get("free", 0) + 1, step
+        g.save(state, "lane died, not counted (%d of 3)" % state["free"])
+        print("TRY NOT COUNTED (free rerun %d of 3; the next death counts)\nNEXT: run the same command again" % state["free"])
+        return
     state["tries"] = state.get("tries", 0) + 1
     most = int(g.config().get("max_tries") or g.MAX_TRIES)
     if state["tries"] >= most:
-        fail_stop(g, state, "Failed %d tries. Last: %s" % (state["tries"], why))
+        fail_stop(g, state, "Failed %d tries%s. Last: %s" % (state["tries"], " (+%d free reruns)" % state["free"] if state.get("free") else "", why))
     state["step"] = step
     g.save(state, "try %d failed: %s" % (state["tries"], why))
     print("TRY %d OF %d FAILED: %s" % (state["tries"], most, why))
@@ -289,7 +293,7 @@ def waiting_gate(g, state):
 
 
 def advance(g, state):
-    """After a recorded step: the next step starts under the rules known now, and the goal file's touches catch up."""
+    """After a recorded step: the next step starts under the rules known now; the touches catch up."""
     left = [step for step in g.FLOW if step not in state.get("flow", {})]
     if left:
         stamp(state, left[0])
@@ -297,7 +301,7 @@ def advance(g, state):
 
 
 def note_finding(runs, state, text):
-    text = " ".join(text.split())
+    text = private.plain(" ".join(text.split()))
     add_extra(runs, state["slug"], "findings", {"at": now(), "text": text}, "finding (goal stays %s): %s" % (state["status"], text))
     print("FINDING recorded on %s (goal stays %s)" % (state["slug"], state["status"]))
     return 0
@@ -311,8 +315,7 @@ def operation_only(g, name, slug):
 
 
 def cmd_resume(g, args):
-    """The operation revives a failed or stopped goal for the session that owns it. Every check runs first; nothing is
-    written on a refusal. It never starts a process."""
+    """The operation revives a failed or stopped goal for its session. Every check runs first; it starts no process."""
     operation_only(g, "resume", args.slug)
     state, slug = g.load(args.slug), args.slug
     if state.get("status") not in ("failed", "stopped"):
@@ -334,7 +337,7 @@ def cmd_resume(g, args):
         return 1
     tool = os.path.join(HERE, "..", "..", "workflow-monitoring", "scripts", "sessions.py")
     loop = os.path.dirname(g.state_dir())
-    with open(os.path.join(loop, "session-pool.json.lock"), "a") as lock:  # the lock sessions.py's bind and assign hold
+    with open(os.path.join(loop, "session-pool.json.lock"), "a") as lock:  # sessions.py's lock
         fcntl.flock(lock, fcntl.LOCK_EX)
         state = g.load(slug)  # recheck under the lock: a goal bound or cleared meanwhile isn't revived
         if state.get("status") not in ("failed", "stopped") or (state.get("session") or {}).get("id") != sid:

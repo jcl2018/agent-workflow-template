@@ -61,6 +61,7 @@ automation-missing-workflow	PASS	2026-11-12
 autorelease-no-report	PASS	2026-11-12	
 bad-schedule-refused	PASS	2026-11-12	
 batch-cut-user	PASS	2026-11-09	
+blocks-setup-clean	PASS	2026-11-12	
 board-estimates-overrun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 board-sections	PASS	2026-11-09	
 breaking-asks	PASS	2026-11-09	
@@ -94,9 +95,9 @@ del9-hooks	PASS	2026-11-12
 del9-merge-refuses	PASS	2026-11-12	
 dependencies-on-map	PASS	2026-11-09	
 dependency-held	PASS	2026-11-09	
-deploy-doc14-reviewed	FAIL	2026-11-12	
-deploy-not-locked	FAIL	2026-11-12	
-deploy-section-optional	FAIL	2026-11-12	
+deploy-doc14-reviewed	PASS	2026-11-12	
+deploy-not-locked	PASS	2026-11-12	
+deploy-section-optional	PASS	2026-11-12	
 deploy-table-refused	PASS	2026-11-12	
 deps-graph-94	PASS	2026-11-10	
 depth-auto-approve-gate	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -132,7 +133,7 @@ done-line-rows-128	PASS	2026-11-12
 done-lines-warning-143	PASS	2026-11-12	
 entry-stale	PASS	2026-11-12	
 estimates-shown	PASS	2026-11-12	
-every-row-described	PASS	2026-11-12	
+every-row-described	FAIL	2026-11-12	
 failed-waits-mender	PASS	2026-11-09	
 file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 fixed-closes	PASS	2026-11-12	
@@ -152,10 +153,12 @@ frozen-done-lines	PASS	2026-11-09
 full-goal-lane-timeout	PASS	2026-11-10	
 goal-levels-nightly	PASS	2026-11-11	
 guards-extra	PASS	2026-11-10	
-guards-no-try	PASS	2026-11-10	
-guards-resume	PASS	2026-11-10	
+guards-no-try	PASS	2026-11-12	
+guards-null-report-nofiles	PASS	2026-11-12	
+guards-null-report-reset	PASS	2026-11-12	
+guards-resume	PASS	2026-11-12	
 guards-rule-start	PASS	2026-11-10	
-guards-touches-finding	PASS	2026-11-10	
+guards-touches-finding	PASS	2026-11-12	
 guards-worker-role	PASS	2026-11-10	
 guards-worktree	PASS	2026-11-10	
 guide-marker-refused	PASS	2026-11-10	
@@ -330,6 +333,9 @@ prd-untested	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-usage-changed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 preview-writes-nothing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 problem-plural	PASS	2026-11-10	
+ptb-dead-lane	PASS	2026-11-12	
+ptb-mend	PASS	2026-11-12	
+ptb-plain-paths	PASS	2026-11-12	
 publish-refused-stale	PASS	2026-11-12	
 publish-restore	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 pull-ff-only-passes	PASS	2026-11-12	
@@ -405,6 +411,7 @@ settings-stale	PASS	2026-11-12
 settings-template-line	PASS	2026-11-12	
 setup-both-halves	PASS	2026-11-12	
 size-139	PASS	2026-11-12	
+size-140	PASS	2026-11-12	
 size-141	PASS	2026-11-12	
 size-budget	PASS	2026-11-11	
 size-fail	PASS	2026-11-12	
@@ -429,6 +436,7 @@ step-label-live	PASS	2026-11-12
 steps-in-session	PASS	2026-11-12	
 steps-through-flow	PASS	2026-11-09	
 stop-after-3-tries	PASS	2026-11-09	
+stop-takes-tree	PASS	2026-11-12	
 stuck-stays-top	PASS	2026-11-12	
 suite-time-recorded	PASS	2026-11-10	
 summary-escapes	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a

@@ -11,12 +11,12 @@ usage: goal.py <command> <slug> [options]
 Goal steps (step, record, pr) refuse outside a worker.
   wait SLUG --ask TEXT --words W [--words W]
   answer SLUG                 a waiting goal goes on
-  finding SLUG TEXT           stops a live goal; a done or merged one is only noted
+  finding SLUG TEXT   stops a live goal; a done or merged one is only noted
   resume SLUG --why T [--by W]    the operation revives a stopped session goal
   touches SLUG --add PATH --why T the operation widens a goal's touches
-  set SLUG [--depth D] [--bump B] [--budget-minutes N] [--budget-tokens N] --why T   the owner's per-goal settings
+  set SLUG [--depth D] [--bump B] [--budget-minutes N] [--budget-tokens N] --why T
   show SLUG
-A refusal that changes nothing uses no try: exit 2, the goal keeps running (guards.py).
+A refusal that changes nothing uses no try (exit 2, guards.py).
 """
 import argparse
 import datetime
@@ -31,24 +31,21 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lanekit  # noqa: E402
+fcntl = lanekit.fcntl
 import guards  # noqa: E402
 import fit  # noqa: E402
+import private  # noqa: E402
 import role
 
 
-def _pods():  # pods and the merge lock (MON-15) live in workflow-monitoring's graph.py, loaded by path; None without it
-    try:
-        spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod
-    except Exception:
-        return None
+try:  # pods (MON-15): workflow-monitoring's graph.py, loaded by path
+    _spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(__file__), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
+    pods = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(pods)
+except Exception:
+    pods = None
 
-
-pods = _pods()
-
-# No terminal, no waiting: a prompt from git or gh must fail, not block.
+# A git or gh prompt must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
@@ -116,25 +113,42 @@ def state_path(slug):
     return os.path.join(state_dir(), slug + ".json")
 
 
+SEEN = {}  # slug -> last record
+
+
 def load(slug):
     try:
-        return json.loads(read(state_path(slug)))
+        state = json.loads(read(state_path(slug)))
     except OSError:
         no("no goal named %s. Fix: start it with new." % slug)
+    SEEN[slug] = json.dumps(state)
+    return state
 
 
 def save(state, note=None):
+    """Locked save: only keys changed here win."""
     state["updated"] = now()
     if note:
         state.setdefault("log", []).append("%s %s" % (state["updated"], note))
-    path = state_path(state["slug"])
-    try:
-        role.report(json.loads(read(path)), state, state["updated"])
-    except (OSError, ValueError):
-        role.report({}, state, state["updated"])
-    temp = path + ".%d.tmp" % os.getpid()
-    write(temp, json.dumps(state, indent=2))
-    os.replace(temp, path)
+    path, slug = state_path(state["slug"]), state["slug"]
+    with open(path + ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            disk = json.loads(read(path))
+        except (OSError, ValueError):
+            disk = {}
+        was = json.loads(SEEN.get(slug, "{}"))
+        merged = dict(disk, **{k: v for k, v in state.items() if k not in was or was[k] != v})
+        merged = {k: v for k, v in merged.items() if k in state or k not in was}
+        have = disk.get("log") or []
+        merged["log"] = have + [line for line in state.get("log") or [] if line not in have]
+        role.report(disk, merged, state["updated"])
+        temp = path + ".%d.tmp" % os.getpid()
+        write(temp, json.dumps(merged, indent=2))
+        os.replace(temp, path)
+    state.clear()
+    state.update(merged)
+    SEEN[slug] = json.dumps(merged)
 
 
 def root():
@@ -201,7 +215,7 @@ def cmd_answer(args):
 
 
 def flow_set():
-    """The private flow file names a skill for every step. Its contents never go in the repo."""
+    """The private flow file names a skill for every step."""
     try:
         spec = json.loads(read(os.path.expanduser(os.environ.get("LOOP_FLOW") or FLOW_FILE)))
         steps = dict(spec.get("suite") or {}, **(spec.get("steps") or {}))
@@ -253,6 +267,10 @@ def cmd_new(args):
     return 0
 
 
+def cmd_adopt(args):
+    return fit.cmd_adopt(sys.modules[__name__], args)
+
+
 def cmd_queue(args):
     return fit.cmd_queue(sys.modules[__name__], args)
 
@@ -277,11 +295,11 @@ def next_step(state):
 
 
 def cmd_record(args):
-    """Apply what a flow step left: done or skipped moves on, pending waits, a failed run is a try; format slips cost none."""
+    """Apply a flow step's result."""
     state = held(args.slug)
     guards.waiting_gate(sys.modules[__name__], state)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
-    if args.in_session:  # the worker session ran the skill itself; its run record must name that session
+    if args.in_session:  # the session ran it
         args.file = role.session_reply(state, args.slug, args.step, args.file, state_dir(), FLOW)
     lane = role.need_lane(state_dir(), args.slug, args.file, args.step) if args.step in ("qa", "ship") else None
     if lane:
@@ -295,7 +313,7 @@ def cmd_record(args):
     result, why = (found[-1][0].lower(), found[-1][1].strip()) if found else ("", "")
     pending = guards.pending_items(text)
     session = args.in_session or state.get("worker") == "session"
-    if not result and not pending and session:  # flow.py's session route prints record without --in-session
+    if not result and not pending and session:  # flow.py's session route
         guards.refuse_no_try(state, "the %s reply has no STEP line" % args.step, "end the reply with the DEPTH line and a "
                              "STEP: done|skipped|pending|failed line, then record again", guards.NO_STEP_LINE, save)
     stamp, cfg = "", config()
@@ -357,6 +375,8 @@ def cmd_pr(args):
         failed_try(state, "merging %s conflicts in: %s" % (config()["base"], detail), "build",
                    "merge %s yourself, resolve the conflicts, commit, then pr" % config()["base"])
         return 1
+    if what == "dirty":
+        no("the merge was refused: %s. Fix: commit or remove the changes, then run pr again." % detail)
     if what == "merged":
         print("MERGED %s into the branch" % detail)
         state = held(args.slug)
@@ -378,6 +398,7 @@ def cmd_pr(args):
     if gate == "running":
         return 0
     if gate == "fail":
+        private.pr_result(root(), config()["base"], head, state["branch"], False)
         failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
                    "fix the failing rows, commit, then run pr again")
         return 1
@@ -396,22 +417,27 @@ def cmd_pr(args):
         no("push failed:\n" + pushed.stderr)
     url = info["url"] if info.get("state") == "OPEN" else ""
     if not url:
+        path = state_path(args.slug) + ".body"
+        write(path, body)
         done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
-                    "--title", state["goal"][:70], "--body", body], check=True)
+                    "--title", state["goal"][:70], "--body-file", path], check=True)
         url = done.stdout.strip().splitlines()[-1]
     state["pr"] = url
+    state["statuses"] = "ok" if private.pr_result(root(), config()["base"], head, state["branch"], True) else "failed"
     state["step"] = "release"
     state["status"] = "done"
     save(state, "pull request " + url)
     print("PR " + url)
     print("NEXT: " + ("workflow-release merges it: merge.py %s" % args.slug if config().get("auto_merge") is True
                       else "workflow-release asks cut or leave. The loop never merges."))
-    return 0
+    if state["statuses"] == "failed":
+        print("NEXT: the pull request will not merge until the status posts; run private.py statuses --head %s --ok" % head)
+    return 5 * (state["statuses"] == "failed")
 
 
 def cmd_finding(args):
     state = load(args.slug)
-    if state.get("status") in ("done", "merged"):  # a finished goal keeps its status
+    if state.get("status") in ("done", "merged"):
         return guards.note_finding(state_dir(), state, args.text)
     fail_stop(state, args.text)
 
@@ -445,6 +471,7 @@ def main():
             ("--touches", {"default": ""}))
     add("new", cmd_new, *goal, ("--release", {"default": ""}), ("--here", {"action": "store_true"}))
     add("queue", cmd_queue, *goal, ("--depends-on", {"default": ""}))
+    add("adopt", cmd_adopt)
     add("step", cmd_step, ("name", {}), ("--note", {"default": ""}), ("--tokens", {"type": int, "default": 0}))
     add("record", cmd_record, ("step", {"choices": FLOW}), ("--file", {"required": True}), ("--in-session", {"action": "store_true"}))
     add("wait", cmd_wait, ("--ask", {"required": True}), ("--words", {"action": "append", "required": True}))

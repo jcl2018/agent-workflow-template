@@ -1,0 +1,35 @@
+#!/bin/bash
+# reads: dev/toy/test-tree.sh
+# Runs dev/toy/test-tree.sh once per tree state and replays its output and exit code to every later caller, so the
+# rows that each check one of its lines (lanes-headers, lanes-repo-narrow, one-way-to-run, prd-repo-green and the
+# narrow rows) cost one run of it between them, not one each. The tree state is HEAD plus the working tree's changes,
+# staged, unstaged and untracked included. A caller waits for the one holding the lock (its pid is in the lock) and takes over if
+# that process died; it waits at most 13 minutes, inside a row's 15-minute limit. Results older than a day are
+# removed. usage: tree-once.sh
+set -u
+here=$(cd "$(dirname "$0")/../.." && pwd)
+dir="${TMPDIR:-/tmp}"
+find "$dir" -maxdepth 1 -name 'toy-tree-once-*' -mtime +0 -exec rm -rf {} + 2>/dev/null
+key=$( (cd "$here" && git rev-parse HEAD; git status --porcelain; git diff HEAD; git ls-files -o --exclude-standard -z | xargs -0 cat) 2>/dev/null | cksum | tr -d ' ')
+base="$dir/toy-tree-once-$key"
+i=0
+while [ ! -s "$base.rc" ]; do
+  if mkdir "$base.lock" 2>/dev/null; then
+    echo $$ > "$base.lock/pid"
+    bash -c "${TREE_ONCE_CMD:-bash \"$here/dev/toy/test-tree.sh\"}" > "$base.out.$$" 2>&1  # TREE_ONCE_CMD: a test's stand-in
+    echo $? > "$base.rc.$$"
+    mv -f "$base.out.$$" "$base.out"; mv -f "$base.rc.$$" "$base.rc"  # whole files only: a reader never sees half of one
+    break
+  fi
+  holder=$(cat "$base.lock/pid" 2>/dev/null)
+  if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null && [ ! -s "$base.rc" ]; then
+    mv "$base.lock" "$base.dead.$$" 2>/dev/null && rm -rf "$base.dead.$$"; continue  # the holder died: take over
+  fi
+  [ "$i" -lt 7800 ] || { echo "FAIL: tree-once: test-tree.sh did not finish in 13 minutes (lock held by pid ${holder:-?})"; exit 1; }
+  sleep 0.1; i=$((i + 1))
+done
+rc=$(cat "$base.rc")
+# 77: the run skipped itself. The caller that ran it wrote $TOY_SKIP_FILE; a replay writes it too, or its row reads FAIL.
+[ "$rc" != 77 ] || [ -z "${TOY_SKIP_FILE:-}" ] || echo skip > "$TOY_SKIP_FILE"
+cat "$base.out"
+exit "$rc"

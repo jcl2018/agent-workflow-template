@@ -12,7 +12,6 @@ worker sessions (`session_command` in .loop/config.json, or $LOOP_SESSION_TOOL),
 """
 import os
 import shlex
-import signal
 import subprocess
 import sys
 import tempfile
@@ -41,6 +40,8 @@ except ImportError:  # native Windows msvcrt byte-range locks under flock's name
             os.lseek(fd, here, 0)
 
     fcntl = types.SimpleNamespace(LOCK_SH=1, LOCK_EX=2, LOCK_NB=4, LOCK_UN=8, flock=_flock)
+
+import proctree
 
 # No terminal, no waiting: a prompt from git or gh in the tool must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -113,9 +114,9 @@ def cmd_bind(g, args):
         if state:
             was = state.get("status")
             if was in ("failed", "stopped") and not worker:  # the same fields as goal.py resume (guards.revive)
-                state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
+                state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report={})
             elif was in ("queued", "", None):
-                state.update(status="running", finding="", report=None)
+                state.update(status="running", finding="", report={})
             new = (state.get("session") or {}).get("id") != args.id or was in ("failed", "stopped")  # a new worker: next attempt
             state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None, bound_at=g.now(),
                          attempt=int(state.get("attempt") or 0) + (1 if new else 0))  # an older attempt's report is not applied (114)
@@ -168,10 +169,7 @@ def call(command, *args):
         try:
             child.wait(timeout=timeout())
         except BaseException as error:  # a timeout, or an interrupt: never leave the tool running
-            try:
-                os.killpg(child.pid, signal.SIGKILL)
-            except OSError:
-                pass
+            proctree.kill(child.pid)
             try:
                 child.wait(timeout=5)
             except subprocess.TimeoutExpired:

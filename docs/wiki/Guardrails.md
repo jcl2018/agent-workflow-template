@@ -14,7 +14,7 @@ Review: **Unreviewed**
 ## Usage
 
 - `/workflow-health check [--group NAME] [--skip controls] [--json]` — Runs the fixed rules and prints one line per finding, then the verdict. Prints `HEALTH REPORT`, then `<STATE> <group> <subject> <rule>: <detail>` per row, and last `HEALTH: green|not green (<p> pass, <w> warn, <f> fail, <u> unread)` (with `--json`, one object with green, counts, rows and verdict); exits 1 when not green. Refuses (exit 1) `REFUSED: unknown group <names>. Groups: ...` and `REFUSED: not inside a git repo.`; (exit 2) `REFUSED: --skip leaves no group to check` and `REFUSED: rule <name> has no negative control. ...`
-- `/workflow-setup settings` — Shows the settings reference: every setting with its home, default and meaning. Prints the reference as a Markdown table, one `| <setting> | <home> | <default> | <meaning> |` row per setting. Refuses nothing. This repo's `.loop/config.json` holds every setting the v0.27.17 template update writes, with `template_version` naming the template it came from.
+- `/workflow-setup settings` — Shows the settings reference: every setting with its home, default and meaning. Prints the reference as a Markdown table, one `| <setting> | <home> | <default> | <meaning> |` row per setting. Refuses nothing. This repo's `.loop/config.json` holds every setting the v0.27.29 template update writes, with `template_version` naming the template it came from.
 
 ## Requirements
 
@@ -27,7 +27,7 @@ Review: **Unreviewed**
 - GRD-2: **Unreviewed** Time and token budgets stop a goal or a step before it runs away
   - A review or ship step stops at `step_budget_minutes` (default 30, never under 15), finishes with what it has done and records what it left (Delivery, DEL-8).
   - An in-loop test run stops at `test_budget_minutes` (default 15, never under 15) and leaves the rest to the scheduled full suite (Regression, REG-7).
-  - The work before a lane's first test row (preparing, planning and waiting for a slot) stops at `prep_budget_minutes` (default 15, never under 15); the lane says which part ran long and the goal can rerun it (Delivery, Regression).
+  - The work before a lane's first test row (preparing, planning and waiting for a slot) stops at `prep_budget_minutes` (default 15, never under 15; this repo sets 25); the lane says which part ran long and the goal can rerun it (Delivery, Regression).
   - A goal past `time_budget_minutes` starts no new step, and the setting is in the settings reference with its default (Delivery, new).
   - A goal past `token_budget` starts no new step, whether its steps run in a session or headless (Delivery, DEL-8 for showing it on the board; new for steps run in a session: today only headless goals are refused).
 - GRD-3: **Unreviewed** Nothing private is committed, and no commit skips the hooks that check it
@@ -89,3 +89,4 @@ None
 | - | requirement | GRD-8 | no passing test | not enforced |
 | - | requirement | GRD-9 | no passing test | not enforced |
 | - | requirement | GRD-10 | no passing test | not enforced |
+| [stop-tree-step-limit](Tests#t-stop-tree-step-limit) | defect | [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) closed (2026-11-12) | Given a step or lane past its time limit, when it is stopped on any platform, then its whole process tree goes with it. | not run |
