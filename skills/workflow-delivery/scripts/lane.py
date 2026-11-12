@@ -321,7 +321,7 @@ def lane_exec(rc, seconds, last, attempt, pool, argv):
     """A lane's child: run the lane in its group, stop it past deadline() or on a signal, write .last ended, then the rc."""
     held = {"rc": rc, "limit": seconds, "started": time.time(), "pool": pool, "markers": 1,
             "prep_by": float(os.environ.get("_LOOP_LANE_PREP_BY") or 0)}
-    marks = {}  # when .queued and .started were first seen
+    marks = {}  # first-seen times
     lease, port = lanekit.port_base()  # REG-8: its own ports
     if lease is None:
         with open(rc + ".note", "a") as note:
@@ -331,7 +331,7 @@ def lane_exec(rc, seconds, last, attempt, pool, argv):
     if lease is not None:
         env["LOOP_LANE_PORT_BASE"] = str(port)
     child, seen, hit = subprocess.Popen(argv, env=env), None, []
-    for num in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):  # signalled from outside: name it, then stop
+    for num in (signal.SIGTERM, getattr(signal, "SIGHUP", signal.SIGINT), signal.SIGINT):  # name a signal from outside
         signal.signal(num, lambda got, _f: hit.append(got))
     try:
         while True:
