@@ -54,7 +54,7 @@ aut-secret-name	PASS	2026-11-12
 aut-setup-health-only-with-skill	PASS	2026-11-12	
 auto-approved	PASS	2026-11-09	
 auto-release	PASS	2026-11-11	
-bad-schedule-refused	PASS	2026-11-11	
+bad-schedule-refused	PASS	2026-11-12	
 batch-cut-user	PASS	2026-11-09	
 board-estimates-overrun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 board-sections	PASS	2026-11-09	
@@ -65,7 +65,7 @@ checkin-passes-hook	PASS	2026-11-10
 ci-bad-target	PASS	2026-11-10	
 ci-issue-backlog	PASS	2026-11-10	
 ci-levels-setting	PASS	2026-11-10	
-ci-summary	PASS	2026-11-11	
+ci-summary	PASS	2026-11-12	
 ci-target-input	PASS	2026-11-10	
 cost-time-warn	PASS	2026-11-11	
 cost-unread-tokens	PASS	2026-11-11	
@@ -100,7 +100,7 @@ depth-on-board	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 depth-recorded	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 depth-reference	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 depth-setup	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-describe-needed	PASS	2026-11-11	
+describe-needed	PASS	2026-11-12	
 digest-backlog	PASS	2026-11-10	
 docs-audit	PASS	2026-11-11	
 docs-check-same	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -118,7 +118,7 @@ docs-milestone-line-issue-130	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad434
 docs-only	PASS	2026-11-09	
 done-lines-warning-143	PASS	2026-11-10	
 estimates-shown	PASS	2026-11-12	
-every-row-described	PASS	2026-11-11	
+every-row-described	PASS	2026-11-12	
 failed-waits-mender	PASS	2026-11-09	
 file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 fixed-closes	PASS	2026-11-12	
@@ -185,7 +185,7 @@ issues-phone-97	PASS	2026-11-10
 judge-needs-you	PASS	2026-11-11	
 judge-section-format	PASS	2026-11-11	
 judge-verdict-unchanged	PASS	2026-11-11	
-keeps-seen-red	PASS	2026-11-11	
+keeps-seen-red	PASS	2026-11-12	
 known-no-block	PASS	2026-11-12	
 known-recorded	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 landed-left-alone	PASS	2026-11-09	
@@ -230,7 +230,7 @@ live-board-issues	PASS	2026-11-11
 live-board-leftouts	PASS	2026-11-11	
 live-board-no-oneline	PASS	2026-11-11	
 local-row-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-lock-in-report	PASS	2026-11-11	
+lock-in-report	PASS	2026-11-12	
 merge-base-undiffable	PASS	2026-11-11	
 merge-base-unrecorded	PASS	2026-11-11	
 merge-guard-base-head	PASS	2026-11-11	
@@ -331,7 +331,7 @@ review-owner-only	PASS	2026-11-12
 reviewed-lock	PASS	2026-11-12	
 row-timeout-holds	PASS	2026-11-11	
 run-kind-filter	PASS	2026-11-10	
-run-ledger	PASS	2026-11-11	
+run-ledger	PASS	2026-11-12	
 runs-keep	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 runs-partial	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 runs-same-day	PASS	2026-11-10	
@@ -339,7 +339,7 @@ runs-sha	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 runs-upgrade	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 runs-url	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 same-lines	PASS	2026-11-12	
-schedule-setting	PASS	2026-11-11	
+schedule-setting	PASS	2026-11-12	
 scripts-no-hang	PASS	2026-11-11	
 seal-sub-bullets	PASS	2026-11-10	
 session-answer	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -399,9 +399,9 @@ tests-not-enforced	PASS	2026-11-12
 tests-page-run-link	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-page-stale	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-py-missing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-tests-row-shape	PASS	2026-11-11	
+tests-row-shape	PASS	2026-11-12	
 tests-seen-failing	PASS	2026-11-12	
-tests-table-columns	PASS	2026-11-11	
+tests-table-columns	PASS	2026-11-12	
 tests-table-stale	PASS	2026-11-12	
 tiers-deleted-qa-pr	PASS	2026-11-10	
 tiers-no-merge-base	PASS	2026-11-10	
@@ -412,7 +412,7 @@ two-lanes-toy-435	PASS	2026-11-10
 unproven-blocks	PASS	2026-11-12	
 unread-closes-none	PASS	2026-11-12	
 unread-not-green	PASS	2026-11-12	
-unreview-lifts	PASS	2026-11-11	
+unreview-lifts	PASS	2026-11-12	
 untested-listed	PASS	2026-11-11	
 update-in-place	PASS	2026-11-12	
 usage-agent-requests	PASS	2026-11-11	
