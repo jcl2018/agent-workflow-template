@@ -100,9 +100,9 @@ def anchors(readme):
 
 
 def unblocked(text):
-    """text with the generated Settings and Automation blocks (render.py) blanked, line numbers kept: they are held to
-    a fresh render instead of the page format."""
-    return re.sub(r"<!-- (settings|automation):begin -->\n.*?<!-- \1:end -->\n", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
+    """text with the generated Settings, Automation and template blocks (render.py) blanked, line numbers kept: they
+    are held to a fresh render instead of the page format."""
+    return re.sub(r"<!-- (settings|automation|template):begin -->\n.*?<!-- \1:end -->\n", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
 
 
 def home(text, features, existing, readme, repo):
