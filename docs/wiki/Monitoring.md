@@ -114,12 +114,12 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde
 | [session-reuse](Tests#t-session-reuse) | requirement | MON-1 | Given a finished worker session, when a goal is ready, then the session is given the next ready goal. | PASS 2026-11-12 |
 | [steps-in-session](Tests#t-steps-in-session) | requirement | MON-1 | Given a worker session, when it runs steps, then it runs each step itself with no headless agent. | PASS 2026-11-12 |
 | [record-in-session](Tests#t-record-in-session) | requirement | MON-1 | Given a step a worker session ran, when it is recorded, then it is recorded as in session and a goal with no session is refused. | PASS 2026-11-12 |
-| [session-holds-slot](Tests#t-session-holds-slot) | requirement | MON-1 | Given a goal in a worker session, when the parallel limit is counted, then it counts against the limit. | PASS 2026-11-11 |
+| [session-holds-slot](Tests#t-session-holds-slot) | requirement | MON-1 | Given a goal in a worker session, when the parallel limit is counted, then it counts against the limit. | PASS 2026-11-12 |
 | [worker-reports](Tests#t-worker-reports) | requirement | MON-2 | Given a merged goal, when the board is shown, then it shows its pull request. | PASS 2026-11-12 |
 | [worker-reports-live](Tests#t-worker-reports-live) | requirement | MON-2 | Given a report to a running worker, when goal.py next runs, then the report reaches its agent once. | PASS 2026-11-09 |
 | [session-reports](Tests#t-session-reports) | requirement | MON-2 | Given a worker session's step report, when it arrives, then it is recorded on its goal. | PASS 2026-11-12 |
 | [session-fallback](Tests#t-session-fallback) | requirement | MON-2 | Given no session can be started, when a goal runs, then it falls back to a background process and the board says so. | PASS 2026-11-12 |
-| [session-answer](Tests#t-session-answer) | requirement | MON-2 | Given the owner's answer, when it is sent, then it reaches the worker session by session message. | PASS 2026-11-10 |
+| [session-answer](Tests#t-session-answer) | requirement | MON-2 | Given the owner's answer, when it is sent, then it reaches the worker session by session message. | PASS 2026-11-12 |
 | [session-quiet](Tests#t-session-quiet) | requirement | MON-2 | Given a worker session silent past silent_minutes (30 by default), when the board is printed, then it shows under Issues. | PASS 2026-11-10 |
 | [session-ended-waiting](Tests#t-session-ended-waiting) | requirement | MON-2 | Given a goal that ends with its pull request open, when it finishes, then it stays done and frees its session. | PASS 2026-11-10 |
 | [session-tool-timeout](Tests#t-session-tool-timeout) | requirement | MON-2 | Given a hung session tool, when its timeout passes, then it is cut off and the goal falls back to a background process at once. | PASS 2026-11-10 |

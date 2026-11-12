@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.27.45 - 2026-11-12
+
+- Skip absolute folders outside the repo in a lane's reach analysis
+- Guard lanes.walk against any path outside the repo, and test .. escapes
+- Declare skills/ for the lanes-abs-path toy, record the review
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+- pr: record issue states and the lane's results
+- Merge origin/main into loop/lanes-abs-path
+- Re-render the Tests tables after merging main
+- lanes-abs-path: normalise Windows backslashes in the .. checks (found running the goal's own test on Windows)
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+- Regression: the .. row names the Windows backslash case
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.44 - 2026-11-12
 
 - Merge origin/main into loop/spec-decisions
