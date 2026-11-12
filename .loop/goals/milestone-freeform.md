@@ -16,6 +16,13 @@ Frozen. A wrong done line needs a new goal.
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
 
+1. Read Documentation DOC-10 and Health HLT-4 (and DOC-4, HLT-2, AUT-2, AUT-3, SET-1) in docs/wiki.
+   Expect: each says a milestone is optional and free form (for example v1.0), none calls it required or per feature, and each of the seven lines reads `Unreviewed`.
+2. Run `python3 skills/workflow-docs/scripts/docs.py check` in this repo, whose feature pages carry no `Milestone:` line; then run `bash dev/toy/test-docs-command.sh` and `bash dev/toy/test-docs-format.sh`.
+   Expect: `DOCS OK: 9 pages` with no warning about a milestone; the toy runs print `PASS milestone-freeform:no-milestone-page-ok` and `PASS milestone-freeform:home-milestone-optional` (a page without a Milestone line, and a Home row with an empty Milestone cell, pass).
+3. Run `bash dev/toy/test-milestones.sh` (a fixture repo with the fake gh) and read its health file/preview section.
+   Expect: issues are filed labelled only `health` and `health:<group>`, with no milestone made or set and no `feature:` label call while `feature_labels` is off; with it on, a `feature:Calc` label is created first and applied; `milestone.py new v1.0 --live` and `move 1 v1.0` work; the run ends with `PASS milestone-freeform:health-file-no-milestone` and `PASS milestone-freeform:milestone-v1-free-form`.
+
 ## Wording changes
 
 Each changed requirement line, before and after. Every one ends Unreviewed; each page's Review line is `Review: **Unreviewed**` too (the owner un-review, words quoted in the commit). Seals (`<!-- reviewed ... -->`, `<!-- prd ... -->`) are gone until the owner re-reviews.
