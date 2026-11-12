@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.27.32 - 2026-11-12
+
+- Fix prd-new row's stale PASS name; guard reap.py's POSIX-only calls on Windows
+- Lane: re-render the Tests tables
+- Merge origin/main (v0.27.31) into loop/regression-defects; take main's reap.py
+
+### How to verify
+
+1. Run `out=$(bash dev/toy/test-prd.sh 2>&1); echo "$out" | grep "PASS: an optional Milestone line goes under the title"`.
+   Expect: the PASS line prints, so the `prd-new` row's last check finds its line.
+2. Run `python3 dev/toy/reap.py` with no arguments on native Windows.
+   Expect: a usage message, not an AttributeError about SIGPIPE.
+
 ## v0.27.31 - 2026-11-12
 
 - fix: lanes, slots and step timeouts on native Windows Python (#1396)
