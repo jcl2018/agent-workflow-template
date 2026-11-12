@@ -1,5 +1,62 @@
 # Changelog
 
+## v0.27.21 - 2026-11-12
+
+- Capacity audit for setup-adopt-2 (no code change)
+- Move reply_hook and HOOKS from setup.py to agents.py (no behavior change)
+- Health: Adoption rules no-fit and agent-tools, and file --open-only
+- Setup: adoption never blocks, rolls back, shows health first and last
+- Setup tests and 19 regression rows (rows not yet seen failing)
+- Record the 19 setup rows as seen failing on v0.27.10
+- Docs: Setup Usage and Tests, setup SKILL.md, Health Usage
+- Merge origin/main (v0.27.16) into loop/setup-adopt-2: rows unioned, Tests re-rendered, read-only home kept in the new setup
+- Setup: a failed git call mid-adoption rolls back (SystemExit was uncaught in the transaction)
+- Docs: Setup Usage says a failed git call mid-adoption rolls back too
+- Setup: journal dropped at the commit and ignored when HEAD moved, wiki_dir must be inside the repo, rollback checks index and branch restores, whole-line worktree branch match, CRLF kept once, post-commit SystemExit is a NOTE; drop dead on_branch and unused imports
+- Docs: SETUP_WIKI_DIR in Setup Usage and the setup SKILL.md
+- Setup: rollback kills and reaps a tool child still running before it restores (a stray docs.py wrote .loop/docs.tsv after a signal rollback)
+- Merge origin/main (v0.27.17) into loop/setup-adopt-2: update.py keeps both the contextlib import and portlock, Setup page notes the rollback stops a running tool child
+- Docs: Setup Usage says a rollback stops and reaps a running tool child
+- Docs: re-render the Settings table (cadence is the string 30 in the config)
+- Setup: rollback still restores when pkill or waitpid is missing (Windows); the setup toy declares sync.py and update.py
+- Setup toy: a rollback with no pkill still restores (negative control: fails on the unguarded call)
+- Docs: Setup Usage and the setup SKILL.md name the post-commit NOTE codes, exit 1 and 130, and that a missing pkill never stops the restore
+- pr: record issue states and the lane's results
+- Merge origin/main (v0.27.18) into loop/setup-adopt-2: Tests tables re-rendered, wiki-release waiver dropped
+- Merge origin/main (v0.27.19) into loop/setup-adopt-2
+- Home: the Setup row says adoption never blocks and health is judged before and after
+- Merge origin/main (v0.27.20) into loop/setup-adopt-2: Home keeps main's Automation row and our Setup row
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.20 - 2026-11-12
+
+- Fix two small doc defects: count the wiki pages, and put the README's commands in Usage
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/docs-small-fixes
+- Home: say a repo adds a routine with one config entry
+- Merge remote-tracking branch 'origin/main' into loop/docs-small-fixes
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.19 - 2026-11-12
+
+- Merge remote-tracking branch 'origin/main' into loop/issue-cleanup
+- Merge remote-tracking branch 'origin/main' into loop/issue-cleanup
+- Merge origin/main into loop/issue-cleanup; findings from both sides kept
+- Merge remote-tracking branch 'origin/main' into loop/issue-cleanup
+- pr: record issue states and the lane's results
+- Merge origin/main (settings-table, pending-none) into loop/issue-cleanup; Tests page re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/issue-cleanup
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.18 - 2026-11-12
 
 - Render the Settings and Automation blocks only with criteria on
