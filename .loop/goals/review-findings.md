@@ -13,3 +13,10 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Run `grep -c "health.yml" docs/wiki/Automation.md docs/wiki/Setup.md` and `wc -l skills/workflow-delivery/SKILL.md`.
+   Expect: Automation.md names `health.yml` once, only as the leftover file to `git rm`; Setup.md names it not at all in its setup entry; SKILL.md has under 150 lines.
+2. Open `docs/wiki/Automation.md` and read AUT-1, AUT-2 and the Usage list.
+   Expect: no health workflow, `--check` or Actions mail job; the regression workflow entry says a private repo gets `NOT WRITTEN`; AUT-2 says the pull request lane posts commit statuses.
+3. Open `DECISIONS.md`.
+   Expect: seven dated "review findings" lines above the "Waiting on owner un-review" section, which still holds only the spec-decisions proposals.
