@@ -186,6 +186,21 @@ def args_of(act):
             "close": ["issue", "close", n, "--comment", "No longer found by health.py file."]}[act["kind"]]
 
 
+def only_open(acts):
+    """--open-only: just the plan's open and link actions, so filing never closes, reopens or updates an issue. An issue that would
+    hold the home folder or an email is skipped with a NOTE."""
+    home, keep = os.path.expanduser("~"), []
+    for act in acts:
+        text = act["title"] + act["body"]
+        if act["kind"] not in ("open", "link"):
+            continue
+        if (len(home) > 1 and home in text) or re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", text):
+            print("NOTE: skipped %s (holds a private value)" % act["key"])
+            continue
+        keep.append(act)
+    return keep
+
+
 def preview(acts):
     """Print what would happen. Nothing here can write."""
     for act in acts:

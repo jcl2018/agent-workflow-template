@@ -36,7 +36,7 @@ toy() { # a toy repo with the loop set up, the stand-in flow and the fake gh
   "$here/dev/toy/make.sh" "$d/toy" >/dev/null || exit 1
   export LOOP_FLOW="$d/toy/flow.json" PATH="$here/dev/toy/fakegh:$PATH" FAKE_GH_DIR="$d/gh"
   cd "$d/toy/repo" || exit 1
-  python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null || true  # a bare agent_command exits 1 after writing
+  python3 "$here/skills/workflow-setup/scripts/setup.py" >/dev/null || true  # a bare agent_command is a gap, not a refusal (exit 0)
   git switch -q main; git merge -q --no-edit workflow-setup
   # setup's seeded rows count as seen failing here, so the qa lane (which fails unproven rows) passes for the toy goals
   awk -F'\t' 'BEGIN {OFS = FS} !/^#/ && NF > 4 && $5 == "" {$5 = "2026-01-01"} {print}' .loop/regression.tsv > "$d/rows" \
@@ -46,7 +46,7 @@ real() { # a git copy of what the repo-wide checks read (skills, docs, README, t
   mkdir -p "$d/real/.loop" && cp -R "$here/skills" "$here/docs" "$here/README.md" "$d/real/" \
     && cp "$here/.loop/regression.tsv" "$here/.loop/regression-runs.tsv" "$here/.loop/regression-issues.tsv" \
       "$here/.loop/regression-known.tsv" "$here/.loop/docs.tsv" "$here/.loop/config.json" "$d/real/.loop/" \
-    && cp -R "$here/.loop/goals" "$d/real/.loop/" \
+    && cp -R "$here/.loop/goals" "$d/real/.loop/" && { [ ! -d "$here/.github" ] || cp -R "$here/.github" "$d/real/"; } \
     && cd "$d/real" && git init -q && git add -A && git -c user.name=t -c user.email=t@t commit -qm copy \
     && { u=$(git -C "$here/." remote get-url origin 2>/dev/null) && git remote add origin "$u" || true; } || no "cannot copy the repo"  # the Tests page links runs to origin; "$here/." not "$here": the plain form is a root runner again (issue 172)
 }

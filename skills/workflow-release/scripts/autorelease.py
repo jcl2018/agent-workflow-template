@@ -214,6 +214,36 @@ def push_release_commit(top, cfg, state, part, to_branch=False):
         shutil.rmtree(temp, ignore_errors=True)
 
 
+def restatus(top, cfg, state, head):
+    """Post the pr lane's result for a head that moved only by wiki pages (a status belongs to one sha)."""
+    module, stop = sibling("private")
+    if not stop:
+        module.pr_result(top, cfg.get("base", "main"), head, state["branch"], True)
+
+
+def release_statuses(top, cfg, state, branch, sha):
+    """Run the affected rows at the release PR's head and post the real result under every required check's name;
+    state["release_status"] stays failure (and is run again) until it is success."""
+    module, stop = sibling("private")
+    if stop or not sha or state.get("release_status") == "success":
+        return
+    temp = tempfile.mkdtemp(prefix="release-status-")
+    tree, ok = os.path.join(temp, "tree"), False
+    try:
+        if sh(["git", "worktree", "add", "-q", "--detach", tree, sha], cwd=top).returncode == 0:
+            try:
+                ok = subprocess.run([sys.executable, os.path.join(SIBLING, "..", "..", "workflow-regression", "scripts", "regression.py"), "run",
+                                     cfg.get("ci_levels") or "nightly", "--reuse", "--tier", "goal", "--timeout", "900"], cwd=tree,
+                                    capture_output=True, timeout=1200).returncode == 0
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+    finally:
+        sh(["git", "worktree", "remove", "--force", tree], cwd=top)
+        shutil.rmtree(temp, ignore_errors=True)
+    posted = module.pr_result(top, cfg.get("base", "main"), sha, branch, ok)
+    state["release_status"] = "success" if ok and posted else "failure"
+
+
 def create_release(top, cfg, state, version, target):
     tag = "v" + version
     text = notes_text(state)

@@ -111,6 +111,11 @@ def alive(pid):
     return True
 
 
+def pstart(pid):
+    """The process's start time as ps prints it; a pid reused by another process reads differently."""
+    return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+
+
 def log_tail(slug, size, mark=0):
     try:
         with open(os.path.join(loop_dir("logs"), slug + ".log"), "rb") as handle:
@@ -139,7 +144,7 @@ def close_landed(state, url):
 def stop_late_mender(state):
     """A mender still running on a goal that has landed has nothing left to do, and would judge an empty diff."""
     url = landed(state)
-    if url and alive(state.get("pid")):
+    if url and alive(state.get("pid")) and state.get("pstart") and pstart(state["pid"]) == state["pstart"]:  # ours, not a reused pid
         try:
             os.killpg(state["pid"], signal.SIGTERM)
         except OSError:
@@ -202,7 +207,7 @@ def launch(state, prompt, cfg):
         save(state, "failed: " + state["finding"])
         return
     log.close()
-    state["pid"] = child.pid
+    state["pid"], state["pstart"] = child.pid, pstart(child.pid)
     state["status"] = "running"
     save(state, "launched agent pid %d" % child.pid)
 

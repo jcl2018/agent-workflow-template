@@ -16,6 +16,31 @@ import signal
 import subprocess
 import sys
 import tempfile
+try:
+    import fcntl
+except ImportError:  # native Windows msvcrt byte-range locks under flock's names
+    import msvcrt
+    import time
+    import types
+
+    def _flock(handle, op):
+        fd = handle if isinstance(handle, int) else handle.fileno()
+        here = os.lseek(fd, 0, 1)
+        os.lseek(fd, 0x7FFFFFFF, 0)  # one byte far past any content: readers never block
+        try:
+            while True:
+                try:
+                    return msvcrt.locking(fd, msvcrt.LK_UNLCK if op & 8 else msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    if op & 8:
+                        return  # unlock of a lock not held: a no-op, as with flock
+                    if op & 4:
+                        raise BlockingIOError("locked")
+                    time.sleep(0.05)
+        finally:
+            os.lseek(fd, here, 0)
+
+    fcntl = types.SimpleNamespace(LOCK_SH=1, LOCK_EX=2, LOCK_NB=4, LOCK_UN=8, flock=_flock)
 
 # No terminal, no waiting: a prompt from git or gh in the tool must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
