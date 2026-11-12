@@ -137,7 +137,7 @@ def save(state, note=None):
         except (OSError, ValueError):
             disk = {}
         was = json.loads(SEEN.get(slug, "{}"))
-        merged = dict(disk, **{key: value for key, value in state.items() if was.get(key, SEEN) != value})
+        merged = dict(disk, **{key: value for key, value in state.items() if key not in was or was[key] != value})
         merged = {key: value for key, value in merged.items() if key in state or key not in was}  # a removed key stays removed
         have = disk.get("log") or []
         merged["log"] = have + [line for line in state.get("log") or [] if line not in have]

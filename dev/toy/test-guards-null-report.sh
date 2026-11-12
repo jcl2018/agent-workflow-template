@@ -2,13 +2,13 @@
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/guards.py skills/workflow-monitoring/scripts/session_bind.py
 # reads: skills/workflow-monitoring/scripts/mend.py
 # A goal reset never writes a null report, and goal.py's state file is written under a lock so two writers lose neither
-# write. A temp repo, no model, no network. usage: test-guards-null-report.sh [reset|writers|nofiles ...]   (default all)
+# write. A temp repo, no model, no network. usage: test-guards-null-report.sh [reset|writers|fresh|nofiles ...]   (default all)
 set -u
 unset LOOP_ROLE CLAUDE_SESSION_ID LOOP_POD_ID
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
 S=${GNR_SKILLS:-$here/skills}
-cases=("$@"); [ ${#cases[@]} = 0 ] && cases=(reset writers nofiles)
+cases=("$@"); [ ${#cases[@]} = 0 ] && cases=(reset writers fresh nofiles)
 want() { for c in "${cases[@]}"; do [ "$c" = "$1" ] && return 0; done; return 1; }
 T=$(mktemp -d); fails=0
 ok() { echo "PASS: $1"; }
@@ -60,6 +60,16 @@ PY
 out=""; check "six unsynchronised writers all land" 'python3 -c "
 import json; d = json.load(open(\"$T/repo/.git/loop/runs/g.json\"))
 assert all(d.get(\"k%d\" % i) == 1 for i in range(1, 7)), d"'
+fi
+if want fresh; then
+echo "== a record made in this process is written whole"
+git init -q -b main "$T/fresh"; mkdir -p "$T/fresh/.git/loop/runs"
+( cd "$T/fresh" && python3 - "$S/workflow-delivery/scripts" <<'PY' )
+import sys; sys.path.insert(0, sys.argv[1]); import goal
+goal.save({"slug": "n", "status": "running", "flow": {}, "waiting": None, "log": [], "tries": 0})
+PY
+out=""; check "empty and null values of a new record are kept (flow {}, waiting null)" 'python3 -c "
+import json; d = json.load(open(\"$T/fresh/.git/loop/runs/n.json\")); assert d[\"flow\"] == {} and \"waiting\" in d and d[\"tries\"] == 0, d"'
 fi
 if want nofiles; then
 echo "== no new file under skills/"
