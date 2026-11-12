@@ -38,6 +38,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
 import actions, lanes, runs, slots, tiers  # noqa: E401,E402
+from runs import chosen, clean, criteria_ids, criterion_rows, done_lines, lines_of, today  # noqa: E402,F401
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -63,10 +64,6 @@ def git(*args, cwd=None):
 
 def top():
     return git("rev-parse", "--show-toplevel")
-
-
-def today():
-    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
 
 
 def path_of(root, name):
@@ -106,12 +103,6 @@ def known(root):
     return {cells[0]: cells[1] for cells in cells_of(root, "regression-known.tsv")}
 
 
-def clean(text):
-    if "\t" in text or "\n" in text:
-        sys.exit("REFUSED: a row can't hold a tab or new line. Fix: use a script.")
-    return text
-
-
 def cmd_add(args):
     if not ID.match(args.id):
         sys.exit("REFUSED: bad id. Fix: letters, digits, dots, dashes.")
@@ -128,12 +119,6 @@ def cmd_add(args):
     edit_rows(root, change)
     print("ROW %s %s: %s" % (args.id, args.level, args.command))
     return 0
-
-
-def done_lines(path):
-    with open(path) as handle:
-        part = handle.read().split("## Done lines", 1)[-1].split("\n## ", 1)[0]
-    return re.findall(r"^(\d+)\.\s+(.+)$", part, re.M)
 
 
 def active(root, slug):
@@ -158,27 +143,6 @@ def gaps(root):
             if "%s:%s" % (slug, number) not in covered:
                 out.append((slug, number, line))
     return out
-
-
-def criteria_ids(root):
-    """Requirement ids written under ## Requirements (or the old ## Criteria) in the wiki pages, outside code fences."""
-    try:
-        with open(path_of(root, "config.json")) as handle:
-            folder = json.load(handle).get("wiki_dir") or "docs/wiki"
-    except (OSError, ValueError):
-        folder = "docs/wiki"
-    ids = []
-    for name in sorted(glob.glob(os.path.join(root, folder, "*.md"))):
-        with open(name) as handle:
-            text = re.sub(r"(?ms)^```.*?^```[^\n]*$", "", handle.read())
-        if re.search(r"\n## (?:Requirements|Criteria)[ \t]*\n", text):
-            part = re.split(r"\n## (?:Requirements|Criteria)[ \t]*\n", text, maxsplit=1)[1].split("\n## ", 1)[0]
-            ids += re.findall(r"^- ([A-Z]{2,5}-\d+): \S", part, re.M)
-    return ids
-
-
-def criterion_rows(rows, key):
-    return [row for row in rows.values() if key in (row["id"], row["goal"]) and row["category"] != "defect"]
 
 
 def cmd_sync(args):
@@ -262,21 +226,6 @@ def cmd_red(args):
     edit_rows(root, lambda current: current[args.id].update(seen_red=today()) if args.id in current else None)
     print("SEEN RED %s on %s" % (args.id, today()))
     return 0
-
-
-def chosen(rows, target):
-    if target in rows:
-        return [rows[target]]
-    if target == "land":
-        return [row for row in rows.values() if row["level"] == "land"]
-    if target == "nightly":
-        return [row for row in rows.values() if row["level"] in ("land", "nightly")]
-    sys.exit("REFUSED: no row or level called %s." % target)
-
-
-def lines_of(root, name):
-    return {line.split("\t")[0]: line.rstrip("\n") for line in open(path_of(root, name)) if line.strip() and line[0] != "#"} \
-        if os.path.exists(path_of(root, name)) else {}
 
 
 def cmd_run(args):
