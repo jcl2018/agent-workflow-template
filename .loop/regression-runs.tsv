@@ -82,6 +82,7 @@ defect-known	PASS	2026-11-12
 defect-owed	PASS	2026-11-12	
 defect-owed-branch-proved	PASS	2026-11-10	
 defect-wording	PASS	2026-11-12	
+del9-hooks	PASS	2026-11-12	
 dependencies-on-map	PASS	2026-11-09	
 dependency-held	PASS	2026-11-09	
 deploy-doc14-reviewed	PASS	2026-11-10	
@@ -260,7 +261,7 @@ no-done-line-refused	PASS	2026-11-12
 no-flow-refused	PASS	2026-11-12	
 no-line-in-governor	PASS	2026-11-12	
 no-pid-left-alone	PASS	2026-11-09	
-no-prompts	FAIL	2026-11-12	
+no-prompts	PASS	2026-11-12	
 no-row-fail	PASS	2026-11-12	
 no-token-dry-run	PASS	2026-11-12	
 no-token-would	PASS	2026-11-12	
@@ -357,6 +358,9 @@ session-reports	PASS	2026-11-11
 session-reuse	PASS	2026-11-11	
 session-tool-helper	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 session-tool-timeout	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+set8-health	PASS	2026-11-12	
+set8-hooks	PASS	2026-11-12	
+set8-setup-commit	PASS	2026-11-12	
 settings-read-fresh	PASS	2026-11-11	
 settings-reference	PASS	2026-11-11	
 setup-both-halves	PASS	2026-11-11	

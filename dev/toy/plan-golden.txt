@@ -1,0 +1,115 @@
+== narrow
+AFFECTED 4 of 12 rows (t0, t3, t6, t9): changed since 2f3b25fd4294
+SELECTED t0: reaches docs/d0.md
+SELECTED t3: reaches docs/d0.md
+SELECTED t6: reaches docs/d0.md
+SELECTED t9: reaches skills/s0/scripts/m1.py
+ROWS: 4 selected (4 affected, 0 new, 0 root runners, 0 failure reruns), 8 reused; unmapped: 0
+RETURN todo=t0,t3,t6,t9 reused= old=none full=
+== wide
+AFFECTED 5 of 12 rows (t0, t3, t6, t7, t9): changed since be549c6d9217
+SELECTED t0: reaches docs/d0.md
+SELECTED t3: reaches docs/d0.md
+SELECTED t6: reaches docs/d0.md
+SELECTED t7: reaches skills/s1/SKILL.md
+SELECTED t9: reaches skills/s0/scripts/m1.py
+ROWS: 5 selected (5 affected, 0 new, 0 root runners, 0 failure reruns), 7 reused; unmapped: 0
+RETURN todo=t0,t3,t6,t7,t9 reused= old=none full=
+== mixed
+AFFECTED 4 of 12 rows (t0, t3, t6, t9): changed since bbb9c1e3cf01
+SELECTED t0: reaches docs/d0.md
+SELECTED t3: reaches docs/d0.md
+SELECTED t6: reaches docs/d0.md
+SELECTED t9: reaches app/f1.txt
+ROWS: 4 selected (4 affected, 0 new, 0 root runners, 0 failure reruns), 8 reused; unmapped: 0
+RETURN todo=t0,t3,t6,t9 reused= old=none full=
+== root
+UNMAPPED dev/toy/root.sh: no row declares it. Note: the rows that name it and the runners run; declare it in the # reads: header of the row that tests it to map it
+AFFECTED 9 of 13 rows (t0, t2, t3, t5, t6, t8, t9, t11, root): changed since d6b82d2313e0
+SELECTED t0: reaches docs/d0.md
+SELECTED t2: reaches skills/s2/scripts/m0.py
+SELECTED t3: reaches docs/d0.md
+SELECTED t5: reaches skills/s2/scripts/m0.py
+SELECTED t6: reaches docs/d0.md
+SELECTED t8: reaches skills/s2/scripts/m0.py
+SELECTED t9: reaches skills/s0/scripts/m1.py
+SELECTED t11: reaches skills/s2/scripts/m0.py
+SELECTED root: new row
+ROWS: 9 selected (8 affected, 1 new, 0 root runners, 0 failure reruns), 4 reused; unmapped: 1
+RETURN todo=t0,t2,t3,t5,t6,t8,t9,t11,root reused= old=none full=
+== unmapped
+UNMAPPED notes/x.txt: no row declares it. Note: the rows that name it and the runners run; declare it in the # reads: header of the row that tests it to map it
+AFFECTED 4 of 12 rows (t0, t3, t6, t9): changed since ea0848a53d26
+SELECTED t0: reaches docs/d0.md
+SELECTED t3: reaches docs/d0.md
+SELECTED t6: reaches docs/d0.md
+SELECTED t9: reaches skills/s0/scripts/m1.py
+ROWS: 4 selected (4 affected, 0 new, 0 root runners, 0 failure reruns), 8 reused; unmapped: 1
+RETURN todo=t0,t3,t6,t9 reused= old=none full=
+== deleted
+UNMAPPED docs/d1.md: deleted. Note: the rows that name it and the runners run
+AFFECTED 7 of 12 rows (t0, t3, t6, t9, t1, t4, t10): changed since 3bc7575c45d8
+SELECTED t0: reaches docs/d0.md
+SELECTED t3: reaches docs/d0.md
+SELECTED t6: reaches docs/d0.md
+SELECTED t9: reaches skills/s0/scripts/m1.py
+SELECTED t1: root runner
+SELECTED t4: root runner
+SELECTED t10: root runner
+ROWS: 7 selected (4 affected, 0 new, 3 root runners, 0 failure reruns), 5 reused; unmapped: 1
+RETURN todo=t0,t3,t6,t9,t1,t4,t10 reused= old=none full=
+== merged
+AFFECTED 8 of 12 rows (t0, t2, t3, t5, t6, t8, t9, t11): changed since a8fdb0864e19
+SELECTED t0: reaches docs/d0.md
+SELECTED t2: reaches skills/s2/scripts/m0.py
+SELECTED t3: reaches docs/d0.md
+SELECTED t5: reaches skills/s2/scripts/m0.py
+SELECTED t6: reaches docs/d0.md
+SELECTED t8: reaches skills/s2/scripts/m0.py
+SELECTED t9: reaches skills/s0/scripts/m1.py
+SELECTED t11: reaches skills/s2/scripts/m0.py
+ROWS: 8 selected (8 affected, 0 new, 0 root runners, 0 failure reruns), 4 reused; unmapped: 0
+RETURN todo=t0,t2,t3,t5,t6,t8,t9,t11 reused= old=none full=
+== record
+AFFECTED 4 of 12 rows (t1, t2, t4, t10): changed since a264a6c81e83
+SELECTED t1: reaches docs/d1.md
+SELECTED t2: failure rerun
+SELECTED t4: reaches docs/d1.md
+SELECTED t10: reaches docs/d1.md
+ROWS: 4 selected (3 affected, 0 new, 0 root runners, 1 failure reruns), 8 reused; unmapped: 0
+RETURN todo=t1,t2,t4,t10 reused=t0,t3,t5,t6,t7,t8,t9,t11 old=be2df73ffefdb393a5e0f522947d9de950fef61e 2024-01-01T00:00:00Z full=
+== norecord
+AFFECTED 7 of 12 rows (t0, t2, t3, t5, t6, t9, t11): changed since 65e009180c36
+SELECTED t0: reaches docs/d0.md
+SELECTED t2: reaches docs/d2.md
+SELECTED t3: reaches docs/d0.md
+SELECTED t5: reaches docs/d2.md
+SELECTED t6: reaches docs/d0.md
+SELECTED t9: reaches skills/s0/scripts/m1.py
+SELECTED t11: reaches docs/d2.md
+ROWS: 7 selected (7 affected, 0 new, 0 root runners, 0 failure reruns), 5 reused; unmapped: 0
+RETURN todo=t0,t2,t3,t5,t6,t9,t11 reused= old=none full=
+== nobase
+FULL (no merge-base with main): can't tell what this branch changed (a shallow clone or a missing base ref), so every row is a candidate and the time budget keeps what fits
+SELECTED t0: FULL
+SELECTED t1: FULL
+SELECTED t2: FULL
+SELECTED t3: FULL
+SELECTED t4: FULL
+SELECTED t5: FULL
+SELECTED t6: FULL
+SELECTED t7: FULL
+SELECTED t8: FULL
+SELECTED t9: FULL
+SELECTED t10: FULL
+SELECTED t11: FULL
+ROWS: 12 selected (0 affected, 0 new, 0 root runners, 0 failure reruns), 0 reused; unmapped: 0
+RETURN todo=t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11 reused= old=none full=no merge-base with main
+== detached
+AFFECTED 4 of 12 rows (t0, t3, t6, t9): changed since c9a0c748befd
+SELECTED t0: reaches docs/d0.md
+SELECTED t3: reaches docs/d0.md
+SELECTED t6: reaches docs/d0.md
+SELECTED t9: reaches skills/s0/scripts/m1.py
+ROWS: 4 selected (4 affected, 0 new, 0 root runners, 0 failure reruns), 8 reused; unmapped: 0
+RETURN todo=t0,t3,t6,t9 reused= old=none full=

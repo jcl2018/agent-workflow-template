@@ -7,9 +7,11 @@ shell files add the paths they name, Python files their same-folder imports and 
 imports by name with importlib.import_module, each quoted same-folder module name), and anything this cannot resolve
 becomes a problem that makes the row run on every change.
 """
+import json
 import os
 import re
 import time
+import zlib
 
 import lanes
 
@@ -23,6 +25,80 @@ NAMES_ONLY = re.compile(r"PYTHONPATH=\S+|sys\.path\.(?:insert|append)\([^)]*\)")
 LISTING = re.compile(r"\b(?:ls|find|grep\s+-\w*[rR]|rg|tar|zip|cp\s+-\w*[rRa]|rsync|du|wc)\b|\s\.(?:\s|/|$)")
 GLOB = re.compile(r"(?:\$here/)?((?:skills|dev|docs)/[\w./-]*?)/?\*")
 FILEISH = re.compile(r"\.(?:py|md|json|sh|tsv|txt|yml|yaml|toml)$")
+
+
+PARTS = ("schema", "runner", "head", "rows", "wide", "loop")
+
+
+def sound(path):
+    """A path the plan cache may hold: relative, no .. part."""
+    return isinstance(path, str) and not path.startswith("/") and ".." not in path.split("/")
+
+
+def warm(path, key, picked, cache):
+    """Seed cache with every row closure of the plan cache file at path when its key is key (tiers.key); the state text:
+    `hit (N rows)`, or `miss (<why>)`. The whole file is checked first; a bad file seeds nothing."""
+    digest, parts = key
+    try:
+        with open(path, "rb") as handle:
+            inflate = zlib.decompressobj()
+            text = inflate.decompress(handle.read(), 64 << 20)  # a cap: a bomb is a bad file
+            assert inflate.eof and not inflate.unconsumed_tail
+            data = json.loads(text)
+        paths, rows, was = data["paths"], data["rows"], data["parts"]
+        assert data["v"] == 1 and isinstance(data["key"], str) and isinstance(rows, dict) and isinstance(paths, list)
+        assert isinstance(was, list) and len(was) == len(parts) and all(sound(p) for p in paths)
+        for command, (index, always, why, table) in rows.items():
+            assert isinstance(command, str) and isinstance(always, bool) and isinstance(index, list)
+            assert all(type(i) is int and 0 <= i < len(paths) for i in index) and isinstance(why, (str, type(None)))
+            assert isinstance(table, (bool, type(None)))
+    except FileNotFoundError:
+        return "miss (absent)"
+    except Exception:  # fail open on anything (a bad file, RecursionError, MemoryError)
+        return "miss (corrupt)"
+    if data["key"] != digest:
+        first = next((n for n, a, b in zip(PARTS, parts, was) if a != b), "schema")
+        return "miss (corrupt)" if first == "schema" else "miss (key-%s)" % first
+    for command, (index, always, why, table) in rows.items():
+        cache["closure", command] = ({paths[i] for i in index}, always)
+        for name, value in (("why", why), ("table", table)):
+            if value is not None:
+                cache[name, command] = value
+    want = {row["command"] for row in picked}
+    return "hit (%d rows)" % len(want) if want <= set(rows) else "miss (partial %d of %d)" % (len(rows), len(want))
+
+
+def store(path, key, cache):
+    """Write every row closure the plan holds (a path the cache may not hold drops its row); atomic, last writer wins,
+    files over 30 days old pruned. The OSError class name on failure, else None."""
+    rows = {}
+    for item in [k for k in cache if isinstance(k, tuple) and k[0] == "closure"]:
+        deps, always = cache[item]
+        if all(sound(d) for d in deps):
+            rows[item[1]] = [sorted(deps), always, cache.get(("why", item[1])), cache.get(("table", item[1]))]
+    names = sorted({d for row in rows.values() for d in row[0]})
+    place = {n: i for i, n in enumerate(names)}
+    rows = {c: [[place[d] for d in row[0]], row[1], row[2], row[3]] for c, row in rows.items()}
+    data = {"v": 1, "key": key[0], "parts": key[1], "paths": names, "rows": rows}
+    folder, temp = os.path.dirname(path), "%s.%d.tmp" % (path, os.getpid())
+    try:
+        os.makedirs(folder, exist_ok=True)
+        with open(temp, "wb") as handle:
+            handle.write(zlib.compress(json.dumps(data, sort_keys=True).encode()))
+        os.replace(temp, path)
+    except Exception as error:  # never raises out of a plan
+        try:
+            os.remove(temp)
+        except OSError:
+            pass
+        return type(error).__name__
+    try:
+        for name in os.listdir(folder):
+            if name.endswith((".json", ".tmp")) and time.time() - os.path.getmtime(os.path.join(folder, name)) > 2592000:
+                os.remove(os.path.join(folder, name))
+    except OSError:
+        pass
+    return None
 
 
 def header(root, rel, cache):
@@ -78,7 +154,7 @@ def scan(root, rel, cache):
         index = cache.get("names")
         if index is None:
             index = cache["names"] = {}
-            for path in lanes.walk(root, "skills"):
+            for path in lanes.walk(root, "skills", cache):
                 index.setdefault(os.path.basename(path), set()).add(path)
         skill = "/".join(rel.split("/")[:2]) + "/" if rel.startswith("skills/") else None
         files |= {os.path.join(base, m + ".py") for m in lanes.modules(text)
@@ -158,7 +234,7 @@ def narrow(root, seeds, cache):
                 declared.append(path)
                 if path.endswith("/"):
                     deps.add(path)
-                    todo += [(f, rel) for f in lanes.walk(root, path)]
+                    todo += [(f, rel) for f in lanes.walk(root, path, cache)]
                 else:
                     todo.append((path, rel))
             files, folders = scan(root, rel, cache)
@@ -169,7 +245,7 @@ def narrow(root, seeds, cache):
                     marks.add((folder, rel))
                 else:  # a folder holding the file that names it (dev/, dev/toy/) is a prefix, not walked
                     deps.add(folder)
-                    todo += [] if rel.startswith(folder) else [(f, rel) for f in lanes.walk(root, folder)]
+                    todo += [] if rel.startswith(folder) else [(f, rel) for f in lanes.walk(root, folder, cache)]
             if rel.endswith(".sh") or "." not in os.path.basename(rel):
                 shell.append(lanes.read(root, rel, cache) or "")
                 sh.append(rel)
@@ -186,7 +262,7 @@ def narrow(root, seeds, cache):
             marks |= {(f, rel) for f in extra}
         added = False
         for folder, via in sorted(marks):
-            for path in lanes.walk(root, folder):
+            for path in lanes.walk(root, folder, cache):
                 name, stem = (re.escape(x) for x in (os.path.basename(path), os.path.splitext(os.path.basename(path))[0]))
                 used = r"(?<![\w.-])%s(?![\w-])|\b(?:import|from)\s+%s\b" % (name, stem) if path.endswith(".py") else \
                     r"(?<![\w.-])%s(?![\w-])" % name
