@@ -2,6 +2,7 @@
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-docs/scripts/docs.py
 # reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-release/scripts/merge.py
 # reads: skills/workflow-release/scripts/wiki.py skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-docs/scripts/criteria.py
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 # Test the release step's wiki half on a throwaway toy repo with a bare wiki. usage: test-wiki.sh [DIR]
 unset LOOP_BATCH
@@ -31,6 +32,14 @@ import json
 cfg = json.load(open(".loop/config.json")); cfg["auto_merge"] = True
 json.dump(cfg, open(".loop/config.json", "w"), indent=2)
 PY
+# criteria-off toy: render must leave README alone (v0.27.17 appended the template, Settings and Automation blocks)
+if out=$(python3 "$here/skills/workflow-docs/scripts/criteria.py" render 2>&1); then
+  git diff --quiet HEAD -- README.md && ok "a criteria-off render leaves README alone" \
+    || bad "criteria-off render wrote README ($(grep README <<<"$out" | tr '\n' ' ')). Fix: render.render() must gate refresh() on criteria"
+else
+  bad "criteria-off render failed: $out"
+fi
+git checkout -q -- README.md
 $docs add Using-the-toy --paths calc.py >/dev/null
 printf '<!-- workflow-docs -->\n# Using the toy\n\nRun `python3 calc.py` to use the toy calculator. Its tests sit beside it.\n' > docs/wiki/Using-the-toy.md
 git add -A; git commit -qm "Add the page"; git push -q origin main
