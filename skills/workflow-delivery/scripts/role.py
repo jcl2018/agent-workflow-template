@@ -321,7 +321,7 @@ def record(state, base):
         cfg = cfg if isinstance(cfg, dict) else {}
         try:
             if changed and os.path.exists(os.path.join(top, ".loop", "docs.tsv")) and os.path.exists(criteria):
-                subprocess.run([sys.executable, criteria, "render"], cwd=top, capture_output=True, text=True, timeout=300)
+                subprocess.run([sys.executable, criteria, "render", "--tables"], cwd=top, capture_output=True, text=True, timeout=300)
                 changed += generated(cfg)  # only the Tests tables it re-rendered: never other dirty files
             if changed:  # a new (untracked) file must be added before --only can commit it
                 subprocess.run(["git", "add", "--"] + changed, cwd=top, capture_output=True, text=True)

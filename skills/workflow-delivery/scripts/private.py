@@ -65,7 +65,7 @@ def mend(git, files, base):
                 out[at[k]] = max(line, out[at[k]], key=lambda l: l.split("\t")[2:3])
         open(top + "/" + f, "w").write("\n".join(out) + "\n")
     if any(page(f) for f in files):
-        if subprocess.run([sys.executable, criteria, "render"], cwd=top, capture_output=True).returncode:
+        if subprocess.run([sys.executable, criteria, "render", "--tables"], cwd=top, capture_output=True).returncode:
             return False
         git("add", "-u")
     if git("add", "--", *files).returncode or git("commit", "--no-edit", "-q").returncode:
