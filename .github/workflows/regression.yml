@@ -434,7 +434,7 @@ jobs:
               issues, out.stderr = None, "list cut off at 5000"
           if issues is None:
               print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
-          FEATURES = {row[0] for row in rows(".loop/docs.tsv") if row and row[0] and row[0] != "Home"}  # the pages
+          FEATURES = {row[0] for row in rows(".loop/docs.tsv") if row and row[0] and row[0] != "Home"}
           try:
               LABELS_ON = json.load(open(".loop/config.json")).get("feature_labels") is True
           except (OSError, ValueError, AttributeError):
@@ -457,7 +457,7 @@ jobs:
           def label_for(page):  # the page's label, made first, or ""
               if not LABELS_ON or page not in FEATURES:
                   return ""
-              label = "feature:" + "".join(c for c in page if c != "," and c.isprintable())[:42]  # issues.feature_label
+              label = "feature:" + "".join(c for c in page if c != "," and c.isprintable())[:42]
               made = gh("label", "create", label, "--force", "--description", "Issues about one feature")
               if made.returncode:
                   print("FAILED label %s: %s" % (label, made.stderr.strip()[:160]))
@@ -520,7 +520,7 @@ jobs:
                   if not hit:
                       make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect"]
                       made = gh(*make, *(["--label", label] if label else []), body=body)
-                      if made.returncode and label and "label" in made.stderr.lower():  # a refused label never loses the report
+                      if made.returncode and label and "label" in made.stderr.lower():
                           print("FAILED label %s: %s" % (label, made.stderr.strip()[:160]))
                           made = gh(*make, body=body)
                       if made.returncode:
