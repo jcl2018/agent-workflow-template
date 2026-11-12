@@ -274,6 +274,8 @@ operate-wakes-on-report	PASS	2026-11-09
 page-shape	PASS	2026-11-12	
 parallel-unlimited	PASS	2026-11-11	
 pass3-symlink-page	PASS	2026-11-11	
+pending-none-goes-on	PASS	2026-11-12	
+pending-real-waits	PASS	2026-11-12	
 pending-waits	PASS	2026-11-12	
 pool-edges-122	PASS	2026-11-10	
 pr-body-criterion	PASS	2026-11-11	

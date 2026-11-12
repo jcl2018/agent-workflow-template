@@ -619,3 +619,5 @@
 | <a id="t-plan-sizes"></a>plan-sizes | requirement | done line lane-plan-cache:5 | not run | - | local | 2026-11-12 |
 | <a id="t-plan-cache-key"></a>plan-cache-key | requirement | done line lane-plan-cache:3 | not run | - | local | 2026-11-12 |
 | <a id="t-plan-seconds-nightly"></a>plan-seconds-nightly | requirement | done line lane-plan-cache:1 | not run | - | local | 2026-11-12 |
+| <a id="t-pending-none-goes-on"></a>pending-none-goes-on | requirement | done line pending-none:1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
+| <a id="t-pending-real-waits"></a>pending-real-waits | requirement | done line pending-none:2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
