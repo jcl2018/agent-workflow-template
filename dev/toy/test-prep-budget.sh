@@ -4,6 +4,7 @@
 # reads: skills/workflow-delivery/scripts/lanekit.py
 # reads: skills/workflow-monitoring/scripts/monitor.py skills/workflow-health/scripts/lean.py
 # reads: skills/workflow-regression/scripts/slots.py skills/workflow-setup/scripts/setup.py
+# reads: skills/workflow-delivery/scripts/ skills/workflow-health/scripts/
 # Proves the preparation budget (REG-7, DEL-8): prep_budget_minutes defaults to 15 and refuses a value under 15; a lane that
 # waits for a slot past the budget stops with LANE_PREP_BUDGET naming the part that ran long, runs no row and frees its place;
 # the same command run again passes; every LANE line and .last record the three parts; a cut in planning, a corrupt record and a
