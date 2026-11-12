@@ -91,8 +91,8 @@ Review: **Unreviewed**
 
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
-| [adopt-set-1](Tests#t-adopt-set-1) | requirement | SET-1 | Given SET-1, when the toy adopt-and-update test runs, then it holds. | PASS 2026-11-12 |
-| [adopt-set-2](Tests#t-adopt-set-2) | requirement | SET-1 | Given SET-1 with suggest then apply, when the toy adopt-and-update test runs, then it holds. | PASS 2026-11-12 |
+| [adopt-set-1](Tests#t-adopt-set-1) | requirement | SET-1 | Given SET-1, when the toy adopt-and-update test runs, then it holds. | FAIL 2026-11-12 |
+| [adopt-set-2](Tests#t-adopt-set-2) | requirement | SET-1 | Given SET-1 with suggest then apply, when the toy adopt-and-update test runs, then it holds. | FAIL 2026-11-12 |
 | [setup-both-halves](Tests#t-setup-both-halves) | requirement | SET-1 | Given a repo, when setup runs, then it writes the repo half and, outside the repo, the private half. | PASS 2026-11-12 |
 | [set1-health-bracket](Tests#t-set1-health-bracket) | requirement | SET-1 | Given an adoption, when setup runs, then HEALTH START comes before the first write line, ADOPTION VERDICT is the last line, and a verdict that is not green lists each gap with its fix. | not run |
 | [set1-never-blocks](Tests#t-set1-never-blocks) | requirement | SET-1 | Given a bare agent_command and an ignored *.tsv, when setup runs, then it adopts and commits with exit 0, names each gap, writes the exception line, and a failed step after the commit is a note and a gap. | not run |
@@ -106,14 +106,15 @@ Review: **Unreviewed**
 | [depth-reference](Tests#t-depth-reference) | requirement | SET-2 | Given the settings reference, when it is generated, then it lists review_depth with its default. | PASS 2026-11-10 |
 | [depth-fill-repo-help](Tests#t-depth-fill-repo-help) | requirement | SET-2 | Given a config that already has its _help explanations, when fill-repo runs, then it fills without error. | PASS 2026-11-10 |
 | [set2-layers-show](Tests#t-set2-layers-show) | requirement | SET-2 | Given a default, a repo and a local setting, when settings show runs, then each value shows the layer it came from, a local key in the committed config is flagged, and private values are withheld. | not run |
-| [adopt-set-4](Tests#t-adopt-set-4) | requirement | SET-4 | Given SET-4, when the toy adopt-and-update test runs, then check shows the change, apply keeps the repo's data and lands the repo half on its branch. | PASS 2026-11-12 |
+| [adopt-set-4](Tests#t-adopt-set-4) | requirement | SET-4 | Given SET-4, when the toy adopt-and-update test runs, then check shows the change, apply keeps the repo's data and lands the repo half on its branch. | FAIL 2026-11-12 |
 | [sync-check-preview](Tests#t-sync-check-preview) | requirement | SET-4 | Given a newer template release, when update --check runs, then it shows the installed and available versions, the repo's version, what is new and each changed file, writes nothing, and never offers a downgrade. | not run |
 | [sync-apply-keeps](Tests#t-sync-apply-keeps) | requirement | SET-4 | Given an adopted repo, when update applies a newer version, then the skills update, the repo half lands on workflow-update-vX with template_version stamped, and config values, pages and private settings are kept. | not run |
 | [sync-default-source](Tests#t-sync-default-source) | requirement | SET-4 | Given an update from the template's release source archive, when the next default check runs, then it still finds the template through the installed stamp. | not run |
 | [sync-template-redirect](Tests#t-sync-template-redirect) | requirement | SET-4 | Given a committed template_repo that differs from the installed stamp's repo, when update runs, then it refuses rather than read another repo's releases. | not run |
 | [sync-propose](Tests#t-sync-propose) | requirement | SET-4 | Given a skill file fixed in an adopted repo, when update runs, then it shows as a local fix, is kept, and --propose --file-issue files one issue on the template with its diff and no repo name. | not run |
 | [sync-board-lag](Tests#t-sync-board-lag) | requirement | SET-4 | Given a governed repo on an older template version, when the live board renders, then it lists that repo under Issues with the fix. | not run |
-| [adopt-set-5](Tests#t-adopt-set-5) | requirement | SET-5 | Given SET-5, when the toy adopt test runs, then the design guide is installed and setup's .loop/START.md holds the opener and every part. | PASS 2026-11-12 |
+| - | requirement | SET-4 | no passing test | not enforced |
+| [adopt-set-5](Tests#t-adopt-set-5) | requirement | SET-5 | Given SET-5, when the toy adopt test runs, then the design guide is installed and setup's .loop/START.md holds the opener and every part. | FAIL 2026-11-12 |
 | [entry-stale](Tests#t-entry-stale) | requirement | SET-5 | Given an adopted repo, when a PRD page's Usage changes, then the entry point check and the docs check fail STALE until docs.py audit regenerates it. | PASS 2026-11-12 |
 | [entry-adopt](Tests#t-entry-adopt) | requirement | SET-5 | Given a repo, when setup adopts it, then .loop/START.md holds the first-five-minutes list and every part: loop, release, operation and workers, docs, regression, health, settings and features. | not run |
 | [adopt-fixture-existing-checks](Tests#t-adopt-fixture-existing-checks) | requirement | SET-6 | Given a repo whose config lists its own checks (pull request 83), when setup adopts it, then the written config keeps every check and the seeded row runs all of them. | not run |
@@ -131,7 +132,7 @@ Review: **Unreviewed**
 | - | requirement | SET-12 | no passing test | not enforced |
 | - | requirement | SET-13 | no passing test | not enforced |
 | - | requirement | SET-14 | no passing test | not enforced |
-| [adopt-set-3](Tests#t-adopt-set-3) | requirement | SET-3 | Given SET-3, when the toy adopt-and-update test runs, then it holds. | PASS 2026-11-12 |
+| [adopt-set-3](Tests#t-adopt-set-3) | requirement | SET-3 | Given SET-3, when the toy adopt-and-update test runs, then it holds. | FAIL 2026-11-12 |
 | [skill-kept](Tests#t-skill-kept) | requirement | SET-3 | Given detail moved out of the workflow-delivery and workflow-docs SKILL.md files, when their references are read, then every moved sentence is there word for word and SKILL.md points to it. | PASS 2026-11-12 |
 | [codex-ro-home](Tests#t-codex-ro-home) | requirement | SET-3 | Given a Codex sandbox that leaves the home folder read-only, when setup adopts a clean toy repo, then it says the private settings were not written and still adopts the repo, with no crash. | not run |
 | [codex-pods-collide](Tests#t-codex-pods-collide) | requirement | SET-3 | Given a Codex pod and a Claude Code pod that know nothing of each other, when they queue goals, bind workers and run lanes in the same toy repos at once, then no goal or binding is lost, a repeated slug is refused, the lanes share one slot pool and take turns, and their private flow files stay apart. | not run |
