@@ -9,6 +9,8 @@
   checks-run-tests  the regression workflow exists but no land row does (WARN)
   template-version  VERSION is not the newest CHANGELOG heading (WARN; INFO when either is missing)
   scheduled         the regression or health workflow is missing, or has no schedule (WARN)
+  no-fit            an open [adoption] line in .loop/findings.md, written by setup: one WARN row each (report.py)
+  agent-tools       agent_command (or the flow file's command) grants its agent no tools (WARN) (report.py)
 Security and privacy, Size, Performance check-time and Hygiene idle-sessions rules (also read-only):
   private                tracked files matching a leak pattern (leak_patterns in the private flow file): FAIL with
                          file:line and the pattern's number only, never the matched text; INFO with no pattern set
@@ -29,6 +31,7 @@ import sys
 import time
 
 import issues as IS
+import report as _report
 from defects import LINE, pages, row, table
 
 
@@ -160,7 +163,7 @@ def scheduled(root):
 
 FUNCTIONS = {"nightly": nightly, "unreleased": unreleased, "finding-age": finding_age, "skipped": skipped,
              "network": network, "config": config, "checks-run-tests": checks_run_tests,
-             "template-version": template_version, "scheduled": scheduled}
+             "template-version": template_version, "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools}
 
 
 def _c():
