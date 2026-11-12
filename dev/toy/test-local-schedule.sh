@@ -113,7 +113,7 @@ if want privatetick; then fresh; export FAKE_GH_PRIVATE=true; r=$(toyrepo pt "$(
 fi
 if want publictick; then fresh; export FAKE_GH_PRIVATE=false; r=$(toyrepo pu "$(cfgj actions)"); install "$r" >/dev/null
   out=$(tick "$r" 2>&1)
-  check "a public repo's tick runs health but no regression, and looks for the newest suite-time artifact" 'grep -q "REGRESSION: runs in GitHub Actions" <<<"$out" && ! grep -q "regression.py run\|bad-row" "$FAKE_GH_DIR/calls.log" && grep -q "run list --workflow regression.yml" "$FAKE_GH_DIR/calls.log"'
+  check "a public repo's tick runs health but no regression, and looks for the newest suite-time artifact" 'grep -q "REGRESSION: runs in GitHub Actions" <<<"$out" && ! grep -q "regression.py run\|bad-row" "$FAKE_GH_DIR/calls.log" && grep -q "run list --workflow regression.yml --limit 20" "$FAKE_GH_DIR/calls.log"'
 fi
 if want offline; then fresh; export FAKE_GH_OFFLINE=1; r=$(toyrepo of "$(cfgj mac)"); install "$r" >/dev/null
   python3 - "$LOOP_SCHEDULE_HOME/repos.json" <<'PY'
@@ -271,7 +271,7 @@ fi
 if want setting; then fresh
   for vis in true false error; do export FAKE_GH_PRIVATE=$vis; r=$(bare st$vis); out=$(setup "$r"); cfg=$(cat "$r/.loop/config.json" 2>/dev/null)
     case $vis in true) want_v='"regression_runs": "mac"';; false) want_v='"regression_runs": "actions"';; *) want_v="";; esac
-    check "setup (visibility $vis) records regression_runs: $want_v" '{ [ -z "$want_v" ] && ! grep -q regression_runs <<<"$cfg"; } || grep -q "$want_v" <<<"$cfg"'
+    check "setup (visibility $vis) records regression_runs: $want_v" 'if [ -z "$want_v" ]; then ! grep -q regression_runs <<<"$cfg"; else grep -qF "$want_v" <<<"$cfg"; fi'
   done
   check "setup names the cause when visibility is unreadable" 'grep -q "visibility unreadable" <<<"$out"'
   out=$(python3 "$here/skills/workflow-setup/scripts/settings.py" reference); check "settings lists regression_runs with its default" 'grep -q "regression_runs" <<<"$out" && grep -q "actions" <<<"$out"'

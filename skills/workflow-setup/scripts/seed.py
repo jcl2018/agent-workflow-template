@@ -220,7 +220,12 @@ def decide(repo, config, found):
             acts.append(("add", ".github/workflows/regression.yml", "regression run on " + config.get("regression_cron", ""), "workflow"))
     else:
         acts.append(("no fit", ".loop/regression.tsv", "no check command found, so no test row can be seeded", None))
-    if sibling("workflow-health", "automation.py"):
+    try:  # the schedule's registry, outside the repo (workflows.py)
+        with open(os.path.join(os.environ.get("LOOP_SCHEDULE_HOME") or os.path.expanduser("~/.workflow-loop/schedule"), "repos.json")) as handle:
+            listed = [e["path"] for e in json.load(handle)["repos"].values()]
+    except (OSError, ValueError, KeyError):
+        listed = []
+    if sibling("workflow-health", "automation.py") and os.path.realpath(repo) not in listed:
         acts.append(("add", "local schedule", "launch agent file and registry entry outside the repo; you load it by hand", "local"))
     for line in out(repo, "workflow-delivery", "private.py", "required", "--base", config["base"]).splitlines() if seen == "private" else []:
         if line.startswith("BLOCKS: "):

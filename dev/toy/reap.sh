@@ -38,6 +38,7 @@ toy_on_exit() { _toy_reap_cbs="${_toy_reap_cbs}${1}
 # The local schedule never touches the real home: its registry, launch agent folder and launchctl are per-test fakes.
 _toy_sched=$(mktemp -d); toy_on_exit 'rm -rf "$_toy_sched"'
 export LOOP_REPO_VISIBILITY=public  # a toy repo is public unless a test unsets this and uses the fake gh
+export LOOP_SCHEDULE_PROGRAM="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/skills/workflow-health/scripts/automation.py"  # install is not refused in a worktree
 export LOOP_SCHEDULE_HOME="$_toy_sched/schedule" LOOP_AGENTS_DIR="$_toy_sched/agents" LOOP_LAUNCHCTL="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fakegh/launchctl"
 toy_list() { python3 "$_toy_reap_py" list "$1=$2"; }
 toy_reap() { python3 "$_toy_reap_py" reap "$1=$2" --label "$_toy_reap_label"; }
