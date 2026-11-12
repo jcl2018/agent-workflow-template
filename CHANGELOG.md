@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.27.35 - 2026-11-12
+
+- Trim private.py under the 20,480-byte cap (comments and docstrings only)
+- Merge remote-tracking branch 'origin/main' into loop/private-size-pc
+- Merge remote-tracking branch 'origin/main' into loop/private-size-pc
+- Wiki: update pages for private-size-pc
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.34 - 2026-11-12
 
 - Automation budgets: one 30 minute regression budget, sharded matrix, TRUNCATED digest, health waits for regression
