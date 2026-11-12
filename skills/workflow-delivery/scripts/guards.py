@@ -8,7 +8,7 @@ that cost no try, and the operation's repairs (resume, touches, a finding on a f
   extra      <runs>/<slug>.extra.json: touches and findings only operation commands add, under an flock.
 """
 import datetime
-import fcntl
+import portlock as fcntl
 import json
 import os
 import re
