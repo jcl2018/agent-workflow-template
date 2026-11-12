@@ -11,7 +11,7 @@ Skills:
 
 - `workflow-delivery`: Takes one sentence to a pull request by running your own idea, plan, review, test and ship skills unattended, in a background agent, with frozen done lines around them and review as the only gate.
 - `workflow-docs`: Keeps a repo's wiki pages in the repo, finds pages that have gone stale, and publishes them to its GitHub wiki without touching pages it didn't write.
-- `workflow-health`: Checks a repo's health with fixed rules that give the same answer every time.
+- `workflow-health`: Checks a repo against its own PRDs.
 - `workflow-monitoring`: One session governs and the others build.
 - `workflow-regression`: Keeps a repo's regression tests visible and enforced.
 - `workflow-release`: Releases a goal once it has a pull request.

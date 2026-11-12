@@ -47,6 +47,7 @@ Review: **Unreviewed**
 ### Non-functional
 - REG-7: **Unreviewed** Fast in the loop
   - Every in-loop test run (qa, ship and the pull-request lane) stays within a time budget, a setting that defaults to 15 minutes and can't be set lower. A run that would go past it, including changes the row picker can't map such as a deleted file, runs the affected tier that fits and leaves the rest to the scheduled full suite, saying what it left; the loop never runs the full suite. The scheduled full suite finishes in under 30 minutes, and health flags it when it doesn't.
+  - The work before a lane's first test row (preparing, planning and waiting for a slot) has its own budget, a setting that defaults to 15 minutes and can't be set lower; a lane whose preparation reaches it stops, says which part ran long, and the goal can rerun it instead of starting over.
 - REG-8: **Reviewed 2026-11-10** Controllable <!-- reviewed e39ec809 -->
   - Which levels run where, the GitHub schedule, the time limits and how many test lanes run at once are settings.
   - Lanes running side by side never share files or ports or time each other out, and a lane over its limit says so.
@@ -68,16 +69,16 @@ Review: **Unreviewed**
 
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
-| [refused-unmet](Tests#t-refused-unmet) | requirement | REG-1 | Given a criterion with no test, when a release is cut, then it is refused. | PASS 2026-11-11 |
+| [refused-unmet](Tests#t-refused-unmet) | requirement | REG-1 | Given a criterion with no test, when a release is cut, then it is refused. | PASS 2026-11-12 |
 | [defect-owed](Tests#t-defect-owed) | requirement | REG-1 | Given a goal that fixes an issue, when it opens its pull request without a defect test seen failing, then it is refused. | PASS 2026-11-11 |
 | [defect-known](Tests#t-defect-known) | requirement | REG-1 | Given issues 35 and 58 and the two worker defects, when the tests are listed, then defect tests exist for each. | PASS 2026-11-11 |
 | [prd-readers](Tests#t-prd-readers) | requirement | REG-1 | Given pages under the Requirements heading or the old Criteria heading, when the release, regression, health and docs readers run, then they all find the same requirement IDs and the release refuses an unmet one. | PASS 2026-11-10 |
 | [workflow-kind-shown](Tests#t-workflow-kind-shown) | requirement | REG-1 | Given a row added with --category workflow, when sync, tests.py list and summary and the wiki Tests tables read it, then it is accepted and shown as kind workflow, after the requirement tests on its page. | PASS 2026-11-10 |
 | [list-kind-filter](Tests#t-list-kind-filter) | requirement | REG-1 | Given requirement, workflow and defect rows, when tests.py list --kind K runs, then only that kind's rows are listed. | PASS 2026-11-10 |
 | [defect-owed-branch-proved](Tests#t-defect-owed-branch-proved) | requirement | REG-1 | Given an old defect row for an issue proved before the goal, when the goal that fixes that issue runs goal.py pr, then the pull request is refused until the branch adds its own row seen failing. | PASS 2026-11-10 |
-| [unproven-blocks](Tests#t-unproven-blocks) | requirement | REG-2 | Given a test never seen failing, when the run happens, then the run is blocked. | PASS 2026-11-11 |
-| [tests-seen-failing](Tests#t-tests-seen-failing) | requirement | REG-2 | Given a test that cannot fail, when it is checked, then it stays unproven. | PASS 2026-11-11 |
-| [one-link](Tests#t-one-link) | requirement | REG-2 | Given a test linked to no criterion, when the check runs, then the check fails. | PASS 2026-11-11 |
+| [unproven-blocks](Tests#t-unproven-blocks) | requirement | REG-2 | Given a test never seen failing, when the run happens, then the run is blocked. | PASS 2026-11-12 |
+| [tests-seen-failing](Tests#t-tests-seen-failing) | requirement | REG-2 | Given a test that cannot fail, when it is checked, then it stays unproven. | PASS 2026-11-12 |
+| [one-link](Tests#t-one-link) | requirement | REG-2 | Given a test linked to no criterion, when the check runs, then the check fails. | PASS 2026-11-12 |
 | [run-ledger](Tests#t-run-ledger) | requirement | REG-2 | Given a test run, when it ends, then each test's result and date are recorded. | PASS 2026-11-11 |
 | [tests-table-columns](Tests#t-tests-table-columns) | requirement | REG-2 | Given a requirement with a test row, when the Tests are rendered, then its table row carries the test link, its Given/When/Then words and its last result. | PASS 2026-11-11 |
 | [tests-row-shape](Tests#t-tests-row-shape) | requirement | REG-2 | Given a test row, when the full Tests page is rendered, then the row carries its anchor, result, date, run and seen-failing date. | PASS 2026-11-11 |
@@ -147,9 +148,9 @@ Review: **Unreviewed**
 | [merge-wiki-skill-refused](Tests#t-merge-wiki-skill-refused) | requirement | REG-4 | Given a commit that adds a SKILL.md in the wiki folder after the pr lane, when merge.py runs, then it refuses HEAD_MOVED. | PASS 2026-11-11 |
 | [pass3-symlink-page](Tests#t-pass3-symlink-page) | requirement | REG-4 | Given a commit that adds a symlink named like a wiki page after the pr lane, when merge.py runs, then it refuses HEAD_MOVED. | PASS 2026-11-11 |
 | [merge-base-unrecorded](Tests#t-merge-base-unrecorded) | requirement | REG-4 | Given a goal whose pr lane recorded a head but no base, when merge.py checks the base, then it refuses BASE_MOVED instead of merging unchecked. | PASS 2026-11-11 |
-| [known-no-block](Tests#t-known-no-block) | requirement | REG-5 | Given a known failure, when the run happens, then it does not block the run or open an issue. | PASS 2026-11-11 |
-| [no-token-dry-run](Tests#t-no-token-dry-run) | requirement | REG-5 | Given no GitHub token, when a run happens, then it only prints what it would do. | PASS 2026-11-11 |
-| [one-issue](Tests#t-one-issue) | requirement | REG-5 | Given a failing test, when the run reports it, then one GitHub issue is opened. | PASS 2026-11-11 |
+| [known-no-block](Tests#t-known-no-block) | requirement | REG-5 | Given a known failure, when the run happens, then it does not block the run or open an issue. | PASS 2026-11-12 |
+| [no-token-dry-run](Tests#t-no-token-dry-run) | requirement | REG-5 | Given no GitHub token, when a run happens, then it only prints what it would do. | PASS 2026-11-12 |
+| [one-issue](Tests#t-one-issue) | requirement | REG-5 | Given a failing test, when the run reports it, then one GitHub issue is opened. | PASS 2026-11-12 |
 | [known-recorded](Tests#t-known-recorded) | requirement | REG-5 | Given a known failure, when the GitHub run runs it, then its result is recorded KNOWN, not FAIL. | PASS 2026-11-10 |
 | [reg-defect-label](Tests#t-reg-defect-label) | requirement | REG-5 | Given a failing test, when a local live run reports it, then its issue is labelled defect. | PASS 2026-11-10 |
 | [reg-local-relabel](Tests#t-reg-local-relabel) | requirement | REG-5 | Given an older open issue for a failing test, when a local live run reports it, then the issue gains the defect label. | PASS 2026-11-10 |
@@ -167,6 +168,10 @@ Review: **Unreviewed**
 | [reg7-suite-time](Tests#t-reg7-suite-time) | requirement | REG-7 | Given a full suite run recorded over 30 minutes, when health runs, then it warns. | not run |
 | [reg7-unmapped-tier](Tests#t-reg7-unmapped-tier) | requirement | REG-7 | Given a new file no row reads, when a reusing run happens, then it picks the rows that name it and the runners and never forces a full run. | not run |
 | [lane-limit-test-budget](Tests#t-lane-limit-test-budget) | requirement | REG-7 | Given a goal lane and no flow file limit, when it starts, then its own time limit is test_budget_minutes plus five minutes, sourced to the setting. | not run |
+| [reg7-prep-setting](Tests#t-reg7-prep-setting) | requirement | REG-7 | Given no prep_budget_minutes, a value under 15 and the test-only LOOP_PREP_BUDGET, when a lane reads the preparation budget, then it defaults to 15 minutes, a value under 15 is refused with a fix line, and the override applies only from the environment. | not run |
+| [reg7-prep-times](Tests#t-reg7-prep-times) | requirement | REG-7 | Given a lane within the preparation budget, when it ends, then its LANE line and its .last record say how long prep, planning and the slot wait took. | not run |
+| [reg7-prep-stop](Tests#t-reg7-prep-stop) | requirement | REG-7 | Given a lane that waits for a slot past the preparation budget, when it is cut, then it fails with LANE_PREP_BUDGET naming the part that ran long, the three parts, the shared budget and the slot holders, runs no row, commits nothing, frees its place, records a prep hit on the goal, and the same command run again passes. | not run |
+| [reg7-prep-edges](Tests#t-reg7-prep-edges) | requirement | REG-7 | Given a cut in planning, a corrupt or absent .times record, and a job written with and without prep_by, when the lane reads them, then planning is named with exit 125, bad records read as zeros, and an older job keeps the 4x rule. | not run |
 | [lane-ports-tmpdir](Tests#t-lane-ports-tmpdir) | requirement | REG-8 | Given two lanes running at once, when their rows run, then each has its own leased port base and TMPDIR, and with all leases held a lane says so. | PASS 2026-11-11 |
 | [lane-messages-table](Tests#t-lane-messages-table) | requirement | REG-8 | Given every message code a lane, the runner or merge.py prints, when the reference is read, then each code has a row with its exit and what to do. | PASS 2026-11-11 |
 | [goal-levels-nightly](Tests#t-goal-levels-nightly) | requirement | REG-8 | Given goal_levels nightly, when a goal lane plans, then it selects the nightly rows a change reaches as well as land rows. | PASS 2026-11-11 |

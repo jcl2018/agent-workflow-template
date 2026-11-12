@@ -1,5 +1,94 @@
 # Changelog
 
+## v0.27.5 - 2026-11-12
+
+- Private-name hooks: pre-commit, commit-msg and pre-push scan through private.py, installed by setup, flagged by health (guard-enforce)
+- Review fixes: commentChar=auto bypass, non-ASCII name leak, keep edited stubs (guard-enforce)
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- Setup page: name the two other hook outcomes (guard-enforce)
+- Merge main into guard-enforce
+- Merge main (v0.27.4, health-prd) into guard-enforce: hooks rule registered in the Security group
+- Merge remote-tracking branch 'origin/main' into loop/guard-enforce
+- Merge remote-tracking branch 'origin/main' into loop/guard-enforce
+- pr: record issue states and the lane's results
+- Wiki: update pages for guard-enforce
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.4 - 2026-11-12
+
+- health-prd: cost leaves out goals with no tokens (124); the judge error names its stderr (158)
+- health-prd: sync skips done lines of goals frozen before done_lines_since (124)
+- health-prd: twelve groups with angles (groups.py), 21 new rules in rules_trace/rules_fresh/rules_guard, a control for every rule, gh read once (ghcache)
+- health-prd: feature milestones, links, evidence hash and old-key migration (file.py, feature.py); review.py with verified evidence; triage.py; commands.py; judge cause names stdout and stderr (158); docs for twelve groups (159); test-health-prd.sh
+- health-prd: tests updated for the twelve groups; a moved issue stays moved; ran-rules read the rule a row speaks for; judge measures check-time; donelines guard; automation files the runner-readable groups, health.yml regenerated (d6)
+- health-prd: rows for HLT-1, 2, 4, 5, 6 and issues 124, 158, 159, each seen red; Health Tests re-rendered
+- health-prd: review fixes (keys with spaces, shared unread source closes nothing, one issue per review finding, file --review files only review, finding-age report-only, reopen drops health:closed, open duplicate wins, no link on plain words, old ambiguous keys left alone, bad leak pattern UNREAD, stale labels removed, milestone list checked before writes, finding detail field, mine closes when it ran); HLT-7 timing in its own script
+- health-prd: review cycle 2 (one issue per finding identity, stale labels alone update, Mine closes only rules that ran here, reopen unlabels only when labelled)
+- health-prd: worker.py rereads its run record before the last save, so a merge recorded from outside is kept (159)
+- health-prd: 159 row covers worker.py too, seen red
+- health-prd: qa fixes (worker-save split, adopt listing, REFUSED[group], update-in-place grep)
+- health-prd: re-render Tests tables for worker-save-159
+- Merge origin/main (docs-format, v0.22.0) into loop/health-prd
+- health-prd: HLT-7..9 rows seen red; Tests re-rendered
+- health-prd: new tests source reap.sh; a page-level finding files on its page's milestone; next steps name each fix once
+- health-prd: the judge is the session first, claude -p only with no session (owner's rule)
+- health-prd: judge rows seen red; Tests re-rendered
+- Merge origin/main (v0.27.0: automation-email, lane-control, step-budget) into loop/health-prd
+- health-prd: fold the new modules into existing ones so the package stays at 99 files (Agensi limit)
+- Merge origin/main (v0.27.1, guardrails-prd) into loop/health-prd
+- Merge origin/main (v0.27.2, delivery-prd) into loop/health-prd: rows unioned, Tests re-rendered
+- Merge origin/main (v0.27.3, prep-budget) into loop/health-prd: rows unioned, Tests re-rendered
+- pr: record issue states and the lane's results
+- Wiki: update pages for health-prd
+- Wiki: update pages for health-prd
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 skills/workflow-health/scripts/health.py check --skip controls` in this repo.
+   Expect: twelve group headings, each with its angle, then Mine and one `HEALTH:` line, in under a minute, and no file changes (`git status` stays clean).
+2. Run `python3 skills/workflow-health/scripts/health.py preview`.
+   Expect: only `WOULD` or `SAME` lines and a `PREVIEW: N to write, nothing written` line.
+3. Run `python3 skills/workflow-health/scripts/health.py triage`.
+   Expect: the open health issues per feature with kind, count and age, and nothing written.
+4. Run `python3 skills/workflow-health/scripts/health.py review` from a Claude session.
+   Expect: a `judge: session` line, then a `JUDGE UNAVAILABLE` line naming a prompt file for an in-session subagent (with no session, as in the scheduled run, it says `judge: claude -p (no session)`).
+
+Closes #124
+Closes #158
+Closes #159
+
+## v0.27.3 - 2026-11-11
+
+- Preparation budget: prep_budget_minutes, the lane's three timed parts, LANE_PREP_BUDGET, board and health lines, toy test
+- Preparation budget toy test runs by section
+- Preparation budget rows seen failing; Tests tables
+- Wiki: update pages for prep-budget
+- Wiki: update pages for prep-budget
+- Review fixes: a test_record wrapper keeps the old rule, prep-alone cut recorded, race at the last moment, seconds with the override, steadier toy
+- Fold the preparation-budget helpers into budget.py: the skill package stays at its 99-file cap
+- Merge remote-tracking branch 'origin/main' into loop/prep-budget
+- Wiki: update pages for prep-budget
+- Wiki: update pages for prep-budget
+- Wiki: update pages for prep-budget
+- Wiki: update pages for prep-budget
+- Merge remote-tracking branch 'origin/main' into loop/prep-budget
+- Port the preparation budget onto main's layout (budget folded into lanekit.py, the pr bookkeeping and need_lane in role.py): the package stays at 99 files, every script under the cap
+- Lane: re-render the Tests tables
+- Wiki: update pages for prep-budget
+- Wiki: update pages for prep-budget
+- The pull request body's lane part drops the local log path (the private-name scan refused every body that held it); row
+- Tests tables
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.2 - 2026-11-11
 
 - delivery-prd: depth by size, set, resume and --again, goal budgets, private-name scan before pr, verdicts and GitHub touches; board budget and depth lines, mend resume step, bind self

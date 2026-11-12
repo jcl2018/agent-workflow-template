@@ -92,6 +92,7 @@
     "bind",
     "touches",
     "free",
+    "triage",
     "list",
     "suggest",
     "judge",
@@ -111,13 +112,15 @@
     "decline",
     "decide-text",
     "fixes",
-    "reads"
+    "reads",
+    "git-hooks"
   ],
   "writes": [
     ".loop/config.json, .loop/queue.md, .loop/findings.md, .loop/goals/<slug>.md in the repo",
     "run state under the git common dir, in loop/ (never committed)",
     "git worktrees under that loop/ folder",
     "git branches loop/<slug> and workflow-setup, commits on them",
+    ".git/hooks/pre-commit, commit-msg and pre-push in a repo, only when setup.py --git-hooks or a default setup run installs the private-name scan (never overwriting a hook that is not ours)",
     "VERSION and CHANGELOG.md on a goal's branch when you cut",
     ".loop/docs.tsv and docs/wiki/*.md on a branch",
     "pages it wrote, or that you name, in the repo's GitHub wiki, when you publish",

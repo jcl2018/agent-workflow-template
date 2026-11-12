@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 """The private-name scan: nothing private ships (DEL-9). Every push or GitHub write in delivery, release and monitoring
-runs it first.
+runs it first; setup's git hooks run it as `hook staged | message FILE | push`.
 
-usage: private.py check                 say where the list is and how many patterns it holds (never a pattern)
+usage: private.py check                 say where the list is and how many patterns it holds
        private.py scan [--base REF]     scan this branch from REF (default origin/<base>) to HEAD
 
 The list lives outside the repo: `$LOOP_PRIVATE_NAMES` (a file path) or `~/.workflow-loop/private-names`, one regular
-expression per line, matched without case; a line starting with `#` is a comment. No file: the scan passes and says nothing was checked.
-A file holding only comments: off on purpose. A file that can't be read or holds a bad pattern: every scan refuses.
+expression per line, matched without case; `#` starts a comment. No file: the scan passes and says nothing was checked.
+Only comments: off on purpose. A file that can't be read or holds a bad pattern: every scan refuses.
 
-What a scan reads: the branch name, every changed file name, the added lines and the message of every commit from the
-base to HEAD (a name added and removed later still counts; a line that only removes one doesn't), and any named texts
-(the pull request title and body, release notes, wiki pages). A hit names its place and the list line, never the text
-(a place that itself matches, such as a private file name, is masked).
+A scan reads the branch name, changed file names, the added lines and message of every commit from the base to HEAD
+(a name added and removed later still counts), and named texts. A hit names its place and list line, never the text.
 """
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -29,13 +28,13 @@ PRIVATE_NAME, PRIVATE_LIST = "PRIVATE_NAME", "PRIVATE_LIST"
 
 
 def source():
-    """(path to open, the name shown): the shown name is never an expanded home path."""
+    """(path to open, the name shown)."""
     given = os.environ.get("LOOP_PRIVATE_NAMES")
     return (given, "$LOOP_PRIVATE_NAMES") if given else (os.path.expanduser(DEFAULT), DEFAULT)
 
 
 def patterns():
-    """(state, [(list line, compiled)], error): state is none, off, on or broken."""
+    """(state, [(list line, compiled)], error); state: none, off, on or broken."""
     path, shown = source()
     if not os.path.exists(path):
         if os.environ.get("LOOP_PRIVATE_NAMES"):  # a list named on purpose that isn't there is a typo, not "no list"
@@ -60,7 +59,7 @@ def patterns():
 
 def git(top, *args, stop=None):
     try:
-        done = subprocess.run(["git"] + list(args), cwd=top, capture_output=True, text=True, errors="replace",
+        done = subprocess.run(["git", "-c", "core.quotepath=off"] + list(args), cwd=top, capture_output=True, text=True, errors="replace",
                               timeout=max(1, (stop or time.time() + LIMIT) - time.time()))
     except subprocess.TimeoutExpired:
         raise RuntimeError("git %s passed the %d second limit" % (" ".join(args[:2]), LIMIT))
@@ -69,63 +68,69 @@ def git(top, *args, stop=None):
     return done.stdout
 
 
+def added(rows, tag):
+    """(place, text) for each added line of a -U0 diff."""
+    path, line, header = "", 0, False
+    for row in rows:
+        if row.startswith("diff "):
+            header = True
+        elif header and row.startswith("+++ "):
+            path = row[6:] if row.startswith("+++ b/") else row[4:]
+        elif row.startswith("@@"):
+            header, hunk = False, re.search(r"\+(\d+)", row)
+            line = int(hunk.group(1)) if hunk else 0
+        elif row.startswith("+") and path and not header:
+            yield "%s:%d (%s)" % (path, line, tag), row[1:]
+            line += 1
+
+
+def commit_places(top, sha, stop=None):
+    for line in git(top, "log", "-1", "--format=%B", sha, stop=stop).splitlines():
+        yield "commit:%s message" % sha[:7], line
+    yield from added(git(top, "show", "--format=", "--no-color", "--no-ext-diff", "-U0", sha, stop=stop).splitlines(),
+                     "commit:" + sha[:7])
+
+
 def places(top, base, stop=None, head="HEAD"):
-    """Yield (place, text) for everything a push from base to head would publish."""
+    """(place, text) for everything a push from base to head would publish."""
     branch = git(top, "branch", "--show-current", stop=stop).strip() if head == "HEAD" else head.split("/", 1)[-1]
     if branch:
         yield "branch", branch
     for name in git(top, "diff", "--name-only", "--no-renames", base + "..." + head, stop=stop).splitlines():
         yield "file name " + name, name
     for sha in git(top, "rev-list", "--reverse", base + ".." + head, stop=stop).split():
-        for line in git(top, "log", "-1", "--format=%B", sha, stop=stop).splitlines():
-            yield "commit:%s message" % sha[:7], line
-        path, line, header = "", 0, False
-        for row in git(top, "show", "--format=", "--no-color", "--no-ext-diff", "-U0", sha, stop=stop).splitlines():
-            if row.startswith("diff "):  # a file's header runs from here to its first @@ (a "+++ " row there names it)
-                header = True
-            elif header and row.startswith("+++ "):
-                path = row[6:] if row.startswith("+++ b/") else row[4:]
-            elif row.startswith("@@"):
-                header, hunk = False, re.search(r"\+(\d+)", row)
-                line = int(hunk.group(1)) if hunk else 0
-            elif row.startswith("+") and path and not header:
-                yield "%s:%d (commit:%s)" % (path, line, sha[:7]), row[1:]
-                line += 1
+        yield from commit_places(top, sha, stop)
 
 
 def windows(text):
-    """The whole text in overlapping WIDTH-character pieces, so a long line is read to its end."""
+    """Overlapping WIDTH-character pieces."""
     return [text[at:at + WIDTH] for at in range(0, max(len(text), 1), WIDTH - 256)]
 
 
 def shown_place(place, found):
-    """The place as a hit names it: a part that itself matches a pattern (a private file name) is masked."""
+    """The place as a hit names it, masked."""
     for _, pattern in found:
         place = pattern.sub("<private>", place)
     return place
 
 
-def scan(top, base, texts=None, head="HEAD"):
+def scan(top, base, texts=None, head="HEAD", items=None):
     """{"state": clean|hit|none|off|broken, "hits": [...], "note": str}. base None scans only the texts; head is the
-    branch tip to scan (merge.py passes the goal's pushed branch, so it scans the pull request wherever it runs)."""
+    branch tip (merge.py passes the goal's pushed branch); items(stop) yields (place, text) in place of the branch."""
     state, found, error = patterns()
     shown = source()[1]
-    if state == "broken":
-        return {"state": "broken", "hits": [], "note": error}
-    if state == "none":
-        return {"state": "none", "hits": [], "note": "Private-name scan: no list at %s, nothing was checked." % shown}
-    if state == "off":
-        return {"state": "off", "hits": [], "note": "Private-name scan: off on purpose (%s holds only comments)." % shown}
-    hits, stop = [], time.time() + LIMIT
-    items = []
-    if base:
+    if state != "on":
+        return {"state": state, "hits": [], "note": error or "Private-name scan: %s." % (
+            "no list at %s, nothing was checked" % shown if state == "none" else "off on purpose (%s holds only comments)" % shown)}
+    hits, rows, stop = [], [], time.time() + LIMIT
+    if base or items:
         try:
-            items = list(places(top, base, stop, head))
+            rows = list(items(stop) if items else places(top, base, stop, head))
         except RuntimeError as failed:
             return {"state": "broken", "hits": [], "note": "the scan couldn't read the branch: %s" % failed}
     for name, text in (texts or {}).items():
-        items += [("%s:%d" % (name, number), line) for number, line in enumerate((text or "").splitlines() or [""], 1)]
-    for place, text in items:
+        rows += [("%s:%d" % (name, number), line) for number, line in enumerate((text or "").splitlines() or [""], 1)]
+    for place, text in rows:
         if time.time() > stop:
             return {"state": "broken", "hits": hits, "note": "the scan passed its %d second limit" % LIMIT}
         for number, pattern in found:
@@ -138,7 +143,7 @@ def scan(top, base, texts=None, head="HEAD"):
 
 
 def refusal(result, base="the base branch", pushed=False):
-    """(why, fix, code) when the result must stop a push, else None."""
+    """(why, fix, code) when the result must stop a push."""
     if result["state"] == "broken":
         return ("the private-name list or scan is broken: %s; nothing was pushed" % result["note"],
                 "repair the list (private.py check names the line), then run the command again", PRIVATE_LIST)
@@ -154,8 +159,58 @@ def refusal(result, base="the base branch", pushed=False):
     return "a private name would be pushed: %s; nothing was pushed" % shown, fix, PRIVATE_NAME
 
 
+def hook_items(mode, arg):
+    def run(stop):
+        if mode == "staged":
+            for name in git(".", "diff", "--cached", "--name-only", "-z", "--no-renames", stop=stop).split("\0")[:-1]:
+                yield "file name " + name, name
+            yield from added(git(".", "diff", "--cached", "-U0", "--no-color", "--no-ext-diff", "--no-renames",
+                                 stop=stop).splitlines(), "staged")
+        elif mode == "message":
+            char = git(".", "config", "--default", "#", "core.commentChar", stop=stop).strip()
+            char = "#" if char == "auto" else char[:1]  # auto: its comment lines are scanned
+            for row in open(arg, errors="replace").read().splitlines():
+                if row.startswith(char + " ------------------------ >8"):
+                    break
+                if not row.startswith(char):
+                    yield "commit message", row
+        else:
+            for row in sys.stdin.read().splitlines():
+                _, local, ref, _ = (row.split() + [""] * 4)[:4]
+                if local.strip("0"):  # not a deletion
+                    yield "ref name " + ref, ref
+                    shas = git(".", "rev-list", "--reverse", local, "--not", os.environ.get("LOOP_HOOK_RANGE") or "--remotes",
+                               stop=stop).split()
+                    if len(shas) > 500:
+                        raise RuntimeError("%d commits is over the 500 limit; set LOOP_HOOK_RANGE=<rev>" % len(shas))
+                    for sha in shas:
+                        yield from commit_places(".", sha, stop)
+    return run
+
+
+def hook(mode="", arg=""):
+    """Exit 1 a hit, 2 broken, 64 usage; a scan is killed past LOOP_HOOK_DEADLINE seconds (default 30)."""
+    if mode not in ("staged", "push", "message") or (mode == "message" and not arg):
+        print("usage: private.py hook staged | message FILE | push")
+        return 64
+    if hasattr(signal, "SIGALRM"):
+        signal.signal(signal.SIGALRM, signal.SIG_DFL), signal.alarm(int(os.environ.get("LOOP_HOOK_DEADLINE") or 30))
+    state, found, error = patterns()
+    for number, pattern in found:
+        if any(pattern.search(text) for text in ("", "x", "a b", "def f():", "  ")):
+            state, error = "broken", "%s line %d matches ordinary text" % (source()[1], number)
+    got = {"state": "broken", "hits": [], "note": error} if state == "broken" else scan(".", None, items=hook_items(mode, arg))
+    stop = refusal(got)
+    if stop:
+        fix = stop[1] if stop[2] == PRIVATE_LIST else "remove the text; for a false positive, edit that line of the list"
+        print("REFUSED: %s. Fix: %s (%s)" % (stop[0].replace("pushed", "pushed" if mode == "push" else "committed"), fix, stop[2]))
+    return {"broken": 2, "hit": 1}.get(got["state"], 0)
+
+
 def main():
     args = sys.argv[1:]
+    if args[:1] == ["hook"]:
+        return hook(*args[1:3])
     if args[:1] == ["check"]:
         state, found, error = patterns()
         shown = source()[1]

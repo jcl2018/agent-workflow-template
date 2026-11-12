@@ -1,6 +1,7 @@
 #!/bin/bash
 # Build a throwaway toy repo with a bare origin. usage: make.sh DIR  -> DIR/repo, DIR/origin.git
 set -e
+export LOOP_NO_GIT_HOOKS=1  # no toy installs git hooks (guard-enforce); reap.sh exports it for the tests
 here=$(cd "$(dirname "$0")" && pwd); d=$1; mkdir -p "$d"
 git init -q --bare -b main "$d/origin.git"
 cp -R "$here/repo" "$d/repo"; cd "$d/repo"

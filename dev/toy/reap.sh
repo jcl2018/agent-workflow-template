@@ -22,6 +22,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   esac
 fi
 [ -z "${_toy_reap_on:-}" ] || return 0
+export LOOP_NO_GIT_HOOKS=1  # a toy never installs git hooks into its repos (test-guard-enforce.sh unsets it)
 _toy_reap_on=1
 _toy_reap_py="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/reap.py"
 _toy_reap_label=$(basename "$0")

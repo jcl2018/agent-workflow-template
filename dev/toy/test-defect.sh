@@ -136,11 +136,12 @@ PY
     mkdir -p .loop/goals; printf '# Goal\n\n## Done lines\n\n1. fixes #78 here\n' > .loop/goals/old.md
     printf -- '- bar: Failed 3 tries [closed]\n' >> .loop/findings.md
     git add -A; git commit -qm "Closed work"
-    out=$($health check --family criteria)
-    grep -q "^FAIL criteria #78 defect-tests: closed by old" <<<"$out" && grep -q "^FAIL criteria finding:bar defect-tests" <<<"$out" || no "closed work with no defect test was not flagged: $out"
+    out=$($health check --family traceability)
+    grep -q "^FAIL traceability #78 defect-tests: closed by old" <<<"$out" && grep -q "^FAIL traceability finding:bar defect-tests" <<<"$out" || no "closed work with no defect test was not flagged: $out"
     $reg add old-78 --level land --command true --goal - --category defect --link https://github.com/o/r/issues/78 >/dev/null
     $reg add bar --level land --command true --goal - --category defect --link finding:bar >/dev/null
-    out=$($health check --family criteria)
+    out=$($health check --family traceability)
+    grep -q "^PASS traceability defect-tests defect-tests: " <<<"$out" || no "the defect-tests rule did not run: $out"
     grep -Eq "^(WARN|FAIL|UNREAD) .*defect-tests" <<<"$out" && no "a guarded issue is still flagged: $out"
     exit 0;;
   worker-release) # done line 7, and the release step that pull requests 61 and 62 skipped

@@ -27,6 +27,7 @@ Review: **Unreviewed**
 - GRD-2: **Unreviewed** Time and token budgets stop a goal or a step before it runs away
   - A review or ship step stops at `step_budget_minutes` (default 30, never under 15), finishes with what it has done and records what it left (Delivery, DEL-8).
   - An in-loop test run stops at `test_budget_minutes` (default 15, never under 15) and leaves the rest to the scheduled full suite (Regression, REG-7).
+  - The work before a lane's first test row (preparing, planning and waiting for a slot) stops at `prep_budget_minutes` (default 15, never under 15); the lane says which part ran long and the goal can rerun it (Delivery, Regression).
   - A goal past `time_budget_minutes` starts no new step, and the setting is in the settings reference with its default (Delivery, new).
   - A goal past `token_budget` starts no new step, whether its steps run in a session or headless (Delivery, DEL-8 for showing it on the board; new for steps run in a session: today only headless goals are refused).
 - GRD-3: **Unreviewed** Nothing private is committed, and no commit skips the hooks that check it

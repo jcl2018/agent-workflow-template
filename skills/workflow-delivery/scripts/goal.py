@@ -366,7 +366,7 @@ def cmd_pr(args):
         failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
                    "fix the failing rows, commit, then run pr again")
         return 1
-    lanekit.record(state, config()["base"])
+    role.record(state, config()["base"])
     known = run(["gh", "pr", "view", state["branch"], "--json", "url,state"])
     info = json.loads(known.stdout) if known.returncode == 0 else {}
     body = fit.pr_text(sys.modules[__name__], state)

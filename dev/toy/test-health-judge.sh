@@ -2,6 +2,7 @@
 # reads: skills/workflow-health/scripts/ skills/workflow-setup/scripts/setup.py
 # Test the Cost rule and the judge of workflow-health with a stand-in judge. usage: test-health-judge.sh [DIR]
 set -u
+unset CLAUDECODE LOOP_JUDGE_ANSWER  # the judge is the session only where a test asks for it
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
@@ -59,7 +60,7 @@ grep -q "^WARN performance slowone tokens: 5000 tokens, over 1000; costliest: bu
 echo "== Cost: no tokens recorded"
 rm "$runs"/*.json; goal notokens 90 0
 out=$($health check --family cost); rc=$?; echo "$out"
-grep -q "^UNREAD performance tokens cost: no tokens recorded" <<<"$out" && [ $rc = 1 ] && ok "no tokens recorded prints UNREAD" || bad "unread"
+grep -q "^INFO performance tokens cost: no tokens recorded" <<<"$out" && ! grep -q "^UNREAD" <<<"$out" && ok "no tokens recorded leaves the token check out, never red (issue 124)" || bad "no tokens"
 grep -q "^WARN performance notokens time: " <<<"$out" && ok "time is still judged" || bad "time without tokens"
 rm "$runs"/*.json; goal slowone 90 5000
 
@@ -104,6 +105,7 @@ v0=$(verdict "$a")
 [ "$(verdict "$out")" = "$v0" ] && ok "stand-in judge: same verdict line" || bad "verdict with judge"
 setcfg "judge_command=[\"$d/broken.sh\"]"
 out2=$($health judge); rc2=$?
+grep -q "^JUDGE UNAVAILABLE: the judge exited 3: " <<<"$out2" && ok "a failing judge names its stderr (issue 158)" || bad "judge stderr"
 grep -q "^JUDGE UNAVAILABLE: the judge exited 3" <<<"$out2" && [ "$(verdict "$out2")" = "$v0" ] && [ $rc2 = $rc_check ] && ok "a failing judge: unavailable, same verdict and exit code" || bad "broken judge"
 setcfg "judge_command=[\"$d/garbage.sh\"]"
 out3=$($health judge); rc3=$?
