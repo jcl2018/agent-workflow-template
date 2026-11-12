@@ -695,3 +695,6 @@
 | <a id="t-flow-stale-pid-safe"></a>flow-stale-pid-safe | requirement | done line lane-died:1 | not run | - | local | 2026-11-12 |
 | <a id="t-lane-died-signal"></a>lane-died-signal | requirement | done line lane-died:2 | not run | - | local | 2026-11-12 |
 | <a id="t-lane-died-sigkill"></a>lane-died-sigkill | requirement | done line lane-died:2 | not run | - | local | 2026-11-12 |
+| <a id="t-issue-list-reads-all"></a>issue-list-reads-all | requirement | - | not run | - | local | no |
+| <a id="t-issue-list-cut-off-refused"></a>issue-list-cut-off-refused | requirement | - | not run | - | local | no |
+| <a id="t-job-skip-opens-no-issue"></a>job-skip-opens-no-issue | requirement | - | not run | - | local | no |
