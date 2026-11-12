@@ -25,6 +25,8 @@ if not sys.stdin or not sys.stdin.isatty():
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
+import proctree  # noqa: E402
+from proctree import pstart  # noqa: E402,F401
 
 LIMIT = re.compile(r"(?i)usage limit|rate limit|limit reached|quota exceeded|too many requests|out of credits")
 RESUME_PROMPT = """Use the workflow-delivery skill to continue the goal {slug} in this git worktree, on branch {branch}.
@@ -105,7 +107,7 @@ def runs():
 
 def alive(pid):
     try:
-        os.kill(pid, 0)
+        proctree.probe(pid)
     except (OSError, TypeError):
         return False
     return True
@@ -139,11 +141,8 @@ def close_landed(state, url):
 def stop_late_mender(state):
     """A mender still running on a goal that has landed has nothing left to do, and would judge an empty diff."""
     url = landed(state)
-    if url and alive(state.get("pid")):
-        try:
-            os.killpg(state["pid"], signal.SIGTERM)
-        except OSError:
-            pass
+    if url and alive(state.get("pid")) and state.get("pstart") and pstart(state["pid"]) == state["pstart"]:  # ours, not a reused pid
+        proctree.kill(state["pid"], signal.SIGTERM)
         close_landed(state, url)
 
 
@@ -202,7 +201,7 @@ def launch(state, prompt, cfg):
         save(state, "failed: " + state["finding"])
         return
     log.close()
-    state["pid"] = child.pid
+    state["pid"], state["pstart"] = child.pid, pstart(child.pid)
     state["status"] = "running"
     save(state, "launched agent pid %d" % child.pid)
 
@@ -216,7 +215,7 @@ def relaunch(state, prompt, cfg, note):
     state["worktree"] = tree
     path = os.path.join(loop_dir("logs"), state["slug"] + ".log")
     state["log_mark"] = os.path.getsize(path) if os.path.exists(path) else 0
-    state["finding"], state["waiting"], state["status"], state["report"] = "", None, "running", None
+    state["finding"], state["waiting"], state["status"], state["report"] = "", None, "running", {}
     if state.get("worker") == "session":  # it restarts as a background process; its session goes back to the pool
         try:
             import sessions

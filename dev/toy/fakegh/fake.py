@@ -28,6 +28,49 @@ def flags(name):
 
 
 issues, miles = load("issues.json"), load("milestones.json")
+
+
+def local_schedule():
+    """gh calls the local schedule and the status poster make: visibility, rules, protection, statuses, probes."""
+    text = " ".join(args)
+    if args[:2] == ["repo", "view"]:
+        mode = os.environ.get("FAKE_GH_PRIVATE", "false")
+        if mode == "error":
+            sys.exit("could not resolve to a Repository")
+        print(mode)
+    elif "rate_limit" in text:
+        if os.environ.get("FAKE_GH_OFFLINE"):
+            sys.exit("error connecting to api.example.test")
+        print("{}")
+    elif "/rules/branches/" in text:
+        if os.environ.get("FAKE_GH_RULES_ERROR"):
+            sys.exit("gh: Server Error (HTTP 500)")
+        rules = load("rules.json")
+        print(json.dumps([rules] if "--slurp" in args else rules))
+    elif text.endswith("/protection") or "/protection " in text:
+        if os.environ.get("FAKE_GH_PROTECTION_ERROR"):
+            sys.exit("gh: Server Error (HTTP 500)")
+        if not os.path.exists(os.path.join(d, "protection.json")):
+            sys.exit("gh: Branch not protected (HTTP 404)")
+        print(open(os.path.join(d, "protection.json")).read())
+    elif "-X" in args and "POST" in args and "/statuses/" in text:
+        context, state = (next(a for a in args if a.startswith(k + "=")).split("=", 1)[1] for k in ("context", "state"))
+        fail = os.path.join(d, "status-fail-" + context)  # "<http status> <times>"; the times are counted down
+        if os.path.exists(fail):
+            code, times = open(fail).read().split()
+            if int(times) > 0:
+                open(fail, "w").write("%s %d" % (code, int(times) - 1))
+                sys.exit("gh: error (HTTP %s)" % code)
+        with open(os.path.join(d, "statuses.log"), "a") as log:
+            log.write(json.dumps({"sha": args[args.index("-X") + 2].rsplit("/", 1)[1], "context": context, "state": state,
+                                  "description": next(a for a in args if a.startswith("description=")), "target": any(a.startswith("target_url=") for a in args)}) + "\n")
+    else:
+        return False
+    return True
+
+
+if local_schedule():
+    sys.exit(0)
 def rest(i):
     """An issue as the REST API gives it (state lowercase, created_at), for gh api."""
     return {"number": i["number"], "title": i.get("title"), "body": i.get("body"), "state": i["state"].lower(),
@@ -75,7 +118,7 @@ elif args[:2] == ["issue", "create"]:
     issues.append({"number": number, "title": flag("--title"), "body": body, "state": "OPEN", "repo": flag("--repo"),
                    "labels": [{"name": n} for n in flags("--label")],
                    "milestone": {"title": flag("--milestone")} if flag("--milestone") else None,
-                   "createdAt": "2026-01-01T00:00:00Z"})
+                   "createdAt": "2026-01-01T00:00:00Z", "url": "https://example.test/issues/%d" % number})
     save("issues.json", issues)
     print("https://example.test/issues/%d" % number)
 elif args[:2] in (["issue", "edit"], ["issue", "close"], ["issue", "reopen"], ["issue", "comment"]):

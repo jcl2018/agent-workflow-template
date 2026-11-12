@@ -1,5 +1,199 @@
 # Changelog
 
+## v0.27.31 - 2026-11-12
+
+- fix: lanes, slots and step timeouts on native Windows Python (#1396)
+- Seen red: port-base-windows, stop-takes-tree
+- proctree: declare the Windows handle types (review)
+- Lane: re-render the Tests tables
+- fix: tmp_for ends at a Windows drive root instead of looping forever
+- fix: dev/toy/reap.py is a no-op on Windows (no ps, uid or SIGPIPE) so toy tests keep their own status
+- fix: liveness probes stop sending Ctrl+C on Windows
+- fix: Windows lane results: CTRL_C_EVENT mislabel, killpg in the generated runner, toy rows that cannot run there
+- Windows-only skips: three rows exit 77 on native Windows instead of being known failures everywhere
+- Windows: toy tests that need the gh fake are skipped (exit 77) and the lane counts them SKIPPED through a row's pipe
+- Merge origin/main into loop/win-posix-calls
+- fix: tmp_for ends at a drive root again after the merge
+- fix: lane-exec's signal names do not need SIGHUP on Windows
+- Windows: the toy suite runs only tests marked '# windows: ok'; the rest are SKIPPED, Linux CI is their check
+- Windows: the lane runs a row with bash; shorten two row descriptions over 400 characters
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-calls
+- pr: record issue states and the lane's results
+- docs: Monitoring and Guardrails name the native Windows case
+- Revert "docs: Monitoring and Guardrails name the native Windows case"
+- Wiki: update pages for win-posix-calls
+- Fixes #1396: test stop-takes-tree, seen failing 2026-11-12, passing
+
+### How to verify
+
+1. On a Windows PC with native Python (no WSL), from the repo root run `cd skills/workflow-regression/scripts` and then
+   `python -c "import slots; print(slots.port_base())"`.
+   Expect: it prints a pair like `(3, 20000)`, not an AttributeError about getuid or O_NOFOLLOW.
+2. In the same folder run `python -c "import subprocess, sys, time, proctree; p = subprocess.Popen([sys.executable, '-c', 'import subprocess, sys, time; subprocess.Popen([sys.executable, \"-c\", \"import time; time.sleep(60)\"]); time.sleep(60)']); time.sleep(2); proctree.kill(p.pid)"`
+   and watch Task Manager (or `tasklist | findstr python`) while it runs.
+   Expect: the two sleeping python processes it started are gone right after it returns.
+
+## v0.27.30 - 2026-11-12
+
+- Add red time-ordered model regression
+- Select estimates by time-ordered backtest
+- Lane: re-render the Tests tables
+- Document time-ordered estimate selection
+- Keep Monitoring review header adjacent
+- Place estimate note with Monitoring tests
+- Lane: re-render the Tests tables
+- Record Monitoring criterion and red proof
+- Revert "Lane: re-render the Tests tables"
+- Refresh generated estimate regression docs
+- Merge origin/main (v0.27.15) into loop/estimate-timeorder: rows kept, Tests re-rendered
+- Exclude a goal from its own time-ordered past; add time_order_edges check and point mon4 at it
+- Restore board_model docstring caveats; re-render Monitoring test table
+- estimate-timeorder: commands.md says the time-ordered score picks the model; the board_report sample is a real run
+- estimate-timeorder: Monitoring Usage names the time-ordered estimate line (CHANGED until the owner re-reviews); the goal file quotes the sentence
+- Merge origin/main into loop/estimate-timeorder: rows kept, Tests re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+- Merge origin/main (v0.27.18) into estimate-timeorder
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+- Merge origin/main (v0.27.29) into estimate-timeorder
+- Remove merge markers left in the regression rows
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+
+### How to verify
+
+1. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root .` in a repo with finished goal runs.
+   Expect: the table labels the selection column `time score`, labels leave-one-out under `diagnostics: loo`, and names the chosen model.
+2. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root . --json`.
+   Expect: each candidate has a `time_ordered` score and a separate `leave_one_out` score; `chosen` names the time-ordered winner when at least ten goals are scorable.
+
+## v0.27.29 - 2026-11-12
+
+- Goal reset writes an empty report; goal state saved under a lock with merge of concurrent writers
+- Design, plan and Delivery usage for guards-null-report
+- guards-null-report: a removed key stays removed; plan review fixes
+- Delivery usage: say exactly what the lock covers
+- guards-null-report: a new record keeps its empty values (key-not-in-snapshot, not a shared sentinel); fresh case
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/guards-null-report
+- Delivery usage: a new record is written whole
+- Tests tables and seen red for the bind and mend row
+- Merge origin/main into loop/guards-null-report
+- Merge origin/main into loop/guards-null-report
+- Merge remote-tracking branch 'origin/main' into loop/guards-null-report
+- Merge remote-tracking branch 'origin/main' into loop/guards-null-report
+- Trim goal.py under the script size cap after merging main
+- Wiki: update pages for guards-null-report
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.28 - 2026-11-12
+
+- goal.py pr: a conflict from main moving in generated files is mended, a dead lane reruns free (bounded), finding text carries no absolute path
+- Docs: SKILL.md and commands.md name the mended conflict and the free dead-lane rerun
+- Merge origin/main (pending-none) into loop/goal-pr-try-budget: rows unioned, Tests re-rendered
+- guards.py: shorter docstrings so the file is back under its 20480-byte cap after the merge
+- Review fixes: mend refuses a both-sides or deleted row, re-renders Tests.md, only for the wiki page; free reruns only for the generated lane text; dirty tree is no try; plain() covers the lane part
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/goal-pr-try-budget
+- Lane: re-render the Tests tables
+- Merge origin/main (v0.27.18) into loop/goal-pr-try-budget: Delivery Tests re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+- Merge origin/main (v0.27.20) into loop/goal-pr-try-budget: rows unioned
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.27 - 2026-11-12
+
+- Only setup inserts the Settings and Automation blocks; a render refreshes them where their markers are
+- Page format: blank the template line too, so a README that opens with How to use passes DOC-5
+- Docs staleness: a commit that only refreshes the generated blocks stales no page
+- test-adopt: build the package only for SET-3, SET-4 and SET-5, which use it
+- test-docs-blocks and four rows for the render-readme-guard done lines
+- Mark adopt-set-1 and adopt-set-2 seen red; drop their known entries; Tests, Documentation and Setup usage
+- Guard the blocks rows on DOC-15, so they list in the Documentation Tests table
+- Point adopt-set-3..5 known entries at package-cap-3; say why SET-1/2 skip the package
+- Review: refresh a PRD Home's leftover blocks, render.py usage exit, real() early return, safer no-insert test
+- Documentation: render usage names the Home rule
+- counting.py: the no-prompt guard, since real() now runs git
+- Documentation: check skips block-only commits
+- size-140: move docs.py's live() unchanged into counting.py (docs.py 87% of the cap); drop its known entry; record the added done line
+- Merge origin/main (v0.27.22) into loop/render-readme-guard: Tests re-rendered; render.py's cadence() moved unchanged into counting.py to keep render.py under the size limit
+- Merge origin/main (v0.27.24) into loop/render-readme-guard: both sides' new rows kept; Tests re-rendered
+- pr: record issue states and the lane's results
+- Merge remote-tracking branch 'origin/main' into loop/render-readme-guard
+- Lane: re-render the Tests tables
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.26 - 2026-11-12
+
+- Statuses: a private repo's pr lane posts its real result under every required check
+- Local schedule: one launch agent, a registry and a tick; no health workflow; narrow PR workflow
+- Local schedule: rows, Usage and the wiki pages
+- Local schedule: package disclosure, setup registry check, sturdier toy assertions, seen-red dates
+- Docs: re-render Tests, Setup note
+- Local schedule: reject a base that is not a branch name, create the agent's log dir at install
+- Row ls-nothing-in-repo: require the install and tick to have run
+- Toy test: the second 'dr' repo gets its own name (two sections shared one folder, so the full run failed)
+- Lane: re-render the Tests tables
+- Health: build the temp-folder prefix without a literal path (the lane's reach analysis walked every file under it, 284k, cutting planning at the budget)
+- Merge origin/main into loop/local-schedule (prep_budget_minutes stays 25)
+- After the merge: move workflow() and its template from tiers.py to lanes_cli.py, trim merge.py comments, so every script is under 20480 bytes
+- Lane: re-render the Tests tables
+- README: the settings reference regenerated from settings.py (a row rewrote it during the lane)
+- Merge origin/main (v0.27.22) into loop/local-schedule
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/local-schedule; rows placed mid-file
+- Merge remote-tracking branch 'origin/main' into loop/local-schedule
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/local-schedule
+- Wiki: update pages for local-schedule
+- Wiki: update pages for local-schedule
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.25 - 2026-11-12
+
+- Fold portlock.py into one module per skill; automation in the listing; lane headers (package-cap-3)
+- Portlock fallback test, package row, defect-categories copy includes .github, skill-size known entry removed (package-cap-3)
+- portlock test declares skills/ (package-cap-3)
+- Wiki: the lock fallback lives in the scripts, not portlock.py (package-cap-3)
+- Usage notes: the lock fallback, and where audit and automation detail live (package-cap-3)
+- Merge remote-tracking branch 'origin/main' into loop/package-cap-3
+- test-runbook declares the docs scripts it runs, not the folder (package-cap-3)
+- pr: record issue states and the lane's results
+- Merge origin/main (lane-died) into loop/package-cap-3: keep lane-died's identity checks and the folded lock shim
+- pr: record issue states and the lane's results
+- Delivery page: a stop never signals a reused pid, every signal is logged, LANE_DIED names the signal (package-cap-3)
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.24 - 2026-11-12
+
+- Never signal a pid that only reuses a stored one; audit every signal; name the signal that ended a lane
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/lane-died
+- Merge origin/main into loop/lane-died
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.23 - 2026-11-12
 
 - Merge remote-tracking branch 'origin/main' into loop/automation-local-prd

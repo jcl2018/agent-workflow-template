@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
-"""Run the health routine on a schedule in GitHub Actions, and post one digest comment per round.
+"""Post one digest comment per round, and run the local schedule that makes the rounds.
 
-usage: automation.py workflow [--check]  write .github/workflows/health.yml and mail-test.yml from .loop/config.json;
-                                         --check only says which of them is missing or stale (exit 1)
+usage: automation.py local install [--load] | uninstall | status [--json] | plist | tick [--scheduled] [--dry-run] [--repo P]
+                                         the one launch agent on this Mac (workflows.py); install registers this repo and writes
+                                         the agent, printing the launchctl line that loads it (--load runs it); the tick runs
+                                         health with the judge for every repo and the full regression for a private repo
        automation.py digest [--owner L]  post this round's comment on the pinned Automation digest issue
+       automation.py workflow            removed: health no longer runs in GitHub Actions (exit 2)
 
-The workflow checks the routine (health_cron "off" makes a run write nothing), runs health check into the run summary,
-files the groups a runner can read (size, criteria, docs) as health:<group> issues, runs
-the judge only when the secret named by judge_env is set, posts the digest, then mails it (mail.py). Nothing pushes.
-The digest lists what ran (regression's latest run, health's verdict, the round's cost, the email), then per feature
-the new, still-open and fixed issues labelled regression or health since the last comment, each open one with its link
-(and its milestone, when it has one) and the request to give the agent; it mentions digest_owner (default: the repo owner). Its state lives in the digest
-issue's body (rounds.py), so a rerun of the same run posts nothing twice and an older run never overwrites a newer one.
-Outside Actions with no GH_TOKEN it only prints the comment.
+The digest lists what ran (regression's latest run, health's verdict, the round's cost, the email, when the schedule last ran and
+a MISSED line after a gap), then per feature the new, still-open and fixed issues labelled regression or health since the last comment,
+each open one with its link (and its milestone, when it has one) and the request to give the agent; it mentions digest_owner (default:
+the repo owner). Its state lives in the digest issue's body (rounds.py), so a rerun of the same run posts nothing twice and an older run
+never overwrites a newer one. Outside a tick with no GH_TOKEN it only prints the comment.
 """
 import argparse
 import datetime
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -32,8 +33,6 @@ import rounds  # noqa: E402
 from issues import NO_FEATURE, feature_group, features  # noqa: E402
 import workflows  # noqa: E402
 
-CRON = "47 */4 * * *"
-KEY_NAME = "ANTHROPIC_API_KEY"  # the name of the Actions secret, not a secret
 LABELS = ("regression", "health")  # the issues the digest follows: failing tests and health findings
 TITLE = rounds.TITLE
 INTRO = "The Automation routines post one comment here per round, and mail it when the mail secrets are set.\n\n"
@@ -48,49 +47,41 @@ def config(root):
         return {}
 
 
-def settings(root):
-    """(health_cron, judge_env) from the config, or a REFUSED exit when either can't be written into a workflow."""
-    cfg = config(root)
-    cron, secret = cfg.get("health_cron") or CRON, cfg.get("judge_env") or KEY_NAME
-    if cron != "off" and not (isinstance(cron, str) and re.fullmatch(r"[0-9A-Za-z*/,\- ]+", cron) and len(cron.split()) == 5):
-        sys.exit("REFUSED: health_cron is not five cron fields or off. Fix: edit .loop/config.json.")
-    if not isinstance(secret, str) or not re.fullmatch(r"[A-Z_][A-Z0-9_]*", secret):
-        sys.exit("REFUSED: judge_env %r is not a secret name (capitals, digits, _). Fix: edit .loop/config.json." % secret)
-    return cron, secret
+def local_status(as_json=False):
+    data = workflows.load()
+    checks = {"plist": (os.path.exists(workflows.plist_path()), "automation.py local install"),
+              "loaded": (workflows.launchctl("print", workflows.UID + "/" + workflows.LABEL) == 0, "launchctl bootstrap %s %s" % (workflows.UID, workflows.plist_path())),
+              "program": (os.path.exists(workflows.program()), "run local install again (PROGRAM_MISSING)"),
+              "gh": (bool(shutil.which("gh")) and subprocess.run(["gh", "auth", "status"], capture_output=True).returncode == 0, "gh auth login"),
+              "claude": (bool(shutil.which("claude")), "install claude and log in once in a terminal")}
+    if as_json:
+        print(json.dumps({"repos": data["repos"], "checks": {n: v[0] for n, v in checks.items()}}, indent=1))
+        return 0
+    for key, e in sorted(data["repos"].items()):
+        sl, here = workflows.slots(e.get("cron")), os.path.isdir(e["path"])
+        print("%s: last_run %s, last_ok %s%s%s%s%s%s" % (key, e.get("last_run") or "never", e.get("last_ok"), " MISSING (path gone)" * (not here),
+              " OVERDUE" * bool(sl and (workflows.now() - (workflows.when(e.get("last_run")) or workflows.now())).total_seconds() > 2 * sl[1] * 3600),
+              " ORIGIN_CHANGED: run local install again (ORIGIN_CHANGED)" * (here and workflows.origin_of(e["path"]) != e["origin"]),
+              " SKIPPED_OFFLINE %d ticks in a row (%s)" % (e.get("skips", 0), e.get("cause")) * bool(e.get("skips")),
+              " JUDGE_SKIPPED %d ticks (JUDGE_SKIPPED)" % e.get("judge_skipped", 0) * bool(e.get("judge_skipped"))))
+    print("\n".join("OK " + n if ok else "FIX %s: %s" % (n, fix) for n, (ok, fix) in checks.items()))
+    return 0
 
 
-def render(cron, secret):
-    return workflows.health(cron, secret)
-
-
-def wanted(root):
-    cron, secret = settings(root)
-    base = os.path.join(root, ".github", "workflows")
-    return [(os.path.join(base, "health.yml"), workflows.health(cron, secret)),
-            (os.path.join(base, "mail-test.yml"), workflows.mail_test())]
+def cmd_local(args):
+    if args.action == "tick":
+        return workflows.tick(args.scheduled, args.dry_run, args.repo)
+    if args.action == "status":
+        return local_status(args.json)
+    if args.action == "plist":
+        print(workflows.agent_text(workflows.load()), end="")
+        return 0
+    return workflows.uninstall(args.root) if args.action == "uninstall" else workflows.install(args.root, config(args.root), args.load)
 
 
 def cmd_workflow(args):
-    status = 0
-    for path, text in wanted(args.root):
-        rel = os.path.relpath(path, args.root)
-        current = open(path).read() if os.path.exists(path) else None
-        if current is not None and not current.startswith(workflows.HEADER):
-            if args.check:
-                print("NOT_OURS: %s was not written by automation.py, so it is never checked or rewritten (NOT_OURS)" % rel)
-                continue
-            sys.exit("REFUSED: %s exists, and this tool didn't write it. Fix: merge by hand." % path)
-        if args.check:
-            if current != text:
-                print("STALE_WORKFLOW: %s %s what automation.py writes. Fix: python3 skills/workflow-health/scripts/"
-                      "automation.py workflow, then commit (STALE_WORKFLOW)" % (rel, "is missing, unlike" if current is None else "differs from"))
-                status = 1
-            continue
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as handle:
-            handle.write(text)
-        print("WROTE " + path)
-    return status
+    print("REMOVED: health runs on the Mac now; run automation.py local install (SCHEDULE_REMOVED_WORKFLOW)")
+    return 2
 
 
 def open_issues(pages=()):
@@ -123,6 +114,8 @@ def owner_of(args, cfg):
 
 
 def regression_line():
+    if os.environ.get("DIGEST_REGRESSION"):  # the Mac's tick ran it
+        return os.environ["DIGEST_REGRESSION"]
     runs = loads(gh("run", "list", "--workflow", "regression.yml", "--limit", "1", "--json", "status,conclusion,createdAt,url"), [])
     if not runs:
         return "no run found"
@@ -147,6 +140,8 @@ def email_line(cfg, previous):
     mode = cfg.get("digest_mail") or "cloudflare"
     if mode == "off":
         return "off (digest_mail in .loop/config.json)"
+    if os.environ.get("DIGEST_MAIL_NOTE"):
+        return "not set up (%s)" % os.environ["DIGEST_MAIL_NOTE"]
     ready = os.environ.get("MAIL_ADDR_SET") == "true" and os.environ.get(
         "MAIL_SMTP_SET" if mode == "smtp" else "MAIL_CF_SET") == "true"
     if "MAIL_ADDR_SET" in os.environ and not ready:
@@ -171,7 +166,15 @@ def compose(login, note, ran, now_open, before, run_id, titles=None, groups=None
     titles, groups = titles or {}, groups or {}
     new, still, fixed = set(now_open) - set(before), set(now_open) & set(before), set(before) - set(now_open)
     head = ("@%s " % login if login else "") + "Automation round, %s UTC" % datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M")
-    out = [head, ""] + ([note, ""] if note else []) + ["| Routine | Result |", "|---|---|"]
+    out = [head, ""] + ([note, ""] if note else [])
+    if "DIGEST_LAST" in os.environ:  # the Mac's tick: when it last ran, and whether a gap went unserved
+        at, prev = rounds.created(run_id) or datetime.datetime.now(datetime.timezone.utc), workflows.when(os.environ["DIGEST_LAST"])
+        gap = (at - prev).total_seconds() / 3600 if prev else 0
+        out += ["Last ran: %s, previous run %s%s" % (at.strftime("%Y-%m-%d %H:%M"), prev.strftime("%Y-%m-%d %H:%M") if prev else "none",
+                                                       " (%d hours earlier)" % gap if prev else ""), ""]
+        out += ["MISSED: no run for %d hours (Mac asleep or offline)" % gap, ""] * bool(prev and gap > float(os.environ.get("DIGEST_INTERVAL") or 24) + 1)
+        out += [os.environ[k] for k in ("DIGEST_DRIFT", "DIGEST_JUDGE") if os.environ.get(k)] + [""] * bool(os.environ.get("DIGEST_DRIFT") or os.environ.get("DIGEST_JUDGE"))
+    out += ["| Routine | Result |", "|---|---|"]
     out += ["| %s | %s |" % (name, said.replace("|", "\\|")) for name, said in ran] + [""]
     home = {n: groups.get(n) or (titles.get(now_open[n][1]) if titles.get(now_open[n][1]) in pages else NO_FEATURE) for n in now_open}
     home.update({n: titles.get(before[n]) if titles.get(before[n]) in pages else NO_FEATURE for n in fixed})
@@ -225,7 +228,7 @@ def cmd_digest(args):
             return 0
     login, note = owner_of(args, cfg) if live else (args.owner or cfg.get("digest_owner") or "", "")
     previous = rounds.run_comment(number, state["run"]) if live and number is not None and state else None
-    cost = rounds.round_cost(run_id, state["run"] if state else None) if live and in_actions else None
+    cost = rounds.round_cost(run_id, state["run"] if state else None) if live and (in_actions or rounds.is_local(run_id)) else None
     ran = [("regression", regression_line() if live else "not read (dry run)"),
            ("health", health_line(os.environ.get("HEALTH_REPORT") or "")),
            ("round cost", rounds.line(cost) if cost else "not read (dry run)" if not live else rounds.line({"error": "only read in Actions"})),
@@ -266,8 +269,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     item = sub.add_parser("workflow")
-    item.add_argument("--check", action="store_true", help="say which workflow is missing or stale; write nothing")
+    item.add_argument("--check", action="store_true")
     item.set_defaults(func=cmd_workflow)
+    item = sub.add_parser("local")
+    item.add_argument("action", choices=("install", "uninstall", "status", "plist", "tick"))
+    item.add_argument("--load", action="store_true")
+    item.add_argument("--json", action="store_true")
+    item.add_argument("--scheduled", action="store_true")
+    item.add_argument("--dry-run", action="store_true")
+    item.add_argument("--repo", default="")
+    item.set_defaults(func=cmd_local)
     item = sub.add_parser("digest")
     item.add_argument("--owner", default="")
     item.add_argument("--live", action="store_true", help="post with your own gh login")

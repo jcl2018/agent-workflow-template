@@ -108,7 +108,7 @@ echo "== g3 (149): the operation resumes a stopped session goal"
 W3="$d/wt3"; git worktree add -q -b loop/g3 "$W3" main; W3=$(cd "$W3" && pwd -P)  # the goal's own worktree
 cd "$W3"; LOOP_ROLE=worker $goal new g3 --here --goal "Goal g3" --done "Line g3" >/dev/null
 $SE bind g3 s3 >/dev/null; rec g3 idea 'DEPTH: full\nSTEP: done' >/dev/null; cd "$d/repo"
-stop3() { setf g3 '{"status": "stopped", "tries": 3, "refusals": 2, "finding": "Failed 3 tries", "report": {"status": "failed"}, "note": {"text": "x"}}'; }
+stop3() { setf g3 '{"status": "stopped", "tries": 3, "free": 3, "refusals": 2, "finding": "Failed 3 tries", "report": {"status": "failed"}, "note": {"text": "x"}}'; }
 free3() { python3 - "$C/loop/session-pool.json" "$1" "$2" <<'PY'
 import json, sys
 p = json.load(open(sys.argv[1])); p["s3"] = {"name": "worker · g3", "slug": sys.argv[3], "state": sys.argv[2]}; json.dump(p, open(sys.argv[1], "w"))
@@ -120,6 +120,7 @@ check "a worker can't resume its own goal" 'grep -q "(WORKER_SELF_REPAIR)" <<<"$
 git switch -q main  # resume runs from the main checkout, not the goal's worktree
 out=$(LOOP_SESSION_TOOL="$d/tool.sh" $goal resume g3 --why "limit passed" 2>&1)
 check "resume from another checkout revives the goal: running, tries 0, report cleared, who and why logged" 'grep -q "^RESUMED g3 at plan$" <<<"$out" && [ "$(field g3 status)" = running ] && [ "$(field g3 tries)" = 0 ] && [ "$(field g3 report)" = None ] && grep -q "resumed by operation session: limit passed" "$R/g3.json"'
+check "resume also gives a goal its free reruns of a dead lane back" '[ "$(field g3 free)" = 0 ]'
 check "resume reserves the session and tells it where to continue, starting no process" 'grep -q "\"slug\": \"g3\"" "$C/loop/session-pool.json" && grep -q "Continue at plan in " "$TOOL_LOG.sent.s3" && [ "$(field g3 pid)" = None ]'
 resumed=$(python3 -c "import json;s=json.load(open('$R/g3.json'));print([s.get(k) for k in ('status','tries','refusals','finding','waiting','note','report')])")
 out=$($goal resume g3 --why again 2>&1)

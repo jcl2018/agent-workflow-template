@@ -8,7 +8,6 @@ on HEAD or an ancestor of HEAD and nothing it reads changed since; anything this
 A test script whose leading comment block has `# reads: <path>...` lines is mapped narrowly (declared entry points plus
 what they reach, no folder widening); a script without one keeps the wide mapping; LANES_WIDE=1 forces wide everywhere.
 """
-import portlock as fcntl
 import hashlib
 import json
 import os
@@ -17,6 +16,7 @@ import subprocess
 import sys
 
 import narrow
+from slots import fcntl
 
 # No terminal, no waiting: a prompt from git must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -128,11 +128,15 @@ def run_row(command, cwd, env, timeout):
     import signal as sig
     import tempfile
     with tempfile.TemporaryFile("w+", errors="replace") as log:  # a file, not a pipe: a child left running can't hold it
-        proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
+        win = os.name == "nt"  # a row is a bash line; cmd.exe has no $(...) and splits on > and (
+        proc = subprocess.Popen(["bash", "-c", command] if win else command, shell=not win, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
         try:
             code, tail = proc.wait(timeout=timeout), ""
         except subprocess.TimeoutExpired:  # kill the row's whole tree, so nothing it started keeps ports or writes on
-            for pid in [proc.pid] + descendants(proc.pid):
+            if os.name == "nt":  # no ps or SIGKILL there: taskkill /T takes the tree
+                import proctree
+                proctree.kill(proc.pid)
+            for pid in [] if os.name == "nt" else [proc.pid] + descendants(proc.pid):
                 try:
                     os.kill(pid, sig.SIGKILL)
                 except OSError:
@@ -143,7 +147,7 @@ def run_row(command, cwd, env, timeout):
         out = log.read() + tail
     num = -code if code < 0 else (code - 128 if 128 < code < 160 else 0)
     names = {s.value: s.name for s in sig.Signals}
-    return code, out or "", proc.pid, names.get(num)
+    return code, out or "", proc.pid, names.get(num) if num else None  # Windows has CTRL_C_EVENT = 0
 
 
 def dirty(root):

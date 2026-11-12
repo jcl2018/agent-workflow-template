@@ -96,7 +96,8 @@ Write what they can see, not what the tests already prove.
 ### 4. Pull request
 
 Run `goal.py pr <slug>`. It first merges the latest base branch, and only a real conflict costs a try (it aborts the
-merge: merge the base yourself, commit, and run `pr` again). It refuses until every flow step is done or skipped, and
+merge: merge the base yourself, commit, and run `pr` again; a conflict only in Tests.md or the regression tsv files is
+mended and merged, `MENDED`, and a lane that ends with no exit status, LANE_DIED, reruns free up to 3 times). It refuses until every flow step is done or skipped, and
 while the issue or finding the goal fixes ("fixes #N", "fixes finding:SLUG") has no defect test: a regression row of
 category defect, linked to it, seen failing on the old code and passing now (`regression.py add --category defect
 --link ...`, then `red`). The ship step never pushes, so this is what pushes the branch and opens the pull request,
