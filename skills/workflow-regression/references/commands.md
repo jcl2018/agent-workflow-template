@@ -303,6 +303,7 @@ part is advice and never blocks.
 | LANE_PREP | lanekit.py | — | the lane first committed the re-rendered Tests tables and run dates | none |
 | LANE_PREP_FAILED | lanekit.py | 1 | that commit or the render failed or hung (60 s); nothing committed | make the commit pass, then run again |
 | LANE_RECORDER | lane.py | 1 | the flow file's `test_record` command isn't on this machine | install it or remove it |
+| LANE_TMPDIR | lane.py | 1 | the system temp folder is inside a git checkout; no job was made | set TMPDIR to a folder outside any repo, then run again |
 | LANE_DIED | lane.py | 1 | the lane ended with no exit status | the next call starts a new lane |
 | LANE_MISSING / HEAD_MOVED (record) | lane.py via goal.py | 2 | `goal.py record qa\|ship` with no passing lane on this HEAD; no try is used | run `role.py lane SLUG NAME` |
 | NO LANE | lane.py | 3 | `lane-wait` found no lane for this HEAD | start one with `role.py lane SLUG NAME` |
@@ -335,7 +336,12 @@ lane ends.
 - `goal_levels` (land) and `ci_levels` (nightly): the levels a goal lane plans from (nightly adds the nightly rows a
   change reaches) and the CI target. A CI run cut short by its job time still records its time, so health warns.
 - Each lane child gets its own `TMPDIR` and `LOOP_LANE_PORT_BASE` (a leased range of 100 ports from 20000); a row that
-  binds ports uses that range or picks a free port itself.
+  binds ports uses that range or picks a free port itself. The `TMPDIR` is a new folder per lane start,
+  `<system temp>/loop-lane-<repo key>-<goal>-<lane>-<random>` (mode 0700), never inside a git checkout, so a test that
+  refuses to write inside a repo passes under the lane as it does when run directly (issue 814). It is removed when the
+  lane ends or is stopped; a lane that crashes leaves its folder in the system temp until the OS clears it. When the
+  system temp itself is inside a git checkout the lane refuses before it starts: `LANE_TMPDIR: <path> is in a git
+  checkout. Fix: set TMPDIR to a folder outside any repo; the lane committed and pushed nothing.` (example: `TMPDIR=/tmp role.py lane SLUG qa`).
 - Internal handoff variables (`_LOOP_LANE_HELD`, `_LOOP_LANE_LABEL`, `_LOOP_LANE_QUEUED`, `_LOOP_LANE_STARTED`,
   `_LOOP_LANE_NOTE`) are set by the lane; a `test_record` wrapper must keep the environment.
 
