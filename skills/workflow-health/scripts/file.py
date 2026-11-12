@@ -228,7 +228,8 @@ def apply(acts, root, groups):
                 LINK % (act["key"], act["evidence"]), act["body"].split("\n\n")[1])], root)
         else:
             done = run(args_of(act), root)
-            if done.returncode and act.get("feature") and act["kind"] in ("open", "update"):  # never lose the report to a label
+            if done.returncode not in (0, 127) and "label" in done.stderr.lower() and act.get("feature") and act["kind"] in ("open", "update"):
+                # a refused label never loses the report (a timeout, 127, is never retried: the issue may exist)
                 print("FAILED label %s: %s" % (act["feature"], done.stderr.strip()[:160]))
                 act = dict(act, feature="")
                 done = run(args_of(act), root)

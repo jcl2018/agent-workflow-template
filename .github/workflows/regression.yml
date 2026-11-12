@@ -469,7 +469,7 @@ jobs:
                   if not hit:
                       make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect", "--body", body]
                       made = gh(*make, *(["--label", label] if label else []))
-                      if made.returncode and label:  # never lose the report to a label: file it again without
+                      if made.returncode and label and "label" in made.stderr.lower():  # a refused label never loses the report
                           print("FAILED label %s: %s" % (label, made.stderr.strip()[:160]))
                           made = gh(*make)
                       if made.returncode:

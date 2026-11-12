@@ -14,7 +14,7 @@ Review: **Unreviewed**
 - `goal.py new "GOAL" --done "LINE" [--done "LINE" ...] [--here]` — Freezes a goal and its done lines. Prints `FROZEN slug`. Refuses with no done line (exit 2, `REFUSED: a goal needs at least one done line`) or with no skill flow set up (exit 2).
 - `flow.py SLUG STEP` — Runs one step (idea, plan, review, qa, ship); a review or ship step stops at `step_budget_minutes` (default 30, never under 15), is recorded done with what it left and the goal goes on. In a worker session prints `IN SESSION` and the skill to run. Prints `RUNNING` until it ends.
 - `goal.py record SLUG STEP --in-session` — Records a finished step. Refuses a reply with no `DEPTH:` line, and a qa step with no passing lane on HEAD (`LANE_MISSING`).
-- `goal.py pr SLUG` — Merges the latest main, reruns the affected tests within `test_budget_minutes` (default 15, never under 15; rows past it are left to the scheduled full suite and listed), pushes and opens the pull request. Prints the PR link. Never merges.
+- `goal.py pr SLUG` — Merges the latest main, reruns the affected tests within `test_budget_minutes` (default 15, never under 15; rows past it are left to the scheduled full suite and listed), pushes and opens the pull request, in no milestone. Prints the PR link. Never merges.
 - `merge.py SLUG` — The release step: docs check, merge (where auto_merge is on), version bump, changelog, GitHub release, wiki publish. Prints `MERGED <pr> into main`, `RELEASED vX.Y.Z <release link> (<bump> bump)` and `PUBLISHED <wiki link>`. Refuses while a page is stale.
 
 ## Requirements

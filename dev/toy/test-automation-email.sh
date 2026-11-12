@@ -1,6 +1,6 @@
 #!/bin/bash
-# reads: skills/workflow-health/scripts/ skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/actions.py dev/toy/fakegh/ .loop/docs.tsv skills/workflow-setup/scripts/seed.py
-# Test the round's mail, feature milestones and round cost with a stub gh, a local Cloudflare stub and a local SMTP stub.
+# reads: skills/ skills/workflow-health/scripts/ skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/actions.py dev/toy/fakegh/ .loop/docs.tsv skills/workflow-setup/scripts/seed.py
+# Test the round's mail, feature grouping and round cost with a stub gh, a local Cloudflare stub and a local SMTP stub.
 # usage: test-automation-email.sh GROUP   (mail secrets retry mailtest digest rounds file regression upgrade, or all)
 # Exits 0 only when every case in the group passes, so each regression row runs one group.
 set -u
@@ -435,23 +435,24 @@ if want mailtest; then
 fi
 
 if want digest; then
-  echo "== digest: grouped by milestone, never posted twice or out of order"
+  echo "== digest: grouped by feature, never posted twice or out of order"
+  printf 'Automation\tskills/workflow-health\n' > .loop/docs.tsv
   printf '[{"number": 10, "title": "Automation"}, {"number": 2, "title": "Backlog"}, {"number": 11, "title": "Ops, team: A"}]\n' > "$G/milestones.json"
-  printf '[{"number": 12, "url": "https://github.com/o/r/issues/12", "milestone": {"number": 10}}, {"number": 14, "url": "https://github.com/o/r/issues/14", "milestone": {"number": 11}}]\n' > "$G/regression.json"
+  printf '[{"number": 12, "url": "https://github.com/o/r/issues/12", "milestone": {"number": 10, "title": "Automation"}}, {"number": 14, "url": "https://github.com/o/r/issues/14", "milestone": {"number": 11, "title": "Ops, team: A"}}]\n' > "$G/regression.json"
   printf '[{"number": 9, "url": "https://github.com/o/r/issues/9", "milestone": null}]\n' > "$G/health.json"
   dg() { env GH_TOKEN=x GITHUB_ACTIONS=true DIGEST_REPO_OWNER=toy-owner GITHUB_STEP_SUMMARY=$r/sum.md "$@" $auto digest; }
   reset; rm -f "$G/comments.json"; runs; issue "<!-- automation-digest open=5,9 run=200 -->"
   out=$(dg DIGEST_RUN=201); c=$(python3 -c "import json;print(json.load(open('$G/comments.json'))[-1]['body'])")
-  python3 - "$c" <<'PY' && grep -q "run=201 open=9:0,12:10,14:11 -->" "$G/body-77.md" && ok "the digest groups new, still-open and fixed issues by milestone, features first" || bad "grouping"
+  python3 - "$c" <<'PY' && grep -q "run=201 open=9:0,12:10,14:11 -->" "$G/body-77.md" && ok "the digest groups new, still-open and fixed issues by feature, a free-form milestone as a suffix, the rest No feature" || bad "grouping"
 import sys
 c = sys.argv[1]
 heads = [l for l in c.splitlines() if l.startswith("### ")]
-assert heads == ["### Automation", "### Ops, team: A", "### No milestone"], heads
+assert heads == ["### Automation", "### No feature"], heads
 auto = c.split("### Automation")[1].split("###")[0]
-assert "**New** (1): [#12]" in auto and '- [#12](https://github.com/o/r/issues/12): `/workflow-delivery go "Fix #12"`' in auto
-nom = c.split("### No milestone")[1]
-assert "**Still open** (1): [#9]" in nom and "**Fixed** (1): #5" in nom
-assert c.count("Ops, team: A") == 1
+assert "**New** (1): [#12]" in auto and '- [#12](https://github.com/o/r/issues/12): `/workflow-delivery go "Fix #12"` (milestone Automation)' in auto
+nof = c.split("### No feature")[1]
+assert "**New** (1): [#14]" in nof and "**Still open** (1): [#9]" in nof and "**Fixed** (1): #5" in nof
+assert "(milestone Ops, team: A)" in nof and c.count("Ops, team: A") == 1 and "No milestone" not in c
 PY
   grep -qF "| round cost | round 7 min of job time (regression: no run found, health 7 min so far" <<<"$c" && grep -q "^## Round" "$r/sum.md" \
     && ok "the digest shows the round's cost and writes it to the run summary" || bad "cost row"
@@ -482,14 +483,14 @@ PY
     && ok "a digest run by hand keeps the last Actions run on the issue and says the cost is only read in Actions" || bad "local digest"
   python3 -B -c "
 import sys; sys.path.insert(0, '$S'); import automation, mail_render
-c, _ = automation.compose('', '', [], {3: ('u3', 99), 4: ('u4', 0), 5: ('u5', 10)}, {}, '7', {10: 'Automation'})
+c, _ = automation.compose('', '', [], {3: ('u3', 99), 4: ('u4', 0), 5: ('u5', 10)}, {}, '7', {10: 'Automation'}, None, ('Automation',))
 heads = [l for l in c.splitlines() if l.startswith('### ')]
-assert heads == ['### Automation', '### No milestone'], heads
-assert '**New** (2): [#3](u3), [#4](u4)' in c.split('### No milestone')[1]
+assert heads == ['### Automation', '### No feature'], heads
+assert '**New** (2): [#3](u3), [#4](u4)' in c.split('### No feature')[1]
 c, _ = automation.compose('', '', [('health', 'a | b')], {}, {}, '7', {})
 page = mail_render.to_html(c)
 assert '<td>a | b</td>' in page, page
-" && ok "an unknown milestone joins the one No milestone section, and an escaped pipe stays in its cell" || bad "no milestone section"
+" && ok "an unknown milestone joins the one No feature section, and an escaped pipe stays in its cell" || bad "no feature section"
   python3 -B -c "
 import sys; sys.path.insert(0, '$S'); import rounds
 a = rounds.parse('x <!-- automation-digest open=5,9 run=7 -->'); b = rounds.parse('<!-- automation-digest mailed open=5:2 run=8 -->')
@@ -497,6 +498,7 @@ c = rounds.parse('<!-- automation-digest open= run=none -->'); d = rounds.parse(
 assert a['open'] == {5: 0, 9: 0} and a['run'] == '7' and b['flags'] == {'mailed'} and b['open'] == {5: 2} and c['open'] == {} and d is None
 assert rounds.parse(rounds.marker('9', {3: 11}, {'mailing'})) == {'run': '9', 'open': {3: 11}, 'flags': {'mailing'}}
 " && ok "the state marker reads the old form, any key order and an empty open list, and refuses a malformed one" || bad "marker grammar"
+  rm -f .loop/docs.tsv; [ "$fail" = 0 ] && echo "PASS milestone-freeform:aut-email-digest"
 fi
 
 if want rounds; then
@@ -542,179 +544,114 @@ PY
 fi
 
 if want file; then
-  echo "== file: findings on their feature's milestone, and the owner's moves stay"
+  echo "== file: findings tagged with their group, no milestone placed or made, the feature tag behind its switch"
   export FAKE_GH_DIR="$G/fake"; mkdir -p "$FAKE_GH_DIR"; F=$here/dev/toy/fakegh
   printf 'Automation\tskills/workflow-health/scripts/automation.py,.github/workflows\nHealth\tskills/workflow-health\nOld\tskills/old\n' > .loop/docs.tsv
-  printf '[{"number": 1, "title": "Backlog", "state": "open"}, {"number": 2, "title": "Automation", "state": "open"}, {"number": 3, "title": "Old", "state": "closed"}]\n' > "$FAKE_GH_DIR/milestones.json"
-  fl() { (cd "$S" && PATH="$F:$PATH" python3 -B -c "
+  # the fake gh first on PATH, a token that cannot work and a host that cannot resolve: the real gh could change nothing
+  fl() { (cd "$S" && PATH="$F:$PATH" GH_TOKEN=invalid GH_HOST=localhost.invalid python3 -B -c "
 import json, sys, file
 rows = [dict(state='WARN', family='size', subject=s, rule='limit', detail='big', fix='') for s in sys.argv[1:]]
 issues, why = file.held('$r'); acts = file.plan(rows, issues, ['size'], root='$r'); file.apply(acts, '$r', ['size'])" "$@"); }
-  : > "$FAKE_GH_DIR/issues.json"; rm -f "$FAKE_GH_DIR/calls.log"
+  nissues() { python3 -c "import json;print(len(json.load(open('$FAKE_GH_DIR/issues.json'))))"; }
+  f0=$fail; cfg '{}'; : > "$FAKE_GH_DIR/issues.json"; rm -f "$FAKE_GH_DIR/calls.log" "$FAKE_GH_DIR/labels.json"
   out=$(fl skills/workflow-health/scripts/automation.py skills/nowhere/x.py)
-  python3 - "$FAKE_GH_DIR/issues.json" <<'PY' && ok "a finding goes on its feature's milestone, and one no feature claims goes on Backlog" || bad "placement"
+  [ -s "$FAKE_GH_DIR/calls.log" ] && ok "the fake gh saw every call (calls.log exists)" || bad "FAIL milestone-freeform:file: calls.log absent, real gh may have run. Fix: put dev/toy/fakegh first on PATH"
+  python3 - "$FAKE_GH_DIR/issues.json" <<'PY' && ok "a finding is filed with health and health:size only, on no milestone, with an empty placed=" || bad "tagging"
 import json, sys
 i = {x["title"].split()[2]: x for x in json.load(open(sys.argv[1]))}
-assert i["skills/workflow-health/scripts/automation.py"]["milestone"]["title"] == "Automation"
-assert i["skills/nowhere/x.py"]["milestone"]["title"] == "Backlog"
-assert "placed=Automation -->" in i["skills/workflow-health/scripts/automation.py"]["body"]
+for path in ("skills/workflow-health/scripts/automation.py", "skills/nowhere/x.py"):
+    x = i[path]
+    assert not x["milestone"], x
+    assert sorted(l["name"] for l in x["labels"]) == ["health", "health:size"], x["labels"]
+    assert " placed= -->" in x["body"], x["body"]
 PY
+  ! grep -qi "milestone\|backlog" "$FAKE_GH_DIR/calls.log" && ! grep -q "feature:" "$FAKE_GH_DIR/calls.log" && ok "no milestone or feature label call is made while feature_labels is off" || bad "calls: $(cat "$FAKE_GH_DIR/calls.log")"
   out=$(fl skills/workflow-health/scripts/automation.py skills/nowhere/x.py)
-  [ "$(python3 -c "import json;print(len(json.load(open('$FAKE_GH_DIR/issues.json'))))")" = 2 ] && grep -q "^SAME" <<<"$out" && ok "a second run duplicates no open issue" || bad "duplicate"
+  [ "$(nissues)" = 2 ] && grep -q "^SAME" <<<"$out" && ok "a second run duplicates no open issue" || bad "duplicate"
   python3 - "$FAKE_GH_DIR/issues.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
 for x in d:
     if "automation.py" in x["title"]:
-        x["milestone"] = {"title": "Backlog"}  # the owner moved it to Backlog
+        x["milestone"] = {"title": "v1.0"}  # the owner put it on a milestone
 d.append({"number": 3, "title": "health: size skills/old/y.py limit", "state": "OPEN", "labels": [{"name": "health"}, {"name": "health:size"}],
-          "milestone": {"title": "Backlog"}, "body": "<!-- loop-health size:.github/workflows/x.yml:limit -->\n\nold"})
+          "milestone": {"title": "Backlog"}, "body": "<!-- loop-health size:.github/workflows/x.yml:limit placed=Backlog -->\n\nold"})
+d.append({"number": 4, "title": "health: size skills/old/q.py limit", "state": "OPEN", "labels": [{"name": "health"}, {"name": "health:size"}],
+          "milestone": None, "body": "<!-- loop-health size:skills/old/q.py:limit placed=Alpha -->\n\nold"})
 json.dump(d, open(sys.argv[1], "w"))
 PY
-  out=$(fl skills/workflow-health/scripts/automation.py .github/workflows/x.yml)
-  python3 - "$FAKE_GH_DIR/issues.json" <<'PY' && ok "an issue the owner moved to Backlog stays there, and an older Backlog issue moves to its feature" || bad "owner move"
+  : > "$FAKE_GH_DIR/calls.log"; out=$(fl skills/workflow-health/scripts/automation.py .github/workflows/x.yml)
+  python3 - "$FAKE_GH_DIR/issues.json" <<'PY' && ! grep -q "milestone" "$FAKE_GH_DIR/calls.log" && ok "an issue the owner put on a milestone stays there, and older placed= markers (Backlog, Alpha) never move anything" || bad "owner move"
 import json, sys
 i = {x["number"]: x for x in json.load(open(sys.argv[1]))}
-assert i[1]["milestone"]["title"] == "Backlog", i[1]
-assert i[3]["milestone"]["title"] == "Automation", i[3]
+assert i[1]["milestone"]["title"] == "v1.0" and i[3]["milestone"]["title"] == "Backlog" and i[4]["milestone"] is None, (i[1], i[3], i[4])
 PY
-  out=$(fl skills/old/z.py)
-  grep -q "^api -X PATCH repos/{owner}/{repo}/issues/4 -F milestone=3" "$FAKE_GH_DIR/calls.log" && grep -q "^DONE open issue .* on Old " <<<"$out" && ok "a finding for a feature whose milestone is closed is set on it by number" || bad "closed milestone"
-  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
-import file, subprocess
-real, seen = file.run, []
-def run(args, root):
-    seen.append(args)
-    if args[:3] == ['api', '-X', 'PATCH']:
-        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
-    return real(args, root)
-file.run = run
-row = dict(state='WARN', family='size', subject='skills/old/w.py', rule='limit', detail='big', fix='')
-issues, why = file.held('$r'); acts = file.plan([row], issues, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
-print([a for a in seen if a[:2] == ['issue', 'edit']])
-" ) > "$G/patch.out" 2>&1
-  grep -q "placed= -->" "$G/patch.out" && grep -q "^FAILED open issue" "$G/patch.out" \
-    && ok "a new issue whose closed-milestone set fails gets placed= empty, so the next run places it" || bad "closed patch failure"
-  python3 -c "import json; d=json.load(open('$FAKE_GH_DIR/milestones.json')); json.dump([m for m in d if m['title'] != 'Backlog'], open('$FAKE_GH_DIR/milestones.json', 'w'))"
-  out=$(fl skills/nowhere/v.py)
-  python3 - "$FAKE_GH_DIR/issues.json" "$FAKE_GH_DIR/milestones.json" <<'PY2' && ok "a missing Backlog is made once for a finding no feature claims" || bad "backlog made"
+  (cd "$S" && python3 -B -c "
+import file
+held = {'size:skills/old/q.py:limit': dict(number=4, state='OPEN', labels=['health:size'], body='<!-- loop-health size:skills/old/q.py:limit evidence=00000000 placed=Alpha -->'),
+        'size:skills/old/r.py:limit': dict(number=5, state='OPEN', labels=['health:size'], body='<!-- loop-health size:skills/old/r.py:limit placed= -->'),
+        'size:skills/old/s.py:limit': dict(number=6, state='OPEN', labels=['health:size'], body='<!-- loop-health size:skills/old/s.py:limit placed=Backlog -->')}
+for k, v in held.items():
+    m = file.FOUND.search(v['body']); assert m and m.group(1) == k, (k, v)
+rows = [dict(state='WARN', family='size', subject='skills/old/%s.py' % n, rule='limit', detail='big', fix='') for n in 'qrs']
+acts = file.plan(rows, held, ['size'], root='$r')
+assert 'move' not in {a['kind'] for a in acts}, acts
+print('parsed')" ) > "$G/old.out" 2>&1
+  grep -q "^parsed$" "$G/old.out" && ok "markers with placed=Backlog, placed=Alpha and an empty placed= parse, and no move act exists" || bad "old markers: $(cat "$G/old.out")"
+  # a real write failure still shows as FAILED, and placed= stays empty (empty means not placed on purpose)
+  : > "$FAKE_GH_DIR/issues.json"; out=$(FAKE_GH_ISSUE_LABEL_FAIL=health fl skills/workflow-health/scripts/automation.py)
+  grep -q "^FAILED open issue" <<<"$out" && ok "a refused issue write is still a FAILED line" || bad "failed line: $out"
+  # the feature tag, switch on
+  cfg '{"feature_labels": true}'; : > "$FAKE_GH_DIR/issues.json"; rm -f "$FAKE_GH_DIR/labels.json"; : > "$FAKE_GH_DIR/calls.log"
+  out=$(fl skills/workflow-health/scripts/automation.py skills/nowhere/x.py)
+  python3 - "$FAKE_GH_DIR/issues.json" "$FAKE_GH_DIR/labels.json" <<'PY' && grep -q "^label create feature:Automation --description Filed by health.py file --force" "$FAKE_GH_DIR/calls.log" && ok "with feature_labels on a finding about a feature is tagged feature:<Page>, made first, and one about none is not" || bad "labels on: $out"
 import json, sys
-i = [x for x in json.load(open(sys.argv[1])) if "nowhere/v.py" in x["title"]]
-assert len(i) == 1 and i[0]["milestone"]["title"] == "Backlog" and "placed=Backlog -->" in i[0]["body"], i
-assert [m["title"] for m in json.load(open(sys.argv[2]))].count("Backlog") == 1
-PY2
-  python3 - "$FAKE_GH_DIR/issues.json" <<'PY2'
+i = {x["title"].split()[2]: x for x in json.load(open(sys.argv[1]))}
+assert "feature:Automation" in [l["name"] for l in i["skills/workflow-health/scripts/automation.py"]["labels"]]
+assert [l["name"] for l in i["skills/nowhere/x.py"]["labels"]] == ["health", "health:size"]
+assert "feature:Automation" in json.load(open(sys.argv[2])) and "feature:Old" not in json.load(open(sys.argv[2]))
+assert not any(x["milestone"] for x in i.values())
+PY
+  python3 - "$FAKE_GH_DIR/issues.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
-d.append({"number": 9, "title": "health: size .github/workflows/q.yml limit", "state": "OPEN", "labels": [{"name": "health"}, {"name": "health:size"}],
-          "milestone": {"title": "Old"}, "body": "<!-- loop-health size:.github/workflows/q.yml:limit placed=Automation -->\n\nq"})
-d.append({"number": 10, "title": "health: size .github/workflows/r.yml limit", "state": "OPEN", "labels": [{"name": "health"}, {"name": "health:size"}],
-          "milestone": None, "body": "<!-- loop-health size:.github/workflows/r.yml:limit placed=Automation -->\n\nr"})
+for x in d:
+    x["labels"] = [l for l in x["labels"] if not l["name"].startswith("feature:")]
 json.dump(d, open(sys.argv[1], "w"))
-PY2
-  out=$(fl .github/workflows/q.yml .github/workflows/r.yml)
-  python3 - "$FAKE_GH_DIR/issues.json" <<'PY2' && ok "an issue the owner moved to another milestone, or off every milestone, stays where it is" || bad "owner moved elsewhere"
-import json, sys
-i = {x["number"]: x for x in json.load(open(sys.argv[1]))}
-assert i[9]["milestone"]["title"] == "Old" and i[10]["milestone"] is None, (i[9]["milestone"], i[10]["milestone"])
-assert "placed=Automation -->" in i[9]["body"] and "placed=Automation -->" in i[10]["body"]
-PY2
-  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
+PY
+  : > "$FAKE_GH_DIR/calls.log"; out=$(fl skills/workflow-health/scripts/automation.py skills/nowhere/x.py)
+  grep -q "^DONE update #1 .*feature:Automation" <<<"$out" && grep -q -- "--add-label feature:Automation" "$FAKE_GH_DIR/calls.log" && ok "a repeat run backfills a missing feature label on an old issue" || bad "backfill: $out"
+  cfg '{}'; : > "$FAKE_GH_DIR/calls.log"; out=$(fl skills/workflow-health/scripts/automation.py skills/nowhere/x.py)
+  ! grep -q "feature:" "$FAKE_GH_DIR/calls.log" && grep -q "^SAME" <<<"$out" && ok "with the switch off again nothing touches the feature label" || bad "off again: $out"
+  cfg '{"feature_labels": true}'; : > "$FAKE_GH_DIR/issues.json"; rm -f "$FAKE_GH_DIR/labels.json"
+  out=$(FAKE_GH_LABEL_FAIL=feature: fl skills/workflow-health/scripts/automation.py)
+  grep -q "^FAILED label feature:Automation" <<<"$out" && [ "$(nissues)" = 1 ] && ! grep -q "feature:" "$FAKE_GH_DIR/issues.json" && ok "a feature label that can't be made still files the issue, without it" || bad "label create fails: $out"
+  : > "$FAKE_GH_DIR/issues.json"; rm -f "$FAKE_GH_DIR/labels.json"
+  out=$(FAKE_GH_ISSUE_LABEL_FAIL=feature: fl skills/workflow-health/scripts/automation.py)
+  grep -q "^FAILED label feature:Automation" <<<"$out" && [ "$(nissues)" = 1 ] && ! grep -q "feature:" "$FAKE_GH_DIR/issues.json" && ok "an issue create refused for the feature label is filed again without it, once" || bad "label on create fails: $out"
+  : > "$FAKE_GH_DIR/issues.json"; (cd "$S" && PATH="$F:$PATH" GH_TOKEN=invalid GH_HOST=localhost.invalid python3 -B -c "
 import file, subprocess
 real, seen = file.run, []
 def run(args, root):
     seen.append(args)
-    if args[:2] == ['issue', 'edit'] and '--milestone' in args:
-        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
-    return real(args, root)
-file.run = run
-held = 'size:skills/workflow-health/scripts/automation.py:limit'
-issues = {held: dict(number=11, state='OPEN', labels=[{'name': 'health:size'}], milestone={'title': 'Backlog'}, placed='Backlog', body='old')}
-row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/automation.py', rule='limit', detail='big', fix='')
-acts = file.plan([row], issues, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
-bodies = [a[a.index('--body') + 1] for a in seen if a[:3] == ['issue', 'edit', '11'] and '--body' in a]
-print([a['kind'] for a in acts]); print(bodies)
-" ) > "$G/keep.out" 2>&1
-  grep -q "'move'" "$G/keep.out" && grep -q "placed=Backlog -->" "$G/keep.out" && ! grep -q "placed=Automation -->" "$G/keep.out" \
-    && ok "a move that fails leaves the old placed= so the next run tries again" || bad "move failure placement"
-  python3 -B -c "
-import sys; sys.path.insert(0, '$S'); import milestone
-assert milestone.page_of('$here', 'skills/workflow-health/scripts/mail.py') == 'Automation'
-assert milestone.page_of('$here', 'skills/workflow-health/scripts/health.py') == 'Health'
-assert milestone.page_of('$here', 'nowhere.txt') == ''" && ok "mail.py maps to Automation and health.py to Health (longest path wins)" || bad "page_of"
-  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
-import file, subprocess
-real = file.run
-def run(args, root):
-    if args[:2] == ['api', '--paginate'] and any('milestones' in a for a in args):
-        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
-    return real(args, root)
-file.run = run
-held = 'size:skills/workflow-health/scripts/automation.py:limit'
-issues = {held: dict(number=12, state='OPEN', labels=[{'name': 'health:size'}], milestone={'title': 'Automation'}, placed='Automation', body='x')}
-row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/automation.py', rule='limit', detail='big', fix='')
-new = dict(row, subject='skills/workflow-health/scripts/rounds.py')
-acts = file.plan([row, new], issues, ['size'], root='$r')
-print(sorted((a['kind'], a.get('milestone')) for a in acts))
-" ) > "$G/blind.out" 2>&1
-  grep -q "('open', 'Health'), ('update', 'Automation')" "$G/blind.out" && ! grep -q "'move'" "$G/blind.out" && ! grep -q "Backlog" "$G/blind.out" \
-    && ok "when milestones can't be read a finding keeps its feature and no issue is moved" || bad "health blind"
-  # Value: protects=a finding is still filed when milestones can't be read and its feature milestone doesn't exist; fails_when=the create with --milestone fails and nothing retries; why_new=the regression filer has this, health didn't; seam=none; no_claim=gh's real error text
-  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
-import file, subprocess
-real, seen = file.run, []
-def run(args, root):
-    seen.append(args)
-    if args[:2] == ['api', '--paginate'] and any('milestones' in a for a in args):
-        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
-    if args[:2] == ['issue', 'create'] and '--milestone' in args:
-        return subprocess.CompletedProcess(args, 1, '', 'milestone not found')
-    return real(args, root)
-file.run = run
-row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/rounds.py', rule='limit', detail='big', fix='')
-acts = file.plan([row], {}, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
-made = [a for a in seen if a[:2] == ['issue', 'create']]
-print(len(made), '--milestone' in made[-1], 'placed= -->' in made[-1][made[-1].index('--body') + 1])
-" ) > "$G/blind2.out" 2>&1
-  grep -q "^2 False True$" "$G/blind2.out" && grep -q "^NOTE: milestone Health couldn't be set" "$G/blind2.out" && grep -q "^DONE open issue .* on no milestone" "$G/blind2.out" \
-    && ok "when milestones can't be read and the feature has none, the finding is still filed, on no milestone" || bad "health blind create"
-  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
-import file, subprocess
-real, seen = file.run, []
-def run(args, root):
-    seen.append(args)
-    if args[:2] == ['api', '--paginate'] and any('milestones' in a for a in args):
-        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
     if args[:2] == ['issue', 'create']:
-        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502: Bad Gateway')
-    return real(args, root)
-file.run = run
-row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/rounds.py', rule='limit', detail='big', fix='')
-acts = file.plan([row], {}, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
-print('creates', len([a for a in seen if a[:2] == ['issue', 'create']]))
-" ) > "$G/blind3.out" 2>&1
-  grep -q "^creates 1$" "$G/blind3.out" && ok "a create that fails for another reason is not retried, so a timeout can't file twice" || bad "retry only on milestone"
-  (cd "$S" && PATH="$F:$PATH" python3 -B -c "
-import file, subprocess
-real, seen = file.run, []
-def run(args, root):
-    seen.append(args)
-    if args[:2] == ['api', '--paginate'] and any('milestones' in a for a in args):
-        return subprocess.CompletedProcess(args, 1, '', 'HTTP 502')
-    if args[:2] == ['issue', 'create']:
-        return subprocess.CompletedProcess(args, 127, '', str(subprocess.TimeoutExpired(['gh'] + args, 120)))
+        return subprocess.CompletedProcess(args, 127, '', str(subprocess.TimeoutExpired(['gh'] + args, 120)) + ' label')
     return real(args, root)
 file.run = run
 row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/rounds.py', rule='limit', detail='big', fix='')
 acts = file.plan([row], {}, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
 print('creates', len([a for a in seen if a[:2] == ['issue', 'create']]))
 " ) > "$G/blind4.out" 2>&1
-  grep -q "^creates 1$" "$G/blind4.out" && ok "a create that timed out (its message names --milestone) is not retried" || bad "timeout not retried"
-  rm -f .loop/docs.tsv; unset FAKE_GH_DIR
+  grep -q "^creates 1$" "$G/blind4.out" && ok "a create that timed out is never retried, so a timeout can't file twice" || bad "timeout retried: $(cat "$G/blind4.out")"
+  # Binding limit: no code outside file.py, actions.py and issues.py names the feature label or writes it
+  stray=$(cd "$here" && grep -rlE 'feature_label\(|"feature:"' skills --include=*.py | grep -v -e "workflow-health/scripts/file.py" -e "workflow-health/scripts/issues.py" -e "workflow-regression/scripts/actions.py")
+  [ -z "$stray" ] && ok "no other script names or writes a feature label ($stray)" || bad "stray feature label code: $stray"
+  [ "$fail" = "$f0" ] && echo "PASS milestone-freeform:aut-email-file"
+  rm -f .loop/docs.tsv; cfg '{"digest_mail": "cloudflare"}'; unset FAKE_GH_DIR
 fi
 
 if want regression; then
-  echo "== regression: defect issues on their feature's milestone"
+  echo "== regression: defect issues tagged with their feature, no milestone read, made or set"
   step() { python3 - "$1" "$2" "$3" <<'PY'
 import sys
 text, name, out = open(sys.argv[1]).read(), sys.argv[2], sys.argv[3]
@@ -727,61 +664,54 @@ for line in block.split("\n"):
 open(out, "w").write("\n".join(lines).rstrip() + "\n")
 PY
   }
-  cfg '{}'; printf 'Alpha\tsrc/alpha\n' > .loop/docs.tsv
+  f0=$fail; cfg '{}'; printf 'Alpha\tsrc/alpha\n' > .loop/docs.tsv
   printf '# Alpha\n\n## Requirements\n\n- AAA-1: **Reviewed 2026-11-08** Alpha words.\n' > docs/wiki/Alpha.md
   printf '# Beta\n\n## Requirements\n\n- BBB-1: **Reviewed 2026-11-08** Beta words.\n' > docs/wiki/Beta.md
   printf '# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\nred\tland\tfalse\tAAA-1\t2026-01-01\tGiven a, when b, then c.\tcriterion\t\nblue\tland\tfalse\tBBB-1\t2026-01-01\tGiven d, when e, then f.\tcriterion\t\n' > .loop/regression.tsv
+  printf 'Alpha\tred\t-\tAAA-1\tAlpha words\nBeta\tblue\t-\tBBB-1\tBeta words\n' > map.tsv
   python3 -B "$here/skills/workflow-regression/scripts/regression.py" workflow >/dev/null; step .github/workflows/regression.yml "Run the rows, and keep one issue per failing row" rows.sh
-  printf '[{"number": 2, "title": "Backlog", "state": "open"}]\n' > "$G/milestones.json"; printf '[]\n' > "$G/regression.json"
-  rows() { reset; PATH="$G:$PATH" GH_TOKEN=x REGRESSION_RESULTS="$r/res.tsv" RUNNER_TEMP="$r" bash rows.sh 2>&1; }
+  printf '[]\n' > "$G/regression.json"
+  rows() { reset; PATH="$G:$PATH" GH_TOKEN=x REGRESSION_MAP="$r/map.tsv" REGRESSION_RESULTS="$r/res.tsv" RUNNER_TEMP="$r" bash rows.sh 2>&1; }
   cat > "$G/ghwrap" <<'SH'
 #!/bin/bash
-case "$*" in *"-X POST repos/{owner}/{repo}/milestones -f title=Alpha"*) echo "$*" >> "$STUB/calls.log"; echo '{"number": 8}'; exit 0;; esac
 [ -n "${STUB_ISSUE_FAIL:-}" ] && [ "$1 $2" = "issue create" ] && { echo "$*" >> "$STUB/calls.log"; echo "HTTP 502" >&2; exit 1; }
+[ -n "${STUB_LABEL_FAIL:-}" ] && [ "$1 $2" = "label create" ] && [[ "$3" == feature:* ]] && { echo "$*" >> "$STUB/calls.log"; echo "could not create label" >&2; exit 1; }
+[ -n "${STUB_ISSUE_LABEL_FAIL:-}" ] && [ "$1 $2" = "issue create" ] && [[ "$*" == *"--label feature:"* ]] && { echo "$*" >> "$STUB/calls.log"; echo "could not add label" >&2; exit 1; }
 exec "$STUB/gh.real" "$@"
 SH
   mv "$G/gh" "$G/gh.real"; mv "$G/ghwrap" "$G/gh"; chmod +x "$G/gh"
   out=$(rows); rc=$?
-  grep -q "^api -X POST repos/{owner}/{repo}/milestones -f title=Alpha" "$G/calls.log" && grep -q "^issue create --title Regression: red --label regression --label defect --body <!-- loop-regression red placed=Alpha -->" "$G/calls.log" && grep -qx " --milestone Alpha" "$G/calls.log" \
-    && ok "a failing test's defect issue goes on its feature's milestone, made once if missing" || bad "defect milestone"
-  grep -q "^issue create --title Regression: blue .*placed=Backlog -->" "$G/calls.log" && grep -qx " --milestone Backlog" "$G/calls.log" && ! grep -q "title=Beta" "$G/calls.log" \
-    && ok "a test whose page is no docs.tsv feature goes on Backlog, and no other milestone is made" || bad "backlog fallback"
-  printf '[{"number": 31, "state": "OPEN", "body": "<!-- loop-regression red placed=Alpha -->", "labels": [{"name": "defect"}], "milestone": {"title": "Backlog"}},
- {"number": 32, "state": "OPEN", "body": "<!-- loop-regression blue -->", "labels": [{"name": "defect"}], "milestone": null}]\n' > "$G/regression.json"
-  printf 'Alpha\tsrc/alpha\nBeta\tsrc/beta\n' > .loop/docs.tsv
-  printf '[{"number": 2, "title": "Backlog", "state": "open"}, {"number": 8, "title": "Alpha", "state": "open"}, {"number": 9, "title": "Beta", "state": "open"}]\n' > "$G/milestones.json"
+  [ -s "$G/calls.log" ] && ok "the stub gh saw every call (calls.log exists)" || bad "FAIL milestone-freeform:regression: calls.log absent, real gh may have run. Fix: put the stub gh first on PATH"
+  grep -q "^issue create --title Regression: red --label regression --label defect --body <!-- loop-regression red placed= -->" "$G/calls.log" \
+    && grep -q "^issue create --title Regression: blue --label regression --label defect --body <!-- loop-regression blue placed= -->" "$G/calls.log" \
+    && ! grep -qi "milestone\|backlog" "$G/calls.log" && ! grep -q "feature:" "$G/calls.log" && ! grep -q "FILE_FAILED" <<<"$out" \
+    && ok "a failing test's defect issue is filed with regression and defect only: no milestone read, made or set, no feature label (switch off)" || bad "defect issue: $(cat "$G/calls.log")"
+  printf '[{"number": 31, "state": "OPEN", "body": "<!-- loop-regression red placed=Alpha -->", "labels": [{"name": "defect"}]},
+ {"number": 32, "state": "OPEN", "body": "<!-- loop-regression blue placed=Backlog -->", "labels": [{"name": "defect"}]},
+ {"number": 33, "state": "OPEN", "body": "<!-- loop-regression green placed= -->", "labels": [{"name": "defect"}]}]\n' > "$G/regression.json"
   out=$(rows)
-  ! grep -q "^issue edit 31 --body" "$G/calls.log" && grep -q "^issue edit 32 --body <!-- loop-regression blue placed=Beta --> --milestone Beta" "$G/calls.log" \
-    && ok "an issue the owner moved stays, and an older unplaced one moves to its feature" || bad "regression owner move"
+  grep -q "^issue comment 31 " "$G/calls.log" && grep -q "^issue comment 32 " "$G/calls.log" && ! grep -q "^issue edit .*--body\|milestone\|^issue create" "$G/calls.log" \
+    && ok "older markers (placed=Alpha, placed=Backlog) still find their issue, and nothing moves or duplicates it" || bad "old markers: $(cat "$G/calls.log")"
   printf '[]\n' > "$G/regression.json"; out=$(STUB_ISSUE_FAIL=1 rows); rc=$?
   [ $rc = 1 ] && grep -q "FAILED issue for red" <<<"$out" && grep -q "FILED .* FAILED 2" <<<"$out" && ok "a filing that fails is named and fails the step" || bad "filing failure"
-  printf '[]\n' > "$G/regression.json"; printf 'Alpha\tsrc/alpha\n' > .loop/docs.tsv
-  printf '[{"number": 2, "title": "Backlog", "state": "open"}, {"number": 8, "title": "Alpha", "state": "closed"}]\n' > "$G/milestones.json"
+  cfg '{"feature_labels": true}'; mkdir -p .loop; cp .loop/config.json "$r/config.keep"
   out=$(rows)
-  grep -q "^issue create --title Regression: red .*placed=Alpha -->" "$G/calls.log" && ! grep -qx " --milestone Alpha" "$G/calls.log" \
-    && grep -q "^api -X PATCH repos/{owner}/{repo}/issues/77 -F milestone=8" "$G/calls.log" \
-    && ok "a failing row whose feature milestone is closed is set on it by number and records placed=Alpha" || bad "regression closed milestone"
-  printf '[{"number": 41, "state": "OPEN", "body": "<!-- loop-regression red placed= -->", "labels": [{"name": "defect"}], "milestone": null}]\n' > "$G/regression.json"
-  out=$(STUB_ISSUE_PATCH_FAIL=1 rows); cp "$G/calls.log" "$G/calls.log.prev"; printf '[]\n' > "$G/regression.json"; out2=$(STUB_ISSUE_PATCH_FAIL=1 rows); rc=$?
-  grep -q "^issue edit 41 --body <!-- loop-regression red placed= -->$" "$G/calls.log.prev" && grep -q "^issue edit 77 --body <!-- loop-regression red placed= -->" "$G/calls.log" && [ $rc = 1 ] \
-    && ok "a closed-milestone set that fails puts back the old placed= on a moved issue and an empty one on a new issue" || bad "by_number failure"
-  rm -f "$G/milestones.json"; printf '#!/bin/bash\ncase "$*" in *milestones*) [ "$2" = "--paginate" ] && { echo "HTTP 502" >&2; exit 1; };; esac\nexec "$STUB/gh.real" "$@"\n' > "$G/gh.ms"
-  chmod +x "$G/gh.ms"; cp "$G/gh" "$G/gh.keep"; cp "$G/gh.ms" "$G/gh"; out=$(rows); cp "$G/gh.keep" "$G/gh"
-  ! grep -q -- "-X POST repos/{owner}/{repo}/milestones" "$G/calls.log" && grep -qx " --milestone Alpha" "$G/calls.log" \
-    && ok "when milestones can't be read none is created and gh places the issue by title" || bad "unreadable milestones"
-  cat > "$G/gh.ms2" <<'SH'
-#!/bin/bash
-case "$*" in *milestones*) [ "$2" = "--paginate" ] && { echo "HTTP 502" >&2; exit 1; };; esac
-case "$1 $2" in "issue create") case "$*" in *--milestone*) echo "$*" >> "$STUB/calls.log"; echo "milestone not found" >&2; exit 1;; esac;; esac
-exec "$STUB/gh.real" "$@"
-SH
-  chmod +x "$G/gh.ms2"; cp "$G/gh.ms2" "$G/gh"; out=$(rows); rc=$?; cp "$G/gh.keep" "$G/gh"
-  grep -q "^issue create --title Regression: red .*placed= -->" "$G/calls.log" && ! grep -q "FAILED issue for red" <<<"$out" \
-    && ok "when milestones can't be read and the feature has none yet, the issue is still filed, on no milestone" || bad "blind create fallback"
+  grep -q "^label create feature:Alpha --force" "$G/calls.log" && grep -q -- "--label feature:Alpha" "$G/calls.log" && ! grep -q "feature:Beta" "$G/calls.log" && ! grep -qi "milestone" "$G/calls.log" \
+    && ok "with feature_labels on a defect issue is tagged feature:<Page> (made first) for a docs.tsv page, and not for one that is none" || bad "labels on: $(cat "$G/calls.log")"
+  out=$(STUB_LABEL_FAIL=1 rows); rc=$?
+  grep -q "^FAILED label feature:Alpha" <<<"$out" && [ "$(grep -c '^issue create --title Regression: red' "$G/calls.log")" = 1 ] && ! grep -q -- "--label feature:" "$G/calls.log" \
+    && ok "a feature label that can't be made still files the issue, without it" || bad "label create fails: $(cat "$G/calls.log")"
+  out=$(STUB_ISSUE_LABEL_FAIL=1 rows); rc=$?
+  grep -q "^FAILED label feature:Alpha" <<<"$out" && [ "$(grep -c '^issue create --title Regression: red' "$G/calls.log")" = 2 ] && [ "$(grep -c -- "--label feature:Alpha" "$G/calls.log")" = 1 ] \
+    && ok "an issue create refused for the label is filed again without it" || bad "label on create fails: $(cat "$G/calls.log")"
+  printf '[{"number": 41, "state": "OPEN", "body": "<!-- loop-regression red placed=Alpha -->", "labels": [{"name": "defect"}]}]\n' > "$G/regression.json"
+  out=$(rows)
+  grep -q "^issue edit 41 --add-label feature:Alpha" "$G/calls.log" && ok "a repeat run adds the feature label to an open issue that lacks it" || bad "backfill: $(cat "$G/calls.log")"
+  cfg '{}'; printf '[]\n' > "$G/regression.json"
   W=$here/.github/workflows/regression.yml
-  grep -q 'cron: "17 \*/4 \* \* \*"' "$W" && grep -q 'tags: \["v\*"\]' "$W" && grep -q "issues: write" "$W" \
-    && ok "the full suite runs every 4 hours by default and on every release tag, with issue write access" || bad "schedule"
-  mv "$G/gh.real" "$G/gh"; rm -f .loop/docs.tsv
+  grep -q 'cron: "17 \*/4 \* \* \*"' "$W" && grep -q 'tags: \["v\*"\]' "$W" && grep -q "issues: write" "$W" && ! grep -qi "milestone" "$W" \
+    && ok "the full suite runs every 4 hours by default and on every release tag, with issue write access, and no milestone code" || bad "schedule"
+  mv "$G/gh.real" "$G/gh"; rm -f .loop/docs.tsv map.tsv
   printf 'flag\tland\tfalse\tAAA-1\t2026-01-01\tGiven a, when b, then d.\tcriterion\t\n' >> .loop/regression.tsv
   git add -A >/dev/null; git -c user.email=t@example.test -c user.name=Toy commit -qm rows >/dev/null
   mkdir -p "$G/fake"; : > "$G/fake/calls.log"
@@ -789,6 +719,7 @@ SH
     python3 -B "$here/skills/workflow-regression/scripts/regression.py" run flag --live >/dev/null 2>&1
   ! grep -q "^issue create" "$G/fake/calls.log" && grep -q "^issue comment 7" "$G/fake/calls.log" \
     && ok "a local live run finds the issue the scheduled run placed on a milestone, opening no duplicate" || bad "local run duplicate"
+  [ "$fail" = "$f0" ] && echo "PASS milestone-freeform:aut-email-regression"
 fi
 
 if want upgrade; then
