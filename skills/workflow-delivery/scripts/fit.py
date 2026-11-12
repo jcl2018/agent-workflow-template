@@ -360,6 +360,24 @@ def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
 
 # ---- fixes without a defect test (was defect.py)
 VERB = r"\b(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+"
+def off_rows(text):
+    """REG-10: the UNPROVEN rows a lane failed on when each was also SKIPPED here and nothing else failed, else []."""
+    bad, un = re.findall(r"^FAIL (\S+)", text, re.M), re.findall(r"^UNPROVEN ([^\s:]+)", text, re.M)
+    return un if un and not bad and set(un) <= set(re.findall(r"^SKIPPED (\S+)", text, re.M)) else []
+
+
+def off_line(text):
+    return "\nLANE_OWED %s: skipped on this platform and never seen failing" % ", ".join(off_rows(text))
+
+
+def off_reply(lane_line):
+    """A step reply that waits for off-platform red proof (no failed try) when the lane line carries LANE_OWED, else ''."""
+    m = re.search(r"^LANE_OWED (.+?):", lane_line, re.M)
+    return m and ("%s\nPENDING: waiting for off-platform proof of %s. On a Linux or Mac runner run regression.py red ID --break "
+                  "CMD for each, then here regression.py red ID --off-platform --runner NAME --commit SHA; then answer go on\nSTEP: pending\n"
+                  % (lane_line, m.group(1))) or ""
+
+
 SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date
 FIXES = re.compile(VERB + r"(?:issue\s+)?#(\d+)|" + VERB + r"finding:([a-z0-9][a-z0-9-]*)", re.I)
 

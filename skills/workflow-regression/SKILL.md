@@ -51,6 +51,14 @@ It copies `HEAD` to a temporary worktree, runs the break command there, runs the
 fails. `STILL GREEN` means the test proves nothing, so fix the test. Commit the row first if the test is new. Your own
 checkout is never touched.
 
+**A row this platform can't run.** On native Windows the bash toy rows exit 77 (`SKIPPED`): a skip never sets seen red, and `red` refuses a break run that exits 77. Prove such a row red on a Linux or Mac runner (Linux CI or a Linux session) with the usual `red ID --break`, then record it where the row lives:
+
+```bash
+python3 scripts/regression.py red ID --off-platform --runner linux-session --commit <sha the red run used>
+```
+
+It sets the row's date and appends the runner and commit to `.loop/regression-red.tsv`. It refuses a Windows runner, an unknown row and a commit this repo doesn't have. The pull request lists the red commands still owed.
+
 ## `run [land|nightly|<id>] [--timeout S] [--live] [--kind requirement|workflow|defect]`
 
 ```bash
@@ -141,6 +149,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 |---|---|
 | `/workflow-regression add ID --level land --command "cmd" --goal DEL-1` | `python3 scripts/regression.py add ID --level land --command "cmd" --goal DEL-1` |
 | `/workflow-regression red ID --break "cmd"` | `python3 scripts/regression.py red ID --break "cmd"` |
+| `/workflow-regression red ID --off-platform --runner R --commit SHA` | `python3 scripts/regression.py red ID --off-platform --runner R --commit SHA` |
 | `/workflow-regression run land` | `python3 scripts/regression.py run land` |
 | `/workflow-regression sync` | `python3 scripts/regression.py sync` |
 | `/workflow-regression workflow` | `python3 scripts/regression.py workflow` |
