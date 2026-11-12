@@ -151,13 +151,20 @@ def template_version(root):
 
 
 def scheduled(root):
-    out = []
-    for name in ("regression.yml", "health.yml"):
-        path = os.path.join(root, ".github", "workflows", name)
-        text = open(path).read() if os.path.exists(path) else ""
-        if "schedule:" not in text:
-            out.append(row("WARN", "adoption", name, "scheduled", "missing" if not text else "has no schedule",
-                           "write it (workflow-regression workflow, workflow-health workflow)", name))
+    """The regression workflow must be scheduled unless regression_runs is mac (read from the config: no gh call); a leftover
+    health.yml is a WARN, as health runs on the Mac now."""
+    out, flows = [], os.path.join(root, ".github", "workflows")
+    try:
+        mac = json.load(open(os.path.join(root, ".loop", "config.json"))).get("regression_runs") == "mac"
+    except (OSError, ValueError, AttributeError):
+        mac = False
+    text = open(os.path.join(flows, "regression.yml")).read() if os.path.exists(os.path.join(flows, "regression.yml")) else ""
+    if "schedule:" not in text and not mac:
+        out.append(row("WARN", "adoption", "regression.yml", "scheduled", "missing" if not text else "has no schedule",
+                       "write it (workflow-regression workflow); setup records regression_runs, mac for a private repo", "regression.yml"))
+    if os.path.exists(os.path.join(flows, "health.yml")):
+        out.append(row("WARN", "adoption", "health.yml", "scheduled", "has no job: health runs on the Mac now",
+                       "git rm .github/workflows/health.yml", "health.yml"))
     return out
 
 
@@ -220,6 +227,7 @@ def f_template_version(root):
 
 def f_scheduled(root):
     c = _c(); c.repo(root)
+    c.write(root, ".github/workflows/health.yml", "name: health\n")
 
 
 CONTROLS = {"nightly": ("freshness", "nightly", f_nightly), "unreleased": ("freshness", "unreleased", f_unreleased),

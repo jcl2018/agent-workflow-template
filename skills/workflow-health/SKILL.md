@@ -99,20 +99,19 @@ refused (`REFUSED[cap]`), and no `--why` is refused (`REFUSED[why]`).
 requires one. It prints `WOULD` lines unless given `--live`. Details: `references/commands.md` (Milestones).
 
 ```bash
-python3 scripts/automation.py workflow [--check]
+python3 scripts/automation.py local install|uninstall|status|plist|tick
 python3 scripts/automation.py digest
 python3 scripts/mail.py send
 python3 scripts/mail.py test
 ```
 
-`workflow` writes `.github/workflows/health.yml` (workflows.py), which runs on `health_cron` (default every 4 hours;
-`off` makes a scheduled run write nothing) and by hand: check, file the groups a runner can read as tagged issues,
-the judge only with the `judge_env` secret, the digest, then the email. It also writes `mail-test.yml`, run
-by hand to send one test mail. `--check` names a workflow that is missing or older than the skills (each health run
-warns about it). `digest` posts one comment per round on the pinned `Automation digest` issue: what ran, the round's
+Health runs on this Mac, not in GitHub: `local install` registers the repo and writes the one launch agent
+(`com.workflow-loop.schedule`, workflows.py) that fires every 4 hours (`health_cron`; `off` turns it off) and runs
+`local tick`: check, file the findings as tagged issues, the judge with your own claude login, the full regression for
+a private repo, the digest, then the email. `automation.py workflow` is removed (exit 2). `digest` posts one comment per round on the pinned `Automation digest` issue: what ran, the round's
 cost (rounds.py), the email's state, then per feature the new, still-open and fixed issues, each open one with its
 request, mentioning `digest_owner`; with no token outside Actions it only prints it. `mail.py send` mails that comment
-once (`digest_mail`: cloudflare, smtp or off; the address and keys only from Actions secrets); `mail.py test` sends one
+once (`digest_mail`: cloudflare, smtp or off; the address and keys only from the schedule's `mail.env`); `mail.py test` sends one
 fixed mail. Every outcome is one line ending in a code. None of them pushes. Details: `references/commands.md`.
 
 ## Rules
@@ -135,8 +134,12 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-health preview` | `python3 scripts/health.py preview` |
 | `/workflow-health file --group docs` | `python3 scripts/health.py file --group docs` |
 | `/workflow-health triage` | `python3 scripts/health.py triage` |
-| `/workflow-health workflow` | `python3 scripts/automation.py workflow` |
-| `/workflow-health workflow --check` | `python3 scripts/automation.py workflow --check` |
+| `/workflow-health local install` | `python3 scripts/automation.py local install` |
+| `/workflow-health local uninstall` | `python3 scripts/automation.py local uninstall` |
+| `/workflow-health local status` | `python3 scripts/automation.py local status` |
+| `/workflow-health local plist` | `python3 scripts/automation.py local plist` |
+| `/workflow-health local tick` | `python3 scripts/automation.py local tick` |
+| `/workflow-health workflow` | `python3 scripts/automation.py workflow` (removed: exit 2) |
 | `/workflow-health digest` | `python3 scripts/automation.py digest` |
 | `/workflow-health mail test` | `python3 scripts/mail.py test` |
 | `/workflow-health mail send` | `python3 scripts/mail.py send` |
