@@ -1,5 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-setup/scripts/settings.py
+# reads: skills/workflow-setup/scripts/sync.py skills/workflow-setup/scripts/update.py
 # reads: skills/workflow-health/scripts/health.py skills/workflow-docs/scripts/docs.py
 # Proves setup's adoption: health first and last, no blocking, no unrelated writes after a refusal, issues for what does
 # not fit, the docs format, the settings layers, the dry run list, private values, --from and the zero-test check.
