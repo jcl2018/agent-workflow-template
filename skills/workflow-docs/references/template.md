@@ -23,8 +23,8 @@ format: home, frontdoor, usage, bullets, problem, tests, deployments
 
 ## Layout
 
-The first line is `<!-- workflow-docs -->`, then `# <Feature>`, then one `Milestone: <url>` line (left out until the
-milestone exists), then the PRD review line, then the sections in the order of `sections`, and nothing else. The
+The first line is `<!-- workflow-docs -->`, then `# <Feature>`, then an optional free-form `Milestone: <url>` line (a
+milestone is never required), then the PRD review line, then the sections in the order of `sections`, and nothing else. The
 optional `usage_section` goes between Problem and Requirements, and the optional `deployments_section` between Success
 metrics and Tests. `format` lists which shape checks (DOC-4..DOC-9 and DOC-14) run,
 default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (got <value>). Fix: <how>`.
@@ -72,7 +72,7 @@ default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (
 - **Home** (`home`, DOC-4): the marker, `# <repo>`, `## Features` and one table
   `| Feature | What it does | How to use | Milestone |`, nothing else, with one row per feature page. Feature is
   `[Page](Page)`; How to use is `[README](https://github.com/OWNER/REPO#how-to-use-<feature>)`, an anchor of the README's
-  `### How to use <Feature>` heading; Milestone links `…/milestone/N`.
+  `### How to use <Feature>` heading; Milestone is optional: empty, a link such as `…/milestone/N`, or free text, never checked.
 - **README** (`frontdoor`, DOC-5): `## How to use`, then one `### How to use <Feature>` per feature page, each with at most
   one intro line and a table `| You say | What happens |`. A You-say cell is a quoted phrase the owner says: no
   backticks, and no `/`, `python` or `bash` at its start.
@@ -135,5 +135,5 @@ None
 
 ## Required docs
 
-- Each feature page has one `Milestone:` line linking its GitHub milestone, and a `Backlog` milestone exists.
+- A milestone is optional and free form; no page needs a `Milestone:` line and no `Backlog` milestone is needed.
 - Every released version has a release note: a GitHub release for its tag, or its section in `CHANGELOG.md`.

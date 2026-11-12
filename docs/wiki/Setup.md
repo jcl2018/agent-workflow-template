@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/9
 
-Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a58c6 U=726b84e2 -->
+Review: **Unreviewed**
 
 ## Problem
 - I want this toolset to be a workspace I can drop into any repo, for any agent: one install gives Claude Code, Codex or any agent that reads skills the same loop, docs, monitoring and settings, in the right format for each.
@@ -25,10 +25,10 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a
 ## Requirements
 
 ### Functional
-- SET-1: **Reviewed 2026-11-10** One command adopts a repo <!-- reviewed 890df4f8 -->
-  - One command sets up a new or existing repo: the loop config, PRD feature pages in the docs format, the Home table and README How to use, a milestone per feature plus Backlog, the nightly regression in GitHub Actions, the health groups, and every setting with its default.
+- SET-1: **Unreviewed** One command adopts a repo
+  - One command sets up a new or existing repo: the loop config, PRD feature pages in the docs format, the Home table and README How to use, the nightly regression in GitHub Actions, the health groups, and every setting with its default.
   - It shows what it found and would change first, then applies it on a branch through the loop, adapting what is there instead of overwriting.
-  - It never blocks: what doesn't fit is listed and filed as issues on the right milestone, and the rest is adopted.
+  - It never blocks: what doesn't fit is listed and filed as issues tagged with the right feature, and the rest is adopted.
   - Health is the first and last step: before adopting, a health check records where the repo starts; after adopting, the full health check (every group, Adoption included) must come back green or name each gap with its fix, and that verdict is the adoption result, because if health works, the rest works.
 - SET-2: **Reviewed 2026-11-10** Layered settings <!-- reviewed 4adab145 -->
   - Settings come in three layers: the template's defaults, the repo's settings (committed and shared), and my local settings (private, outside the repo); a later layer overrides an earlier one.

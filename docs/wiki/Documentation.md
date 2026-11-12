@@ -3,12 +3,12 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599a537 U=689852ab -->
+Review: **Unreviewed**
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
 - Pages drift from the code, and each repo writes them its own way, so reviewing them takes too long.
-- I need my approved requirements to stay exactly as I wrote them, while the loop keeps tests, Usage and milestones up to date for me.
+- I need my approved requirements to stay exactly as I wrote them, while the loop keeps tests and Usage up to date for me.
 
 ## Usage
 - `/workflow-docs audit [--base REF] [--dry-run]` — Checks every page against the template, fixes the mechanical (the Tests tables) and lists wording to rewrite; on a Reviewed page it lists each requirement with no passing test as `UNTESTED ID: <why>`. Ends with `DOCS OK: N pages`, or `DOCS: N to do` and exit 1 while any is left.
@@ -22,7 +22,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599
 - `/workflow-docs convert` — Turns old Summary/Criteria pages into PRD pages, keeping IDs and Reviewed stamps. A preview prints `DRY RUN: nothing written.` Refuses a page without the needed sections (`REFUSED N page(s). ...`).
 - `/workflow-docs publish [--dry-run] [--adopt PAGE]` — Copies the pages to the GitHub wiki and prints `PUBLISHED <wiki link>`. Never deletes a page. Refuses (exit 1) while the check finds problems other than CHANGED (`REFUSED: fix the pages above first.`), when a page lost its marker, when the wiki has a page this tool didn't write and it isn't named with --adopt (`REFUSED: the wiki already has X, and this tool didn't write it. Nothing was published.`), or when the push fails.
 - `/workflow-docs restore` — Reverts the last publish and prints `RESTORED the wiki: reverted <pages>`. Refuses (exit 1) with no publish on record (`REFUSED: no publish on record.`) or when the wiki changed since (`REFUSED: the wiki changed after the last publish, so nothing was reverted.`).
-- `/workflow-docs milestones` — Makes each feature's milestone and the Backlog. Prints `CREATED <name>`, `EXISTS <name>` or `LINKED <page> to its milestone`, and `WOULD create milestone <name>` when it can't write to GitHub; running it again creates nothing. Refuses when GitHub can't be read or a milestone can't be made (exit 1, `REFUSED: could not read the milestones: ...`).
+- `/workflow-docs milestone new TITLE | move ISSUE TITLE` — Optional, for planning by version: `new` makes a free-form milestone such as v1.0 and `move` puts an issue on an existing one (or `none` clears it). Prints `CREATED <title>`, `EXISTS <title>` or `WOULD create milestone <title> (dry run; add --live)`; running it again creates nothing. Refuses (exit 1) `REFUSED: no milestone <title> (issue <n> unchanged). Fix: milestone.py new <title> --live` and `REFUSED: no GitHub token, nothing created. ...`. No check ever runs it.
 
 ## Requirements
 
@@ -37,8 +37,8 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599
 - DOC-3: **Reviewed 2026-11-08** Tests follow on their own <!-- reviewed 2e9e1c3f -->
   - Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes.
   - I never write or manage tests.
-- DOC-4: **Reviewed 2026-11-10** Home is one table <!-- reviewed 4ee8099b -->
-  - Home holds one table with four columns: Feature, What it does, How to use (a link to the README section), Milestone.
+- DOC-4: **Unreviewed** Home is one table
+  - Home holds one table with four columns: Feature, What it does, How to use (a link to the README section), Milestone (optional: empty, or a link to the free-form milestone the feature is planned on).
   - Nothing else is on Home.
 - DOC-5: **Reviewed 2026-11-10** The front door is natural language <!-- reviewed 885694d1 -->
   - Every feature has a README "How to use" table: what I say to the agent, and what happens.
@@ -58,10 +58,10 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599
   - Tests is a table: Test, Kind, Guards, Checks, Last result.
   - Each test name links to its entry on the full Tests page.
   - Every requirement and every defect has at least one row.
-- DOC-10: **Reviewed 2026-11-10** One Tests page, every issue on a milestone, every release noted <!-- reviewed 4ea5bba8 -->
+- DOC-10: **Unreviewed** One Tests page, every release noted, milestones optional
   - One full Tests page is generated, listing every test with its latest result.
-  - Every open issue is on its feature's milestone, or on Backlog only when it fits no feature.
   - Every release has a release note.
+  - A milestone is optional and free form, used to plan by version (for example v1.0); nothing requires a feature page, issue or pull request to have one, and no check fails or warns for lacking one.
 - DOC-14: **Reviewed 2026-11-10** A feature page lists what it ships: the pages people open and the deliveries people receive <!-- reviewed 6920f546 -->
   - A feature page that ships something people can open, or a delivery people receive (for example a scheduled email), has a Deployments section; it is optional otherwise.
   - Pages: one row per public or private page, with its link, who can open it (public or sign-in), what it shows, and the live build (the sha in build.txt).
