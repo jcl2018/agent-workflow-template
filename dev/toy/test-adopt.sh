@@ -26,7 +26,7 @@ if want SET-1 || want SET-2; then
     echo "$out" | grep -q "$want" || no "dry run does not say '$want'"
   done
   [ -z "$(git status --short)" ] && [ "$(git branch --show-current)" = main ] && [ ! -d .loop ] || no "dry run wrote something"
-  $setup >/dev/null; [ -d .loop ] || no "setup failed"  # a bare agent_command exits 1 after writing
+  $setup >/dev/null; [ -d .loop ] || no "setup failed"  # a bare agent_command is a gap (exit 0), never a refusal
   [ "$(git branch --show-current)" = workflow-setup ] || no "not on the setup branch"
   for f in .loop/config.json .loop/docs.tsv .loop/regression.tsv .github/workflows/regression.yml docs/wiki/Engine.md docs/wiki/Home.md; do
     [ -f "$f" ] || no "missing $f"
@@ -49,7 +49,11 @@ mk() { # mk DIR VERSION: a package tree at that version
   echo "$2" > "$1/VERSION"; printf '# Changelog\n\n## v%s - 2026-01-01\n\n- change %s\n\n## v1.0.0 - 2026-01-01\n\n- first\n' "$2" "$2" > "$1/CHANGELOG.md"
 }
 pk="python3 $here/dev/package.py"
-mk "$d/v1" 1.0.0; $pk --root "$d/v1" --out "$d/v1.zip" >/dev/null || no "v1 package refused"
+# Only SET-3 (the package's contents) and SET-4/SET-5 (installing from it) read v1.zip. SET-1 and SET-2 adopt from this
+# checkout's skills directly, so they never build the package and never fail on its rules.
+if want SET-3 || want SET-4 || want SET-5; then
+  mk "$d/v1" 1.0.0; $pk --root "$d/v1" --out "$d/v1.zip" >/dev/null || no "v1 package refused"
+fi
 
 # SET-3: the package carries its version, every skill and the guide; it installs by copying.
 if want SET-3; then

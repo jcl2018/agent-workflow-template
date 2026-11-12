@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/workflow-delivery/scripts/ skills/workflow-health/scripts/
 # reads: skills/workflow-delivery/scripts/lane.py
 # reads: skills/workflow-delivery/scripts/lanekit.py
 # reads: skills/workflow-monitoring/scripts/monitor.py skills/workflow-health/scripts/lean.py

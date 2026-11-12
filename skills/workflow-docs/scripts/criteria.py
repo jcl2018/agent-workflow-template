@@ -184,13 +184,15 @@ def contract(root, names, seen):
     limit, on, held = criteria_max(root), rule["format"], render.maps(root)
     owns = {row[0]: re.findall(r"(?:^|,)skills/([\w-]+)", row[1]) for row in tsv(root, "docs.tsv")}
     linked, loose = test_rows(root)
-    head = rule["sections"]
+    head, books = rule["sections"], {page: [] for page in names}
     for page in names:
         with open(os.path.join(root, folder_of(root), page + ".md")) as handle:
             text = handle.read()
         parts = sections(text)
         have = [name for name, _ in parts]
-        want = head[:1] + [rule["usage"]] + head[1:] if rule["usage"] in have else list(head)
+        numbered = {name: (start, lines) for name, start, lines in pf.parts(text)}
+        books[page] = numbered.get(rule["runbook"], (0, []))[1]  # read before the order check, so a misordered page is not also "no runbook"
+        want = head[:1] + [x for x in (rule["usage"], rule["runbook"]) if x in have] + head[1:]
         if rule["deploy"] in have:  # optional, after Success metrics (before Tests)
             want = want[:-1] + [rule["deploy"]] + want[-1:]
         if have != want:
@@ -204,7 +206,6 @@ def contract(root, names, seen):
             found.append(("SECTIONS", page, "have %s, want %s%s" % (", ".join(have) or "none", ", ".join(want), hint)))
             continue
         body, ids = dict(parts), []
-        numbered = {name: (start, lines) for name, start, lines in pf.parts(text)}
         found += prd.trouble(root, page, text, parts, rule)
         if rule["usage"] in body:
             if not [x for x in body[rule["usage"]] if x.strip()]:
@@ -236,10 +237,16 @@ def contract(root, names, seen):
             found += pf.usage(page, rule["usage"], numbered[rule["usage"]][1], held, owns.get(page, []))
         if "deployments" in on and rule["deploy"] in numbered:
             found += deployments.deployments(page, rule["deploy"], numbered[rule["deploy"]][1], rule["page_cols"], rule["delivery_cols"], rule["access"])
+        if "runbook" in on and rule["runbook"] in numbered:
+            found += pf.runbook(page, rule["runbook"], books[page], rule["fields"])
         if "problem" in on:
             found += pf.problem(page, head[0], numbered[head[0]][1], rule["problem_lines"], rule["banned"])
         if "tests" in on:
             found += [x for x in [pf.stale(page, "Tests", numbered["Tests"][0], numbered["Tests"][1], table(root, ids, linked))] if x]
+    if "runbook" in on:
+        found += deployments.owed(root, books, rule["runbook"])
+        if not any(item[0] == "SECTIONS" for item in found):  # a misordered page defines no ids here: say that, not a false Serves finding
+            found += deployments.unserved(books, seen, rule["runbook"])
     if "tests" in on:
         found += [("FORMAT", "Tests:1", "Tests: DOC-9 one anchor per row (got %s). Fix: rename one row id" % x)
                   for x in render.clashes([row[0] for row in tsv(root, "regression.tsv") if row[1] != "draft"])]

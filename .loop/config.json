@@ -25,7 +25,7 @@
   "mend": true,
   "resume_on_limit": false,
   "criteria": true,
-  "criteria_max": 15,
+  "criteria_max": 16,
   "auto_approve": true,
   "auto_merge": true,
   "regression_cron": "17 */4 * * *",
@@ -48,7 +48,7 @@
   "digest_mail": "cloudflare",
   "test_budget_minutes": 15,
   "step_budget_minutes": 30,
-  "prep_budget_minutes": 15,
+  "prep_budget_minutes": 25,
   "cadence": "30",
   "smtp_host": "smtp.gmail.com",
   "smtp_port": 465,
@@ -68,5 +68,6 @@
   "template_repo": "",
   "reply_hook": true,
   "feature_labels": false,
-  "template_version": "0.27.17"
+  "template_version": "0.27.29",
+  "regression_runs": ""
 }
