@@ -2,8 +2,8 @@
 """The Tests renderings (DOC-9 page tables, the DOC-10 full Tests page) from the regression rows, and the file reading
 the page format checks (pageformat.py) need. The rendering functions are pure; render() writes.
 
-criteria.py render calls render(); docs.py check calls generated() and front(). Each written file goes to a temp file
-renamed into place, printed as WROTE <file>. It runs git and nothing else.
+criteria.py render calls render(); docs.py check calls generated() and front(); setup runs `render.py blocks`, the one
+insert of the marked blocks (the rest only refresh them). Each written file goes to a temp file renamed into place, printed as WROTE <file>. It runs git and nothing else.
 """
 import glob
 import json
@@ -90,7 +90,9 @@ def render(args):
     clash = clashes([row[0] for row in criteria.tsv(root, "regression.tsv") if row[1] != "draft"])
     if clash:
         sys.exit("REFUSED: two rows would share one Tests anchor: %s. Fix: rename one row id." % "; ".join(clash))
-    stale, out = [], []
+    # blocks first, so a Tests rewrite keeps them
+    stale = ["%s (%s block)" % x for x in (refresh(root, args.check) if config_of(root).get("criteria") else [])]
+    out = []
     for rel in criteria.pages(root):
         if os.path.basename(rel)[:-3] in pageformat.GENERATED:
             continue
@@ -110,8 +112,6 @@ def render(args):
         except OSError:
             held = None
         out.append((rel, held, tests_page(root)))
-    for where, name in (refresh(root, args.check) if config_of(root).get("criteria") else []):  # as docs.py check/publish
-        stale.append("%s (%s block)" % (where, name))
     for rel, text, fresh in out:
         if fresh != text:
             stale.append(rel)
@@ -356,13 +356,15 @@ def template_line(root):
     return "<!-- template:begin -->\nBuilt with the [%s](https://github.com/%s) workflow loop.\n<!-- template:end -->\n" % (repo, repo)
 
 
-def with_blocks(text, blocks):
-    """text with each (name, block) put in place: replaced where its markers are, else appended (the template line
-    goes after the first paragraph)."""
+def with_blocks(text, blocks, insert=False):
+    """text with each (name, block) replaced where its markers are; with insert a missing one is appended (the
+    template line after the first paragraph)."""
     for name, block in blocks:
         pattern = block_re(name)
         if pattern.search(text):
             text = pattern.sub(lambda _: block, text, 1)
+        elif not insert:
+            continue
         elif name == "template":
             head, sep, rest = text.partition("\n\n")
             text = head + "\n\n" + block + ("\n" + rest if sep else "")
@@ -372,10 +374,11 @@ def with_blocks(text, blocks):
 
 
 def front_files(root):
-    """[(rel, blocks)] for Home and the README, when they exist."""
+    """[(rel, blocks)] for the README and a DOC-4 Home (never a PRD-format one), when they exist."""
     out = []
     home = os.path.join(criteria.folder_of(root), "Home.md")
-    if os.path.exists(os.path.join(root, home)):
+    text = read(os.path.join(root, home)) or ""
+    if re.search(r"^## Features\s*$", text, re.M):
         out.append((home, [("settings", settings_block(root)), ("automation", automation_block(root))]))
     if os.path.exists(os.path.join(root, "README.md")):
         out.append(("README.md", [("template", template_line(root)), ("settings", settings_block(root)),
@@ -383,16 +386,17 @@ def front_files(root):
     return out
 
 
-def refresh(root, check=False):
-    """Write the blocks (or with check, only list what differs): [(rel, name)] of the blocks that were stale."""
+def refresh(root, check=False, insert=False):
+    """Write the blocks (or with check, only list what differs): [(rel, name)] of the blocks that were stale. Without
+    insert a block with no markers (a repo not yet migrated) is left alone."""
     stale = []
     for rel, blocks in front_files(root):
         held = read(os.path.join(root, rel)) or ""
         for name, block in blocks:
             found = block_re(name).search(held)
-            if not found or found.group(0) != block:
+            if (found and found.group(0) != block) or (insert and not found):
                 stale.append((rel, name))
-        fresh = with_blocks(held, blocks)
+        fresh = with_blocks(held, blocks, insert)
         if fresh != held and not check:
             put(os.path.join(root, rel), fresh)
     return stale
@@ -401,5 +405,10 @@ def refresh(root, check=False):
 def stale_blocks(root):
     """(STALE, Settings|Automation|README line, where and how to fix) for each block that differs from a fresh render."""
     names = {"settings": "Settings", "automation": "Automation", "template": "README line"}
-    return [("STALE", names[name], "%s is missing or differs from a fresh render. Fix: /workflow-docs render" % where)
+    return [("STALE", names[name], "%s differs from a fresh render. Fix: /workflow-docs render" % where)
             for where, name in refresh(root, True)]
+
+
+if __name__ == "__main__" and sys.argv[1:] == ["blocks"]:  # setup's insert (criteria on)
+    top = criteria.git("rev-parse", "--show-toplevel")
+    print("\n".join("WROTE %s (%s block)" % x for x in (refresh(top, insert=True) if config_of(top).get("criteria") else [])) or "BLOCKS OK")

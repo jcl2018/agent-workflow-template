@@ -296,6 +296,7 @@ def apply(repo, config, found, acts):
             tool(repo, "workflow-regression", "regression.py", "workflow")
         if any(a[3] == "health" for a in acts):
             tool(repo, "workflow-health", "automation.py", "workflow")
+    tool(repo, "workflow-docs", "render.py", "blocks")  # setup inserts the Settings and Automation blocks; a render only refreshes them
     tool(repo, "workflow-docs", "criteria.py", "render")
     paths = [a[1] for a in acts if a[3] and a[0] in ("add", "convert")] + [".loop/config.json"]
     left = survey.blocked(repo, paths)  # still kept out after the exception lines: staged with -f, and a gap
