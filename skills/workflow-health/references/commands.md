@@ -58,6 +58,8 @@ unchanged repo print the same lines.
 | | `checks-run-tests` | the regression workflow exists but no land row does (WARN) |
 | | `template-version` | VERSION isn't the newest CHANGELOG heading (WARN) |
 | | `scheduled` | the regression or health workflow is missing or has no schedule (WARN) |
+| | `no-fit` | an open `[adoption]` line in `.loop/findings.md` (setup writes one per kind): one WARN row naming its subjects and fix |
+| | `agent-tools` | `agent_command` or the flow file's command grants its agent no tools (WARN), naming each setting to fix |
 | Controls (can each rule fire?) | `control` per rule | a rule's control stays green: it cannot fire (FAIL); a fixture that can't be built is UNREAD |
 
 - Performance's `test-time` reads the land lane record (`regression.py`'s record of the current branch, else the newest

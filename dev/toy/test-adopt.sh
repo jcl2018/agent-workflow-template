@@ -26,7 +26,7 @@ if want SET-1 || want SET-2; then
     echo "$out" | grep -q "$want" || no "dry run does not say '$want'"
   done
   [ -z "$(git status --short)" ] && [ "$(git branch --show-current)" = main ] && [ ! -d .loop ] || no "dry run wrote something"
-  $setup >/dev/null; [ -d .loop ] || no "setup failed"  # a bare agent_command exits 1 after writing
+  $setup >/dev/null; [ -d .loop ] || no "setup failed"  # a bare agent_command is a gap (exit 0), never a refusal
   [ "$(git branch --show-current)" = workflow-setup ] || no "not on the setup branch"
   for f in .loop/config.json .loop/docs.tsv .loop/regression.tsv .github/workflows/regression.yml docs/wiki/Engine.md docs/wiki/Home.md; do
     [ -f "$f" ] || no "missing $f"
