@@ -154,9 +154,9 @@ full-goal-lane-timeout	PASS	2026-11-10
 goal-levels-nightly	PASS	2026-11-11	
 guards-extra	PASS	2026-11-10	
 guards-no-try	PASS	2026-11-12	
+guards-null-report-nofiles	PASS	2026-11-12	
+guards-null-report-reset	PASS	2026-11-12	
 guards-resume	PASS	2026-11-12	
-guards-null-report-nofiles	PASS	2026-11-12
-guards-null-report-reset	PASS	2026-11-12
 guards-rule-start	PASS	2026-11-10	
 guards-touches-finding	PASS	2026-11-12	
 guards-worker-role	PASS	2026-11-10	
