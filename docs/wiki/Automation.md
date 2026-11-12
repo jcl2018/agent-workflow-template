@@ -7,7 +7,7 @@ Review: **Unreviewed**
 
 ## Problem
 - Things break between my sessions, and I only find out when I next open one; the important checks should run on their own.
-- Every few hours I want the full regression suite and the health check to run, and every problem they find to become an issue tagged with its feature.
+- Every few hours I want the full regression suite and the health check to run, and every problem they find to become an issue tagged with its group, and with its feature when feature_labels is on.
 - I want one email to my address after each round that tells me what ran, what broke, what got fixed and what to ask the agent, without opening GitHub.
 
 ## Usage
@@ -25,9 +25,9 @@ Review: **Unreviewed**
   - Health runs on my Mac for every repo. Regression runs in GitHub Actions for a public repo and on my Mac for a private one.
   - Each routine runs on a schedule set in the repo's config (every 4 hours by default), and I can also start it by hand.
   - A routine missed while the Mac sleeps runs once at the next wake, and the digest says it was missed.
-  - Each run's report says whether it ran on my Mac or in GitHub Actions, naming no host or path.
+  - Each run's report says whether it ran on my Mac or in GitHub Actions.
 - AUT-2: **Unreviewed** Regression every few hours
-  - The full regression suite runs on the schedule (every 4 hours by default) and on every release, in GitHub Actions for a public repo and on my Mac for a private one; the report names every test it skipped and why.
+  - The full regression suite runs on the schedule (every 4 hours by default), in GitHub Actions for a public repo (which also runs it on every release tag) and on my Mac for a private one; the report names every test it skipped and why.
   - A push or pull request runs only the tests its change affects (Regression, REG-4), in the same place as the full suite.
   - No GitHub Actions check this tool writes is needed to merge a private repo; where its ruleset requires named checks, the pull request lane posts them as commit statuses itself, success when the lane passes and failure when it fails, so a failing lane holds that merge and a passing one releases it.
   - A failing test opens or updates one issue labeled defect, tagged with the feature it guards when feature_labels is on, naming the test and the requirement; it closes by itself when the test passes again.
@@ -64,8 +64,8 @@ Review: **Unreviewed**
 |---|---|---|---|---|
 | [ci-summary](Tests#t-ci-summary) | requirement | AUT-1 | Given the nightly run, when it ends, then it writes a results table to the job summary. | PASS 2026-11-12 |
 | [schedule-setting](Tests#t-schedule-setting) | requirement | AUT-1 | Given a changed schedule setting, when the workflow is rewritten, then the Actions schedule changes. | PASS 2026-11-12 |
-| [ls-private-tick](Tests#t-ls-private-tick) | requirement | AUT-1 | Given a toy repo whose regression_runs is mac and one failing row, when the tick runs, then health runs, the regression runs live, one issue is filed for the failing row and the digest is posted. | not run |
-| [ls-public-tick](Tests#t-ls-public-tick) | requirement | AUT-1 | Given a toy repo whose regression_runs is actions, when the tick runs, then health runs, no regression runs and the newest suite-time artifact is fetched into the git common dir. | not run |
+| [ls-private-tick](Tests#t-ls-private-tick) | requirement | AUT-1 | Given a toy repo whose regression_runs is mac and one failing row, when the tick runs, then health runs, the regression runs live, one issue is filed for the failing row, the digest is posted and the tick says REGRESSION: runs on the Mac. | not run |
+| [ls-public-tick](Tests#t-ls-public-tick) | requirement | AUT-1 | Given a toy repo whose regression_runs is actions, when the tick runs, then health runs, no regression runs the tick says REGRESSION: runs in GitHub Actions and the newest suite-time artifact is fetched into the git common dir. | not run |
 | [ls-missed-run](Tests#t-ls-missed-run) | requirement | AUT-1 | Given a registry whose last run is older than the interval plus an hour, when the digest is composed, then it says Last ran and MISSED, a recent last run says no MISSED, a repo whose tick started 20 minutes after another's is still due at the next fire, a run id of 12 digits not starting 20 is an Actions id, and one coalesced fire after sleep makes every overdue repo due. | not run |
 | [aut-regression-schedule-mismatch](Tests#t-aut-regression-schedule-mismatch) | requirement | AUT-1 | Given a regression schedule that differs from the config, when the routine runs, then it names the difference and the command that fixes it. | PASS 2026-11-12 |
 | [aut-defect-issue](Tests#t-aut-defect-issue) | requirement | AUT-2 | Given a failing test, when the scheduled regression runs, then one issue labelled defect opens, naming the test, the feature and the requirement it guards. | PASS 2026-11-12 |

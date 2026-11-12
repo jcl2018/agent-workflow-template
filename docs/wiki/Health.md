@@ -8,7 +8,7 @@ Review: **Unreviewed**
 ## Problem
 - My rules, requirements and standards are spread across many pages and sometimes conflict, and I can't see where the repo falls short of its own PRDs.
 - I want a reviewer that reads everything (every PRD page, the README, milestones, open issues, tests and code) and tells me per feature what conflicts, what's missing and what's slow, alongside fixed checks that give the same answer every time.
-- Its findings should land as issues tagged with their feature, previewed first, so I can triage them in one place later.
+- Its findings should land as issues tagged with their group (and their feature when feature_labels is on), previewed first, so I can triage them in one place later.
 
 ## Usage
 

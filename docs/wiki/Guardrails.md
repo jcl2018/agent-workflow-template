@@ -43,7 +43,7 @@ Review: **Unreviewed**
   - Every command that writes issues, comments, milestones or releases previews by default and writes only behind an explicit `--live` switch; a token in the environment does not turn writing on (Health, HLT-4, REG-5 and AUT-5 hold the wording; Regression new: today it writes whenever a token is present).
   - The scheduled workflows pass `--live`; the page of each such command says so (each owner, new).
 - GRD-6: **Unreviewed** The base branch is protected and merges only with its required checks green
-  - The base branch refuses direct pushes and force pushes, and a pull request merges only when the repo's required checks pass (Setup, new).
+  - The base branch refuses direct pushes and force pushes, and a pull request merges only when the repo's required checks pass; I set those rules on the platform, and setup never edits a ruleset or branch protection (it names, as BLOCKS, a required check no commit status can satisfy: Setup, SET-1).
   - Where the platform can enforce it (branch rules, required status checks), the platform does, and health reads that it is set (Health, new).
 - GRD-7: **Unreviewed** CI spends minutes only on runs that matter, and too many runs raise an alarm
   - A newer run of the same workflow on the same branch cancels the one it supersedes (Automation, new: the workflows queue runs today).
@@ -51,7 +51,7 @@ Review: **Unreviewed**
   - Each round shows its Actions minutes and goes over its limit loudly (Automation, AUT-7); runs or minutes per day past a set limit raise one alarm (Automation, new).
 - GRD-8: **Unreviewed** A step far past its usual tokens or time is flagged while it runs
   - A step whose tokens pass a set multiple of that step's usual is flagged on the board and in the check-in (Monitoring, new).
-  - A step past three times its estimate is shown as stalled under Issues on the board (Monitoring, new; MON-4 keeps a stuck worker at the top of Issues), and a worker silent past `silent_minutes` shows under Needs you: MON-8.
+  - A step past three times its estimate is shown as stalled under Issues on the board (Monitoring, MON-4, which keeps a stuck worker at the top of Issues), and a worker silent past `silent_minutes` shows under Needs you: MON-8.
   - A goal's test lane past `goal_lane_minutes` (default 10) says so in its LANE line (Regression, REG-8).
 - GRD-9: **Unreviewed** Health proves every guardrail is present and working, each rule with a negative control
   - Each guardrail has a health rule that reads whether it is present and working, in an existing group (Performance, Security and privacy, Hygiene or Adoption), within the cap of 12 groups (Health, HLT-2).
