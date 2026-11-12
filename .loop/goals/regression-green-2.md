@@ -14,13 +14,3 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
-
-1. After the merge, open the next scheduled regression run on GitHub (Actions, regression).
-   Expect: breaking-asks, lanes-headers, lanes-repo-narrow, one-way-to-run, prd-repo-green and toy-no-leftovers read
-   PASS, and no row reads FAIL that passed on the run before.
-2. Run `gh workflow run regression.yml -f cleanup=true`, wait for it to finish, and read its log.
-   Expect: a line `CLEANUP closed <n> issues`; repeat about two hours later until it reads 0.
-3. Run `gh issue list --label regression --state open`.
-   Expect: one issue per row that failed on the latest run, and no issue for a row that passed or was skipped.
-4. In a checkout, run `python3 skills/workflow-regression/scripts/lanes_cli.py affected skills/workflow-monitoring/scripts/batch.py | head -1`.
-   Expect: `AFFECTED n of m rows` with n well under half of m (it read 515 of 515 before).
