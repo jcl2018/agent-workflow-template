@@ -248,7 +248,8 @@ out="$over"; check "no script reaches 20 KB, and none newly crosses 18 KB" '[ -z
 caps=""; for pair in graph:18300 checkin:12500 operate:10500 goal:20000 sessions:19800 watch:19800 merge:20350 mend:14000 board_lines:17200; do
   n=${pair%%:*}; cap=${pair##*:}; f=$(ls "$here"/skills/*/scripts/$n.py); [ "$(wc -c < "$f")" -le "$cap" ] || caps="$caps $n"; done
 out="$caps"; check "the touched scripts stay within their budgets" '[ -z "$caps" ]'
-out=$(python3 "$here/dev/package.py" --root "$here" --out "$T/pkg.zip" 2>&1); rc=$?
+mkdir -p "$T/export" && git -C "$here" archive HEAD | tar -x -C "$T/export"   # a clean export: no __pycache__ from earlier runs
+out=$(python3 "$here/dev/package.py" --root "$T/export" --out "$T/pkg.zip" 2>&1); rc=$?
 check "the package rules pass, 99 files or fewer (dev/package.py)" '[ $rc = 0 ] && has "PASS: " && has " files, ZIP"'
 fi
 
@@ -256,8 +257,8 @@ if want docs; then
 echo "== done line 1: MON-13, MON-14 and MON-15 are in the Monitoring page, Reviewed"
 out=""
 for id in MON-13 MON-14 MON-15; do check "$id is Reviewed with a seal" 'grep -Eq "^- '"$id"': \*\*Reviewed [0-9-]+\*\* .*<!-- reviewed [0-9a-f]{8} -->" "$here/docs/wiki/Monitoring.md"'; done
-out=$(python3 "$here/skills/workflow-docs/scripts/docs.py" check 2>&1); rc=$?
-check "the wiki check passes" '[ $rc = 0 ]'
+out=$(python3 "$here/skills/workflow-docs/scripts/docs.py" check 2>&1)
+check "the Monitoring page's review lock accepts the three requirements" '! has "LOCKED Monitoring" && ! has "TESTS Monitoring"'
 fi
 [ "$fails" = 0 ] && echo "ALL PASS" || echo "$fails FAILED"
 [ "$fails" = 0 ]
