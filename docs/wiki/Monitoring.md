@@ -189,6 +189,13 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=8c1bc7ed N=839ce3ce M=0fde
 | [mon10-replan](Tests#t-mon10-replan) | requirement | MON-10 | Given ready, mergeable and splittable goals, when the operation session re-plans, then each start, merge and split is logged once with its reason, shown in the check-in, and no running goal is stopped. | PASS 2026-11-10 |
 | [mon11-full-auto](Tests#t-mon11-full-auto) | requirement | MON-11 | Given full auto on, when a worker asks a routine question, then the recommended answer is sent and logged; destructive, unlabeled, risky-word and owner-answered questions wait; turning it off applies at the next decision. | PASS 2026-11-10 |
 | [mon12-pool](Tests#t-mon12-pool) | requirement | MON-12 | Given a session pool, when it runs low, then the check-in asks to create every missing session in one step; pool.py add fills it, no pool hides the ask, and a full pool makes ready goals wait with the fix. | PASS 2026-11-10 |
+| [mon13-two-layers](Tests#t-mon13-two-layers) | requirement | MON-13 | Given a second session's claim, when it claims, then the first stays an operation session and nothing refuses or warns. | not run |
+| - | requirement | MON-13 | no passing test | not enforced |
+| [mon14-repo-blocks](Tests#t-mon14-repo-blocks) | requirement | MON-14 | Given a cross-repo dependency, when the check-in prints, then it is listed between headed repo blocks. | not run |
+| - | requirement | MON-14 | no passing test | not enforced |
+| [mon15-pod-owner](Tests#t-mon15-pod-owner) | requirement | MON-15 | Given another pod's goal, when a pod acts on it, then it is refused naming the owner and shown owned by that pod. | not run |
+| [mon15-merge-lock](Tests#t-mon15-merge-lock) | requirement | MON-15 | Given two pods merging into one main, when they run together, then the lock serializes them. | not run |
+| - | requirement | MON-15 | no passing test | not enforced |
 | [mon7-govern-blocks](Tests#t-mon7-govern-blocks) | requirement | MON-7 | Given the operation session, when it tries an edit, a commit or a push, then the govern hook refuses it with the fix, while workers, other sessions and the off switch pass. | PASS 2026-11-10 |
 | [mon8-silent-30](Tests#t-mon8-silent-30) | requirement | MON-8 | Given a worker with no report for 31 minutes, when the operation session checks in, then it shows under Needs you; at 29 minutes it does not. | PASS 2026-11-10 |
 | [mon9-board-fast](Tests#t-mon9-board-fast) | requirement | MON-9 | Given 12 goals with pull requests and a slow GitHub, when the board is built, then it takes under 10 seconds. | PASS 2026-11-10 |

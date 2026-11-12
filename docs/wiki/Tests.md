@@ -394,6 +394,10 @@
 | <a id="t-est-steps-monotone"></a>est-steps-monotone | requirement | MON-4 | not run | - | local | 2026-11-10 |
 | <a id="t-est-recompute"></a>est-recompute | requirement | MON-4 | not run | - | local | 2026-11-10 |
 | <a id="t-est-pool-unread-stall"></a>est-pool-unread-stall | requirement | MON-4 | not run | - | local | 2026-11-10 |
+| <a id="t-mon13-two-layers"></a>mon13-two-layers | requirement | MON-13 | not run | - | local | 2026-11-12 |
+| <a id="t-mon14-repo-blocks"></a>mon14-repo-blocks | requirement | MON-14 | not run | - | local | 2026-11-12 |
+| <a id="t-mon15-pod-owner"></a>mon15-pod-owner | requirement | MON-15 | not run | - | local | 2026-11-12 |
+| <a id="t-mon15-merge-lock"></a>mon15-merge-lock | requirement | MON-15 | not run | - | local | 2026-11-12 |
 
 ## Regression
 
@@ -583,3 +587,9 @@
 | <a id="t-worker-push-guard-refuse"></a>worker-push-guard-refuse | requirement | done line worker-push-guard:1 | not run | - | local | 2026-11-12 |
 | <a id="t-worker-push-guard-allow"></a>worker-push-guard-allow | requirement | done line worker-push-guard:3 | not run | - | local | 2026-11-12 |
 | <a id="t-worker-push-guard-unaffected"></a>worker-push-guard-unaffected | requirement | done line worker-push-guard:2 | not run | - | local | 2026-11-12 |
+| <a id="t-pods-docs"></a>pods-docs | requirement | done line pods:1 | not run | - | local | 2026-11-12 |
+| <a id="t-pods-owner"></a>pods-owner | requirement | done line pods:2 | not run | - | local | 2026-11-12 |
+| <a id="t-pods-lock"></a>pods-lock | requirement | done line pods:3 | not run | - | local | 2026-11-12 |
+| <a id="t-pods-independent"></a>pods-independent | requirement | done line pods:4 | not run | - | local | 2026-11-12 |
+| <a id="t-pods-blocks"></a>pods-blocks | requirement | done line pods:5 | not run | - | local | 2026-11-12 |
+| <a id="t-pods-size"></a>pods-size | requirement | done line pods:6 | not run | - | local | 2026-11-12 |
