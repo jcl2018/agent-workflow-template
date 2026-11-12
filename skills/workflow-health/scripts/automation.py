@@ -6,11 +6,11 @@ usage: automation.py workflow [--check]  write .github/workflows/health.yml and 
        automation.py digest [--owner L]  post this round's comment on the pinned Automation digest issue
 
 The workflow checks the routine (health_cron "off" makes a run write nothing), runs health check into the run summary,
-files the groups a runner can read (size, criteria, docs) on their feature's milestone as health:<group> issues, runs
+files the groups a runner can read (size, criteria, docs) as health:<group> issues, runs
 the judge only when the secret named by judge_env is set, posts the digest, then mails it (mail.py). Nothing pushes.
-The digest lists what ran (regression's latest run, health's verdict, the round's cost, the email), then per milestone
+The digest lists what ran (regression's latest run, health's verdict, the round's cost, the email), then per feature
 the new, still-open and fixed issues labelled regression or health since the last comment, each open one with its link
-and the request to give the agent; it mentions digest_owner (default: the repo owner). Its state lives in the digest
+(and its milestone, when it has one) and the request to give the agent; it mentions digest_owner (default: the repo owner). Its state lives in the digest
 issue's body (rounds.py), so a rerun of the same run posts nothing twice and an older run never overwrites a newer one.
 Outside Actions with no GH_TOKEN it only prints the comment.
 """
@@ -29,6 +29,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rounds  # noqa: E402
+from issues import NO_FEATURE, feature_group, features  # noqa: E402
 import workflows  # noqa: E402
 
 CRON = "47 */4 * * *"
@@ -92,25 +93,20 @@ def cmd_workflow(args):
     return status
 
 
-def open_issues():
-    """{number: (url, milestone number or 0)} of the open issues the digest follows; None when gh can't list them."""
-    found = {}
+def open_issues(pages=()):
+    """({number: (url, milestone number or 0)}, {number: feature}) of the open issues the digest follows; (None, {}) when
+    gh can't list them. A feature is the issue's feature label, else a milestone named like a page, else No feature."""
+    found, group = {}, {}
     for label in LABELS:
-        done = gh("issue", "list", "--label", label, "--state", "open", "--limit", "300", "--json", "number,url,milestone")
+        done = gh("issue", "list", "--label", label, "--state", "open", "--limit", "300", "--json", "number,url,milestone,labels")
         if done.returncode:
-            return None
-        found.update({item["number"]: (item["url"], int((item.get("milestone") or {}).get("number") or 0))
-                      for item in loads(done, [])})
-    return found
-
-
-def backlog():
-    """['--milestone', 'Backlog'] when the repo has an open Backlog milestone, else []."""
-    try:
-        miles = json.loads(gh("api", "repos/{owner}/{repo}/milestones?state=open&per_page=100").stdout)
-        return ["--milestone", "Backlog"] if "Backlog" in [m.get("title") for m in miles] else []
-    except (ValueError, TypeError, AttributeError):
-        return []
+            return None, {}
+        for item in loads(done, []):
+            stone = item.get("milestone") or {}
+            found[item["number"]] = (item["url"], int(stone.get("number") or 0))
+            group[item["number"]] = feature_group({"labels": [l.get("name") for l in item.get("labels") or []],
+                                                   "milestone": stone.get("title")}, pages)
+    return found, group
 
 
 def owner_of(args, cfg):
@@ -169,28 +165,25 @@ def listed(numbers, urls):
     return ", ".join("[#%d](%s)" % (n, urls[n][0]) if n in urls else "#%d" % n for n in sorted(numbers)) or "none"
 
 
-def compose(login, note, ran, now_open, before, run_id, titles=None):
+def compose(login, note, ran, now_open, before, run_id, titles=None, groups=None, pages=()):
     """The comment and its state marker. Issues are named by number and link only: a title is never copied into the
-    request an owner pastes into an agent. Milestone titles appear only as section headings."""
-    titles = titles or {}
+    request an owner pastes into an agent. Sections are features; a milestone title shows only as a suffix on a request."""
+    titles, groups = titles or {}, groups or {}
     new, still, fixed = set(now_open) - set(before), set(now_open) & set(before), set(before) - set(now_open)
     head = ("@%s " % login if login else "") + "Automation round, %s UTC" % datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M")
     out = [head, ""] + ([note, ""] if note else []) + ["| Routine | Result |", "|---|---|"]
     out += ["| %s | %s |" % (name, said.replace("|", "\\|")) for name, said in ran] + [""]
-    home = {n: now_open[n][1] for n in now_open}
-    home.update({n: before[n] for n in fixed})
-    home = {n: m if m in titles else 0 for n, m in home.items()}  # one No milestone section, unknown ones included
-    def rank(m):  # features by title, then Backlog, then issues with no (or an unknown) milestone
-        title = titles.get(m) if m else None
-        return (2, "") if not title else (1, "") if title == "Backlog" else (0, title.lower())
-    for milestone in sorted(set(home.values()), key=rank):
-        out += ["### %s" % ((titles.get(milestone) if milestone else None) or "No milestone"), ""]
-        pick = lambda pool: {n for n in pool if home[n] == milestone}  # noqa: E731
+    home = {n: groups.get(n) or (titles.get(now_open[n][1]) if titles.get(now_open[n][1]) in pages else NO_FEATURE) for n in now_open}
+    home.update({n: titles.get(before[n]) if titles.get(before[n]) in pages else NO_FEATURE for n in fixed})
+    for feature in sorted(set(home.values()), key=lambda f: (f == NO_FEATURE, f.lower())):  # features by name, then No feature
+        out += ["### %s" % feature, ""]
+        pick = lambda pool: {n for n in pool if home[n] == feature}  # noqa: E731
         out += ["**New** (%d): %s" % (len(pick(new)), listed(pick(new), now_open)), "",
                 "**Still open** (%d): %s" % (len(pick(still)), listed(pick(still), now_open)), "",
                 "**Fixed** (%d): %s" % (len(pick(fixed)), listed(pick(fixed), {})), ""]
-        mine = sorted(n for n in now_open if home[n] == milestone)
-        out += ['- [#%d](%s): `/workflow-delivery go "Fix #%d"`' % (n, now_open[n][0], n) for n in mine] + ([""] if mine else [])
+        mine = sorted(n for n in now_open if home[n] == feature)
+        out += ['- [#%d](%s): `/workflow-delivery go "Fix #%d"`%s' % (n, now_open[n][0], n, " (milestone %s)" % titles[now_open[n][1]]
+                if titles.get(now_open[n][1]) else "") for n in mine] + ([""] if mine else [])
     marker = rounds.marker(run_id, {n: now_open[n][1] for n in now_open})
     return "\n".join(out + [marker]) + "\n", marker
 
@@ -204,7 +197,8 @@ def cmd_digest(args):
     if live:
         for label in LABELS + ("automation",):  # a label that doesn't exist yet would make its listing fail
             gh("label", "create", label)
-    now_open = open_issues() if live else {}
+    pages = features(args.root)
+    now_open, groups = open_issues(pages) if live else ({}, {})
     found = rounds.digest_issue() if live else (None, "")
     if now_open is None or found is None:
         print("DIGEST: gh couldn't read the issues, so nothing was posted.")
@@ -236,10 +230,8 @@ def cmd_digest(args):
            ("health", health_line(os.environ.get("HEALTH_REPORT") or "")),
            ("round cost", rounds.line(cost) if cost else "not read (dry run)" if not live else rounds.line({"error": "only read in Actions"})),
            ("email", email_line(cfg, previous))]
-    titles = rounds.milestone_titles() if live else {}
-    if titles is None:
-        note, titles = (note + " " if note else "") + "Milestones couldn't be read, so issues are listed under No milestone.", {}
-    comment, marker = compose(login, note, ran, now_open, before, run_id, titles)
+    titles = (rounds.milestone_titles() if live else {}) or {}  # unreadable titles show nowhere: no note, no failure
+    comment, marker = compose(login, note, ran, now_open, before, run_id, titles, groups, pages)
     if cost is not None:
         rounds.summary("## Round\n\n" + rounds.line(cost) + "\n")
         if cost.get("over"):
@@ -250,7 +242,7 @@ def cmd_digest(args):
     if number is None:
         gh("label", "create", "automation", "--description", "The Automation digest")  # an existing one keeps its colour
         made = gh("issue", "create", "--title", TITLE, "--label", "automation", "--body",
-                  INTRO + "<!-- automation-digest open= run=none -->", *backlog())  # its state only once its comment is posted
+                  INTRO + "<!-- automation-digest open= run=none -->")  # no milestone; its state only once its comment is posted
         number = (re.findall(r"/issues/(\d+)", made.stdout) or [None])[-1]
         if made.returncode or not number:
             print("DIGEST: couldn't create the digest issue: %s" % (made.stderr.strip()[:200] or "no issue number"))

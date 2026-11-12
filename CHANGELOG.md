@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.27.10 - 2026-11-12
+
+- Merge remote-tracking branch 'origin/main' into loop/milestone-freeform
+- Docs: milestones become optional and free form (un-review of DOC-4, DOC-10, HLT-2, HLT-4, AUT-2, AUT-3, SET-1)
+- workflow-docs: the audit and Home check no longer require a milestone
+- Milestones are optional: remove the checks and per-feature creation; feature tag behind feature_labels
+- Tests and rows for free-form milestones; page Usage lines follow the code
+- Record each milestone-freeform row seen failing on the old rule
+- Merge origin/main into loop/milestone-freeform
+- Merge origin/main into loop/milestone-freeform
+- Merge origin/main (lane-tmpdir) into loop/milestone-freeform; both sides kept, Tests re-rendered
+- Lane: re-render the Tests tables
+
+### How to verify
+
+1. Read Documentation DOC-10 and Health HLT-4 (and DOC-4, HLT-2, AUT-2, AUT-3, SET-1) in docs/wiki.
+   Expect: each says a milestone is optional and free form (for example v1.0), none calls it required or per feature, and each of the seven lines reads `Unreviewed`.
+2. Run `python3 skills/workflow-docs/scripts/docs.py check` in this repo (its pages keep their existing `Milestone:` link, shown as before); then run `bash dev/toy/test-docs-command.sh` and `bash dev/toy/test-docs-format.sh`.
+   Expect: `DOCS OK: 9 pages` with no warning about a milestone; the toy runs print `PASS milestone-freeform:no-milestone-page-ok` and `PASS milestone-freeform:home-milestone-optional` (a page without a Milestone line, and a Home row with an empty Milestone cell, pass).
+3. Run `bash dev/toy/test-milestones.sh` (a fixture repo with the fake gh) and read its health file/preview section.
+   Expect: issues are filed labelled only `health` and `health:<group>`, with no milestone made or set and no `feature:` label call while `feature_labels` is off; with it on, a `feature:Calc` label is created first and applied; `milestone.py new v1.0 --live` and `move 1 v1.0` work; the run ends with `PASS milestone-freeform:health-file-no-milestone` and `PASS milestone-freeform:milestone-v1-free-form`.
+
+## v0.27.9 - 2026-11-12
+
+- Lane TMPDIR: a fresh folder under the system temp, never inside a git checkout (lane-tmpdir, #814)
+- Lane reference: quote the LANE_TMPDIR message as lane.py prints it (lane-tmpdir)
+- Merge remote-tracking branch 'origin/main' into loop/lane-tmpdir
+- Wiki: update pages for lane-tmpdir
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.8 - 2026-11-12
 
 - estimate-accuracy: move the log facts to board_log.py and the estimate model to board_model.py (no behavior change)

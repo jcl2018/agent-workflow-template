@@ -61,9 +61,8 @@ python3 scripts/docs.py audit [--base <ref>] [--dry-run]
 ```
 
 The one command. It checks every page against `references/template.md` (the page rules live in its `rules` block, so
-nothing else holds a number), the code (stale pages), the tests (Tests tables) and the required docs (each page's
-`Milestone:` line, the Backlog milestone, a release note per tag). It fixes the mechanical (`FIXED`: Tests tables, a
-missing Milestone line), lists wording for a person to write as `REWRITE`, and lists each Reviewed criterion with no
+nothing else holds a number), the code (stale pages), the tests (Tests tables) and the required docs (a release note per tag; a milestone is
+optional and free form, never required). It fixes the mechanical (`FIXED`: Tests tables), lists wording for a person to write as `REWRITE`, and lists each Reviewed criterion with no
 test, or whose tests no longer match, as `UNTESTED` (also saved to `untested.tsv` under `.git/loop`, for the loop to
 queue goals from). Exit 0 only when nothing is left; `UNTESTED` and a `SKIP` for no `gh` answer don't fail it. The
 release step runs it on every goal. It never deletes a page or edits a criterion.
@@ -146,4 +145,4 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-docs entry` | `python3 scripts/entry.py write` (`check`, `render`, `block`) |
 | `/workflow-docs publish` | `python3 scripts/docs.py publish` |
 | `/workflow-docs restore` | `python3 scripts/docs.py restore` |
-| `/workflow-docs milestones` | `python3 scripts/milestone.py new --all` |
+| `/workflow-docs milestone new TITLE \| move ISSUE TITLE` | `python3 scripts/milestone.py new TITLE` or `move ISSUE TITLE` (optional, free form) |

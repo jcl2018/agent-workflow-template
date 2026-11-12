@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plan and write the rest of an adoption: feature pages, criteria, regression rows and workflow, milestones.
+"""Plan and write the rest of an adoption: feature pages, criteria, regression rows and workflow.
 
 usage: seed.py [--repo DIR]     (setup.py imports this; run alone it prints the plan)
 
@@ -217,7 +217,6 @@ def decide(repo, config, found):
             acts.append(("note", "health workflow", "not written: the workflow-health skill isn't in this repo, so a run could only fail", None))
     else:
         acts.append(("no fit", ".loop/regression.tsv", "no check command found, so no test row can be seeded", None))
-    acts.append(("note", "milestones", "Backlog and one per page: python3 milestone.py new --all --live, when you are ready", None))
     acts.append(("note", "health", "workflow-health check works with these files; its rules are fixed", None))
     return acts
 
