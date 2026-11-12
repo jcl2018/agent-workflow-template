@@ -19,4 +19,4 @@ Frozen. A wrong done line needs a new goal.
 2. Open `docs/wiki/Automation.md` and read AUT-1, AUT-2 and the Usage list.
    Expect: no health workflow, `--check` or Actions mail job; the regression workflow entry says a private repo gets `NOT WRITTEN`; AUT-2 says the pull request lane posts commit statuses.
 3. Open `DECISIONS.md`.
-   Expect: seven dated "review findings" lines above the "Waiting on owner un-review" section, which still holds only the spec-decisions proposals.
+   Expect: seven "Review findings (2026-11-12)" lines above the "Waiting on owner un-review" section, which still holds only the spec-decisions proposals.
