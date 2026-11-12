@@ -129,9 +129,6 @@ def home(text, features, existing, readme, repo):
         if not link or (repo and link.group(1).lower() != repo.lower()) or link.group(2) != want or want not in keys:
             out.append(bad("Home", number, "Features", 4, "How to use links the README's '### %s' section" % heading_of(name),
                            short(row[2]), "link [README](https://github.com/%s#%s) and add that README heading" % (repo or "OWNER/REPO", want)))
-        if not re.search(r"/milestone/\d+", row[3]):
-            out.append(bad("Home", number, "Features", 4, "Milestone links the feature's milestone", short(row[3]),
-                           "link https://github.com/%s/milestone/N" % (repo or "OWNER/REPO")))
     for name in features:
         if seen.count(name) != 1:
             out.append(bad("Home", found[0][0], "Features", 4, "one row per feature page", "%d rows for %s" % (seen.count(name), name),
