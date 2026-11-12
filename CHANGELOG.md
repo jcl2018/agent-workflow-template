@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.27.28 - 2026-11-12
+
+- goal.py pr: a conflict from main moving in generated files is mended, a dead lane reruns free (bounded), finding text carries no absolute path
+- Docs: SKILL.md and commands.md name the mended conflict and the free dead-lane rerun
+- Merge origin/main (pending-none) into loop/goal-pr-try-budget: rows unioned, Tests re-rendered
+- guards.py: shorter docstrings so the file is back under its 20480-byte cap after the merge
+- Review fixes: mend refuses a both-sides or deleted row, re-renders Tests.md, only for the wiki page; free reruns only for the generated lane text; dirty tree is no try; plain() covers the lane part
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/goal-pr-try-budget
+- Lane: re-render the Tests tables
+- Merge origin/main (v0.27.18) into loop/goal-pr-try-budget: Delivery Tests re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+- Merge origin/main (v0.27.20) into loop/goal-pr-try-budget: rows unioned
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.27 - 2026-11-12
 
 - Only setup inserts the Settings and Automation blocks; a render refreshes them where their markers are
