@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.27.29 - 2026-11-12
+
+- Goal reset writes an empty report; goal state saved under a lock with merge of concurrent writers
+- Design, plan and Delivery usage for guards-null-report
+- guards-null-report: a removed key stays removed; plan review fixes
+- Delivery usage: say exactly what the lock covers
+- guards-null-report: a new record keeps its empty values (key-not-in-snapshot, not a shared sentinel); fresh case
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/guards-null-report
+- Delivery usage: a new record is written whole
+- Tests tables and seen red for the bind and mend row
+- Merge origin/main into loop/guards-null-report
+- Merge origin/main into loop/guards-null-report
+- Merge remote-tracking branch 'origin/main' into loop/guards-null-report
+- Merge remote-tracking branch 'origin/main' into loop/guards-null-report
+- Trim goal.py under the script size cap after merging main
+- Wiki: update pages for guards-null-report
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.28 - 2026-11-12
 
 - goal.py pr: a conflict from main moving in generated files is mended, a dead lane reruns free (bounded), finding text carries no absolute path

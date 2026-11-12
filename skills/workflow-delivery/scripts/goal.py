@@ -20,6 +20,7 @@ A refusal that changes nothing uses no try: exit 2, the goal keeps running (guar
 """
 import argparse
 import datetime
+import fcntl
 import hashlib
 import importlib.util
 import json
@@ -37,19 +38,14 @@ import private  # noqa: E402
 import role
 
 
-def _pods():  # pods and the merge lock (MON-15) live in workflow-monitoring's graph.py, loaded by path; None without it
-    try:
-        spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod
-    except Exception:
-        return None
+try:  # pods (MON-15): workflow-monitoring's graph.py, loaded by path
+    _spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(__file__), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
+    pods = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(pods)
+except Exception:
+    pods = None
 
-
-pods = _pods()
-
-# No terminal, no waiting: a prompt from git or gh must fail, not block.
+# A git or gh prompt must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
@@ -117,25 +113,42 @@ def state_path(slug):
     return os.path.join(state_dir(), slug + ".json")
 
 
+SEEN = {}  # slug -> the record (JSON) as last loaded or saved here
+
+
 def load(slug):
     try:
-        return json.loads(read(state_path(slug)))
+        state = json.loads(read(state_path(slug)))
     except OSError:
         no("no goal named %s. Fix: start it with new." % slug)
+    SEEN[slug] = json.dumps(state)
+    return state
 
 
 def save(state, note=None):
+    """Locked save: only keys changed here replace the file's; the log keeps both."""
     state["updated"] = now()
     if note:
         state.setdefault("log", []).append("%s %s" % (state["updated"], note))
-    path = state_path(state["slug"])
-    try:
-        role.report(json.loads(read(path)), state, state["updated"])
-    except (OSError, ValueError):
-        role.report({}, state, state["updated"])
-    temp = path + ".%d.tmp" % os.getpid()
-    write(temp, json.dumps(state, indent=2))
-    os.replace(temp, path)
+    path, slug = state_path(state["slug"]), state["slug"]
+    with open(path + ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            disk = json.loads(read(path))
+        except (OSError, ValueError):
+            disk = {}
+        was = json.loads(SEEN.get(slug, "{}"))
+        merged = dict(disk, **{k: v for k, v in state.items() if k not in was or was[k] != v})
+        merged = {k: v for k, v in merged.items() if k in state or k not in was}
+        have = disk.get("log") or []
+        merged["log"] = have + [line for line in state.get("log") or [] if line not in have]
+        role.report(disk, merged, state["updated"])
+        temp = path + ".%d.tmp" % os.getpid()
+        write(temp, json.dumps(merged, indent=2))
+        os.replace(temp, path)
+    state.clear()
+    state.update(merged)
+    SEEN[slug] = json.dumps(merged)
 
 
 def root():

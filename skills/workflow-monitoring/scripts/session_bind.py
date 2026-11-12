@@ -113,9 +113,9 @@ def cmd_bind(g, args):
         if state:
             was = state.get("status")
             if was in ("failed", "stopped") and not worker:  # the same fields as goal.py resume (guards.revive)
-                state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
+                state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report={})
             elif was in ("queued", "", None):
-                state.update(status="running", finding="", report=None)
+                state.update(status="running", finding="", report={})
             new = (state.get("session") or {}).get("id") != args.id or was in ("failed", "stopped")  # a new worker: next attempt
             state.update(worker="session", worker_why="", session={"id": args.id, "name": name}, pid=None, bound_at=g.now(),
                          attempt=int(state.get("attempt") or 0) + (1 if new else 0))  # an older attempt's report is not applied (114)
