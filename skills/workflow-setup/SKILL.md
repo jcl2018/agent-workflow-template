@@ -34,7 +34,7 @@ and its fix above it); it exits 0 whenever the adoption is on its branch, and `-
   `SETUP_MIXED_VERSION` (run update), `SETUP_PRIVATE_NAME`, `SETUP_PRIVATE_VALUE` (a local setting or private value on a
   line the adoption adds), `SETUP_HOOK_REFUSED`, `SETUP_UNEXPECTED` (see the trace file it names), `SETUP_INTERRUPTED`,
   `SETUP_HALF_UNDONE` (exit 4: a restore could not finish, run the commands it prints), `SETUP_PLANNED_PATH_DIRTY` and
-  `SETUP_AGENT_FILE_DIRTY` (exit 2: commit or stash that file). A killed run is rolled back by the next run.
+  `SETUP_AGENT_FILE_DIRTY` (exit 2: commit or stash that file). A rollback stops a running tool child first and a missing `pkill` never stops the restore; a killed run is rolled back by the next run (`SETUP_RECOVERED`). Exit 1 refuses, 130 interrupted.
 - `.tsv` stays the loop's file format. If the repo's `.gitignore` blocks it, setup appends the exact exception lines under
   one comment. If a repo hook rejects tracked `.tsv` files, setup stops cleanly with that hook's output and names the
   exemption to add (`.loop/*.tsv`); it never edits the hook and never uses `--no-verify`.
