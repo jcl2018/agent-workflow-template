@@ -34,6 +34,7 @@ import counting
 import criteria
 import entry
 import pageformat
+from counting import map_path, read_map, write_map  # noqa: F401
 
 # No terminal, no waiting.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GIT_EDITOR="true")
@@ -81,31 +82,6 @@ def wiki_dir(root):
     if os.path.isabs(name) or ".." in name.split("/"):
         sys.exit("REFUSED: wiki_dir must be a path inside the repo.")
     return name
-
-
-def map_path(root):
-    return os.path.join(root, ".loop", "docs.tsv")
-
-
-def read_map(root):
-    rows = {}
-    try:
-        with open(map_path(root)) as handle:
-            for line in handle:
-                if line.strip() and not line.startswith("#"):
-                    page, _, paths = line.rstrip("\n").partition("\t")
-                    rows[page] = [item.strip() for item in paths.split(",") if item.strip()]
-    except OSError:
-        pass
-    return rows
-
-
-def write_map(root, rows):
-    os.makedirs(os.path.dirname(map_path(root)), exist_ok=True)
-    with open(map_path(root), "w") as handle:
-        handle.write("# page<TAB>paths it describes, comma separated\n")
-        for page in sorted(rows):
-            handle.write("%s\t%s\n" % (page, ",".join(rows[page])))
 
 
 def wiki_url(root):
