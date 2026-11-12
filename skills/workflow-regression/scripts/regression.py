@@ -12,6 +12,9 @@ usage: regression.py <command> [options]
                                 failing; --write drafts rows (a criterion's row has its id as id or goal)
   criteria                      run each wiki criterion's row; print one UNMET line for each missing, draft or failing
   red ID --break CMD            copy HEAD, run CMD to break it, and record that the test fails there
+  red ID --off-platform --runner R --commit SHA
+                                a row this platform skips (exit 77) was seen failing on runner R at commit SHA: record it
+                                (runs.py). A Windows runner is refused; a skip never sets seen red
   run [land|nightly|ID] [--timeout S] [--live] [--reuse [--tier goal]] [--kind requirement|workflow|defect]
                                 run the rows (of one kind), then open, update or close one issue per failing row;
                                 --tier goal plans a goal lane (tiers.py); a plain run nightly records its time (SUITE_TIME)
@@ -205,6 +208,10 @@ def cmd_criteria(_args):
 
 def cmd_red(args):
     root = top()
+    if args.off_platform:
+        return runs.off_record(root, args.id, args.runner, args.commit, today, read_rows, edit_rows)
+    if not args.break_it:
+        sys.exit("REFUSED: red needs --break CMD (or --off-platform --runner R --commit SHA). Fix: pass one.")
     rows = read_rows(root)
     row = rows.get(args.id)
     if not row:
@@ -328,7 +335,10 @@ def main():
     sub.add_parser("criteria").set_defaults(func=cmd_criteria)
     item = sub.add_parser("red")
     item.add_argument("id")
-    item.add_argument("--break", dest="break_it", required=True)
+    item.add_argument("--break", dest="break_it")
+    item.add_argument("--off-platform", action="store_true", help="record a red proven on another runner")
+    item.add_argument("--runner")
+    item.add_argument("--commit")
     item.add_argument("--timeout", type=int, default=900)
     item.set_defaults(func=cmd_red)
     item = sub.add_parser("run")

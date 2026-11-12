@@ -388,6 +388,7 @@ In the repo:
 | `.loop/docs.tsv` | Each wiki page and the paths it describes |
 | `.loop/regression.tsv` | Test rows |
 | `.loop/regression-known.tsv` | Rows expected to fail, with a reason |
+| `.loop/regression-red.tsv` | Red results proven on another runner, with runner and commit |
 | `.loop/regression-runs.tsv`, `.loop/regression-issues.tsv` | Each row's last result; each defect test's issue state |
 | `.github/workflows/regression.yml`, `.github/workflows/regression-pr.yml` | A public repo's regression routines (written by setup); health and a private repo's regression run on the Mac |
 | `docs/wiki/` | Wiki pages, each starting with `<!-- workflow-docs -->` |

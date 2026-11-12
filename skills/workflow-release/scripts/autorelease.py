@@ -94,6 +94,16 @@ def sh(args, cwd=None):
         return subprocess.CompletedProcess(args, 127, "", str(error))
 
 
+def sh_text(args, text, flag="--body-file", cwd=None):
+    """Run gh with a long text in a temp file passed as flag (--body-file, --notes-file), never on the command line."""
+    with tempfile.NamedTemporaryFile("w", suffix=".md", prefix="gh-text-", delete=False, encoding="utf-8", newline="\n") as f:
+        f.write(text)
+    try:
+        return sh(args + [flag, f.name], cwd=cwd)
+    finally:
+        os.remove(f.name)
+
+
 def fail(state, text):
     """Record the failure on the goal and stop."""
     state["release_error"] = text if len(text) <= 400 else text[:330] + " ... " + text[-65:]  # keeps the (CODE)
@@ -260,13 +270,7 @@ def create_release(top, cfg, state, version, target):
         fail(state, "a GitHub release %s already exists at %s, not at this goal's release commit %s; nothing new was "
              "created. Fix: look at it (gh release view %s) and keep or delete it, then run merge.py %s (RELEASE_EXISTS)"
              % (tag, info.get("targetCommitish") or "another target", target[:12], tag, state["slug"]))
-    notes = tempfile.NamedTemporaryFile("w", suffix=".md", prefix="release-notes-", delete=False)
-    with notes:
-        notes.write(text)
-    try:
-        made = sh(["gh", "release", "create", tag, "--title", tag, "--notes-file", notes.name, "--target", target], cwd=top)
-    finally:
-        os.remove(notes.name)
+    made = sh_text(["gh", "release", "create", tag, "--title", tag, "--target", target], text, "--notes-file", top)
     if made.returncode:
         fail(state, "gh release create %s failed after the version was pushed; run merge.py again: %s" % (
             tag, (made.stderr or made.stdout).strip()[-200:]))

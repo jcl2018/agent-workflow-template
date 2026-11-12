@@ -33,6 +33,8 @@ import rounds  # noqa: E402
 from issues import NO_FEATURE, feature_group, features  # noqa: E402
 import workflows  # noqa: E402
 
+ISSUE_LIMIT = 1000  # a label with this many open issues may have more: the digest then says TRUNCATED
+CUT = []  # the labels whose listing reached ISSUE_LIMIT, set by open_issues
 LABELS = ("regression", "health")  # the issues the digest follows: failing tests and health findings
 TITLE = rounds.TITLE
 INTRO = "The Automation routines post one comment here per round, and mail it when the mail secrets are set.\n\n"
@@ -89,10 +91,13 @@ def open_issues(pages=()):
     gh can't list them. A feature is the issue's feature label, else a milestone named like a page, else No feature."""
     found, group = {}, {}
     for label in LABELS:
-        done = gh("issue", "list", "--label", label, "--state", "open", "--limit", "300", "--json", "number,url,milestone,labels")
+        done = gh("issue", "list", "--label", label, "--state", "open", "--limit", str(ISSUE_LIMIT), "--json", "number,url,milestone,labels")
         if done.returncode:
             return None, {}
-        for item in loads(done, []):
+        listed = loads(done, [])
+        if len(listed) >= ISSUE_LIMIT and label not in CUT:
+            CUT.append(label)
+        for item in listed:
             stone = item.get("milestone") or {}
             found[item["number"]] = (item["url"], int(stone.get("number") or 0))
             group[item["number"]] = feature_group({"labels": [l.get("name") for l in item.get("labels") or []],
@@ -223,7 +228,7 @@ def cmd_digest(args):
             print("DIGEST: gh couldn't read the digest comments, so nothing was posted.")
             return 1
         if earlier:  # an earlier attempt posted it but couldn't save the body: repair, never post twice
-            gh("issue", "edit", str(number), "--body", INTRO + rounds.marker(run_id, earlier["state"]["open"]))
+            gh("issue", "edit", str(number), body=INTRO + rounds.marker(run_id, earlier["state"]["open"]))
             print("DIGEST: already posted for run %s; state repaired (DIGEST_REPAIRED)" % run_id)
             return 0
     login, note = owner_of(args, cfg) if live else (args.owner or cfg.get("digest_owner") or "", "")
@@ -233,6 +238,8 @@ def cmd_digest(args):
            ("health", health_line(os.environ.get("HEALTH_REPORT") or "")),
            ("round cost", rounds.line(cost) if cost else "not read (dry run)" if not live else rounds.line({"error": "only read in Actions"})),
            ("email", email_line(cfg, previous))]
+    if CUT:
+        ran.append(("issues", "TRUNCATED: %s listed %d open issues, so the counts below may be cut off (TRUNCATED)" % (", ".join(CUT), ISSUE_LIMIT)))
     titles = (rounds.milestone_titles() if live else {}) or {}  # unreadable titles show nowhere: no note, no failure
     comment, marker = compose(login, note, ran, now_open, before, run_id, titles, groups, pages)
     if cost is not None:
@@ -244,21 +251,21 @@ def cmd_digest(args):
         return 0
     if number is None:
         gh("label", "create", "automation", "--description", "The Automation digest")  # an existing one keeps its colour
-        made = gh("issue", "create", "--title", TITLE, "--label", "automation", "--body",
-                  INTRO + "<!-- automation-digest open= run=none -->")  # no milestone; its state only once its comment is posted
+        made = gh("issue", "create", "--title", TITLE, "--label", "automation",
+                  body=INTRO + "<!-- automation-digest open= run=none -->")  # no milestone; its state only once its comment is posted
         number = (re.findall(r"/issues/(\d+)", made.stdout) or [None])[-1]
         if made.returncode or not number:
             print("DIGEST: couldn't create the digest issue: %s" % (made.stderr.strip()[:200] or "no issue number"))
             return 1
         if gh("issue", "pin", number).returncode:
             print("WARNING: couldn't pin issue #%s (a repo pins at most three); the digest still posts there." % number)
-    posted = gh("issue", "comment", str(number), "--body", comment)
+    posted = gh("issue", "comment", str(number), body=comment)
     if posted.returncode:
         print("DIGEST: couldn't comment on #%s: %s" % (number, posted.stderr.strip()[:200]))
         return 1
     if run_id == "local" and state and state["run"].isdigit():  # a local digest keeps the last Actions run on the issue
         marker = rounds.marker(state["run"], {n: now_open[n][1] for n in now_open})
-    if gh("issue", "edit", str(number), "--body", INTRO + marker).returncode:  # the state the next round compares with
+    if gh("issue", "edit", str(number), body=INTRO + marker).returncode:  # the state the next round compares with
         print("DIGEST: posted on #%s, but couldn't save its state; a rerun repairs it from the comment" % number)
         return 1
     print("DIGEST: posted on #%s (%d open)" % (number, len(now_open)))
