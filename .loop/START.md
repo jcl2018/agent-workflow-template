@@ -23,7 +23,7 @@ One session governs and the others build: the operation session assigns goals, w
 
 ## Docs
 
-Feature pages live in `docs/wiki`, one PRD page per feature with numbered requirements, at most 15 each. The criteria contract is `true`. The docs command finds stale pages, and the release step rewrites them.
+Feature pages live in `docs/wiki`, one PRD page per feature with numbered requirements, at most 16 each. The criteria contract is `true`. The docs command finds stale pages, and the release step rewrites them.
 
 ## Regression
 
@@ -62,7 +62,7 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `cadence` | 30 | Minutes between check-ins of the operation session, 1 to 60, or off. |
 | `ci_levels` | nightly | Target of the scheduled and tag regression runs: nightly (every row) or land. |
 | `criteria` | true | true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests). |
-| `criteria_max` | 15 | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. |
+| `criteria_max` | 16 | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. |
 | `digest_mail` | cloudflare | How the round's digest is mailed: cloudflare (Email Service), smtp, or off; the address and keys live only in Actions secrets. |
 | `digest_owner` | none | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). |
 | `feature_labels` | false | true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label; off by default, so issues carry their group or regression label only. |
