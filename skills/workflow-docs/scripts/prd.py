@@ -153,7 +153,7 @@ def review_text(text, day, page):
     """(new text, None) with the PRD Reviewed on day and its fingerprints, or (text, why) when it can't be reviewed."""
     rule = criteria.rules()
     parts = criteria.sections(text)
-    have = [name for name, _ in parts if name not in (rule["usage"], rule["deploy"])]
+    have = [name for name, _ in parts if name not in (rule["usage"], rule["deploy"], rule["runbook"])]
     if have != rule["sections"]:
         return text, "its sections are %s, not a PRD. Fix: run prd.py convert --write (workflow-docs) first" % (", ".join(have) or "none")
     line, why = review_of(text, rule)
@@ -187,7 +187,7 @@ def group(requirements):
 def convert_text(text, rule):
     """(outcome, new text): outcome is skipped, converted, completed, or 'refused: why'."""
     parts = criteria.sections(text)
-    have = [name for name, _ in parts if name not in (rule["usage"], rule["deploy"])]
+    have = [name for name, _ in parts if name not in (rule["usage"], rule["deploy"], rule["runbook"])]
     first, second, third, fourth = rule["sections"][:4]
     shapes = ([first, "Summary"], [second, "Criteria"], [third, None], [fourth, None], ["Tests"])
     at, plan = 0, []
