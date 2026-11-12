@@ -228,7 +228,7 @@ def issues(runs, gone, root, at=None, taken=None, why="", freezing=()):
     for key in sorted(graph.LAST_BAD.get(os.path.join(loop_dir(root), "session-pool.json"), {})):
         other += ["- pool entry %s is malformed and was set aside" % key, "    fix: look at session-pool.bad.json, then delete it"]
     other += board_page.template_lag(root)
-    other += bs.stall_lines(runs, at, root, {r["slug"] for r in runs if is_held(r, taken)})
+    other += bs.stall_lines(runs, at, root, None if taken is None else {r["slug"] for r in runs if is_held(r, taken)})
     other += bb.issues(root, [r for r in runs if r["slug"] not in gone])
     found = bs.wiki_check(root)
     parts = ["%s %s" % (kind.lower(), page) for kind, page in found or []]
@@ -258,7 +258,8 @@ def render(root=None, at=None):
     waits = lambda deps: [d for d in deps if d not in gone]
     lines = {g["slug"]: g for g in bs.queued(root, runs)}
     queue = [g for g in lines.values() if g["slug"] not in {f["slug"] for f in freezing}]
-    items = bs.board_items(live, queue, freezing, lines, runs, at, root, waits)
+    items = bs.board_items(live, queue, freezing, lines, runs, at, root, waits, None if taken is None else {r["slug"] for r in runs if is_held(r, taken)})
+    names = {item["slug"] for item in items}
     cfg = bs.read_json(os.path.join(root, ".loop", "config.json")) or {}
     setting = "condensed" if cfg.get("review_depth") == "condensed" else "full"
     folder = os.path.join(loop_dir(root), "runs")  # depth decided and budget lines (board_lines.py section 4)
@@ -303,8 +304,7 @@ def render(root=None, at=None):
     missing = board_page.unknown(items) or any(i["partial"] for i in items) or held or freezing
     finish = "nothing left" if not items else "no estimate yet" if not seconds else "%sfinish about %s" % (
         "at least " if missing else "", graph.clock(at + datetime.timedelta(seconds=seconds)))
-    return fit(out + ["", "Finish", board_lines.paused(live) or finish])
-
+    return fit(out + ["", "Finish", board_lines.paused(live) or finish, bs.accuracy_text(runs, at, root)])
 
 def pool_line(found, root):
     import pool as pl  # pool.py imports sessions.py; only the board's pool line needs it

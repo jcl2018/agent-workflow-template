@@ -30,7 +30,6 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import mail_render  # noqa: E402
 import rounds  # noqa: E402
 
 # Cloudflare Email REST API, read 2026-11-10:
@@ -236,7 +235,7 @@ def cmd_test(args):
     keys = secrets(mode, True)
     repo = os.environ.get("GITHUB_REPOSITORY") or "this repo"
     text = "A test of the Automation digest mail for %s. Each round's mail carries its digest comment.\n" % repo
-    outcome, detail, retried = deliver(mode, keys, "Automation digest: test from %s" % repo, text, mail_render.to_html(text),
+    outcome, detail, retried = deliver(mode, keys, "Automation digest: test from %s" % repo, text, rounds.to_html(text),
                                        (host, port, wait, api))
     if outcome != "ok":
         raise Stop("MAIL_REFUSED", "test not sent: %s refused it: %s. Fix: %s, then run the Mail test workflow again"
@@ -274,7 +273,7 @@ def cmd_send(args):
         raise Stop("MAIL_UNKNOWN", "a mail for run %s may already have been sent: an earlier attempt stopped after sending "
                    "began (side effects: unknown). Fix: check your inbox for \"Automation digest\"; if none arrived, delete "
                    "the word mailing from the last line of %s and rerun this job" % (run, comment["url"]))
-    subject, text, page = mail_render.message(comment["body"], os.environ.get("GITHUB_REPOSITORY") or "this repo")
+    subject, text, page = rounds.message(comment["body"], os.environ.get("GITHUB_REPOSITORY") or "this repo")
     if not rounds.save_comment(comment["id"], rounds.with_marker(comment["body"], state, {"mailing"})):
         raise Stop("MAIL_MARK", "couldn't mark run %s as sending on %s, so nothing was sent. Fix: rerun this job (safe: "
                    "nothing was sent)" % (run, comment["url"]))

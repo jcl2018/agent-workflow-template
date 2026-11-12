@@ -246,8 +246,8 @@ def controls_rows(root):
 
 
 def mine_rows(root):
-    mine = sibling_module("mine")
-    return mine.mine_rows(root) if mine else [row("UNREAD", "mine", "mine.py", "mine", "mine.py is not installed beside health.py")]
+    mine = sibling_module("enforce")
+    return mine.mine_rows(root) if mine else [row("UNREAD", "mine", "enforce.py", "mine", "enforce.py is not installed beside health.py")]
 
 
 def cost_rows(root):
