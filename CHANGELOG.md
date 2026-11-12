@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.27.53 - 2026-11-12
+
+- Lanes render the Tests tables only: criteria.py render --tables leaves the Settings, Automation and README blocks alone (#3777)
+- Docs: a lane renders only the Tests tables
+- Tests tables: re-render
+- render: args without tables (docs audit) keep refreshing the blocks; the check covers it
+- Docs: audit and render still refresh the blocks
+- Merge origin/main into loop/settings-render-windows
+- Wiki: update pages for settings-render-windows
+
+### How to verify
+
+1. In a worktree at main, run `python3 skills/workflow-docs/scripts/docs.py check`. Expect: no line starting STALE.
+2. Run `python3 dev/render_tables_check.py`. Expect: `OK: render --tables left README.md and Home.md alone; a plain render repaired them`.
+
+## v0.27.52 - 2026-11-12
+
+- Page and filter the issue listing in health; toy and rows
+- Health page: the listing is filtered and paged
+- Refuse, not truncate, past the page cap
+- Lane: re-render the Tests tables
+- Wiki: update pages for health-issues-listing
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.51 - 2026-11-12
 
 - Move the Automation block code from render.py to counting.py; row docs-block-split

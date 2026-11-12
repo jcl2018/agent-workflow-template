@@ -79,7 +79,7 @@ The full list, and the lines `check` prints: `references/commands.md` (The PRD p
 ```bash
 python3 scripts/criteria.py review <PAGE|ID> [...] --user [--date YYYY-MM-DD]
 python3 scripts/criteria.py unreview <PAGE|ID> [...] --user
-python3 scripts/criteria.py render [--check]
+python3 scripts/criteria.py render [--check] [--tables]
 ```
 
 Run from a session with no terminal, `review` and `unreview` refuse `--user` unless `LOOP_OWNER_WORDS` holds the
