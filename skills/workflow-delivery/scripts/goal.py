@@ -6,7 +6,7 @@ usage: goal.py <command> <slug> [options]
   new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
   queue SLUG --goal TEXT --done LINE [--touches A,B] [--depends-on A,B]
   step SLUG NAME [--note TEXT] [--tokens N]
-  record SLUG STEP --file REPLY [--in-session]  record a flow step flow.py or the goal's worker session ran
+  record SLUG STEP --file REPLY [--in-session]  record a finished flow step
   pr SLUG  merge the latest base, push, open the PR
 Goal steps (step, record, pr) refuse outside a worker, which also sees what the operation session sent it.
   wait SLUG --ask TEXT --words W [--words W]
@@ -20,6 +20,7 @@ A refusal that changes nothing uses no try: exit 2, the goal keeps running (guar
 """
 import argparse
 import datetime
+import fcntl
 import hashlib
 import importlib.util
 import json
@@ -36,17 +37,12 @@ import fit  # noqa: E402
 import role
 
 
-def _pods():  # pods and the merge lock (MON-15) live in workflow-monitoring's graph.py, loaded by path; None without it
-    try:
-        spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod
-    except Exception:
-        return None
-
-
-pods = _pods()
+try:  # pods (MON-15) live in workflow-monitoring's graph.py, loaded by path; None without it
+    _spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(__file__), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
+    pods = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(pods)
+except Exception:
+    pods = None
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -116,25 +112,41 @@ def state_path(slug):
     return os.path.join(state_dir(), slug + ".json")
 
 
+SEEN = {}  # slug -> the record (JSON) as last loaded or saved here: save() writes only what changed since
+
+
 def load(slug):
     try:
-        return json.loads(read(state_path(slug)))
+        state = json.loads(read(state_path(slug)))
     except OSError:
         no("no goal named %s. Fix: start it with new." % slug)
+    SEEN[slug] = json.dumps(state)
+    return state
 
 
 def save(state, note=None):
+    """Under a lock, merged with another writer's save: only the keys changed here replace the file's, and the log keeps both."""
     state["updated"] = now()
     if note:
         state.setdefault("log", []).append("%s %s" % (state["updated"], note))
-    path = state_path(state["slug"])
-    try:
-        role.report(json.loads(read(path)), state, state["updated"])
-    except (OSError, ValueError):
-        role.report({}, state, state["updated"])
-    temp = path + ".%d.tmp" % os.getpid()
-    write(temp, json.dumps(state, indent=2))
-    os.replace(temp, path)
+    path, slug = state_path(state["slug"]), state["slug"]
+    with open(path + ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            disk = json.loads(read(path))
+        except (OSError, ValueError):
+            disk = {}
+        was = json.loads(SEEN.get(slug, "{}"))
+        merged = dict(disk, **{key: value for key, value in state.items() if was.get(key, SEEN) != value})
+        have = disk.get("log") or []
+        merged["log"] = have + [line for line in state.get("log") or [] if line not in have]
+        role.report(disk, merged, state["updated"])
+        temp = path + ".%d.tmp" % os.getpid()
+        write(temp, json.dumps(merged, indent=2))
+        os.replace(temp, path)
+    state.clear()
+    state.update(merged)
+    SEEN[slug] = json.dumps(merged)
 
 
 def root():

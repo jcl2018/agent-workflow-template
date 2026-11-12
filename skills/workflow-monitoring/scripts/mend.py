@@ -216,7 +216,7 @@ def relaunch(state, prompt, cfg, note):
     state["worktree"] = tree
     path = os.path.join(loop_dir("logs"), state["slug"] + ".log")
     state["log_mark"] = os.path.getsize(path) if os.path.exists(path) else 0
-    state["finding"], state["waiting"], state["status"], state["report"] = "", None, "running", None
+    state["finding"], state["waiting"], state["status"], state["report"] = "", None, "running", {}
     if state.get("worker") == "session":  # it restarts as a background process; its session goes back to the pool
         try:
             import sessions

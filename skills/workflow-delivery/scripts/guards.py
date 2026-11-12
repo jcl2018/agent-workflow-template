@@ -123,7 +123,7 @@ def clear_refusals(state):
 def revive(state, how, by, why):
     """The one revival of a failed or stopped goal (resume; sessions.py bind keeps the same fields, a toy test checks).
     Returns the log line."""
-    state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
+    state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report={})
     return "%s by %s: %s" % (how, by, " ".join(why.split())) if why else "%s by %s" % (how, by)
 
 
