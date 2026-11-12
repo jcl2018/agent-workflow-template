@@ -15,9 +15,10 @@ out2=$(bash "$here/dev/toy/tree-once.sh"); rc2=$?
   && ok "the command runs once and a second caller gets its output and exit code replayed" || bad "replay: $out/$rc $out2/$rc2 $(cat "$T/count")"
 rm -f "$T"/toy-tree-once-*.rc "$T"/toy-tree-once-*.out "$T/count"; rm -rf "$T"/toy-tree-once-*.lock
 ( exit 0 ) & dead=$!; wait "$dead"
-base=$(TMPDIR=$T bash -c '. /dev/null; here='"$here"'; cd "$here"; key=$( (git rev-parse HEAD; git status --porcelain; git diff; git ls-files -o --exclude-standard -z | xargs -0 cat) 2>/dev/null | cksum | tr -d " "); echo "$TMPDIR/toy-tree-once-$key"')
+base=$(TMPDIR=$T bash -c '. /dev/null; here='"$here"'; cd "$here"; key=$( (git rev-parse HEAD; git status --porcelain; git diff HEAD; git ls-files -o --exclude-standard -z | xargs -0 cat) 2>/dev/null | cksum | tr -d " "); echo "$TMPDIR/toy-tree-once-$key"')
 mkdir "$base.lock" && echo "$dead" > "$base.lock/pid"
+[ -d "$base.lock" ] || bad "the test made no lock at tree-once's own path"
 s=$(date +%s); out=$(bash "$here/dev/toy/tree-once.sh"); rc=$?
 [ "$out" = hello ] && [ $rc = 3 ] && [ $(( $(date +%s) - s )) -lt 10 ] \
-  && ok "a lock whose holder died is taken over at once, not waited on" || bad "takeover: $out/$rc after $(( $(date +%s) - s ))s"
+  && [ "$(wc -l < "$T/count" | tr -d ' ')" = 1 ] && ok "a lock whose holder died is taken over at once, not waited on" || bad "takeover: $out/$rc after $(( $(date +%s) - s ))s"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

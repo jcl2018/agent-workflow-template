@@ -143,7 +143,7 @@ def find(test, procs=None, since=None):
         except OSError as e:
             other.add(pid)
             began = started_at(start) if since is not None else None
-            if began is None or began >= since - 1:
+            if began is None or began >= since - 60:  # a minute's slack for clock steps
                 unread.append((pid, start, errno.errorcode.get(e.errno, str(e.errno))))
             continue
         if test(env):

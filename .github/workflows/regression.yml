@@ -375,11 +375,11 @@ jobs:
               print("REFUSED (BAD_TARGET): bad target %s: use land, nightly or a row id from regression.py list. Fix: rerun the "
                     "workflow with one of those" % json.dumps(TARGET), file=sys.stderr)
               sys.exit(1)
-          def wanted(row):  # a row id: that row; land: land rows; nightly: land and nightly
+          def wanted(row):
               return row[0] == TARGET if TARGET not in ("land", "nightly") else row[1] in ("land", TARGET)
           def gh(*args):
               return subprocess.run(("gh",) + args, capture_output=True, text=True)
-          def seconds(name, default):  # a bad or non-positive value: the default
+          def seconds(name, default):
               try:
                   value = int(os.environ.get(name) or default)
               except ValueError:
@@ -418,30 +418,30 @@ jobs:
               if timed_out:
                   return 124, out + "\ntimed out after %d s" % ROW_SECONDS
               return child.returncode, out
-          def result(name, state):  # written per row, so a job out of time keeps what finished
+          def result(name, state):
               with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "a") as handle:
                   handle.write("%s\t%s\n" % (name, state))
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           gh("label", "create", "defect", "--description", "A test that guards it is failing")  # an existing one keeps its colour
           guards = {cells[1]: cells for cells in rows(os.environ.get("REGRESSION_MAP") or os.devnull) if len(cells) > 4}
           out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "5000", "--json", "number,state,body,labels")
-          issues = json.loads(out.stdout or "[]") if out.returncode == 0 else None  # unread: change no issue, or each would repeat
+          issues = json.loads(out.stdout or "[]") if out.returncode == 0 else None
           if issues is None:
               print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
           FEATURES = {row[0] for row in rows(".loop/docs.tsv") if row and row[0] and row[0] != "Home"}  # the pages
-          try:  # feature_labels (default off): only true makes or sets one
+          try:
               LABELS_ON = json.load(open(".loop/config.json")).get("feature_labels") is True
           except (OSError, ValueError, AttributeError):
               LABELS_ON = False
           failed, filed = [], [0]
           CLEANUP, halt = os.environ.get("REGRESSION_CLEANUP") == "true", []  # paced: 2 writes a close
-          def write(what, *args):  # a failed write is named and fails the step at the end
+          def write(what, *args):
               if halt or CLEANUP and time.time() - start > JOB_SECONDS - 120:
-                  return
+                  return halt and failed.append(what)
               if CLEANUP:
                   time.sleep(float(os.environ.get("REGRESSION_PACE") or 20))
               done = gh(*args)
-              if "rate limit" in done.stderr.lower():
+              if done.returncode and "rate limit" in done.stderr.lower():
                   halt.append(what)
               if done.returncode:
                   failed.append(what)
@@ -462,7 +462,7 @@ jobs:
           def marked(body):
               match = FOUND.search(body or "")
               return (match.group(1), urllib.parse.unquote(match.group(2) or "")) if match else (None, "")
-          red, start, dupes = [], time.time(), [600 if CLEANUP else 20]  # closes a run, under GitHub's write limits
+          red, start, dupes = [], time.time(), [600 if CLEANUP else 20]
           with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
               handle.write("# started %d\n" % start)
           for row in rows(".loop/regression.tsv"):
@@ -472,12 +472,14 @@ jobs:
                   break
               if CLEANUP:
                   code, said, skipped = 125, "", True
-              elif time.time() - start + ROW_SECONDS > JOB_SECONDS:  # a row may use its full limit; it must fit
+              elif time.time() - start + ROW_SECONDS > JOB_SECONDS:
                   code, said, skipped = 125, "skipped: out of job time; this row did not run", True
               else:
                   (code, said), skipped = run(row[2]), False
               hits = sorted((item for item in issues or [] if marked(item["body"])[0] == row[0]), key=lambda i: i["number"])
-              hit = next((item for item in hits if item["state"] == "OPEN"), hits[0] if hits else None)
+              sk = lambda i: (i["body"] or "").split("\n")[1:2] == ["The row `%s` was skipped." % row[0]]
+              hit = next((i for i in hits if i["state"] == "OPEN" and not sk(i)), None) or next(
+                  (i for i in hits if i["state"] == "OPEN"), hits[0] if hits else None)
               for item in [i for i in hits if i["state"] == "OPEN" and i is not hit]:  # keep the oldest open
                   if dupes[0] > 0:
                       dupes[0] -= 1
@@ -487,12 +489,11 @@ jobs:
               print(state, row[0])
               result(row[0], state)
               if code == 0:
+                  if hit and hit["state"] == "OPEN":
+                      write("close #%d" % hit["number"], "issue", "close", str(hit["number"]), "--comment", "Passing again.")
+              elif skipped:
                   for item in hits:
-                      if item["state"] == "OPEN":
-                          gh("issue", "close", str(item["number"]), "--comment", "Passing again.")
-              elif skipped:  # files nothing; a skipped-only issue closes
-                  for item in hits:
-                      if item["state"] == "OPEN" and "` was skipped." in (item["body"] or "") and dupes[0] > 0:
+                      if item["state"] == "OPEN" and sk(item) and dupes[0] > 0:
                           dupes[0] -= 1
                           write("close skipped #%d" % item["number"], "issue", "close", str(item["number"]), "--comment",
                                 "Closed: a skipped row no longer files an issue; this row did not run, it did not fail.")
@@ -522,6 +523,8 @@ jobs:
                       names = [label.get("name") for label in hit.get("labels") or []]
                       if hit["state"] != "OPEN":
                           write("reopen #" + n, "issue", "reopen", n)
+                      if sk(hit):
+                          write("body #" + n, "issue", "edit", n, "--body", body)
                       if "defect" not in names:
                           write("label #" + n, "issue", "edit", n, "--add-label", "defect")
                       if label and label not in names:
@@ -532,7 +535,7 @@ jobs:
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
                   handle.write("%s\tfull\t%d\t%s\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime())))
               print("SUITE_TIME %d" % took)
-          if CLEANUP:  # an issue whose row left the table is stale
+          if CLEANUP:
               ids = {row[0] for row in rows(".loop/regression.tsv") if row}
               for item in [i for i in issues or [] if i["state"] == "OPEN" and marked(i["body"])[0] not in ids | {None}]:
                   if dupes[0] > 0:
@@ -542,7 +545,7 @@ jobs:
               print("CLEANUP closed %d issues%s" % (filed[0], "; stopped: rate limit" * bool(halt)))
           if failed:
               print("FILED %d issue writes; FAILED %d: %s (FILE_FAILED)" % (filed[0], len(failed), ", ".join(failed)))
-          sys.exit(1 if red or failed else 0)
+          sys.exit(1 if red or failed or CLEANUP and issues is None else 0)
           PY
       - name: Keep the full suite's time for the health job
         if: always() && steps.routine.outputs.on == 'true'
