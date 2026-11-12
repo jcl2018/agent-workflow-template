@@ -1,41 +1,41 @@
 #!/usr/bin/env python3
-"""Adopt a new or existing git repo: survey it, print what it would add or convert, then write it on a branch.
+"""Adopt a new or existing git repo without blocking: survey it, print what it would add or convert, then write it on a branch.
 
-usage: setup.py [--repo DIR] [--branch NAME] [--dry-run] [--bare]
-       setup.py [--repo DIR] --reply-hook [--remove]
-       setup.py [--repo DIR] --govern-hook [--remove]
+usage: setup.py [--repo DIR] [--branch NAME] [--dry-run] [--bare] [--from REPO [--allow KEY[,KEY]]] [--no-health] [--no-issues] [--strict]
+       setup.py [--repo DIR] --reply-hook | --govern-hook [--remove]
        setup.py [--repo DIR] --git-hooks [--remove | --check [--json]]
 
-Writes .loop/ (config with every repo setting and its default, queue, findings, docs map, regression rows), a page
-with a criterion and a Tests table for each top-level code folder and Home, and the regression workflow, and commits
-them on a branch (default workflow-setup). It also adds every missing private setting outside the repo. An existing
-file is adapted, never overwritten: a config keeps its values, a page keeps its words. It runs git and the sibling
-docs and regression scripts. A second run changes nothing. --bare writes only the config, queue and findings, and skips the agent_command refusal.
+Prints the health check's start state, the plan (add, convert, skip, no fit, GAP, GUARD, borrow, held) and, after a real run,
+ends with ADOPTION VERDICT. Writes .loop/ (config with every repo setting and its default, queue, findings, docs map, rows), a
+page for each top-level code folder and Home, the README How to use sections and the regression workflow, and commits them on a
+branch (default workflow-setup). An existing file is adapted, never overwritten. A refusal rolls everything back (nothing stays
+written); a second run changes nothing. Exit 0 whenever the adoption is on its branch, 3 with --strict and gaps, 1 or 2 refused,
+4 half undone, 130 interrupted. skills/workflow-setup/SKILL.md lists every code. --bare writes only the config, queue and findings.
 
---reply-hook installs the operation session's reply-format hook (workflow-monitoring's reply_hook.py, the copy beside this
-skill) as a Stop hook in the repo's .claude/settings.local.json, which stays on this machine: git is told to ignore it
-first. Every other key and hook in that file is kept; a second run changes nothing, and an entry with an old path is
-updated. --remove takes it out again. Neither writes a branch, a commit, or any settings outside the repo.
---git-hooks writes the private-name scan as three git hooks (pre-commit, commit-msg, pre-push: seed.py) into the git
-common folder's hooks, each calling workflow-delivery's private.py hook by absolute path; a default run installs them too
-unless --no-git-hooks or LOOP_NO_GIT_HOOKS=1, after scanning its own staged adoption files (SET-8). A hook that is not ours
-is never touched (its line to add is printed, exit 1); --remove takes out only a hook that is the stub setup wrote; --check
-[--json] prints the list's and each hook's state. Exit codes and messages: skills/workflow-delivery/references/commands.md, "Private-name hooks".
---govern-hook installs govern_hook.py (MON-7) the same way, as a PreToolUse hook on Edit, Write, NotebookEdit and Bash;
---reply-hook installs it too, and --govern-hook --remove takes out only it.
+--reply-hook and --govern-hook install the operation session's hooks (workflow-monitoring) in the repo's machine-local
+.claude/settings.local.json, keeping every other key; --remove takes them out. --git-hooks writes the private-name scan as git
+hooks (pre-commit, commit-msg, pre-push); a default run installs them after its own commit unless --no-git-hooks or
+LOOP_NO_GIT_HOOKS=1. A hook that is not ours is never touched; --check [--json] prints their state.
 """
 import argparse
+import contextlib
+import io
 import json
 import os
+import re
 import shutil
+import signal
 import subprocess
 import sys
+import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import agents  # noqa: E402
 import seed  # noqa: E402
 import settings  # noqa: E402
 import survey  # noqa: E402
+import sync  # noqa: E402
+import update  # noqa: E402
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -90,8 +90,8 @@ def bare_agent(command):
     return None
 
 
-def merged(repo, old):
-    """The config: values already there win, the survey fills the rest."""
+def merged(repo, old, borrowed=None):
+    """The config: values already there win, then values borrowed with --from, the survey fills the rest."""
     agent = survey_agent()
     config = settings.repo_defaults()
     files = git(repo, "ls-files").splitlines()
@@ -100,6 +100,7 @@ def merged(repo, old):
     if version and "version_file" not in old:
         config["version_file"] = version
     settings.check_depth(old, ".loop/config.json")
+    config.update(borrowed or {})
     config.update(old)
     config["_help"] = settings.repo_help(old)
     return config
@@ -111,8 +112,181 @@ def on_branch(repo, branch, path):
     return done.stdout if done.returncode == 0 else None
 
 
-refuse = agents.refuse
-HOOKS, reply_hook = agents.HOOKS, agents.reply_hook  # moved to agents.py; kept importable from here
+try:  # moved to agents.py; kept importable from here (an older agents.py has none: adopt() refuses with SETUP_MIXED_VERSION)
+    refuse, HOOKS, reply_hook = agents.refuse, agents.HOOKS, agents.reply_hook
+except AttributeError:
+    pass
+
+
+def measure(repo):
+    """(the check's lines, why not): workflow-health's check beside this skill, without the owner's private rules."""
+    py = agents.sibling("workflow-health", "health.py")
+    if os.environ.get("LOOP_NO_HEALTH") == "1" or not py:
+        return None, "skipped by --no-health" if py else "workflow-health is not beside workflow-setup"
+    try:
+        done = subprocess.run([sys.executable, py, "check", "--skip", "mine"], cwd=repo, capture_output=True, text=True,
+                              timeout=int(os.environ.get("LOOP_HEALTH_LIMIT") or 120))
+    except subprocess.TimeoutExpired:
+        return None, "the check ran past its time limit"
+    lines = done.stdout.splitlines()
+    return (lines, "") if any(l.startswith("HEALTH:") for l in lines) else (None, "the check did not finish (exit %d)" % done.returncode)
+
+
+def verdict(lines, why, failed):
+    """Print each FAIL, WARN and UNREAD line, then ADOPTION VERDICT last; True when it is not green."""
+    if lines is None:
+        print("ADOPTION VERDICT: not measured (%s)" % why)
+        return True
+    gaps = list(dict.fromkeys(l for l in lines if l.split(" ", 1)[0] in ("FAIL", "WARN", "UNREAD")))
+    print("\n".join(update.mask(l) for l in gaps))
+    head = next(l for l in lines if l.startswith("HEALTH:"))
+    n = [int(x) for x in re.findall(r"(\d+) (?:warn|fail|unread)", head)]
+    bad = not head.startswith("HEALTH: green") or bool(failed)
+    print("ADOPTION VERDICT: " + ("GAPS (%d warn, %d fail, %d unread, %d steps failed)" % (*n, len(failed)) if bad else
+                                  "GREEN" + (" (%d warn, listed above)" % n[0] if n and n[0] else "")))
+    return bad
+
+
+def undo(tx, why, code=1):
+    """Roll the adoption back, then say why (or that it is half undone, exit 4). Nothing stays written."""
+    bad = tx.rollback()
+    print(tx.failed(bad) if bad else "NOTE: the adoption was already committed on the branch and is kept (SETUP_COMMITTED)" if bad is None else why)
+    return 4 if bad else code
+
+
+def adopt(args, repo):
+    missing = [n for n, m in (("Txn", sync), ("precheck", survey), ("borrow", survey), ("guard_staged", update), ("private_value", settings),
+                              ("docs_format", agents)) if not hasattr(m, n)]
+    if missing:
+        print("REFUSED: the setup scripts are mixed versions, %s is missing (SETUP_MIXED_VERSION). Fix: run update; nothing written." % missing[0])
+        return 1
+    note = None if args.dry_run else sync.Txn.recover(repo)
+    if note:
+        print(note)
+    if note and "HALF_UNDONE" in note:
+        return 4
+    bad = survey.precheck(repo, args.branch)
+    if bad:
+        print(bad)
+        return 1
+    old = json.loads(survey.read(repo, ".loop/config.json") or "{}")
+    values, lines = ({}, []) if not args.from_ else survey.borrow(args.from_, settings.repo_defaults(), settings.private_value, [k for a in args.allow for k in a.split(",")])
+    if values is None:
+        print(lines[0])
+        return 1
+    config = merged(repo, old, values)
+    if not args.bare and not config.get("template_version") and agents.installed_version():
+        config["template_version"] = agents.installed_version()  # the version this repo was set up with; update moves it
+    if args.bare and "criteria" not in old:
+        config["criteria"] = False
+    found = survey.survey(repo, config)
+    print(survey.found_line(found, config))
+    files = git(repo, "ls-files").splitlines()
+    for note in survey.checks(repo, files)[1] + survey.version_habit(repo, files)[1]:
+        print("NOTE: " + note)
+    for cmd in old.get("checks", []):
+        if survey.runs_tests(repo, files, cmd):
+            print("NOTE: %s finds no test files" % cmd)
+    start, why = (None, "skipped for --bare") if args.bare else measure(repo)
+    start_line = "HEALTH START: " + (next(l for l in start if l.startswith("HEALTH:"))[8:] if start else "not measured (%s)" % why)
+    print(start_line)
+    acts = seed.decide(repo, config, found)
+    if args.bare:
+        acts = [a for a in acts if a[3] in ("config", "file")]
+    else:
+        acts += agents.plan(repo)  # .loop/START.md and the workflow-loop block in CLAUDE.md and AGENTS.md
+    for verb, path, note, _ in acts:
+        print(("%s: %s" % (verb, note)) if verb in ("GAP", "GUARD") else "%s: %s%s" % (verb, path, " (%s)" % note if note else ""))
+    print("\n".join(lines), end="\n" if lines else "")
+    if not (args.bare or args.no_git_hooks or os.environ.get("LOOP_NO_GIT_HOOKS") == "1"):
+        print("hooks: pre-commit, commit-msg and pre-push (the private-name scan, written to the git hooks folder after the commit)")
+    bare = None if args.bare else bare_agent(config["agent_command"])
+    if bare:
+        print("GAP: agent_command %s grants no tools, so a background agent stops at its first permission prompt. Fix: add to .loop/config.json: %s"
+              % (config["agent_command"], bare))
+    kinds = agents.kinds_of(acts)
+    held = settings.load(settings.private_path())
+    if args.dry_run:
+        print("would add to %s: %s" % (settings.private_path(), ", ".join(k for k in settings.FLOW_KEYS if k not in held) or "nothing"))
+        to = re.search(r"github\.com[:/]([\w.-]+/[\w.-]+?)(?:\.git)?/?$", survey.git(repo, "remote", "get-url", "origin"))
+        for k, v in list(kinds.items()) + [("agent-tools", ["agent_command"])] * bool(bare):
+            print("WOULD FILE: adoption %s: %s [health, health:adoption] on %s" % (k, ", ".join(v), to.group(1) if to else "(no GitHub remote: stays in .loop/findings.md)"))
+        print("DRY RUN: nothing written\nADOPTION VERDICT: not run (dry run)")
+        return 0
+    planned = [a[1] for a in acts if a[3] and a[0] in ("add", "convert")]
+    dirty = [l.split(None, 1)[-1] for l in git(repo, "status", "--porcelain", "--untracked-files=no").splitlines()]
+    mine = [p for p in planned if p in dirty]
+    if any(a[3] == "agents" for a in acts) and agents.dirty(repo):
+        print("REFUSED: %s has uncommitted changes (SETUP_AGENT_FILE_DIRTY). Fix: commit or stash them, then run setup "
+              "again; nothing written." % ", ".join(agents.dirty(repo)))
+        return 2
+    if mine:
+        print("REFUSED: %s has uncommitted changes (SETUP_PLANNED_PATH_DIRTY). Fix: commit or stash them, then run setup again; nothing written." % ", ".join(mine))
+        return 2
+    failed = []
+    if not [a for a in acts if a[3]]:
+        print("NO CHANGE: nothing to add or convert")
+        post = None
+    else:
+        if not config["checks"]:
+            print("NOTE: no test command found, so no regression row is seeded")
+        print("NOTE: no claude or codex on PATH; add \"agent_command\"" if not config["agent_command"] else
+              "NOTE: a background agent stops at any permission prompt: add the tools you allow to \"agent_command\"")
+        tx = sync.Txn(repo, args.branch, [found["wiki"]] + agents.targets(repo))
+        tx.begin()
+        signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+        try:
+            if git(repo, "branch", "--show-current") != args.branch:
+                made = git(repo, "rev-parse", "--verify", "--quiet", args.branch, check=False)
+                git(repo, "checkout", "-q", "-B" if made else "-b", args.branch, *["HEAD"] * bool(made))
+            os.makedirs(os.path.dirname(os.path.join(repo, ".loop", "config.json")), exist_ok=True)
+            with open(os.path.join(repo, ".loop", "config.json"), "w") as handle:
+                handle.write(json.dumps(agents.stored(config, old), indent=2) + "\n")
+            seed.apply(repo, config, found, [a for a in acts if a[3] != "agents"])
+            if not args.bare:
+                agents.apply(repo)
+            changed = tx.changed()
+            if [p for p in changed if p in dirty]:
+                return undo(tx, "REFUSED: a file the adoption changes had uncommitted changes (SETUP_PLANNED_PATH_DIRTY). Fix: commit or stash them; nothing written.", 2)
+            held_back = set(subprocess.run(["git", "-C", repo, "check-ignore", "--stdin"], input="\n".join(changed), capture_output=True, text=True).stdout.split("\n"))
+            git(repo, "add", "-f", "--", *[p for p in changed if p in held_back and p in seed.FORCED] or ["--"]) if held_back & set(seed.FORCED) else None
+            git(repo, "add", "-A", "--", *[p for p in changed if p not in held_back] or ["--"])
+            changed = [p for p in changed if p not in held_back or p in seed.FORCED]
+            scan = agents.sibling("workflow-delivery", "private.py")  # SET-8: nothing private goes into setup's own commit
+            if scan and subprocess.run([sys.executable, scan, "hook", "staged"], cwd=repo).returncode:
+                return undo(tx, "REFUSED: a staged adoption file holds a private name (places above). Fix: remove it from that file, then run "
+                                "setup again; nothing written (SETUP_PRIVATE_NAME).")
+            hits = update.guard_staged(repo, changed)
+            if hits:
+                return undo(tx, "REFUSED: the adoption would commit a local setting or private value at %s (SETUP_PRIVATE_VALUE). Fix: set it in the "
+                                "private flow file or remove it; nothing written." % ", ".join(hits))
+            code, out = update.commit(repo, "Adopt the workflow loop\n" + start_line, changed)
+            if code:
+                print("\n".join(update.mask(l) for l in out.strip().splitlines()[-20:]))
+                return undo(tx, "REFUSED: the repo's own commit hook refused the adoption commit (SETUP_HOOK_REFUSED). Fix: if it refuses tracked "
+                                "data files, exempt .loop/*.tsv (docs, regression rows and runs) there, then run setup again; nothing written.")
+        except KeyboardInterrupt:
+            undo(tx, "REFUSED: interrupted; rolled back, nothing written (SETUP_INTERRUPTED)")
+            return 130
+        except Exception as error:
+            trace = os.path.join(tx.gd, "workflow-setup-trace.txt")
+            open(trace, "w").write("\n".join(update.mask(l) for l in traceback.format_exc().splitlines()) + "\n")
+            return undo(tx, "REFUSED: unexpected failure (%s); rolled back, nothing written. Trace: %s. Fix: rerun with --dry-run, then report it "
+                            "(SETUP_UNEXPECTED)" % (type(error).__name__, os.path.relpath(trace, repo)))
+        shutil.rmtree(tx.dir, ignore_errors=True)
+        post = git(repo, "rev-parse", "--short", "HEAD")
+    if not (args.bare or args.no_git_hooks or os.environ.get("LOOP_NO_GIT_HOOKS") == "1"):
+        update.step("git hooks", "python3 setup.py --git-hooks", lambda: seed.git_hooks(repo, adopting=True), failed)
+    update.step("private settings", "python3 settings.py fill-private", lambda: print("PRIVATE settings added to %s: %s" % (settings.private_path(), ", ".join(settings.fill_private()) or "none missing")), failed)
+    if post and (kinds or bare) and not args.bare:
+        update.step("issue filing", "workflow-health file --group adoption --open-only", lambda: survey.file_issues(repo, args.no_issues, len(kinds) + bool(bare)), failed)
+    if post:
+        print("WROTE the adoption on branch %s at %s" % (args.branch, post))
+        print("NEXT: review the branch, then merge it into %s" % config["base"])
+    if args.bare:
+        return 0
+    end, why = measure(repo)
+    return 3 if verdict(end, why, failed) and args.strict else 0
 
 
 def main():
@@ -121,6 +295,11 @@ def main():
     parser.add_argument("--branch", default="workflow-setup")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--bare", action="store_true", help="only the config, queue and findings")
+    parser.add_argument("--from", dest="from_", default="", help="an adopted repo to borrow settings from (read-only)")
+    parser.add_argument("--allow", action="append", default=[], help="with --from: KEY[,KEY] of a held setting to take")
+    parser.add_argument("--no-health", action="store_true", help="skip the health check before and after")
+    parser.add_argument("--no-issues", action="store_true", help="file no issues for what does not fit")
+    parser.add_argument("--strict", action="store_true", help="exit 3 when the verdict has gaps")
     parser.add_argument("--reply-hook", action="store_true", help="install the operation session's reply-format hook")
     parser.add_argument("--govern-hook", action="store_true", help="install the operation session's govern-only hook (MON-7)")
     parser.add_argument("--git-hooks", action="store_true", help="install the private-name scan as git hooks")
@@ -137,89 +316,9 @@ def main():
         return reply_hook(repo, args.remove, "govern_hook.py")
     if args.reply_hook:  # installs the govern hook beside it, so repos that re-run setup get MON-7 (--remove: reply only)
         return reply_hook(repo, args.remove) or (0 if args.remove else reply_hook(repo, False, "govern_hook.py"))
-    config_path = os.path.join(repo, ".loop", "config.json")
-
-    def hooked():  # the default run installs the hooks (a refusal is only a NOTE); toys and owners opt out
-        if not (args.bare or args.dry_run or args.no_git_hooks or os.environ.get("LOOP_NO_GIT_HOOKS") == "1"):
-            seed.git_hooks(repo, adopting=True)
-
-    texts = [on_branch(repo, "HEAD", ".loop/config.json")]
-    if git(repo, "rev-parse", "--verify", "--quiet", args.branch, check=False):
-        texts.append(on_branch(repo, args.branch, ".loop/config.json"))
-    held = next((text for text in texts if text), None)
-    old = json.loads(held) if held else {}
-    config = merged(repo, old)
-    if not args.bare and not config.get("template_version") and agents.installed_version():
-        config["template_version"] = agents.installed_version()  # the version this repo was set up with; update moves it
-    if args.bare and "criteria" not in old:
-        config["criteria"] = False
-    found = survey.survey(repo, config)
-    print(survey.found_line(found, config))
-    files = git(repo, "ls-files").splitlines()
-    for note in survey.checks(repo, files)[1] + survey.version_habit(repo, files)[1]:
-        print("NOTE: " + note)
-    acts = seed.decide(repo, config, found)
-    if args.bare:
-        acts = [a for a in acts if a[3] in ("config", "file")]
-    else:
-        acts += agents.plan(repo)  # .loop/START.md and the workflow-loop block in CLAUDE.md and AGENTS.md
-    for verb, path, note, _ in acts:
-        print("%s: %s%s" % (verb, path, " (%s)" % note if note else ""))
-    if not args.dry_run:
-        print("PRIVATE settings added to %s: %s" % (settings.private_path(), ", ".join(settings.fill_private()) or "none missing"))
-    bare = None if args.bare else bare_agent(config["agent_command"])
-    code = 1 if bare and not args.dry_run else 0
-    if bare:
-        print("REFUSED to call this done: agent_command %s grants no tools, so a background agent stops at its first "
-              "permission prompt. Add to .loop/config.json: %s" % (config["agent_command"], bare))
-    blocked = survey.ignored(repo, [a[1] for a in acts if a[3] and a[0] in ("add", "convert")] + [".loop/config.json"])
-    for path, line in blocked:
-        print("BLOCKED by .gitignore: %s would be left out of the commit. Add this line to .gitignore: %s" % (path, line))
-    if blocked and not args.dry_run:
-        print("REFUSED: nothing written. Fix .gitignore, then run setup again.")
-        return 1
-    if not [a for a in acts if a[3]]:
-        print("NO CHANGE: nothing to add or convert")
-        hooked()
-        return code
-    if not args.dry_run and any(a[3] == "agents" for a in acts) and agents.dirty(repo):
-        print("REFUSED: %s has uncommitted changes (SETUP_AGENT_FILE_DIRTY). Fix: commit or stash them, then run setup "
-              "again; nothing written." % ", ".join(agents.dirty(repo)))
-        return 2
-    if not config["checks"]:
-        print("NOTE: no test command found, so no regression row is seeded")
-    if not config["agent_command"]:
-        print("NOTE: no claude or codex on PATH; add \"agent_command\"")
-    else:
-        print("NOTE: a background agent stops at any permission prompt. For workflow-monitoring, add the tools you "
-              "allow to \"agent_command\" yourself, or goals show failed")
-    if args.dry_run:
-        print("DRY RUN: nothing written")
-        return code
-
-    current = git(repo, "branch", "--show-current")
-    if current != args.branch:
-        if git(repo, "rev-parse", "--verify", "--quiet", args.branch, check=False):
-            git(repo, "switch", args.branch)
-        else:
-            git(repo, "checkout", "-q", "-b", args.branch)
-    os.makedirs(os.path.dirname(config_path), exist_ok=True)
-    with open(config_path, "w") as handle:
-        handle.write(json.dumps({k: v for k, v in config.items() if k != "checks"}, indent=2) + "\n")
-    seed.apply(repo, config, found, [a for a in acts if a[3] != "agents"])
-    paths = [p for p in (".loop", found["wiki"], ".github/workflows/regression.yml", ".github/workflows/health.yml") if os.path.exists(os.path.join(repo, p))]
-    paths += [] if args.bare else agents.apply(repo)
-    git(repo, "add", "-A", "--", *paths)
-    scan = seed.sibling("workflow-delivery", "private.py")  # SET-8: nothing private goes into setup's own commit
-    if scan and subprocess.run([sys.executable, scan, "hook", "staged"], cwd=repo).returncode:
-        print("REFUSED: a staged adoption file holds a private name (places above). Fix: remove it from that file, then run "
-              "setup again; nothing committed.")
-        return 1
-    git(repo, "commit", "-m", "Adopt the workflow loop", "--allow-empty")
-    hooked()
-    print("WROTE the adoption on branch %s at %s" % (args.branch, git(repo, "rev-parse", "--short", "HEAD")))
-    print("NEXT: review the branch, then merge it into %s" % config["base"])
-    return code
+    if args.no_health:
+        os.environ["LOOP_NO_HEALTH"] = "1"
+    return adopt(args, repo)
 
 
 if __name__ == "__main__":

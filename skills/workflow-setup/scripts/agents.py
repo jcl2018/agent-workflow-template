@@ -11,8 +11,10 @@ from the sibling workflow-docs skill (entry.py block): read .loop/START.md first
 their commands. --dry-run prints what it would write and writes nothing. It never commits: setup and update stage it.
 """
 import argparse
+import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -152,6 +154,11 @@ def git(repo, *args, check=True):
     return done.stdout.strip() if done.returncode == 0 else ""
 
 
+def sibling(skill, script):
+    path = os.path.join(HERE, "..", "..", skill, "scripts", script)
+    return path if os.path.exists(path) else None
+
+
 def refuse(what, fix):
     sys.stderr.write("REFUSED: %s. Fix: %s\n" % (what, fix))
     return 1
@@ -228,6 +235,95 @@ def reply_hook(repo, remove, name="reply_hook.py"):
     if not remove:
         print("NOTE: start a new Claude Code session (or open /hooks) to load it; %s" % what)
     return 0
+
+
+FINDINGS_HEAD = "# Findings\n\nOpen findings, one line each.\n"
+PLACEHOLDER = "Write this page from what is really in the repo."
+FIXES = {"own-sections": "add the marker and the contract sections by hand (docs.py audit lists them)",
+         "no-check": 'set "checks": ["<test command>"] in .loop/config.json, then run setup again',
+         "tsv-guard": "exempt .loop/*.tsv (docs, regression rows and runs) in that file if it refuses tracked data files",
+         "ignored": "add the exception line to the ignore file that keeps it out"}
+
+
+def stored(config, old):
+    """The config as written: every key but checks, which stays only where the config already held it (PR 83)."""
+    return {k: v for k, v in config.items() if k != "checks" or "checks" in (old or {})}
+
+
+def kinds_of(acts):
+    """{kind: subjects} of what did not fit: one findings line per kind, four kinds in all."""
+    got = {}
+    for verb, path, note, _ in acts:
+        kind = {"GUARD": "tsv-guard", "GAP": "ignored"}.get(verb)
+        if verb == "no fit":
+            kind = "no-check" if path == ".loop/regression.tsv" else "own-sections" if note.startswith("has its own") else None
+        if kind:
+            got.setdefault(kind, []).append(path)
+    return got
+
+
+def update_findings(text, kinds):
+    """The findings text with this tool's [adoption] lines set to kinds: a line is rewritten when its subjects change and dropped
+    when none are left; any other line, or one the owner marked [closed], stays."""
+    line = lambda k: "- [adoption] %s: %s. Fix: %s" % (k, ", ".join(sorted(set(kinds[k]))), FIXES[k])
+    out, seen = [], set()
+    for row in text.split("\n"):
+        found = re.match(r"- \[adoption\] ([\w-]+):", row)
+        if not found or row.rstrip().endswith("[closed]"):
+            out.append(row)
+            seen.add(found.group(1) if found else "")
+        elif found.group(1) in kinds and found.group(1) not in seen:
+            seen.add(found.group(1))
+            out.append(line(found.group(1)))
+    while out and not out[-1].strip():
+        out.pop()
+    return "\n".join(out + [line(k) for k in kinds if k not in seen]) + "\n"
+
+
+def ignore_lines(blocked):
+    """Exception lines for what the repo's own ignore file blocks: (path, line, source) from survey.ignored; one *.tsv line a folder."""
+    own = [(p, l) for p, l, src in blocked if os.path.basename(src) == ".gitignore" and not os.path.isabs(src) and not src.startswith(".git/")]
+    return list(dict.fromkeys("!%s/*.tsv" % os.path.dirname(p) if l.endswith(".tsv") and "/" in p else l for p, l in own))
+
+
+def ignore_with(text, lines):
+    """The ignore file's text with the missing exception lines appended under one comment (line endings kept)."""
+    nl, have = "\r\n" if "\r\n" in text else "\n", text.splitlines()
+    note = "# workflow-setup: keep the loop files tracked"
+    add = [l for l in lines if l not in have]
+    return text + ("" if not text or text.endswith("\n") else nl) + nl.join(([] if note in have else [note]) + add) + nl if add else text
+
+
+def docs_format():
+    """workflow-docs' pageformat module (Home's table header and the heading names come from it), or None."""
+    path = sibling("workflow-docs", "pageformat.py")
+    if not path:
+        return None
+    spec = importlib.util.spec_from_file_location("pageformat", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def home_page(repo, names, pf):
+    """Home in the docs format (DOC-4): marker, title, Features and one table, a row for each feature page."""
+    found = re.search(r"github\.com[:/]([\w.-]+/[\w.-]+?)(?:\.git)?/?$", git(repo, "remote", "get-url", "origin", check=False))
+    link = "[README](https://github.com/%s#%%s)" % (found.group(1) if found else "OWNER/REPO")
+    rows = [["[%s](%s)" % (n, n), PLACEHOLDER, link % pf.slug(pf.heading_of(n)), "-"] for n in names]
+    return "%s\n# %s\n\n## Features\n\n%s\n" % (pf.MARKER, os.path.basename(repo), "\n".join(pf.table(pf.HOME, rows)))
+
+
+def readme_with(text, names, pf):
+    """The README with a '### How to use <Feature>' section (DOC-5) added for each page that lacks one; its words kept."""
+    block = "\n\n".join("### %s\n\nAsk for %s in plain words.\n\n%s" % (pf.heading_of(n), n, "\n".join(pf.table(pf.FRONT, [['"Show me %s"' % n.lower(), PLACEHOLDER]])))
+                         for n in names if pf.heading_of(n) not in text)
+    if not block:
+        return text
+    at = text.find("\n## How to use\n")
+    if at < 0:
+        return text.rstrip("\n") + ("\n\n" if text.strip() else "") + "## How to use\n\n" + block + "\n"
+    end = text.find("\n## ", at + 5) + 1 or len(text)
+    return text[:end].rstrip("\n") + "\n\n" + block + "\n" + ("\n" + text[end:] if end < len(text) else "")
 
 
 def main():

@@ -22,6 +22,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -30,6 +31,97 @@ import agents  # noqa: E402
 import settings  # noqa: E402
 
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
+
+class Txn:
+    """setup's transaction: its folders are copied and a journal kept in the git dir before the first write, so a refusal, an
+    exception, a signal or a hard kill (the next run recovers) leaves the tree, index and branches as they were."""
+
+    def __init__(self, repo, branch, extra=(), journal=None):
+        self.repo, self.branch, self.j = repo, branch, journal
+        self.tops = (".loop", ".github/workflows", ".gitignore", "README.md") + tuple(extra)
+        self.gd = git(repo, "rev-parse", "--absolute-git-dir")
+        self.dir = os.path.join(self.gd, "workflow-setup-txn")
+
+    def g(self, *args):
+        return git(self.repo, *args, check=False)
+
+    def files(self):
+        for top in self.tops:
+            full = os.path.join(self.repo, top)
+            walked = os.walk(full) if os.path.isdir(full) and not os.path.islink(full) else [(os.path.dirname(full), [], [os.path.basename(full)])] if os.path.lexists(full) else []
+            yield from (os.path.relpath(os.path.join(base, n), self.repo) for base, _, names in walked for n in names)
+
+    def state(self, rel):
+        full = os.path.join(self.repo, rel)
+        return os.readlink(full) if os.path.islink(full) else hashlib.sha1(open(full, "rb").read()).hexdigest() if os.path.isfile(full) else None
+
+    def begin(self):
+        """Copy the folders, then journal HEAD, the branches, the index tree and each file's hash."""
+        shutil.rmtree(self.dir, ignore_errors=True)
+        for n, top in enumerate(self.tops):
+            full = os.path.join(self.repo, top)
+            if os.path.isdir(full) and not os.path.islink(full):
+                shutil.copytree(full, os.path.join(self.dir, str(n)), symlinks=True)
+            elif os.path.lexists(full):
+                os.makedirs(self.dir, exist_ok=True)
+                os.symlink(os.readlink(full), os.path.join(self.dir, str(n))) if os.path.islink(full) else shutil.copy2(full, os.path.join(self.dir, str(n)))
+        os.makedirs(self.dir, exist_ok=True)
+        self.j = {"branch": self.branch, "tops": self.tops, "orig": self.g("branch", "--show-current"), "head": self.g("rev-parse", "HEAD"),
+                  "tip": self.g("rev-parse", "--verify", "--quiet", "refs/heads/" + self.branch), "tree": self.g("write-tree"),
+                  "files": {r: self.state(r) for r in self.files()}}
+        json.dump(self.j, open(os.path.join(self.dir, "journal.json"), "w"))
+
+    def changed(self):
+        """Files whose bytes or link differ from the copy."""
+        have = self.j["files"]
+        return sorted(r for r in set(have) | set(self.files()) if self.state(r) != have.get(r))
+
+    def rollback(self):
+        """Undo the adoption: the paths not restored, or None when the branch moved (it was committed; kept)."""
+        j, bad = self.j, []
+        tip = self.g("rev-parse", "--verify", "--quiet", "refs/heads/" + j["branch"])
+        if tip and tip not in (j["tip"], j["head"]):
+            shutil.rmtree(self.dir, ignore_errors=True)
+            return None
+        self.g("read-tree", j["tree"])
+        for n, top in enumerate(j["tops"]):
+            full, kept = os.path.join(self.repo, top), os.path.join(self.dir, str(n))
+            try:
+                if os.path.islink(full) or os.path.isfile(full):
+                    os.remove(full)
+                elif os.path.isdir(full):
+                    shutil.rmtree(full)
+                if os.path.islink(kept):
+                    os.symlink(os.readlink(kept), full)
+                elif os.path.isdir(kept):
+                    shutil.copytree(kept, full, symlinks=True)
+                elif os.path.exists(kept):
+                    shutil.copy2(kept, full)
+            except OSError:
+                bad.append(top)
+        if j["orig"] and self.g("branch", "--show-current") != j["orig"] and subprocess.run(["git", "-C", self.repo, "checkout", "-q", j["orig"]], capture_output=True).returncode:
+            bad.append("branch " + j["orig"])
+        if j["branch"] != j["orig"]:
+            self.g(*(["branch", "-f", j["branch"], j["tip"]] if j["tip"] else ["branch", "-D", j["branch"]]))
+        if not bad:
+            shutil.rmtree(self.dir, ignore_errors=True)
+        return bad
+
+    def failed(self, bad):
+        return ("REFUSED: could not restore %s; the adoption is half undone. Fix: git status, then git checkout -- <paths>, git switch %s, git branch -D %s. "
+                "Side effects: partial. Do not rerun setup until restored (SETUP_HALF_UNDONE)" % (", ".join(bad), self.j["orig"], self.branch))
+
+    @classmethod
+    def recover(cls, repo):
+        """Roll back an interrupted run from its journal; the line to print, or None."""
+        try:
+            j = json.load(open(os.path.join(git(repo, "rev-parse", "--absolute-git-dir"), "workflow-setup-txn", "journal.json")))
+        except (OSError, ValueError):
+            return None
+        txn = cls(repo, j["branch"], tuple(j["tops"][4:]), j)
+        bad = txn.rollback()
+        return txn.failed(bad) if bad else "NOTE: an interrupted adoption had already committed; it is kept (SETUP_RECOVERED)" if bad is None else "NOTE: recovered an interrupted adoption (SETUP_RECOVERED); it was rolled back"
 
 
 def version_key(text):

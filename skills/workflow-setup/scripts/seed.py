@@ -3,11 +3,12 @@
 
 usage: seed.py [--repo DIR]     (setup.py imports this; run alone it prints the plan)
 
-Every decision is add (new file), convert (an existing page gets the marker and the missing sections, its words untouched),
-skip (already done) or no fit (left alone, for a person). It calls the sibling docs and regression scripts, which own
-those file formats, and runs git and nothing else.
+Every decision is add (new file), convert (an existing page gets the marker and the missing sections, words untouched), skip
+(already done) or no fit (left alone). GAP and GUARD name what setup cannot fix. The sibling docs and regression scripts own
+the file formats; this runs git and nothing else.
 """
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -15,6 +16,7 @@ import shutil
 import subprocess
 import sys
 
+import agents
 import survey
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -24,7 +26,6 @@ if not sys.stdin or not sys.stdin.isatty():
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLACEHOLDER = "Write this page from what is really in the repo."
-CRITERION = re.compile(r"[A-Z]{2,5}(?=-\d+:)")
 
 
 MARK = "workflow-loop-hook"
@@ -145,42 +146,14 @@ def sibling(skill, script):
     return path if os.path.exists(path) else None
 
 
-def prefixes(repo, found):
-    used = set()
-    for rel in found["pages"].values():
-        used |= set(CRITERION.findall(survey.read(repo, rel) or ""))
-    return used
-
-
-def pick(name, used):
-    letters = re.sub(r"[^A-Za-z]", "", name).upper() or "FT"
-    for size in (3, 4, 5):
-        if letters[:size] not in used and len(letters[:size]) >= 2:
-            used.add(letters[:size])
-            return letters[:size]
-    used.add("FT")
-    return "FT"
-
-
-def summary_of(found, name):
-    if name == "Home" and found["readme"]:
-        for line in found["readme"].splitlines():
-            if line.strip() and not line.startswith(("#", "!", "[", "<", "|", "```")):
-                return line.strip()[:240]
-    return PLACEHOLDER
-
-
-def mapping(found):
-    rows = {"Home": ["README.md"]}
-    rows.update({name: [folder] for name, folder in found["areas"].items()})
-    return rows
+prefixes, pick, summary_of, mapping = survey.prefixes, survey.pick, survey.summary_of, survey.mapping  # moved to survey.py (file size)
 
 
 def decide(repo, config, found):
     """The plan: a list of (verb, path, note, action) with action None for skip and no fit."""
     acts, wiki = [], found["wiki"]
     old = survey.read(repo, ".loop/config.json")
-    if old is None or json.loads(old) != {k: v for k, v in config.items() if k != "checks"}:
+    if old is None or json.loads(old) != agents.stored(config, json.loads(old)):
         acts.append(("add" if old is None else "convert", ".loop/config.json", "keys added; yours kept", "config"))
     for name in ("queue.md", "findings.md"):
         if survey.read(repo, ".loop/" + name) is None:
@@ -195,7 +168,9 @@ def decide(repo, config, found):
     for name in mapping(found):
         rel = "%s/%s.md" % (wiki, name)
         text = survey.read(repo, rel)
-        if text is None:
+        if text is None and name == "Home":
+            acts.append(("add", rel, "Home in the docs format", ("home", name)))
+        elif text is None:
             acts.append(("add", rel, "PRD page with a requirement and Tests", ("page", name)))
         elif text.startswith(survey.MARKER):
             acts.append(("skip", rel, "already ours", None))
@@ -218,6 +193,25 @@ def decide(repo, config, found):
     else:
         acts.append(("no fit", ".loop/regression.tsv", "no check command found, so no test row can be seeded", None))
     acts.append(("note", "health", "workflow-health check works with these files; its rules are fixed", None))
+    names, readme, pf = [n for n in mapping(found) if n != "Home"], survey.read(repo, "README.md"), agents.docs_format()
+    if names and pf and agents.readme_with(readme or "", names, pf) != (readme or ""):
+        acts.append(("convert" if readme else "add", "README.md", "a How to use section per page; words kept", "readme"))
+    if any(isinstance(a[3], tuple) or a[3] in ("rows", "map") for a in acts):
+        rel = wiki + "/Tests.md"
+        acts.append(("convert" if survey.read(repo, rel) is not None else "add", rel, "the generated Tests page", "render"))
+    files = survey.git(repo, "ls-files").splitlines()
+    paths = [a[1] for a in acts if a[3] and a[0] in ("add", "convert")] + [".loop/config.json"]
+    blocked = survey.blocked(repo, paths)
+    lines = agents.ignore_lines(blocked)
+    if lines:
+        acts.append(("convert" if survey.read(repo, ".gitignore") is not None else "add", ".gitignore", "adds " + ", ".join(lines), ("ignore", lines)))
+    acts += [("GAP", p, "%s ignores %s. Fix: add %s to that file" % (src, p, line), None) for p, line, src in blocked if not survey.own_ignore(src)]
+    acts += [("GUARD", f, "%s mentions .tsv; if it refuses tracked data files, exempt .loop/*.tsv (docs, regression rows and runs)" % f, None)
+             for f in survey.guards(repo, files)]
+    if os.path.exists(os.path.join(repo, ".loop", "findings.md")) or any(a[1] == ".loop/findings.md" for a in acts):
+        base = survey.read(repo, ".loop/findings.md") or agents.FINDINGS_HEAD
+        if agents.kinds_of(acts) and agents.update_findings(base, agents.kinds_of(acts)) != base and not any(a[1] == ".loop/findings.md" for a in acts):
+            acts.append(("convert", ".loop/findings.md", "what did not fit", "findings"))
     return acts
 
 
@@ -231,13 +225,38 @@ def tool(repo, skill, script, *argv):
         print("NOTE: %s %s: %s" % (script, argv[0], (done.stdout + done.stderr).strip()[-200:]))
 
 
+FORCED = []
+
+
+def put(repo, path, text):
+    """Write text to repo/path, keeping CRLF when the file already uses it."""
+    full = os.path.join(repo, path)
+    crlf = os.path.exists(full) and "\r\n" in open(full, newline="").read()
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    with open(full, "w", newline="") as handle:
+        handle.write(text.replace("\n", "\r\n") if crlf else text)
+
+
 def apply(repo, config, found, acts):
-    """Write what decide() planned. Returns the paths to commit."""
+    """Write what decide() planned. Returns the paths to commit. FORCED lists planned paths an ignore rule still keeps out."""
     touched, wiki = [], found["wiki"]
     used = prefixes(repo, found)
-    rows = []
+    rows, pf = [], agents.docs_format()
+    names = [n for n in mapping(found) if n != "Home"]
     for verb, path, _, action in acts:
-        if action in ("file",):
+        if action in ("render", "findings"):
+            continue
+        if isinstance(action, tuple) and action[0] == "ignore":
+            full = os.path.join(repo, path)
+            put(repo, path, agents.ignore_with(open(full, newline="").read() if os.path.exists(full) else "", action[1]))
+        elif action == "readme" and pf:
+            put(repo, path, agents.readme_with(survey.read(repo, path) or "", names, pf))
+        elif isinstance(action, tuple) and action[0] == "home":
+            if not pf:
+                print("SKIP: workflow-docs is not installed beside this skill, so Home is not written")
+                continue
+            put(repo, path, agents.home_page(repo, names, pf))
+        elif action in ("file",):
             with open(os.path.join(repo, path), "w") as handle:
                 handle.write("# Findings\n\nOpen findings, one line each.\n" if "findings" in path else "# Goal queue\n\nOne goal a line.\n")
         elif isinstance(action, tuple):
@@ -247,9 +266,10 @@ def apply(repo, config, found, acts):
                 continue  # already adopted on the setup branch
             os.makedirs(os.path.dirname(full), exist_ok=True)
             tag = pick(name, used)
-            criterion = "- %s-1: **Unreviewed** The repo checks pass with the %s change in." % (tag, name)
+            criterion = "- %s-1: **Unreviewed** The repo checks pass with the %s change in.\n  - %s" % (tag, name, PLACEHOLDER)
             rows.append((tag, name))
             title, problem = "# " + name, summary_of(found, name)
+            problem = "- I can't tell what %s does from its page yet. %s" % (name, PLACEHOLDER) if problem == PLACEHOLDER else problem
             if action[0] == "convert":
                 text = survey.read(repo, path).rstrip("\n")
                 title, _, problem = text.partition("\n")
@@ -266,14 +286,29 @@ def apply(repo, config, found, acts):
     if config["checks"]:
         for tag, name in rows:
             tool(repo, "workflow-regression", "regression.py", "add", "%s-checks" % tag.lower(), "--level", "land", "--command",
-                 config["checks"][0], "--goal", "%s-1" % tag, "--describe",
+                 " && ".join(config["checks"]), "--goal", "%s-1" % tag, "--describe",
                  "Given the %s change, when the repo's checks run, then they pass." % name)
+        if not rows and any(a[3] == "rows" for a in acts):  # no page of its own: one row still runs the repo's checks
+            tool(repo, "workflow-regression", "regression.py", "add", "repo-checks", "--level", "land", "--command", " && ".join(config["checks"]),
+                 "--goal", "-", "--describe", "Given the repo, when its checks run, then they pass.")
         touched.append(".loop/regression.tsv")
         if any(a[3] == "workflow" for a in acts):
             tool(repo, "workflow-regression", "regression.py", "workflow")
         if any(a[3] == "health" for a in acts):
             tool(repo, "workflow-health", "automation.py", "workflow")
     tool(repo, "workflow-docs", "criteria.py", "render")
+    paths = [a[1] for a in acts if a[3] and a[0] in ("add", "convert")] + [".loop/config.json"]
+    left = survey.blocked(repo, paths)  # still kept out after the exception lines: staged with -f, and a gap
+    FORCED[:] = [p for p, _, _ in left]
+    for p, line, src in left:
+        print("GAP: %s ignores %s. Fix: add %s to that file" % (src, p, line))
+    kinds = agents.kinds_of(acts + [("GAP", p, "", None) for p in FORCED if not any(a[0] == "GAP" and a[1] == p for a in acts)])
+    held = survey.read(repo, ".loop/findings.md")
+    if kinds or "- [adoption]" in (held or ""):
+        text = agents.update_findings(held or agents.FINDINGS_HEAD, kinds)
+        if text != held:
+            put(repo, ".loop/findings.md", text)
+            touched.append(".loop/findings.md")
     return touched
 
 

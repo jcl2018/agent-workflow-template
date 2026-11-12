@@ -12,8 +12,10 @@ first, atomic writes, workflow-package.json last; a LOCAL FIX is kept unless --t
 stamp's repo, else template_repo (both set and different: refused unless --template). It never downgrades.
 """
 import argparse
+import contextlib
 import fcntl
 import hashlib
+import io
 import json
 import os
 import re
@@ -33,6 +35,85 @@ CAP = 20 * 1024 * 1024
 def version_key(text):
     """The first three integers of a version; empty or unreadable is older than any version."""
     return tuple(int(x) for x in re.findall(r"\d+", str(text or ""))[:3])
+
+
+def strings(value, skip=()):
+    if isinstance(value, str):
+        yield value
+    for item in (value.items() if isinstance(value, dict) else enumerate(value) if isinstance(value, list) else ()):
+        if item[0] not in skip:
+            yield from strings(item[1])
+
+
+def local_values():
+    """The owner's local strings that look like a path or an address (/, ~ or @; 8+ characters) and are not a template default."""
+    import settings
+    found = set(strings([settings.load(settings.private_path()), settings.load(settings.health_path())], ("_help",)))
+    try:
+        found |= set(open(os.path.expanduser("~/.workflow-loop/repos")).read().split())
+    except OSError:
+        pass
+    default = set(strings([row[2] for row in settings.TABLE]))
+    return {v for v in found if len(v) >= 8 and any(c in v for c in "/~@") and v not in default}
+
+
+def guard_staged(repo, paths):
+    """SET-8: what the staged adoption adds that is a local setting or private value, as file:line or key (never the value)."""
+    import settings
+    private = {row[0] for row in settings.TABLE if row[1] == settings.PRIVATE}
+    home, mail, local = os.path.expanduser("~"), subprocess.run(["git", "-C", repo, "config", "user.email"], capture_output=True, text=True).stdout.strip(), local_values()
+    diff = subprocess.run(["git", "-C", repo, "diff", "--cached", "-U0", "--no-color", "--"] + list(paths), capture_output=True, text=True).stdout
+    out, path, at = [], "", 0
+    for line in diff.splitlines():
+        if line.startswith("+++ "):
+            path = line[6:] if line.startswith("+++ b/") else ""
+        elif line.startswith("@@"):
+            at = int(re.search(r"\+(\d+)", line).group(1)) - 1
+        elif line.startswith("+"):
+            at += 1
+            key = re.match(r'  "(\w+)":', line[1:]) if path == ".loop/config.json" else None
+            if key and key.group(1) in private:
+                out.append("%s:%d holds the local setting %s" % (path, at, key.group(1)))
+            elif (len(home) > 1 and home in line) or (mail and mail in line) or any(v in line for v in local):
+                out.append("%s:%d holds a private value" % (path, at))
+    return out
+
+
+def commit(repo, message, files):
+    """(exit code, output) of git commit for exactly these files, run in its own process group so a signal reaches git and its hooks."""
+    proc = subprocess.Popen(["git", "-C", repo, "commit", "--allow-empty", "-m", message, "--"] + files, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, start_new_session=True)
+    try:
+        out = proc.communicate()[0]
+    except BaseException:
+        os.killpg(proc.pid, 15)
+        try:
+            proc.wait(10)
+        except subprocess.TimeoutExpired:
+            os.killpg(proc.pid, 9)
+            proc.wait()
+        raise
+    return proc.returncode, out
+
+
+def mask(line):
+    import settings
+    return "[line withheld: holds a private value]" if settings.private_value(line) else line
+
+
+def step(name, fix, run, failed):
+    """A post-commit step: its output is read as well as its exit status; a failure is a NOTE and a gap, never a refusal."""
+    out = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out):
+            code = run()
+    except Exception as error:
+        out.write("FAILED %s\n" % type(error).__name__)
+        code = 1
+    sys.stdout.write(out.getvalue())
+    if code or re.search(r"^(FAILED|REFUSED|NOTE: .*(refus|failed|writes no))", out.getvalue(), re.M):
+        failed.append(name)
+        print("NOTE: %s failed; the adoption is committed on the branch. Fix: %s (SETUP_STEP)" % (name, fix))
 
 
 def refuse(why, code, fix):
