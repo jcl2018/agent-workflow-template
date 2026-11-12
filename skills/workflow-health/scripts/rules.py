@@ -7,7 +7,8 @@
   network           a land row whose command reaches the network: curl, wget, http:// or https:// (WARN; fakegh is fine)
   config            .loop/config.json does not parse, or has no base (FAIL)
   checks-run-tests  the regression workflow exists but no land row does (WARN)
-  template-version  VERSION is not the newest CHANGELOG heading (WARN; INFO when either is missing)
+  template-version  VERSION is not the newest CHANGELOG heading (WARN; INFO when either is missing); or the repo's template_version
+                    is missing or older than the installed template (WARN: run the migrate goal)
   scheduled         the regression or health workflow is missing, or has no schedule (WARN)
   no-fit            an open [adoption] line in .loop/findings.md, written by setup: one WARN row each (report.py)
   agent-tools       agent_command (or the flow file's command) grants its agent no tools (WARN) (report.py)
@@ -32,7 +33,7 @@ import time
 
 import issues as IS
 import report as _report
-from defects import LINE, pages, row, table
+from defects import LINE, behind, pages, row, table
 
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -170,7 +171,7 @@ def scheduled(root):
 
 FUNCTIONS = {"nightly": nightly, "unreleased": unreleased, "finding-age": finding_age, "skipped": skipped,
              "network": network, "config": config, "checks-run-tests": checks_run_tests,
-             "template-version": template_version, "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools}
+             "template-version": lambda root: template_version(root) + behind(root), "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools}
 
 
 def _c():

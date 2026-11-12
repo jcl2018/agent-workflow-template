@@ -272,7 +272,7 @@ def tick_repo(key, entry, begin, finish):
             return None
         return child(argv, tree, dict(env, **(extra or {})), seconds, log)
 
-    got = step("health check", script("workflow-health", "health.py") + ["check"])
+    got = step("health check", script("workflow-health", "health.py") + ["check"], extra={"LOOP_MIGRATION_ONLINE": "1"})
     open(report, "w").write(got[1] if got else "")
     ok &= got is not None and step("health file", script("workflow-health", "health.py") + ["file", "--group", GROUPS]) is not None
     got = step("judge", script("workflow-health", "health.py") + ["review"])

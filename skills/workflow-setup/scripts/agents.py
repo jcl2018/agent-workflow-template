@@ -143,15 +143,9 @@ def apply(repo):
     for line in wire(repo)[1]:
         print(line, file=sys.stderr if line.startswith("REFUSED") else sys.stdout)
     root, render = os.path.realpath(repo), os.path.join(os.path.dirname(ENTRY), "render.py")
-    try:
-        folder = json.load(open(os.path.join(repo, ".loop", "config.json"))).get("wiki_dir") or "docs/wiki"
-    except (OSError, ValueError, AttributeError):
-        folder = "docs/wiki"
-    front, seen = ["README.md", os.path.join(str(folder), "Home.md")], lambda: [open(os.path.join(repo, p)).read() if os.path.isfile(os.path.join(repo, p)) else "" for p in front]  # noqa: E731
-    before = seen()
-    if os.path.isfile(render):  # the Settings and Automation blocks and the README line an older setup never wrote
-        subprocess.run([sys.executable, render, "blocks"], cwd=repo, capture_output=True)
-    return [p for p in [os.path.join(".loop", "START.md")] + targets(repo) + [f for f, a, b in zip(front, before, seen()) if a != b]
+    done = subprocess.run([sys.executable, render, "blocks"], cwd=repo, capture_output=True, text=True) if os.path.isfile(render) else None
+    wrote = [x.split()[1] for x in done.stdout.splitlines() if x.startswith("WROTE ")] if done else []  # the blocks an older setup never wrote
+    return [p for p in [os.path.join(".loop", "START.md")] + targets(repo) + wrote
             if os.path.exists(os.path.join(repo, p)) and inside(root, os.path.realpath(os.path.join(repo, p)))]
 
 
@@ -178,7 +172,7 @@ def fill_automation(held, repo):
         return out
     sys.path.insert(0, os.path.dirname(path))
     try:
-        import workflows
+        workflows = importlib.import_module("workflows")
     finally:
         sys.path.pop(0)
     for name, does, key in BUILT:
@@ -186,6 +180,19 @@ def fill_automation(held, repo):
             out = out + [dict(name=name, does=does, cadence=str(held[key]) if key else "with each health round",
                               runs="mac:" + workflows.task_name(repo), **({"enabled": False} if not key and held.get("digest_mail") == "off" else {}))]
     return out
+
+
+def migration_check(argv):
+    """setup.py migration-check: the engine is workflow-health's defects.py, loaded from beside this skill; exit 4 when it can't be."""
+    path = sibling("workflow-health", "defects.py")
+    if not path:
+        sys.stderr.write("REFUSED: workflow-health is not installed beside workflow-setup; nothing was changed. Fix: install the "
+                         "workflow-health skill from the same release, then rerun\n")
+        return 4
+    spec = importlib.util.spec_from_file_location("defects", path)
+    sys.modules["defects"] = module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.main(argv)
 
 
 def refuse(what, fix):

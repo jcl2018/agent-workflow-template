@@ -117,7 +117,7 @@ EOF
   echo '{"version": "9.9.9", "files": {}}' > "$T/inst/workflow-package.json"
   sed -i.bak 's/One session governs and the others build:/One session governs; the others build:/' "$T/inst/workflow-docs/references/start.md"
   out=$(python3 "$T/inst/workflow-docs/scripts/entry.py" check); code=$?
-  check "skills newer than the repo's template_version: a narrative difference is LAG and does not fail (ENTRY_LAG)" "[ $code = 0 ] && grep -q '^LAG .loop/START.md: installed v9.9.9, repo v0.0.1' <<<\"\$out\""
+  check "skills newer than the repo's template_version: a narrative difference is LAG and does not fail (ENTRY_LAG)" "[ $code = 0 ] && grep -q '^LAG .loop/START.md: this repo is at v0.0.1, the template is at v9.9.9' <<<\"\$out\""
   sed -i.bak 's/runs the engine/starts the engine/' docs/wiki/Engine.md
   check "a lagging repo still fails STALE when its own pages change" "! python3 $T/inst/workflow-docs/scripts/entry.py check >/dev/null"
   git checkout -q -- . ; cd "$T"
