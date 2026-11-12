@@ -1,7 +1,7 @@
 # The wiki-release regression row passes on main again: test-wiki.sh's toy goal reaches a pull request and merges without a stale-page refusal after the settings-table release (v0.27.17), the cause is traced to the test or the code and the wrong side is fixed
 
 - Slug: wiki-release-fix
-- Touches: dev/toy/test-wiki.sh, skills/workflow-release/scripts/merge.py, skills/workflow-docs/scripts, skills/workflow-setup/scripts, .loop/regression.tsv, docs/wiki/Tests.md
+- Touches: dev/toy/test-wiki.sh, skills/workflow-release/scripts/merge.py, skills/workflow-docs/scripts, skills/workflow-setup/scripts, .loop/regression.tsv, docs/wiki/Tests.md, docs/wiki/Documentation.md
 
 ## Done lines
 
