@@ -99,11 +99,16 @@ def anchors(readme):
             for _, line in lines if line.startswith("### How to use ")}
 
 
+def unblocked(text):
+    """text with the generated Settings and Automation blocks (render.py) blanked, line numbers kept: they are held to
+    a fresh render instead of the page format."""
+    return re.sub(r"<!-- (settings|automation):begin -->\n.*?<!-- \1:end -->\n", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
+
+
 def home(text, features, existing, readme, repo):
     """DOC-4: the marker, '# title', '## Features' and one table HOME, one row per feature page, nothing else."""
     out, seen, keys = [], [], anchors(readme)
-    # the generated Settings and Automation blocks are Home's own (render.py), held to a fresh render instead
-    text = re.sub(r"<!-- (settings|automation):begin -->\n.*?<!-- \1:end -->\n", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
+    text = unblocked(text)
     lines = list(enumerate(text.splitlines(), 1))
     body = [(n, x) for n, x in lines if x.strip() and x.strip() != MARKER]
     found, other = tables([(n, x) for n, x in lines if not x.startswith(("# ", "## Features")) and x.strip() != MARKER])
@@ -141,7 +146,7 @@ def home(text, features, existing, readme, repo):
 def frontdoor(readme, features):
     """DOC-5: '## How to use' holds one '### How to use <Feature>' per feature page, each an intro line and a FRONT
     table of quoted phrases."""
-    held = [(n, lines) for name, n, lines in parts(readme) if name == "How to use"]
+    held = [(n, lines) for name, n, lines in parts(unblocked(readme)) if name == "How to use"]
     if not held:
         return [bad("README", 1, "How to use", 5, "the README has a '## How to use' section", "none",
                     "add it, with one '### How to use <Feature>' per feature page")]
