@@ -215,6 +215,8 @@ def options(args, flags, valued):
 
 
 def main(argv):
+    if os.name == "nt":  # no ps, uid or SIGPIPE: nothing to find or reap, the test's own status stands
+        return 0
     signal.signal(signal.SIGPIPE, signal.SIG_IGN)
     if not argv:
         usage()

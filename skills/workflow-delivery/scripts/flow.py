@@ -24,6 +24,7 @@ import time
 
 import fit
 import lanekit
+import proctree
 import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -199,7 +200,7 @@ def depth_rule(step, state=None, runs=None):
 def alive(pid, start=""):
     """pid runs and, given a start time, still began then: a reused pid is another process."""
     try:
-        os.kill(pid, 0)
+        proctree.probe(pid)
     except OSError:
         return False
     return not start or lanekit.same(pid, start)
@@ -330,7 +331,7 @@ def main():
             return 0
         if lanekit.same(held["pid"], mine):  # never a process that only reuses the pid
             lanekit.audit(runs, "flow %s %s" % (args.slug, args.step), held["pid"], "step past its limit")
-            os.killpg(held["pid"], signal.SIGTERM)
+            proctree.kill(held["pid"], signal.SIGTERM)
         with open(reply, "a") as out:
             if args.step in BUDGETED:  # it finishes with what it has done and says what it left; the goal goes on
                 mins = round(held["limit"] / 60, 1)
