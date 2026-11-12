@@ -18,7 +18,7 @@ T=$(mktemp -d); R="python3 $here/dev/toy/reap.py"
 fails=0 n=0 markers=""
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
-mark() { n=$((n + 1)); m="outer-$$-$n"; markers="$markers $m"; }
+mark() { n=$((n + 1)); m="outer-$$-$(date +%s)-$n"; markers="$markers $m"; }  # the epoch: reap.py leaves out unreadable processes older than it
 stop_marker() { $R reap "TOY_OUTER_ID=$1" --label test-no-leftovers.sh >/dev/null 2>&1; }
 clean_all() { for x in $markers; do stop_marker "$x"; done; }
 toy_on_exit 'clean_all'
@@ -222,6 +222,28 @@ sleep 0.3
 $R reap "TOY_REAP_ID=$mk" >/dev/null 2>&1; $R sweep --marker "$mk" >/dev/null 2>&1
 gone "$a1" || gone "$a2" && bad "a marker in a command line or another variable was matched" \
   || ok "the marker matches only a whole environment entry"
+# Value: protects=toy-no-leftovers on a CI runner (EACCES on the runner's own processes); fails_when=an unreadable process
+# started before the marker counts again, or one started after it is hidden; why_new=only macOS was checked; seam=procargs
+python3 - "$here/dev/toy" <<'PY' && ok "an unreadable process older than the marker is not a leftover; one started after it still is" \
+  || bad "unreadable processes: the start-time rule"
+import errno, os, sys, time
+sys.path.insert(0, sys.argv[1]); import reap
+now = int(time.time()); me = os.getpid()
+procs = {me: (1, "own", False), 900001: (1, "old", False), 900002: (1, "new", False)}
+reap.started_at = lambda s: {"old": now - 3600, "new": now + 5}.get(s)
+def args(pid):
+    raise OSError(errno.EACCES, "denied")
+reap.procargs = args
+reap.table = lambda: procs
+_hits, unread = reap.find(reap.entry_is("TOY_REAP_ID=toy-1-%d-7-Lhand" % now), procs, since=now)
+sys.exit(0 if [p for p, _w in unread] == [900002] else 1)
+PY
+python3 - "$here/dev/toy" <<'PY' && ok "reap.py reads a real process's start time (this one's) within seconds of now" || bad "started_at on a real process"
+import os, sys, time
+sys.path.insert(0, sys.argv[1]); import reap
+began = reap.started_at(reap.table()[os.getpid()][1])
+sys.exit(0 if began is not None and abs(began - time.time()) < 30 else 1)
+PY
 kill -9 "$a1" "$a2" 2>/dev/null; wait "$a1" "$a2" 2>/dev/null
 env "TOY_REAP_ID=$mk" python3 -c "$sl" & a3=$!
 env "TOY_REAP_ID=toy-$$-live-$$" python3 -c "$sl" & a4=$!
