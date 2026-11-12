@@ -68,5 +68,6 @@
   "template_repo": "",
   "reply_hook": true,
   "feature_labels": false,
-  "template_version": "0.27.17"
+  "template_version": "0.27.29",
+  "regression_runs": ""
 }
