@@ -1,7 +1,7 @@
 # test-guard-enforce passes on main again: its 7 checks that fail identically on main (reported by the milestone-freeform worker, 2026-11-11) are traced to either a test that drifted from the guard or a guard that regressed, and the one that is wrong is fixed
 
 - Slug: guard-enforce-red
-- Touches: dev/toy/test-guard-enforce.sh, skills/workflow-delivery/scripts, .loop/regression.tsv, docs/wiki/Delivery.md, docs/wiki/Tests.md
+- Touches: dev/toy/test-guard-enforce.sh, skills/workflow-delivery/scripts, .loop/regression.tsv, docs/wiki/Delivery.md, docs/wiki/Tests.md, docs/wiki/Health.md, docs/wiki/Setup.md
 
 ## Done lines
 
