@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/flow.py
-# reads: skills/workflow-delivery/references/default-flow.md
+# reads: skills/workflow-delivery/references/commands.md
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-setup/scripts/settings.py skills/workflow-setup/scripts/agents.py
 # reads: skills/workflow-setup/references/settings.md skills/workflow-docs/scripts/entry.py skills/workflow-docs/scripts/docs.py
 # reads: skills/workflow-docs/scripts/audit.py skills/workflow-docs/references/start.md skills/workflow-docs/SKILL.md
@@ -56,10 +56,10 @@ if want builtin; then
     LOOP_ROLE=worker $G record bf $step --file "$(cd "$(git rev-parse --git-common-dir)" && pwd)/loop/runs/bf.$step.txt" >/dev/null 2>&1
   done
   heads=0; for step in idea plan review qa ship; do
-    sec=$(awk -v s="## $step" '$0==s{f=1;next} /^## /{f=0} f&&NF{print;exit}' "$DL/references/default-flow.md")
+    sec=$(awk -v s="## $step" '$0==s{f=1;next} /^## /{f=0} f&&NF{print;exit}' "$DL/references/commands.md")
     grep -qF "$sec" "$B/prompt.$step" 2>/dev/null && grep -q "built-in routine for the $step step" "$B/prompt.$step" && heads=$((heads + 1))
   done
-  check "each headless built-in step's prompt carries its routine from default-flow.md in place of a skill name" "[ $heads = 5 ]"
+  check "each headless built-in step's prompt carries its routine from commands.md in place of a skill name" "[ $heads = 5 ]"
   R="$(cd "$(git rev-parse --git-common-dir)" && pwd)/loop/runs/bf.json"
   check "an all-built-in goal records every flow step done" \
     "python3 -c \"import json;f=json.load(open('$R'))['flow'];assert all(str(f.get(s,'')).startswith('done') for s in ('idea','plan','review','qa','ship')),f\""

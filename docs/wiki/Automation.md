@@ -24,8 +24,7 @@ Review: **Unreviewed**
 ### Functional
 - AUT-1: **Unreviewed** Routines run where they can run fully
   - Health and the full regression run on my machine for every repo, public or private, as one scheduled task per adopted repo named `<repo>-health-regression`, every 4 hours with starts staggered across repos, and one email per repo. Repo-specific routines from the routine registry (an hourly mail triage, a newsletter) register the same way on the machine that adopts that repo (SET-11).
-  - Each task's cadence is registered with it (machine setup prints it), and I can also start it by hand.
-  - A Mac routine missed while the Mac sleeps runs once at next wake, regression before health.
+  - Machine setup prints each task's cadence for me to register in the app, and I can also start a task by hand.
   - Each run's report says whether it ran on my Mac or in GitHub Actions, naming no host or path.
 - AUT-2: **Unreviewed** Regression every few hours
   - The full regression suite runs every 4 hours on my machine (the repo's scheduled task) and on every release; the report names every test it skipped and why.

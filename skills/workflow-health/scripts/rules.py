@@ -156,7 +156,8 @@ def scheduled(root):
     health.yml is a WARN, as health runs on the Mac now."""
     out, flows = [], os.path.join(root, ".github", "workflows")
     try:
-        mac = json.load(open(os.path.join(root, ".loop", "config.json"))).get("regression_runs") == "mac"
+        cfg = json.load(open(os.path.join(root, ".loop", "config.json")))
+        mac = cfg.get("regression_runs") == "mac" or cfg.get("regression_cron") == "off"  # off: the schedule is local (machine.py)
     except (OSError, ValueError, AttributeError):
         mac = False
     text = open(os.path.join(flows, "regression.yml")).read() if os.path.exists(os.path.join(flows, "regression.yml")) else ""
@@ -175,7 +176,8 @@ def machine(root):
     if os.environ.get("CI") or not os.path.isdir(os.path.expanduser("~/.claude/skills/workflow-health")) or not os.path.exists(tool):
         return []
     try:
-        text = subprocess.run([sys.executable, tool, "check", "--repo", root], capture_output=True, text=True, timeout=30).stdout
+        text = subprocess.run([sys.executable, tool, "check", "--repo", root], capture_output=True, text=True, timeout=30,
+                              env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1")).stdout
     except (OSError, subprocess.SubprocessError):
         return []
     return [row("WARN", "adoption", m[1], "machine", m[2], m[3], m[1]) for m in
