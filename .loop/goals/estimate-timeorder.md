@@ -11,6 +11,12 @@ Frozen. A wrong done line needs a new goal.
 2. Leave-one-out stays available as a diagnostic in the PR or report, not as the selector
 3. A regression row proves a model that only looks good with future data is not chosen, seen failing then passing
 
+## Owner re-review: Monitoring (CHANGED)
+
+The Monitoring page is owner-reviewed, and its Usage is sealed. This goal changes what the live board's estimate line says, and the page said nothing about it, so one sentence is added to the end of the `/workflow-monitoring report` line. `docs.py check` then reports CHANGED until the owner reviews the page again (`review --user`); the release audit ignores CHANGED. The sentence, in full:
+
+> The live board's estimate line names the model chosen by a time-ordered backtest (each goal predicted only from goals that finished before it started) and its typical whole-goal error.
+
 ## Verify by hand
 
 1. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root .` in a repo with finished goal runs.
