@@ -22,13 +22,19 @@ Review: **Unreviewed**
 ## Requirements
 
 ### Functional
-- AUT-1: **Reviewed 2026-11-10** Routines run in GitHub Actions <!-- reviewed ee1fe20e -->
-  - Every routine runs as a GitHub Actions workflow on a schedule set in the repo's config, every few hours by default, and I can also start it by hand from the Actions tab; each run shows its report in the run summary.
+- AUT-1: **Unreviewed** Routines run where they can run fully
+  - Health runs on my Mac for every repo. Regression runs in GitHub Actions for a public repo and on my Mac for a private one.
+  - Each routine runs on a schedule set in the repo's config (every 4 hours by default), and I can also start it by hand.
+  - A Mac routine missed while the Mac sleeps runs once at next wake, regression before health.
+  - Each run's report says whether it ran on my Mac or in GitHub Actions, naming no host or path.
 - AUT-2: **Unreviewed** Regression every few hours
-  - The full regression suite runs on the schedule (every 4 hours by default) and on every release.
+  - The full regression suite runs on the schedule (every 4 hours by default) and on every release, in GitHub Actions for a public repo and on my Mac for a private one; the report names every test it skipped and why.
+  - A push or pull request runs only the tests its change affects, in the same place as the full suite.
+  - No check this tool writes ever blocks a private repo's merge.
   - A failing test opens or updates one issue labeled defect, tagged with the feature it guards, naming the test and the requirement; it closes by itself when the test passes again.
 - AUT-3: **Unreviewed** Health every few hours
-  - The health check runs on the schedule, after regression, with all its rule groups, and the repo review too when an agent key is set as a secret (otherwise skipped, and the report says so).
+  - Health never runs in GitHub Actions: it runs on my Mac on the schedule (every 4 hours by default), after the latest finished regression run, with all its rule groups; its report names that run with its commit and age, or says none finished, and says when health last ran.
+  - The repo review always runs, using my own login on the Mac, with no API key secret; when the login has expired or can't be reached, the report says which and the next round tries again.
   - Every finding becomes one issue tagged with its group and its feature, updated, closed or reopened as things change, never duplicated.
 - AUT-4: **Reviewed 2026-11-10** A digest by email <!-- reviewed f06a9042 -->
   - After each round, one email goes to the address I set: what ran and its results, then the new, still-open and fixed issues grouped by feature, each with its link and the request to give the agent to fix it.
@@ -40,13 +46,13 @@ Review: **Unreviewed**
 ### Non-functional
 - AUT-5: **Reviewed 2026-11-10** Under my control <!-- reviewed ede1ff25 -->
   - Each routine can be turned off or rescheduled in one setting, and without the secrets it needs a routine runs but writes nothing and says what is missing.
-- AUT-6: **Reviewed 2026-11-10** Private address <!-- reviewed eb8f1a34 -->
-  - The email address and the mail key live only in GitHub secrets, never in the repo, logs, issues or the digest comment.
-- AUT-7: **Reviewed 2026-11-10** Bounded cost <!-- reviewed bacaa5cb -->
-  - A round finishes within 45 minutes, and the run summary shows its Actions minutes, so I can slow the schedule if it costs too much.
+- AUT-6: **Unreviewed** Private address
+  - The email address and the mail key live only in a local secrets file outside git, kept where the repo review cannot reach it, read only by the local runner; never in the repo, logs, issues or the digest comment, and never printed. The same holds for the GitHub token the Mac uses.
+- AUT-7: **Unreviewed** Bounded cost
+  - A round finishes within 45 minutes, and each report shows the round's wall time and its pass and fail counts, plus its Actions minutes when it ran in GitHub Actions, so I can slow the schedule if it costs too much.
 
 ## Non-goals
-- The scheduled routines never push, merge or release; they only write issues, labels, comments, run summaries and the digest email.
+- The scheduled routines never push, merge or release; they only write issues, labels, comments, run reports (an Actions run summary or a local report on my Mac) and the digest email.
 - No chat or webhook notifications; email and GitHub only.
 
 ## Success metrics

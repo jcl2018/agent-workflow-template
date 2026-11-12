@@ -306,7 +306,7 @@
 | <a id="t-live-board-issues"></a>live-board-issues | requirement | MON-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-09 |
 | <a id="t-live-board-leftouts"></a>live-board-leftouts | requirement | MON-4 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-09 |
 | <a id="t-live-board-no-oneline"></a>live-board-no-oneline | requirement | MON-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-09 |
-| <a id="t-live-board-cadence"></a>live-board-cadence | requirement | MON-5 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-09 |
+| <a id="t-live-board-cadence"></a>live-board-cadence | requirement | MON-5 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-09 |
 | <a id="t-session-assign"></a>session-assign | requirement | MON-1 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-09 |
 | <a id="t-session-rename"></a>session-rename | requirement | MON-1 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-09 |
 | <a id="t-session-reuse"></a>session-reuse | requirement | MON-1 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-09 |
@@ -585,7 +585,7 @@
 | <a id="t-landed-left-alone"></a>landed-left-alone | requirement | - | PASS | 2026-11-09 | [CI 2026-11-09](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-09) | 2026-11-07 |
 | <a id="t-no-pid-left-alone"></a>no-pid-left-alone | requirement | - | PASS | 2026-11-09 | [CI 2026-11-09](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-09) | 2026-11-07 |
 | <a id="t-defect-wording"></a>defect-wording | requirement | - | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
-| <a id="t-stale-groups-defect"></a>stale-groups-defect | defect | [#89](https://github.com/jcl2018/agent-workflow-template/issues/89) closed (2026-11-09) | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-09 |
+| <a id="t-stale-groups-defect"></a>stale-groups-defect | defect | [#89](https://github.com/jcl2018/agent-workflow-template/issues/89) closed (2026-11-09) | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-09 |
 | <a id="t-board-estimates-overrun"></a>board-estimates-overrun | defect | [#93](https://github.com/jcl2018/agent-workflow-template/issues/93) closed (2026-11-11) | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-09 |
 | <a id="t-two-lanes-toy-435"></a>two-lanes-toy-435 | defect | [#435](https://github.com/jcl2018/agent-workflow-template/issues/435) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-done-line-rows-128"></a>done-line-rows-128 | defect | [#128](https://github.com/jcl2018/agent-workflow-template/issues/128) closed (2026-11-11) | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
@@ -649,3 +649,9 @@
 | <a id="t-readme-commands-in-usage"></a>readme-commands-in-usage | requirement | done line docs-small-fixes:2 | not run | - | local | 2026-11-12 |
 | <a id="t-portlock-fallback"></a>portlock-fallback | requirement | done line package-cap-3:3 | not run | - | local | 2026-11-12 |
 | <a id="t-package-passes"></a>package-passes | requirement | done line package-cap-3:1 | not run | - | local | 2026-11-12 |
+| <a id="t-lane-stale-pid-safe"></a>lane-stale-pid-safe | requirement | done line lane-died:1 | not run | - | local | 2026-11-12 |
+| <a id="t-lane-own-stop"></a>lane-own-stop | requirement | done line lane-died:1 | not run | - | local | 2026-11-12 |
+| <a id="t-lane-kill-audit"></a>lane-kill-audit | requirement | done line lane-died:1 | not run | - | local | 2026-11-12 |
+| <a id="t-flow-stale-pid-safe"></a>flow-stale-pid-safe | requirement | done line lane-died:1 | not run | - | local | 2026-11-12 |
+| <a id="t-lane-died-signal"></a>lane-died-signal | requirement | done line lane-died:2 | not run | - | local | 2026-11-12 |
+| <a id="t-lane-died-sigkill"></a>lane-died-sigkill | requirement | done line lane-died:2 | not run | - | local | 2026-11-12 |

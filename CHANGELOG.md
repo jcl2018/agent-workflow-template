@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.27.24 - 2026-11-12
+
+- Never signal a pid that only reuses a stored one; audit every signal; name the signal that ended a lane
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/lane-died
+- Merge origin/main into loop/lane-died
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.23 - 2026-11-12
+
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Automation: routines run where they can run fully
+- Automation: review fixes to AUT-1, 2, 3, 6 and Non-goals
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.22 - 2026-11-12
 
 - Runbook section (DOC-16): format check, routine registry, Health and Regression runbooks, toy tests
