@@ -119,7 +119,8 @@ import sys
 sys.path.insert(0, sys.argv[1]); import guards as g
 cases = {"PENDING: none left": ["none left"], "PENDING: N/A.": [], "PENDING: No decisions": [], "PENDING: --": [], "PENDING:": [],
          "PENDING: approve the plan": ["approve the plan"], "  - PENDING: pick a name": ["pick a name"], "PENDING: none\r\nSTEP: done": [],
-         "PENDING:\nDEPTH: full": []}
+         "PENDING:\nDEPTH: full": [], "PENDING:\n- pick a name\n- pick a date\n\nSTEP: done": ["- pick a name", "- pick a date"],
+         "PENDING: a" + "-" * 50000 + "a": ["a" + "-" * 50000 + "a"]}
 bad = {k: g.pending_items(k) for k, v in cases.items() if g.pending_items(k) != v}
 assert not bad, bad
 PY
