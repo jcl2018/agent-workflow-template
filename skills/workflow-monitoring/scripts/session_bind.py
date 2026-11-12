@@ -60,6 +60,7 @@ def cmd_bind(g, args):
     self_id(args)
     name = args.name or g.name_of(args.slug)
     worker = os.environ.get("LOOP_ROLE") == "worker"
+    g.graph.refuse(g.load(args.slug) or {})
     tree = (g.load(args.slug) or {}).get("worktree") or ""
     for folder in [f for f in (args.cwd, os.getcwd() if worker else "") if f and tree]:  # a worker is checked where it runs
         if not inside(folder, tree):

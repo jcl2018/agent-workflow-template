@@ -6,11 +6,16 @@ sharing files is never a reason to wait (the later goal merges the base before i
 is `parallel` in .loop/config.json (0 or unset: unlimited). A goal a worker session was handed before it was frozen
 (a busy entry in the session pool with no run yet) holds a slot too, and is never started a second time. Imported, not run.
 """
+import atexit
 import datetime
 import json
 import os
 import re
+import subprocess
+import sys
+import time
 
+os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")  # no terminal, no waiting: git must fail, not prompt
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 LIVE = ("running", "waiting")
 LAST_BAD = {}  # pool path -> the malformed entries read_pool set aside on its last read
@@ -303,3 +308,93 @@ def classify(run, taken=None, at=None, cfg=None):
     if status == "running" and quiet is not None and quiet >= silent_limit(cfg):
         return "silent"
     return "running" if status == "running" else status
+
+
+def load_run(slug):
+    """The run record of a goal in this repo ({} if missing or the slug is bad)."""
+    try:
+        top = subprocess.run(["git", "rev-parse", "--git-common-dir"], capture_output=True, text=True).stdout.strip()
+        with open(os.path.join(os.path.abspath(top), "loop", "runs", slug + ".json")) as handle:
+            return json.load(handle) if SLUG.match(slug) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+# Pods (MON-15) and the merge lock (MON-15): the one place every skill asks. goal.py and merge.py load this file by path
+# and carry on without it when workflow-monitoring isn't installed. Imported, not run.
+#
+#   pod_id()        $LOOP_POD_ID, else the operation session's own id ($CLAUDE_SESSION_ID); "" in a worker or with neither
+#   stamp(state)    record the caller's pod on a goal that has none; a goal with no pod belongs to no one
+#   foreign(state)  the owning pod's id when it is not the caller's (a worker never counts), else ""
+#   refuse(state)   print the one REFUSED line naming the owner to stderr and exit 2 (no try is used)
+#   merge_lock(common)  one merge per repo at a time, across pods; released at exit; a dead or old holder is replaced
+def pod_id():
+    if os.environ.get("LOOP_ROLE") == "worker":
+        return ""
+    return re.sub(r"[^A-Za-z0-9_.-]", "", os.environ.get("LOOP_POD_ID") or os.environ.get("CLAUDE_SESSION_ID") or "")[:64]
+
+
+def stamp(state):
+    if pod_id() and not state.get("pod"):
+        state["pod"] = pod_id()
+
+
+def foreign(state):
+    owner = str(state.get("pod") or "") if isinstance(state, dict) else ""
+    return owner if owner and os.environ.get("LOOP_ROLE") != "worker" and owner != pod_id() else ""
+
+
+def refuse(state):
+    owner = foreign(state)
+    if owner:
+        sys.stderr.write("REFUSED: goal %s is owned by pod %s. Fix: act from that pod (set LOOP_POD_ID=%s), not from here.\n" % (
+            state.get("slug"), owner, owner))
+        sys.exit(2)
+
+
+def merge_lock(common):
+    """Take <git common dir>/loop/merge.lock (created exclusively, holding the pid), waiting while its holder is alive and
+    its file younger than LOOP_MERGE_LOCK_SECONDS (default 1800); a dead or older holder is replaced by one atomic rename,
+    so two waiters never both take it. Released at exit if still ours."""
+    path, told = os.path.join(common, "loop", "merge.lock"), False
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    while True:
+        try:
+            with os.fdopen(os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY), "w") as handle:
+                handle.write("%d\n" % os.getpid())
+            break
+        except FileExistsError:
+            pid, dead, age, seen = 0, False, 0, ""
+            try:
+                age = time.time() - os.stat(path).st_mtime
+                seen = open(path).read()
+                pid = int(seen.split()[0])
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                dead = True
+            except FileNotFoundError:
+                continue
+            except (OSError, ValueError, IndexError):
+                pass
+            if dead or age > int(os.environ.get("LOOP_MERGE_LOCK_SECONDS") or 1800):
+                mine = "%s.stale.%d" % (path, os.getpid())
+                try:
+                    os.rename(path, mine)
+                    if open(mine).read() != seen:  # a new holder took the path since we looked: put its lock back
+                        os.link(mine, path)
+                    os.unlink(mine)
+                except OSError:
+                    pass
+                continue
+            if not told:
+                sys.stderr.write("WAITING: another pod is merging into this repo (pid %d); one merge at a time.\n" % pid)
+                told = True
+            time.sleep(0.2)
+
+    def release():
+        try:
+            if open(path).read().split()[:1] == [str(os.getpid())]:
+                os.unlink(path)
+        except OSError:
+            pass
+    atexit.register(release)
