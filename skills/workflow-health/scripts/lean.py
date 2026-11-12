@@ -290,11 +290,15 @@ def branch_rows(root):
     return summary("local-branches", items, "local branches")
 
 
+def srow(*args):
+    return dict(row(*args), family="security")  # reported in Security and privacy
+
+
 def hook_rows(root):
     if os.environ.get("GITHUB_ACTIONS") and os.environ.get("LOOP_HEALTH_HOOKS") != "1":
-        return [row("PASS", "hooks", "hooks", "skipped on GitHub Actions: hooks live on a machine")]
+        return [srow("PASS", "hooks", "hooks", "skipped on GitHub Actions: hooks live on a machine")]
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-setup", "scripts", "setup.py")
-    stale = [row("WARN", "hooks", "hooks", "cannot read the hook state", "update the skills so setup.py has --git-hooks --check")]
+    stale = [srow("WARN", "hooks", "hooks", "cannot read the hook state", "update the skills so setup.py has --git-hooks --check")]
     try:
         done = subprocess.run([sys.executable, script, "--repo", root, "--git-hooks", "--check", "--json"],
                               capture_output=True, text=True, timeout=60)
@@ -306,12 +310,12 @@ def hook_rows(root):
         found += ["core.hooksPath is set: add the call lines to the hooks you use"] * (bool(found) and bool(data["hooks_path"]))
     except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
         return stale
-    return [row("WARN", "hooks", "hooks", "; ".join(found), "run python3 workflow-setup/scripts/setup.py --git-hooks from the "
-                "installed skills")] if found else [row("PASS", "hooks", "hooks", "the private-name hooks are installed")]
+    return [srow("WARN", "hooks", "hooks", "; ".join(found), "run python3 workflow-setup/scripts/setup.py --git-hooks from the "
+                "installed skills")] if found else [srow("PASS", "hooks", "hooks", "the private-name hooks are installed")]
 
 
 def rows(root):
-    return test_rows(root) + worktree_rows(root) + branch_rows(root) + hook_rows(root)
+    return test_rows(root) + worktree_rows(root) + branch_rows(root)
 
 
 def facts(root):

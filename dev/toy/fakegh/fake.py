@@ -28,7 +28,19 @@ def flags(name):
 
 
 issues, miles = load("issues.json"), load("milestones.json")
-if args[0] == "api":
+def rest(i):
+    """An issue as the REST API gives it (state lowercase, created_at), for gh api."""
+    return {"number": i["number"], "title": i.get("title"), "body": i.get("body"), "state": i["state"].lower(),
+            "labels": i.get("labels") or [], "milestone": i.get("milestone"), "created_at": i.get("createdAt"),
+            "comments": len(i.get("comments") or [])}
+
+
+if args[0] == "api" and any("/issues" in a for a in args):
+    print(json.dumps([[rest(i) for i in issues]] if "--slurp" in args else [rest(i) for i in issues]))
+elif args[:2] == ["issue", "view"]:
+    print(json.dumps(next(({"comments": i.get("comments") or [], "state": i["state"]} for i in issues
+                           if str(i["number"]) == args[2]), {"comments": []})))
+elif args[0] == "api":
     if "-f" in args:
         title = next(a[6:] for a in args if a.startswith("title="))
         miles.append({"number": len(miles) + 1, "title": title, "state": "open",
@@ -63,9 +75,14 @@ elif args[:2] in (["issue", "edit"], ["issue", "close"], ["issue", "reopen"], ["
                 if flag("--body") is not None:
                     i["body"] = flag("--body")
                 i.setdefault("labels", []).extend({"name": n} for n in flags("--add-label"))
+                i["labels"] = [lab for lab in i["labels"] if lab.get("name") not in flags("--remove-label")]
                 if flag("--milestone"):
                     i["milestone"] = {"title": flag("--milestone")}
-            elif args[1] != "comment":
+            elif args[1] == "comment":
+                i.setdefault("comments", []).append({"body": flag("--body")})
+            if args[1] == "close" and flag("--comment"):
+                i.setdefault("comments", []).append({"body": flag("--comment")})
+            if args[1] not in ("edit", "comment"):
                 i["state"] = "CLOSED" if args[1] == "close" else "OPEN"
     save("issues.json", issues)
 elif args[:2] == ["pr", "edit"]:

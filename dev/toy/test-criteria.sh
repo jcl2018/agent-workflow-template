@@ -274,7 +274,7 @@ page Delivery "$one
 $docs check | grep -q "^CAP" && bad "default limit rejects two criteria" || ok "no criteria_max means 10"
 setmax 1
 $docs check | grep -q "^CAP Delivery: has 2 requirements, over the limit of 1 (criteria_max in .loop/config.json)" && ok "criteria_max 1 fails a page of two" || bad "cap 1"
-python3 "$here/skills/workflow-health/scripts/health.py" check 2>&1 | grep -q "FAIL.*cap" && ok "health fails the same page" || bad "health cap"
+python3 "$here/skills/workflow-health/scripts/health.py" check 2>&1 | grep -q "^FAIL size Delivery requirements-per-page: 2 requirements, over 1" && ok "health fails the same page" || bad "health cap"
 setmax '"six"'
 $docs check 2>&1 | grep -q "REFUSED: criteria_max is 'six'" && ok "a bad criteria_max refuses, naming the key" || bad "bad cap"
 setmax true

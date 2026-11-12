@@ -114,9 +114,9 @@ def cost_rows(root, here):
             rows.append(row("WARN", run["slug"], "tokens", "%d tokens, over %d; costliest: %s" % (
                 sum(tokens.values()), token_budget, worst(tokens, lambda n: "%d" % n)),
                 "trim the costly steps or raise token_budget"))
-    if runs and not any(per[run["slug"]][1] for run in runs):
-        rows.append(row("UNREAD", "tokens", "cost", "no tokens recorded in the last %d finished goals" % len(runs),
-                        "report tokens with goal.py step SLUG NAME --tokens N"))
+    if runs and not any(per[run["slug"]][1] for run in runs):  # issue 124: goals from before token recording
+        rows.append(row("INFO", "tokens", "cost", "no tokens recorded in the last %d finished goals; the token check "
+                        "covers goals that record them" % len(runs), "report tokens with goal.py step SLUG NAME --tokens N"))
     if not runs:
         rows.append(row("PASS", "goals", "cost", "no finished goals to measure"))
     elif not any(item["state"] in ("WARN", "UNREAD") for item in rows):

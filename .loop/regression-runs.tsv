@@ -60,7 +60,7 @@ board-estimates-overrun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 board-sections	PASS	2026-11-09	
 breaking-asks	PASS	2026-11-09	
 cap-default-10	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-check-writes-nothing	PASS	2026-11-11		2e9bf1990847
+check-writes-nothing	PASS	2026-11-12	
 checkin-passes-hook	PASS	2026-11-10	
 ci-bad-target	PASS	2026-11-10	
 ci-issue-backlog	PASS	2026-11-10	
@@ -71,9 +71,9 @@ cost-time-warn	PASS	2026-11-11
 cost-unread-tokens	PASS	2026-11-11	
 criteria-max-config	PASS	2026-11-11	
 criteria-max-setting	PASS	2026-11-11	
-criteria-no-scripts	PASS	2026-11-11	
+criteria-no-scripts	PASS	2026-11-12	
 cut-draft	PASS	2026-11-09	
-cut-needs-verify	PASS	2026-11-11		f88abd3a137b
+cut-needs-verify	PASS	2026-11-12	
 defect-categories	PASS	2026-11-11	
 defect-flow-steps	PASS	2026-11-11	
 defect-health	PASS	2026-11-11	
@@ -81,10 +81,6 @@ defect-known	PASS	2026-11-11
 defect-owed	PASS	2026-11-11	
 defect-owed-branch-proved	PASS	2026-11-10	
 defect-wording	PASS	2026-11-11	
-del9-hooks	PASS	2026-11-11	
-del9-merge-refuses	PASS	2026-11-11	
-del9-pr-refuses	PASS	2026-11-11	
-del9-scan-sites	PASS	2026-11-11	
 dependencies-on-map	PASS	2026-11-09	
 dependency-held	PASS	2026-11-09	
 deploy-doc14-reviewed	PASS	2026-11-10	
@@ -121,11 +117,11 @@ docs-merged-base-issue-156	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479d
 docs-milestone-line-issue-130	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 docs-only	PASS	2026-11-09	
 done-lines-warning-143	PASS	2026-11-10	
-estimates-shown	PASS	2026-11-11	
+estimates-shown	PASS	2026-11-12	
 every-row-described	PASS	2026-11-11	
 failed-waits-mender	PASS	2026-11-09	
-file-one-group	PASS	2026-11-11	
-fixed-closes	PASS	2026-11-11	
+file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+fixed-closes	PASS	2026-11-12	
 flaky-marked	PASS	2026-11-10	
 flaky-no-false-mark	PASS	2026-11-10	
 format-bullets	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -151,11 +147,11 @@ guards-worktree	PASS	2026-11-10
 guide-marker-refused	PASS	2026-11-10	
 health-group-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 health-lists-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-health-not-enforced-fail	PASS	2026-11-11	
-health-not-enforced-warn	PASS	2026-11-11	
+health-not-enforced-fail	PASS	2026-11-10	
+health-not-enforced-warn	PASS	2026-11-10	
 health-tests-error	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 health-timing	PASS	2026-11-11	
-health-unreviewed-warn-issue-118	PASS	2026-11-11	
+health-unreviewed-warn-issue-118	PASS	2026-11-10	
 held-all	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-freezing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-off-flow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -174,6 +170,9 @@ hlt6-run-times	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-test-quiet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-test-time	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-worktrees	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+hlt7-fast-check	PASS	2026-11-10	
+hlt8-triage	PASS	2026-11-10	
+hlt9-evidence-or-nothing	PASS	2026-11-10	
 issue-closed-ignored	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 issue-gh-fail-unread	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 issue-keeps-state	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -187,7 +186,7 @@ judge-needs-you	PASS	2026-11-11
 judge-section-format	PASS	2026-11-11	
 judge-verdict-unchanged	PASS	2026-11-11	
 keeps-seen-red	PASS	2026-11-11	
-known-no-block	PASS	2026-11-11	
+known-no-block	PASS	2026-11-12	
 known-recorded	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 landed-left-alone	PASS	2026-11-09	
 lane-died-wait	PASS	2026-11-11	
@@ -241,7 +240,7 @@ merge-wiki-rename-refused	PASS	2026-11-11
 merge-wiki-skill-refused	PASS	2026-11-11	
 merged-frees-175	PASS	2026-11-10	
 milestone-links	PASS	2026-11-11	
-milestones-once	PASS	2026-11-11	
+milestones-once	PASS	2026-11-12	
 mon10-replan	PASS	2026-11-10	
 mon11-full-auto	PASS	2026-11-10	
 mon12-pool	PASS	2026-11-10	
@@ -251,34 +250,34 @@ mon7-govern-blocks	PASS	2026-11-10
 mon8-silent-30	PASS	2026-11-10	
 mon9-board-fast	PASS	2026-11-10	
 narrow-root-172	PASS	2026-11-10	
-needs-you-stuck	PASS	2026-11-11	
+needs-you-stuck	PASS	2026-11-12	
 never-merges	PASS	2026-11-09	
 no-change-quiet	PASS	2026-11-09	
-no-done-line-refused	PASS	2026-11-11	
-no-flow-refused	PASS	2026-11-11	
-no-line-in-governor	PASS	2026-11-11	
+no-done-line-refused	PASS	2026-11-12	
+no-flow-refused	PASS	2026-11-12	
+no-line-in-governor	PASS	2026-11-12	
 no-pid-left-alone	PASS	2026-11-09	
-no-prompts	PASS	2026-11-11	
-no-row-fail	PASS	2026-11-11	
-no-token-dry-run	PASS	2026-11-11	
-no-token-would	PASS	2026-11-11	
+no-prompts	PASS	2026-11-12	
+no-row-fail	PASS	2026-11-12	
+no-token-dry-run	PASS	2026-11-12	
+no-token-would	PASS	2026-11-12	
 one-failure	PASS	2026-11-09	
 one-format-everywhere	PASS	2026-11-10	
-one-issue	PASS	2026-11-11	
-one-link	PASS	2026-11-11	
-one-way-to-run	PASS	2026-11-11	
+one-issue	PASS	2026-11-12	
+one-link	PASS	2026-11-12	
+one-way-to-run	PASS	2026-11-12	
 operate-10-under-load	PASS	2026-11-11	
 operate-all	PASS	2026-11-09	
 operate-wakes-on-report	PASS	2026-11-09	
-page-shape	PASS	2026-11-11	
+page-shape	PASS	2026-11-12	
 parallel-unlimited	PASS	2026-11-11	
 pass3-symlink-page	PASS	2026-11-11	
-pending-waits	PASS	2026-11-11	
+pending-waits	PASS	2026-11-12	
 pool-edges-122	PASS	2026-11-10	
 pr-body-criterion	PASS	2026-11-11	
 pr-body-no-checks	PASS	2026-11-11	
 pr-commit-scope	PASS	2026-11-11	
-pr-in-milestone	PASS	2026-11-11	
+pr-in-milestone	PASS	2026-11-12	
 pr-needs-flow	PASS	2026-11-09	
 prd-audit-ignores-changed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-convert	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -295,13 +294,13 @@ prd-untested	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-usage-changed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 preview-writes-nothing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 problem-plural	PASS	2026-11-10	
-publish-refused-stale	PASS	2026-11-11	
+publish-refused-stale	PASS	2026-11-12	
 publish-restore	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 pull-ff-only-passes	PASS	2026-11-10	
 pull-plain-blocked	PASS	2026-11-10	
 record-in-session	PASS	2026-11-11	
-refuse-replace	PASS	2026-11-11	
-refused-unmet	PASS	2026-11-11	
+refuse-replace	PASS	2026-11-12	
+refused-unmet	PASS	2026-11-12	
 reg-defect-label	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reg-local-relabel	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reg-same-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -310,7 +309,7 @@ release-lists-fixes	PASS	2026-11-11
 release-note-found	PASS	2026-11-11	
 release-runs-audit	PASS	2026-11-11	
 reopened-shows-failing	PASS	2026-11-11	
-repeat-no-second	PASS	2026-11-11	
+repeat-no-second	PASS	2026-11-12	
 reply-checkin-321	PASS	2026-11-10	
 reply-hook-all	PASS	2026-11-10	
 reply-hook-blocks	PASS	2026-11-10	
@@ -339,7 +338,7 @@ runs-same-day	PASS	2026-11-10
 runs-sha	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 runs-upgrade	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 runs-url	FAIL	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-same-lines	PASS	2026-11-11	
+same-lines	PASS	2026-11-12	
 schedule-setting	PASS	2026-11-11	
 scripts-no-hang	PASS	2026-11-11	
 seal-sub-bullets	PASS	2026-11-10	
@@ -355,21 +354,19 @@ session-reports	PASS	2026-11-11
 session-reuse	PASS	2026-11-11	
 session-tool-helper	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 session-tool-timeout	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-set8-hooks	PASS	2026-11-11	
-set8-setup-commit	PASS	2026-11-11	
 settings-read-fresh	PASS	2026-11-11	
 settings-reference	PASS	2026-11-11	
 setup-both-halves	PASS	2026-11-11	
 size-budget	PASS	2026-11-11	
-size-fail	PASS	2026-11-11	
+size-fail	PASS	2026-11-12	
 skill-kept	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-skill-says-governs	PASS	2026-11-11	
+skill-says-governs	PASS	2026-11-12	
 skill-size-116	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 slot-pool-112	PASS	2026-11-10	
-stale-found	PASS	2026-11-11	
+stale-found	PASS	2026-11-12	
 stale-groups-defect	PASS	2026-11-11	
-stale-merge-order	PASS	2026-11-11	
-stale-page-row	PASS	2026-11-11	
+stale-merge-order	PASS	2026-11-12	
+stale-page-row	PASS	2026-11-12	
 starts-at-idea	PASS	2026-11-09	
 state-shared-113	PASS	2026-11-10	
 status-graph-board	PASS	2026-11-11	
@@ -377,13 +374,13 @@ status-graph-levels	PASS	2026-11-11
 status-graph-marks	PASS	2026-11-11	
 status-graph-order	PASS	2026-11-11	
 status-graph-total	PASS	2026-11-11	
-status-order	PASS	2026-11-11	
+status-order	PASS	2026-11-12	
 status-roadmap-features	PASS	2026-11-09	
 step-label-live	PASS	2026-11-11	
 steps-in-session	PASS	2026-11-11	
 steps-through-flow	PASS	2026-11-09	
 stop-after-3-tries	PASS	2026-11-09	
-stuck-stays-top	PASS	2026-11-11	
+stuck-stays-top	PASS	2026-11-12	
 suite-time-recorded	PASS	2026-11-10	
 summary-escapes	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 summary-fallback	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -397,39 +394,39 @@ summary-render-guard	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 summary-step	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 summary-unknown-row	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 template-sheet	PASS	2026-11-11	
-tests-last-run	PASS	2026-11-11	
-tests-not-enforced	PASS	2026-11-11	
+tests-last-run	PASS	2026-11-12	
+tests-not-enforced	PASS	2026-11-12	
 tests-page-run-link	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-page-stale	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-py-missing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-row-shape	PASS	2026-11-11	
-tests-seen-failing	PASS	2026-11-11	
+tests-seen-failing	PASS	2026-11-12	
 tests-table-columns	PASS	2026-11-11	
-tests-table-stale	PASS	2026-11-11	
+tests-table-stale	PASS	2026-11-12	
 tiers-deleted-qa-pr	PASS	2026-11-10	
 tiers-no-merge-base	PASS	2026-11-10	
 tiers-record-merge-base	PASS	2026-11-10	
 tiers-rows-summary	PASS	2026-11-10	
 tiers-unmapped-qa-pr	PASS	2026-11-10	
 two-lanes-toy-435	PASS	2026-11-10	
-unproven-blocks	PASS	2026-11-11	
-unread-closes-none	PASS	2026-11-11	
-unread-not-green	PASS	2026-11-11	
+unproven-blocks	PASS	2026-11-12	
+unread-closes-none	PASS	2026-11-12	
+unread-not-green	PASS	2026-11-12	
 unreview-lifts	PASS	2026-11-11	
 untested-listed	PASS	2026-11-11	
-update-in-place	PASS	2026-11-11	
+update-in-place	PASS	2026-11-12	
 usage-agent-requests	PASS	2026-11-11	
 usage-empty-backticks	PASS	2026-11-10	
 usage-no-script	PASS	2026-11-11	
 usage-optional	PASS	2026-11-11	
 usage-section-allowed	PASS	2026-11-11	
 waits-first	PASS	2026-11-09	
-wiki-release	PASS	2026-11-11	
+wiki-release	PASS	2026-11-12	
 wiki-release-pycache	PASS	2026-11-11	
 wiki-unmapped-stale	PASS	2026-11-11	
-worker-per-goal	PASS	2026-11-11	
-worker-refuses	PASS	2026-11-11	
-worker-reports	PASS	2026-11-11	
+worker-per-goal	PASS	2026-11-12	
+worker-refuses	PASS	2026-11-12	
+worker-reports	PASS	2026-11-12	
 worker-reports-live	PASS	2026-11-09	
 worker-runs-release	PASS	2026-11-11	
 workflow-goal-to-release	PASS	2026-11-10	
