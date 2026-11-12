@@ -26,6 +26,7 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 SK = os.path.dirname(os.path.dirname(HERE))  # the skills folder, in a clone or installed
 CLONE = os.path.dirname(SK)
 sys.path.insert(0, HERE)
+import seed  # noqa: E402
 NO_PROMPT = ("bypass",)  # permission modes that never stop to ask
 MODEL = "claude-sonnet-5-5"
 UD = "Us" + "ers"  # spelled in two parts so this file holds no home path itself
@@ -233,7 +234,7 @@ def items(c):
                     "Every 4 hours on this machine: health and full regression for %s; one email to the owner." % name)
         auto = os.path.join(SK, "workflow-health", "scripts", "automation.py")
         out += [("hooks", "install the private-name git hooks in this repo" + WIN * c.win, lambda: hooks_gap(c),
-                 lambda: __import__("seed").git_hooks(c.repo, adopting=True)),
+                 lambda: seed.git_hooks(c.repo, adopting=True)),
                 ("task:" + task, "write the %s task (every 4 hours, minute %s) and its routine file" % (task, cadence(name).split()[0]),
                  lambda: held(c, task), register),
                 ("local-schedule", "drop this repo from local-schedule's launch agent (the task replaces its 4-hourly run)",
