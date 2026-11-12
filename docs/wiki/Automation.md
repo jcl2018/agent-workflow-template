@@ -27,6 +27,7 @@ Review: **Unreviewed**
   - Each routine runs on a schedule set in the repo's config (every 4 hours by default), and I can also start it by hand.
   - A Mac routine missed while the Mac sleeps runs once at next wake, regression before health.
   - Each run's report says whether it ran on my Mac or in GitHub Actions, naming no host or path.
+  - A long issue body or comment is passed to gh in a file (`--body-file`), never on the command line, so a routine writes the same on native Windows.
 - AUT-2: **Unreviewed** Regression every few hours
   - The full regression suite runs on the schedule (every 4 hours by default) and on every release, in GitHub Actions for a public repo and on my Mac for a private one; the report names every test it skipped and why.
   - A push or pull request runs only the tests its change affects, in the same place as the full suite.

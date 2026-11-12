@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.27.41 - 2026-11-12
+
+- Pass long gh texts through --body-file and --notes-file
+- health file.py: name the issue-text helper issue_text, not body_of
+- Toy: the file.run mock takes the body argument
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/pr-body-file: main's goal.py body file kept; fit.pr_create dropped
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/pr-body-file
+- Merge remote-tracking branch 'origin/main' into loop/pr-body-file
+- pr: record issue states and the lane's results
+- Wiki: update pages for pr-body-file
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.40 - 2026-11-12
 
 - test-board.sh passes on main again: the test was wrong on all three cells (board-test-fix)

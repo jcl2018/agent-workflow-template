@@ -63,6 +63,7 @@ Review: **Unreviewed**
   - Every commit and pull request passes the private-name scan before it is pushed.
 - DEL-12: **Unreviewed** Windows-safe on merge
   - A pull request that adds a POSIX-only call without its guard (fcntl, os.getuid, os.killpg, signal.SIGHUP, os.kill(pid, 0)) fails its lane, so main cannot break native Windows unseen.
+  - A long pull request body, issue text or release notes goes to gh in a file (`--body-file`, `--notes-file`), never on the command line, so a pull request with a body over 32,000 characters opens on native Windows.
 - DEL-13: **Unreviewed** A review hold before auto merge
   - Where a review hold is set, the release step merges only after the operation session records that it has read the diff, and the board shows a merge waiting on review.
 

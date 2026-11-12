@@ -63,6 +63,7 @@ Review: **Unreviewed**
   - One full Tests page is generated, listing every test with its latest result.
   - Every release has a release note.
   - A milestone is optional and free form, used to plan by version (for example v1.0); nothing requires a feature page, issue or pull request to have one, and no check fails or warns for lacking one.
+  - Release notes are passed to gh in a file (`--notes-file`), never on the command line.
 - DOC-14: **Reviewed 2026-11-10** A feature page lists what it ships: the pages people open and the deliveries people receive <!-- reviewed 6920f546 -->
   - A feature page that ships something people can open, or a delivery people receive (for example a scheduled email), has a Deployments section; it is optional otherwise.
   - Pages: one row per public or private page, with its link, who can open it (public or sign-in), what it shows, and the live build (the sha in build.txt).
