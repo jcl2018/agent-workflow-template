@@ -16,7 +16,7 @@ step and it replaces that routine. With no flow file, delivery refuses with one 
 [the file contract](skills/loop-files.md).
 
 **Status: early. Copy the `skills/` folders into your agent's skills folder, or run `dev/install-local.sh` for Claude
-Code. No marketplace listing yet.** See the [wiki](docs/wiki/Home.md) for the features and the
+Code. No marketplace listing yet. What is left before V1 is in the [V1 section](docs/ROADMAP.md#v1) of the roadmap.** See the [wiki](docs/wiki/Home.md) for the features and the
 [roadmap](docs/ROADMAP.md).
 
 **This repo runs with no gates.** Its `.loop/config.json` turns on `auto_approve` and `auto_merge`. Review is the only gate: delivery runs no check step. What the skills leave for the
