@@ -115,6 +115,7 @@ Review: **Unreviewed**
 | [del6-full-lane](Tests#t-del6-full-lane) | requirement | DEL-6 | Given a goal whose review ran condensed, when its qa step runs, then it runs the same land regression lane as a full-depth goal, with no row dropped for depth. | not run |
 | - | requirement | DEL-6 | no passing test | not enforced |
 | [adopt-record-qa](Tests#t-adopt-record-qa) | requirement | DEL-10 | Given a goal pushed from another machine with an open pull request, when goal.py adopt runs on its branch, then a run record exists at step qa with the pull request, idea, plan and review done on another machine and qa, ship and pr not recorded. | not run |
+| [adopt-replaces-stale](Tests#t-adopt-replaces-stale) | requirement | DEL-10 | Given a run record here that is running with no pid and no recorded step, when goal.py adopt runs, then it replaces the record and logs it; given a record with a pid, then adopt refuses and leaves it unchanged. | not run |
 | - | requirement | DEL-10 | no passing test | not enforced |
 | [adopt-refuses-unpushed](Tests#t-adopt-refuses-unpushed) | requirement | DEL-11 | Given a branch that is not on origin, when goal.py adopt runs, then it is refused in one line and no run record is written. | not run |
 | - | requirement | DEL-11 | no passing test | not enforced |
