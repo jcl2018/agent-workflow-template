@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.27.50 - 2026-11-12
+
+- Merge origin/main into loop/regression-rows-set-grd
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/regression-rows-set-grd
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/regression-rows-set-grd
+- Merge remote-tracking branch 'origin/main' into loop/regression-rows-set-grd
+- Wiki: update pages for regression-rows-set-grd
+
+### How to verify
+
+1. Run `python3 skills/workflow-regression/scripts/regression.py sync`.
+   Expect: no GAP line names SET-6, SET-7, SET-9 or GRD-1 to GRD-10 as lacking a row, and no UNPROVEN line names a grd row.
+2. Run `grep -c '^grd' .loop/regression.tsv`.
+   Expect: 17 or more rows.
+
 ## v0.27.49 - 2026-11-12
 
 - package-hang: package.py never waits on stdin or forever; hard bound with one TIMEOUT line; toy test
