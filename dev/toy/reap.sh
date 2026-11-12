@@ -22,6 +22,10 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   esac
 fi
 [ -z "${_toy_reap_on:-}" ] || return 0
+# Native Windows cannot run a test that needs the gh fake (CreateProcess does not launch a script named gh): it says so
+# with exit 77, and writes $TOY_SKIP_FILE when a lane set one, since a row's `| grep -q` hides the exit status.
+toy_skip() { echo "SKIP: $*"; [ -z "${TOY_SKIP_FILE:-}" ] || echo skip > "$TOY_SKIP_FILE"; exit 77; }
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) grep -q fakegh "$0" && toy_skip "$(basename "$0") needs the gh fake, which native Windows cannot launch";; esac
 export LOOP_NO_GIT_HOOKS=1  # a toy never installs git hooks into its repos (test-guard-enforce.sh unsets it)
 _toy_reap_on=1
 _toy_reap_py="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/reap.py"
@@ -60,4 +64,4 @@ trap '_toy_reap_sig 141' PIPE
 
 # toy_need_posix WHY: a test that cannot run on native Windows (no /tmp shared with python, backslash paths, fake gh
 # on PATH) says so with exit 77, which the regression lane reports as SKIPPED instead of failing the lane.
-toy_need_posix() { case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) echo "SKIP: $*"; exit 77;; esac; }
+toy_need_posix() { case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) toy_skip "$@";; esac; }

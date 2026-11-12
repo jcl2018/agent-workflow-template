@@ -27,6 +27,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 
 import actions
@@ -171,7 +172,11 @@ def execute(root, picked, todo, est, limit, timeout, expected, reuse):
             continue
         cap = timeout if remaining is None else min(timeout, remaining)
         began = time.time()
-        code, text, pid, signal = lanes.run_row(by[key]["command"], root, actions.row_env(), cap)
+        skip = os.path.join(tempfile.gettempdir(), "loop-skip-%d-%s" % (os.getpid(), key))  # a test that cannot run here writes it
+        code, text, pid, signal = lanes.run_row(by[key]["command"], root, dict(actions.row_env(), TOY_SKIP_FILE=skip), cap)
+        if code and os.path.exists(skip):  # a pipe in the row hides the test's own exit 77
+            os.remove(skip)
+            code = SKIP_CODE
         if code == 124 and cap < timeout:  # stopped by the budget, not by its own limit: it didn't fail, it wasn't finished
             left.append(key)
             continue
