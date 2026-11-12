@@ -64,8 +64,8 @@ def pages_of(root, query):
             return None, "gh gave unreadable output (page %d of %s: %s)" % (page, query, str(error)[:80])
         out += got
         if len(got) < PAGE:
-            break
-    return out, ""
+            return out, ""
+    return None, "more than %d issues match %s: narrow it" % (PAGE * MOST_PAGES, query)
 
 
 def fetch(root, scope="open"):
