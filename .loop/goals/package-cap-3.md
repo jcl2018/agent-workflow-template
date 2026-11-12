@@ -1,7 +1,7 @@
 # main packages again: dev/package.py passes on main at or under the 100-file Agensi cap with the listing matching, and lanes_cli.py check passes; new modules fold into existing ones with no behaviour change
 
 - Slug: package-cap-3
-- Touches: .loop/regression-known.tsv, skills, dev/package.py, dev/toy, .loop/regression.tsv, docs/wiki/Tests.md
+- Touches: .loop/regression-known.tsv, skills, dev/package.py, dev/toy, .loop/regression.tsv, docs/wiki/Tests.md, docs/wiki/Delivery.md
 
 ## Done lines
 
