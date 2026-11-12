@@ -1,7 +1,7 @@
 # Adoption never blocks, seeds tonight's format, is judged by health, and can learn from a repo already set up (owner, 2026-11-10: "Approve 1, 2, 3."); SET-1's milestone wording is corrected by the operation session under full auto (2026-11-11): "milestones per feature plus Backlog" and "on the right milestone" are dropped because the owner's later words make milestones free form and nothing needs one
 
 - Slug: setup-adopt-2
-- Touches: skills/workflow-setup, skills/workflow-health, dev/toy, .loop/regression.tsv, docs/wiki/Setup.md
+- Touches: skills/workflow-setup, skills/workflow-health, dev/toy, .loop/regression.tsv, docs/wiki/Setup.md, docs/wiki/Home.md
 
 ## Done lines
 
