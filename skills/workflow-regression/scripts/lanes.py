@@ -225,7 +225,7 @@ def scan(root, rel, cache):
 
 
 def walk(root, prefix, cache=None):
-    if os.path.isabs(prefix) or os.path.normpath(prefix).split("/")[0] == "..":  # outside the repo: never walked
+    if os.path.isabs(prefix) or os.path.normpath(prefix).replace("\\", "/").split("/")[0] == "..":  # outside the repo: never walked
         return []
     if cache is not None and ("walk", prefix) in cache:
         return cache["walk", prefix]
