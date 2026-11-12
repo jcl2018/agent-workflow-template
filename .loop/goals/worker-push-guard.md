@@ -14,3 +14,7 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. In a goal worktree run `python3 skills/workflow-delivery/scripts/private.py where`. Expect: `WORKER <slug>`; the same in the main checkout prints `NOT A WORKER (not a goal worktree)`.
+2. In a goal worktree run `git push origin HEAD:refs/heads/main` with the hooks installed. Expect: `REFUSED: a worker session for goal <slug> may push only loop/<slug> ... (WORKER_PUSH)` and nothing on origin changes.
+3. Run `git push origin HEAD:refs/heads/loop/<slug>` in the same worktree. Expect: the push goes through.
+4. In the main checkout run `git push origin main`. Expect: the push goes through (the operation session is unaffected).
