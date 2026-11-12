@@ -23,7 +23,24 @@ GROUPS = "requirements,traceability,consistency,docs,freshness,tests,performance
 MAIL_SECRETS = ("DIGEST_TO", "DIGEST_FROM", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_EMAIL_TOKEN", "DIGEST_SMTP_USER", "DIGEST_SMTP_PASSWORD")
 HERE = os.path.dirname(os.path.abspath(__file__))
 STAMP = "%Y-%m-%dT%H:%M:%SZ"
-UID = "gui/%d" % os.getuid()
+UID = "gui/%d" % getattr(os, "getuid", lambda: 0)()
+
+
+def alive(pid):
+    """Raises ProcessLookupError when pid is gone; on Windows asks tasklist, as a signal probe would send Ctrl+C."""
+    if os.name == "nt":
+        if str(pid).encode() not in subprocess.run(["tasklist", "/FI", "PID eq %d" % pid, "/NH"], capture_output=True).stdout.split():
+            raise ProcessLookupError(pid)
+    else:
+        os.kill(pid, 0)  # posix-only branch
+
+
+def stop(pid):
+    """Kill a child started with start_new_session=True and everything it started."""
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/T", "/F", "/PID", str(pid)], capture_output=True)
+    else:
+        os.killpg(pid, signal.SIGKILL)  # posix-only branch
 
 
 def home():
@@ -91,7 +108,7 @@ def locked(name, wait=0):
         except FileExistsError:
             try:
                 holder = int(open(os.path.join(path, "pid")).read())
-                os.kill(holder, 0)
+                alive(holder)
                 time.sleep(0.1)
             except (OSError, ValueError):
                 shutil.rmtree(path, ignore_errors=True)
@@ -209,7 +226,7 @@ def child(argv, cwd, env, seconds, log):
         except OSError as error:
             return 127, str(error)
         except subprocess.TimeoutExpired:
-            os.killpg(run.pid, signal.SIGKILL)
+            stop(run.pid)
             run.wait()
             code = 124
         out.seek(0)
