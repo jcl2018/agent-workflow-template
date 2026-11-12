@@ -19,7 +19,7 @@ want() { [ -z "$only" ] || [ "$only" = "$1" ]; }
 export CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"  # codex keeps its own sign-in there; HOME below is the toy's, with no private settings
 T=$(mktemp -d); toy_on_exit 'chmod -R u+w "$T" 2>/dev/null; rm -rf "$T"'
 export HOME="$T/home" LOOP_BOARD_HEALTH=green; mkdir -p "$HOME"
-fails=0; live_skip=""
+fails=0; live_skip=""; home_skip=""
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 check() { if eval "$2"; then ok "$1"; else bad "$1"; fi; }
@@ -52,11 +52,17 @@ verify() {
   local O="$2/.codex-out" n
   for n in setup merge go board health regression; do [ -f "$O/$n.rc" ] || { bad "$1: $n ran and left its result"; return; }; done
   check "$1: setup adopts the repo on branch workflow-setup" "grep -q '^WROTE the adoption on branch workflow-setup' $O/setup.txt"
+  # with claude or codex on PATH, setup refuses to call a bare agent command done (exit 1, a REFUSED line); with neither it exits 0
+  if command -v claude >/dev/null 2>&1 || command -v codex >/dev/null 2>&1; then
+    check "$1: setup exits 1 with its REFUSED line about the agent command, as it does on any first run" "[ \"\$(cat $O/setup.rc)\" = 1 ] && grep -q '^REFUSED to call this done: agent_command' $O/setup.txt"
+  else
+    check "$1: setup exits 0 when no agent is installed" "[ \"\$(cat $O/setup.rc)\" = 0 ]"
+  fi
   check "$1: the adoption merges into main" "[ \"\$(cat $O/merge.rc)\" = 0 ]"
   check "$1: go freezes the goal" "grep -q '^FROZEN codex-toy' $O/go.txt && [ -f $2/.loop/goals/codex-toy.md ]"
   check "$1: the live board lists the goal" "grep -q codex-toy $O/board.txt && [ \"\$(cat $O/board.rc)\" = 0 ]"
   check "$1: health check prints its verdict" "grep -q '^HEALTH: ' $O/health.txt"
-  check "$1: regression run prints its result" "grep -q '^RESULT [0-9]* passed' $O/regression.txt"
+  check "$1: regression run prints its result with no failed row" "grep -q '^RESULT [0-9]* passed.* 0 failed' $O/regression.txt"
 }
 # Run $2 (a codex, or the stand-in) as `codex exec` on a fresh toy repo named $1.
 as_codex() {
@@ -68,13 +74,15 @@ as_codex() {
   [ -z "${KEEP:-}" ] || cp "$T/$1.log" "$KEEP"
 }
 
-if want home; then
+if want home && [ "$(id -u)" = 0 ]; then
+  home_skip="root ignores a read-only folder, so the home part cannot show the sandbox case"; echo "SKIPPED: home: $home_skip"
+elif want home; then
   adopted_home="$T/h"; "$here/dev/toy/make.sh" "$adopted_home" >/dev/null || exit 1
   mkdir -p "$HOME"; chmod 555 "$HOME"  # what Codex's workspace-write sandbox leaves of the home folder
   out=$(cd "$adopted_home/repo" && python3 "$S/workflow-setup/scripts/setup.py" 2>&1); code=$?
   chmod 755 "$HOME"
   check "home: setup with a read-only home folder does not crash" "! grep -q Traceback <<<\"\$out\""
-  check "home: it says the private settings were not written and still adopts the repo" "grep -q '^NOTE: private settings not written' <<<\"\$out\" && grep -q '^WROTE the adoption' <<<\"\$out\""
+  check "home: it says the private settings were not written and still adopts the repo" "grep -q '^PRIVATE_NOT_WRITTEN: private settings not written' <<<\"\$out\" && grep -q '^WROTE the adoption' <<<\"\$out\""
   rm -rf "$HOME/.workflow-loop"
 fi
 
@@ -90,7 +98,8 @@ if want collide; then
     tool=$([ $((i % 2)) = 0 ] && echo codex || echo claude)
     (cd "$R1" && LOOP_SESSION_TOOL=$tool $SS bind q$i local_pod$i > "$T/b$i.out" 2>&1; echo $? >> "$T/b$i.out") &
   done; wait
-  check "collide: four workers bound at once, each to its own goal" "[ \$(cat $T/b?.out | grep -c '^ASSIGNED') = 4 ]"
+  pool=$(cd "$R1" && $SS list)
+  check "collide: four workers bound at once, the pool maps each session to its own goal" "[ \$(for i in 1 2 3 4; do grep -c \"^local_pod\$i .* q\$i\\\$\" <<<\"\$pool\"; done | tr -d '\\n') = 1111 ]"
   (cd "$R1" && $G queue q1 --goal "again" --done "x" > "$T/dup.out" 2>&1; echo $? >> "$T/dup.out")
   check "collide: a second queue of the same slug is refused, not merged" "grep -q 'REFUSED' $T/dup.out && ! grep -q Traceback $T/dup.out"
   # Two pods run a full lane each, in two repos, with one lane slot: one waits, both finish.
@@ -109,11 +118,15 @@ fi
 
 if want skip; then
   adopted "$T/s"; R="$T/s/repo"
-  printf 'cannot-run-here\tland\texit 77\tHOM-1\t2026-11-11\tGiven a row that cannot run on this machine, when it exits 77, then it is SKIPPED.\tcriterion\t\n' >> "$R/.loop/regression.tsv"
-  (cd "$R" && git add -A && git commit -qm row && $RG run land > "$T/skip.out" 2>&1; echo "rc=$?" >> "$T/skip.out"; $RG run land --reuse > "$T/skip2.out" 2>&1)
-  check "skip: a row that exits 77 is reported SKIPPED, not PASS or FAIL" "grep -q '^SKIPPED cannot-run-here' $T/skip.out && ! grep -q '^PASS cannot-run-here' $T/skip.out && ! grep -q '^FAIL cannot-run-here' $T/skip.out"
-  check "skip: it is saved as SKIPPED in the run ledger and opens no issue" "grep -q '^cannot-run-here	SKIPPED' $R/.loop/regression-runs.tsv && ! grep -q 'WOULD open or update the issue for cannot-run-here' $T/skip.out"
-  check "skip: a later lane runs it again instead of reusing it" "grep -q 'cannot-run-here' $T/skip2.out && ! grep -q 'REUSED' $T/skip2.out"
+  # Both rows read calc.py, so neither is an always-run row: the PASS row is reusable and the SKIPPED row must still run again.
+  printf 'pass-here\tland\tcat calc.py >/dev/null\tHOM-1\t2026-11-11\tGiven a row that passes, when it runs, then it is PASS.\tcriterion\t\n' >> "$R/.loop/regression.tsv"
+  printf 'cannot-run-here\tland\tcat calc.py >/dev/null; exit 77\tHOM-1\t2026-11-11\tGiven a row that cannot run on this machine, when it exits 77, then it is SKIPPED.\tcriterion\t\n' >> "$R/.loop/regression.tsv"
+  (cd "$R" && git add -A && git commit -qm rows && $RG run land > "$T/skip.out" 2>&1; echo "rc=$?" >> "$T/skip.out"
+   git add -A && git commit -qm ledger && $RG run land --reuse > "$T/skip2.out" 2>&1; $RG run land --reuse > "$T/skip3.out" 2>&1)
+  check "skip: a row that exits 77 is reported SKIPPED, not PASS or FAIL, and the lane is not failed by it" "grep -q '^SKIPPED cannot-run-here' $T/skip.out && ! grep -q '^PASS cannot-run-here' $T/skip.out && ! grep -q '^FAIL cannot-run-here' $T/skip.out && grep -q ', 1 skipped\$' $T/skip.out"
+  check "skip: it is saved as SKIPPED in the run ledger and opens no issue" "grep -q '^cannot-run-here	SKIPPED' $R/.loop/regression-runs.tsv && ! grep -q 'cannot-run-here' <(grep 'WOULD open' $T/skip.out)"
+  check "skip: a later lane reuses the PASS row and runs the SKIPPED row again" "grep -q '^SKIPPED cannot-run-here' $T/skip3.out && ! grep -q '^PASS pass-here' $T/skip3.out && grep -q '(1 reused)' $T/skip3.out"
+  check "skip: red refuses a break run that exits 77" "(cd $R && $RG red cannot-run-here --break true 2>&1 | grep -q '^REFUSED: the row exited 77')"
 fi
 
 if want fake; then
@@ -142,5 +155,5 @@ PY
 fi
 
 [ $fails = 0 ] || { echo "$fails FAILED"; exit 1; }
-[ -z "$live_skip" ] || { echo "SKIPPED: every part that could run passed; the live Codex run did not run"; exit 77; }
+[ -z "$live_skip$home_skip" ] || { echo "SKIPPED: every part that could run passed; $live_skip$home_skip"; exit 77; }
 echo "ALL PASS"

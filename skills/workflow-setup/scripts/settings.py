@@ -111,11 +111,13 @@ def reference():
 
 def write_json(path, data, mode=None):
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "w") as handle:
+    temp = "%s.%d.tmp" % (path, os.getpid())  # a full disk must not leave a truncated settings file
+    with open(temp, "w") as handle:
         json.dump(data, handle, indent=2)
         handle.write("\n")
     if mode:
-        os.chmod(path, mode)
+        os.chmod(temp, mode)
+    os.replace(temp, path)
 
 
 def load(path):
