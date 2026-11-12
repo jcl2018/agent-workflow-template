@@ -11,7 +11,7 @@
 | [Regression](Regression) | Keeps every requirement and defect tied to a test that runs, and shows the results. | [README › Regression](https://github.com/jcl2018/agent-workflow-template#how-to-use-regression) | [Regression](https://github.com/jcl2018/agent-workflow-template/milestone/7) |
 | [Health](Health) | Checks the repo with fixed rules and a full reviewer, and files every finding as an issue tagged with its feature. | [README › Health](https://github.com/jcl2018/agent-workflow-template#how-to-use-health) | [Health](https://github.com/jcl2018/agent-workflow-template/milestone/4) |
 | [Setup](Setup) | Turns any repo into a ready workspace for any agent, judged by health, and keeps it in step with the template. | [README › Setup](https://github.com/jcl2018/agent-workflow-template#how-to-use-setup) | [Setup](https://github.com/jcl2018/agent-workflow-template/milestone/9) |
-| [Automation](Automation) | Runs regression and health on a schedule, files each failure and finding as an issue tagged with its feature, and emails you one digest per round. | [README › Automation](https://github.com/jcl2018/agent-workflow-template#how-to-use-automation) | [Automation](https://github.com/jcl2018/agent-workflow-template/milestone/10) |
+| [Automation](Automation) | Runs regression and health on a schedule, plus any routine a repo adds as one config entry, files each failure and finding as an issue tagged with its feature, and emails you one digest per round. | [README › Automation](https://github.com/jcl2018/agent-workflow-template#how-to-use-automation) | [Automation](https://github.com/jcl2018/agent-workflow-template/milestone/10) |
 | [Guardrails](Guardrails) | Lists every guardrail the template has or needs, each with what it protects against, its owner, its setting and the health check that must prove it is on. | [README › Guardrails](https://github.com/jcl2018/agent-workflow-template#how-to-use-guardrails) | [Guardrails](https://github.com/jcl2018/agent-workflow-template/milestone/11) |
 
 <!-- settings:begin -->
@@ -24,7 +24,7 @@ Every repo setting from the template's settings reference, with this repo's valu
 | `base` | The branch goals start from and pull requests target. | set "base" in .loop/config.json | `main` | default |
 | `agent_command` | The command that runs a goal in the background; the prompt is its last argument. | set "agent_command" in .loop/config.json | `[]` | **overridden:** `["claude", "-p", "--model=sonnet", "--allowedTools=Bash,Read,Write,Edit,Skill"]` |
 | `parallel` | Workers running at once; 0 means unlimited. | set "parallel" in .loop/config.json | `0` | default |
-| `cadence` | Minutes between check-ins of the operation session, 1 to 60, or off. | set "cadence" in .loop/config.json | `30` | default |
+| `cadence` | Minutes between check-ins of the operation session, 1 to 60, or off. | set "cadence" in .loop/config.json | `30` | **overridden:** `30` |
 | `auto_approve` | true approves what a flow step leaves for the owner, logged as auto-approved. | set "auto_approve" in .loop/config.json | `false` | **overridden:** `true` |
 | `auto_merge` | true lets the release step merge a goal's pull request and publish its release. | set "auto_merge" in .loop/config.json | `false` | **overridden:** `true` |
 | `pr_bumps_version` | true moves the last number of the version file once on a goal's branch. | set "pr_bumps_version" in .loop/config.json | `false` | default |

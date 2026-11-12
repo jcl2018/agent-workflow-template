@@ -27,7 +27,7 @@ run (regression's runs.py enforces it). Neither can be set under 15. A step that
 it has done, and its record (budget_hits in the goal's run file) names what it left; the board and health show those.
 Imported by flow.py, role.py, guards.py and the monitoring and health reports.
 """
-import fcntl
+import portlock as fcntl
 import glob
 import json
 import os
