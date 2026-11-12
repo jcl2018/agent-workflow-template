@@ -44,6 +44,8 @@ if want set1-health-bracket; then
   git log -1 --format=%B | sed -n 2p | grep -q '^HEALTH START:' || no "the start state is not the commit message's second line"
   mk hb2; out=$($setup --no-health 2>&1)
   echo "$out" | grep -q '^HEALTH START: not measured (skipped by --no-health)' && echo "$out" | tail -1 | grep -q '^ADOPTION VERDICT: not measured' || no "--no-health: $(echo "$out" | tail -3)"
+  mk hb4; $setup --no-health --strict >/dev/null 2>&1; [ $? = 3 ] || no "--strict does not exit 3 when the verdict is not measured"
+  git log -1 --format=%s | grep -q 'Adopt the workflow loop' || no "--strict did not leave the adoption committed"
   mk hb3; unset LOOP_NO_HEALTH
   out=$(LOOP_HEALTH_LIMIT=1 $setup --dry-run 2>&1); export LOOP_NO_HEALTH=1
   echo "$out" | grep -q '^HEALTH START: not measured (the check ran past its time limit)' && echo "$out" | tail -1 | grep -qx 'ADOPTION VERDICT: not run (dry run)' || no "a health run past the limit: $(echo "$out" | head -6)"
