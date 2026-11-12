@@ -31,10 +31,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import lanekit  # noqa: E402
-import guards  # noqa: E402
-import fit  # noqa: E402
-import private  # noqa: E402
+import lanekit, guards, fit, private  # noqa: E402,E401
 import role
 
 
