@@ -133,8 +133,11 @@ def cmd_publish(args):
     error = publish(top, read_config(top), args.slug)
     if error:
         state["wiki_error"] = error
-        report = state.setdefault("report", {})
-        report["text"] = ("%s Wiki not published: %s" % (report.get("text", ""), error)).strip()
+        report, note = state.get("report"), ""
+        if not isinstance(report, dict):  # a goal reset leaves report null; a hand edit can leave anything
+            note = "" if report is None else "(the stored report was a %s and was reset) " % type(report).__name__
+            report = state["report"] = {}
+        report["text"] = ("%s %sWiki not published: %s" % (str(report.get("text") or ""), note, error)).strip()[:600]
         save(state, "wiki not published: " + error)
         print("WIKI REFUSED %s: %s" % (args.slug, error))
         return 1

@@ -54,6 +54,7 @@ aut-secret-name	PASS	2026-11-12
 aut-setup-health-only-with-skill	PASS	2026-11-12	
 auto-approved	PASS	2026-11-09	
 auto-release	PASS	2026-11-12	
+autorelease-no-report	PASS	2026-11-12	
 bad-schedule-refused	PASS	2026-11-12	
 batch-cut-user	PASS	2026-11-09	
 board-estimates-overrun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -67,8 +68,8 @@ ci-issue-backlog	PASS	2026-11-10
 ci-levels-setting	PASS	2026-11-10	
 ci-summary	PASS	2026-11-12	
 ci-target-input	PASS	2026-11-10	
-cost-time-warn	PASS	2026-11-11	
-cost-unread-tokens	PASS	2026-11-11	
+cost-time-warn	PASS	2026-11-12	
+cost-unread-tokens	PASS	2026-11-12	
 criteria-max-config	PASS	2026-11-11	
 criteria-max-setting	PASS	2026-11-11	
 criteria-no-scripts	PASS	2026-11-12	
@@ -76,9 +77,9 @@ cut-draft	PASS	2026-11-09
 cut-needs-verify	PASS	2026-11-12	
 defect-categories	PASS	2026-11-12	
 defect-flow-steps	PASS	2026-11-12	
-defect-health	PASS	2026-11-11	
-defect-known	PASS	2026-11-11	
-defect-owed	PASS	2026-11-11	
+defect-health	PASS	2026-11-12	
+defect-known	PASS	2026-11-12	
+defect-owed	PASS	2026-11-12	
 defect-owed-branch-proved	PASS	2026-11-10	
 defect-wording	PASS	2026-11-12	
 del9-hooks	PASS	2026-11-12	
@@ -184,8 +185,8 @@ issue-truncated-unread	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 issues-no-rows	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 issues-phone-97	PASS	2026-11-10	
 judge-needs-you	PASS	2026-11-11	
-judge-section-format	PASS	2026-11-11	
-judge-verdict-unchanged	PASS	2026-11-11	
+judge-section-format	PASS	2026-11-12	
+judge-verdict-unchanged	PASS	2026-11-12	
 keeps-seen-red	PASS	2026-11-12	
 known-no-block	PASS	2026-11-12	
 known-recorded	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -425,6 +426,7 @@ usage-no-script	PASS	2026-11-11
 usage-optional	PASS	2026-11-11	
 usage-section-allowed	PASS	2026-11-11	
 waits-first	PASS	2026-11-09	
+wiki-no-report	PASS	2026-11-12	
 wiki-release	PASS	2026-11-12	
 wiki-release-pycache	PASS	2026-11-12	
 wiki-unmapped-stale	PASS	2026-11-11	
