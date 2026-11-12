@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.27.14 - 2026-11-12
+
+- test-guard-enforce: the health block asks the Security group for the hooks rule
+- Docs: the hooks rule is in the Security group; set8-health seen failing and rendered
+- Lane: re-render the Tests tables
+- Merge origin/main (v0.27.11) into loop/guard-enforce-red: rows unioned, Tests re-rendered
+- Merge origin/main into loop/guard-enforce-red: Tests re-rendered
+- Merge origin/main into loop/guard-enforce-red: Tests re-rendered
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.13 - 2026-11-12
 
 - Pods: one shared owner check and merge lock, claim adds sessions, per-repo check-in blocks
