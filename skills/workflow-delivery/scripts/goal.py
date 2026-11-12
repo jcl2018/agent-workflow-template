@@ -278,7 +278,7 @@ def cmd_record(args):
     text = read(reply)
     found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b[ :.-]*(.*)$", text, re.M | re.I)
     result, why = (found[-1][0].lower(), found[-1][1].strip()) if found else ("", "")
-    pending = [" ".join(item.split()) for item in re.findall(r"^\W*PENDING:\s*(.+)$", text, re.M)]
+    pending = guards.pending_items(text)
     session = args.in_session or state.get("worker") == "session"
     if not result and not pending and session:  # flow.py's session route prints record without --in-session
         guards.refuse_no_try(state, "the %s reply has no STEP line" % args.step, "end the reply with the DEPTH line and a "

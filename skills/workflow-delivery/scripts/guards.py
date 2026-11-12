@@ -99,6 +99,15 @@ def check_record(state, step, text, cfg, result):
     return " (depth %s%s)" % (depth, ", skipped" if result == "skipped" else ""), None, None, skipped
 
 
+NO_ITEM = re.compile(r"(none|nothing|n/?a|no decisions?)?", re.I)  # what a PENDING line says when it asks nothing
+
+
+def pending_items(text):
+    """The real owner decisions of a step reply: one per PENDING: line; none, nothing, n/a and an empty line are not."""
+    items = (" ".join(item.split()) for item in re.findall(r"^\W*PENDING:[ \t]*(.*)$", text, re.M))
+    return [item for item in items if not NO_ITEM.fullmatch(re.sub(r"^\W+|\W+$", "", item))]
+
+
 def refuse_no_try(state, why, fix, code, save):
     """A refusal that changes nothing the goal depends on: no try is used and the goal keeps running. Only a counter is
     kept; at NOTE_AT in a row the run record's note says so, and the board shows it to the operation."""

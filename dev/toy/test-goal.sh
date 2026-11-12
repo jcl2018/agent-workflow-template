@@ -1,6 +1,7 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/references/commands.md skills/workflow-delivery/scripts/flow.py
-# reads: skills/workflow-delivery/scripts/goal.py skills/workflow-monitoring/scripts/monitor.py
+# reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/guards.py skills/workflow-delivery/scripts/role.py
+# reads: skills/workflow-monitoring/scripts/monitor.py
 # reads: skills/workflow-monitoring/scripts/watch.py skills/workflow-release/scripts/merge.py
 # reads: skills/workflow-setup/scripts/setup.py
 # Test the skill flow, the queue command, version bumps and the governing watch with a fake agent. No model is called.
@@ -96,6 +97,35 @@ $goal pr low | grep -q "^PR " && ok "pr once every step is done or skipped" || b
 grep -q -- "- qa: skipped: no browser on this machine" "$FAKE_GH_DIR/calls.log" && ok "the pull request lists each step's result" || bad "pr body"
 git switch -q main
 
+echo "== PENDING: none, nothing, n/a and an empty PENDING line never make a goal wait; a real item still does"
+pnall=1; pn=0
+for reply in 'PENDING: none' 'PENDING: nothing' 'PENDING: **none**' 'PENDING: n/a' 'PENDING:'; do
+  pn=$((pn + 1)); git switch -q main; $goal new pn$pn --here --goal "Add pn$pn" --done "calc has pn$pn" >/dev/null
+  out=$(FAKE_SKILL_OUT="$reply\nDEPTH: full\nSTEP: done" step pn$pn idea 2>&1)
+  if grep -q "^RECORDED idea" <<<"$out" && grep -q "^NEXT: flow.py pn$pn plan" <<<"$out" && [ "$(field pn$pn status)" = running ] \
+     && [ "$(field pn$pn waiting)" = None ] && python3 -c "import json,sys;f=json.load(open(sys.argv[1]))['flow']['idea'];assert f.startswith('done') and 'DEPTH' not in f and 'STEP' not in f" "$C/loop/runs/pn$pn.json"; then :; else
+    pnall=0; bad "PENDING reply [$reply] made the goal wait or swallowed the next line: ${out:0:160}"; fi
+done
+[ $pnall = 1 ] && ok "PENDING none, nothing, **none**, n/a and empty record and go on"
+git switch -q main; $goal new pnmix --here --goal "Add pnmix" --done "calc has pnmix" >/dev/null
+out=$(FAKE_SKILL_OUT='PENDING: none\nPENDING: approve the plan\nDEPTH: full\nSTEP: done' step pnmix idea 2>&1)
+python3 -c "import json,sys;w=json.load(open(sys.argv[1]))['waiting'];assert 'approve the plan' in w['ask'] and 'none' not in w['ask'].lower()" "$C/loop/runs/pnmix.json" && grep -q "WAITING pnmix" <<<"$out" \
+  && ok "a real PENDING item among none lines still waits, with its own ask" || bad "mixed none and real item: ${out:0:160}"
+git switch -q main; $goal new pnedge --here --goal "Add pnedge" --done "calc has pnedge" >/dev/null
+FAKE_SKILL_OUT='PENDING: none\nDEPTH: full' step pnedge idea 2>&1 | grep -q "gave no STEP line" && ok "PENDING: none with no STEP line is a failed try, not a wait" || bad "none with no STEP line"
+FAKE_SKILL_OUT='PENDING: none\nDEPTH: full\nSTEP: pending' step pnedge idea 2>&1 | grep -q "WAITING pnedge" && ok "PENDING: none with STEP: pending still waits (the step asked to)" || bad "none with STEP: pending"
+python3 - "$here/skills/workflow-delivery/scripts" <<'PY' && ok "pending_items drops none, n/a, no decisions and bare punctuation and keeps none left" || bad "pending_items values"
+import sys
+sys.path.insert(0, sys.argv[1]); import guards as g
+cases = {"PENDING: none left": ["none left"], "PENDING: N/A.": [], "PENDING: No decisions": [], "PENDING: --": [], "PENDING:": [],
+         "PENDING: approve the plan": ["approve the plan"], "  - PENDING: pick a name": ["pick a name"], "PENDING: none\r\nSTEP: done": [],
+         "PENDING:\nDEPTH: full": []}
+bad = {k: g.pending_items(k) for k, v in cases.items() if g.pending_items(k) != v}
+assert not bad, bad
+PY
+git switch -q main
+for s in pn1 pn2 pn3 pn4 pn5 pnmix pnedge; do rm -f "$C/loop/runs/$s".*; git branch -q -D "loop/$s" 2>/dev/null; done  # the goals above were only for the cases; later cases count running goals
+
 echo "== goal.py keeps room under 20 KB, and has no checks step"
 [ "$(wc -c < "$here/skills/workflow-delivery/scripts/goal.py")" -lt 19500 ] && ok "goal.py keeps room under 20 KB" || bad "goal.py size"
 $goal check low 2>&1 | grep -q "invalid choice" && ok "goal.py has no check command" || bad "check command"
@@ -136,7 +166,11 @@ out=$($goal pr open); grep -q "^PR " <<<"$out" && grep -q "NEXT: workflow-releas
 FAKE_GH_PR_STATE=OPEN python3 "$here/skills/workflow-release/scripts/merge.py" open | grep -q "^MERGED" && grep -q "^pr merge .* --merge" "$FAKE_GH_DIR/calls.log" && [ "$(field open release)" = cut ] && ok "auto_merge: the release step merges the pull request and releases it" || bad "auto merge"
 git fetch -q origin; git switch -q main; git merge -q --ff-only origin/main
 FAKE_GH_PR_STATE=CLOSED python3 "$here/skills/workflow-release/scripts/merge.py" open 2>&1 | grep -q "is CLOSED, not open" && ok "a closed pull request is not merged" || bad "closed pr"
-git switch -q main; cp "$d/cfg.gated" .loop/config.json; git commit -qam "Gates back on" >/dev/null; git push -q origin main
+git switch -q main; $goal new ng --here --goal "Add ng" --done "calc has ng" >/dev/null
+out=$(FAKE_SKILL_OUT='PENDING: none\nDEPTH: full\nSTEP: done' step ng idea 2>&1)
+grep -q "^RECORDED idea" <<<"$out" && ! grep -q "AUTO-APPROVED" <<<"$out" && ok "auto_approve: PENDING none records and is never reported as auto-approved" || bad "auto_approve with PENDING none: ${out:0:160}"
+git switch -q main; rm -f "$C/loop/runs/ng".*; git branch -q -D loop/ng 2>/dev/null
+cp "$d/cfg.gated" .loop/config.json; git commit -qam "Gates back on" >/dev/null; git push -q origin main
 
 echo "== the Delivery commands reference names every goal.py command and flag"
 missing=""
