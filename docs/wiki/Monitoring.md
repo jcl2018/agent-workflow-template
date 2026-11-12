@@ -124,6 +124,7 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde
 | [session-ended-waiting](Tests#t-session-ended-waiting) | requirement | MON-2 | Given a goal that ends with its pull request open, when it finishes, then it stays done and frees its session. | PASS 2026-11-10 |
 | [session-tool-timeout](Tests#t-session-tool-timeout) | requirement | MON-2 | Given a hung session tool, when its timeout passes, then it is cut off and the goal falls back to a background process at once. | PASS 2026-11-10 |
 | [session-tool-helper](Tests#t-session-tool-helper) | requirement | MON-2 | Given a helper process the session tool leaves running, when the call returns, then the helper never holds it up. | PASS 2026-11-10 |
+| [guards-null-report-bind-mend](Tests#t-guards-null-report-bind-mend) | requirement | MON-2 | Given a failed or stopped goal restarted by a worker bind or by mend, when its record is written, then report is an empty record, never null. | not run |
 | [waits-first](Tests#t-waits-first) | requirement | MON-3 | Given a live board, when the board page is opened, then it shows the live board. | PASS 2026-11-09 |
 | [board-sections](Tests#t-board-sections) | requirement | MON-3 | Given a live board, when the board page is built, then it carries the live board's sections. | PASS 2026-11-09 |
 | [retired-leaves-waiting](Tests#t-retired-leaves-waiting) | requirement | MON-4 | Given a retired goal, when the board is shown, then it no longer shows under Issues. | PASS 2026-11-09 |
