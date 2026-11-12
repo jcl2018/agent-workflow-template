@@ -311,7 +311,7 @@ def main():
             if os.path.exists(reply):
                 os.replace(reply, reply + ".last")
             with open(reply, "w") as out:
-                out.write("%s\nSTEP: failed regression lane: %s\n" % (line, ", ".join(ids) or line.splitlines()[-1][:200]))
+                out.write(fit.off_reply(line) or "%s\nSTEP: failed regression lane: %s\n" % (line, ", ".join(ids) or line.splitlines()[-1][:200]))
             open(base + ".ran", "w").close()
             print("NEXT: goal.py record %s %s --file %s" % (args.slug, args.step, reply))
             return 0
