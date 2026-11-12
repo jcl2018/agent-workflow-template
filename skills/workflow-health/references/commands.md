@@ -189,17 +189,17 @@ Status: built and proven: Print the check report and verdict; Gather criteria, t
 Stops for the owner: Owner applies suggested wording.
 Proof: toy tests with a stand-in judge on a throwaway repo; no model is called in any test.
 
-#### `automation.py`: `workflow`, `digest`
+#### `automation.py`: `local`, `digest`
 
-`workflow` writes `.github/workflows/health.yml` from `.loop/config.json`: `health_cron` (five cron fields, or `off`,
-which keeps only the by-hand trigger) and `judge_env` (a secret name, `^[A-Z_][A-Z0-9_]*$`; anything else is
-refused). The run checks the routine first: `off` makes a scheduled run print `OFF:` and write nothing (a run started by hand
-still runs); a schedule unlike the config prints
-`SCHEDULE:` with the command that rewrites it; a checkout without the workflow-health skill prints `MISSING:` and fails,
-writing nothing. Then `health.py check --group size,criteria,docs` goes into the run summary (Cost, Mine and hygiene need
-this machine's run records, branches and private files), `health.py file` for those groups, the judge only when the secret is set
-and the runner has `judge_command`'s program (`judge_setup` can install it; otherwise `JUDGE: skipped` says why), and the
-digest. The workflow reads the repo and writes only issues, labels, comments and the run summary.
+`local install|uninstall|status|plist|tick` is the local schedule (workflows.py): one user launch agent,
+`com.workflow-loop.schedule`, and a registry of repos in `~/.workflow-loop/schedule/repos.json`, both outside every repo.
+`health_cron` (`off`, `M */N * * *` with N dividing 24, or `M h[,h] * * *`) sets its calendar. A tick, per repo that is due,
+probes gh, fetches `origin/<base>` into its own checkout, runs `health.py check`, files its findings, runs the judge with the owner's
+own claude login (`ANTHROPIC_API_KEY` and `CLAUDECODE` are dropped; `judge_env` and `judge_setup` are no longer read), runs the
+full regression live when `regression_runs` is `mac` (a private repo), then the digest and, with a 0600 `mail.env`, the mail.
+launchd runs one coalesced fire at wake, so a missed run happens at the next wake and the digest says when it last ran
+(`MISSED:` after a gap). `automation.py workflow` is removed (exit 2, `SCHEDULE_REMOVED_WORKFLOW`). The Health wiki page lists
+every message with its code and fix.
 
 `digest` finds or creates the `Automation digest` issue (label `automation`) and pins it (a failed pin warns). It reads
 the open issues labelled `regression` (failing tests, also labelled `defect`) or `health`, compares them with the state
@@ -209,8 +209,8 @@ open issue ``/workflow-delivery go "Fix #N"`` with its link, never its title. A 
 Actions with no token it says so and fails; elsewhere without one it only prints the comment. `workflow --check` reports a
 written workflow older than the skills (`STALE_WORKFLOW`) or one not written by it (`NOT_OURS`).
 
-`mail.py send` (the `mail` job, after the digest) mails the round's comment at most once, by Cloudflare Email or SMTP
-(`digest_mail`), to the address in the `DIGEST_TO` secret; `mail.py test` (`mail-test.yml`, by hand) sends one fixed mail.
+`mail.py send` (the tick's last step) mails the round's comment at most once, by Cloudflare Email or SMTP
+(`digest_mail`), to the address in `DIGEST_TO` (from the schedule's `mail.env`); `mail.py test`, by hand, sends one fixed mail.
 Codes and fixes are in the Automation wiki page.
 
 ## Milestones: free form, optional, an owner's commands
@@ -245,7 +245,7 @@ MOVED issue 42 to no milestone
   (`REFUSED: could not move issue N: ... Fix: gh issue view N ...`).
 - `features`, `attach` and `new --all` were removed: each prints one line `REFUSED: <name> was removed, milestones are free form.
   Fix: drop the call.` and exits 1. A health workflow written by an older template still has that step; it only echoes a
-  warning, so its job goes on. Regenerate the workflow (`automation.py workflow`) to drop it.
+  warning, so its job goes on. Remove the workflow (`git rm .github/workflows/health.yml`): health runs on the Mac now.
 
 A milestone that exists is still shown: on Home when the owner links it, in the digest beside an issue's request, and in
 triage and the judge as the issue's own milestone. Nothing is ever closed, deleted or merged by these commands.

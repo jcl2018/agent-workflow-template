@@ -384,7 +384,7 @@ In the repo:
 | `.loop/regression.tsv` | Test rows |
 | `.loop/regression-known.tsv` | Rows expected to fail, with a reason |
 | `.loop/regression-runs.tsv`, `.loop/regression-issues.tsv` | Each row's last result; each defect test's issue state |
-| `.github/workflows/regression.yml`, `.github/workflows/health.yml` | The scheduled routines (written by setup) |
+| `.github/workflows/regression.yml`, `.github/workflows/regression-pr.yml` | A public repo's regression routines (written by setup); health and a private repo's regression run on the Mac |
 | `docs/wiki/` | Wiki pages, each starting with `<!-- workflow-docs -->` |
 
 Outside the repo, run state lives in `<git common dir>/loop/`: `runs/<slug>.json`, `logs/<slug>.log`,
