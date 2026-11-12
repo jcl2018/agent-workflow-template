@@ -183,6 +183,8 @@ def references(root, text, folder, wide=True):
     for raw in PATH.findall(text):
         raw = raw.rstrip(".")
         for cand in {raw, os.path.normpath(os.path.join(folder, raw))}:
+            if cand.startswith("/"):  # absolute: os.path.join(root, "/x") is "/x", outside the repo
+                continue
             if cand.split("/")[0] == ".git":  # git's own store: in a full clone .git/index names every file (issue 178)
                 continue
             full = os.path.join(root, cand)
