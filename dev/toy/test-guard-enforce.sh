@@ -191,7 +191,7 @@ check "--check --json reports a broken list as broken (exit 1), still no pattern
 fi
 if want setup; then
 echo "== SET-8: setup scans its own staged adoption files before it commits"
-adopt a1 "This is $TOKEN itself."
+adopt a1; mkdir -p "$T/a1/docs/wiki"; printf '# Home\n\nThis is %s itself.\n' "$TOKEN" > "$T/a1/docs/wiki/Home.md"  # a page nobody committed: setup adapts it, so its line is one the adoption adds
 r "cd $T/a1 && python3 $SETUP"
 check "setup refuses to commit an adoption file holding a private line (exit 1, nothing committed)" '[ $rc = 1 ] && has "matches list line 2" && has "REFUSED: a staged adoption file holds a private name" && ! git -C $T/a1 log --oneline 2>/dev/null | grep -q Adopt'
 check "the setup refusal output never holds the match" '! has "$TOKEN"'
