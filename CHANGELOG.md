@@ -1,5 +1,57 @@
 # Changelog
 
+## v0.27.15 - 2026-11-12
+
+- lane-plan-cache: idea design
+- lane-plan-cache: plan
+- lane-plan-cache: fixtures, v0.27.6 golden plans, golden and calls tests
+- lane-plan-cache: memoize the per-row changed call and the folder walk
+- lane-plan-cache: a per-branch closure cache keyed by HEAD, the row file, the planner and LANES_WIDE
+- lane-plan-cache: seen-red dates for plan-cache-key and plan-seconds-nightly; render Tests
+- lane-plan-cache: key the cache on the loop's uncommitted bookkeeping files
+- Merge origin/main (v0.27.8) into loop/lane-plan-cache: Tests re-rendered
+- lane-plan-cache: review fixes F1 to F11
+- lane-plan-cache: test the inflate cap with a 200 MB bomb
+- Merge origin/main (lane-tmpdir v0.27.9) into loop/lane-plan-cache: Regression Usage keeps both sentences, rows kept
+- Merge remote-tracking branch 'origin/main' into loop/lane-plan-cache
+- lane-plan-cache: tiers.py carries the no-terminal guard (the lane caught it: DEL-10 and no-hang)
+- lane-plan-cache: qa fixes: sizes builds the package from the committed files, key-rows documented as rare, Regression Usage says planning asks git once per plan
+- lane-plan-cache: ship fixes: locale crash, outside symlinks, doc wording
+- Merge origin/main (v0.27.11) into loop/lane-plan-cache: rows kept
+- Merge origin/main (v0.27.12) into loop/lane-plan-cache: Regression Usage keeps both sentences
+- lane-plan-cache: after the v0.27.12 merge, tiers.py back under 18,432 and lanes.py ceiling set to main's size
+- lane-plan-cache: Regression Usage names LANES_NO_CACHE
+- Merge origin/main (v0.27.13) into loop/lane-plan-cache: Tests re-rendered
+- pr: record issue states and the lane's results
+- Merge origin/main (v0.27.14) into loop/lane-plan-cache: rows kept
+
+### How to verify
+
+1. Run `bash dev/toy/test-plan-cache.sh all`.
+   Expect: golden, calls, identity, key and sizes all print PASS lines and the run ends with `ALL PASS`.
+2. Run `bash dev/toy/test-plan-cache.sh seconds` on a quiet or busy machine.
+   Expect: it prints the off, cold and warm planning seconds of a 1,500-row fixture under 20 busy loops, the cold plan under 60 seconds, the cache file under 2 MB, and ends with `ALL PASS`.
+3. On a large real repo (owner, not run by the build), rerun a lane that was cut with "planning ran long" at a load average of 20 or more, then read the `planning Ns` part of its LANE line and the `PLAN_CACHE:` line of its log (the planner's first line).
+   Expect: planning is under 60 s; run the same lane again at the same HEAD and the log says `PLAN_CACHE: hit (N rows)`; after a new commit it says `PLAN_CACHE: miss (key-head)`. If planning is under 60 s, lower that repo's `prep_budget_minutes` from 25 toward the default.
+4. Run `LANES_NO_CACHE=1 python3 skills/workflow-regression/scripts/regression.py run land --reuse --tier goal` in a clean checkout of a feature branch.
+   Expect: the first planner line (after any `SKIP <id>: draft` or `covered` lines) is `PLAN_CACHE: off (LANES_NO_CACHE=1)` and the rest of the output is what it was before the cache existed.
+5. Done line 5 says "every script stays under 18 KB", but 27 scripts were already over 18,432 bytes before this goal, so it is read as: no script grows past its current size, and tiers.py and narrow.py (the two this goal edits that were under it) stay under 18,432. Run `wc -c skills/workflow-regression/scripts/tiers.py skills/workflow-regression/scripts/narrow.py skills/workflow-regression/scripts/lanes.py`.
+   Expect: tiers.py and narrow.py under 18432 and lanes.py at most 19710 (its size on main at v0.27.12; this goal's own change to it is a net shrink). If you meant every script under 18 KB, that is a different goal.
+
+## v0.27.14 - 2026-11-12
+
+- test-guard-enforce: the health block asks the Security group for the hooks rule
+- Docs: the hooks rule is in the Security group; set8-health seen failing and rendered
+- Lane: re-render the Tests tables
+- Merge origin/main (v0.27.11) into loop/guard-enforce-red: rows unioned, Tests re-rendered
+- Merge origin/main into loop/guard-enforce-red: Tests re-rendered
+- Merge origin/main into loop/guard-enforce-red: Tests re-rendered
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.13 - 2026-11-12
 
 - Pods: one shared owner check and merge lock, claim adds sessions, per-repo check-in blocks
