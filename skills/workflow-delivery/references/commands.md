@@ -469,7 +469,7 @@ goal deletes; it may write it back`. A worker session binds itself with `session
 |---|---|---|
 | `PRIVATE_NAME` | `goal.py pr`, the git hooks | remove the text and squash, or edit that list line for a false positive |
 | `WORKER_PUSH` | the pre-push hook, in a goal worktree | push only `loop/<slug>` (`goal.py pr` does); main, tags and other branches are for the operation session |
-| `WORKER_PUSH_INTERNAL` | the pre-push hook | git's ref lines or `git rev-parse` couldn't be read; run the push again |
+| `WORKER_PUSH_INTERNAL` | the pre-push hook | git's ref lines or `git rev-parse` couldn't be read (also a push from a bare clone); run `private.py where` in this folder to see why, then tell the owner |
 | `PRIVATE_LIST` | every scan | repair the list; `private.py check` names the line |
 | `FINDING_LOCAL` | a finding's push | the finding stays local; fix the hit, then push |
 | `ALREADY_RECORDED` | `flow.py` | go on with the step it names, or `--again` |

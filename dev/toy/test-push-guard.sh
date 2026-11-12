@@ -82,8 +82,8 @@ r "cd $T/m && python3 $PV where"
 check "where says NOT A WORKER in the main checkout" '[ $rc = 0 ] && has "^NOT A WORKER"'
 r "cd $T && python3 $PV where"
 check "where says UNKNOWN (exit 1) outside a repo, never a guess" '[ $rc = 1 ] && has "^UNKNOWN"'
-ln -s "$T" "$T/../$(basename "$T")-link" 2>/dev/null
-r "cd $T/../$(basename "$T")-link/m/.git/loop/worktrees/demo && python3 $PV where"
+mkdir -p "$T/links"; ln -s "$T/m" "$T/links/mlink"
+r "cd $T/links/mlink/.git/loop/worktrees/demo && python3 $PV where"
 check "where sees through a symlinked path" 'has "^WORKER demo$"'
 r "grep -c 'WORKER_PUSH' $here/skills/workflow-delivery/references/commands.md"
 check "commands.md lists both worker push codes" '[ "$(grep -c "^| .WORKER_PUSH" $here/skills/workflow-delivery/references/commands.md)" -ge 1 ] && grep -q "WORKER_PUSH_INTERNAL" $here/skills/workflow-delivery/references/commands.md'
