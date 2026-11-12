@@ -597,3 +597,4 @@
 | <a id="t-settings-publish-refresh"></a>settings-publish-refresh | requirement | done line settings-table:3 | not run | - | local | 2026-11-12 |
 | <a id="t-settings-entry"></a>settings-entry | requirement | done line settings-table:4 | not run | - | local | 2026-11-12 |
 | <a id="t-automation-missing-workflow"></a>automation-missing-workflow | requirement | done line settings-table:5 | not run | - | local | 2026-11-12 |
+| <a id="t-automation-live"></a>automation-live | requirement | done line settings-table:5 | not run | - | local | no |

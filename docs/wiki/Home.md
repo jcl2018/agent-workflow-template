@@ -71,11 +71,11 @@ Every repo setting, from the template's settings reference and this repo's `.loo
 <!-- automation:begin -->
 ## Automation
 
-Each routine, from `.loop/config.json`, the workflow files and the regression runs file.
+Health and regression, then each `automation` entry in `.loop/config.json`; to add one, add an entry.
 
-| Routine | State | Cadence | Runs on | Last run | Owed by you |
-|---|---|---|---|---|---|
-| health | on | every 4 hours | GitHub Actions | unknown | none |
-| regression | on | every 4 hours | GitHub Actions | 2026-11-12 | none |
-| digest email | on (cloudflare) | with each health round | GitHub Actions | unknown | set the digest address and keys as Actions secrets (yours, outside git) |
+| Routine | What it does | State | Cadence | Runs on | Last run | Owed by you |
+|---|---|---|---|---|---|---|
+| health | Checks the repo and files each finding. | on | every 4 hours | GitHub Actions (health.yml) | unknown | none |
+| regression | Runs every regression row, files each failure. | on | every 4 hours | GitHub Actions (regression.yml) | 2026-11-12 | none |
+| digest email | Mails one digest per health round. | on | cron `with each health round` | GitHub Actions (health.yml) | unknown | set the digest address and keys as Actions secrets (yours, outside git) |
 <!-- automation:end -->

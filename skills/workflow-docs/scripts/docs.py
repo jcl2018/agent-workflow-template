@@ -13,6 +13,7 @@ usage: docs.py <command> [options]
   publish [--dry-run] [--adopt PAGE]
                                copy the pages to the wiki, commit and push
   restore                      revert the last publish, if nothing came after it
+  automation                   each routine's live state here: a workflow's newest run, a launch agent loaded or not
 
 With "criteria": true in .loop/config.json, check also enforces the PRD page contract (references/template.md).
 It also enforces the page format (pageformat.py, FORMAT lines) and that the generated Tests page matches a fresh render.
@@ -349,6 +350,11 @@ def cmd_publish(args):
     return 0
 
 
+def cmd_automation(_args):
+    import render
+    return render.live(top())
+
+
 def cmd_restore(_args):
     try:
         with open(state_file()) as handle:
@@ -395,6 +401,7 @@ def main():
     item.add_argument("--adopt", action="append", default=[])
     item.set_defaults(func=cmd_publish)
     sub.add_parser("restore").set_defaults(func=cmd_restore)
+    sub.add_parser("automation").set_defaults(func=cmd_automation)
     args = parser.parse_args()
     return args.func(args)
 

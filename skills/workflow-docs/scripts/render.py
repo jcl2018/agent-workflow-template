@@ -304,26 +304,65 @@ def last_run(root):
     return days[-1] if days else "unknown"
 
 
+BUILT_IN = (("health", "Checks the repo and files each finding.", "health_cron", "47 */4 * * *", "health.yml"),
+            ("regression", "Runs every regression row, files each failure.", "regression_cron", "17 */4 * * *", "regression.yml"),
+            ("digest email", "Mails one digest per health round.", None, "", "health.yml"))
+
+
+def entries(root):
+    """Built-in routines, then the `automation` entries of config: {name, does, cadence, runs: github:FILE | mac:LABEL |
+    claude:TASK, enabled?, last_run?}; an entry named like a built-in replaces it."""
+    cfg, out = config_of(root), []
+    for name, does, key, default, flow in BUILT_IN:
+        mail = str(cfg.get("digest_mail", "cloudflare"))
+        cron = "with each health round" if key is None else str(cfg.get(key, default))
+        out.append({"name": name, "does": does, "cadence": cron, "runs": "github:" + flow,
+                    "enabled": mail != "off" if key is None else cron != "off"})
+    for item in cfg.get("automation") or []:
+        if isinstance(item, dict) and item.get("name"):
+            out = [e for e in out if e["name"] != item["name"]] + [item]
+    return out
+
+
 def automation_block(root):
-    cfg, rows = config_of(root), []
-    flows = os.path.join(root, ".github", "workflows")
-    for name, key, default, flow, last in (("health", "health_cron", "47 */4 * * *", "health.yml", "unknown"),
-                                         ("regression", "regression_cron", "17 */4 * * *", "regression.yml", last_run(root))):
-        cron = str(cfg.get(key, default))
-        there = os.path.exists(os.path.join(flows, flow))
-        owed = "" if cron == "off" or there else "run workflow-setup to write .github/workflows/" + flow
-        rows.append([name, "off" if cron == "off" else "on", cadence(cron), "GitHub Actions" if there else "not deployed", last, owed or "none"])
-    mail = str(cfg.get("digest_mail", "cloudflare"))
-    there = os.path.exists(os.path.join(flows, "health.yml"))
-    rows.append(["digest email", "off" if mail == "off" else "on (%s)" % mail,
-                 "with each health round" if mail != "off" else "off", "GitHub Actions" if there else "not deployed", "unknown",
-                 "set the digest address and keys as Actions secrets (yours, outside git)" if mail != "off" else "none"])
-    for command in cfg.get("routines") or []:
-        rows.append(["`%s`" % command, "on", "before each release merge", "this Mac (the release step)", "unknown", "none"])
-    head = ["Routine", "State", "Cadence", "Runs on", "Last run", "Owed by you"]
+    rows, flows = [], os.path.join(root, ".github", "workflows")
+    for e in entries(root):
+        kind, _, target = str(e.get("runs", "")).partition(":")
+        on = e.get("enabled", True) is not False and str(e.get("cadence")) != "off"
+        last, owed = str(e.get("last_run") or "unknown"), "none"
+        if kind == "github":
+            there = os.path.exists(os.path.join(flows, target))
+            where, state = ("GitHub Actions (%s)" % target) if there else "not deployed", "on" if on and there else "off"
+            owed = "run workflow-setup to write .github/workflows/" + target if on and not there else owed
+            last = last_run(root) if e["name"] == "regression" else last
+        elif kind in ("mac", "claude"):
+            where = "this Mac (launch agent %s)" % target if kind == "mac" else "Claude scheduled task %s" % target
+            state, owed = "on (declared)" if on else "off (declared)", "confirm it is live: docs.py automation"
+        else:
+            where, state, owed = "not set", "off", 'add "runs": github:FILE, mac:LABEL or claude:TASK'
+        if e["name"] == "digest email" and on and str(e.get("cadence")) != "off":
+            owed = "set the digest address and keys as Actions secrets (yours, outside git)" if owed == "none" else owed
+        rows.append([str(e["name"]), str(e.get("does", "")), state, cadence(str(e.get("cadence", ""))), where, last, owed])
+    head = ["Routine", "What it does", "State", "Cadence", "Runs on", "Last run", "Owed by you"]
     return "\n".join(["<!-- automation:begin -->", "## Automation", "",
-                       "Each routine, from `.loop/config.json`, the workflow files and the regression runs file.", ""]
-                      + pageformat.table(head, rows) + ["<!-- automation:end -->", ""])
+                       "Health and regression, then each `automation` entry in `.loop/config.json`; to add one, add an entry.", ""] + pageformat.table(head, rows) + ["<!-- automation:end -->", ""])
+
+
+def live(root):
+    """Print each routine's live state: a workflow's newest run, a launch agent loaded or not."""
+    for e in entries(root):
+        kind, _, target = str(e.get("runs", "")).partition(":")
+        if kind == "github":
+            done = subprocess.run(["gh", "run", "list", "--workflow", target, "--limit", "1", "--json", "conclusion,createdAt",
+                                   "-q", ".[0] | \"\\(.conclusion) \\(.createdAt)\""], capture_output=True, text=True)
+            said = done.stdout.strip() if done.returncode == 0 and done.stdout.strip() else "no run found or gh unavailable"
+        elif kind == "mac":
+            done = subprocess.run(["launchctl", "list", target], capture_output=True, text=True)
+            said = "loaded" if done.returncode == 0 else "not loaded"
+        else:
+            said = "a Claude scheduled task is checked in the Claude app"
+        print("%s: %s" % (e["name"], said))
+    return 0
 
 
 def template_line(root):

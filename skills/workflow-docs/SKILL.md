@@ -55,6 +55,14 @@ Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows
 count only changes since that point. `cut` counts from the goal's base the same way. `publish` has no `--base`: it
 counts every commit.
 
+## `automation` registry
+
+The Automation block lists health and regression (built in, cadence from `health_cron` and `regression_cron`) and each entry
+of `automation` in `.loop/config.json`: `{"name", "does", "cadence", "runs", "enabled", "last_run"}`, where `runs` is
+`github:FILE` (a workflow file), `mac:LABEL` (a launch agent) or `claude:TASK` (a Claude scheduled task) and `cadence` is a
+cron string, words, or `off`. Adding a routine is adding one entry. `python3 scripts/docs.py automation` prints each one's
+live state here; the committed block holds only what files and config show.
+
 ## `audit`
 
 ```bash
@@ -143,6 +151,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-docs prd NAME "<idea>" --paths A,B` | `python3 scripts/prd.py new NAME "<idea>" --paths A,B` |
 | `/workflow-docs convert` | `python3 scripts/prd.py convert --write` |
 | `/workflow-docs render` | `python3 scripts/criteria.py render` |
+| `/workflow-docs automation` | `python3 scripts/docs.py automation` |
 | `/workflow-docs entry` | `python3 scripts/entry.py write` (`check`, `render`, `block`) |
 | `/workflow-docs publish` | `python3 scripts/docs.py publish` |
 | `/workflow-docs restore` | `python3 scripts/docs.py restore` |

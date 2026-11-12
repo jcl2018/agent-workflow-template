@@ -60,15 +60,16 @@ python3 -c "import json; c = json.load(open('.loop/config.json')); c['parallel']
 $docs publish --dry-run >/dev/null 2>&1
 grep -q 'overridden:\*\* `7`' $H && ok "publish refreshes the block before it copies the pages" || bad "publish left the block stale"
 a=$(sed -n '/automation:begin/,/automation:end/p' $H)
-grep -q '^| health | on | every 4 hours | not deployed | unknown | run workflow-setup to write .github/workflows/health.yml |' <<<"$a" && ok "Automation says on, the cadence in words, not deployed and the step owed when the workflow file is missing" || bad "automation health row: $(grep '^| health' <<<"$a")"
+grep -q '^| health | .* | off | every 4 hours | not deployed | unknown | run workflow-setup to write .github/workflows/health.yml |' <<<"$a" && ok "Automation says on, the cadence in words, not deployed and the step owed when the workflow file is missing" || bad "automation health row: $(grep '^| health' <<<"$a")"
 mkdir -p .github/workflows; : > .github/workflows/health.yml
-python3 -c "import json; c = json.load(open('.loop/config.json')); c['health_cron'] = '30 6 * * *'; c['routines'] = ['make nightly']; json.dump(c, open('.loop/config.json', 'w'), indent=2)"
+python3 -c "import json; c = json.load(open('.loop/config.json')); c['health_cron'] = '30 6 * * *'; c['automation'] = [{'name': 'money brief', 'does': 'Mails a daily money brief.', 'cadence': '0 7 * * *', 'runs': 'mac:com.example.brief'}]; json.dump(c, open('.loop/config.json', 'w'), indent=2)"
 $cri render >/dev/null 2>&1
 a=$(sed -n '/automation:begin/,/automation:end/p' $H)
-grep -q '^| health | on | daily at 06:30 | GitHub Actions | unknown | none |' <<<"$a" && grep -q '^| `make nightly` | on | before each release merge |' <<<"$a" && ok "Automation reads a daily cron in words, where it runs from the workflow file, and a named repo routine" || bad "automation rows: $a"
+grep -q '^| health | .* | on | daily at 06:30 | GitHub Actions (health.yml) | unknown | none |' <<<"$a" && grep -q '^| money brief | Mails a daily money brief. | on (declared) | daily at 07:00 | this Mac (launch agent com.example.brief) | unknown |' <<<"$a" && ok "Automation reads a daily cron in words, where it runs from the workflow file, and a routine added as one config entry" || bad "automation rows: $a"
+$docs automation 2>&1 | grep -q '^money brief: not loaded$' && ok "docs.py automation reports a launch agent entry as not loaded when it is not" || bad "live status: $($docs automation 2>&1)"
 python3 -c "import json; c = json.load(open('.loop/config.json')); c['health_cron'] = 'off'; json.dump(c, open('.loop/config.json', 'w'), indent=2)"
 $cri render >/dev/null 2>&1
-sed -n '/automation:begin/,/automation:end/p' $H | grep -q '^| health | off | off |' && ok "a routine turned off reads off" || bad "off row"
+sed -n '/automation:begin/,/automation:end/p' $H |  grep -q '^| health | .* | off | off |' && ok "a routine turned off reads off" || bad "off row"
 python3 $here/skills/workflow-docs/scripts/entry.py write >/dev/null 2>&1
 grep -q 'Settings section' .loop/START.md && grep -q 'Automation section' .loop/START.md && grep -q 'README' .loop/START.md && ok "the adoption entry names the Home Settings and Automation sections and the README line" || bad "START.md"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
