@@ -23,7 +23,7 @@ python3 skills/workflow-docs/scripts/criteria.py render >/dev/null 2>&1
 git add -A && git -c user.email=t@example.test -c user.name=Toy commit -qm render
 D="python3 skills/workflow-docs/scripts/docs.py check"
 P=docs/wiki/Setup.md; cp "$P" "$T/setup.orig"; cp .loop/routines.tsv "$T/routines.orig"
-N=$($D 2>&1 | tail -1 | sed 's/[^0-9]//g')
+BASE=$($D 2>&1 | sort)  # the copy's own check output (another page may be CHANGED for its owner): a good change adds nothing to it
 GOOD='### setup-nightly
 - **Serves:** SET-1, SET-7.
 - **Schedule:** every night at 02:00, and by hand.
@@ -46,8 +46,8 @@ out() { $D 2>&1; }
 without() { printf '%s\n' "$GOOD" | grep -v "^- \*\*$1:\*\*"; }
 
 case_good() {
-  reset; check "a page with no Runbook passes" '[ "$(out | tail -1)" = "DOCS OK: $N pages" ]'
-  reset; place "$GOOD"; check "a page with a good Runbook passes" '[ "$(out | tail -1)" = "DOCS OK: $N pages" ]'
+  reset; check "a page with no Runbook passes" '[ "$(out | sort)" = "$BASE" ]'
+  reset; place "$GOOD"; check "a page with a good Runbook passes" '[ "$(out | sort)" = "$BASE" ]'
   reset; place "$GOOD"; check "the Runbook sits in order after Usage and before Requirements" '! out | grep -q "^SECTIONS Setup"'
   reset; python3 - "$P" "$GOOD" <<'PY'
 import sys
@@ -80,7 +80,7 @@ $GOOD" "each routine once"
   refuse "an unknown Serves id" "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Serves:\*\* .*/- **Serves:** ZZZ-99 nonsense./')" "a Serves id that a page defines"
   refuse "a Serves field with no id" "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Serves:\*\* .*/- **Serves:** whatever it needs./')" "a Serves field naming a requirement id"
   reset; place "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Serves:\*\* .*/- **Serves:** the setup checks, see\n  SET-1 and SET-7./')"
-  check "an id on a continuation line of Serves counts" '[ "$(out | tail -1)" = "DOCS OK: $N pages" ]'
+  check "an id on a continuation line of Serves counts" '[ "$(out | sort)" = "$BASE" ]'
   reset; place "$GOOD"; printf '\n## After\n' >> docs/wiki/Regression.md
   check "a misordered page gives its SECTIONS finding and no false Serves finding" 'out | grep -q "^SECTIONS Regression" && ! out | grep -q "a Serves id"'
   git checkout -q docs/wiki/Regression.md
@@ -98,13 +98,13 @@ PY
   check "a render leaves a page with a section after Tests as it was, never cutting it off" 'grep -q "^## Runbook" "$P" && grep -q "^## After" "$P"'
   reset; place ""; check "an empty section is refused" 'out | grep -qF "Runbook: DOC-16 at least one"'
   reset; place "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Steps:\*\* .*/- **Steps:** run the check\n  and read its output to the end./')"
-  check "an indented line continues a field and passes" '[ "$(out | tail -1)" = "DOCS OK: $N pages" ]'
+  check "an indented line continues a field and passes" '[ "$(out | sort)" = "$BASE" ]'
 }
 
 case_registry() {
   reset; printf 'setup-nightly\tSetup\n' >> .loop/routines.tsv
   check "a routine in the registry with no runbook on its page is refused" 'out | grep -qF "Setup:1: Runbook: DOC-16 a '"'"'### setup-nightly'"'"' runbook"'
-  place "$GOOD"; check "the same routine passes once its page carries the runbook" '[ "$(out | tail -1)" = "DOCS OK: $N pages" ]'
+  place "$GOOD"; check "the same routine passes once its page carries the runbook" '[ "$(out | sort)" = "$BASE" ]'
   reset; printf 'setup-nightly\tSetup\nsetup-nightly\tSetup\n' >> .loop/routines.tsv; place "$GOOD"
   check "a routine listed twice in the registry is refused" 'out | grep -qF "routines.tsv:" && out | grep -qF "each routine once"'
   reset; printf '# comment\n' >> .loop/routines.tsv; printf 'setup-nightly\tSetup\n' >> .loop/routines.tsv; place "  ### setup-nightly
@@ -112,7 +112,7 @@ $(printf '%s\n' "$GOOD" | sed 1d)"
   check "an indented heading inside another block does not count as the runbook" 'out | grep -qF "a '"'"'### setup-nightly'"'"' runbook"'
   reset; printf 'ghost-routine\tNoSuchPage\n' >> .loop/routines.tsv
   check "a registry row naming no page is refused" 'out | grep -qF "Runbook: DOC-16 a routine on a feature page"'
-  reset; rm -f .loop/routines.tsv; check "with no registry file the check still passes" '[ "$(out | tail -1)" = "DOCS OK: $N pages" ]'
+  reset; rm -f .loop/routines.tsv; check "with no registry file the check still passes" '[ "$(out | sort)" = "$BASE" ]'
 }
 
 case_locked() {
@@ -124,13 +124,13 @@ s = open(p).read()
 i = s.index("\n## Requirements")
 open(p, "w").write(s[:i] + "\n## Runbook\n\n" + body + "\n" + s[i:])
 PY
-  check "a Reviewed page that gains a Runbook is not locked, marked changed or called out of order" 'grep -q "^## Runbook" "$M" && ! out | grep -qE "^(LOCKED|CHANGED|SECTIONS) Monitoring"'
+  check "a Reviewed page that gains a Runbook is not locked, marked changed or called out of order" 'grep -q "^## Runbook" "$M" && [ "$(out | grep -E "^(LOCKED|CHANGED|SECTIONS) Monitoring" | sort)" = "$(grep -E "^(LOCKED|CHANGED|SECTIONS) Monitoring" <<<"$BASE")" ]'
   python3 - "$M" <<'PY'
 import sys
 p = sys.argv[1]; s = open(p).read()
 open(p, "w").write(s.replace("\n## Runbook\n", "\n## Requirements\n", 1))
 PY
-  check "positive control: the same page with its sections broken is called out" 'out | grep -qE "^(LOCKED|CHANGED|SECTIONS) Monitoring"'
+  check "positive control: the same page with its sections broken is called out" 'out | grep -q "^SECTIONS Monitoring"'
   cp "$T/mon.orig" "$M"
 }
 
