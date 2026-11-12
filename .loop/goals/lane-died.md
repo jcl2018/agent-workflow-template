@@ -1,7 +1,7 @@
 # A goal's lane is never killed by another session's work: on 2026-11-12 two pr lanes (guards-null-report, docs-small-fixes) ended LANE_DIED mid-run with only PASS lines, costing tries, while many lanes and scheduled suites ran at once (issue 435 was closed as a suspected cross-lane reap); the killer is found (a reap, a pkill pattern, a process-group kill, a timeout, memory) and fixed, and a lane that dies without a failing row never counts as a try
 
 - Slug: lane-died
-- Touches: skills/workflow-delivery/scripts/lane.py, skills/workflow-delivery/scripts/lanekit.py, skills/workflow-regression/scripts/regression.py, dev/toy, .loop/regression.tsv, docs/wiki/Tests.md
+- Touches: skills/workflow-delivery/scripts/lane.py, skills/workflow-delivery/scripts/lanekit.py, skills/workflow-regression/scripts/regression.py, dev/toy, .loop/regression.tsv, docs/wiki/Tests.md, skills/workflow-delivery/scripts/flow.py, skills/workflow-monitoring/scripts/mend.py
 
 ## Done lines
 
