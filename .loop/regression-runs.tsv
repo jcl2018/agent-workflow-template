@@ -95,9 +95,9 @@ del9-hooks	PASS	2026-11-12
 del9-merge-refuses	PASS	2026-11-12	
 dependencies-on-map	PASS	2026-11-09	
 dependency-held	PASS	2026-11-09	
-deploy-doc14-reviewed	FAIL	2026-11-12	
-deploy-not-locked	FAIL	2026-11-12	
-deploy-section-optional	FAIL	2026-11-12	
+deploy-doc14-reviewed	PASS	2026-11-12	
+deploy-not-locked	PASS	2026-11-12	
+deploy-section-optional	PASS	2026-11-12	
 deploy-table-refused	PASS	2026-11-12	
 deps-graph-94	PASS	2026-11-10	
 depth-auto-approve-gate	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -419,6 +419,7 @@ skill-kept	PASS	2026-11-12
 skill-says-governs	PASS	2026-11-12	
 skill-size-116	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 slot-pool-112	PASS	2026-11-10	
+spec-decisions-wording	PASS	2026-11-12	
 stale-found	PASS	2026-11-12	
 stale-groups-defect	PASS	2026-11-12	
 stale-merge-order	PASS	2026-11-12	

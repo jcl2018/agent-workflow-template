@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
-Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde98a8 U=0340d029 -->
+Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde98a8 U=371393f6 -->
 
 ## Problem
 - I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
@@ -12,7 +12,7 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde
 
 ## Usage
 
-- `/workflow-monitoring operate` — Runs the operation session's loop. Each pass starts and mends goals, re-plans (start, merge and split proposals with their reasons), answers routine worker decisions with their recommended option where `full_auto` is on, then prints the check-in (headline, All sessions, Dependencies, Needs you, Coming up), never the live board (`--board` adds it; its Issues also name each followed repo on an older or unknown template version), until nothing is left. Prints `NOTHING LEFT TO OPERATE: no goal is queued, running or waiting. Nothing was merged.` or `CADENCE OFF: the owner turned the loop off. Stop.` Refuses nothing. Its check-in and worker sessions lock files through `fcntl`, or `msvcrt` locks (a small fallback in `session_bind.py`) where `fcntl` is missing, so they also run on native Windows Python.
+- `/workflow-monitoring operate` — Runs the operation session's loop. Each pass starts and mends goals, re-plans (start, merge and split proposals with their reasons), answers routine worker decisions with their recommended option where `full_auto` is on, then prints the check-in (headline, All sessions, Dependencies, Needs you, Coming up), never the live board (`--board` adds it; its Issues also name each followed repo on an older or unknown template version), until nothing is left. Prints `NOTHING LEFT TO OPERATE: no goal is queued, running or waiting. Nothing was merged.` or `CADENCE OFF: the owner turned the loop off. Stop.` Refuses nothing. They also run on native Windows Python.
 - `/workflow-monitoring send SLUG "text"` — Sends a worker an answer or follow-up, which its agent sees the next time it runs. Prints `SENT to <slug>: <text>`. Refuses exit 1 `REFUSED: no run named <slug>.`
 - `/workflow-monitoring go "goal" --done "line"` — Queues a goal with its frozen done lines and starts it in its own worker session if a slot is free. Prints `STARTED <slug> in <worktree>. Run watch.` or `QUEUED <slug>: <why>. Run watch.` Refuses exit 1 `REFUSED: no readable .loop/config.json. Fix: run workflow-setup.`, `REFUSED: give at least one --done, and no | in any text.`, `REFUSED: no skill flow is set. ...`, `REFUSED: bad slug (lowercase letters, digits, dashes).`, `REFUSED: <slug> already exists. Pick a new --slug.` and `REFUSED: depends-on <slugs> is not a goal in the queue or the runs.`
 - `/workflow-monitoring watch` — Keeps goals moving: starts queued goals, mends failures if the config allows, and says what waits on you. Prints `<slug> <status> step=<step> pr=<pr>`, `WAITS ON YOU <slug>: <ask> Type: <words>`, `STILL QUEUED <slug>: <why>`, `NEEDS YOU <slug>: <finding>` and `NOTHING LEFT TO RUN. Nothing was merged.` Refuses exit 1 `REFUSED: no readable .loop/config.json. Fix: run workflow-setup.`
