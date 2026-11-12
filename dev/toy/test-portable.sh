@@ -60,4 +60,19 @@ left=$(cd "$S" && grep -n "os\.killpg\|os\.getpgrp()" workflow-delivery/scripts/
 [ -z "$left" ] && ok "no stop site calls os.killpg or os.getpgrp itself" || bad "POSIX-only stops left: $left"
 probes=$(cd "$S" && grep -rn "os\.kill([^)]*, 0)" --include=*.py workflow-delivery workflow-monitoring workflow-regression | grep -v "proctree.py")  # Ctrl+C to the target on Windows
 [ -z "$probes" ] && ok "no liveness probe is os.kill(pid, 0), which sends Ctrl+C on Windows" || bad "os.kill probes left: $probes"
+got=$(python3 - "$S/workflow-health/scripts" <<'PY' 2>&1
+import os, subprocess, sys
+sys.path.insert(0, sys.argv[1]); import workflows
+workflows.alive(os.getpid())
+child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], start_new_session=True)
+workflows.alive(child.pid); workflows.stop(child.pid); child.wait(timeout=10)
+try:
+    workflows.alive(child.pid); print("still alive")
+except ProcessLookupError:
+    print("health helpers ok")
+PY
+)
+[ "$(echo "$got" | tail -1)" = "health helpers ok" ] && ok "workflow-health's alive and stop probe and end a child without a signal probe" || bad "health helpers: $(echo "$got" | tail -2)"
+calls=$(cd "$S" && grep -rnE "os\.getuid|os\.killpg|os\.kill\([^)]*, 0\)" --include=*.py --include=*.sh . | grep -v "/proctree.py" | grep -v "posix-only branch" | grep -v "workflow-regression/scripts/actions.py")  # actions.py: the generated workflow's own text, which falls back to taskkill itself
+[ -z "$calls" ] && ok "no script under skills calls os.getuid, os.killpg or os.kill(pid, 0) outside proctree" || bad "POSIX-only calls left: $calls"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "FAILED $fails"; exit 1; }
