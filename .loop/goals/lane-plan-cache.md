@@ -32,6 +32,8 @@ Frozen. A wrong done line needs a new goal.
 
 Closes #710.
 
+`bash dev/toy/test-lane-control.sh` printed `ALL PASS` on the last code commit (fd21c17); no code changed after it.
+
 ## Deferred
 
 - Merge the three `git status` calls of a plan into one.
