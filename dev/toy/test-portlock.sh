@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/
 # reads: skills/workflow-regression/scripts/slots.py skills/workflow-delivery/scripts/lanekit.py
 # reads: skills/workflow-monitoring/scripts/session_bind.py skills/workflow-setup/scripts/update.py
 # Native Windows has no fcntl: each skill's lock module falls back to msvcrt byte-range locks. This hides fcntl, plants a fake
