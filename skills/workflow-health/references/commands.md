@@ -41,7 +41,7 @@ unchanged repo print the same lines.
 | | `skipped` | a row recorded SKIPPED for over 7 days (WARN) |
 | | `network` | a land row's command reaches the network: curl, wget, http(s):// (WARN) |
 | Performance (is it fast and cheap enough?) | `cost` | a finished goal over `time_budget_minutes` or `token_budget` (WARN); goals that recorded no tokens are left out |
-| | `test-time` | the land lane over `test_budget_seconds`, naming its slowest rows (WARN; shown, never filed) |
+| | `test-time` | the land lane over `test_budget_minutes`, naming its slowest rows (WARN; shown, never filed) |
 | | `check-time` | the check, up to this group, past 60 seconds (WARN; shown, never filed) |
 | Security and privacy (can anything private escape?) | `private` | a tracked file matches a `leak_patterns` entry of the private flow file: file:line and the pattern's number only, never the text (FAIL) |
 | | `scan-hook` | no commit scan hook (WARN; shown, never filed) |
