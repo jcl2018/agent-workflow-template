@@ -54,7 +54,7 @@ def git(root, *args):
 def runner():
     here = os.path.dirname(os.path.abspath(__file__))
     digest = hashlib.sha256()
-    for name in ("regression.py", "lanes.py", "narrow.py", "tiers.py"):
+    for name in ("regression.py", "lanes.py", "narrow.py", "runs.py", "tiers.py"):
         with open(os.path.join(here, name), "rb") as handle:
             digest.update(handle.read())
     return digest.hexdigest()[:12]
