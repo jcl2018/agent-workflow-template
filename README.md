@@ -235,11 +235,12 @@ A row must be seen failing once before it counts. Known failures don't block, an
 Keep the wiki in step with the code. Pages live in `docs/wiki/`, so they're reviewed in pull requests:
 
 ```text
-/workflow-docs init
 /workflow-docs check
 /workflow-docs publish
 /workflow-docs restore
 ```
+
+To write the first pages, ask the agent to set up the docs: it follows the skill's `init` steps (survey, choose pages, write them).
 
 `publish` only adds or updates pages it wrote, unless you name one with `--adopt`, and never deletes one. `restore`
 undoes the last publish.
@@ -429,7 +430,7 @@ Every repo setting from the template's settings reference, with this repo's valu
 | `smtp_port` | 465 (TLS) or 587 (STARTTLS) for digest_mail smtp. | set "smtp_port" in .loop/config.json | `465` | default |
 | `review_depth` | full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run. | set "review_depth" in .loop/config.json | `full` | default |
 | `criteria` | true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests). | set "criteria" in .loop/config.json | `true` | default |
-| `criteria_max` | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. | set "criteria_max" in .loop/config.json | `10` | **overridden:** `15` |
+| `criteria_max` | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. | set "criteria_max" in .loop/config.json | `10` | **overridden:** `16` |
 | `wiki_dir` | The folder of wiki pages. | set "wiki_dir" in .loop/config.json | `docs/wiki` | default |
 | `risky_paths` | Regexes for paths whose goals need extra care. | set "risky_paths" in .loop/config.json | `["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]` | default |
 | `step_limit` | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. | set "step_limit" in .loop/config.json | `0` | default |

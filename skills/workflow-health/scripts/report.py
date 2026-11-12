@@ -14,6 +14,8 @@ Commands (each takes the health module h): review, judge, preview, file and tria
 a --review FILE that isn't a saved review --json, [why] and [cap] from triage.
 """
 import json
+import os
+import re
 import sys
 
 
@@ -33,7 +35,7 @@ GROUPS = (
     ("hygiene", "Hygiene", "a janitor's angle: is anything left lying around?",
      ("findings", "waiting", "branches", "worktrees", "local-branches", "idle-sessions")),
     ("adoption", "Adoption", "another repo's angle: would this work installed fresh?",
-     ("config", "checks-run-tests", "template-version", "scheduled")),
+     ("config", "checks-run-tests", "template-version", "scheduled", "no-fit", "agent-tools")),
     ("controls", "Controls", "the checker's own angle: can each rule fire?", ()),
 )
 MINE = ("mine", "Mine", "my private angle", ())
@@ -50,6 +52,40 @@ ALIASES = {"criteria": "requirements", "cost": "performance"}  # older --group n
 # Older row labels -> the rule they speak for, within their group.
 LABELS = {"sync": "rows", "done-lines": "done", "open": "findings", "run": "waiting", "merged": "branches",
           "branch": "branches", "time": "cost", "tokens": "cost", "limit": "scripts"}
+
+
+def no_fit(root):
+    """no-fit: each open `- [adoption] <kind>: <subjects>. Fix: <fix>` line of .loop/findings.md (setup writes them) is one WARN row."""
+    from defects import row
+    try:
+        text = open(os.path.join(root, ".loop", "findings.md")).read()
+    except OSError:
+        return []
+    found = [(re.match(r"^- \[adoption\] ([\w-]+): (.+?)\. Fix: (.+?)\s*$", l), l) for l in text.splitlines()]
+    return [row("WARN", "adoption", m.group(1), "no-fit", "did not fit when adopted: " + m.group(2), m.group(3), m.group(2))
+            for m, line in found if m and not line.rstrip().endswith("[closed]")]
+
+
+def bare_agent(command):
+    """True for a claude or codex command that grants its agent no tools (so it stops at its first permission prompt)."""
+    allows = {"claude": ("--allowedtools", "--allowed-tools", "--permission-mode"), "codex": ("-s", "--sandbox", "--full-auto")}
+    name = os.path.basename(command[0]) if isinstance(command, list) and command and isinstance(command[0], str) else ""
+    return name in allows and not any(str(a).lower().split("=")[0] in allows[name] or str(a).lower().startswith("--dangerous") for a in command[1:])
+
+
+def agent_tools(root):
+    """agent-tools: WARN when the repo's agent_command, or the flow file's command without allowed_tools, grants no tools."""
+    from defects import row
+    held = lambda path: json.load(open(path)) if os.path.exists(path) else {}
+    try:
+        repo = held(os.path.join(root, ".loop", "config.json")).get("agent_command")
+        flow = held(os.path.expanduser(os.environ.get("LOOP_FLOW") or "~/.workflow-loop/flow.json"))
+        named = [n for n, bad in (("agent_command", bare_agent(repo)), ("the flow file's command", bare_agent(flow.get("command")) and not flow.get("allowed_tools"))) if bad]
+    except (OSError, ValueError, AttributeError):
+        return []
+    return [row("WARN", "adoption", "agent_command", "agent-tools", "%s grants no tools, so a background agent stops at its first permission prompt"
+                % " and ".join(named), 'set "agent_command" in .loop/config.json to add --allowedTools Bash,Read,Write,Edit (claude) or --full-auto (codex); '
+                "the flow file's command and allowed_tools also run agents", "agent_command")] if named else []
 
 
 def heading(slug, skipped=False):
@@ -220,7 +256,7 @@ def cmd_file(h, args):
     if not asked and not args.review:
         refuse("file", "file needs --group NAME[,NAME] (one of %s) or --review FILE. Run preview first." % ", ".join(h.NAMES))
     filing, acts, groups = plan_for(h, root, asked if asked else [], bool(asked) and "performance" in asked, args.feature, args.review)
-    filing.apply(acts, root, groups)
+    filing.apply(filing.only_open(acts) if args.open_only else acts, root, groups)
     return 0
 
 
@@ -262,6 +298,7 @@ def add(sub, h):
         item.add_argument("--feature", help="only findings about this feature")
         item.add_argument("--review", help="a saved health.py review --json to file too")
         item.add_argument("--live", action="store_true", help="(ignored)")
+        item.add_argument("--open-only", action="store_true", help="file: only open or link issues; never close, reopen or update")
         answer_flag(item)
         item.set_defaults(func=lambda a, f=func: f(h, a))
     item = sub.add_parser("triage", help="open findings per feature; --close a batch with the owner's words")
