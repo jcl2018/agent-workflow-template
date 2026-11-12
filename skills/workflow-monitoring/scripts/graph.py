@@ -15,6 +15,7 @@ import subprocess
 import sys
 import time
 
+os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")  # no terminal, no waiting: git must fail, not prompt
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
 LIVE = ("running", "waiting")
 LAST_BAD = {}  # pool path -> the malformed entries read_pool set aside on its last read

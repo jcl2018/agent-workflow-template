@@ -1,7 +1,7 @@
 # Inside a pod there are exactly two layers, one operation session and its workers; several pods (for example Claude Code and Codex) may run at once without messaging each other, coordinating only through shared on-disk state: each goal records the pod that owns it, only the owner acts on it, and one merge into a repo's main happens at a time across pods; the check-in dependency map is grouped by repo (owner, 2026-11-11: "Add when the operation that I should only get one operation session for the entire pod ... They're just two layers ... It should show by groups first group by the reponents." / "you should expect it that I have multiple monitoring sessions ... they don't need to know each other." / "yes add now", approving goal ownership and a cross-pod merge lock)
 
 - Slug: pods
-- Touches: skills/workflow-monitoring, skills/workflow-release, skills/workflow-delivery/scripts/goal.py, dev/toy, .loop/regression.tsv, docs/wiki/Monitoring.md, docs/wiki/Release.md, docs/wiki/Tests.md
+- Touches: skills/workflow-monitoring, skills/workflow-release, skills/workflow-delivery/scripts/goal.py, dev/toy, .loop/regression.tsv, docs/wiki/Monitoring.md, docs/wiki/Release.md, docs/wiki/Tests.md, docs/wiki/Delivery.md
 
 ## Done lines
 
