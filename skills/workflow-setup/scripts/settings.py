@@ -52,6 +52,7 @@ TABLE = [
     ("goal_lane_minutes", REPO, 10, "Minutes a goal's regression lane may take before health warns and its LANE line says over."),
     ("goal_levels", REPO, "land", "Row levels a goal lane plans from: land, or nightly for land and nightly rows."),
     ("regression_runs", REPO, "", "Where the full regression runs: actions (a public repo) or mac (a private repo, with each Mac tick); setup records it from the repo's live visibility, and unset means it is not known (nothing is written for GitHub)."),
+    ("automation", REPO, [], "Routines the Automation table lists: {name, does, cadence, runs: github:FILE, mac:LABEL or claude:TASK}; setup declares the three built-in ones."),
     ("ci_levels", REPO, "nightly", "Target of the scheduled and tag regression runs: nightly (every row) or land."),
     ("token_budget", REPO, 0, "Tokens a goal may spend over all steps before no new step starts; 0 means no budget."),
     ("test_budget_minutes", REPO, 15, "Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite."),
@@ -258,6 +259,8 @@ def fill_repo(path):
     added = [k for k in repo_defaults() if k not in held]
     merged = dict(held, **{k: v for k, v in repo_defaults().items() if k not in held})
     merged["_help"] = repo_help(held)
+    import agents
+    merged["automation"] = agents.fill_automation(merged, os.path.dirname(os.path.dirname(os.path.abspath(path))))
     if merged != held:
         write_json(path, merged)
     return added

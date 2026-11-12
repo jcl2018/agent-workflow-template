@@ -159,6 +159,27 @@ def sibling(skill, script):
     return path if os.path.exists(path) else None
 
 
+BUILT = (("health", "Checks the repo, files findings.", "health_cron"), ("regression", "Runs the regression rows.", "regression_cron"),
+         ("digest email", "Mails the round's digest.", ""))
+
+
+def fill_automation(held, repo):
+    """held's automation list plus the three built-in routines on the repo's one Mac task; an entry already set stays."""
+    out, path = held.get("automation"), sibling("workflow-health", "workflows.py")
+    if not isinstance(out, list) or not path:
+        return out
+    sys.path.insert(0, os.path.dirname(path))
+    try:
+        import workflows
+    finally:
+        sys.path.pop(0)
+    for name, does, key in BUILT:
+        if not any(isinstance(e, dict) and e.get("name") == name for e in out):
+            out = out + [dict(name=name, does=does, cadence=str(held[key]) if key else "with each health round",
+                              runs="mac:" + workflows.task_name(repo), **({"enabled": False} if not key and held.get("digest_mail") == "off" else {}))]
+    return out
+
+
 def refuse(what, fix):
     sys.stderr.write("REFUSED: %s. Fix: %s\n" % (what, fix))
     return 1

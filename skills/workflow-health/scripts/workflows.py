@@ -24,6 +24,7 @@ MAIL_SECRETS = ("DIGEST_TO", "DIGEST_FROM", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE
 HERE = os.path.dirname(os.path.abspath(__file__))
 STAMP = "%Y-%m-%dT%H:%M:%SZ"
 UID = "gui/%d" % os.getuid()
+TASK, MAX_HOURS = "%s-health-regression", 4  # the one local task per repo, and the longest gap between its runs
 
 
 def home():
@@ -154,6 +155,11 @@ def origin_of(root):
     return done.stdout.strip() if done.returncode == 0 else ""
 
 
+def task_name(root):
+    """The repo's one local task: <repo name from its origin>-health-regression."""
+    return TASK % (re.split(r"[/:]", re.sub(r"(\.git)?/*$", "", origin_of(root)))[-1] or os.path.basename(os.path.realpath(root)))
+
+
 def due(entry, interval, at):
     last = when(entry.get("last_run"))
     return last is None or (at - last).total_seconds() >= (interval - min(1, interval / 2)) * 3600
@@ -178,7 +184,7 @@ def install(root, cfg, load_it=False):
         if os.path.realpath(other) != path and os.path.isdir(other):
             sys.exit("REFUSED: %s is already registered for this origin; run local uninstall there first (SCHEDULE_DUPLICATE_ORIGIN)" % other)
         data["repos"] = {k: e for k, e in data["repos"].items() if e["path"] != path or k == key}
-        data["repos"].setdefault(key, {}).update(path=path, origin=origin, cron=cron)
+        data["repos"].setdefault(key, {}).update(path=path, origin=origin, cron=cron, name=task_name(root))
         loaded, changed = launchctl("print", UID + "/" + LABEL) == 0, write_agent(data)
         save(data)
     boot = ["bootstrap", UID, plist_path()]
