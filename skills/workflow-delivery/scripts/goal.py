@@ -6,14 +6,14 @@ usage: goal.py <command> <slug> [options]
   new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
   queue SLUG --goal TEXT --done LINE [--touches A,B] [--depends-on A,B]
   step SLUG NAME [--note TEXT] [--tokens N]
-  record SLUG STEP --file REPLY [--in-session]  record a flow step flow.py or the goal's worker session ran
+  record SLUG STEP --file REPLY [--in-session]
   pr SLUG  merge the latest base, push, open the PR
-Goal steps (step, record, pr) refuse outside a worker, which also sees what the operation session sent it.
+Goal steps (step, record, pr) refuse outside a worker.
   wait SLUG --ask TEXT --words W [--words W]
   answer SLUG                 a waiting goal goes on
   finding SLUG TEXT           stops a live goal; a done or merged one is only noted
   resume SLUG --why T [--by W]    the operation revives a stopped session goal
-  touches SLUG --add PATH --why T the operation widens a goal's touches (a path, or github:wiki and the like)
+  touches SLUG --add PATH --why T the operation widens a goal's touches
   set SLUG [--depth D] [--bump B] [--budget-minutes N] [--budget-tokens N] --why T   the owner's per-goal settings
   show SLUG
 A refusal that changes nothing uses no try: exit 2, the goal keeps running (guards.py).
