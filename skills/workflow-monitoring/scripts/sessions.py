@@ -27,7 +27,7 @@ request open gets the release step run for it, as worker.py does for a backgroun
 import argparse
 import contextlib
 import datetime
-import fcntl
+import portlock as fcntl
 import json
 import os
 import re
