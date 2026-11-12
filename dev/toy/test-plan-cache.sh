@@ -304,6 +304,39 @@ EOF
   P "$r" PLAN_STRAY=1 > /dev/null
   [ -z "$(planfile "$r")" ] && ok "a file that appeared during the plan was not cached" || bad "a plan with an edit during it wrote a file"
 
+  # Value: protects=a locale that cannot decode a non-ASCII path never crashes the planner (ship finding 3); fails_when=an untracked e-acute file under LC_ALL=C raises UnicodeDecodeError before PLAN_CACHE is printed, or the plan differs from the uncached one; why_new=core.quotepath=false made git print raw bytes that the old quoted output never had; seam=LC_ALL=C PYTHONCOERCECLOCALE=0 PYTHONUTF8=0; no_claim=other locales
+  r=$(newrepo locale)
+  echo x > "$r/$(printf '\303\251').txt"
+  same "non-ASCII untracked file under a C locale" "$r" "PLAN_CACHE: dirty (git status failed, cache not used)" LC_ALL=C PYTHONCOERCECLOCALE=0 PYTHONUTF8=0
+
+  # Value: protects=a closure that read a file outside the repo through a tracked symlink is never saved, because its target can change with git status clean (ship finding 4); fails_when=a plan after the outside target changed gets a hit with the old closure, or the first plan saves a file; why_new=the key holds nothing outside the repo; seam=a symlink to a temp folder; no_claim=a link to a missing target
+  r=$(newrepo sym)
+  mkdir -p "$d/ext"; printf '#!/bin/bash\nls skills/s1/ > /dev/null\n' > "$d/ext/x.sh"
+  git -C "$r" switch -q main
+  ln -s "$d/ext/x.sh" "$r/dev/toy/ext.sh"
+  printf 'ext\tland\tbash dev/toy/ext.sh\tX-1\t2026-01-01\tExt.\tcriterion\t\n' >> "$r/.loop/regression.tsv"
+  git -C "$r" add -A; git -C "$r" -c core.hooksPath=/dev/null commit -qm "a row naming a symlink to an outside file" 2>&1 | head -2
+  git -C "$r" switch -q feat/plan; git -C "$r" merge -q --no-edit main 2>&1 | head -2
+  echo "more" >> "$r/skills/s2/SKILL.md"; git -C "$r" commit -qam "s2 changes" 2>&1 | head -2
+  out=$(P "$r")
+  if [ "$(head -1 <<<"$out")" = "PLAN_CACHE: miss (absent)" ] && grep -qx "PLAN_CACHE: not saved (symlink outside repo)" <<<"$out" && [ -z "$(planfile "$r")" ]; then ok "a closure through an outside symlink: not saved (symlink outside repo)"; else fail "symlink outside repo" "miss (absent) ... not saved (symlink outside repo), no file" "$(grep PLAN_CACHE <<<"$out" | tr '\n' '|') file=$(planfile "$r")"; fi
+  printf '#!/bin/bash\nls skills/s2/ > /dev/null\n' > "$d/ext/x.sh"
+  same "outside symlink target changed between plans" "$r" "PLAN_CACHE: miss (absent)"
+  P "$r" LANES_NO_CACHE=1 | grep -q '^SELECTED ext: reaches skills/s2/SKILL.md$' && ok "row ext is selected because the outside target now reaches skills/s2/" || bad "row ext selected after the outside target changed"
+
+  # Value: protects=a symlink that stays inside the repo needs no special case: its target is tracked, so an edit shows as a dirty tree and a commit moves HEAD (checked, not assumed); fails_when=the first plan through an inside symlink is not saved, or an edit of its target still hits; why_new=the outside-symlink rule must not disable the cache for in-repo links; seam=a tracked symlink to a tracked file; no_claim=links to ignored files
+  r=$(newrepo inlink)
+  git -C "$r" switch -q main
+  ln -s t1.sh "$r/dev/toy/link.sh"
+  printf 'lnk\tland\tbash dev/toy/link.sh\tX-1\t2026-01-01\tLink.\tcriterion\t\n' >> "$r/.loop/regression.tsv"
+  git -C "$r" add -A; git -C "$r" -c core.hooksPath=/dev/null commit -qm "a row naming an in-repo symlink" 2>&1 | head -2
+  git -C "$r" switch -q feat/plan; git -C "$r" merge -q --no-edit main 2>&1 | head -2
+  out=$(P "$r")
+  if grep -qx "PLAN_CACHE: miss (absent)" <<<"$out" && ! grep -q "not saved" <<<"$out" && [ -n "$(planfile "$r")" ]; then ok "a closure through an in-repo symlink is saved"; else fail "in-repo symlink saved" "miss (absent), a file, no not-saved line" "$(grep PLAN_CACHE <<<"$out" | tr '\n' '|') file=$(planfile "$r")"; fi
+  same "in-repo symlink, nothing changed" "$r" "PLAN_CACHE: hit (*"
+  echo "# edited" >> "$r/dev/toy/t1.sh"
+  same "in-repo symlink target edited" "$r" "PLAN_CACHE: dirty (1 paths, cache not used)"
+
   # Value: protects=rows planned for one level survive a plan of another level (land, then nightly, then land); fails_when=the nightly plan drops the land closures or the next land plan misses; why_new=one file per branch serves every target; seam=PLAN_TARGET in the plan driver; no_claim=the order of nightly rows
   r=$(newrepo levels)
   printf '#!/bin/bash\n# reads: skills/s1/scripts/m0.py\npython3 skills/s1/scripts/m0.py\n' > "$r/dev/toy/n1.sh"
@@ -391,7 +424,7 @@ m_sizes() {
   local section missing="" token
   section=$(awk '/^## Plan cache/ {on = 1; next} /^## / {on = 0} on' "$here/skills/workflow-regression/references/commands.md")
   for token in "hit (N rows)" "miss (absent)" "miss (corrupt)" "miss (key-head)" "miss (key-rows)" "miss (key-runner)" "miss (key-wide)" "miss (key-loop)" \
-    "miss (partial M of N)" "dirty (N paths, cache not used)" "dirty (git status failed" "not saved (ignored file read)" "off (LANES_NO_CACHE=1)" "none (no branch)" "not saved (<error class>)" \
+    "miss (partial M of N)" "dirty (N paths, cache not used)" "dirty (git status failed" "not saved (ignored file read)" "not saved (symlink outside repo)" "off (LANES_NO_CACHE=1)" "none (no branch)" "not saved (<error class>)" \
     LANES_NO_CACHE "loop/plans"; do
     grep -qF "$token" <<<"$section" || missing="$missing [$token]"
   done

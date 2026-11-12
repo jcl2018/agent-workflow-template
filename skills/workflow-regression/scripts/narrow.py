@@ -86,7 +86,7 @@ def store(path, key, cache):
         with open(temp, "wb") as handle:
             handle.write(zlib.compress(json.dumps(data, sort_keys=True).encode()))
         os.replace(temp, path)
-    except OSError as error:
+    except Exception as error:  # never raises out of a plan
         try:
             os.remove(temp)
         except OSError:

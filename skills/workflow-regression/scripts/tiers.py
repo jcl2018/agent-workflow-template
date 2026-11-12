@@ -1,30 +1,26 @@
 #!/usr/bin/env python3
 """The goal tier of `regression.py run land --reuse --tier goal` (REG-4), and `--kind`.
 
-Imported by regression.py, not run. A goal lane plans from the branch's lane record only when that record's merge-base
-with the base branch equals the current one, else from the merge-base. It runs the rows whose closure reaches a file
-changed since then (lanes.py's closure), the rows added or changed in .loop/regression.tsv since then, the rows that
-run tools on the repo root (lanes.ROOT_RUN, when anything changed), a usable record's FAIL rows and any flaky row
-(flaky_apply below: never reused). After a base merge
-the record is not usable, and the rows the merge changed (since each row's recorded commit) run too. A path no row
-maps, or a deleted one, is a Note at every lane: it picks the rows that name it and the runners (REG-7), never a full
-run. With no merge-base every row is a candidate (printed FULL); a lane with no plan takes a lane slot. The run stays
-within test_budget_minutes (runs.py): rows past it are left to the scheduled full suite. Each selected row's reason is
-printed (SELECTED lines) and summed in one ROWS line for the LANE line.
+Imported by regression.py, not run. A goal lane plans from the branch's lane record only when its merge-base with the base
+branch is the current one, else from the merge-base. It runs the rows whose closure reaches a file changed since then
+(lanes.py's closure), rows added or changed in .loop/regression.tsv, rows that run tools on the repo root (lanes.ROOT_RUN),
+a usable record's FAIL rows and any flaky row (never reused). After a base merge the record is not usable, and the rows
+the merge changed run too. A path no row maps, or a deleted one, is a Note at every lane: it picks the rows that name it
+and the runners (REG-7), never a full run. With no merge-base every row is a candidate (FULL); a lane with no plan takes a
+lane slot. The run stays within test_budget_minutes (runs.py): rows past it are left to the scheduled full suite. Each
+selected row's reason is printed (SELECTED lines) and summed in one ROWS line for the LANE line.
 
 FLAKY (REG-9), flaky_apply: a row whose result flipped on the same clean commit, runner and python version. Each result
 keeps its raw PASS/FAIL; the mark is a separate sticky `flaky` flag (the commit it flipped on). The previous result is the
-row in the branch's lane record (<git common dir>/loop/tests/, lanes.py), which keeps commit, clean, host (the runner)
-and python per row. Only two results on the same commit, both on a clean tree, from the same host and python version
-count: either order (FAIL then PASS, PASS then FAIL) marks the row, and the mark stays on that commit (FAIL, PASS, PASS
-is still flaky), until a later commit's clean run passes. A dirty tree, `regression.py red`, another runner, or an older
-record or regression-runs.tsv without these fields never marks. The exit status follows the actual result, and a flaky
-row is never reused (lanes.plan, tiers.reason). workflow-regression/references/commands.md.
+row in the branch's lane record (lanes.py: commit, clean, host, python). Two results on the same commit, both clean, from
+the same host and python count, in either order, and the mark stays on that commit until a later clean run passes. A dirty
+tree, `regression.py red`, another runner or an older record never marks. The exit status follows the actual result, and a
+flaky row is never reused (lanes.plan, tiers.reason). workflow-regression/references/commands.md.
 
 Plan cache: each row's closure is kept per branch in <git common dir>/loop/plans/, keyed by HEAD, .loop/regression.tsv, the
 planner's code, LANES_WIDE and the loop's uncommitted files (key, narrow.warm, narrow.store). A dirty tree never uses it, and a
-plan that read an ignored file is not saved; LANES_NO_CACHE=1 turns it off. The first output line, `PLAN_CACHE: <state>`, names
-what happened (commands.md `## Plan cache`).
+plan that read an ignored file or one outside the repo is not saved; LANES_NO_CACHE=1 turns it off. `PLAN_CACHE: <state>`, the
+planner's first output line, names what happened (commands.md `## Plan cache`).
 """
 import hashlib
 import json
@@ -95,13 +91,16 @@ def changed(root, commit, memo):
 
 
 def status(root):
-    """git status lines with plain (unquoted) non-ASCII paths, or None when git failed."""
-    out = lanes.git(root, "-c", "core.quotepath=false", "status", "--porcelain", "--no-renames", "--untracked-files=all")
+    """git status lines with unquoted non-ASCII paths, or None when git failed."""
+    try:
+        out = lanes.git(root, "-c", "core.quotepath=false", "status", "--porcelain", "--no-renames", "--untracked-files=all")
+    except UnicodeError:  # a locale that cannot decode a path: no cache
+        return None
     return None if out is None else out.splitlines()
 
 
 def loop_state(root, lines):
-    """A digest of the loop's own uncommitted files (lanes.BOOKKEEPING): git status leaves them out, so the key takes them."""
+    """A digest of the loop's uncommitted files (lanes.BOOKKEEPING): lanes.dirty ignores them, so the key hashes them."""
     digest = hashlib.sha256()
     for line in sorted(lines or []):
         if line[3:].strip('"').startswith(lanes.BOOKKEEPING):
@@ -119,15 +118,22 @@ def clean(lines):
     return lines is not None and all(line[3:].strip('"').startswith(lanes.BOOKKEEPING) for line in lines)
 
 
-def ignored(root, cache):
-    """Whether any file the plan read, listed or reaches is git-ignored: neither HEAD nor git status can see its changes."""
-    names = set(cache.get("text", ()))
+def unsafe(root, cache):
+    """Why the plan must not be saved, or None: it read a file outside the repo (a symlink) or an ignored one."""
+    names, top = set(cache.get("text", ())), os.path.realpath(root)
     for item, value in cache.items():
         if isinstance(item, tuple) and item[0] in ("closure", "walk"):
             names |= set(value[0] if item[0] == "closure" else value)
-    done = subprocess.run(["git", "check-ignore", "--stdin", "-z"], cwd=root, capture_output=True, text=True,
-                          input="\0".join(sorted(n for n in names if not n.endswith("/"))))
-    return done.returncode != 1
+    seen = set()
+    for name in names:
+        real = os.path.realpath(os.path.join(root, name))
+        if not (real + os.sep).startswith(top + os.sep):
+            return "symlink outside repo"
+        seen |= {name, os.path.relpath(real, top)}
+    text = "\0".join(sorted(n for n in seen if not n.endswith("/")))
+    done = subprocess.run(["git", "check-ignore", "--stdin", "-z"], cwd=root, capture_output=True,
+                          input=text.encode("utf-8", "surrogateescape"))
+    return "ignored file read" if done.returncode != 1 else None
 
 
 def key(root, lines=None):
@@ -152,9 +158,9 @@ def plan_file(record):
 def lead(root, picked, record, cache):
     """Decide the cache state, print its PLAN_CACHE line first and seed cache; (file, key) when a miss may be saved."""
     off = os.environ.get("LANES_NO_CACHE", "").lower() in ("1", "true", "yes")
-    lines = status(root) if record and not off else []
+    lines = status(root) if record and not off else None
     left = [line for line in lines or [] if not line[3:].strip('"').startswith(lanes.BOOKKEEPING)]
-    path, now = (plan_file(record), key(root, lines)) if record and lines is not None else (None, None)
+    path, now = (plan_file(record), key(root, lines)) if record and not off and lines is not None else (None, None)
     line = "off (LANES_NO_CACHE=1)" if off else "none (no branch)" if not record else \
         "dirty (git status failed, cache not used)" if lines is None else \
         "dirty (%d paths, cache not used)" % len(left) if left else narrow.warm(path, now, picked, cache)
@@ -272,7 +278,7 @@ def plan(root, picked, record):
     if saved:
         again = status(root)
         if clean(again) and key(root, again) == now:  # nothing changed while the plan ran
-            failed = "ignored file read" if ignored(root, cache) else narrow.store(saved, now, cache)
+            failed = unsafe(root, cache) or narrow.store(saved, now, cache)
     print("PLAN_CACHE: not saved (%s)" % failed) if failed else None
     return todo, reused, old if ok else None, full
 
