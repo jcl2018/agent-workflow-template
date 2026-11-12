@@ -61,6 +61,7 @@ automation-missing-workflow	PASS	2026-11-12
 autorelease-no-report	PASS	2026-11-12	
 bad-schedule-refused	PASS	2026-11-12	
 batch-cut-user	PASS	2026-11-09	
+blocks-setup-clean	PASS	2026-11-12	
 board-estimates-overrun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 board-sections	PASS	2026-11-09	
 breaking-asks	PASS	2026-11-09	
@@ -405,6 +406,7 @@ settings-stale	PASS	2026-11-12
 settings-template-line	PASS	2026-11-12	
 setup-both-halves	PASS	2026-11-12	
 size-139	PASS	2026-11-12	
+size-140	PASS	2026-11-12	
 size-141	PASS	2026-11-12	
 size-budget	PASS	2026-11-11	
 size-fail	PASS	2026-11-12	
