@@ -39,6 +39,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 NAME = "regression-runs.tsv"
 HEADER = "# id\tstatus\tdate\trun\tflaky\n"
+SKIP_CODE = 77  # a row exits 77 when it cannot run on this machine (no Codex): SKIPPED, never PASS, never FAIL
 LABELS = ("regression", "defect")  # the tool's own label, and the defect label every failing row's issue carries
 MARK = "<!-- loop-regression %s -->"
 
@@ -69,8 +70,10 @@ def write(root, results, date, sha):
         return
     ran, run = read(root), where(sha)
     for item in results:
+        if item["state"] == "SKIPPED" and (ran.get(item["id"]) or [""] * 5)[1] == "PASS":
+            continue  # a skip here says nothing against the last pass
         flag = item["flaky"] if "flaky" in item else ran.get(item["id"], [""] * 5)[4]
-        ran[item["id"]] = [item["id"], "PASS" if item["state"] == "PASS" else "FAIL", date, run, flag[:12]]
+        ran[item["id"]] = [item["id"], item["state"] if item["state"] in ("PASS", "SKIPPED") else "FAIL", date, run, flag[:12]]
     with open(path(root), "w") as handle:
         handle.write(HEADER + "".join("\t".join(ran[key][:4 + bool(ran[key][4])]) + "\n" for key in sorted(ran)))
 
@@ -172,7 +175,7 @@ def execute(root, picked, todo, est, limit, timeout, expected, reuse):
         if code == 124 and cap < timeout:  # stopped by the budget, not by its own limit: it didn't fail, it wasn't finished
             left.append(key)
             continue
-        state = "PASS" if code == 0 else ("KNOWN" if key in expected else "FAIL")
+        state = "PASS" if code == 0 else "SKIPPED" if code == SKIP_CODE else ("KNOWN" if key in expected else "FAIL")
         if code == 0 and key in expected:
             print("FIXED %s: remove it from the known list" % key)
         print("%s %s%s" % (state, key, " (%s)" % expected[key] if state == "KNOWN" else ""), flush=True)
