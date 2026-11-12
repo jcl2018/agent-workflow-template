@@ -19,8 +19,8 @@ govern_hook.py the only script that blocks; `dev/toy/test-plan-cache.sh` already
 ## Approach (all in `dev/package.py`)
 
 1. Every child gets `stdin=/dev/null`, a time limit (`PACKAGE_CHILD_SECONDS`, else 30) and its own process group, which
-   is killed when the limit is hit. A script that times out is refused by name: `FAIL Scripts: <script> --help did not
-   finish in N seconds with no stdin`.
+   is killed when the limit is hit. With `/dev/null` a stdin reader such as govern_hook.py gets end-of-file and fails fast (`FAIL Scripts: <script> does
+   not run alone`); any other blocker is refused by name when the limit hits (`... --help did not finish in N seconds`).
 2. A hard bound on the whole run (`--timeout`, else `PACKAGE_TIMEOUT`, else 300 seconds) through `SIGALRM`. When hit,
    it kills the running child's process group, prints one line `TIMEOUT: package.py stopped after N seconds waiting on
    <what>` and exits 3. Each phase names what it waits on (the walk, a copy, a script's --help, git, the ZIP).

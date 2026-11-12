@@ -3,7 +3,7 @@
 # Prove dev/package.py never hangs (goal package-hang): a script whose --help waits on stdin, run under an open stdin
 # pipe that never closes (as in a lane), is refused within the child bound; the hard bound stops a run with one TIMEOUT
 # line naming what it waited on and leaves no child behind; a looping symlink in a scripts folder is not followed.
-# Usage: test-package-hang.sh [stdin|bound|loop]... (default: all). Free: no network, no model calls.
+# An outside SIGTERM also stops the child. Usage: test-package-hang.sh [stdin|child|bound|loop|term]... (default: all). Free: no network, no model calls.
 here=$(cd "$(dirname "$0")/../.." && pwd); T=$(mktemp -d); trap 'rm -rf "$T"' EXIT; bad=0
 export HOME="$T/home"; mkdir -p "$HOME"; export LOOP_FLOW="$T/none.json"
 pkg() { # a small package whose one script is $1
@@ -41,20 +41,45 @@ json.load(sys.stdin)'  # like govern_hook.py: ignores --help and reads its JSON 
   check "and is refused by name, since it cannot run alone" 'grep -q "FAIL Scripts: skills/demo/scripts/demo.py does not run alone" <<<"$out"'
 }
 case_bound() {
+  tok="987.1$$$RANDOM"  # this run's own sleeper, so concurrent lanes never see or kill each other's
   pkg "import subprocess, sys, time
-subprocess.Popen(['sleep', '987'])
+subprocess.Popen(['sleep', '$tok'])
+open('$T/started', 'w').close()
 time.sleep(987)"
   out=$(PACKAGE_CHILD_SECONDS=60 run 40 --timeout 3)
+  check "the child and its own child had started" '[ -e "$T/started" ]'
   check "the hard bound stops the run (exit 3)" 'grep -q "^rc=3 " <<<"$out"'
   check "with one TIMEOUT line naming what it waited on" '[ "$(grep -c "^TIMEOUT: package.py stopped after 3 seconds waiting on skills/demo/scripts/demo.py --help$" <<<"$out")" = 1 ]'
   sleep 1
-  check "and no child is left holding a slot" '! pgrep -f "sleep 987" >/dev/null'
-  pkill -f "sleep 987" 2>/dev/null; true
+  check "and no child is left holding a slot" '! pgrep -f "sleep $tok" >/dev/null'
+  check "and no half ZIP is left at --out" '[ ! -e "$T/p.zip" ] && ! ls "$T"/*.part >/dev/null 2>&1'
+  pkill -f "sleep $tok" 2>/dev/null; true
 }
 case_loop() {
   pkg 'print("ok")'; ln -s .. "$T/p/skills/demo/scripts/up"
   out=$(PACKAGE_CHILD_SECONDS=10 run 60)
   check "a looping symlink in a scripts folder does not hang the run" '! grep -q "rc=hung" <<<"$out"'
+  check "nor crash it" '! grep -q Traceback <<<"$out" && grep -Eq "^rc=(0|1) " <<<"$out"'
 }
-for c in ${@:-stdin bound loop}; do "case_$c"; done
+case_child() {
+  pkg 'import time
+time.sleep(60)'  # blocks on something other than stdin
+  out=$(PACKAGE_CHILD_SECONDS=2 run 40)
+  check "a --help that never ends is cut at the child bound" '! grep -q "rc=hung" <<<"$out" && grep -q "^rc=1 " <<<"$out"'
+  check "and refused by name" 'grep -q "FAIL Scripts: skills/demo/scripts/demo.py --help did not finish in 2 seconds" <<<"$out"'
+}
+case_term() {
+  tok="987.2$$$RANDOM"
+  pkg "import subprocess, time
+subprocess.Popen(['sleep', '$tok'])
+time.sleep(987)"
+  PACKAGE_CHILD_SECONDS=60 python3 "$here/dev/package.py" --root "$T/p" --out "$T/p.zip" </dev/null >"$T/term.log" 2>&1 &
+  pid=$!; seen=no; for i in $(seq 1 50); do pgrep -f "sleep $tok" >/dev/null && { seen=yes; break; }; sleep 0.2; done
+  check "the child's own child was running before the kill" '[ $seen = yes ]'
+  kill -TERM $pid; wait $pid; rc=$?; sleep 1; out=$(cat "$T/term.log")
+  check "an outside SIGTERM stops the run with one line" '[ $rc = 143 ] && grep -q "^STOPPED: package.py got signal 15 while waiting on skills/demo/scripts/demo.py --help" <<<"$out"'
+  check "and leaves no child behind" '! pgrep -f "sleep $tok" >/dev/null'
+  pkill -f "sleep $tok" 2>/dev/null; true
+}
+for c in ${@:-stdin child bound loop term}; do "case_$c"; done
 [ $bad = 0 ] && echo "ALL PASS" || { echo "FAILED"; exit 1; }

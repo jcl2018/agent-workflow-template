@@ -12,7 +12,9 @@ Checks run in the order of the roadmap's rule table. Every failure is printed as
 Never hangs: each script's --help run gets no stdin (/dev/null) and CHILD_SECONDS (PACKAGE_CHILD_SECONDS, else 30), in its own process group that is
 killed when the time is up, and copies keep symlinks as links. The whole run has a hard bound (--timeout, else
 PACKAGE_TIMEOUT, else 300 seconds): when it is hit, package.py kills any child, prints one line
-`TIMEOUT: package.py stopped after N seconds waiting on <what>` and exits 3.
+`TIMEOUT: package.py stopped after N seconds waiting on <what>` and exits 3. SIGTERM, SIGINT and SIGHUP also kill the
+child's group before exiting, and the ZIP is written to a .part file beside --out and renamed, so a stopped run leaves no
+half ZIP. An inherited ignore of SIGINT or SIGHUP (nohup) is kept.
 """
 import argparse
 import ast
@@ -25,6 +27,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import zipfile
 
 SHIPPED = ["skills", "listing.json", "README.md", "LICENSE"]
@@ -46,43 +49,93 @@ try:
 except ValueError:
     CHILD_SECONDS = 30
 failures = []
-waiting = {"on": "starting", "child": None}
+waiting = {"on": "starting", "child": None, "part": None, "lone": None, "stopping": False}
+STOP_SIGNALS = [getattr(signal, n) for n in ("SIGALRM", "SIGTERM", "SIGINT", "SIGHUP") if hasattr(signal, n)]
 
 
 def wait_on(what):
     waiting["on"] = what
 
 
+def stop(line, code):
+    """Kill the running child's group, drop a half-written ZIP, print one line and exit at once."""
+    if waiting["stopping"]:  # a second signal while stopping: the first one finishes the job
+        return
+    waiting["stopping"] = True
+    child = waiting["child"]
+    if child is not None:
+        kill_group(child)
+    for path in (waiting["part"],):
+        try:
+            if path:
+                os.remove(path)
+        except OSError:
+            pass
+    if waiting["lone"]:
+        shutil.rmtree(waiting["lone"], ignore_errors=True)
+    if line:
+        os.write(1, (line + "\n").encode("utf-8", "replace"))  # never print() in a handler: it may interrupt one
+    os._exit(code)
+
+
 def on_timeout(seconds):
-    def handler(signum, frame):
-        child = waiting["child"]
-        if child is not None:
-            kill_group(child)
-        sys.stdout.write("TIMEOUT: package.py stopped after %d seconds waiting on %s\n" % (seconds, waiting["on"]))
-        sys.stdout.flush()
-        os._exit(3)
-    return handler
+    return lambda *_: stop("TIMEOUT: package.py stopped after %d seconds waiting on %s" % (seconds, waiting["on"]), 3)
+
+
+def on_signal(signum, frame):
+    stop("STOPPED: package.py got signal %d while waiting on %s" % (signum, waiting["on"]), 128 + signum)
+
+
+def arm(seconds):
+    """The hard bound: SIGALRM where it exists, else a timer thread (Windows). Outside kills also stop the child."""
+    if hasattr(signal, "SIGALRM"):
+        signal.signal(signal.SIGALRM, on_timeout(seconds))
+        signal.alarm(max(1, seconds))
+    else:
+        timer = threading.Timer(max(1, seconds), on_timeout(seconds))
+        timer.daemon = True
+        timer.start()
+    for name in ("SIGTERM", "SIGINT", "SIGHUP"):
+        if hasattr(signal, name) and signal.getsignal(getattr(signal, name)) is not signal.SIG_IGN:  # keep nohup's ignore
+            signal.signal(getattr(signal, name), on_signal)
 
 
 def kill_group(proc):
     try:
-        os.killpg(proc.pid, signal.SIGKILL)
-    except (OSError, ProcessLookupError):
+        if hasattr(os, "killpg"):
+            os.killpg(proc.pid, signal.SIGKILL)
+        else:  # Windows: the child and its whole tree
+            subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], stdin=subprocess.DEVNULL,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+    except (OSError, ProcessLookupError, subprocess.SubprocessError):
         pass
 
 
 def run_alone(cmd, cwd, what):
     """Run one child with no stdin and a time limit; kill its whole process group when the limit is hit."""
     wait_on(what)
-    proc = subprocess.Popen(cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            text=True, start_new_session=True)
-    waiting["child"] = proc
+    group = {"start_new_session": True} if hasattr(os, "killpg") else {"creationflags": getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)}
+    mask = hasattr(signal, "pthread_sigmask")
+    if mask:  # no stop signal between the child starting and its being recorded, so none escapes the bound
+        signal.pthread_sigmask(signal.SIG_BLOCK, STOP_SIGNALS)
+    try:
+        proc = subprocess.Popen(cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                text=True, **group)
+        waiting["child"] = proc
+    finally:
+        if mask:
+            signal.pthread_sigmask(signal.SIG_UNBLOCK, STOP_SIGNALS)
     try:
         out, err = proc.communicate(timeout=CHILD_SECONDS)
         return proc.returncode, err
     except subprocess.TimeoutExpired:
         kill_group(proc)
-        proc.communicate()
+        try:  # a detached grandchild may still hold the pipes: do not wait on it
+            proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            for pipe in (proc.stdout, proc.stderr):
+                pipe.close()
+            proc.wait(timeout=5)
         return None, ""
     finally:
         waiting["child"] = None
@@ -209,6 +262,7 @@ def check_scripts(root, files):
         if re.search(r"skills/|\.\./", text.replace("../loop-files.md", "")) and re.search(r"open\([^)]*(skills/|\.\./)", text):
             fail("Scripts", "%s opens another package file" % rel)
         with tempfile.TemporaryDirectory() as lone:  # a copy of its own scripts folder only: siblings, nothing else
+            waiting["lone"] = lone
             wait_on("the copy of %s's folder" % rel)
             shutil.copytree(os.path.dirname(os.path.join(root, rel)), os.path.join(lone, "scripts"), symlinks=True)
             rc, err = run_alone([sys.executable, "-E", "-s", os.path.join(lone, "scripts", os.path.basename(rel)), "--help"],
@@ -217,6 +271,7 @@ def check_scripts(root, files):
                 fail("Scripts", "%s --help did not finish in %d seconds with no stdin (it waits on input or a child)" % (rel, CHILD_SECONDS))
             elif rc:
                 fail("Scripts", "%s does not run alone: %s" % (rel, err.strip()[-200:]))
+            waiting["lone"] = None
 
 
 def private_prefixes():
@@ -331,7 +386,10 @@ def manifest(root, files, version):
 
 def build(root, files, out, version):
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as bundle:
+    handle, part = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(out)), suffix=".part")  # whole, then renamed
+    os.close(handle)
+    waiting["part"] = part
+    with zipfile.ZipFile(part, "w", zipfile.ZIP_DEFLATED) as bundle:
         for rel in files:
             info = zipfile.ZipInfo(SHARED.get(rel, rel), (2026, 1, 1, 0, 0, 0))
             info.external_attr = 0o644 << 16
@@ -341,6 +399,8 @@ def build(root, files, out, version):
             info = zipfile.ZipInfo(name, (2026, 1, 1, 0, 0, 0))
             info.external_attr = 0o644 << 16
             bundle.writestr(info, stamp)
+    os.replace(part, out)
+    waiting["part"] = None
 
 
 def main():
@@ -350,11 +410,13 @@ def main():
     parser.add_argument("--timeout", type=int, default=None, help="hard bound in seconds (default PACKAGE_TIMEOUT, else 300)")
     args = parser.parse_args()
     try:
-        seconds = args.timeout or int(os.environ.get("PACKAGE_TIMEOUT") or 300)
+        seconds = args.timeout if args.timeout is not None else int(os.environ.get("PACKAGE_TIMEOUT") or 300)
     except ValueError:
         seconds = 300
-    signal.signal(signal.SIGALRM, on_timeout(seconds))
-    signal.alarm(max(1, seconds))
+    if seconds <= 0:
+        print("REFUSED: the time bound must be a positive number of seconds, not %d" % seconds)
+        return 2
+    arm(seconds)
     root = os.path.abspath(args.root)
     files = walk(root)
     wait_on('the frontmatter checks')
