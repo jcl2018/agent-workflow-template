@@ -51,6 +51,10 @@ def main():
         if full.returncode or [read(page) for page in pages] == before:
             print("FAIL: a plain render no longer repairs the Settings block (exit %d): %s" % (full.returncode, full.stdout + full.stderr))
             return 1
+        audit = run(sys.executable, os.path.join(scratch, "skills", "workflow-docs", "scripts", "docs.py"), "audit", "--dry-run", cwd=scratch)
+        if "Traceback" in audit.stderr:
+            print("FAIL: docs.py audit raised: %s" % audit.stderr[-300:])
+            return 1
         print("OK: render --tables left README.md and Home.md alone; a plain render repaired them")
         return 0
     finally:
