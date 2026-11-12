@@ -47,6 +47,23 @@ Review: **Unreviewed**
   - Setup can take an adopted repo as its model: it borrows that repo's settings shape, flow, milestone layout and private rules (never private values) and adapts them to the new repo.
 - SET-10: **Reviewed 2026-11-10** The right format for every agent <!-- reviewed 06345b05 -->
   - The same skills are wired into each agent's own entry files (for example CLAUDE.md and AGENTS.md), so Claude Code, Codex and other SKILL.md agents run the same loop the same way.
+- SET-11: **Unreviewed** Prerequisites first, then a strict replay of the first adoption
+  - Before it writes anything, setup prints one checklist of what this machine needs: git, python3, gh installed and signed in as me, real symlinks, and a supported platform (no crash on a missing POSIX call, and the qa lane runs on this platform instead of hanging). Each line that fails carries its exact fix, for example the install command, or `gh auth login` run with a device code I can enter from my phone instead of a prompt waiting at the PC.
+  - Adoption then replays the first run step by step against its golden result (`dev/toy/adoption-golden.tsv`, eight steps from prerequisites to the first check-in). It stops at the first mismatch, says what differs and asks me to do the exact step that fixes it; it never accepts a looser equivalent.
+  - Comes from [#1408](https://github.com/jcl2018/agent-workflow-template/issues/1408), with the Windows crashes in [#1395](https://github.com/jcl2018/agent-workflow-template/issues/1395), [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) and [#1397](https://github.com/jcl2018/agent-workflow-template/issues/1397).
+- SET-12: **Unreviewed** Adopt all my repos in one pass
+  - From the operation session, one flow lists my GitHub repos by last push, private ones included, lets me choose which to follow, clones them into one folder, registers each with the board and updates each to the current template version.
+  - It ends with the board showing exactly the repos I chose and none of them on an unknown or older template version.
+  - Comes from [#1409](https://github.com/jcl2018/agent-workflow-template/issues/1409).
+- SET-13: **Unreviewed** Workers are app sessions I can see
+  - When I've chosen app sessions, a goal never falls back to a background worker: it waits for a free session and says so, including when the app refuses to start one because my message came over Remote Control.
+  - The pool asks for sessions only when free ones run short of ready goals, never a fixed number up front.
+  - The reply and govern hooks are installed exactly once each, however many times setup or either hook command runs.
+  - Comes from [#1404](https://github.com/jcl2018/agent-workflow-template/issues/1404).
+- SET-14: **Unreviewed** The connectors each repo needs are checked
+  - For each followed repo, setup reads which connectors its PRDs need (mail accounts, a calendar, a file store, a notification channel) and probes each with a read-only call.
+  - It prints each as connected, needs sign-in or missing, with the fix, and names the owner-written files a repo needs that don't exist yet. It never attaches or enables a connector itself: I do, with the narrowest access.
+  - Comes from [#1410](https://github.com/jcl2018/agent-workflow-template/issues/1410).
 
 ### Non-functional
 - SET-3: **Unreviewed** Shipped as a versioned package.
@@ -55,6 +72,10 @@ Review: **Unreviewed**
   - A dry run lists everything before any write; running setup twice changes nothing the second time; nothing existing is overwritten.
 - SET-8: **Reviewed 2026-11-10** Private stays private <!-- reviewed 22a16ae7 -->
   - Local settings and private values are never written into the repo, and setup refuses to commit a file that holds one.
+- SET-15: **Unreviewed** One private-name list that fits every repo
+  - When setup seeds the private-name list, it explains that the list covers every repo on this machine, so a private repo's own name, or a contact it cites on purpose, would block that repo's own commits.
+  - A pattern can be scoped, for example to public repos only or to named repos, so a private repo can hold what a public one must never show.
+  - Comes from [#1411](https://github.com/jcl2018/agent-workflow-template/issues/1411).
 
 ## Non-goals
 - It never commits private settings or values.
@@ -105,6 +126,11 @@ Review: **Unreviewed**
 | [set9-from-no-values](Tests#t-set9-from-no-values) | requirement | SET-9 | Given a model value holding a home path or an email, when setup runs with --from, then the value is skipped and appears in no output and no written file. | not run |
 | - | requirement | SET-9 | no passing test | not enforced |
 | [agents-wire](Tests#t-agents-wire) | requirement | SET-10 | Given a repo, when setup or agents.py wire runs, then CLAUDE.md and AGENTS.md hold the same workflow-loop block, text outside it is kept, and a second run changes nothing. | PASS 2026-11-12 |
+| [adoption-golden](Tests#t-adoption-golden) | requirement | SET-11 | Given the golden first adoption, when its fixture and SET-11 are read, then the fixture holds steps 1 to 8 in order, each with a check, golden result and fix, no machine path or account, and SET-11 names it and its first-mismatch stop. | not run |
+| - | requirement | SET-11 | no passing test | not enforced |
+| - | requirement | SET-12 | no passing test | not enforced |
+| - | requirement | SET-13 | no passing test | not enforced |
+| - | requirement | SET-14 | no passing test | not enforced |
 | [adopt-set-3](Tests#t-adopt-set-3) | requirement | SET-3 | Given SET-3, when the toy adopt-and-update test runs, then it holds. | PASS 2026-11-12 |
 | [skill-kept](Tests#t-skill-kept) | requirement | SET-3 | Given detail moved out of the workflow-delivery and workflow-docs SKILL.md files, when their references are read, then every moved sentence is there word for word and SKILL.md points to it. | PASS 2026-11-12 |
 | [codex-ro-home](Tests#t-codex-ro-home) | requirement | SET-3 | Given a Codex sandbox that leaves the home folder read-only, when setup adopts a clean toy repo, then it says the private settings were not written and still adopts the repo, with no crash. | not run |
@@ -119,11 +145,12 @@ Review: **Unreviewed**
 | [set8-local-setting-refused](Tests#t-set8-local-setting-refused) | requirement | SET-8 | Given a private-home key in the config the adoption would commit, when setup runs, then it refuses naming the key and the line, never the value, and writes nothing. | not run |
 | [set8-private-value-refused](Tests#t-set8-private-value-refused) | requirement | SET-8 | Given a home path or a local setting value on a line the adoption adds, when setup runs, then it refuses naming file and line and never the value, while text the repo already had, a short value and a template default pass. | not run |
 | [set8-health](Tests#t-set8-health) | requirement | SET-8 | Given a repo with the private-name hooks installed or removed, when health runs its hooks rule, then the row appears in the Security and privacy group with its PASS or WARN text, and a wrong group, which prints no hooks row, fails the row. | PASS 2026-11-12 |
+| - | requirement | SET-15 | no passing test | not enforced |
 | [setup-zero-tests-119](Tests#t-setup-zero-tests-119) | defect | [#119](https://github.com/jcl2018/agent-workflow-template/issues/119) open (2026-11-12) | Given a repo whose tests are named *_test.py, when setup picks its check, then the command finds at least one test, and with no proof it is no fit with a finding. | not run |
 | [setup-refusal-writes-120](Tests#t-setup-refusal-writes-120) | defect | [#120](https://github.com/jcl2018/agent-workflow-template/issues/120) open (2026-11-12) | Given any refusal, signal or kill during an adoption, when setup stops, then the tree, branches, index and home folder are as they were, and a killed run is recovered by the next. | not run |
 | [setup-tsv-guard-127](Tests#t-setup-tsv-guard-127) | defect | [#127](https://github.com/jcl2018/agent-workflow-template/issues/127) open (2026-11-12) | Given a .gitignore blocking *.tsv and a hook that rejects tracked .tsv files, when setup runs, then the ignore is exempted by a written line and the hook is named with its exemption and never edited. | not run |
 | [skill-size-116](Tests#t-skill-size-116) | defect | [#116](https://github.com/jcl2018/agent-workflow-template/issues/116) closed (2026-11-10) | Given the package's skills, when each SKILL.md is counted, then every one is under 150 lines, so test-board passes. | PASS 2026-11-10 |
 | [size-139](Tests#t-size-139) | defect | [#139](https://github.com/jcl2018/agent-workflow-template/issues/139) closed (2026-11-11) | Given criteria.py's page rules moved into deployments.py by a pure move, when health's size rule and the split checks run, then neither file warns and every moved name resolves the same on criteria. | PASS 2026-11-12 |
-| [size-140](Tests#t-size-140) | defect | [#140](https://github.com/jcl2018/agent-workflow-template/issues/140) open (2026-11-12) | Given docs.py's page map moved into counting.py by a pure move, when health's size rule and the split checks run, then neither file warns and every moved name resolves the same on docs. | failing (issue reopened) 2026-11-12 |
+| [size-140](Tests#t-size-140) | defect | [#140](https://github.com/jcl2018/agent-workflow-template/issues/140) closed (2026-11-12) | Given docs.py's page map moved into counting.py by a pure move, when health's size rule and the split checks run, then neither file warns and every moved name resolves the same on docs. | PASS 2026-11-12 |
 | [size-141](Tests#t-size-141) | defect | [#141](https://github.com/jcl2018/agent-workflow-template/issues/141) closed (2026-11-11) | Given regression.py's row and page readers moved into runs.py by a pure move, when health's size rule and the split checks run, then neither file warns and every moved name resolves the same on regression. | PASS 2026-11-12 |
 | [codex-key-commands](Tests#t-codex-key-commands) | defect | [#38](https://github.com/jcl2018/agent-workflow-template/issues/38) closed (2026-11-11) | Given a clean toy repo with no private settings and a Codex that is installed, signed in and able to answer, when Codex runs setup, go, the live board, health check and regression run, then each runs and leaves what it should; where Codex is not available the row exits 77 and is SKIPPED, never PASS. | not run |
