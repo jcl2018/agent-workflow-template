@@ -131,8 +131,17 @@ def cmd_loop(args):
     found = TOKENS.findall(text)
     if found:
         state["tokens"] = dict(state.get("tokens") or {}, total=int(found[-1].replace(",", "")))
-    state["report"] = outcome(state, text)
-    save(state, state["report"]["text"])
+    report = outcome(state, text)  # asks gh whether the pull request merged: slow, so reread before saving
+    fresh = load(args.slug) or state  # issue 159: a merge recorded from outside meanwhile is never overwritten
+    if (fresh.get("report") or {}).get("status") == "merged" or fresh.get("status") in ("merged",):
+        report = fresh.get("report") or report
+    elif fresh.get("status") != state.get("status") and fresh.get("status") not in ("running",):
+        report = outcome(fresh, text)
+    fresh.update(status=state["status"] if fresh.get("status") == "running" else fresh.get("status"),
+                 finding=fresh.get("finding") or state.get("finding", ""), report=report)
+    if found:
+        fresh["tokens"] = state["tokens"]
+    save(fresh, report["text"])
     return 0
 
 

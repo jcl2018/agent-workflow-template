@@ -2,6 +2,7 @@
 # reads: skills/
 # Test the Automation routines with a stub gh: the digest, defect labels, the off switch, the judge gate. usage: test-automation.sh
 set -u
+unset CLAUDECODE LOOP_JUDGE_ANSWER  # the judge is the session only where a test asks for it
 unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
@@ -105,7 +106,7 @@ grep -q 'cron: "47 \*/4 \* \* \*"' $W && grep -q "^  workflow_dispatch:" $W && g
   && ok "the health workflow runs on health_cron and by hand, one at a time" || bad "health workflow triggers"
 step_env() { awk -v n="      - name: $2" '$0 == n {on=1; next} on && /^      - name: /{exit} on' "$1"; }
 step_env $W "Health check" | grep -qF 'GH_TOKEN: ${{ github.token }}' && grep -q "^  issues: write$" $W \
-  && ok "the health check step has the job token, so the issue-milestone rule can read issues" || bad "health check token"
+  && ok "the health check step has the job token, so the issue rules can read issues" || bad "health check token"
 step $W "Check the routine" routine.sh; mkdir -p skills/workflow-health/scripts && touch skills/workflow-health/scripts/health.py
 printf '{"health_cron": "off"}\n' > .loop/config.json; : > "$G/calls.log"; : > o.txt; : > s.txt
 PATH="$G:$PATH" EVENT=schedule GITHUB_OUTPUT=o.txt GITHUB_STEP_SUMMARY=s.txt bash -e routine.sh >/dev/null; rc=$?

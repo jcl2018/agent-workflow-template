@@ -90,13 +90,13 @@ Review: **Reviewed 2026-11-10** <!-- prd P=41bfc9ae R=ede201f5 N=839ce3ce M=0fde
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
 | [dependency-held](Tests#t-dependency-held) | requirement | MON-1 | Given a goal that depends on an unmerged goal, when the queue runs, then it is held until that goal merges. | PASS 2026-11-09 |
-| [no-line-in-governor](Tests#t-no-line-in-governor) | requirement | MON-1 | Given the governing session, when goals run, then no goal runs inside it. | PASS 2026-11-11 |
-| [skill-says-governs](Tests#t-skill-says-governs) | requirement | MON-1 | Given the delivery skill, when it is read, then it says the operation session only governs. | PASS 2026-11-11 |
+| [no-line-in-governor](Tests#t-no-line-in-governor) | requirement | MON-1 | Given the governing session, when goals run, then no goal runs inside it. | PASS 2026-11-12 |
+| [skill-says-governs](Tests#t-skill-says-governs) | requirement | MON-1 | Given the delivery skill, when it is read, then it says the operation session only governs. | PASS 2026-11-12 |
 | [dependencies-on-map](Tests#t-dependencies-on-map) | requirement | MON-1 | Given a goal that waits on others, when it starts, then it records what it waits on. | PASS 2026-11-09 |
 | [failed-waits-mender](Tests#t-failed-waits-mender) | requirement | MON-1 | Given a failed goal, when mending is due, then it waits before a mender starts. | PASS 2026-11-09 |
-| [worker-refuses](Tests#t-worker-refuses) | requirement | MON-1 | Given the governing session, when building is attempted inside it, then it is refused with one line. | PASS 2026-11-11 |
-| [worker-per-goal](Tests#t-worker-per-goal) | requirement | MON-1 | Given several goals, when they run, then each runs in its own process and worktree. | PASS 2026-11-11 |
-| [one-way-to-run](Tests#t-one-way-to-run) | requirement | MON-1 | Given the tools, when a goal is started, then no old way to start it remains. | PASS 2026-11-11 |
+| [worker-refuses](Tests#t-worker-refuses) | requirement | MON-1 | Given the governing session, when building is attempted inside it, then it is refused with one line. | PASS 2026-11-12 |
+| [worker-per-goal](Tests#t-worker-per-goal) | requirement | MON-1 | Given several goals, when they run, then each runs in its own process and worktree. | PASS 2026-11-12 |
+| [one-way-to-run](Tests#t-one-way-to-run) | requirement | MON-1 | Given the tools, when a goal is started, then no old way to start it remains. | PASS 2026-11-12 |
 | [operate-all](Tests#t-operate-all) | requirement | MON-1 | Given the operate command's toy suite, when it runs, then the whole suite passes. | PASS 2026-11-09 |
 | [session-assign](Tests#t-session-assign) | requirement | MON-1 | Given a ready goal, when it is assigned, then it gets its own worker session in the app. | PASS 2026-11-11 |
 | [session-rename](Tests#t-session-rename) | requirement | MON-1 | Given a worker session, when it takes a goal, then it is renamed after that goal. | PASS 2026-11-11 |
@@ -104,7 +104,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=41bfc9ae R=ede201f5 N=839ce3ce M=0fde
 | [steps-in-session](Tests#t-steps-in-session) | requirement | MON-1 | Given a worker session, when it runs steps, then it runs each step itself with no headless agent. | PASS 2026-11-11 |
 | [record-in-session](Tests#t-record-in-session) | requirement | MON-1 | Given a step a worker session ran, when it is recorded, then it is recorded as in session and a goal with no session is refused. | PASS 2026-11-11 |
 | [session-holds-slot](Tests#t-session-holds-slot) | requirement | MON-1 | Given a goal in a worker session, when the parallel limit is counted, then it counts against the limit. | PASS 2026-11-11 |
-| [worker-reports](Tests#t-worker-reports) | requirement | MON-2 | Given a merged goal, when the board is shown, then it shows its pull request. | PASS 2026-11-11 |
+| [worker-reports](Tests#t-worker-reports) | requirement | MON-2 | Given a merged goal, when the board is shown, then it shows its pull request. | PASS 2026-11-12 |
 | [worker-reports-live](Tests#t-worker-reports-live) | requirement | MON-2 | Given a report to a running worker, when goal.py next runs, then the report reaches its agent once. | PASS 2026-11-09 |
 | [session-reports](Tests#t-session-reports) | requirement | MON-2 | Given a worker session's step report, when it arrives, then it is recorded on its goal. | PASS 2026-11-11 |
 | [session-fallback](Tests#t-session-fallback) | requirement | MON-2 | Given no session can be started, when a goal runs, then it falls back to a background process and the board says so. | PASS 2026-11-11 |
@@ -116,10 +116,10 @@ Review: **Reviewed 2026-11-10** <!-- prd P=41bfc9ae R=ede201f5 N=839ce3ce M=0fde
 | [waits-first](Tests#t-waits-first) | requirement | MON-3 | Given a live board, when the board page is opened, then it shows the live board. | PASS 2026-11-09 |
 | [board-sections](Tests#t-board-sections) | requirement | MON-3 | Given a live board, when the board page is built, then it carries the live board's sections. | PASS 2026-11-09 |
 | [retired-leaves-waiting](Tests#t-retired-leaves-waiting) | requirement | MON-4 | Given a retired goal, when the board is shown, then it no longer shows under Issues. | PASS 2026-11-09 |
-| [stuck-stays-top](Tests#t-stuck-stays-top) | requirement | MON-4 | Given a stuck goal, when the board is shown, then it stays on top until answered. | PASS 2026-11-11 |
-| [status-order](Tests#t-status-order) | requirement | MON-4 | Given the live board, when it is printed, then it lists Issues, Running goals, Queued goals, Dependencies and Finish in that order. | PASS 2026-11-11 |
-| [needs-you-stuck](Tests#t-needs-you-stuck) | requirement | MON-4 | Given failed and waiting goals, when the board is printed, then Issues holds them with the exact words to type. | PASS 2026-11-11 |
-| [estimates-shown](Tests#t-estimates-shown) | requirement | MON-4 | Given a running goal, when the board is printed, then it shows its time left from past runs and its step flow. | PASS 2026-11-11 |
+| [stuck-stays-top](Tests#t-stuck-stays-top) | requirement | MON-4 | Given a stuck goal, when the board is shown, then it stays on top until answered. | PASS 2026-11-12 |
+| [status-order](Tests#t-status-order) | requirement | MON-4 | Given the live board, when it is printed, then it lists Issues, Running goals, Queued goals, Dependencies and Finish in that order. | PASS 2026-11-12 |
+| [needs-you-stuck](Tests#t-needs-you-stuck) | requirement | MON-4 | Given failed and waiting goals, when the board is printed, then Issues holds them with the exact words to type. | PASS 2026-11-12 |
+| [estimates-shown](Tests#t-estimates-shown) | requirement | MON-4 | Given a running goal, when the board is printed, then it shows its time left from past runs and its step flow. | PASS 2026-11-12 |
 | [status-roadmap-features](Tests#t-status-roadmap-features) | requirement | MON-4 | Given merged goals, when the live board is printed, then they do not appear. | PASS 2026-11-09 |
 | [status-graph-order](Tests#t-status-graph-order) | requirement | MON-4 | Given the live board, when it is printed, then its sections come in a fixed order. | PASS 2026-11-11 |
 | [status-graph-levels](Tests#t-status-graph-levels) | requirement | MON-4 | Given chained goals, when the board is printed, then they are drawn as a top-to-bottom graph between running and queued goals. | PASS 2026-11-11 |
@@ -176,6 +176,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=41bfc9ae R=ede201f5 N=839ce3ce M=0fde
 | [guards-resume](Tests#t-guards-resume) | defect | [#149](https://github.com/jcl2018/agent-workflow-template/issues/149) closed (2026-11-11) | Given a stopped goal worked in a session, when the operation runs goal.py resume, then it runs again in that session with who and why logged, and no headless worker starts. | PASS 2026-11-10 |
 | [guards-worker-role](Tests#t-guards-worker-role) | defect | [#121](https://github.com/jcl2018/agent-workflow-template/issues/121) closed (2026-11-11) | Given a goal step run without LOOP_ROLE=worker, when it is refused, then the refusal gives the exact LOOP_ROLE=worker command for the goal's bound session, and bind prints it. | PASS 2026-11-10 |
 | [guards-worktree](Tests#t-guards-worktree) | defect | [#160](https://github.com/jcl2018/agent-workflow-template/issues/160) open (2026-11-11) | Given a session bound to a goal, when it is bound or assigned, then it is told the goal worktree to work in, and a session folder outside it is refused. | PASS 2026-11-10 |
+| [worker-save-159](Tests#t-worker-save-159) | defect | [#159](https://github.com/jcl2018/agent-workflow-template/issues/159) open (2026-11-11) | Given a worker loop whose run record is merged from outside while it runs, when the loop saves, then the outside merge is kept. | not run |
 | [issue-117-bind-self](Tests#t-issue-117-bind-self) | defect | [#117](https://github.com/jcl2018/agent-workflow-template/issues/117) open (2026-11-11) | Given a worker session that doesn't know its own id, when it runs sessions.py bind SLUG self, then it is bound by its own session id (issue: Goals can't name GitHub-side changes ... a worker session cannot find its own session id). | not run |
 | [held-stale-next](Tests#t-held-stale-next) | defect | [#102](https://github.com/jcl2018/agent-workflow-template/issues/102) closed (2026-11-10) | Given a session goal with an old failure report and a newer session report, when the live board prints, then its next line is the newer report. | PASS 2026-11-10 |
 | [held-shows-held](Tests#t-held-shows-held) | defect | [#102](https://github.com/jcl2018/agent-workflow-template/issues/102) closed (2026-11-10) | Given a running goal with no worker (session reassigned, worktree kept), when the live board prints, then it is listed as held, not running and not as a background worker. | PASS 2026-11-10 |
@@ -197,4 +198,3 @@ Review: **Reviewed 2026-11-10** <!-- prd P=41bfc9ae R=ede201f5 N=839ce3ce M=0fde
 | [pool-edges-122](Tests#t-pool-edges-122) | defect | [#122](https://github.com/jcl2018/agent-workflow-template/issues/122) open (2026-11-11) | Given a malformed pool entry and a retired goal with a busy session, when the pool is read, then the entry is set aside without blocking and the session is named and freed. | PASS 2026-11-10 |
 | [pull-ff-only-passes](Tests#t-pull-ff-only-passes) | defect | [#495](https://github.com/jcl2018/agent-workflow-template/issues/495) closed (2026-11-11) | Given the operation session, when it runs git pull --ff-only (also with -C and a remote), then the govern hook lets it through. | PASS 2026-11-10 |
 | [pull-plain-blocked](Tests#t-pull-plain-blocked) | defect | [#495](https://github.com/jcl2018/agent-workflow-template/issues/495) closed (2026-11-11) | Given the operation session, when it runs a plain git pull, -r, --rebase=merges, --no-ff, --ff-only with --rebase or --ff, a +refspec or -f, then the govern hook still refuses it (negative control). | PASS 2026-11-10 |
-
