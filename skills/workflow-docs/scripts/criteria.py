@@ -10,8 +10,9 @@ usage: criteria.py <command> [options]
                                mark them Unreviewed again, so their wording may change. With no terminal, both need
                                LOOP_OWNER_WORDS, the owner's own words that said to; each change is logged with them
                                in reviews.tsv in the repo's .git/loop folder
-  render [--check]             rewrite each feature page's Tests from the regression rows and their last runs;
-                               --check only says which pages are stale
+  render [--check] [--tables]  rewrite each feature page's Tests from the regression rows and their last runs;
+                               --check only says which pages are stale; --tables leaves the Settings, Automation and
+                               README blocks alone (a lane uses it: it must never rewrite a page it only measures)
 
 A feature page is a short PRD (references/template.md): a Review line, then Problem, an optional Usage, Requirements,
 Non-goals, Success metrics and Tests. Requirements hold up to criteria_max lines (default CRITERIA_MAX_DEFAULT,
@@ -365,6 +366,8 @@ def main():
         item.set_defaults(func=func)
     item = sub.add_parser("render")
     item.add_argument("--check", action="store_true")
+    item.add_argument("--tables", action="store_true",
+                      help="only the Tests tables: leave the Settings, Automation and README blocks as they are")
     item.set_defaults(func=cmd_render)
     args = parser.parse_args()
     return args.func(args)
