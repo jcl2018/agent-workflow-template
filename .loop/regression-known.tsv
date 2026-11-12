@@ -17,4 +17,4 @@ plan-sizes	fails on clean main since v0.27.17; fixed by package-cap-3
 pods-size	fails on clean main since v0.27.17; fixed by package-cap-3
 sync-check-preview	fails on clean main since v0.27.17; fixed by package-cap-3
 sync-board-lag	fails on clean main since v0.27.17; fixed by package-cap-3
-size-140	fails on clean main since v0.27.17: skills/workflow-docs/scripts/docs.py is 18,702 bytes, past the 90% size warning (settings-table); regression-green-2 trims only SKILL.md, the scripts are outside its touches
+size-140	fails on clean main since v0.27.17: skills/workflow-docs/scripts/docs.py is 18,702 bytes, past the 90% size warning; fixed by package-cap-3 (moves a block out of docs.py)
