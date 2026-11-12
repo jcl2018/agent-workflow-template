@@ -286,7 +286,7 @@ def settings_block(root):
     head = ["Name", "What it means", "How to set it", "Default", "This repo"]
     body = pageformat.table(head, rows) if rows else ["The settings reference is not installed here."]
     return "\n".join(["<!-- settings:begin -->", "## Settings", "",
-                       "Every repo setting, from the template's settings reference and this repo's `.loop/config.json`.", ""]
+                       "Every repo setting from the template's settings reference, with this repo's value from `.loop/config.json`.", ""]
                       + body + ["<!-- settings:end -->", ""])
 
 

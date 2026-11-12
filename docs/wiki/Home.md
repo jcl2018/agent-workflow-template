@@ -17,7 +17,7 @@
 <!-- settings:begin -->
 ## Settings
 
-Every repo setting, from the template's settings reference and this repo's `.loop/config.json`.
+Every repo setting from the template's settings reference, with this repo's value from `.loop/config.json`.
 
 | Name | What it means | How to set it | Default | This repo |
 |---|---|---|---|---|
