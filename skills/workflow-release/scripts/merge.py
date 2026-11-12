@@ -134,10 +134,10 @@ def missing_ids(top, cfg, head="HEAD"):
 
 
 # ---- the release pull request (DEL-5, issues 134 and 154)
-FIELDS = "state,mergeStateStatus,reviewDecision,mergeCommit,statusCheckRollup,url,number"
+FIELDS = "state,mergeStateStatus,reviewDecision,mergeCommit,statusCheckRollup,url,number,headRefOid"
 REVIEW = ("REVIEW_REQUIRED", "CHANGES_REQUESTED")
 PENDING = ("QUEUED", "IN_PROGRESS", "WAITING", "PENDING", "REQUESTED", "EXPECTED")
-KEYS = ("release_pr", "release_pr_branch", "release_pr_version", "release_pushed", "release_pr_waiting")
+KEYS = ("release_pr", "release_pr_branch", "release_pr_version", "release_pushed", "release_pr_waiting", "release_status")
 
 
 def title_of(version, slug):
@@ -195,6 +195,7 @@ def advance(top, cfg, state, again=False):
     if seen.get("state") == "OPEN":
         autorelease.check(state, top, None, {"release PR title": title_of(version, slug),
                                              "release notes": autorelease.notes_text(state)})
+        autorelease.release_statuses(top, cfg, state, state["release_pr_branch"], seen.get("headRefOid"))
         merged = autorelease.sh(["gh", "pr", "merge", url, "--merge"], cwd=top)
         said = (merged.stderr or merged.stdout).strip()[-200:]
         seen = view(top, url)
@@ -297,6 +298,8 @@ def main():
         if noted:
             print("NOTE: no wiki page on the base names %s yet; merging anyway" % ", ".join(noted))
         autorelease.run_routines(top, cfg, state)
+        if tested != state.get("pr_head"):
+            autorelease.restatus(top, cfg, state, tested)
         done = run(["gh", "pr", "merge", state["pr"], "--merge"] + (["--match-head-commit", tested] if tested else []))
         if done.returncode:
             autorelease.fail(state, "gh could not merge %s: %s" % (state["pr"], done.stderr.strip()[-300:]))
