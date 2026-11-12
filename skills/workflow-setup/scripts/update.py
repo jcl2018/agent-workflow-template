@@ -12,7 +12,7 @@ first, atomic writes, workflow-package.json last; a LOCAL FIX is kept unless --t
 stamp's repo, else template_repo (both set and different: refused unless --template). It never downgrades.
 """
 import argparse
-import fcntl
+import portlock as fcntl
 import hashlib
 import json
 import os
