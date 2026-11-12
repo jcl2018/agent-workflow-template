@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/9
 
-Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a58c6 U=726b84e2 -->
+Review: **Unreviewed**
 
 ## Problem
 - I want this toolset to be a workspace I can drop into any repo, for any agent: one install gives Claude Code, Codex or any agent that reads skills the same loop, docs, monitoring and settings, in the right format for each.
@@ -49,8 +49,8 @@ Review: **Reviewed 2026-11-10** <!-- prd P=7f1b1066 R=a1dcdd47 N=9c385754 M=471a
   - The same skills are wired into each agent's own entry files (for example CLAUDE.md and AGENTS.md), so Claude Code, Codex and other SKILL.md agents run the same loop the same way.
 
 ### Non-functional
-- SET-3: **Reviewed 2026-11-10** Versioned, portable package <!-- reviewed c120e2e9 -->
-  - Shipped as a versioned package of separate skills in the Agensi format, every script self-contained and under 20 KB. It works out of the box with a built-in default flow, and is proven to run in both Claude Code and Codex on a clean test repo with no private settings.
+- SET-3: **Unreviewed** Shipped as a versioned package.
+  - The template ships as one versioned package of separate skills in the Agensi format, every script self-contained and under 20 KB. It works out of the box with a built-in default flow, and is proven to run in both Claude Code and Codex on a clean test repo with no private settings.
 - SET-7: **Reviewed 2026-11-10** Safe and repeatable <!-- reviewed fb39932b -->
   - A dry run lists everything before any write; running setup twice changes nothing the second time; nothing existing is overwritten.
 - SET-8: **Reviewed 2026-11-10** Private stays private <!-- reviewed 22a16ae7 -->

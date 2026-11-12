@@ -77,7 +77,7 @@ def load(path, root):
         with open(path) as handle:
             data = json.load(handle)
         rows = data["rows"]
-        assert all(row["status"] in ("PASS", "FAIL", "KNOWN", "LEFT") and row["commit"] for row in rows.values())
+        assert all(row["status"] in ("PASS", "FAIL", "KNOWN", "LEFT", "SKIPPED") and row["commit"] for row in rows.values())
     except (OSError, ValueError, KeyError, TypeError, AssertionError) as error:
         return None, "record unreadable (%s)" % (type(error).__name__,)
     if data.get("schema") != SCHEMA or data.get("runner") != runner():

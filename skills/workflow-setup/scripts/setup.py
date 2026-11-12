@@ -240,7 +240,11 @@ def main():
     for verb, path, note, _ in acts:
         print("%s: %s%s" % (verb, path, " (%s)" % note if note else ""))
     if not args.dry_run:
-        print("PRIVATE settings added to %s: %s" % (settings.private_path(), ", ".join(settings.fill_private()) or "none missing"))
+        try:
+            print("PRIVATE settings added to %s: %s" % (settings.private_path(), ", ".join(settings.fill_private()) or "none missing"))
+        except OSError as error:  # a sandbox (Codex's workspace-write) can leave the home folder read-only
+            print("NOTE: private settings not written (%s). The repo adoption goes on; allow writes to %s and run setup.py again to add them." % (
+                error.strerror or type(error).__name__, os.path.dirname(settings.private_path())))
     bare = None if args.bare else bare_agent(config["agent_command"])
     code = 1 if bare and not args.dry_run else 0
     if bare:
