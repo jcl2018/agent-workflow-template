@@ -49,7 +49,9 @@ mk() { # mk DIR VERSION: a package tree at that version
   echo "$2" > "$1/VERSION"; printf '# Changelog\n\n## v%s - 2026-01-01\n\n- change %s\n\n## v1.0.0 - 2026-01-01\n\n- first\n' "$2" "$2" > "$1/CHANGELOG.md"
 }
 pk="python3 $here/dev/package.py"
-mk "$d/v1" 1.0.0; $pk --root "$d/v1" --out "$d/v1.zip" >/dev/null || no "v1 package refused"
+if want SET-3 || want SET-4 || want SET-5; then  # only these use the package; SET-1 and SET-2 never wait on its rules
+  mk "$d/v1" 1.0.0; $pk --root "$d/v1" --out "$d/v1.zip" >/dev/null || no "v1 package refused"
+fi
 
 # SET-3: the package carries its version, every skill and the guide; it installs by copying.
 if want SET-3; then
