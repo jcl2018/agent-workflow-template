@@ -11,6 +11,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -24,6 +25,119 @@ if not sys.stdin or not sys.stdin.isatty():
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLACEHOLDER = "Write this page from what is really in the repo."
 CRITERION = re.compile(r"[A-Z]{2,5}(?=-\d+:)")
+
+
+MARK = "workflow-loop-hook"
+# hook -> the `private.py hook` lines its stub runs, in order; the pre-push stub reads git's ref lines once and feeds each line
+GUARD = {"pre-commit": ["staged"], "commit-msg": ['message "$1"'], "pre-push": ["push"]}
+STUB = """#!/bin/sh
+# %(mark)s: %(name)s (python3 '%(setup)s' --git-hooks writes it; --git-hooks --remove takes it out)
+P='%(py)s' S='%(priv)s' U='%(setup)s'
+fix() { echo "%(name)s hook: $1. Fix: python3 '$U' --git-hooks (to skip once, git's own --no-verify is yours to decide)" >&2; exit 1; }
+[ -x "$P" ] || P=$(command -v python3) || fix "python3 is not on PATH, so the private-name scan cannot run"
+[ -f "$S" ] || fix "private.py is gone (the skills moved?)"
+run() { "$P" "$S" hook "$@"; case $? in 0) ;; 1|2) exit 1;; 142) echo "%(name)s hook: the scan took too long and was killed: a pattern in the private-name list is too slow" >&2; exit 1;; 64) fix "the hook is wired wrong";; *) fix "the scan failed unexpectedly";; esac; }
+%(body)s"""
+READ = 'T=$(mktemp) || fix "no temp file"; trap \'rm -f "$T"\' EXIT; cat > "$T"\n'
+
+
+def stub(name, py, priv, setup):
+    push = name == "pre-push"
+    body = (READ if push else "") + "".join("run %s%s\n" % (line, ' < "$T"' if push else "") for line in GUARD[name])
+    return STUB % {"mark": MARK, "name": name, "py": py, "priv": priv, "setup": setup, "body": body}
+
+
+def call_of(text):
+    """The private.py path a hook's text names (ours or the owner's own call), else None."""
+    found = MARK in text and re.search(r"S='([^']*)'", text) or re.search(r"([^'\"\s]*private\.py)['\"]? +hook ", text)
+    return found.group(1) if found else None
+
+
+def hook_state(path):
+    """installed (calls an existing private.py), stale (calls one that is gone), foreign (no call) or missing."""
+    try:
+        with open(path, errors="replace") as handle:
+            target = call_of(handle.read())
+    except OSError:
+        return "missing"
+    return "foreign" if target is None else "installed" if os.path.exists(target) else "stale"
+
+
+def hooks_dir(repo):
+    """(the folder git reads hooks from, whether core.hooksPath chose it)."""
+    out = lambda *a: subprocess.run(["git", "-C", repo] + list(a), capture_output=True, text=True).stdout.strip()
+    custom = out("config", "--get", "core.hooksPath")
+    if custom:
+        return os.path.join(repo, os.path.expanduser(custom)), True
+    return os.path.join(os.path.realpath(os.path.join(repo, out("rev-parse", "--git-common-dir"))), "hooks"), False
+
+
+def list_state(priv):
+    """(state word, private.py check's own line): the list's words, never a pattern."""
+    if not priv:
+        return "unknown", "PRIVATE LIST: unknown, workflow-delivery is not beside workflow-setup"
+    done = subprocess.run([sys.executable, priv, "check"], capture_output=True, text=True)
+    line = done.stdout.strip()
+    return ("broken" if done.returncode else "none" if ": none at" in line else "off" if "off on" in line else "on"), line
+
+
+def show(repo, as_json):
+    """--git-hooks --check: the list and each hook, as text or schema-1 JSON. Exit 1 when a hook or the list needs a fix."""
+    folder, custom = hooks_dir(repo)
+    word, line = list_state(sibling("workflow-delivery", "private.py"))
+    states = {name: hook_state(os.path.join(folder, name)) for name in GUARD}
+    if as_json:
+        print(json.dumps({"version": 1, "list": word, "list_note": line, "hooks_path": custom, "hooks": states}))
+    else:
+        print("list: " + line)
+        print("\n".join("hook %s: %s" % pair for pair in states.items()))
+        if custom:
+            print("NOTE: core.hooksPath is set, so setup writes no hooks; add the call lines to the hooks you use")
+    return int(word == "broken" or any(v != "installed" for v in states.values()))
+
+
+def git_hooks(repo, remove=False, adopting=False):
+    """Install (or remove) the stubs in the git common dir's hooks. A refusal is exit 1, or a NOTE when adopting."""
+    priv, setup = sibling("workflow-delivery", "private.py"), os.path.join(HERE, "setup.py")
+    folder, custom = hooks_dir(repo)
+    py = shutil.which("python3") or ""
+
+    def refuse(what, fix):
+        print("%s: %s. Fix: %s" % ("NOTE" if adopting else "REFUSED", what, fix))
+        return 0 if adopting else 1
+    if not remove:
+        priv = os.path.realpath(priv) if priv else None
+        lines = "\n".join("  %s: python3 '%s' hook %s" % (n, priv, v[0]) for n, v in GUARD.items())
+        if custom:
+            return refuse("core.hooksPath is set, so setup writes no hooks", "add these lines to the hooks you use:\n" + lines)
+        if not priv:
+            return refuse("workflow-delivery (private.py) is not beside workflow-setup", "install the skills together")
+        if any(ch in priv + setup + py for ch in "'\n%"):
+            return refuse("a path holds a quote, newline or percent sign", "move the skills to a folder without one")
+        inside = os.path.join(os.sep + "loop", "worktrees") + os.sep  # a goal's worktree goes away when the goal ends
+        if inside in priv + os.sep or inside in os.path.realpath(repo) + os.sep:
+            return refuse("private.py or the repo is inside a goal's worktree", "run setup.py --git-hooks from an installed copy of the skills")
+        os.makedirs(folder, exist_ok=True)
+    bad = 0
+    for name in GUARD:
+        path, state = os.path.join(folder, name), hook_state(os.path.join(folder, name))
+        text = open(path, errors="replace").read() if state != "missing" else ""
+        mine = re.search(r"P='([^']*)' S='([^']*)' U='([^']*)'", text) if MARK in text else None
+        ours = mine and text == stub(name, *mine.groups())
+        if remove:
+            if ours:
+                os.remove(path)
+            print("HOOK %s: %s" % (name, "removed" if ours else "not installed" if not text else "kept, it is not the stub setup writes"))
+        elif text and not ours:  # the owner's own hook, or a stub the owner edited: never overwritten
+            bad += state != "installed"
+            print("HOOK %s: %s" % (name, "already calls the scan" if state == "installed" else
+                                   "left alone, it is not ours. Add: python3 '%s' hook %s" % (priv, GUARD[name][0])))
+        else:
+            with open(path, "w") as handle:
+                handle.write(stub(name, py, priv, setup))
+            os.chmod(path, 0o755)
+            print("HOOK %s: written" % name)
+    return 0 if adopting else int(bool(bad))
 
 
 def sibling(skill, script):

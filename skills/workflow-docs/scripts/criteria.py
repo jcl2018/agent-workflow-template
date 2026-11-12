@@ -44,47 +44,7 @@ GOAL = re.compile(r"^[a-z0-9][a-z0-9-]*:\d+$")  # slug:N, a goal's done line
 SCENARIO = re.compile(r"^Given .+, when .+, then .+", re.I)
 DAY = re.compile(r"^\d{4}-\d\d-\d\d$")
 SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
-CRITERIA_MAX_DEFAULT = 10  # the owner: "make that cap as like a config as well, and probably do that as 10 as default"
-SHEET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "template.md")
-
-
-def rules():
-    """The page rules from the fenced rules block of the template sheet. Refuses when it is missing or incomplete."""
-    try:
-        with open(SHEET) as handle:
-            block = re.search(r"^```rules\n(.*?)^```", handle.read(), re.M | re.S)
-        found = dict(line.split(":", 1) for line in block.group(1).splitlines() if ":" in line)
-        found = {key.strip(): value.strip() for key, value in found.items()}
-        import deployments
-        import pageformat
-        listed = lambda key, default: [x.strip() for x in found.get(key, default).split(",") if x.strip()]
-        on = listed("format", ",".join(pageformat.CHECKS))
-        if set(on) - set(pageformat.CHECKS):
-            raise ValueError
-        return {"sections": listed("sections", found["sections"]), "problem_lines": int(found["problem_lines"]),
-                "metrics_lines": int(found["metrics_lines"]), "usage": found.get("usage_section", "Usage"),
-                "review": found["review_line"], "milestone": found["milestone_line"], "format": on,
-                "banned": listed("problem_banned", pageformat.BANNED),
-                "groups": listed("requirement_groups", ", ".join(pageformat.GROUPS)),
-                "deploy": found.get("deployments_section", "Deployments"), "access": listed("deployments_access", "public, sign-in"),
-                "page_cols": listed("deployments_page", ", ".join(deployments.PAGE_COLS)),
-                "delivery_cols": listed("deployments_delivery", ", ".join(deployments.DELIVERY_COLS))}
-    except (OSError, AttributeError, KeyError, ValueError):
-        sys.exit("REFUSED: the rules block of skills/workflow-docs/references/template.md is missing or broken.")
-
-
-def criteria_max(root):
-    """The criteria limit: `criteria_max` in .loop/config.json, CRITERIA_MAX_DEFAULT when absent. A bad value refuses."""
-    path = os.path.join(root, ".loop", "config.json")
-    try:
-        with open(path) as handle:
-            value = json.load(handle).get("criteria_max", CRITERIA_MAX_DEFAULT)
-    except (OSError, ValueError, AttributeError):
-        value = CRITERIA_MAX_DEFAULT
-    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 50:
-        sys.exit("REFUSED: criteria_max is %r in %s. Fix: set it to a whole number from 1 to 50, or remove it for the default %d."
-                 % (value, path, CRITERIA_MAX_DEFAULT))
-    return value
+from deployments import CRITERIA_MAX_DEFAULT, SHEET, criteria_max, rules  # noqa: E402,F401
 
 
 def git(*args, check=True):

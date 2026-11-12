@@ -18,7 +18,10 @@ and pull-request lanes) never goes past test_budget_minutes in .loop/config.json
 tier order (the rows a change affects first) while their estimated seconds fit, a row still running at the budget is
 stopped, and every row not run is left to the scheduled full suite and listed. A left row is recorded as LEFT, so a
 later lane on the same content doesn't rerun it.
+The row and page readers of regression.py (chosen, clean, criteria_ids and others) sit at the end, moved here unchanged.
 """
+import datetime
+import glob
 import json
 import os
 import re
@@ -184,3 +187,60 @@ def execute(root, picked, todo, est, limit, timeout, expected, reuse):
             (limit or 0) // 60, len(results), len(results) + len(left), len(left), ", ".join(left[:20]) + (
                 ", +%d more" % (len(left) - 20) if len(left) > 20 else "")))
     return results, left
+
+
+# regression.py's row and page readers, moved here unchanged (size); regression.py imports them back.
+def today():
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+
+
+def path_of(root, name):
+    return os.path.join(root, ".loop", name)
+
+
+def clean(text):
+    if "\t" in text or "\n" in text:
+        sys.exit("REFUSED: a row can't hold a tab or new line. Fix: use a script.")
+    return text
+
+
+def done_lines(path):
+    with open(path) as handle:
+        part = handle.read().split("## Done lines", 1)[-1].split("\n## ", 1)[0]
+    return re.findall(r"^(\d+)\.\s+(.+)$", part, re.M)
+
+
+def criteria_ids(root):
+    """Requirement ids written under ## Requirements (or the old ## Criteria) in the wiki pages, outside code fences."""
+    try:
+        with open(path_of(root, "config.json")) as handle:
+            folder = json.load(handle).get("wiki_dir") or "docs/wiki"
+    except (OSError, ValueError):
+        folder = "docs/wiki"
+    ids = []
+    for name in sorted(glob.glob(os.path.join(root, folder, "*.md"))):
+        with open(name) as handle:
+            text = re.sub(r"(?ms)^```.*?^```[^\n]*$", "", handle.read())
+        if re.search(r"\n## (?:Requirements|Criteria)[ \t]*\n", text):
+            part = re.split(r"\n## (?:Requirements|Criteria)[ \t]*\n", text, maxsplit=1)[1].split("\n## ", 1)[0]
+            ids += re.findall(r"^- ([A-Z]{2,5}-\d+): \S", part, re.M)
+    return ids
+
+
+def criterion_rows(rows, key):
+    return [row for row in rows.values() if key in (row["id"], row["goal"]) and row["category"] != "defect"]
+
+
+def chosen(rows, target):
+    if target in rows:
+        return [rows[target]]
+    if target == "land":
+        return [row for row in rows.values() if row["level"] == "land"]
+    if target == "nightly":
+        return [row for row in rows.values() if row["level"] in ("land", "nightly")]
+    sys.exit("REFUSED: no row or level called %s." % target)
+
+
+def lines_of(root, name):
+    return {line.split("\t")[0]: line.rstrip("\n") for line in open(path_of(root, name)) if line.strip() and line[0] != "#"} \
+        if os.path.exists(path_of(root, name)) else {}
