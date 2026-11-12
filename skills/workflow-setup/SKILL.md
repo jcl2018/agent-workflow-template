@@ -20,6 +20,33 @@ python3 scripts/setup.py
 
 Read the dry run first and tell the user what it found.
 
+## Adoption never blocks
+
+Read the dry run's lines by their prefix: `HEALTH START:` is the health check before anything is written, `add:`, `convert:`,
+`skip:` and `no fit:` are the plan (the README, `.gitignore` and the rendered Tests page included), `GAP:` is what setup
+cannot fix (a bare `agent_command`, an ignore rule outside the repo) with the fix, `GUARD:` names a repo hook that mentions
+`.tsv`, `borrow:`, `adapt:`, `skip:` and `held:` come from `--from`, `would add to <folder>` lists the private half, and
+`WOULD FILE:` the issues. The run ends with `ADOPTION VERDICT:` (`GREEN`, or `GAPS` with each FAIL, WARN and UNREAD line
+and its fix above it); it exits 0 whenever the adoption is on its branch, and `--strict` exits 3 on gaps.
+
+- A refusal rolls everything back and says `nothing written`: the tree, index, branches and the private folder are as
+  before. Codes: `SETUP_REPO_STATE` (merge, rebase, detached HEAD, branch checked out elsewhere), `SETUP_BRANCH_DIVERGED`,
+  `SETUP_MIXED_VERSION` (run update), `SETUP_PRIVATE_NAME`, `SETUP_PRIVATE_VALUE` (a local setting or private value on a
+  line the adoption adds), `SETUP_HOOK_REFUSED`, `SETUP_UNEXPECTED` (see the trace file it names), `SETUP_INTERRUPTED`,
+  `SETUP_HALF_UNDONE` (exit 4: a restore could not finish, run the commands it prints), `SETUP_PLANNED_PATH_DIRTY` and
+  `SETUP_AGENT_FILE_DIRTY` (exit 2: commit or stash that file). A killed run is rolled back by the next run.
+- `.tsv` stays the loop's file format. If the repo's `.gitignore` blocks it, setup appends the exact exception lines under
+  one comment. If a repo hook rejects tracked `.tsv` files, setup stops cleanly with that hook's output and names the
+  exemption to add (`.loop/*.tsv`); it never edits the hook and never uses `--no-verify`.
+- What does not fit is one `[adoption]` line per kind in `.loop/findings.md` and, with `gh` signed in and a GitHub
+  remote, one issue tagged `health:adoption` (`--no-issues` or `LOOP_NO_ISSUES=1` skips; `--no-health` or
+  `LOOP_NO_HEALTH=1` skips the health runs). A step after the commit (git hooks, private settings, issue filing) that
+  fails is a `NOTE:` and a gap in the verdict, never a refusal.
+- `--from REPO` borrows an adopted repo's portable settings, read-only; `auto_merge`, `full_auto`, `mend` and the other
+  unattended or code-running ones stay `held:` until `--allow KEY[,KEY]` names them; a value holding a private value is
+  never printed or written. `settings.py show [--repo DIR] [--json]` prints each setting's value, its layer (`default`,
+  `repo`, `local`) and its home; a layer wins only where its home is read today (`layers` is the one place to change that).
+
 ## After it runs
 
 1. Tell the user that `workflow-monitoring` needs them to allow tools in `agent_command`, because a background agent
@@ -56,11 +83,11 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 
 | Ask | Runs |
 |---|---|
-| `/workflow-setup setup` | `python3 scripts/setup.py` (`--dry-run` previews, `--bare` writes only the config, queue and findings) |
+| `/workflow-setup setup` | `python3 scripts/setup.py` (`--dry-run` previews, `--bare` writes only the config, queue and findings, `--from REPO [--allow KEY]` borrows settings, `--no-health`, `--no-issues`, `--strict`) |
 | `/workflow-setup reply-hook` | `python3 scripts/setup.py --reply-hook` (`--remove` takes it out): the operation session's reply-format Stop hook, in the repo's machine-local `.claude/settings.local.json` |
 | `/workflow-setup govern-hook` | `python3 scripts/setup.py --govern-hook` (`--remove` takes it out): the operation session's govern-only PreToolUse hook (MON-7), installed beside the reply hook too |
 | `/workflow-setup git-hooks` | `python3 scripts/setup.py --git-hooks` (`--remove` takes out only the stubs setup wrote; `--check [--json]` prints the list's and each hook's state): the private-name scan as `pre-commit`, `commit-msg` and `pre-push` hooks in `.git/hooks`; a default `setup` installs them too (`--no-git-hooks` or `LOOP_NO_GIT_HOOKS=1` skips) |
-| `/workflow-setup settings` | `python3 scripts/settings.py reference` |
+| `/workflow-setup settings` | `python3 scripts/settings.py reference` (`show [--repo DIR] [--json]` gives each value with its layer) |
 | `/workflow-setup fill-repo` | `python3 scripts/settings.py fill-repo` |
 | `/workflow-setup update --check` | `python3 scripts/update.py --check` (exit 1 means behind) |
 | `/workflow-setup update` | `python3 scripts/update.py --apply` (`--take FILE`, `--tag vX`, `--from ZIP\|DIR`, `--template OWNER/NAME`) |
@@ -83,4 +110,4 @@ fix:
 | `UPDATE_PARTIAL` | the skills updated, the repo half didn't | fix the cause, run again (safe) |
 | `UPDATE_LOCKED` | another update holds the skills folder | run again when it ends |
 | `PROPOSE_SCRUB`, `PROPOSE_GH`, `PROPOSE_NONE` | the proposal names the repo or user; gh failed; nothing to propose | edit the saved file and file it by hand |
-| `AGENTS_MARKER`, `AGENTS_OUTSIDE`, `SETUP_AGENT_FILE_DIRTY` | a stray block marker; an agent file outside the repo; uncommitted agent file edits | fix the file, or commit it |
+| `AGENTS_MARKER`, `AGENTS_OUTSIDE`, `SETUP_AGENT_FILE_DIRTY`, `SETUP_PLANNED_PATH_DIRTY` | a stray block marker; an agent file outside the repo; uncommitted edits to a file setup would change | fix the file, or commit it |
