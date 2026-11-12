@@ -1,6 +1,8 @@
 <!-- workflow-docs -->
 # Monitoring
 
+The live board selects its estimate model by typical error on time-ordered goals: each goal is predicted only from goals finished before it started. `board_report.py` shows the selection score and a separate leave-one-out diagnostic.
+
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
 Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde98a8 U=0340d029 -->
