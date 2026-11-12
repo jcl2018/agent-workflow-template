@@ -77,6 +77,8 @@ def one_pass(top, common, args):
     delay = next((line.split()[1] for line in out.splitlines() if line.startswith("NEXT_DELAY ")), "none")
     if args.board:  # asked for "where do things stand": the live board and its changes, then the check-in
         print(graph.localize(out.rstrip()))
+    said = script("board_page.py", "migrate", cwd=top)[1].strip()  # one migrate-<repo> goal per followed repo behind the template
+    said and print(graph.localize(said))
     script("board_page.py", cwd=top)  # board.html and the dashboard keep the live board; the check-in doesn't print it
     for name, *more in (("replan.py", "plan"), ("auto.py", "pass")):
         code, said = script(name, *more, cwd=top)

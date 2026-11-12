@@ -93,6 +93,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-setup update` | `python3 scripts/update.py --apply` (`--take FILE`, `--tag vX`, `--from ZIP\|DIR`, `--template OWNER/NAME`) |
 | `/workflow-setup update --propose` | `python3 scripts/update.py --propose` (`--file-issue` files it) |
 | `/workflow-setup agents` | `python3 scripts/agents.py wire` (`--dry-run`, `--repo DIR`) |
+| `/workflow-setup migration-check` | `python3 scripts/setup.py migration-check` (`--repo DIR`, `--pr` only the gaps a pull request can close, `--offline` skips the published wiki): every gap to the current template with its fix, exit 0 only with none, 1 gaps, 2 usage, 4 could not run; writes nothing; needs workflow-health beside it |
 
 Update's exit codes: 0 done or nothing to do, 1 behind or waiting on you, 2 refused. Every refusal names its code and
 fix:
