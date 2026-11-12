@@ -214,6 +214,22 @@
 
 | Test | Kind | Guards | Result | Date | Run | Seen failing |
 |---|---|---|---|---|---|---|
+| <a id="t-grd2-step-budget"></a>grd2-step-budget | requirement | GRD-2 | not run | - | local | no |
+| <a id="t-grd2-test-budget"></a>grd2-test-budget | requirement | GRD-2 | not run | - | local | no |
+| <a id="t-grd2-goal-over"></a>grd2-goal-over | requirement | GRD-2 | not run | - | local | no |
+| <a id="t-grd3-private-commit"></a>grd3-private-commit | requirement | GRD-3 | not run | - | local | no |
+| <a id="t-grd3-hooks-health"></a>grd3-hooks-health | requirement | GRD-3 | not run | - | local | no |
+| <a id="t-grd4-touches"></a>grd4-touches | requirement | GRD-4 | not run | - | local | no |
+| <a id="t-grd4-resume"></a>grd4-resume | requirement | GRD-4 | not run | - | local | no |
+| <a id="t-grd4-budget"></a>grd4-budget | requirement | GRD-4 | not run | - | local | no |
+| <a id="t-grd4-govern"></a>grd4-govern | requirement | GRD-4 | not run | - | local | no |
+| <a id="t-grd5-regression-dry"></a>grd5-regression-dry | requirement | GRD-5 | not run | - | local | no |
+| <a id="t-grd5-health-close"></a>grd5-health-close | requirement | GRD-5 | not run | - | local | no |
+| <a id="t-grd6-head-moved"></a>grd6-head-moved | requirement | GRD-6 | not run | - | local | no |
+| <a id="t-grd7-round-cost"></a>grd7-round-cost | requirement | GRD-7 | not run | - | local | no |
+| <a id="t-grd8-silent-worker"></a>grd8-silent-worker | requirement | GRD-8 | not run | - | local | no |
+| <a id="t-grd9-controls"></a>grd9-controls | requirement | GRD-9 | not run | - | local | no |
+| <a id="t-grd10-install-hooks"></a>grd10-install-hooks | requirement | GRD-10 | not run | - | local | no |
 | <a id="t-stop-tree-step-limit"></a>stop-tree-step-limit | defect | [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) open (2026-11-12) | not run | - | local | 2026-11-12 |
 
 ## Health
