@@ -276,7 +276,9 @@ if want setting; then fresh
   check "setup names the cause when visibility is unreadable" 'grep -q "visibility unreadable" <<<"$out"'
   out=$(python3 "$here/skills/workflow-setup/scripts/settings.py" reference); check "settings lists regression_runs with its default" 'grep -q "regression_runs" <<<"$out" && grep -q "actions" <<<"$out"'
   export FAKE_GH_PRIVATE=false; r=$(toyrepo dr2 "$(cfgj mac)"); install "$r" >/dev/null; out=$(tick "$r" 2>&1)
-  check "the tick prints DRIFT when live visibility disagrees with regression_runs, and the setting still decides what runs" 'grep -q "DRIFT: regression_runs says mac but the repo is public" <<<"$out" && grep -q "bad-row" "$FAKE_GH_DIR/calls.log"'
+  check "a public repo recorded mac prints no DRIFT (the owner's rule: public repos run on the Mac too), and the setting decides what runs" '! grep -q "DRIFT" <<<"$out" && grep -q "bad-row" "$FAKE_GH_DIR/calls.log"'
+  export FAKE_GH_PRIVATE=true; r=$(toyrepo dr3 "$(cfgj actions)"); install "$r" >/dev/null; out=$(tick "$r" 2>&1)
+  check "the tick prints DRIFT when a private repo is recorded actions" 'grep -q "DRIFT: regression_runs says actions but the repo is private" <<<"$out"'
 fi
 if want usage; then H="$here/docs/wiki/Health.md"
   check "the Health page Usage names install, the launchctl bootstrap and bootout lines, uninstall and tick" 'grep -q "local install" "$H" && grep -q "launchctl bootstrap gui/" "$H" && grep -q "launchctl bootout gui/" "$H" && grep -q "local uninstall" "$H" && grep -q "local tick" "$H" && grep -q "claude. must be logged in once" "$H"'

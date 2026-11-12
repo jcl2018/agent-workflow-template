@@ -4,7 +4,7 @@ the roadmap as a dependency graph.
 
 usage: board_page.py [--in FILE] [--out DIR]
        board_page.py note SLUG TEXT | retire SLUG --reason TEXT | checkin   (board.py forwards these here)
-       board_page.py lag
+       board_page.py lag | migrate
 
 Reads board.json (default <git common dir>/loop/board.json) and writes both pages beside it, or into --out. Both show the live
 board that live_board.py prints, so the page and the text agree. board-artifact.html has no doctype, html, head or body tags.
@@ -17,7 +17,8 @@ Template lag (template_lag, which live_board.py calls; `lag` prints the Issues l
 template version than the operator's installed skills. The baseline is the installed workflow-package.json beside the
 skills, else a checkout's VERSION. Each repo's version is template_version in its base branch's .loop/config.json; a
 repo with none reads "template version unknown". A repo that holds the board's own skills checkout is the template
-itself and is skipped. It runs git and nothing else.
+itself and is skipped. It runs git and nothing else. `migrate` (operate.py runs it each pass, queue_migrations) queues one
+`migrate-<repo>` goal in each such repo through goal.py queue and prints the Issues lines for what it did not queue.
 
 Status graph (span, mark, chain, unknown, total, levels, render_text, ...; shared by the live board): a node is a dict:
 slug, mark, depends (slugs it waits on), stage (0 to 8, steps begun), left (seconds still needed, 0 when nothing is, None
@@ -219,9 +220,9 @@ def followed(root):
     return list(dict.fromkeys([root] + extra))
 
 
-def template_lag(root):
-    """Issues lines for each followed repo on an older template version than the operator's installed skills (the
-    baseline); a repo holding the board's own skills checkout is the template itself and is skipped."""
+def behind(root):
+    """[(repo, held, want)] for each followed repo whose base branch holds an older template_version than the baseline, or none. The
+    version is read from origin/<base> as last fetched, then the local branch. The board's own checkout is the template: skipped."""
     want, source = baseline()
     out = []
     for repo in followed(root):
@@ -230,19 +231,65 @@ def template_lag(root):
         cfg = read_json(os.path.join(repo, ".loop", "config.json"))
         if not isinstance(cfg, dict):
             continue
-        base = git("show", "%s:.loop/config.json" % (cfg.get("base") or "main"), cwd=repo)
+        name = cfg.get("base") or "main"
+        base = git("show", "origin/%s:.loop/config.json" % name, cwd=repo) or git("show", "%s:.loop/config.json" % name, cwd=repo)
         try:
             held = str((json.loads(base) if base else cfg).get("template_version") or "")
         except ValueError:
             held = str(cfg.get("template_version") or "")
+        if not held or version_key(held) < version_key(want):
+            out.append((repo, held, want))
+    return out
+
+
+def template_lag(root):
+    """Issues lines for each followed repo on an older template version than the operator's installed skills (the baseline)."""
+    out = []
+    for repo, held, want in behind(root):
         name = os.path.basename(os.path.realpath(repo))
-        if not held:
-            out.append("- %s: template version unknown" % name)
-        elif version_key(held) < version_key(want):
-            out.append("- %s runs template v%s, older than v%s" % (name, held, want))
-        else:
-            continue
+        out.append("- %s: template version unknown" % name if not held else "- %s runs template v%s, older than v%s" % (name, held, want))
         out.append("    fix: ask for workflow-setup update in that repo")
+    return out
+
+
+def queue_migrations(root):
+    """Queue one migrate-<repo> goal (goal.py queue, in that repo) for each followed repo behind the template; the Issues lines it has
+    to say. Written once per repo: an exact slug match in .loop/queue.md or a goal state (queued, running, waiting) skips it; a finished
+    goal for this version with the repo still behind is an Issues line; one for an older version allows migrate-<repo>-v<X-Y-Z>. It
+    queues only into a checkout on its base branch whose queue file is unmodified. The queued line stays an uncommitted edit."""
+    out = []
+    for repo, held, want in behind(root):
+        name = re.sub(r"[^a-z0-9]+", "-", os.path.basename(os.path.realpath(repo)).lower()).strip("-") or "repo"
+        slug = re.compile(r"^migrate-%s(-v\d+-\d+-\d+)?$" % re.escape(name))
+        try:
+            with open(os.path.join(repo, ".loop", "queue.md")) as handle:
+                queued = re.findall(r"^- slug: (\S+)", handle.read(), re.M)
+        except OSError:
+            queued = []
+        runs = os.path.join(repo, git("rev-parse", "--git-common-dir", cwd=repo) or ".git", "loop", "runs")
+        states = {f[:-5]: read_json(os.path.join(runs, f)) or {} for f in (os.listdir(runs) if os.path.isdir(runs) else []) if f.endswith(".json")}
+        mine = [s for s in dict.fromkeys(queued + list(states)) if slug.match(s)]
+        if any(s not in states or states[s].get("status") not in ("done", "merged") for s in mine):
+            continue  # queued, running or waiting: one is enough
+        if any(re.search(r"template v%s\b" % re.escape(want), str(states[s].get("goal"))) for s in mine):
+            out.append("- %s: migrate goal for v%s finished, repo still behind" % (name, want))
+            continue
+        cfg = read_json(os.path.join(repo, ".loop", "config.json")) or {}
+        why = ""
+        if git("branch", "--show-current", cwd=repo) != (cfg.get("base") or "main"):
+            why = "its checkout is not on %s" % (cfg.get("base") or "main")
+        elif git("status", "--porcelain", "--", ".loop/queue.md", cwd=repo):
+            why = ".loop/queue.md has uncommitted changes"
+        if why:
+            out.append("- %s: behind v%s, nothing was queued: %s" % (name, want, why))
+            continue
+        goal = os.path.join(SKILLS, "workflow-delivery", "scripts", "goal.py")
+        done = subprocess.run([sys.executable, goal, "queue", "migrate-%s%s" % (name, "-v" + want.replace(".", "-") if mine else ""), "--goal",
+                               "Migrate %s to template v%s: close the pull-request gaps (migration-check --pr); the owner then closes the Mac and wiki gaps and runs the full migration-check" % (name, want),
+                               "--touches", ".loop,README.md,docs/wiki", "--done", "setup.py migration-check --pr exits 0, run in this goal's worktree"],
+                              cwd=repo, capture_output=True, text=True)
+        if done.returncode:
+            out.append("- %s: behind v%s, nothing was queued: %s" % (name, want, (done.stderr.strip() or done.stdout.strip()).splitlines()[-1][:160]))
     return out
 
 
@@ -359,6 +406,9 @@ def render_text(items, under=None):
 def main():
     if sys.argv[1:2] and sys.argv[1] in ("note", "retire", "checkin"):
         return runs_main()
+    if sys.argv[1:] == ["migrate"]:
+        print("\n".join(queue_migrations(git("rev-parse", "--show-toplevel") or os.getcwd())))
+        return 0
     if sys.argv[1:] == ["lag"]:
         root = git("rev-parse", "--show-toplevel") or os.getcwd()
         print("\n".join(template_lag(root)) or "- (none)")

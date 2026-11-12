@@ -30,11 +30,8 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import lanekit  # noqa: E402
+import lanekit, guards, fit, private  # noqa: E402,E401
 fcntl = lanekit.fcntl
-import guards  # noqa: E402
-import fit  # noqa: E402
-import private  # noqa: E402
 import role
 
 
@@ -240,6 +237,7 @@ def cmd_new(args):
     if os.path.exists(state_path(args.slug)):
         no("%s already exists. Fix: pick a new slug." % args.slug)
     cfg = config()
+    fit.nag(sys.modules[__name__], args)
     touches = [item.strip() for item in args.touches.split(",") if item.strip()]
     branch = "loop/" + args.slug
     current = git("branch", "--show-current")
