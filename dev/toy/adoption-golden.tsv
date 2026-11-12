@@ -1,7 +1,7 @@
 # The golden first adoption (SET-11), recorded 2026-11-11 on a second machine: native Windows, several repos, one operation session.
 # Setup replays these in order, compares each observed result with the golden one and stops at the first mismatch, asking for the fix.
 # step	check	golden	fix
-1	prerequisites	git, python3 and gh installed; gh auth status shows the owner signed in; no fcntl or getuid crash	install the missing tool; gh auth login with a device code relayed to the owner; update to a release with the platform fix
+1	prerequisites	git, python3 and gh installed; gh auth status shows the owner signed in; no fcntl or getuid crash; the qa lane runs on the adopter's platform (on the first run it hung on os.getuid)	install the missing tool; gh auth login with a device code relayed to the owner; update to a release with the platform fix
 2	repos	the chosen repos, picked from gh repo list by last push with private ones included, are cloned into one folder and registered with board.py repos add; repos list shows exactly that set	clone the missing repo into the folder and run board.py repos add, or remove the one not chosen
 3	skills and private settings	skills are linked as real symlinks; ~/.workflow-loop/flow.json is filled; ~/.workflow-loop/private-names holds at least one pattern and private.py check says on	rerun the install with real symlinks (on Windows, MSYS=winsymlinks:nativestrict); fill flow.json; add a pattern to private-names
 4	template version	update --apply is merged in every followed repo; the board shows no repo with template version unknown	run update --apply in that repo and merge its update branch
