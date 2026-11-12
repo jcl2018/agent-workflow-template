@@ -56,7 +56,8 @@ LEGEND = "[>] running [=] holding [ ] queued [?] you [!] stuck"
 
 
 def box(node, cut):
-    return "[%s] %s%s" % (MARKS.get(node.get("mark"), " "), node["slug"], " (cycle)" if node["slug"] in cut else "")
+    return "[%s] %s%s%s" % (MARKS.get(node.get("mark"), " "), node["slug"], " owned by " + node["owner"] if node.get("owner") else "",
+                            " (cycle)" if node["slug"] in cut else "")
 
 
 def pack(pieces, width, gap="  "):

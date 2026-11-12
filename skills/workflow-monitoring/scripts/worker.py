@@ -166,6 +166,9 @@ def cmd_met(args):
 def cmd_send(args):
     if not load(args.slug):
         sys.exit("REFUSED: no run named %s." % args.slug)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import graph  # noqa: E402
+    graph.refuse(load(args.slug))
     folder = os.path.join(base(), "inbox")
     os.makedirs(folder, exist_ok=True)
     with open(os.path.join(folder, args.slug + ".txt"), "a") as handle:
