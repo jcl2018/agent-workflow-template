@@ -78,16 +78,16 @@ def wiki_only(top, cfg, old, new):
     in the base branch's wiki folder (wiki_dir from origin/<base>'s config: the branch can't widen it), no SKILL.md."""
     if run(["git", "merge-base", "--is-ancestor", old, new], cwd=top).returncode:
         return False
-    head = run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], cwd=top).stdout.strip()  # not the branch's say
+    head = run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], cwd=top).stdout.strip()
     shown = run(["git", "show", "%s:.loop/config.json" % (head or "origin/main")], cwd=top)
     try:
         folder = (json.loads(shown.stdout).get("wiki_dir") if shown.returncode == 0 else None) or "docs/wiki"
     except (ValueError, AttributeError):
         folder = "docs/wiki"
-    done = run(["git", "diff", "--raw", "--no-renames", old, new], cwd=top)  # a move into the wiki shows its source
+    done = run(["git", "diff", "--raw", "--no-renames", old, new], cwd=top)  # a move shows its source
     rows = [(line.split("\t")[0].split(), line.split("\t")[1:]) for line in done.stdout.split("\n") if line]
     return not done.returncode and bool(rows) and all(
-        len(m) == 5 and len(p) == 1 and m[4] in ("A", "M") and m[1] != "120000"  # a symlink is no page
+        len(m) == 5 and len(p) == 1 and m[4] in ("A", "M") and m[1] != "120000"  # no symlink
         and p[0].startswith(str(folder).rstrip("/") + "/") and p[0].endswith(".md") and os.path.basename(p[0]) != "SKILL.md"
         for m, p in rows)
 
@@ -99,7 +99,7 @@ def base_moved(state, cfg, top):
     if not was and state.get("pr_head"):  # goal.py pr recorded a head but no base (origin/<base> unresolved): unknown, never clear
         return 2, "REFUSED (BASE_MOVED): the base the pr lane ran on was not recorded. Fix: goal.py pr %s, then merge.py %s" % (
             state.get("slug", "SLUG"), state.get("slug", "SLUG"))
-    if not was:  # a pull request opened before goal.py pr recorded its base
+    if not was:  # PR opened before goal.py pr recorded its base
         return None
     try:
         done = subprocess.run(["git", "fetch", "-q", "origin", base], cwd=top, capture_output=True, text=True, timeout=60)
@@ -137,7 +137,7 @@ def missing_ids(top, cfg, head="HEAD"):
         return [], []
     names = run(["git", "ls-tree", "--name-only", base, folder + "/"], cwd=top).stdout.split()
     text = "\n".join(run(["git", "show", "%s:%s" % (base, name)], cwd=top).stdout for name in names if name.endswith(".md"))
-    mine = run(["git", "ls-tree", "--name-only", head, folder + "/"], cwd=top).stdout.split()  # a page this goal adds or edits counts too
+    mine = run(["git", "ls-tree", "--name-only", head, folder + "/"], cwd=top).stdout.split()  # a page this goal adds or edits counts
     own = "\n".join(run(["git", "show", head + ":" + name], cwd=top).stdout for name in mine if name.endswith(".md"))
     gone = sorted(i for i in ids if not re.search(r"\b%s\b" % re.escape(i), text + "\n" + own))
     held = [i for i in gone if names and re.search(r"\b%s\d+\b" % re.escape(i.split("-")[0] + "-"), text)]
@@ -146,10 +146,10 @@ def missing_ids(top, cfg, head="HEAD"):
 
 
 # ---- the release pull request (DEL-5, issues 134 and 154)
-FIELDS = "state,mergeStateStatus,reviewDecision,mergeCommit,statusCheckRollup,url,number"
+FIELDS = "state,mergeStateStatus,reviewDecision,mergeCommit,statusCheckRollup,url,number,headRefOid"
 REVIEW = ("REVIEW_REQUIRED", "CHANGES_REQUESTED")
 PENDING = ("QUEUED", "IN_PROGRESS", "WAITING", "PENDING", "REQUESTED", "EXPECTED")
-KEYS = ("release_pr", "release_pr_branch", "release_pr_version", "release_pushed", "release_pr_waiting")
+KEYS = ("release_pr", "release_pr_branch", "release_pr_version", "release_pushed", "release_pr_waiting", "release_status")
 
 
 def title_of(version, slug):
@@ -207,6 +207,7 @@ def advance(top, cfg, state, again=False):
     if seen.get("state") == "OPEN":
         autorelease.check(state, top, None, {"release PR title": title_of(version, slug),
                                              "release notes": autorelease.notes_text(state)})
+        autorelease.release_statuses(top, cfg, state, state["release_pr_branch"], seen.get("headRefOid"))
         merged = autorelease.sh(["gh", "pr", "merge", url, "--merge"], cwd=top)
         said = (merged.stderr or merged.stdout).strip()[-200:]
         seen = view(top, url)
@@ -312,6 +313,8 @@ def main():
         if noted:
             print("NOTE: no wiki page on the base names %s yet; merging anyway" % ", ".join(noted))
         autorelease.run_routines(top, cfg, state)
+        if tested != state.get("pr_head"):
+            autorelease.restatus(top, cfg, state, tested)
         done = run(["gh", "pr", "merge", state["pr"], "--merge"] + (["--match-head-commit", tested] if tested else []))
         if done.returncode:
             autorelease.fail(state, "gh could not merge %s: %s" % (state["pr"], done.stderr.strip()[-300:]))

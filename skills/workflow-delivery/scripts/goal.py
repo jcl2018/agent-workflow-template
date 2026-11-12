@@ -33,6 +33,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lanekit  # noqa: E402
 import guards  # noqa: E402
 import fit  # noqa: E402
+import private  # noqa: E402
 import role
 
 
@@ -201,7 +202,7 @@ def cmd_answer(args):
 
 
 def flow_set():
-    """The private flow file names a skill for every step. Its contents never go in the repo."""
+    """The private flow file names a skill for every step."""
     try:
         spec = json.loads(read(os.path.expanduser(os.environ.get("LOOP_FLOW") or FLOW_FILE)))
         steps = dict(spec.get("suite") or {}, **(spec.get("steps") or {}))
@@ -277,11 +278,11 @@ def next_step(state):
 
 
 def cmd_record(args):
-    """Apply what a flow step left: done or skipped moves on, pending waits, a failed run is a try; format slips cost none."""
+    """Apply what a flow step left: done or skipped moves on, pending waits, a failed run is a try."""
     state = held(args.slug)
     guards.waiting_gate(sys.modules[__name__], state)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
-    if args.in_session:  # the worker session ran the skill itself; its run record must name that session
+    if args.in_session:  # the worker session ran it itself
         args.file = role.session_reply(state, args.slug, args.step, args.file, state_dir(), FLOW)
     lane = role.need_lane(state_dir(), args.slug, args.file, args.step) if args.step in ("qa", "ship") else None
     if lane:
@@ -295,7 +296,7 @@ def cmd_record(args):
     result, why = (found[-1][0].lower(), found[-1][1].strip()) if found else ("", "")
     pending = guards.pending_items(text)
     session = args.in_session or state.get("worker") == "session"
-    if not result and not pending and session:  # flow.py's session route prints record without --in-session
+    if not result and not pending and session:  # flow.py's session route
         guards.refuse_no_try(state, "the %s reply has no STEP line" % args.step, "end the reply with the DEPTH line and a "
                              "STEP: done|skipped|pending|failed line, then record again", guards.NO_STEP_LINE, save)
     stamp, cfg = "", config()
@@ -380,6 +381,7 @@ def cmd_pr(args):
     if gate == "running":
         return 0
     if gate == "fail":
+        private.pr_result(root(), config()["base"], head, state["branch"], False)
         failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
                    "fix the failing rows, commit, then run pr again")
         return 1
@@ -402,18 +404,21 @@ def cmd_pr(args):
                     "--title", state["goal"][:70], "--body", body], check=True)
         url = done.stdout.strip().splitlines()[-1]
     state["pr"] = url
+    state["statuses"] = "ok" if private.pr_result(root(), config()["base"], head, state["branch"], True) else "failed"
     state["step"] = "release"
     state["status"] = "done"
     save(state, "pull request " + url)
     print("PR " + url)
     print("NEXT: " + ("workflow-release merges it: merge.py %s" % args.slug if config().get("auto_merge") is True
                       else "workflow-release asks cut or leave. The loop never merges."))
-    return 0
+    if state["statuses"] == "failed":
+        print("NEXT: the pull request will not merge until the status posts; run private.py statuses --head %s --ok" % head)
+    return 5 * (state["statuses"] == "failed")
 
 
 def cmd_finding(args):
     state = load(args.slug)
-    if state.get("status") in ("done", "merged"):  # a finished goal keeps its status
+    if state.get("status") in ("done", "merged"):
         return guards.note_finding(state_dir(), state, args.text)
     fail_stop(state, args.text)
 

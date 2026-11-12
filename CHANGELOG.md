@@ -1,5 +1,104 @@
 # Changelog
 
+## v0.27.27 - 2026-11-12
+
+- Only setup inserts the Settings and Automation blocks; a render refreshes them where their markers are
+- Page format: blank the template line too, so a README that opens with How to use passes DOC-5
+- Docs staleness: a commit that only refreshes the generated blocks stales no page
+- test-adopt: build the package only for SET-3, SET-4 and SET-5, which use it
+- test-docs-blocks and four rows for the render-readme-guard done lines
+- Mark adopt-set-1 and adopt-set-2 seen red; drop their known entries; Tests, Documentation and Setup usage
+- Guard the blocks rows on DOC-15, so they list in the Documentation Tests table
+- Point adopt-set-3..5 known entries at package-cap-3; say why SET-1/2 skip the package
+- Review: refresh a PRD Home's leftover blocks, render.py usage exit, real() early return, safer no-insert test
+- Documentation: render usage names the Home rule
+- counting.py: the no-prompt guard, since real() now runs git
+- Documentation: check skips block-only commits
+- size-140: move docs.py's live() unchanged into counting.py (docs.py 87% of the cap); drop its known entry; record the added done line
+- Merge origin/main (v0.27.22) into loop/render-readme-guard: Tests re-rendered; render.py's cadence() moved unchanged into counting.py to keep render.py under the size limit
+- Merge origin/main (v0.27.24) into loop/render-readme-guard: both sides' new rows kept; Tests re-rendered
+- pr: record issue states and the lane's results
+- Merge remote-tracking branch 'origin/main' into loop/render-readme-guard
+- Lane: re-render the Tests tables
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.26 - 2026-11-12
+
+- Statuses: a private repo's pr lane posts its real result under every required check
+- Local schedule: one launch agent, a registry and a tick; no health workflow; narrow PR workflow
+- Local schedule: rows, Usage and the wiki pages
+- Local schedule: package disclosure, setup registry check, sturdier toy assertions, seen-red dates
+- Docs: re-render Tests, Setup note
+- Local schedule: reject a base that is not a branch name, create the agent's log dir at install
+- Row ls-nothing-in-repo: require the install and tick to have run
+- Toy test: the second 'dr' repo gets its own name (two sections shared one folder, so the full run failed)
+- Lane: re-render the Tests tables
+- Health: build the temp-folder prefix without a literal path (the lane's reach analysis walked every file under it, 284k, cutting planning at the budget)
+- Merge origin/main into loop/local-schedule (prep_budget_minutes stays 25)
+- After the merge: move workflow() and its template from tiers.py to lanes_cli.py, trim merge.py comments, so every script is under 20480 bytes
+- Lane: re-render the Tests tables
+- README: the settings reference regenerated from settings.py (a row rewrote it during the lane)
+- Merge origin/main (v0.27.22) into loop/local-schedule
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/local-schedule; rows placed mid-file
+- Merge remote-tracking branch 'origin/main' into loop/local-schedule
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/local-schedule
+- Wiki: update pages for local-schedule
+- Wiki: update pages for local-schedule
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.25 - 2026-11-12
+
+- Fold portlock.py into one module per skill; automation in the listing; lane headers (package-cap-3)
+- Portlock fallback test, package row, defect-categories copy includes .github, skill-size known entry removed (package-cap-3)
+- portlock test declares skills/ (package-cap-3)
+- Wiki: the lock fallback lives in the scripts, not portlock.py (package-cap-3)
+- Usage notes: the lock fallback, and where audit and automation detail live (package-cap-3)
+- Merge remote-tracking branch 'origin/main' into loop/package-cap-3
+- test-runbook declares the docs scripts it runs, not the folder (package-cap-3)
+- pr: record issue states and the lane's results
+- Merge origin/main (lane-died) into loop/package-cap-3: keep lane-died's identity checks and the folded lock shim
+- pr: record issue states and the lane's results
+- Delivery page: a stop never signals a reused pid, every signal is logged, LANE_DIED names the signal (package-cap-3)
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.24 - 2026-11-12
+
+- Never signal a pid that only reuses a stored one; audit every signal; name the signal that ended a lane
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/lane-died
+- Merge origin/main into loop/lane-died
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.23 - 2026-11-12
+
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Automation: routines run where they can run fully
+- Automation: review fixes to AUT-1, 2, 3, 6 and Non-goals
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.22 - 2026-11-12
 
 - Runbook section (DOC-16): format check, routine registry, Health and Regression runbooks, toy tests

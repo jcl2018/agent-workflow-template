@@ -8,7 +8,6 @@ that cost no try, and the operation's repairs (resume, touches, a finding on a f
   extra      <runs>/<slug>.extra.json: touches and findings only operation commands add, under an flock.
 """
 import datetime
-import portlock as fcntl
 import json
 import os
 import re
@@ -18,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fit  # noqa: E402
 import private  # noqa: E402
 import lanekit  # noqa: E402
+fcntl = lanekit.fcntl
 import role  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))

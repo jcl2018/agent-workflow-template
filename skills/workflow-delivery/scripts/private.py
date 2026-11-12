@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
-"""The private-name scan: nothing private ships (DEL-9). Every push or GitHub write in delivery, release and monitoring
-runs it first; setup's git hooks run it as `hook staged | message FILE | push`.
+"""The private-name scan: nothing private ships (DEL-9); every push or GitHub write runs it, and setup's git hooks run it as
+`hook staged | message FILE | push`. Also a private repo's commit statuses, which live here as every other script is full.
 
-usage: private.py where                 say whether this is a goal worktree (a worker may push only loop/<slug>)
-       private.py check                 say where the list is and how many patterns it holds
-       private.py scan [--base REF]     scan this branch from REF (default origin/<base>) to HEAD
+usage: private.py where | check | scan [--base REF]    the worker check, the list, the scan from REF (default origin/<base>)
+       private.py visibility | required | statuses --head SHA --ok|--fail [--base B]   the private-repo statuses
 
 The list lives outside the repo: `$LOOP_PRIVATE_NAMES` (a file path) or `~/.workflow-loop/private-names`, one regular
 expression per line, matched without case; `#` starts a comment. No file: the scan passes and says nothing was checked.
-Only comments: off on purpose. A file that can't be read or holds a bad pattern: every scan refuses.
-
-A scan reads the branch name, changed file names, the added lines and message of every commit from the base to HEAD
-(a name added and removed later still counts), and named texts. A hit names its place and list line, never the text.
+Only comments: off on purpose. A broken file: every scan refuses. `visibility` honors $LOOP_REPO_VISIBILITY. A hit names its place and list line, never the text.
 """
+import json
 import os
 import re
 import signal
@@ -87,16 +84,15 @@ DEFAULT = "~/.workflow-loop/private-names"
 LIMIT, WIDTH = 60, 4096  # seconds for a whole scan (git included), characters per matched piece of a line
 PRIVATE_NAME, PRIVATE_LIST = "PRIVATE_NAME", "PRIVATE_LIST"
 WORKER_PUSH, WORKER_PUSH_INTERNAL = "WORKER_PUSH", "WORKER_PUSH_INTERNAL"
+SEE_WHY = "run private.py where in this folder to see why, then tell the owner; do not use --no-verify"
 
 
 def source():
-    """(path to open, the name shown)."""
     given = os.environ.get("LOOP_PRIVATE_NAMES")
     return (given, "$LOOP_PRIVATE_NAMES") if given else (os.path.expanduser(DEFAULT), DEFAULT)
 
 
 def patterns():
-    """(state, [(list line, compiled)], error); state: none, off, on or broken."""
     path, shown = source()
     if not os.path.exists(path):
         if os.environ.get("LOOP_PRIVATE_NAMES"):  # a list named on purpose that isn't there is a typo, not "no list"
@@ -131,7 +127,6 @@ def git(top, *args, stop=None):
 
 
 def added(rows, tag):
-    """(place, text) for each added line of a -U0 diff."""
     path, line, header = "", 0, False
     for row in rows:
         if row.startswith("diff "):
@@ -154,7 +149,6 @@ def commit_places(top, sha, stop=None):
 
 
 def places(top, base, stop=None, head="HEAD"):
-    """(place, text) for everything a push from base to head would publish."""
     branch = git(top, "branch", "--show-current", stop=stop).strip() if head == "HEAD" else head.split("/", 1)[-1]
     if branch:
         yield "branch", branch
@@ -165,20 +159,17 @@ def places(top, base, stop=None, head="HEAD"):
 
 
 def windows(text):
-    """Overlapping WIDTH-character pieces."""
     return [text[at:at + WIDTH] for at in range(0, max(len(text), 1), WIDTH - 256)]
 
 
 def shown_place(place, found):
-    """The place as a hit names it, masked."""
     for _, pattern in found:
         place = pattern.sub("<private>", place)
     return place
 
 
 def scan(top, base, texts=None, head="HEAD", items=None):
-    """{"state": clean|hit|none|off|broken, "hits": [...], "note": str}. base None scans only the texts; head is the
-    branch tip (merge.py passes the goal's pushed branch); items(stop) yields (place, text) in place of the branch."""
+    """{"state": clean|hit|none|off|broken, "hits": [...], "note": str}; base None scans only the texts; items replaces the branch."""
     state, found, error = patterns()
     shown = source()[1]
     if state != "on":
@@ -205,7 +196,6 @@ def scan(top, base, texts=None, head="HEAD", items=None):
 
 
 def refusal(result, base="the base branch", pushed=False):
-    """(why, fix, code) when the result must stop a push."""
     if result["state"] == "broken":
         return ("the private-name list or scan is broken: %s; nothing was pushed" % result["note"],
                 "repair the list (private.py check names the line), then run the command again", PRIVATE_LIST)
@@ -222,8 +212,7 @@ def refusal(result, base="the base branch", pushed=False):
 
 
 def where():
-    """(slug, why): the goal a worktree under <common>/loop/worktrees/ belongs to, else (None, why); (None, None) if unsure.
-    Location only: LOOP_ROLE is never read (the release step sets it too)."""
+    """(slug, why): the goal a worktree under <common>/loop/worktrees/ belongs to, else (None, why); (None, None) if unsure."""
     for attempt in range(2):
         done = subprocess.run(["git", "rev-parse", "--is-inside-work-tree", "--git-common-dir", "--show-toplevel"],
                               capture_output=True, text=True)
@@ -240,11 +229,11 @@ def where():
 
 
 def worker_push(lines):
-    """(why, fix, code) when a goal worker's push must stop, else None. A worker may push only refs/heads/loop/<slug>."""
+    """(why, fix, code) when a goal worker's push must stop, else None."""
     slug, why = where()
     if slug is None and why is None:
         return ("the worker-branch check could not read where this push runs; nothing was pushed",
-                "run private.py where in this folder to see why, then tell the owner; do not use --no-verify", WORKER_PUSH_INTERNAL)
+                SEE_WHY, WORKER_PUSH_INTERNAL)
     if slug is None or not any(row.strip() for row in lines):
         return None
     for row in lines:
@@ -253,8 +242,7 @@ def worker_push(lines):
         parts = row.split()
         if len(parts) != 4:
             return ("the worker-branch check could not read git's ref line; nothing was pushed",
-                    "run private.py where in this folder to see why, then tell the owner; do not use --no-verify",
-                    WORKER_PUSH_INTERNAL)
+                    SEE_WHY, WORKER_PUSH_INTERNAL)
         if parts[2] != "refs/heads/loop/" + slug or not parts[1].strip("0"):
             return ("a worker session for goal %s may push only loop/%s (expected ref refs/heads/loop/%s; the worktree folder "
                     "must equal the goal slug), not %s; nothing was pushed" % (slug, slug, slug, parts[2] if parts[1].strip("0") else "a deletion of " + parts[2]),
@@ -318,6 +306,68 @@ def hook(mode="", arg=""):
     return max(code, {"broken": 2, "hit": 1}.get(got["state"], 0))
 
 
+def gh(top, *args):
+    try:
+        done = subprocess.run(["gh", *args], cwd=top, capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        return 1, "no answer"
+    return done.returncode, done.stdout if not done.returncode else re.sub(r"(gh[pousr]_|github_pat_)\w+|//\S+@", "<x>", done.stderr)[:160]
+
+
+def repo_is_private(top):
+    return {"true": True, "false": False}.get(gh(top, "repo", "view", "--json", "isPrivate", "-q", ".isPrivate")[1].strip())
+
+
+NOSTATUS = r"strict\w*|required_(?:approving_review_count|\w*resolution|linear_history|signatures)|merge_queue"
+ADVICE = []  # rules no status can satisfy
+
+
+def required_checks(top, base):
+    """(contexts to post, bound ones) from base's rulesets and protection; None when unreadable."""
+    named, bound, quoted = set(), set(), base.replace("/", "%2F")
+    rc, out = gh(top, "api", "--paginate", "--slurp", "repos/{owner}/{repo}/rules/branches/" + quoted)
+    rc2, out2 = gh(top, "api", "repos/{owner}/{repo}/branches/%s/protection" % quoted)
+    if rc or (rc2 and "404" not in out2):
+        return print("STATUSES none: rules unreadable: %s; Fix: gh auth refresh -s repo (STATUSES_UNREADABLE)" % (out if rc else out2))
+    rules, info = [r for page in json.loads(out) for r in page], {} if rc2 else json.loads(out2)
+    for context, app in ([(c["context"], c.get("integration_id")) for r in rules for c in (r.get("parameters") or {}).get("required_status_checks") or []]
+                         + [(c["context"], c.get("app_id")) for c in (info.get("required_status_checks") or {}).get("checks") or []]):
+        (bound if app not in (None, 0, -1) else named).add(context)
+    ADVICE[:] = sorted({a or b for a, b in re.findall(r'"(%s)": (?:true|[1-9]|\{"enabled": true)|"type": "(%s)"' % (NOSTATUS, NOSTATUS), json.dumps([rules, info]))})
+    return sorted(named - bound), sorted(bound)
+
+
+def post_statuses(top, head, ok, contexts):
+    failed = []
+    for context in contexts:
+        for attempt in range(3):
+            rc, out = gh(top, "api", "-X", "POST", "repos/{owner}/{repo}/statuses/" + head, "-f", "context=" + context,
+                         "-f", "description=workflow-loop pr lane, local run, " + time.strftime("%Y-%m-%d", time.gmtime()),
+                         "-f", "state=" + ("success" if ok else "failure"))
+            if not rc or re.search(r"HTTP 4\d\d", out):
+                break
+        failed += [context + " " + out] * bool(rc)
+    if failed:
+        print("STATUS_FAILED posted %d of %d; failed: %s; safe to rerun: private.py statuses --head %s --%s (STATUS_FAILED)" % (
+            len(contexts) - len(failed), len(contexts), ", ".join(failed), head, "ok" if ok else "fail"))
+    return not failed
+
+
+def pr_result(top, base, head, branch, ok):
+    got = repo_is_private(top) and required_checks(top, base)
+    if not got:
+        return print("STATUSES none: public or unreadable") or True
+    for name in got[1] + ADVICE:
+        print("BLOCKS: %s cannot be satisfied by a status; remove it from the ruleset (BLOCKS)" % name)
+    there = subprocess.run(["git", "ls-remote", "origin", "refs/heads/" + branch], cwd=top, capture_output=True, text=True).stdout.split()
+    if not got[0] or not ok and there[:1] != [head]:
+        return print("STATUSES none: " + ("no required checks" if not got[0] else "head not on the remote")) or True
+    done = post_statuses(top, head, ok, got[0])
+    if done:
+        print("STATUSES posted %s for %s on %s" % ("success" if ok else "failure", ", ".join(got[0]), head[:12]))
+    return done
+
+
 def main():
     args = sys.argv[1:]
     if args[:1] == ["hook"]:
@@ -330,26 +380,33 @@ def main():
     if args[:1] == ["check"]:
         state, found, error = patterns()
         shown = source()[1]
-        if state == "broken":
-            print("PRIVATE LIST: broken: %s (%s)" % (error, PRIVATE_LIST))
-            return 1
-        print("PRIVATE LIST: none at %s" % shown if state == "none" else
+        print("PRIVATE LIST: broken: %s (%s)" % (error, PRIVATE_LIST) if state == "broken" else
+              "PRIVATE LIST: none at %s" % shown if state == "none" else
               "PRIVATE LIST: off on purpose (%s holds only comments)" % shown if state == "off" else
               "PRIVATE LIST: %d pattern%s from %s" % (len(found), "" if len(found) == 1 else "s", shown))
-        return 0
+        return state == "broken"
     if args[:1] == ["scan"]:
         top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
         base = args[args.index("--base") + 1] if "--base" in args else "origin/main"
         result = scan(top, base)
-        print(result["note"])
-        for hit in result["hits"]:
-            print("HIT " + hit)
+        print(result["note"], *("HIT " + hit for hit in result["hits"]), sep="\n")
         stop = refusal(result, base)
         if stop:
             print("REFUSED: %s. Fix: %s (%s)" % stop)
             return 2
         return 0
-    print(__doc__.strip().splitlines()[2])
+    if args[:1] in (["visibility"], ["required"], ["statuses"]):
+        base = args[args.index("--base") + 1] if "--base" in args else "main"
+        if args[0] == "visibility":
+            print(os.environ.get("LOOP_REPO_VISIBILITY") or {True: "private", False: "public"}.get(repo_is_private("."), "unknown"))
+        elif args[0] == "required":
+            got = required_checks(".", base) or ([], [])
+            print(*got[0], *("BLOCKS: %s (BLOCKS)" % name for name in got[1] + ADVICE), sep="\n")
+        else:
+            head = args[args.index("--head") + 1]
+            return 0 if pr_result(".", base, head, head, "--ok" in args) else 5
+        return 0
+    print(__doc__.strip().splitlines()[5])
     return 0 if args in ([], ["-h"], ["--help"]) else 2
 
 
