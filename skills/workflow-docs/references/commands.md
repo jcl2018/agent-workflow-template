@@ -51,7 +51,7 @@ not fail. `docs.py audit` rewrites a stale entry point and stale blocks itself.
 |---|---|---|
 | `ENTRY_STALE` | START.md or an agent block differs from its sources | `docs.py audit`, or `entry.py write` |
 | `ENTRY_MISSING` | a stamped repo has no START.md, or an agent file has no block | `entry.py write`; ask for workflow-setup agents |
-| `ENTRY_LAG` | the installed skills are newer than the repo's template_version | ask for workflow-setup update |
+| `ENTRY_LAG` | the installed skills are newer than the repo's template_version | run the migrate goal (workflow-setup update) |
 
 `.loop/docs.tsv` maps each page to the paths it describes. `check` prints `STALE`, `MISSING`, `UNWRITTEN` or
 `UNMAPPED`, `NO PAGES` if the map is empty, and `DOCS OK` when clean. `STALE` means a commit touched a mapped path and
