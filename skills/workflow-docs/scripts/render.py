@@ -110,7 +110,7 @@ def render(args):
         except OSError:
             held = None
         out.append((rel, held, tests_page(root)))
-    for where, name in refresh(root, args.check):
+    for where, name in (refresh(root, args.check) if config_of(root).get("criteria") else []):  # as docs.py check/publish
         stale.append("%s (%s block)" % (where, name))
     for rel, text, fresh in out:
         if fresh != text:
