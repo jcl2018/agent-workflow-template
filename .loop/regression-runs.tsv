@@ -76,7 +76,7 @@ ci-target-input	PASS	2026-11-10
 cost-time-warn	PASS	2026-11-12	
 cost-unread-tokens	PASS	2026-11-12	
 criteria-max-config	PASS	2026-11-12	
-criteria-max-setting	PASS	2026-11-11	
+criteria-max-setting	PASS	2026-11-12	
 criteria-no-scripts	PASS	2026-11-12	
 cut-draft	PASS	2026-11-09	
 cut-needs-verify	PASS	2026-11-12	
@@ -242,13 +242,13 @@ lanes-wide-parity	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 list-kind-filter	PASS	2026-11-10	
 list-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 list-tsv-raw	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-live-board-arrows	PASS	2026-11-11	
-live-board-cadence	PASS	2026-11-11	
-live-board-flow	PASS	2026-11-11	
-live-board-header	PASS	2026-11-11	
-live-board-issues	PASS	2026-11-11	
-live-board-leftouts	PASS	2026-11-11	
-live-board-no-oneline	PASS	2026-11-11	
+live-board-arrows	PASS	2026-11-12	
+live-board-cadence	PASS	2026-11-12	
+live-board-flow	PASS	2026-11-12	
+live-board-header	PASS	2026-11-12	
+live-board-issues	PASS	2026-11-12	
+live-board-leftouts	PASS	2026-11-12	
+live-board-no-oneline	PASS	2026-11-12	
 local-row-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lock-in-report	PASS	2026-11-12	
 merge-base-undiffable	PASS	2026-11-11	
@@ -413,7 +413,7 @@ skill-says-governs	PASS	2026-11-12
 skill-size-116	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 slot-pool-112	PASS	2026-11-10	
 stale-found	PASS	2026-11-12	
-stale-groups-defect	PASS	2026-11-11	
+stale-groups-defect	PASS	2026-11-12	
 stale-merge-order	PASS	2026-11-12	
 stale-page-row	PASS	2026-11-12	
 starts-at-idea	PASS	2026-11-09	
@@ -474,7 +474,7 @@ waits-first	PASS	2026-11-09
 wiki-no-report	PASS	2026-11-12	
 wiki-release	PASS	2026-11-12	
 wiki-release-pycache	PASS	2026-11-12	
-wiki-unmapped-stale	PASS	2026-11-11	
+wiki-unmapped-stale	PASS	2026-11-12	
 worker-per-goal	PASS	2026-11-12	
 worker-refuses	PASS	2026-11-12	
 worker-reports	PASS	2026-11-12	
