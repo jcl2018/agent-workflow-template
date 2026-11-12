@@ -1,7 +1,7 @@
 # The template's scheduled regression on GitHub goes green: the six rows failing on every run (breaking-asks, lanes-headers, lanes-repo-narrow, one-way-to-run, prd-repo-green, toy-no-leftovers) are each traced to a test that assumes this Mac or a regression in code, and fixed where they are wrong; stale per-row regression issues for rows that now pass are closed by the workflow (owner, 2026-11-11, asking whether the template's automations are implemented); prd: Regression
 
 - Slug: regression-green-2
-- Touches: dev/toy, .loop/regression.tsv, .github/workflows/regression.yml, docs/wiki/Regression.md, docs/wiki/Tests.md, skills/workflow-regression/scripts/actions.py
+- Touches: dev/toy, .loop/regression.tsv, .github/workflows/regression.yml, docs/wiki/Regression.md, docs/wiki/Tests.md, skills/workflow-regression/scripts/actions.py, docs/wiki/Automation.md
 
 ## Done lines
 

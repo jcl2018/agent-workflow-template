@@ -284,3 +284,15 @@ is `UNWRITTEN` until then) and add its requirement's regression row in the same 
 next release). `python3 scripts/prd.py convert` previews turning old Summary/Criteria pages into PRD pages, and
 `convert --write` does it (Summary becomes Problem, Criteria Requirements, every stamp kept, placeholder Non-goals and
 Success metrics added); then write the drafts, rewrite row descriptions as scenarios and run `render`.
+
+### The `automation` registry
+
+The Automation block lists health and regression (built in, cadence from `health_cron` and `regression_cron`) and each entry
+of `automation` in `.loop/config.json`: `{"name", "does", "cadence", "runs", "enabled", "last_run"}`, where `runs` is
+`github:FILE` (a workflow file), `mac:LABEL` (a launch agent) or `claude:TASK` (a Claude scheduled task) and `cadence` is a
+cron string, words, or `off`. Adding a routine is adding one entry. `python3 scripts/docs.py automation` prints each one's
+live state here; the committed block holds only what files and config show.
+
+### `restore`
+
+This reverts the last publish. It refuses if the wiki has changed since.
