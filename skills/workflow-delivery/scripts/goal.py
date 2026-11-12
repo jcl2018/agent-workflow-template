@@ -11,12 +11,12 @@ usage: goal.py <command> <slug> [options]
 Goal steps (step, record, pr) refuse outside a worker.
   wait SLUG --ask TEXT --words W [--words W]
   answer SLUG                 a waiting goal goes on
-  finding SLUG TEXT           stops a live goal; a done or merged one is only noted
+  finding SLUG TEXT   stops a live goal; a done or merged one is only noted
   resume SLUG --why T [--by W]    the operation revives a stopped session goal
   touches SLUG --add PATH --why T the operation widens a goal's touches
-  set SLUG [--depth D] [--bump B] [--budget-minutes N] [--budget-tokens N] --why T   the owner's per-goal settings
+  set SLUG [--depth D] [--bump B] [--budget-minutes N] [--budget-tokens N] --why T
   show SLUG
-A refusal that changes nothing uses no try: exit 2, the goal keeps running (guards.py).
+A refusal that changes nothing uses no try (exit 2, guards.py).
 """
 import argparse
 import datetime
@@ -113,7 +113,7 @@ def state_path(slug):
     return os.path.join(state_dir(), slug + ".json")
 
 
-SEEN = {}  # slug -> record last loaded or saved
+SEEN = {}  # slug -> last record
 
 
 def load(slug):
@@ -299,7 +299,7 @@ def cmd_record(args):
     state = held(args.slug)
     guards.waiting_gate(sys.modules[__name__], state)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
-    if args.in_session:  # the worker session ran it itself
+    if args.in_session:  # the session ran it
         args.file = role.session_reply(state, args.slug, args.step, args.file, state_dir(), FLOW)
     lane = role.need_lane(state_dir(), args.slug, args.file, args.step) if args.step in ("qa", "ship") else None
     if lane:
@@ -417,8 +417,10 @@ def cmd_pr(args):
         no("push failed:\n" + pushed.stderr)
     url = info["url"] if info.get("state") == "OPEN" else ""
     if not url:
+        path = state_path(args.slug) + ".body"
+        write(path, body)
         done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
-                    "--title", state["goal"][:70], "--body", body], check=True)
+                    "--title", state["goal"][:70], "--body-file", path], check=True)
         url = done.stdout.strip().splitlines()[-1]
     state["pr"] = url
     state["statuses"] = "ok" if private.pr_result(root(), config()["base"], head, state["branch"], True) else "failed"
