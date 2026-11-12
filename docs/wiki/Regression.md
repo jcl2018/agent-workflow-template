@@ -71,6 +71,7 @@ Review: **Unreviewed**
   - A row the local platform can't run (the bash toy rows on native Windows exit 77) is skipped with its reason and is never counted as seen failing: a skip, on any platform, never sets the seen-failing date.
   - Its red proof runs on a capable runner (Linux CI or a Linux session), and the result is written back to the row with the runner and the commit it ran on; a Windows runner can't be named.
   - A pull request that adds such a row lists the exact red commands still owed, so the proof is run and written back before the row counts as proven.
+  - A loop run that fails only on rows both skipped on this platform and unproven (qa or ship) waits for the off-platform proof, naming the rows and the red commands, and spends no failed try; a real failure still does.
 
 ## Non-goals
 - The owner never writes or manages tests; the loop does.
@@ -201,6 +202,8 @@ Review: **Unreviewed**
 | [reg10-commit-checked](Tests#t-reg10-commit-checked) | requirement | REG-10 | Given a red proof naming a commit this repo does not have, when it is recorded, then it is refused. | not run |
 | [reg10-off-platform-red](Tests#t-reg10-off-platform-red) | requirement | REG-10 | Given a row seen failing on a Linux runner at a known commit, when red --off-platform records it, then the row has a seen-failing date. | not run |
 | [reg10-provenance](Tests#t-reg10-provenance) | requirement | REG-10 | Given a recorded off-platform red, when .loop/regression-red.tsv is read, then it names the row, date, runner and commit. | not run |
+| [reg10-owed-waits](Tests#t-reg10-owed-waits) | requirement | REG-10 | Given a lane that failed only on rows both skipped on this platform and unproven, when qa records it, then the goal waits for off-platform proof naming the rows and the red commands, and no try is spent. | not run |
+| [reg10-real-fail-costs-try](Tests#t-reg10-real-fail-costs-try) | requirement | REG-10 | Given a lane with a real FAIL, or an unproven row that did run, when qa records it, then it is a failed try. | not run |
 | - | requirement | REG-10 | no passing test | not enforced |
 | [workflow-goal-to-release](Tests#t-workflow-goal-to-release) | workflow | REG-1 | Given a toy goal that fixes an issue, when it runs from goal.py new through its flow, its defect row seen failing, goal.py pr, merge.py and the automatic release, then the published release note and the CHANGELOG list Fixes #N with its defect test. | PASS 2026-11-10 |
 | [summary-only-real-rows](Tests#t-summary-only-real-rows) | defect | [#92](https://github.com/jcl2018/agent-workflow-template/issues/92) closed (2026-11-10) | Given a row that writes to the run summary, env or outputs like a toy test, when the GitHub run runs it, then nothing it writes reaches the real summary, env or outputs. | PASS 2026-11-10 |

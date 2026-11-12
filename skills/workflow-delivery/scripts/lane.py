@@ -23,6 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REG = os.path.normpath(os.path.join(HERE, "..", "..", "workflow-regression", "scripts"))
 sys.path.insert(0, HERE)
 import lanekit  # noqa: E402
+import owed  # noqa: E402
 import proctree  # noqa: E402
 fcntl = lanekit.fcntl
 # No terminal, no waiting.
@@ -187,6 +188,8 @@ def finalize(base, held, name):
         line += "\n" + lanekit.timeout_line(text, deadline(held)[1], held)
     elif rc == lanekit.EXIT_WAIT:
         line += "\nLANE_BUG: the lane's child stopped waiting for a slot (exit 4), which a lane never does; %s." % NOTHING
+    elif rc and owed.rows(text, ids):
+        line += owed.line(text, ids)
     elif rc:
         line += "\nLANE_FAIL %s (log %s). Reproduce one: python3 %s run <id>; %s." % (
             ", ".join(ids) or "exit %d" % rc, out, lane_argv()[1], NOTHING)
