@@ -109,12 +109,9 @@ def commit(repo, message, files):
     try:
         out = proc.communicate()[0]
     except BaseException:
-        os.killpg(proc.pid, 15)
-        try:
-            proc.wait(10)
-        except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, 9)
-            proc.wait()
+        kill = ["taskkill", "/T", "/F", "/PID", str(proc.pid)]
+        subprocess.run(kill, capture_output=True) if os.name == "nt" else os.killpg(proc.pid, 9)  # posix-only branch
+        proc.wait()
         raise
     return proc.returncode, out
 
@@ -155,7 +152,7 @@ def safe(name):
 def from_tree(names, get):
     """A manifest built from a source tree (skills/, VERSION, CHANGELOG.md), keyed as dev/package.py keys a package."""
     firsts = {n.split("/")[0] for n in names}
-    top = "" if "skills" in firsts or len(firsts) != 1 else firsts.pop() + "/"  # a GitHub archive nests one folder
+    top = "" if "skills" in firsts or len(firsts) != 1 else firsts.pop() + "/"
     files, data = {}, {}
     for name in names:
         rel = name[len(top):]
@@ -271,7 +268,7 @@ def check(skills, manifest, old, fixes, ours):
     """Print the preview; return (changed, dropped)."""
     files = manifest["files"]
     changed = sorted(r for r, h in files.items() if (old.get("files") or {}).get(r) != h or not os.path.isfile(os.path.join(skills, r)))
-    dropped = sorted(r for r in (old.get("files") or {}) if r not in files and r not in fixes)  # a dropped LOCAL FIX is kept
+    dropped = sorted(r for r in (old.get("files") or {}) if r not in files and r not in fixes)
     notes = newer(manifest.get("changelog", ""), ours)
     if notes:
         print("WHAT'S NEW:\n" + notes)
@@ -304,7 +301,7 @@ def apply_skills(skills, manifest, read, old, fixes, take, where):
     for rel, data in blobs.items():
         if rel in keep:
             if sha(data) == sha(open(os.path.join(skills, rel), "rb").read()):
-                keep.remove(rel)  # the local file already matches the new version: not a fix any more, stamp it
+                keep.remove(rel)
                 kept.pop(rel, None)
                 continue
             upstream = (old.get("files") or {}).get(rel) != files[rel]

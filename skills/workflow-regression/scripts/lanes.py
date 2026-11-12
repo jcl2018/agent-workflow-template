@@ -187,6 +187,8 @@ def references(root, text, folder, wide=True):
     for raw in PATH.findall(text):
         raw = raw.rstrip(".")
         for cand in {raw, os.path.normpath(os.path.join(folder, raw))}:
+            if cand.startswith("/"):  # absolute: os.path.join(root, "/x") is "/x", outside the repo
+                continue
             if cand.split("/")[0] == ".git":  # git's own store: in a full clone .git/index names every file (issue 178)
                 continue
             full = os.path.join(root, cand)
@@ -223,6 +225,8 @@ def scan(root, rel, cache):
 
 
 def walk(root, prefix, cache=None):
+    if os.path.isabs(prefix) or os.path.normpath(prefix).replace("\\", "/").split("/")[0] == "..":  # outside the repo: never walked
+        return []
     if cache is not None and ("walk", prefix) in cache:
         return cache["walk", prefix]
     found = [os.path.relpath(os.path.join(here, n), root) for here, _, names in os.walk(os.path.join(root, prefix))

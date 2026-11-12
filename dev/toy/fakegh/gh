@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test double for gh. Records calls under $FAKE_GH_DIR. Dev only; never packaged.
 d=${FAKE_GH_DIR:?}; mkdir -p "$d"
+args=(); while [ $# -gt 0 ]; do if [ "$1" = --body-file ]; then args+=(--body "$(cat "$2")"); shift 2; else args+=("$1"); shift; fi; done; set -- "${args[@]}"  # a text in a file reads as --body TEXT
 echo "$*" >> "$d/calls.log"
 here=$(cd "$(dirname "$0")" && pwd)
 case "$1 $2" in

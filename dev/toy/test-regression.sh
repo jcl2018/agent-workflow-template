@@ -51,6 +51,17 @@ $reg add always --level nightly --command "true"
 $reg red always --break "true"; [ $? = 1 ] && ok "a test that can't fail stays unproven" || bad "still green"
 $reg add always --level covered --command "proved by check-1"
 
+echo "== a skipped row is never seen red; a red proven off-platform is recorded"
+$reg add skip-1 --level land --command "exit 77" >/dev/null
+git add -A; git commit -qm "Rows" -q
+$reg red skip-1 --break "true" 2>/dev/null; [ $? = 1 ] && [ -z "$(awk -F'	' '$1=="skip-1"{print $5}' .loop/regression.tsv)" ] && ok "a skipped row never sets seen red" || bad "skip set seen red"
+head=$(git rev-parse HEAD)
+$reg red skip-1 --off-platform --runner "Windows 10" --commit "$head" 2>/dev/null; [ $? = 1 ] && [ -z "$(awk -F'	' '$1=="skip-1"{print $5}' .loop/regression.tsv)" ] && ok "a Windows runner is refused" || bad "windows runner accepted"
+$reg red skip-1 --off-platform --runner linux-ci --commit 0000000 2>/dev/null; [ $? = 1 ] && ok "an unknown commit is refused" || bad "unknown commit accepted"
+$reg red skip-1 --off-platform --runner linux-ci --commit "$head" >/dev/null && awk -F'	' '$1=="skip-1"{print $5}' .loop/regression.tsv | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' && ok "a red proven on another runner sets the date" || bad "off-platform red"
+grep -q "^skip-1	.*	linux-ci	$head$" .loop/regression-red.tsv && ok "the runner and commit are recorded" || bad "provenance"
+sed -i.bak '/^skip-1	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak .loop/regression-red.tsv; git add -A; git commit -qm "Drop the skip row"
+
 echo "== pass, then fail opens one issue, then pass closes it"
 $reg run land | tee "$d/o1"; [ "${PIPESTATUS[0]}" = 0 ] && ok "green run" || bad "green run"
 $reg add flag --level land --command "test ! -e BROKEN"
