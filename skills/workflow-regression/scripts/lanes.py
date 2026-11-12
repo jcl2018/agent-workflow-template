@@ -128,7 +128,8 @@ def run_row(command, cwd, env, timeout):
     import signal as sig
     import tempfile
     with tempfile.TemporaryFile("w+", errors="replace") as log:  # a file, not a pipe: a child left running can't hold it
-        proc = subprocess.Popen(command, shell=True, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
+        win = os.name == "nt"  # a row is a bash line; cmd.exe has no $(...) and splits on > and (
+        proc = subprocess.Popen(["bash", "-c", command] if win else command, shell=not win, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
         try:
             code, tail = proc.wait(timeout=timeout), ""
         except subprocess.TimeoutExpired:  # kill the row's whole tree, so nothing it started keeps ports or writes on
