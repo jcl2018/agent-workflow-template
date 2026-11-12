@@ -2,7 +2,8 @@
 """The private-name scan: nothing private ships (DEL-9). Every push or GitHub write in delivery, release and monitoring
 runs it first; setup's git hooks run it as `hook staged | message FILE | push`.
 
-usage: private.py check                 say where the list is and how many patterns it holds
+usage: private.py where                 say whether this is a goal worktree (a worker may push only loop/<slug>)
+       private.py check                 say where the list is and how many patterns it holds
        private.py scan [--base REF]     scan this branch from REF (default origin/<base>) to HEAD
 
 The list lives outside the repo: `$LOOP_PRIVATE_NAMES` (a file path) or `~/.workflow-loop/private-names`, one regular
@@ -25,6 +26,7 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 DEFAULT = "~/.workflow-loop/private-names"
 LIMIT, WIDTH = 60, 4096  # seconds for a whole scan (git included), characters per matched piece of a line
 PRIVATE_NAME, PRIVATE_LIST = "PRIVATE_NAME", "PRIVATE_LIST"
+WORKER_PUSH, WORKER_PUSH_INTERNAL = "WORKER_PUSH", "WORKER_PUSH_INTERNAL"
 
 
 def source():
@@ -159,6 +161,48 @@ def refusal(result, base="the base branch", pushed=False):
     return "a private name would be pushed: %s; nothing was pushed" % shown, fix, PRIVATE_NAME
 
 
+def where():
+    """(slug, why): the goal a worktree under <common>/loop/worktrees/ belongs to, else (None, why); (None, None) if unsure.
+    Location only: LOOP_ROLE is never read (the release step sets it too)."""
+    for attempt in range(2):
+        done = subprocess.run(["git", "rev-parse", "--is-inside-work-tree", "--git-common-dir", "--show-toplevel"],
+                              capture_output=True, text=True)
+        if done.returncode == 0 and len(done.stdout.split("\n")) >= 3:
+            break
+    else:
+        return None, None
+    inside, common, top = done.stdout.split("\n")[:3]
+    if inside != "true":
+        return None, "not inside a work tree"
+    root = os.path.realpath(os.path.join(os.getcwd(), common)) + os.sep + "loop" + os.sep + "worktrees" + os.sep
+    top = os.path.realpath(top) + os.sep
+    return (top[len(root):].split(os.sep)[0], "") if top.startswith(root) else (None, "not a goal worktree")
+
+
+def worker_push(lines):
+    """(why, fix, code) when a goal worker's push must stop, else None. A worker may push only refs/heads/loop/<slug>."""
+    slug, why = where()
+    if slug is None and why is None:
+        return ("the worker-branch check could not read where this push runs; nothing was pushed",
+                "run private.py where in this folder to see why, then tell the owner; do not use --no-verify", WORKER_PUSH_INTERNAL)
+    if slug is None or not any(row.strip() for row in lines):
+        return None
+    for row in lines:
+        if not row.strip():
+            continue
+        parts = row.split()
+        if len(parts) != 4:
+            return ("the worker-branch check could not read git's ref line; nothing was pushed",
+                    "run private.py where in this folder to see why, then tell the owner; do not use --no-verify",
+                    WORKER_PUSH_INTERNAL)
+        if parts[2] != "refs/heads/loop/" + slug or not parts[1].strip("0"):
+            return ("a worker session for goal %s may push only loop/%s (expected ref refs/heads/loop/%s; the worktree folder "
+                    "must equal the goal slug), not %s; nothing was pushed" % (slug, slug, slug, parts[2] if parts[1].strip("0") else "a deletion of " + parts[2]),
+                    "push your own branch (goal.py pr %s); only the operation session publishes to main (merge.py), and another "
+                    "goal's branch is pushed from that goal's own worktree" % slug, WORKER_PUSH)
+    return None
+
+
 def hook_items(mode, arg):
     def run(stop):
         if mode == "staged":
@@ -175,7 +219,7 @@ def hook_items(mode, arg):
                 if not row.startswith(char):
                     yield "commit message", row
         else:
-            for row in sys.stdin.read().splitlines():
+            for row in arg.splitlines():
                 _, local, ref, _ = (row.split() + [""] * 4)[:4]
                 if local.strip("0"):  # not a deletion
                     yield "ref name " + ref, ref
@@ -195,6 +239,13 @@ def hook(mode="", arg=""):
         return 64
     if hasattr(signal, "SIGALRM"):
         signal.signal(signal.SIGALRM, signal.SIG_DFL), signal.alarm(int(os.environ.get("LOOP_HOOK_DEADLINE") or 30))
+    code = 0
+    if mode == "push":
+        arg = sys.stdin.read()
+        blocked = worker_push(arg.splitlines())
+        if blocked:
+            print("REFUSED: %s. Fix: %s (%s)" % blocked)
+            code = 2
     state, found, error = patterns()
     for number, pattern in found:
         if any(pattern.search(text) for text in ("", "x", "a b", "def f():", "  ")):
@@ -204,13 +255,18 @@ def hook(mode="", arg=""):
     if stop:
         fix = stop[1] if stop[2] == PRIVATE_LIST else "remove the text; for a false positive, edit that line of the list"
         print("REFUSED: %s. Fix: %s (%s)" % (stop[0].replace("pushed", "pushed" if mode == "push" else "committed"), fix, stop[2]))
-    return {"broken": 2, "hit": 1}.get(got["state"], 0)
+    return max(code, {"broken": 2, "hit": 1}.get(got["state"], 0))
 
 
 def main():
     args = sys.argv[1:]
     if args[:1] == ["hook"]:
         return hook(*args[1:3])
+    if args[:1] == ["where"]:
+        slug, why = where()
+        print("UNKNOWN (git rev-parse failed)" if slug is None and why is None else
+              "NOT A WORKER (%s)" % why if slug is None else "WORKER " + slug)
+        return 1 if slug is None and why is None else 0
     if args[:1] == ["check"]:
         state, found, error = patterns()
         shown = source()[1]

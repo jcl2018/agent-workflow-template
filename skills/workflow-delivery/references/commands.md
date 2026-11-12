@@ -443,6 +443,18 @@ under `commit -v`'s scissors line and the comment lines are not scanned. A rebas
 commit hooks; the push scan reads the commits a push would publish (up to 500, 4 MB of diff is the practical bound).
 Annotated tag messages are not scanned. Windows has no alarm, so the time limit is not enforced there.
 
+### Worker push guard
+
+A mistake guard, not enforcement. The pre-push hook (the same one the private-name scan uses; there is no second hook) also
+checks where it runs: inside a goal worktree (`<git common dir>/loop/worktrees/<slug>`), a push may update only
+`refs/heads/loop/<slug>`. Main, other branches, tags and deletions are refused, and a push of several refs with one bad ref is
+refused whole. The role is never read, only the location, so the operation checkout and the release step are untouched.
+`private.py where` says `WORKER <slug>`, `NOT A WORKER (<why>)` or `UNKNOWN (<what>)`. The guard fails closed
+(`WORKER_PUSH_INTERNAL`) when git's ref lines or `git rev-parse` can't be read.
+
+Limits: `--no-verify`, `core.hooksPath`, a hook that was never installed and a push from the main checkout skip it. The real
+backstop is GitHub branch protection on main (GRD-6) and a credential for workers scoped to `loop/*`.
+
 ### Issue 38 and 117 extras
 
 A step reply's `VERDICT: <who>: <verdict>` lines are kept on the run record and listed under their step in the pull
@@ -456,6 +468,8 @@ goal deletes; it may write it back`. A worker session binds itself with `session
 | Code | Where | Fix |
 |---|---|---|
 | `PRIVATE_NAME` | `goal.py pr`, the git hooks | remove the text and squash, or edit that list line for a false positive |
+| `WORKER_PUSH` | the pre-push hook, in a goal worktree | push only `loop/<slug>` (`goal.py pr` does); main, tags and other branches are for the operation session |
+| `WORKER_PUSH_INTERNAL` | the pre-push hook | git's ref lines or `git rev-parse` couldn't be read (also a push from a bare clone); run `private.py where` in this folder to see why, then tell the owner |
 | `PRIVATE_LIST` | every scan | repair the list; `private.py check` names the line |
 | `FINDING_LOCAL` | a finding's push | the finding stays local; fix the hit, then push |
 | `ALREADY_RECORDED` | `flow.py` | go on with the step it names, or `--again` |

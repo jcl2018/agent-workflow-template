@@ -118,8 +118,8 @@ Review: **Reviewed 2026-11-10** <!-- prd P=3add8b00 R=c3b7093f N=81dd3484 M=4599
 | [review-dated](Tests#t-review-dated) | requirement | DOC-2 | Given a criterion, when it is reviewed, then it is marked Reviewed with the date. | PASS 2026-11-12 |
 | [review-owner-only](Tests#t-review-owner-only) | requirement | DOC-2 | Given a criterion, when a review is attempted, then it is reviewed only with the owner's words. | PASS 2026-11-12 |
 | [reviewed-lock](Tests#t-reviewed-lock) | requirement | DOC-2 | Given a reviewed criterion, when it is changed, then the check fails. | PASS 2026-11-12 |
-| [unreview-lifts](Tests#t-unreview-lifts) | requirement | DOC-2 | Given a reviewed criterion, when it is unreviewed, then its lock is lifted. | PASS 2026-11-11 |
-| [lock-in-report](Tests#t-lock-in-report) | requirement | DOC-2 | Given a reviewed criterion that changed, when the report is printed, then it names that criterion. | PASS 2026-11-11 |
+| [unreview-lifts](Tests#t-unreview-lifts) | requirement | DOC-2 | Given a reviewed criterion, when it is unreviewed, then its lock is lifted. | PASS 2026-11-12 |
+| [lock-in-report](Tests#t-lock-in-report) | requirement | DOC-2 | Given a reviewed criterion that changed, when the report is printed, then it names that criterion. | PASS 2026-11-12 |
 | [prd-lock-four](Tests#t-prd-lock-four) | requirement | DOC-2 | Given a PRD the owner reviewed, when Problem, Requirements, Non-goals or Success metrics changes, then the docs check fails with LOCKED naming each changed section. | PASS 2026-11-10 |
 | [prd-usage-changed](Tests#t-prd-usage-changed) | requirement | DOC-2 | Given a PRD the owner reviewed, when only its Usage is edited, added or removed, then the docs check fails with CHANGED and the board lists the page. | PASS 2026-11-10 |
 | [prd-review-args](Tests#t-prd-review-args) | requirement | DOC-2 | Given review or unreview with no --user, a bad ID, a bad page or a bad date, when it runs, then it refuses and changes nothing. | PASS 2026-11-10 |
