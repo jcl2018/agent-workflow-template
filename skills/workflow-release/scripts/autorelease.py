@@ -94,6 +94,16 @@ def sh(args, cwd=None):
         return subprocess.CompletedProcess(args, 127, "", str(error))
 
 
+def sh_text(args, text, flag="--body-file", cwd=None):
+    """Run gh with a long text in a temp file passed as flag (--body-file, --notes-file), never on the command line."""
+    with tempfile.NamedTemporaryFile("w", suffix=".md", prefix="gh-text-", delete=False, encoding="utf-8", newline="\n") as f:
+        f.write(text)
+    try:
+        return sh(args + [flag, f.name], cwd=cwd)
+    finally:
+        os.remove(f.name)
+
+
 def fail(state, text):
     """Record the failure on the goal and stop."""
     state["release_error"] = text if len(text) <= 400 else text[:330] + " ... " + text[-65:]  # keeps the (CODE)
@@ -214,6 +224,36 @@ def push_release_commit(top, cfg, state, part, to_branch=False):
         shutil.rmtree(temp, ignore_errors=True)
 
 
+def restatus(top, cfg, state, head):
+    """Post the pr lane's result for a head that moved only by wiki pages (a status belongs to one sha)."""
+    module, stop = sibling("private")
+    if not stop:
+        module.pr_result(top, cfg.get("base", "main"), head, state["branch"], True)
+
+
+def release_statuses(top, cfg, state, branch, sha):
+    """Run the affected rows at the release PR's head and post the real result under every required check's name;
+    state["release_status"] stays failure (and is run again) until it is success."""
+    module, stop = sibling("private")
+    if stop or not sha or state.get("release_status") == "success":
+        return
+    temp = tempfile.mkdtemp(prefix="release-status-")
+    tree, ok = os.path.join(temp, "tree"), False
+    try:
+        if sh(["git", "worktree", "add", "-q", "--detach", tree, sha], cwd=top).returncode == 0:
+            try:
+                ok = subprocess.run([sys.executable, os.path.join(SIBLING, "..", "..", "workflow-regression", "scripts", "regression.py"), "run",
+                                     cfg.get("ci_levels") or "nightly", "--reuse", "--tier", "goal", "--timeout", "900"], cwd=tree,
+                                    capture_output=True, timeout=1200).returncode == 0
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+    finally:
+        sh(["git", "worktree", "remove", "--force", tree], cwd=top)
+        shutil.rmtree(temp, ignore_errors=True)
+    posted = module.pr_result(top, cfg.get("base", "main"), sha, branch, ok)
+    state["release_status"] = "success" if ok and posted else "failure"
+
+
 def create_release(top, cfg, state, version, target):
     tag = "v" + version
     text = notes_text(state)
@@ -230,13 +270,7 @@ def create_release(top, cfg, state, version, target):
         fail(state, "a GitHub release %s already exists at %s, not at this goal's release commit %s; nothing new was "
              "created. Fix: look at it (gh release view %s) and keep or delete it, then run merge.py %s (RELEASE_EXISTS)"
              % (tag, info.get("targetCommitish") or "another target", target[:12], tag, state["slug"]))
-    notes = tempfile.NamedTemporaryFile("w", suffix=".md", prefix="release-notes-", delete=False)
-    with notes:
-        notes.write(text)
-    try:
-        made = sh(["gh", "release", "create", tag, "--title", tag, "--notes-file", notes.name, "--target", target], cwd=top)
-    finally:
-        os.remove(notes.name)
+    made = sh_text(["gh", "release", "create", tag, "--title", tag, "--target", target], text, "--notes-file", top)
     if made.returncode:
         fail(state, "gh release create %s failed after the version was pushed; run merge.py again: %s" % (
             tag, (made.stderr or made.stdout).strip()[-200:]))

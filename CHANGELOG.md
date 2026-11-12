@@ -1,5 +1,537 @@
 # Changelog
 
+## v0.27.45 - 2026-11-12
+
+- Skip absolute folders outside the repo in a lane's reach analysis
+- Guard lanes.walk against any path outside the repo, and test .. escapes
+- Declare skills/ for the lanes-abs-path toy, record the review
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+- pr: record issue states and the lane's results
+- Merge origin/main into loop/lanes-abs-path
+- Re-render the Tests tables after merging main
+- lanes-abs-path: normalise Windows backslashes in the .. checks (found running the goal's own test on Windows)
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+- Regression: the .. row names the Windows backslash case
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.44 - 2026-11-12
+
+- Merge origin/main into loop/spec-decisions
+- Wiki: update pages for spec-decisions
+- Merge origin/main into loop/spec-decisions
+- Merge origin/main into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge origin/main into loop/spec-decisions
+
+### How to verify
+
+1. Run `grep -c "^- 2026-11-12, " DECISIONS.md`.
+   Expect: it prints 10, and a "Waiting on owner un-review" section lists the locked requirements' proposed wording.
+2. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: the only line printed is `CHANGED Monitoring: Usage edited ...` (it needs the owner's review).
+
+## v0.27.43 - 2026-11-12
+
+- spec-decisions: reword the unreviewed requirements, SKILL.md and commands.md; log decisions
+- spec-decisions: proposed wording for locked requirements; regression rows
+- spec-decisions: refresh pages and the Tests render
+- spec-decisions: review fixes (HLT-6 rows, decision entries say proposed)
+- Merge origin/main into loop/spec-decisions
+- spec-decisions: refresh Home after the merge
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge spec-decisions wording so review-findings builds on it
+- Resolve Delivery.md merge conflict (keep both sides)
+- Resolve the v0.27.34 health review findings in the pages and SKILL.md
+- Re-render Tests tables; add review-findings rows
+- Render Tests for the review-findings rows
+- Review round 2: AUT-1/2 scope, GRD-6/8 owners, feature tag wording
+- DECISIONS: keep the spec-decisions entry count; prefix review-findings lines
+- Merge origin/main into review-findings
+- Merge origin/main (v0.27.41) into review-findings
+- Wiki: update pages for review-findings
+- Merge origin/main (v0.27.42) into review-findings
+- Automation: keep the native Windows note from win-posix-rest
+
+### How to verify
+
+1. Run `grep -c "health.yml" docs/wiki/Automation.md docs/wiki/Setup.md` and `wc -l skills/workflow-delivery/SKILL.md`.
+   Expect: Automation.md names `health.yml` once, only as the leftover file to `git rm`; Setup.md names it not at all in its setup entry; SKILL.md has under 150 lines.
+2. Open `docs/wiki/Automation.md` and read AUT-1, AUT-2 and the Usage list.
+   Expect: no health workflow, `--check` or Actions mail job; the regression workflow entry says a private repo gets `NOT WRITTEN`; AUT-2 says the pull request lane posts commit statuses.
+3. Open `DECISIONS.md`.
+   Expect: seven "Review findings (2026-11-12)" lines above the "Waiting on owner un-review" section, which still holds only the spec-decisions proposals.
+
+## v0.27.42 - 2026-11-12
+
+- Windows-safe process calls in health and setup, private.py under the size cap
+- private.py: name the plural helper
+- Lane: re-render the Tests tables
+- Leave private.py to private-size; drop the size row
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Wiki: update pages for win-posix-rest
+
+### How to verify
+
+1. Run `bash dev/toy/test-portable.sh` on native Windows Python and on Linux or macOS.
+   Expect: every line reads PASS and the last line reads ALL PASS, including the lines for the calls outside proctree, the health helpers and the 20480-byte cap.
+2. Run `python skills/workflow-delivery/scripts/private.py check` and `private.py where`.
+   Expect: both print their usual lines (a pattern count; WORKER or NOT A WORKER) with no traceback.
+
+## v0.27.41 - 2026-11-12
+
+- Pass long gh texts through --body-file and --notes-file
+- health file.py: name the issue-text helper issue_text, not body_of
+- Toy: the file.run mock takes the body argument
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/pr-body-file: main's goal.py body file kept; fit.pr_create dropped
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/pr-body-file
+- Merge remote-tracking branch 'origin/main' into loop/pr-body-file
+- pr: record issue states and the lane's results
+- Wiki: update pages for pr-body-file
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.40 - 2026-11-12
+
+- test-board.sh passes on main again: the test was wrong on all three cells (board-test-fix)
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Review Monitoring page: owner said "approve"
+- Wiki: update pages for board-test-fix
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Merge origin/main into loop/board-test-fix
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.39 - 2026-11-12
+
+- Size and skill-lines rules judge committed (LF) bytes and lines
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/size-rule-lf
+- Merge remote-tracking branch 'origin/main' into loop/size-rule-lf
+- pr: record issue states and the lane's results
+- Wiki: update pages for size-rule-lf
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.38 - 2026-11-12
+
+- Regression green: stale row, narrow lanes, CI leftovers, issue flood, test-tree once
+- Regression green: rows seen red, Tests rendered, the workflow's issue rules on the Regression page
+- Automation: the regression workflow's issue rules and cleanup run in Usage
+- Regression green: review fixes
+- Regression green: tests for the keeper, quoted text, rewrite and rate-limit warning
+- test-tree-once: wording the repo's old-paths grep allows
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Regression page: the keeper and the rate-limit stop
+- Toy headers main added: test-pods declares what it reads whole, test-settings-table drops an unbacked folder; Automation usage
+- workflow-docs SKILL.md back under 150 lines: the automation registry and restore moved word for word to references/commands.md
+- Documentation: where the automation registry and restore detail now live; goal touches synced
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Toy headers main added: test-adopt-fixtures and test-setup-adopt declare that they read every skill
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Merge origin/main into loop/regression-green-2 (rows unioned; docs hunks combined)
+- Review: actions.py under the 20 KB script cap; regression.yml regenerated after the merge
+- tree-once: a replayed skip (exit 77) writes TOY_SKIP_FILE, so repo-narrow-178 reads SKIPPED off Linux, not FAIL
+- Merge origin/main (v0.27.34) into loop/regression-green-2: shard filter kept ahead of the cleanup rules; actions.py 20,457 bytes
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Wiki: update pages for regression-green-2
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Fixes #100: test toy-no-leftovers, seen failing 2026-11-12, passing
+
+### How to verify
+
+1. After the merge, open the next scheduled regression run on GitHub (Actions, regression).
+   Expect: breaking-asks, lanes-headers, lanes-repo-narrow, one-way-to-run, prd-repo-green and toy-no-leftovers read
+   PASS, and no row reads FAIL that passed on the run before.
+2. Run `gh workflow run regression.yml -f cleanup=true`, wait for it to finish, and read its log.
+   Expect: a line `CLEANUP closed <n> issues`; repeat about two hours later until it reads 0.
+3. Run `gh issue list --label regression --state open`.
+   Expect: one issue per row that failed on the latest run, and no issue for a row that passed or was skipped.
+4. In a checkout, run `python3 skills/workflow-regression/scripts/lanes_cli.py affected skills/workflow-monitoring/scripts/batch.py | head -1`.
+   Expect: `AFFECTED n of m rows` with n well under half of m (it read 515 of 515 before).
+
+## v0.27.37 - 2026-11-12
+
+- Migration lessons: 12 dated findings, Delivery wording (DEL-10, DEL-11), a row that checks them
+- Verify by hand: migration-lessons
+- Merge remote-tracking branch 'origin/main' into loop/migration-lessons
+- fix: goal.py pr passes the PR body as a file, not a command line
+- Merge remote-tracking branch 'origin/main' into loop/migration-lessons
+- Docs: Delivery Tests table, Home names native Windows
+- Merge origin/main into loop/migration-lessons: my Delivery wording is DEL-12 and DEL-13 (goal-adopt took DEL-10 and DEL-11)
+
+### How to verify
+
+1. Open FINDINGS.md and read the last twelve entries.
+   Expect: twelve entries dated 2026-11-12, "migration, lesson 1" to "lesson 12", each ending in the issue, pull request or release that tracks it.
+2. Run `gh issue list --search "migration" --limit 3` or open issues 2871 to 2877.
+   Expect: seven new open issues, one per lesson that nothing tracked, each starting with "Found in the 2026-11-11/12 migration".
+
+## v0.27.36 - 2026-11-12
+
+- goal-adopt: goal.py adopt (build)
+- goal-adopt: toy test
+- goal-adopt: requirements DEL-10/11, usage, regression rows
+- goal-adopt: pages, entry point, verify by hand
+- goal-adopt: replace a stale never-started record, refuse a live one
+- Lane: re-render the Tests tables
+- goal-adopt: row seen red, pages
+- Merge remote-tracking branch 'origin/main' into loop/goal-adopt
+- Merge origin/main into loop/goal-adopt
+
+### How to verify
+
+1. In a second clone, check out a branch another machine pushed (`git switch loop/SLUG`), then run `goal.py adopt SLUG` there.
+   Expect: it prints `ADOPTED SLUG at qa from origin/loop/SLUG @ <sha>`, and `goal.py show SLUG` lists idea, plan and review as `done on another machine`.
+2. Run `goal.py pr SLUG` straight after.
+   Expect: it stops with `the flow hasn't finished: qa, ship`, not `no goal named`.
+3. Create a local branch `loop/nope` with a goal file and run `goal.py adopt nope`.
+   Expect: `REFUSED: loop/nope is not on origin ...` and no run record.
+
+## v0.27.35 - 2026-11-12
+
+- Trim private.py under the 20,480-byte cap (comments and docstrings only)
+- Merge remote-tracking branch 'origin/main' into loop/private-size-pc
+- Merge remote-tracking branch 'origin/main' into loop/private-size-pc
+- Wiki: update pages for private-size-pc
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.34 - 2026-11-12
+
+- Automation budgets: one 30 minute regression budget, sharded matrix, TRUNCATED digest, health waits for regression
+- Seen-red marks and regenerated tests tables for automation-budgets
+- Review fix: the suite-time fetch reads the per-shard artifacts and takes the slowest
+- Merge origin/main into loop/automation-budgets
+- Regenerate Tests after merge
+- Wiki: update pages for automation-budgets
+- Merge remote-tracking branch 'origin/main' into loop/automation-budgets
+- Merge remote-tracking branch 'origin/main' into loop/automation-budgets
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.33 - 2026-11-12
+
+- setup-machine-prd: SET-11..SET-15 and the golden adoption fixture
+- setup-machine-prd: render Tests, Home and README
+- setup-machine-prd: render Home and README Settings (config holds cadence as "30")
+- setup-machine-prd: verify by hand
+- setup-machine-prd: golden step 1 includes the qa lane on the adopter's platform
+- Merge origin/main into loop/setup-machine-prd
+- Merge remote-tracking branch 'origin/main' into loop/setup-machine-prd
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Open `docs/wiki/Setup.md` and read SET-11 to SET-15.
+   Expect: five requirements marked **Unreviewed**, each ending with the issue it comes from (#1408, #1409, #1404, #1410, #1411), and SET-1 to SET-10 unchanged.
+2. Open `dev/toy/adoption-golden.tsv`.
+   Expect: eight steps in order, prerequisites to the first check-in, each with a check, golden result and fix, and no path, account or private repo name.
+3. Run `bash dev/toy/test-adoption-golden.sh`.
+   Expect: four PASS lines and `ALL PASS`.
+
+## v0.27.32 - 2026-11-12
+
+- Fix prd-new row's stale PASS name; guard reap.py's POSIX-only calls on Windows
+- Lane: re-render the Tests tables
+- Merge origin/main (v0.27.31) into loop/regression-defects; take main's reap.py
+
+### How to verify
+
+1. Run `out=$(bash dev/toy/test-prd.sh 2>&1); echo "$out" | grep "PASS: an optional Milestone line goes under the title"`.
+   Expect: the PASS line prints, so the `prd-new` row's last check finds its line.
+2. Run `python3 dev/toy/reap.py` with no arguments on native Windows.
+   Expect: a usage message, not an AttributeError about SIGPIPE.
+
+## v0.27.31 - 2026-11-12
+
+- fix: lanes, slots and step timeouts on native Windows Python (#1396)
+- Seen red: port-base-windows, stop-takes-tree
+- proctree: declare the Windows handle types (review)
+- Lane: re-render the Tests tables
+- fix: tmp_for ends at a Windows drive root instead of looping forever
+- fix: dev/toy/reap.py is a no-op on Windows (no ps, uid or SIGPIPE) so toy tests keep their own status
+- fix: liveness probes stop sending Ctrl+C on Windows
+- fix: Windows lane results: CTRL_C_EVENT mislabel, killpg in the generated runner, toy rows that cannot run there
+- Windows-only skips: three rows exit 77 on native Windows instead of being known failures everywhere
+- Windows: toy tests that need the gh fake are skipped (exit 77) and the lane counts them SKIPPED through a row's pipe
+- Merge origin/main into loop/win-posix-calls
+- fix: tmp_for ends at a drive root again after the merge
+- fix: lane-exec's signal names do not need SIGHUP on Windows
+- Windows: the toy suite runs only tests marked '# windows: ok'; the rest are SKIPPED, Linux CI is their check
+- Windows: the lane runs a row with bash; shorten two row descriptions over 400 characters
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-calls
+- pr: record issue states and the lane's results
+- docs: Monitoring and Guardrails name the native Windows case
+- Revert "docs: Monitoring and Guardrails name the native Windows case"
+- Wiki: update pages for win-posix-calls
+- Fixes #1396: test stop-takes-tree, seen failing 2026-11-12, passing
+
+### How to verify
+
+1. On a Windows PC with native Python (no WSL), from the repo root run `cd skills/workflow-regression/scripts` and then
+   `python -c "import slots; print(slots.port_base())"`.
+   Expect: it prints a pair like `(3, 20000)`, not an AttributeError about getuid or O_NOFOLLOW.
+2. In the same folder run `python -c "import subprocess, sys, time, proctree; p = subprocess.Popen([sys.executable, '-c', 'import subprocess, sys, time; subprocess.Popen([sys.executable, \"-c\", \"import time; time.sleep(60)\"]); time.sleep(60)']); time.sleep(2); proctree.kill(p.pid)"`
+   and watch Task Manager (or `tasklist | findstr python`) while it runs.
+   Expect: the two sleeping python processes it started are gone right after it returns.
+
+## v0.27.30 - 2026-11-12
+
+- Add red time-ordered model regression
+- Select estimates by time-ordered backtest
+- Lane: re-render the Tests tables
+- Document time-ordered estimate selection
+- Keep Monitoring review header adjacent
+- Place estimate note with Monitoring tests
+- Lane: re-render the Tests tables
+- Record Monitoring criterion and red proof
+- Revert "Lane: re-render the Tests tables"
+- Refresh generated estimate regression docs
+- Merge origin/main (v0.27.15) into loop/estimate-timeorder: rows kept, Tests re-rendered
+- Exclude a goal from its own time-ordered past; add time_order_edges check and point mon4 at it
+- Restore board_model docstring caveats; re-render Monitoring test table
+- estimate-timeorder: commands.md says the time-ordered score picks the model; the board_report sample is a real run
+- estimate-timeorder: Monitoring Usage names the time-ordered estimate line (CHANGED until the owner re-reviews); the goal file quotes the sentence
+- Merge origin/main into loop/estimate-timeorder: rows kept, Tests re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+- Merge origin/main (v0.27.18) into estimate-timeorder
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+- Merge origin/main (v0.27.29) into estimate-timeorder
+- Remove merge markers left in the regression rows
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+
+### How to verify
+
+1. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root .` in a repo with finished goal runs.
+   Expect: the table labels the selection column `time score`, labels leave-one-out under `diagnostics: loo`, and names the chosen model.
+2. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root . --json`.
+   Expect: each candidate has a `time_ordered` score and a separate `leave_one_out` score; `chosen` names the time-ordered winner when at least ten goals are scorable.
+
+## v0.27.29 - 2026-11-12
+
+- Goal reset writes an empty report; goal state saved under a lock with merge of concurrent writers
+- Design, plan and Delivery usage for guards-null-report
+- guards-null-report: a removed key stays removed; plan review fixes
+- Delivery usage: say exactly what the lock covers
+- guards-null-report: a new record keeps its empty values (key-not-in-snapshot, not a shared sentinel); fresh case
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/guards-null-report
+- Delivery usage: a new record is written whole
+- Tests tables and seen red for the bind and mend row
+- Merge origin/main into loop/guards-null-report
+- Merge origin/main into loop/guards-null-report
+- Merge remote-tracking branch 'origin/main' into loop/guards-null-report
+- Merge remote-tracking branch 'origin/main' into loop/guards-null-report
+- Trim goal.py under the script size cap after merging main
+- Wiki: update pages for guards-null-report
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.28 - 2026-11-12
+
+- goal.py pr: a conflict from main moving in generated files is mended, a dead lane reruns free (bounded), finding text carries no absolute path
+- Docs: SKILL.md and commands.md name the mended conflict and the free dead-lane rerun
+- Merge origin/main (pending-none) into loop/goal-pr-try-budget: rows unioned, Tests re-rendered
+- guards.py: shorter docstrings so the file is back under its 20480-byte cap after the merge
+- Review fixes: mend refuses a both-sides or deleted row, re-renders Tests.md, only for the wiki page; free reruns only for the generated lane text; dirty tree is no try; plain() covers the lane part
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/goal-pr-try-budget
+- Lane: re-render the Tests tables
+- Merge origin/main (v0.27.18) into loop/goal-pr-try-budget: Delivery Tests re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+- Merge origin/main (v0.27.20) into loop/goal-pr-try-budget: rows unioned
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+- Merge remote-tracking branch 'origin/main' into loop/goal-pr-try-budget
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.27 - 2026-11-12
+
+- Only setup inserts the Settings and Automation blocks; a render refreshes them where their markers are
+- Page format: blank the template line too, so a README that opens with How to use passes DOC-5
+- Docs staleness: a commit that only refreshes the generated blocks stales no page
+- test-adopt: build the package only for SET-3, SET-4 and SET-5, which use it
+- test-docs-blocks and four rows for the render-readme-guard done lines
+- Mark adopt-set-1 and adopt-set-2 seen red; drop their known entries; Tests, Documentation and Setup usage
+- Guard the blocks rows on DOC-15, so they list in the Documentation Tests table
+- Point adopt-set-3..5 known entries at package-cap-3; say why SET-1/2 skip the package
+- Review: refresh a PRD Home's leftover blocks, render.py usage exit, real() early return, safer no-insert test
+- Documentation: render usage names the Home rule
+- counting.py: the no-prompt guard, since real() now runs git
+- Documentation: check skips block-only commits
+- size-140: move docs.py's live() unchanged into counting.py (docs.py 87% of the cap); drop its known entry; record the added done line
+- Merge origin/main (v0.27.22) into loop/render-readme-guard: Tests re-rendered; render.py's cadence() moved unchanged into counting.py to keep render.py under the size limit
+- Merge origin/main (v0.27.24) into loop/render-readme-guard: both sides' new rows kept; Tests re-rendered
+- pr: record issue states and the lane's results
+- Merge remote-tracking branch 'origin/main' into loop/render-readme-guard
+- Lane: re-render the Tests tables
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.26 - 2026-11-12
+
+- Statuses: a private repo's pr lane posts its real result under every required check
+- Local schedule: one launch agent, a registry and a tick; no health workflow; narrow PR workflow
+- Local schedule: rows, Usage and the wiki pages
+- Local schedule: package disclosure, setup registry check, sturdier toy assertions, seen-red dates
+- Docs: re-render Tests, Setup note
+- Local schedule: reject a base that is not a branch name, create the agent's log dir at install
+- Row ls-nothing-in-repo: require the install and tick to have run
+- Toy test: the second 'dr' repo gets its own name (two sections shared one folder, so the full run failed)
+- Lane: re-render the Tests tables
+- Health: build the temp-folder prefix without a literal path (the lane's reach analysis walked every file under it, 284k, cutting planning at the budget)
+- Merge origin/main into loop/local-schedule (prep_budget_minutes stays 25)
+- After the merge: move workflow() and its template from tiers.py to lanes_cli.py, trim merge.py comments, so every script is under 20480 bytes
+- Lane: re-render the Tests tables
+- README: the settings reference regenerated from settings.py (a row rewrote it during the lane)
+- Merge origin/main (v0.27.22) into loop/local-schedule
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/local-schedule; rows placed mid-file
+- Merge remote-tracking branch 'origin/main' into loop/local-schedule
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/local-schedule
+- Wiki: update pages for local-schedule
+- Wiki: update pages for local-schedule
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.25 - 2026-11-12
+
+- Fold portlock.py into one module per skill; automation in the listing; lane headers (package-cap-3)
+- Portlock fallback test, package row, defect-categories copy includes .github, skill-size known entry removed (package-cap-3)
+- portlock test declares skills/ (package-cap-3)
+- Wiki: the lock fallback lives in the scripts, not portlock.py (package-cap-3)
+- Usage notes: the lock fallback, and where audit and automation detail live (package-cap-3)
+- Merge remote-tracking branch 'origin/main' into loop/package-cap-3
+- test-runbook declares the docs scripts it runs, not the folder (package-cap-3)
+- pr: record issue states and the lane's results
+- Merge origin/main (lane-died) into loop/package-cap-3: keep lane-died's identity checks and the folded lock shim
+- pr: record issue states and the lane's results
+- Delivery page: a stop never signals a reused pid, every signal is logged, LANE_DIED names the signal (package-cap-3)
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.24 - 2026-11-12
+
+- Never signal a pid that only reuses a stored one; audit every signal; name the signal that ended a lane
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/lane-died
+- Merge origin/main into loop/lane-died
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.23 - 2026-11-12
+
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Automation: routines run where they can run fully
+- Automation: review fixes to AUT-1, 2, 3, 6 and Non-goals
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+- Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.22 - 2026-11-12
+
+- Runbook section (DOC-16): format check, routine registry, Health and Regression runbooks, toy tests
+- runbook test: a Reviewed page's Runbook is not out of order either
+- Re-render the Tests tables for the runbook rows
+- Merge origin/main into loop/routine-runbooks; criteria_max 16 for DOC-15 and DOC-16
+- Re-render Home, README and START after the merge
+- Runbooks corrected against the workflows; runbook check hardened (repeats, duplicates, registry, render guard); tests extended
+- Runbook check: Serves ids must exist, a misordered page is not also 'no runbook', registry read as UTF-8, template and runbook wording corrected; tests added
+- Documentation DOC-16: Serves ids must exist, each routine and field once
+- Runbook check: Serves reads continuation lines; no false Serves finding on a misordered page
+- Merge origin/main (v0.27.18) into loop/routine-runbooks; Tests tables re-rendered
+- runbook test: compare against the copy's own check output (another page may be CHANGED for its owner)
+- Merge remote-tracking branch 'origin/main' into loop/routine-runbooks
+- Merge origin/main (v0.27.21) into loop/routine-runbooks; Tests tables re-rendered
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.21 - 2026-11-12
+
+- Capacity audit for setup-adopt-2 (no code change)
+- Move reply_hook and HOOKS from setup.py to agents.py (no behavior change)
+- Health: Adoption rules no-fit and agent-tools, and file --open-only
+- Setup: adoption never blocks, rolls back, shows health first and last
+- Setup tests and 19 regression rows (rows not yet seen failing)
+- Record the 19 setup rows as seen failing on v0.27.10
+- Docs: Setup Usage and Tests, setup SKILL.md, Health Usage
+- Merge origin/main (v0.27.16) into loop/setup-adopt-2: rows unioned, Tests re-rendered, read-only home kept in the new setup
+- Setup: a failed git call mid-adoption rolls back (SystemExit was uncaught in the transaction)
+- Docs: Setup Usage says a failed git call mid-adoption rolls back too
+- Setup: journal dropped at the commit and ignored when HEAD moved, wiki_dir must be inside the repo, rollback checks index and branch restores, whole-line worktree branch match, CRLF kept once, post-commit SystemExit is a NOTE; drop dead on_branch and unused imports
+- Docs: SETUP_WIKI_DIR in Setup Usage and the setup SKILL.md
+- Setup: rollback kills and reaps a tool child still running before it restores (a stray docs.py wrote .loop/docs.tsv after a signal rollback)
+- Merge origin/main (v0.27.17) into loop/setup-adopt-2: update.py keeps both the contextlib import and portlock, Setup page notes the rollback stops a running tool child
+- Docs: Setup Usage says a rollback stops and reaps a running tool child
+- Docs: re-render the Settings table (cadence is the string 30 in the config)
+- Setup: rollback still restores when pkill or waitpid is missing (Windows); the setup toy declares sync.py and update.py
+- Setup toy: a rollback with no pkill still restores (negative control: fails on the unguarded call)
+- Docs: Setup Usage and the setup SKILL.md name the post-commit NOTE codes, exit 1 and 130, and that a missing pkill never stops the restore
+- pr: record issue states and the lane's results
+- Merge origin/main (v0.27.18) into loop/setup-adopt-2: Tests tables re-rendered, wiki-release waiver dropped
+- Merge origin/main (v0.27.19) into loop/setup-adopt-2
+- Home: the Setup row says adoption never blocks and health is judged before and after
+- Merge origin/main (v0.27.20) into loop/setup-adopt-2: Home keeps main's Automation row and our Setup row
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.20 - 2026-11-12
 
 - Fix two small doc defects: count the wiki pages, and put the README's commands in Usage

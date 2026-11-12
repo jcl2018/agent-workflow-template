@@ -16,7 +16,6 @@ them without the lock.
 Exit codes, shared with lane.py: 0 pass, 1 fail, 2 lane-wait timeout, 3 no lane, 4 a hand run's slot wait timed out,
 5 LANE_STALE, 124 time limit. Messages: workflow-regression/references/commands.md.
 """
-import portlock as fcntl
 import glob
 import json
 import os
@@ -24,6 +23,30 @@ import re
 import subprocess
 import sys
 import time
+try:
+    import fcntl
+except ImportError:  # native Windows: msvcrt byte-range locks under flock's names
+    import msvcrt
+    import types
+
+    def _flock(handle, op):
+        fd = handle if isinstance(handle, int) else handle.fileno()
+        here = os.lseek(fd, 0, 1)
+        os.lseek(fd, 0x7FFFFFFF, 0)  # one byte far past any content: readers never block
+        try:
+            while True:
+                try:
+                    return msvcrt.locking(fd, msvcrt.LK_UNLCK if op & 8 else msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    if op & 8:
+                        return  # unlock of a lock not held: a no-op, as with flock
+                    if op & 4:
+                        raise BlockingIOError("locked")
+                    time.sleep(0.05)
+        finally:
+            os.lseek(fd, here, 0)
+
+    fcntl = types.SimpleNamespace(LOCK_SH=1, LOCK_EX=2, LOCK_NB=4, LOCK_UN=8, flock=_flock)
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -87,13 +110,15 @@ def lanes_dir():
 def check(pool):
     """Create the pool 0700; refuse one that isn't yours or that others can write (OSError names why)."""
     os.makedirs(pool, mode=0o700, exist_ok=True)
+    if os.name == "nt":  # no uid or group bits: the pool sits in the user's own profile, private by its ACL
+        return
     info = os.stat(pool)
-    if info.st_uid != os.getuid() or info.st_mode & 0o022:
+    if info.st_uid != getattr(os, "getuid", lambda: 0)() or info.st_mode & 0o022:
         raise OSError("not owned by you, or writable by group or others")
 
 
 def _open(path, flags=0):
-    return os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | flags, 0o600)
+    return os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | flags, 0o600)
 
 
 def _locked(fd):

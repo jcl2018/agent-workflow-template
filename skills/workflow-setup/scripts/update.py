@@ -8,12 +8,13 @@ usage: update.py [--check | --apply | --propose [--file-issue]] [--take FILE ...
 (a skill file edited here). Exit 0 up to date, 1 behind, 2 refused. --apply writes the skills folder (hashes checked
 first, atomic writes, workflow-package.json last; a LOCAL FIX is kept unless --take names it), then the repo half
 (sync.py) on branch workflow-update-vX. --propose sends each LOCAL FIX back as an issue (sync.py). The source is
---from (a package or a source tree) or the template's latest GitHub release archive; the template is the installed
-stamp's repo, else template_repo (both set and different: refused unless --template). It never downgrades.
+--from (a package or a source tree) or the template's latest GitHub release archive; the template is the stamp's
+repo, else template_repo (both set and different: refused unless --template). It never downgrades.
 """
 import argparse
-import portlock as fcntl
+import contextlib
 import hashlib
+import io
 import json
 import os
 import re
@@ -22,6 +23,30 @@ import sys
 import tempfile
 import time
 import zipfile
+try:
+    import fcntl
+except ImportError:  # native Windows: msvcrt byte-range locks under flock's names
+    import msvcrt
+    import types
+
+    def _flock(handle, op):
+        fd = handle if isinstance(handle, int) else handle.fileno()
+        here = os.lseek(fd, 0, 1)
+        os.lseek(fd, 0x7FFFFFFF, 0)  # one byte far past any content: readers never block
+        try:
+            while True:
+                try:
+                    return msvcrt.locking(fd, msvcrt.LK_UNLCK if op & 8 else msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    if op & 8:
+                        return  # unlock of a lock not held: a no-op, as with flock
+                    if op & 4:
+                        raise BlockingIOError("locked")
+                    time.sleep(0.05)
+        finally:
+            os.lseek(fd, here, 0)
+
+    fcntl = types.SimpleNamespace(LOCK_SH=1, LOCK_EX=2, LOCK_NB=4, LOCK_UN=8, flock=_flock)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -33,6 +58,82 @@ CAP = 20 * 1024 * 1024
 def version_key(text):
     """The first three integers of a version; empty or unreadable is older than any version."""
     return tuple(int(x) for x in re.findall(r"\d+", str(text or ""))[:3])
+
+
+def strings(value, skip=()):
+    if isinstance(value, str):
+        yield value
+    for item in (value.items() if isinstance(value, dict) else enumerate(value) if isinstance(value, list) else ()):
+        if item[0] not in skip:
+            yield from strings(item[1])
+
+
+def local_values():
+    """The owner's local strings that look like a path or an address (/, ~ or @; 8+ characters) and are not a template default."""
+    import settings
+    found = set(strings([settings.load(settings.private_path()), settings.load(settings.health_path())], ("_help",)))
+    try:
+        found |= set(open(os.path.expanduser("~/.workflow-loop/repos")).read().split())
+    except OSError:
+        pass
+    default = set(strings([row[2] for row in settings.TABLE]))
+    return {v for v in found if len(v) >= 8 and any(c in v for c in "/~@") and v not in default}
+
+
+def guard_staged(repo, paths):
+    """SET-8: what the staged adoption adds that is a local setting or private value, as file:line or key (never the value)."""
+    import settings
+    private = {row[0] for row in settings.TABLE if row[1] == settings.PRIVATE}
+    home, mail, local = os.path.expanduser("~"), subprocess.run(["git", "-C", repo, "config", "user.email"], capture_output=True, text=True).stdout.strip(), local_values()
+    diff = subprocess.run(["git", "-C", repo, "diff", "--cached", "-U0", "--no-color", "--"] + list(paths), capture_output=True, text=True).stdout
+    out, path, at = [], "", 0
+    for line in diff.splitlines():
+        if line.startswith("+++ "):
+            path = line[6:] if line.startswith("+++ b/") else ""
+        elif line.startswith("@@"):
+            at = int(re.search(r"\+(\d+)", line).group(1)) - 1
+        elif line.startswith("+"):
+            at += 1
+            key = re.match(r'  "(\w+)":', line[1:]) if path == ".loop/config.json" else None
+            if key and key.group(1) in private:
+                out.append("%s:%d holds the local setting %s" % (path, at, key.group(1)))
+            elif (len(home) > 1 and home in line) or (mail and mail in line) or any(v in line for v in local):
+                out.append("%s:%d holds a private value" % (path, at))
+    return out
+
+
+def commit(repo, message, files):
+    """(exit code, output) of git commit for exactly these files, run in its own process group so a signal reaches git and its hooks."""
+    proc = subprocess.Popen(["git", "-C", repo, "commit", "--allow-empty", "-m", message, "--"] + files, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, start_new_session=True)
+    try:
+        out = proc.communicate()[0]
+    except BaseException:
+        kill = ["taskkill", "/T", "/F", "/PID", str(proc.pid)]
+        subprocess.run(kill, capture_output=True) if os.name == "nt" else os.killpg(proc.pid, 9)  # posix-only branch
+        proc.wait()
+        raise
+    return proc.returncode, out
+
+
+def mask(line):
+    import settings
+    return "[line withheld: holds a private value]" if settings.private_value(line) else line
+
+
+def step(name, fix, run, failed):
+    """A post-commit step: its output is read as well as its exit status; a failure is a NOTE and a gap, never a refusal."""
+    out = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out):
+            code = run()
+    except (Exception, SystemExit) as error:
+        out.write("FAILED %s\n" % type(error).__name__)
+        code = 1
+    sys.stdout.write(out.getvalue())
+    if code or re.search(r"^(FAILED|REFUSED|NOTE: .*(refus|failed|writes no))", out.getvalue(), re.M):
+        failed.append(name)
+        print("NOTE: %s failed; the adoption is committed on the branch. Fix: %s (SETUP_STEP)" % (name, fix))
 
 
 def refuse(why, code, fix):
@@ -51,7 +152,7 @@ def safe(name):
 def from_tree(names, get):
     """A manifest built from a source tree (skills/, VERSION, CHANGELOG.md), keyed as dev/package.py keys a package."""
     firsts = {n.split("/")[0] for n in names}
-    top = "" if "skills" in firsts or len(firsts) != 1 else firsts.pop() + "/"  # a GitHub archive nests one folder
+    top = "" if "skills" in firsts or len(firsts) != 1 else firsts.pop() + "/"
     files, data = {}, {}
     for name in names:
         rel = name[len(top):]
@@ -167,7 +268,7 @@ def check(skills, manifest, old, fixes, ours):
     """Print the preview; return (changed, dropped)."""
     files = manifest["files"]
     changed = sorted(r for r, h in files.items() if (old.get("files") or {}).get(r) != h or not os.path.isfile(os.path.join(skills, r)))
-    dropped = sorted(r for r in (old.get("files") or {}) if r not in files and r not in fixes)  # a dropped LOCAL FIX is kept
+    dropped = sorted(r for r in (old.get("files") or {}) if r not in files and r not in fixes)
     notes = newer(manifest.get("changelog", ""), ours)
     if notes:
         print("WHAT'S NEW:\n" + notes)
@@ -200,7 +301,7 @@ def apply_skills(skills, manifest, read, old, fixes, take, where):
     for rel, data in blobs.items():
         if rel in keep:
             if sha(data) == sha(open(os.path.join(skills, rel), "rb").read()):
-                keep.remove(rel)  # the local file already matches the new version: not a fix any more, stamp it
+                keep.remove(rel)
                 kept.pop(rel, None)
                 continue
             upstream = (old.get("files") or {}).get(rel) != files[rel]

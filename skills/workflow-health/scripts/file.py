@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 import report as G
 import issues as IS
@@ -64,11 +65,19 @@ def body_of(item):
         item.get("evidence") or item["subject"])
 
 
-def run(args, root):
+def run(args, root, body=None):
+    """gh; a long text (body=) goes in a temp file as --body-file, never on the command line (Windows caps it)."""
+    if body is not None:
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8", newline="\n") as f:
+            f.write(body)
+        args = args + ["--body-file", f.name]
     try:
         return subprocess.run(["gh"] + args, cwd=root, capture_output=True, text=True, timeout=120)
     except (OSError, subprocess.SubprocessError) as error:
         return subprocess.CompletedProcess(args, 127, "", str(error))
+    finally:
+        if body is not None:
+            os.remove(f.name)
 
 
 def saves(root, here, rows):
@@ -177,13 +186,33 @@ def words(act):
 
 def args_of(act):
     n = act.get("number")
-    return {"open": ["issue", "create", "--title", act["title"], "--body", act["body"], "--label", "health", "--label", act["tag"]]
+    return {"open": ["issue", "create", "--title", act["title"], "--label", "health", "--label", act["tag"]]
             + (["--label", act["feature"]] if act.get("feature") else []),
-            "update": ["issue", "edit", n, "--body", act["body"], "--add-label", act["tag"]]
+            "update": ["issue", "edit", n, "--add-label", act["tag"]]
             + (["--add-label", act["feature"]] if act.get("feature") else [])
             + [part for t in act.get("stale") or [] for part in ("--remove-label", t)],
             "reopen": ["issue", "reopen", n],
             "close": ["issue", "close", n, "--comment", "No longer found by health.py file."]}[act["kind"]]
+
+
+def issue_text(act):
+    """The long text of an open or update action: run() passes it as --body-file."""
+    return act["body"] if act["kind"] in ("open", "update") else None
+
+
+def only_open(acts):
+    """--open-only: just the plan's open and link actions, so filing never closes, reopens or updates an issue. An issue that would
+    hold the home folder or an email is skipped with a NOTE."""
+    home, keep = os.path.expanduser("~"), []
+    for act in acts:
+        text = act["title"] + act["body"]
+        if act["kind"] not in ("open", "link"):
+            continue
+        if (len(home) > 1 and home in text) or re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", text):
+            print("NOTE: skipped %s (holds a private value)" % act["key"])
+            continue
+        keep.append(act)
+    return keep
 
 
 def preview(acts):
@@ -224,15 +253,15 @@ def apply(acts, root, groups):
             if linked(root, act["number"], act):
                 print("SAME #%s %s (already linked)" % (act["number"], act["key"]))
                 continue
-            done = run(["issue", "comment", act["number"], "--body", "%s\nHealth finds this here: %s" % (
-                LINK % (act["key"], act["evidence"]), act["body"].split("\n\n")[1])], root)
+            done = run(["issue", "comment", act["number"]], root, "%s\nHealth finds this here: %s" % (
+                LINK % (act["key"], act["evidence"]), act["body"].split("\n\n")[1]))
         else:
-            done = run(args_of(act), root)
+            done = run(args_of(act), root, issue_text(act))
             if done.returncode not in (0, 127) and "label" in done.stderr.lower() and act.get("feature") and act["kind"] in ("open", "update"):
                 # a refused label never loses the report (a timeout, 127, is never retried: the issue may exist)
                 print("FAILED label %s: %s" % (act["feature"], done.stderr.strip()[:160]))
                 act = dict(act, feature="")
-                done = run(args_of(act), root)
+                done = run(args_of(act), root, issue_text(act))
             if act["kind"] == "reopen" and act.get("unclose") and not done.returncode:  # the owner's close no longer holds
                 run(["issue", "edit", act["number"], "--remove-label", "health:closed"], root)
         print(("FAILED %s: %s" % (words(act), done.stderr.strip()[:160])) if done.returncode else "DONE " + words(act))

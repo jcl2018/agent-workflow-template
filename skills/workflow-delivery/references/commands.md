@@ -53,7 +53,8 @@ show SLUG
 A background agent runs `flow` for the idea and plan steps, builds, fills in `## Verify by hand`, then runs the review, qa and
 ship steps, and ends with `pr` and the release step. `flow` starts a step detached and
 prints `RUNNING` until it ends, then a `NEXT` line naming `record`. `record` refuses a reply that `flow` didn't produce.
-A failed step costs a try, and so does a background run's reply with no `STEP:` line (the run may have crashed). After 3 it
+A failed step costs a try, and so does a background run's reply with no `STEP:` line (the run may have crashed); a lane that
+ended with no exit status (LANE_DIED, killed from outside) does not, up to 3 per goal, and `resume` gives them back. After 3 it
 files a finding in `.loop/findings.md` and stops with exit code 3. A refusal that changes nothing costs no try: it prints
 `REFUSED (no try used): ... Fix: ... (CODE)` and `NEXT:`, exits 2, keeps the step's reply and run marker, and the goal keeps
 running. That covers a session reply with no `STEP:` line, a step refused for its depth (no `DEPTH:` line, condensed under
@@ -488,7 +489,7 @@ tokens, no cache reads); report a step it didn't run with `goal.py step <slug> <
 
 ### The regression lane
 
-**The regression lane.** The full suite runs once per goal, in qa. Before your qa skill starts, `flow.py qa` runs the
+**The regression lane.** The loop runs only the affected rows, once per goal, in qa, within `test_budget_minutes`; the full suite runs on the schedule. Before your qa skill starts, `flow.py qa` runs the
 lane, `python3 <workflow-regression>/scripts/regression.py run land --reuse`, in the background (`RUNNING` until it
 ends). It runs through your flow file's `test_record` prefix when you set one (a receipt recorder, so your ship skill's
 own check of recorded test runs can reuse it), and tests the committed HEAD only: an unclean tree fails it (`LANE_DIRTY`).

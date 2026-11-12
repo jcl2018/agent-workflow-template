@@ -27,6 +27,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 
 import actions
@@ -78,8 +79,17 @@ def write(root, results, date, sha):
         handle.write(HEADER + "".join("\t".join(ran[key][:4 + bool(ran[key][4])]) + "\n" for key in sorted(ran)))
 
 
-def gh(*args):
-    return subprocess.run(["gh"] + list(args), capture_output=True, text=True)
+def gh(*args, body=None):
+    """gh; a long text (body=) goes in a temp file as --body-file, never on the command line (Windows caps it)."""
+    if body is not None:
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8", newline="\n") as f:
+            f.write(body)
+        args += ("--body-file", f.name)
+    try:
+        return subprocess.run(["gh"] + list(args), capture_output=True, text=True)
+    finally:
+        if body is not None:
+            os.remove(f.name)
 
 
 def sync_issues(results, live, day):
@@ -105,7 +115,7 @@ def sync_issues(results, live, day):
             if not live:
                 print("WOULD open or update the issue for " + item["id"])
             elif not hit:
-                gh("issue", "create", "--title", "Regression: " + item["id"], *("--label=" + n for n in LABELS), "--body", body)
+                gh("issue", "create", "--title", "Regression: " + item["id"], *("--label=" + n for n in LABELS), body=body)
                 print("OPENED issue for " + item["id"])
             else:
                 if "defect" not in [x.get("name") for x in hit.get("labels") or []]:
@@ -115,7 +125,7 @@ def sync_issues(results, live, day):
                     print("REOPENED issue %s" % number)
                 said = [note.get("body", "") for note in hit.get("comments") or []]
                 if line not in said:
-                    gh("issue", "comment", number, "--body", line)
+                    gh("issue", "comment", number, body=line)
                     print("UPDATED issue %s" % number)
         elif item["state"] == "PASS" and not live:
             print("WOULD close any open issue for " + item["id"])
@@ -171,7 +181,11 @@ def execute(root, picked, todo, est, limit, timeout, expected, reuse):
             continue
         cap = timeout if remaining is None else min(timeout, remaining)
         began = time.time()
-        code, text, pid, signal = lanes.run_row(by[key]["command"], root, actions.row_env(), cap)
+        skip = os.path.join(tempfile.gettempdir(), "loop-skip-%d-%s" % (os.getpid(), key))  # a test that cannot run here writes it
+        code, text, pid, signal = lanes.run_row(by[key]["command"], root, dict(actions.row_env(), TOY_SKIP_FILE=skip), cap)
+        if code and os.path.exists(skip):  # a pipe in the row hides the test's own exit 77
+            os.remove(skip)
+            code = SKIP_CODE
         if code == 124 and cap < timeout:  # stopped by the budget, not by its own limit: it didn't fail, it wasn't finished
             left.append(key)
             continue

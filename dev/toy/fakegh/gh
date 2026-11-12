@@ -1,10 +1,13 @@
 #!/bin/bash
 # Test double for gh. Records calls under $FAKE_GH_DIR. Dev only; never packaged.
 d=${FAKE_GH_DIR:?}; mkdir -p "$d"
+args=(); while [ $# -gt 0 ]; do if [ "$1" = --body-file ]; then args+=(--body "$(cat "$2")"); shift 2; else args+=("$1"); shift; fi; done; set -- "${args[@]}"  # a text in a file reads as --body TEXT
 echo "$*" >> "$d/calls.log"
 here=$(cd "$(dirname "$0")" && pwd)
 case "$1 $2" in
   "api "*) exec python3 "$here/fake.py" "$@";;
+  "repo view") exec python3 "$here/fake.py" "$@";;
+  "auth status") [ -n "${FAKE_GH_OFFLINE:-}" ] && { echo "not logged in" >&2; exit 1; }; echo "Logged in";;
   "label create"|"label list") exec python3 "$here/fake.py" "$@";;
   "issue list"|"issue create") [[ "$*" == *"--label health"* || "$*" == *"--label feature:"* || "$*" == *"--milestone"* || "$*" == *"--repo "* || "$*" == *"number,title,milestone"* ]] && exec python3 "$here/fake.py" "$@";;
   "issue view") [ -f "$d/issues.json" ] && exec python3 "$here/fake.py" "$@";;
@@ -17,7 +20,14 @@ case "$1 $2" in
   "pr view") n=${3##*/}; v="FAKE_GH_PR_STATE_$n"; [ -n "${!v:-}" ] && { echo "{\"state\": \"${!v}\"}"; exit 0; }
      [ -n "${FAKE_GH_PR_STATE:-}" ] && { echo "{\"state\": \"$FAKE_GH_PR_STATE\"${FAKE_GH_PR_HEAD:+, \"headRefOid\": \"$FAKE_GH_PR_HEAD\"}}"; exit 0; }
      echo "no pull requests found" >&2; exit 1;;
-  "pr merge") [ -n "${FAKE_GH_MERGE_FAIL:-}" ] && { echo "merge refused" >&2; exit 1; }; 
+  "pr merge") [ -n "${FAKE_GH_MERGE_FAIL:-}" ] && { echo "merge refused" >&2; exit 1; }
+     if [ -n "${FAKE_GH_REQUIRE:-}" ]; then  # a branch rule: every required context needs a success status on the PR head
+       for c in ${FAKE_GH_REQUIRE//,/ }; do
+         grep -q "\"sha\": \"${FAKE_GH_PR_HEAD:-}\", \"context\": \"$c\", \"state\": \"success\"" "$d/statuses.log" 2>/dev/null \
+           || { echo "required status check $c is expected" >&2; exit 1; }
+       done
+     fi
+
      if [ -n "${FAKE_GH_MERGE_BRANCH:-}" ]; then  # really merge the branch into origin/main
        t=$(mktemp -d); git clone -q "$FAKE_GH_ORIGIN" "$t" && ( cd "$t" && git config user.email t@example.test && git config user.name Toy \
          && git merge -q --no-edit "origin/$FAKE_GH_MERGE_BRANCH" && git push -q origin HEAD:main ); rm -rf "$t"

@@ -1,7 +1,7 @@
 #!/bin/bash
 # reads: skills/ skills/workflow-health/scripts/ skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/actions.py dev/toy/fakegh/ .loop/docs.tsv skills/workflow-setup/scripts/seed.py
 # Test the round's mail, feature grouping and round cost with a stub gh, a local Cloudflare stub and a local SMTP stub.
-# usage: test-automation-email.sh GROUP   (mail secrets retry mailtest digest rounds file regression upgrade, or all)
+# usage: test-automation-email.sh GROUP   (mail secrets retry mailtest digest rounds file regression, or all)
 # Exits 0 only when every case in the group passes, so each regression row runs one group.
 set -u
 group=${1:-all}
@@ -23,6 +23,7 @@ cat > "$G/gh" <<'PYGH'
 """A stub gh: logs calls, serves issues, comments, milestones and runs from $STUB, and applies writes to them."""
 import json, os, re, sys
 d, a = os.environ["STUB"], sys.argv[1:]
+if "--body-file" in a: i = a.index("--body-file"); a[i:i + 2] = ["--body", open(a[i + 1]).read()]  # a text in a file reads as --body TEXT
 open(os.path.join(d, "calls.log"), "a").write(" ".join(a) + "\n")
 def load(name, default):
     try:
@@ -428,10 +429,6 @@ if want mailtest; then
   [ $rc = 1 ] && grep -q "(MAIL_SECRETS)" <<<"$out" && ok "a Mail test with no secret at all fails instead of passing green" || bad "test none"
   cfg '{"digest_mail": "off"}'; out=$(cf_env $mail test); rc=$?; cfg '{"digest_mail": "cloudflare"}'
   [ $rc = 1 ] && grep -q "(MAIL_OFF)" <<<"$out" && [ "$(cfreq)" = 0 ] && ok "a Mail test with digest_mail off fails and says why" || bad "test off"
-  W=$here/.github/workflows/mail-test.yml
-  grep -q "^  workflow_dispatch:" "$W" && ! grep -q "schedule:" "$W" && ! grep -q "issues: write" "$W" && grep -q "contents: read" "$W" \
-    && diff -q <(cd "$S" && python3 -B -c "import workflows; print(workflows.mail_test(), end='')") "$W" >/dev/null \
-    && ok "mail-test.yml is dispatch-only, read-only, and equals what automation.py writes" || bad "mail-test workflow"
 fi
 
 if want digest; then
@@ -513,8 +510,8 @@ now = datetime.datetime(2026, 11, 10, 13, 0, tzinfo=datetime.timezone.utc)
 c = rounds.round_cost('$1', '$2' or None, now); print(rounds.line(c)); print(c.get('seconds'), c.get('minutes'), c.get('over'), c.get('first'))"; }
   out=$(rc 300 250)
   head -1 <<<"$out" | grep -q "^OVER 45 min: slow a routine down or turn it off. round 51 min of job time (regression 40 min, health 10 min so far" \
-    && tail -1 <<<"$out" | grep -q "^3040 54 True False$" && ok "job time sums the round's runs and a round over 45 minutes is flagged" || bad "sum and flag"
-  head -1 <<<"$out" | grep -q "54 Actions minutes of runs started since the last round" && ok "the spend counts every run started since the last round, minutes rounded up per job" || bad "spend"
+    && tail -1 <<<"$out" | grep -q "^3040 43 True False$" && ok "job time sums the round's runs and a round over 45 minutes is flagged" || bad "sum and flag"
+  head -1 <<<"$out" | grep -q "43 Actions minutes of runs started since the last round" && ok "the spend counts every run started since the last round, minutes rounded up per job" || bad "spend"
   out=$(rc 300 "")
   tail -1 <<<"$out" | grep -q " 52 True True$" && grep -q "(first round counted)" <<<"$out" && ok "with no previous round the spend is the round's own two runs" || bad "first round"
   python3 - "$G/runs.json" <<'PY'
@@ -632,11 +629,11 @@ PY
   : > "$FAKE_GH_DIR/issues.json"; (cd "$S" && PATH="$F:$PATH" GH_TOKEN=invalid GH_HOST=localhost.invalid python3 -B -c "
 import file, subprocess
 real, seen = file.run, []
-def run(args, root):
+def run(args, root, body=None):
     seen.append(args)
     if args[:2] == ['issue', 'create']:
         return subprocess.CompletedProcess(args, 127, '', str(subprocess.TimeoutExpired(['gh'] + args, 120)) + ' label')
-    return real(args, root)
+    return real(args, root, body)
 file.run = run
 row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/rounds.py', rule='limit', detail='big', fix='')
 acts = file.plan([row], {}, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
@@ -677,6 +674,8 @@ PY
 [ -n "${STUB_ISSUE_FAIL:-}" ] && [ "$1 $2" = "issue create" ] && { echo "$*" >> "$STUB/calls.log"; echo "HTTP 502" >&2; exit 1; }
 [ -n "${STUB_LABEL_FAIL:-}" ] && [ "$1 $2" = "label create" ] && [[ "$3" == feature:* ]] && { echo "$*" >> "$STUB/calls.log"; echo "could not create label" >&2; exit 1; }
 [ -n "${STUB_ISSUE_LABEL_FAIL:-}" ] && [ "$1 $2" = "issue create" ] && [[ "$*" == *"--label feature:"* ]] && { echo "$*" >> "$STUB/calls.log"; echo "could not add label" >&2; exit 1; }
+[ -n "${STUB_WARN:-}" ] && [ "$1 $2" = "issue comment" ] && { echo "$*" >> "$STUB/calls.log"; echo "warning: approaching secondary rate limit" >&2; exit 0; }
+[ -n "${STUB_RATE:-}" ] && [ "$1 $2" = "issue close" ] && { echo "$*" >> "$STUB/calls.log"; echo "HTTP 403: API rate limit exceeded" >&2; exit 1; }
 exec "$STUB/gh.real" "$@"
 SH
   mv "$G/gh" "$G/gh.real"; mv "$G/ghwrap" "$G/gh"; chmod +x "$G/gh"
@@ -707,7 +706,62 @@ SH
   printf '[{"number": 41, "state": "OPEN", "body": "<!-- loop-regression red placed=Alpha -->", "labels": [{"name": "defect"}]}]\n' > "$G/regression.json"
   out=$(rows)
   grep -q "^issue edit 41 --add-label feature:Alpha" "$G/calls.log" && ok "a repeat run adds the feature label to an open issue that lacks it" || bad "backfill: $(cat "$G/calls.log")"
-  cfg '{}'; printf '[]\n' > "$G/regression.json"
+  cfg '{}'
+  # one open issue a row: the oldest is kept and commented on, newer open duplicates close naming it (issue flood)
+  printf '[{"number": 43, "state": "OPEN", "body": "<!-- loop-regression red placed= -->", "labels": [{"name": "defect"}]},
+ {"number": 41, "state": "OPEN", "body": "<!-- loop-regression red placed= -->", "labels": [{"name": "defect"}]},
+ {"number": 42, "state": "OPEN", "body": "<!-- loop-regression red placed= -->", "labels": [{"name": "defect"}]}]\n' > "$G/regression.json"
+  out=$(rows)
+  grep -q "^issue comment 41 " "$G/calls.log" && grep -q "^issue close 42 --comment Duplicate of #41" "$G/calls.log" \
+    && grep -q "^issue close 43 --comment Duplicate of #41" "$G/calls.log" && ! grep -q "^issue comment 4[23] \|^issue create --title Regression: red" "$G/calls.log" \
+    && ok "a row with three open issues keeps the oldest and closes the newer two as its duplicates" || bad "duplicates: $(cat "$G/calls.log")"
+  python3 -c 'import json; print(json.dumps([{"number": n, "state": "OPEN", "body": "<!-- loop-regression red placed= -->", "labels": [{"name": "defect"}]} for n in range(100, 160)]))' > "$G/regression.json"
+  out=$(rows)
+  [ "$(grep -c "^issue close .* --comment Duplicate of #100" "$G/calls.log")" = 20 ] \
+    && ok "at most 20 duplicates close in a normal run, under GitHub's per-minute write limit; the rest close later" || bad "cap: $(grep -c '^issue close' "$G/calls.log")"
+  out=$(STUB_RATE=1 rows)
+  [ "$(grep -c '^issue close' "$G/calls.log")" = 1 ] && ok "a normal run that meets the rate limit stops its closes too" || bad "normal rate limit: $(grep -c '^issue close' "$G/calls.log")"
+  # a row that did not run (out of job time) files nothing; an issue that only said it was skipped closes
+  printf '[{"number": 51, "state": "OPEN", "body": "<!-- loop-regression red placed= -->\\nThe row `red` was skipped.\\n", "labels": [{"name": "defect"}]},
+ {"number": 52, "state": "OPEN", "body": "<!-- loop-regression blue placed= -->\\nThe row `blue` fails.\\n", "labels": [{"name": "defect"}]}]\n' > "$G/regression.json"
+  out=$(REGRESSION_JOB_SECONDS=1 REGRESSION_ROW_SECONDS=5 rows)
+  grep -q "^SKIPPED red" <<<"$out" && grep -q "^issue close 51 " "$G/calls.log" && ! grep -q "^issue close 52\|^issue comment\|^issue create" "$G/calls.log" \
+    && ok "a skipped row files no issue, its skipped-only issue closes, and a real failure's issue stays open" || bad "skipped: $out $(cat "$G/calls.log")"
+  # the one-time cleanup dispatch: no row runs; skipped-only issues and duplicates close (beyond the normal 20), paced
+  python3 -c 'import json; print(json.dumps([{"number": n, "state": "OPEN", "body": "<!-- loop-regression red placed= -->", "labels": [{"name": "defect"}]} for n in range(200, 270)] + [{"number": 300, "state": "OPEN", "body": "<!-- loop-regression blue placed= -->\nThe row `blue` was skipped.\n", "labels": [{"name": "defect"}]}]))' > "$G/regression.json"
+  out=$(REGRESSION_CLEANUP=true REGRESSION_PACE=0 rows); rc=$?
+  [ $rc = 0 ] && [ "$(grep -c "^issue close .* --comment Duplicate of #200" "$G/calls.log")" = 69 ] && grep -q "^issue close 300 " "$G/calls.log" \
+    && grep -q "^CLEANUP closed 70 issues" <<<"$out" && ! grep -q "^issue create\|^issue comment" "$G/calls.log" \
+    && ok "the cleanup dispatch runs no row and closes every duplicate and skipped-only issue, past the normal cap of 20" || bad "cleanup: $rc $out"
+  printf '[{"number": 401, "state": "OPEN", "body": "<!-- loop-regression gone placed= -->", "labels": []},
+ {"number": 402, "state": "OPEN", "body": "no marker", "labels": []}]\n' > "$G/regression.json"
+  out=$(REGRESSION_CLEANUP=true REGRESSION_PACE=0 rows)
+  grep -q "^issue close 401 --comment Closed: row removed from the regression table." "$G/calls.log" && ! grep -q "^issue close 402" "$G/calls.log" \
+    && ok "the cleanup closes an issue whose row left the table, and leaves an issue with no row marker alone" || bad "removed: $(cat "$G/calls.log")"
+  out=$(STUB_RATE=1 REGRESSION_CLEANUP=true REGRESSION_PACE=0 rows)
+  [ "$(grep -c '^issue close' "$G/calls.log")" = 1 ] && grep -q "stopped: rate limit" <<<"$out" \
+    && ok "a cleanup that meets GitHub's rate limit stops writing at once and says so" || bad "rate limit: $(grep -c '^issue close' "$G/calls.log") $out"
+  # a skipped-only issue is matched by its own second line, never by text quoted in a failure's output; an open issue
+  # that is not skipped-only is kept over one that is; a failing row's skipped-only issue is rewritten as a failure
+  printf '[{"number": 5, "state": "OPEN", "body": "<!-- loop-regression red placed= -->\\nThe row `red` was skipped.\\n", "labels": [{"name": "defect"}]},
+ {"number": 9, "state": "OPEN", "body": "<!-- loop-regression red placed= -->\\nThe row `red` fails.\\n", "labels": [{"name": "defect"}]},
+ {"number": 7, "state": "OPEN", "body": "<!-- loop-regression blue placed= -->\\nThe row `blue` fails.\\n\\n```\\nThe row `blue` was skipped.\\n```\\n", "labels": [{"name": "defect"}]}]\n' > "$G/regression.json"
+  out=$(rows)
+  grep -q "^issue close 5 --comment Duplicate of #9" "$G/calls.log" && grep -q "^issue comment 9 " "$G/calls.log" && ! grep -q "^issue close 9" "$G/calls.log" \
+    && ok "a row's failure issue is kept over its skipped-only one, which closes as the duplicate" || bad "keeper: $(cat "$G/calls.log")"
+  out=$(REGRESSION_JOB_SECONDS=1 REGRESSION_ROW_SECONDS=5 rows)
+  ! grep -q "^issue close 7" "$G/calls.log" && ok "a failure whose output quotes 'was skipped' is not closed as skipped-only" || bad "quoted: $(cat "$G/calls.log")"
+  printf '[{"number": 5, "state": "OPEN", "body": "<!-- loop-regression red placed= -->\\nThe row `red` was skipped.\\n", "labels": [{"name": "defect"}]}]\n' > "$G/regression.json"
+  out=$(rows)
+  grep -q "^issue edit 5 --body <!-- loop-regression red placed= -->" "$G/calls.log" && grep -q "^issue comment 5 " "$G/calls.log" \
+    && ok "a failing row's only issue, once skipped-only, is rewritten as a failure so a skipped run won't close it" || bad "rewrite: $(cat "$G/calls.log")"
+  # a call that succeeds with a rate-limit warning on stderr does not stop the run's writes
+  printf '[{"number": 1, "state": "OPEN", "body": "<!-- loop-regression red placed= -->", "labels": [{"name": "defect"}]},
+ {"number": 2, "state": "CLOSED", "body": "<!-- loop-regression blue placed= -->", "labels": [{"name": "defect"}]}]\n' > "$G/regression.json"
+  out=$(STUB_WARN=1 rows)
+  grep -q "^issue reopen 2" "$G/calls.log" && grep -q "^issue comment 2 " "$G/calls.log" \
+    && ok "a write that succeeds with a rate-limit warning does not halt the rest" || bad "warn: $(cat "$G/calls.log")"
+  printf '[]\n' > "$G/regression.json"
   W=$here/.github/workflows/regression.yml
   grep -q 'cron: "17 \*/4 \* \* \*"' "$W" && grep -q 'tags: \["v\*"\]' "$W" && grep -q "issues: write" "$W" && ! grep -qi "milestone" "$W" \
     && ok "the full suite runs every 4 hours by default and on every release tag, with issue write access, and no milestone code" || bad "schedule"
@@ -720,45 +774,6 @@ SH
   ! grep -q "^issue create" "$G/fake/calls.log" && grep -q "^issue comment 7" "$G/fake/calls.log" \
     && ok "a local live run finds the issue the scheduled run placed on a milestone, opening no duplicate" || bad "local run duplicate"
   [ "$fail" = "$f0" ] && echo "PASS milestone-freeform:aut-email-regression"
-fi
-
-if want upgrade; then
-  echo "== upgrade: a workflow older than the skills is reported"
-  x=$(mktemp -d); mkdir -p "$x/.loop"; printf '{}\n' > "$x/.loop/config.json"
-  out=$($auto workflow --check --root "$x"); rc=$?
-  [ $rc = 1 ] && [ "$(grep -c '(STALE_WORKFLOW)' <<<"$out")" = 2 ] && grep -q "is missing" <<<"$out" && ok "missing workflows are reported with the command that writes them" || bad "missing"
-  $auto workflow --root "$x" >/dev/null; out=$($auto workflow --check --root "$x"); rc=$?
-  [ $rc = 0 ] && [ -z "$out" ] && ok "current workflows pass the check" || bad "current"
-  printf '\n# edited\n' >> "$x/.github/workflows/health.yml"; out=$($auto workflow --check --root "$x"); rc=$?
-  [ $rc = 1 ] && grep -q "health.yml differs from what automation.py writes" <<<"$out" && ok "a stale health.yml is reported" || bad "stale"
-  printf 'name: mine\n' > "$x/.github/workflows/mail-test.yml"; $auto workflow --root "$x" >/dev/null 2>&1; out=$($auto workflow --check --root "$x")
-  grep -q "(NOT_OURS)" <<<"$out" && [ "$(cat "$x/.github/workflows/mail-test.yml")" = "name: mine" ] && ok "a hand-written workflow is never checked or rewritten" || bad "not ours"
-  T=$(mktemp -d); python3 -B -c "import sys; sys.path.insert(0, '$S'); import workflows; open('$T/h.yml','w').write(workflows.health('47 */4 * * *','ANTHROPIC_API_KEY'))"
-  python3 - "$T/h.yml" "$T/check.sh" <<'PY'
-import sys
-text = open(sys.argv[1]).read()
-block = text.split("- name: Check the routine", 1)[1].split("run: |\n", 1)[1]
-lines = []
-for line in block.split("\n"):
-    if line.strip() and not line.startswith("          "):
-        break
-    lines.append(line[10:])
-open(sys.argv[2], "w").write("\n".join(lines).rstrip() + "\n")
-PY
-  (cd "$x" && mkdir -p skills/workflow-health && ln -s "$S" skills/workflow-health/scripts && printf '\n# drift\n' >> .github/workflows/health.yml && : > o.txt && : > s.txt \
-    && EVENT=schedule GITHUB_OUTPUT=o.txt GITHUB_STEP_SUMMARY=s.txt bash -e "$T/check.sh" >out.txt 2>&1)
-  grep -q "^::warning::STALE_WORKFLOW" "$x/out.txt" && grep -q "^STALE_WORKFLOW" "$x/s.txt" && grep -qx "on=true" "$x/o.txt" \
-    && ok "each health run warns about a stale workflow and still runs" || bad "run warns"
-  # Value: protects=setup adoption commits mail-test.yml beside health.yml; fails_when=seed.decide drops the mail-test row so the written file is left uncommitted; why_new=no toy test calls seed.decide with the health skill present; seam=none; no_claim=apply's file contents
-  y=$(mktemp -d); mkdir -p "$y/skills/workflow-health/scripts"; : > "$y/skills/workflow-health/scripts/health.py"
-  python3 -B -c "
-import sys; sys.path.insert(0, '$here/skills/workflow-setup/scripts'); import seed
-found = {'wiki': 'docs/wiki', 'pages': {}, 'areas': {}, 'readme': ''}
-acts = seed.decide('$y', {'checks': ['true'], 'health_cron': '7 * * * *'}, found)
-health = [a[1] for a in acts if a[3] == 'health']
-assert health == ['.github/workflows/health.yml', '.github/workflows/mail-test.yml'], health
-" && ok "setup plans mail-test.yml with health.yml when the health skill is in the repo" || bad "seed mail-test"
-  rm -rf "$x" "$T" "$y"
 fi
 
 echo "== $pass passed, $fail failed"

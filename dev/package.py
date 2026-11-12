@@ -247,8 +247,9 @@ def check_scripts(root, files):
     for rel in [f for f in files if f.endswith(".py")]:
         data = read(root, rel)
         text = data.decode("utf-8", "replace")
-        if len(data) >= MAX_SCRIPT:
-            fail("Scripts", "%s is %d bytes, under 20 KB allowed" % (rel, len(data)))
+        size = len(data.replace(b"\r\n", b"\n"))  # committed (LF) bytes: a Windows CRLF checkout reads the same
+        if size >= MAX_SCRIPT:
+            fail("Scripts", "%s is %d bytes, under 20 KB allowed" % (rel, size))
         modules = set()
         siblings = {n[:-3] for n in os.listdir(os.path.dirname(os.path.join(root, rel))) if n.endswith(".py")}
         try:

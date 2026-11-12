@@ -9,6 +9,8 @@
   checks-run-tests  the regression workflow exists but no land row does (WARN)
   template-version  VERSION is not the newest CHANGELOG heading (WARN; INFO when either is missing)
   scheduled         the regression or health workflow is missing, or has no schedule (WARN)
+  no-fit            an open [adoption] line in .loop/findings.md, written by setup: one WARN row each (report.py)
+  agent-tools       agent_command (or the flow file's command) grants its agent no tools (WARN) (report.py)
 Security and privacy, Size, Performance check-time and Hygiene idle-sessions rules (also read-only):
   private                tracked files matching a leak pattern (leak_patterns in the private flow file): FAIL with
                          file:line and the pattern's number only, never the matched text; INFO with no pattern set
@@ -29,6 +31,7 @@ import sys
 import time
 
 import issues as IS
+import report as _report
 from defects import LINE, pages, row, table
 
 
@@ -148,19 +151,26 @@ def template_version(root):
 
 
 def scheduled(root):
-    out = []
-    for name in ("regression.yml", "health.yml"):
-        path = os.path.join(root, ".github", "workflows", name)
-        text = open(path).read() if os.path.exists(path) else ""
-        if "schedule:" not in text:
-            out.append(row("WARN", "adoption", name, "scheduled", "missing" if not text else "has no schedule",
-                           "write it (workflow-regression workflow, workflow-health workflow)", name))
+    """The regression workflow must be scheduled unless regression_runs is mac (read from the config: no gh call); a leftover
+    health.yml is a WARN, as health runs on the Mac now."""
+    out, flows = [], os.path.join(root, ".github", "workflows")
+    try:
+        mac = json.load(open(os.path.join(root, ".loop", "config.json"))).get("regression_runs") == "mac"
+    except (OSError, ValueError, AttributeError):
+        mac = False
+    text = open(os.path.join(flows, "regression.yml")).read() if os.path.exists(os.path.join(flows, "regression.yml")) else ""
+    if "schedule:" not in text and not mac:
+        out.append(row("WARN", "adoption", "regression.yml", "scheduled", "missing" if not text else "has no schedule",
+                       "write it (workflow-regression workflow); setup records regression_runs, mac for a private repo", "regression.yml"))
+    if os.path.exists(os.path.join(flows, "health.yml")):
+        out.append(row("WARN", "adoption", "health.yml", "scheduled", "has no job: health runs on the Mac now",
+                       "git rm .github/workflows/health.yml", "health.yml"))
     return out
 
 
 FUNCTIONS = {"nightly": nightly, "unreleased": unreleased, "finding-age": finding_age, "skipped": skipped,
              "network": network, "config": config, "checks-run-tests": checks_run_tests,
-             "template-version": template_version, "scheduled": scheduled}
+             "template-version": template_version, "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools}
 
 
 def _c():
@@ -217,6 +227,7 @@ def f_template_version(root):
 
 def f_scheduled(root):
     c = _c(); c.repo(root)
+    c.write(root, ".github/workflows/health.yml", "name: health\n")
 
 
 CONTROLS = {"nightly": ("freshness", "nightly", f_nightly), "unreleased": ("freshness", "unreleased", f_unreleased),
@@ -294,7 +305,8 @@ def workflow_permissions(root):
 def skill_lines(root):
     out = []
     for path in sorted(glob.glob(os.path.join(root, "skills", "*", "SKILL.md"))):
-        count = sum(1 for _ in open(path, errors="replace"))
+        with open(path, "rb") as handle:  # LF lines, as git holds them
+            count = len(handle.read().replace(b"\r\n", b"\n").splitlines())
         if count >= SKILL_LINES:
             name = os.path.relpath(path, root)
             out.append(row("FAIL", "size", name, "skill-lines", "%d lines, %d or more" % (count, SKILL_LINES),
