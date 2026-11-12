@@ -142,8 +142,10 @@ def apply(repo):
         print("WARN: entry.py write failed (exit %s); .loop/START.md may be stale. Fix: run docs.py audit" % code, file=sys.stderr)
     for line in wire(repo)[1]:
         print(line, file=sys.stderr if line.startswith("REFUSED") else sys.stdout)
-    root = os.path.realpath(repo)
-    return [p for p in [os.path.join(".loop", "START.md")] + targets(repo)
+    root, render = os.path.realpath(repo), os.path.join(os.path.dirname(ENTRY), "render.py")
+    done = subprocess.run([sys.executable, render, "blocks"], cwd=repo, capture_output=True, text=True) if os.path.isfile(render) else None
+    wrote = [x.split()[1] for x in done.stdout.splitlines() if x.startswith("WROTE ")] if done else []  # the blocks an older setup never wrote
+    return [p for p in [os.path.join(".loop", "START.md")] + targets(repo) + wrote
             if os.path.exists(os.path.join(repo, p)) and inside(root, os.path.realpath(os.path.join(repo, p)))]
 
 
@@ -157,6 +159,40 @@ def git(repo, *args, check=True):
 def sibling(skill, script):
     path = os.path.join(HERE, "..", "..", skill, "scripts", script)
     return path if os.path.exists(path) else None
+
+
+BUILT = (("health", "Checks the repo, files findings.", "health_cron"), ("regression", "Runs the regression rows.", "regression_cron"),
+         ("digest email", "Mails the round's digest.", ""))
+
+
+def fill_automation(held, repo):
+    """held's automation list plus the three built-in routines on the repo's one Mac task; an entry already set stays."""
+    out, path = held.get("automation"), sibling("workflow-health", "workflows.py")
+    if not isinstance(out, list) or not path:
+        return out
+    sys.path.insert(0, os.path.dirname(path))
+    try:
+        workflows = importlib.import_module("workflows")
+    finally:
+        sys.path.pop(0)
+    for name, does, key in BUILT:
+        if not any(isinstance(e, dict) and e.get("name") == name for e in out):
+            out = out + [dict(name=name, does=does, cadence=str(held[key]) if key else "with each health round",
+                              runs="mac:" + workflows.task_name(repo), **({"enabled": False} if not key and held.get("digest_mail") == "off" else {}))]
+    return out
+
+
+def migration_check(argv):
+    """setup.py migration-check: the engine is workflow-health's defects.py, loaded from beside this skill; exit 4 when it can't be."""
+    path = sibling("workflow-health", "defects.py")
+    if not path:
+        sys.stderr.write("REFUSED: workflow-health is not installed beside workflow-setup; nothing was changed. Fix: install the "
+                         "workflow-health skill from the same release, then rerun\n")
+        return 4
+    spec = importlib.util.spec_from_file_location("defects", path)
+    sys.modules["defects"] = module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.main(argv)
 
 
 def refuse(what, fix):
