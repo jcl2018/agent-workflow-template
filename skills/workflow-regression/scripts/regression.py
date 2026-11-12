@@ -196,7 +196,7 @@ def cmd_criteria(_args):
             unmet.append("%s (no regression row)" % key)
         for row in found:
             if row["level"] == "draft" or (row["level"] != "covered" and subprocess.run(["sh", "-c", row["command"]], cwd=root,
-                                                                                   capture_output=True, env=actions.row_env()).returncode):
+                                                                                   capture_output=True, env=actions.row_env()).returncode not in (0, runs.SKIP_CODE)):
                 unmet.append("%s (row %s is a draft or failing)" % (key, row["id"]))
     print("\n".join(unmet))
     return 1 if unmet else 0
@@ -220,6 +220,10 @@ def cmd_red(args):
     finally:
         run(["git", "worktree", "remove", "--force", tree], cwd=root)
         shutil.rmtree(temp, ignore_errors=True)
+    if done.returncode == runs.SKIP_CODE:
+        print("REFUSED: the row exited %d (cannot run here), which is a skip, not a failure. Fix: run red where the row can run." % runs.SKIP_CODE,
+              file=sys.stderr)
+        return 1
     if done.returncode == 0:
         print("STILL GREEN %s: the test passed on broken code, so it proves nothing." % args.id)
         return 1
@@ -294,9 +298,10 @@ def cmd_run(args):
     failed = [item["id"] for item in results if item["state"] == "FAIL"]
     kept = [old["rows"][key]["status"] for key in reused]  # a reused known failure still counts as known
     passed = sum(item["state"] == "PASS" for item in results) + kept.count("PASS")
-    print("RESULT %d passed%s, %d known, %d failed, %d unproven" % (
+    print("RESULT %d passed%s, %d known, %d failed, %d unproven%s" % (
         passed, " (%d reused)" % len(reused) if args.reuse else "",
-        sum(item["state"] == "KNOWN" for item in results) + kept.count("KNOWN"), len(failed), len(never)))
+        sum(item["state"] == "KNOWN" for item in results) + kept.count("KNOWN"), len(failed), len(never),
+        ", %d skipped" % sum(item["state"] == "SKIPPED" for item in results) if any(item["state"] == "SKIPPED" for item in results) else ""))
     return 1 if failed or never else 0
 
 

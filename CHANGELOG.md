@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.27.12 - 2026-11-12
+
+- Codex proof: a SKIPPED result for rows that cannot run, setup survives a read-only home, the Codex harness and pod-collision tests
+- Codex proof: design, plan, run report, Regression page usage
+- Codex proof: fixes from the plan review (SKIPPED never reused, red refuses 77, RESULT counts skips, narrower setup catch, stronger tests, Codex quickstart)
+- Touch the Automation and Home pages after the runner and README changes
+- settings: write through a symlinked settings file and keep its mode
+- Ledger keeps a row's last PASS when a later run is SKIPPED; settings temp file is created with its final mode
+- Touch the Setup page after the settings write fix
+- Lane: re-render the Tests tables
+- Touch the Regression page after the ledger change
+- Merge origin/main into loop/codex-proof
+- Re-render the Regression tests table; touch the Automation page
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/codex-proof
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.11 - 2026-11-12
 
 - Release refusals never crash on a goal state with no usable report (autorelease-fail-crash)

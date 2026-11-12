@@ -114,6 +114,8 @@ def reason(root, row, old, ok, base, cache, memo):
     """F4 closure rows: why this row runs, or '' (failure rerun, new row, reaches <file>, root runner)."""
     if ok and old["rows"].get(row["id"], {}).get("status") == "FAIL":
         return "failure rerun"
+    if ok and old["rows"].get(row["id"], {}).get("status") == "SKIPPED":
+        return "skipped last time"
     at, paths = since(root, row, old, ok, base, memo)
     if lanes.table(root, at, "regression.tsv", memo).get(row["id"]) != memo["tsv"].get(row["id"]):
         return "new row"
@@ -234,7 +236,7 @@ def compare(prev, state, head, clean):
     """The row's flaky flag after this result: the commit it flipped on, or ''."""
     prev = prev if isinstance(prev, dict) else {}
     mark = str(prev.get("flaky") or "")
-    if not clean:
+    if not clean or state == "SKIPPED" or prev.get("status") == "SKIPPED":  # a skip is no flip
         return mark
     if prev.get("commit") == head and prev.get("clean") == "yes" and (prev.get("host"), prev.get("python")) == runner():
         if mark == head or (prev.get("status") == "PASS") != (state == "PASS"):
