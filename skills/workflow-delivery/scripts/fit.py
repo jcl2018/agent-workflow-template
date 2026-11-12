@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""What a goal decides at freeze and reads later: its size and review depth (DEL-6), its budget (DEL-8), its release
-bump (DEL-5), where it resumes (DEL-7) and what a deliberate rerun clears. Pure functions with no guards import, so
-role, flow, goal, release and the board can all read them.
+"""What a goal decides at freeze and reads later (DEL-5 to DEL-8). Pure functions with no guards import, so every script reads them.
 
 Size: a goal is small with at most 3 done lines, no `github:` touch and at most one code area. An area is a touched
 path's first two components (`skills/workflow-release`, `src/api`) or a top-level folder; paths under docs/, .loop/,
@@ -135,8 +133,7 @@ def recorded(state, step):
 
 
 def resume_at(state, moved=None):
-    """The step a stopped or crashed goal goes on from, read from its record only. With idea and plan recorded and
-    review not: build when no commit landed after the plan record (moved False or unknown), else review."""
+    """The step a stopped goal goes on from: build when no commit landed after the plan record, else review."""
     left = [step for step in STEPS if not recorded(state, step)]
     if not left:
         return "pr"
@@ -152,8 +149,7 @@ def next_command(state, step):
 
 
 def again(state, step):
-    """Clear a step's record and every later step's (result, depth, verdicts) for a deliberate rerun. Tries, tokens,
-    size, budget and the owner's settings stay. Returns the steps cleared."""
+    """Clear a step and every later step (result, depth, verdicts) for a rerun; returns the steps cleared."""
     later = list(STEPS[STEPS.index(step):])
     cleared = [s for s in later if s in (state.get("flow") or {})]
     for key in ("flow", "depth", "verdicts"):
@@ -227,8 +223,14 @@ def cmd_queue(g, args):
 def cmd_adopt(g, args):
     """Run record for a goal another machine pushed: idea to review done there; qa, ship and pr run here."""
     slug, branch = args.slug, "loop/" + args.slug
-    if not g.SLUG.match(slug) or os.path.exists(g.state_path(slug)):
-        g.no("bad slug, or %s has a run record here." % slug)
+    old, note = g.state_path(slug), ""
+    if not g.SLUG.match(slug):
+        g.no("bad slug.")
+    if os.path.exists(old):
+        was = json.loads(g.read(old))
+        if was.get("status") != "running" or was.get("pid") or was.get("flow"):
+            g.no("%s has a live, started or finished run record here." % slug)
+        g.SEEN[slug], note = json.dumps(was), "; replaced a stale record: running, no pid, no steps"
     if g.git("branch", "--show-current") != branch:
         g.no("not on %s. Fix: run this in its worktree." % branch)
     if g.run(["git", "fetch", "origin", branch]).returncode or g.run(["git", "merge-base", "--is-ancestor", "FETCH_HEAD", "HEAD"]).returncode:
@@ -246,8 +248,8 @@ def cmd_adopt(g, args):
                  flow={s: "done on another machine: " + sha for s in g.FLOW[:3]}, **frozen_fields(g, args, lines, touches))
     g.guards.stamp(state, "qa")
     g.pods and g.pods.stamp(state)
-    g.save(state, "adopted from origin/%s @ %s (%s)" % (branch, sha, info["url"]))
-    print("ADOPTED %s at qa from origin/%s @ %s; qa, ship and pr run here" % (slug, branch, sha))
+    g.save(state, "adopted from origin/%s @ %s (%s)%s" % (branch, sha, info["url"], note))
+    print("ADOPTED %s at qa from origin/%s @ %s%s; qa, ship and pr run here" % (slug, branch, sha, note))
     return 0
 
 

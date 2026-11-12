@@ -48,12 +48,28 @@ assert all(f[s].startswith("done on another machine") for s in ("idea", "plan", 
 assert not any(s in f for s in ("qa", "ship")), f
 PY
 $goal pr far 2>&1 | grep -q "the flow hasn't finished: qa, ship" && ok "pr now stops at qa, not at 'no goal named'" || bad "pr after adopt"
-$goal adopt far 2>&1 | grep -q "has a run record here" && ok "a second adopt is refused" || bad "second adopt"
+$goal adopt far 2>&1 | grep -q "has a live, started or finished run record here" && ok "a second adopt is refused" || bad "second adopt"
 
 echo "== adopt refuses a branch that is not on origin"
 git switch -q -c loop/near main; mkdir -p .loop/goals
 printf '# Near\n\n- Slug: near\n- Touches: calc.py\n\n## Done lines\n\n1. near works\n' > .loop/goals/near.md; git add -A; git commit -qm "Goal: near"
 out=$($goal adopt near 2>&1); echo "$out" | grep -q "REFUSED: loop/near is not on origin" && ok "unpushed branch refused" || bad "unpushed: $out"
 [ -e "$C/loop/runs/near.json" ] && bad "a record was written for the unpushed branch" || ok "no record written"
+
+echo "== a stale running record with no pid is replaced; one with a pid is refused"
+git switch -q main
+$goal new stale --here --goal "Do stale" --done "stale works" --touches "calc.py" >/dev/null || bad "new stale"
+git push -q -u origin loop/stale
+out=$($goal adopt stale 2>&1); echo "$out" | grep -q "^ADOPTED stale at qa.*; replaced a stale record: running, no pid, no steps" && ok "stale record replaced" || bad "stale: $out"
+[ "$(field stale step)" = qa ] && grep -q "replaced a stale record" "$C/loop/runs/stale.json" && ok "replacement logged, record at qa" || bad "stale record"
+git switch -q main
+$goal new busy --here --goal "Do busy" --done "busy works" --touches "calc.py" >/dev/null || bad "new busy"
+git push -q -u origin loop/busy
+python3 - "$C/loop/runs/busy.json" <<'PY'
+import json, sys
+f = json.load(open(sys.argv[1])); f["pid"] = 4242; json.dump(f, open(sys.argv[1], "w"))
+PY
+out=$($goal adopt busy 2>&1); echo "$out" | grep -q "REFUSED: busy has a live, started or finished run record" && ok "record with a pid refused" || bad "busy: $out"
+[ "$(field busy pid)" = 4242 ] && ok "the busy record is unchanged" || bad "busy record changed"
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
