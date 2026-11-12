@@ -629,11 +629,11 @@ PY
   : > "$FAKE_GH_DIR/issues.json"; (cd "$S" && PATH="$F:$PATH" GH_TOKEN=invalid GH_HOST=localhost.invalid python3 -B -c "
 import file, subprocess
 real, seen = file.run, []
-def run(args, root):
+def run(args, root, body=None):
     seen.append(args)
     if args[:2] == ['issue', 'create']:
         return subprocess.CompletedProcess(args, 127, '', str(subprocess.TimeoutExpired(['gh'] + args, 120)) + ' label')
-    return real(args, root)
+    return real(args, root, body)
 file.run = run
 row = dict(state='WARN', family='size', subject='skills/workflow-health/scripts/rounds.py', rule='limit', detail='big', fix='')
 acts = file.plan([row], {}, ['size'], root='$r'); file.apply(acts, '$r', ['size'])
