@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.27.51 - 2026-11-12
+
+- Move the Automation block code from render.py to counting.py; row docs-block-split
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/health-docs-size
+- Lane: re-render the Tests tables
+- Re-render the Settings block on Home
+- Wiki: update pages for health-docs-size
+- Merge remote-tracking branch 'origin/main' into loop/health-docs-size
+- Merge remote-tracking branch 'origin/main' into loop/health-docs-size
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.50 - 2026-11-12
 
 - Merge origin/main into loop/regression-rows-set-grd
