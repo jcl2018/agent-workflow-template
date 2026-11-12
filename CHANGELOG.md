@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.27.20 - 2026-11-12
+
+- Fix two small doc defects: count the wiki pages, and put the README's commands in Usage
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/docs-small-fixes
+- Home: say a repo adds a routine with one config entry
+- Merge remote-tracking branch 'origin/main' into loop/docs-small-fixes
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.19 - 2026-11-12
+
+- Merge remote-tracking branch 'origin/main' into loop/issue-cleanup
+- Merge remote-tracking branch 'origin/main' into loop/issue-cleanup
+- Merge origin/main into loop/issue-cleanup; findings from both sides kept
+- Merge remote-tracking branch 'origin/main' into loop/issue-cleanup
+- pr: record issue states and the lane's results
+- Merge origin/main (settings-table, pending-none) into loop/issue-cleanup; Tests page re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/issue-cleanup
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.18 - 2026-11-12
 
 - Render the Settings and Automation blocks only with criteria on
