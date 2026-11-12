@@ -518,6 +518,11 @@
 | <a id="t-lane-tmpdir-outside-repo"></a>lane-tmpdir-outside-repo | requirement | REG-8 | not run | - | local | 2026-11-11 |
 | <a id="t-lane-tmpdir-per-goal"></a>lane-tmpdir-per-goal | requirement | REG-8 | not run | - | local | 2026-11-11 |
 | <a id="t-port-base-windows"></a>port-base-windows | defect | [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) open (2026-11-12) | not run | - | local | 2026-11-12 |
+| <a id="t-reg10-skip-never-red"></a>reg10-skip-never-red | requirement | REG-10 | not run | - | local | no |
+| <a id="t-reg10-windows-refused"></a>reg10-windows-refused | requirement | REG-10 | not run | - | local | no |
+| <a id="t-reg10-commit-checked"></a>reg10-commit-checked | requirement | REG-10 | not run | - | local | no |
+| <a id="t-reg10-off-platform-red"></a>reg10-off-platform-red | requirement | REG-10 | not run | - | local | no |
+| <a id="t-reg10-provenance"></a>reg10-provenance | requirement | REG-10 | not run | - | local | no |
 
 ## Setup
 
