@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/goal.py
+# reads: skills/workflow-delivery/scripts/flow.py skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/guards.py
 # reads: skills/workflow-delivery/scripts/role.py skills/workflow-regression/scripts/regression.py
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-regression/scripts/lanes.py skills/workflow-regression/scripts/tiers.py
 # Proves regression.py run --reuse: a goal's suite runs once, then later runs reuse it, rerun only the rows a change can
@@ -194,6 +194,9 @@ check "record refuses qa before the qa lane passed on HEAD" 'grep -q "the qa lan
 printf 'STEP: failed old\nSTEP: done\n' > "$d/q1"; printf 'PENDING: x\nSTEP: failed\n' > "$d/q2"
 out=$($goal record lg qa --file "$d/q1" 2>&1; $goal record lg qa --file "$d/q2" 2>&1)
 check "an earlier STEP: failed or a PENDING line never skips the qa lane" '[ "$(grep -c "(LANE_MISSING)" <<<"$out")" = 2 ]'
+# Value: protects=a failed step that says PENDING: none needs no lane, like any failed step; fails_when=need_lane counts a none line as a real PENDING item; why_new=need_lane had its own PENDING test; seam=none; no_claim=none beyond protects
+printf 'PENDING: none\nSTEP: failed\n' > "$d/q3"; out=$($goal record lg qa --file "$d/q3" 2>&1)
+check "a failed step with PENDING: none is not refused with LANE_MISSING (it reaches the next refusal)" '! grep -q "LANE_MISSING" <<<"$out" && grep -q "NOT_RUN_BY_FLOW" <<<"$out"'
 check "the lane command resolves from the installed package, not the repo (no skills folder here)" '[ ! -e skills ] && grep -q "^python3 $here/skills/workflow-regression/scripts/regression.py run land --reuse --tier goal$" <<<"$lane"'
 printf '# the goal was here\n' >> dev/lib.sh; git commit -qam "The goal changes b's helper"
 out=$(step lg qa); echo "$out"
