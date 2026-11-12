@@ -1,7 +1,7 @@
 # The board picks its estimate model by a time-ordered backtest (each goal predicted only from goals finished before it started), which matches real use, instead of leave-one-out (owner, 2026-11-10: "do these" on "the time-ordered test, as a follow-up")
 
 - Slug: estimate-timeorder
-- Touches: skills/workflow-monitoring/scripts, dev/toy, .loop/regression.tsv, docs/wiki/Monitoring.md, docs/wiki/Tests.md
+- Touches: skills/workflow-monitoring/scripts, dev/toy, .loop/regression.tsv, docs/wiki/Monitoring.md, docs/wiki/Tests.md, skills/workflow-monitoring/references/commands.md, skills/workflow-monitoring/references/operation.md
 
 ## Done lines
 
