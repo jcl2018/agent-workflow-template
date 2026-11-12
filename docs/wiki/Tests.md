@@ -550,6 +550,7 @@
 | <a id="t-codex-harness"></a>codex-harness | requirement | SET-3 | not run | - | local | 2026-11-12 |
 | <a id="t-codex-key-commands"></a>codex-key-commands | defect | [#38](https://github.com/jcl2018/agent-workflow-template/issues/38) closed (2026-11-11) | not run | - | local | 2026-11-12 |
 | <a id="t-set8-health"></a>set8-health | requirement | SET-8 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
+| <a id="t-adoption-golden"></a>adoption-golden | requirement | SET-11 | not run | - | local | 2026-11-12 |
 
 ## Other
 

@@ -115,6 +115,11 @@ Review: **Unreviewed**
 | - | requirement | SET-9 | no passing test | not enforced |
 | [agents-wire](Tests#t-agents-wire) | requirement | SET-10 | Given a repo, when setup or agents.py wire runs, then CLAUDE.md and AGENTS.md hold the same workflow-loop block, text outside it is kept, and a second run changes nothing. | not run |
 | - | requirement | SET-10 | no passing test | not enforced |
+| [adoption-golden](Tests#t-adoption-golden) | requirement | SET-11 | Given the golden first adoption, when its fixture and SET-11 are read, then the fixture holds steps 1 to 8 in order, each with a check, golden result and fix, no machine path or account, and SET-11 names it and its first-mismatch stop. | not run |
+| - | requirement | SET-11 | no passing test | not enforced |
+| - | requirement | SET-12 | no passing test | not enforced |
+| - | requirement | SET-13 | no passing test | not enforced |
+| - | requirement | SET-14 | no passing test | not enforced |
 | [adopt-set-3](Tests#t-adopt-set-3) | requirement | SET-3 | Given SET-3, when the toy adopt-and-update test runs, then it holds. | PASS 2026-11-12 |
 | [skill-kept](Tests#t-skill-kept) | requirement | SET-3 | Given detail moved out of the workflow-delivery and workflow-docs SKILL.md files, when their references are read, then every moved sentence is there word for word and SKILL.md points to it. | PASS 2026-11-10 |
 | [codex-ro-home](Tests#t-codex-ro-home) | requirement | SET-3 | Given a Codex sandbox that leaves the home folder read-only, when setup adopts a clean toy repo, then it says the private settings were not written and still adopts the repo, with no crash. | not run |
@@ -125,6 +130,7 @@ Review: **Unreviewed**
 | [set8-hooks](Tests#t-set8-hooks) | requirement | SET-8 | Given a repo with the hooks setup installs, when a staged change adds a private line, then git commit refuses naming the file and line and never the text, and nothing is committed. | PASS 2026-11-12 |
 | [set8-setup-commit](Tests#t-set8-setup-commit) | requirement | SET-8 | Given an adoption whose staged file holds a private line, when setup runs, then it refuses before its own commit, naming the place, and commits nothing. | PASS 2026-11-12 |
 | [set8-health](Tests#t-set8-health) | requirement | SET-8 | Given a repo with the private-name hooks installed or removed, when health runs its hooks rule, then the row appears in the Security and privacy group with its PASS or WARN text, and a wrong group, which prints no hooks row, fails the row. | PASS 2026-11-12 |
+| - | requirement | SET-15 | no passing test | not enforced |
 | [skill-size-116](Tests#t-skill-size-116) | defect | [#116](https://github.com/jcl2018/agent-workflow-template/issues/116) closed (2026-11-10) | Given the package's skills, when each SKILL.md is counted, then every one is under 150 lines, so test-board passes. | PASS 2026-11-10 |
 | [size-139](Tests#t-size-139) | defect | [#139](https://github.com/jcl2018/agent-workflow-template/issues/139) closed (2026-11-11) | Given criteria.py's page rules moved into deployments.py by a pure move, when health's size rule and the split checks run, then neither file warns and every moved name resolves the same on criteria. | not run |
 | [size-140](Tests#t-size-140) | defect | [#140](https://github.com/jcl2018/agent-workflow-template/issues/140) closed (2026-11-11) | Given docs.py's page map moved into counting.py by a pure move, when health's size rule and the split checks run, then neither file warns and every moved name resolves the same on docs. | not run |
