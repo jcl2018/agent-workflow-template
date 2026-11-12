@@ -123,7 +123,7 @@ def clear_refusals(state):
 def revive(state, how, by, why):
     """The one revival of a failed or stopped goal (resume; sessions.py bind keeps the same fields, a toy test checks).
     Returns the log line."""
-    state.update(status="running", tries=0, refusals=0, finding="", waiting=None, note=None, report=None)
+    state.update(status="running", tries=0, free=0, refusals=0, finding="", waiting=None, note=None, report=None)
     return "%s by %s: %s" % (how, by, " ".join(why.split())) if why else "%s by %s" % (how, by)
 
 
@@ -217,6 +217,7 @@ def write_finding(g, state, text):
 
 
 def fail_stop(g, state, text):
+    text = private.plain(text)
     state["status"] = "stopped"
     state["finding"] = text
     state["waiting"] = None
@@ -227,6 +228,12 @@ def fail_stop(g, state, text):
 
 
 def failed_try(g, state, why, step, fix):
+    why = private.plain(why)
+    if re.search(r"lane[^:]*: LANE_DIED", why) and state.get("free", 0) < 3:  # a dead lane is not the goal's fault
+        state["free"], state["step"] = state.get("free", 0) + 1, step
+        g.save(state, "lane died, not counted (%d of 3)" % state["free"])
+        print("TRY NOT COUNTED (free rerun %d of 3; the next death counts)\nNEXT: run the same command again" % state["free"])
+        return
     state["tries"] = state.get("tries", 0) + 1
     most = int(g.config().get("max_tries") or g.MAX_TRIES)
     if state["tries"] >= most:
@@ -277,7 +284,7 @@ def advance(g, state):
 
 
 def note_finding(runs, state, text):
-    text = " ".join(text.split())
+    text = private.plain(" ".join(text.split()))
     add_extra(runs, state["slug"], "findings", {"at": now(), "text": text}, "finding (goal stays %s): %s" % (state["status"], text))
     print("FINDING recorded on %s (goal stays %s)" % (state["slug"], state["status"]))
     return 0

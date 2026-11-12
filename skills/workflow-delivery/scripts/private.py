@@ -23,6 +23,49 @@ import time
 # No terminal, no waiting: a prompt from git must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
+LOCAL_PATH = re.compile(r"(?<![\w/.:~-])/(?:[\w.@+-]+/)+[\w.@+-]+")
+
+
+def plain(text):
+    """Local absolute paths cut to their last part (a home folder alone to <path>): findings go in a pull request."""
+    return LOCAL_PATH.sub(lambda m: m.group(0).split("/")[-1] if m.group(0).count("/") > 2 else "<path>", text)
+
+
+def mend(git, files, base):
+    """A merge that conflicts only in generated files is resolved here: the regression tsv files union (a row both sides
+    edited keeps one line), Tests.md takes the base's page (the lane prep re-renders our rows). Else False, nothing kept."""
+    import tempfile  # lazily: only a conflict needs it
+    top, tsv = git("rev-parse", "--show-toplevel").stdout.strip(), (".loop/regression.tsv", ".loop/regression-runs.tsv")
+    if not files or not all(f in tsv or (os.path.basename(f) == "Tests.md" and os.path.exists(top + "/.loop/docs.tsv")) for f in files):
+        return False
+    for f in files:
+        s = [git("show", ":%d:%s" % (n, f)) for n in (1, 2, 3)]
+        if s[1].returncode or s[2].returncode:
+            return False
+        if f not in tsv:
+            git("checkout", "--theirs", "--", f)
+            continue
+        with tempfile.TemporaryDirectory() as tmp:
+            for n, r in zip("abc", (s[1], s[0], s[2])):
+                open(tmp + "/" + n, "w").write(r.stdout if not r.returncode else "")
+            union = subprocess.run(["git", "merge-file", "-p", "--union"] + [tmp + "/" + n for n in "abc"],
+                                   capture_output=True, text=True).stdout
+        rows = lambda t: {l.split("\t")[0]: l for l in t.splitlines() if l and l[0] != "#"}
+        o, b, t = rows(s[1].stdout), rows(s[0].stdout if not s[0].returncode else ""), rows(s[2].stdout)
+        out, seen = [], set()
+        for line in union.splitlines():
+            k = line.split("\t")[0]
+            if line[0:1] == "#" or k not in seen:
+                seen.add(k)
+                out.append(line if k not in o or k not in t or o[k] == t[k] else
+                           (max(o[k], t[k], key=lambda l: l.split("\t")[2:3]) if f == tsv[1] else (o[k] if o[k] != b.get(k) else t[k])))
+        open(top + "/" + f, "w").write("\n".join(out) + "\n")
+    if git("add", "--", *files).returncode or git("commit", "--no-edit", "-q").returncode:
+        return False
+    print("MENDED %s: rows unioned, Tests.md taken from %s" % (", ".join(files), base))
+    return True
+
+
 DEFAULT = "~/.workflow-loop/private-names"
 LIMIT, WIDTH = 60, 4096  # seconds for a whole scan (git included), characters per matched piece of a line
 PRIVATE_NAME, PRIVATE_LIST = "PRIVATE_NAME", "PRIVATE_LIST"

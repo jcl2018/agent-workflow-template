@@ -99,6 +99,9 @@ def sync(base):
     if done.returncode == 0:
         return "merged", ref
     files = git("diff", "--name-only", "--diff-filter=U").stdout.split()
+    import private  # lazily: private is a script of its own
+    if private.mend(git, files, ref):
+        return "merged", ref
     git("merge", "--abort")
     return "conflict", ", ".join(files) or " ".join((done.stderr or done.stdout).split())[:200]
 
