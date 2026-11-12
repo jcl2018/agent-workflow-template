@@ -1,7 +1,7 @@
 # merge.py's refusal path never crashes: autorelease.fail() handles a goal state with no report and prints the refusal with its fix line
 
 - Slug: autorelease-fail-crash
-- Touches: skills/workflow-release/scripts/autorelease.py, dev/toy, .loop/regression.tsv, docs/wiki/Delivery.md, docs/wiki/Tests.md
+- Touches: skills/workflow-release/scripts/autorelease.py, dev/toy, .loop/regression.tsv, docs/wiki/Delivery.md, docs/wiki/Tests.md, skills/workflow-release/scripts/wiki.py
 
 ## Done lines
 

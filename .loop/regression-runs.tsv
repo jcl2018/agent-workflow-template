@@ -54,6 +54,7 @@ aut-secret-name	PASS	2026-11-12
 aut-setup-health-only-with-skill	PASS	2026-11-12	
 auto-approved	PASS	2026-11-09	
 auto-release	PASS	2026-11-12	
+autorelease-no-report	PASS	2026-11-12	
 bad-schedule-refused	PASS	2026-11-12	
 batch-cut-user	PASS	2026-11-09	
 board-estimates-overrun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -421,6 +422,7 @@ usage-no-script	PASS	2026-11-11
 usage-optional	PASS	2026-11-11	
 usage-section-allowed	PASS	2026-11-11	
 waits-first	PASS	2026-11-09	
+wiki-no-report	PASS	2026-11-12	
 wiki-release	PASS	2026-11-12	
 wiki-release-pycache	PASS	2026-11-12	
 wiki-unmapped-stale	PASS	2026-11-11	
