@@ -77,6 +77,8 @@ Some loose words." "only '- **Field:** text' lines, with indented continuation"
 
 $GOOD" "each routine once"
   refuse "a short Serves is still accepted but an empty one is not" "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Serves:\*\* .*/- **Serves:**/')" "a 'Serves' field of 5 characters or more under setup-nightly"
+  refuse "an unknown Serves id" "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Serves:\*\* .*/- **Serves:** ZZZ-99 nonsense./')" "a Serves id that a page defines"
+  refuse "a Serves field with no id" "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Serves:\*\* .*/- **Serves:** whatever it needs./')" "a Serves field naming a requirement id"
   refuse "a bad routine name" "$(printf '%s\n' "$GOOD" | sed 's/^### setup-nightly/### Setup Nightly/')" "a routine name of lowercase letters, digits and hyphens"
   reset; place "$GOOD"; python3 - "$P" <<'PY'
 import sys
@@ -86,7 +88,9 @@ book = s[i:j]; s = s[:i] + s[j:]
 k = s.index("\n## Tests")
 open(p, "w").write(s[:k] + book + s[k:] + "\n## After\n")
 PY
-  check "a section placed after Tests is refused as out of order, never silently cut off by a render" 'out | grep -q "^SECTIONS Setup"'
+  check "a section placed after Tests is refused as out of order, and only once: not also reported as no runbook" 'out | grep -q "^SECTIONS Setup" && ! out | grep -q "got none"'
+  cp "$P" "$T/after.md"; python3 skills/workflow-docs/scripts/criteria.py render >/dev/null 2>&1
+  check "a render leaves a page with a section after Tests as it was, never cutting it off" 'grep -q "^## Runbook" "$P" && grep -q "^## After" "$P"'
   reset; place ""; check "an empty section is refused" 'out | grep -qF "Runbook: DOC-16 at least one"'
   reset; place "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Steps:\*\* .*/- **Steps:** run the check\n  and read its output to the end./')"
   check "an indented line continues a field and passes" '[ "$(out | tail -1)" = "DOCS OK: $N pages" ]'
@@ -115,7 +119,13 @@ s = open(p).read()
 i = s.index("\n## Requirements")
 open(p, "w").write(s[:i] + "\n## Runbook\n\n" + body + "\n" + s[i:])
 PY
-  check "a Reviewed page that gains a Runbook is not locked, marked changed or called out of order" '! out | grep -qE "^(LOCKED|CHANGED|SECTIONS) Monitoring"'
+  check "a Reviewed page that gains a Runbook is not locked, marked changed or called out of order" 'grep -q "^## Runbook" "$M" && ! out | grep -qE "^(LOCKED|CHANGED|SECTIONS) Monitoring"'
+  python3 - "$M" <<'PY'
+import sys
+p = sys.argv[1]; s = open(p).read()
+open(p, "w").write(s.replace("\n## Runbook\n", "\n## Requirements\n", 1))
+PY
+  check "positive control: the same page with its sections broken is called out" 'out | grep -qE "^(LOCKED|CHANGED|SECTIONS) Monitoring"'
   cp "$T/mon.orig" "$M"
 }
 

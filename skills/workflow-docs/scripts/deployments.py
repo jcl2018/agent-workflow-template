@@ -88,12 +88,12 @@ def owed(root, books, name):
     its page. `books` maps every page to the lines of its Runbook section ([] when none). No file means no registry."""
     out, path = [], os.path.join(root, ".loop", "routines.tsv")
     try:
-        with open(path) as handle:
-            rows = [(n, line.rstrip("\n").split("\t")) for n, line in enumerate(handle, 1) if line.strip() and not line.startswith("#")]
+        with open(path, encoding="utf-8-sig") as handle:
+            rows = [(n, line.rstrip("\n").split("\t")) for n, line in enumerate(handle, 1) if line.strip() and not line.lstrip().startswith("#")]
     except FileNotFoundError:
         return out
-    except OSError as error:
-        return [bad("routines.tsv", 1, "Runbook", 16, "a readable routine registry", short(error.strerror or "unreadable"), "fix .loop/routines.tsv")]
+    except (OSError, ValueError) as error:
+        return [bad("routines.tsv", 1, "Runbook", 16, "a readable routine registry", short(getattr(error, "strerror", None) or "not UTF-8 text"), "fix .loop/routines.tsv")]
     seen = set()
     for number, row in rows:
         routine, page = (row + ["", ""])[:2]
@@ -105,6 +105,21 @@ def owed(root, books, name):
         elif not any(line.rstrip() == "### " + routine for _, line in books[page]):
             out.append(bad(page, 1, name, 16, "a '### %s' runbook, the routine .loop/routines.tsv gives this page" % routine, "none",
                            "add the Runbook section with '### %s' and its fields" % routine))
+    return out
+
+
+def unserved(books, seen, name):
+    """DOC-16: each routine's Serves field names at least one requirement id, and every id it names is on some page."""
+    out = []
+    for page, lines in books.items():
+        for number, line in lines:
+            head = re.match(r"^- \*\*Serves:\*\*(.*)$", line)
+            ids = re.findall(r"[A-Z]{2,5}-\d+", head.group(1)) if head else None
+            if head and not ids:
+                out.append(bad(page, number, name, 16, "a Serves field naming a requirement id such as DOC-14", short(head.group(1)), "name the ids the routine serves"))
+            for key in ids or []:
+                if key not in seen:
+                    out.append(bad(page, number, name, 16, "a Serves id that a page defines", key, "name a requirement from a feature page"))
     return out
 
 

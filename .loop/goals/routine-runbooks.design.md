@@ -14,7 +14,7 @@ Two runbooks are written for this repo: `health-round` on Health (check, file, j
 
 - Registry as a `.loop` file, not a third column of `docs.tsv`: other readers split `docs.tsv` on its first tab and would glue the new column onto the last path. Not a setting either: setup is held by another goal, and a registry is repo data.
 - The Runbook is not part of the PRD review fingerprints, so an agent can correct it as it learns without un-reviewing the requirements (the owner's own words: add the exact correction there).
-- Every field is required with at least 12 characters. The check cannot judge whether a text is true; it judges that the full-run and output fields exist. Truth is for the owner's review of the page and for the `repo` test, which asserts the shipped runbooks say a full run is live and a fixture never stands in.
+- Every field is required with at least 5 characters (Serves must name requirement ids that a page defines). The check cannot judge whether a text is true; it judges that the full-run and output fields exist. Truth is for the owner's review of the page and for the `repo` test, which asserts the shipped runbooks say a full run is live and a fixture never stands in.
 - No new file under skills/ (the package is at its 99-file cap): the code went into `pageformat.py`, `criteria.py`, `deployments.py` (rules) and `template.md`.
 - DOC-16 on the Documentation page and AUT-8 on the Automation page, both Unreviewed, are for the owner to review. DOC-15 is settings-table's, so DOC-16 here. Documentation then holds 15 requirements, which is `criteria_max`; settings-table's DOC-15 makes 16, so whichever merges second raises `criteria_max` in `.loop/config.json` to 16.
 

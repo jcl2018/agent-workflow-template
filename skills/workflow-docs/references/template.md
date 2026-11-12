@@ -46,7 +46,7 @@ default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (
 - **Runbook** (optional, `runbook`, DOC-16): for a feature that owns a scheduled or on-demand routine, what an agent
   given only "run routine X" must read first. One `### <routine>` subsection per routine (lowercase letters, digits and
   hyphens), each holding every field of `runbook_fields` as ``- **Field:** text`` (indented lines continue it), each
-  12 characters or more, nothing else: **Serves** (the PRD requirement ids it serves), **Schedule**, **Steps** (the
+  5 characters or more, nothing else: **Serves** (the PRD requirement ids it serves, each an id some page defines), **Schedule**, **Steps** (the
   exact command or steps), **Full run** (what a full run is: live sources and real output, never a dry run or a fixture
   on a scheduled run), **Output** (the one output and where it goes), **Never** (the forbidden shortcuts) and **Check**
   (how to tell the run was real). A routine listed in `.loop/routines.tsv` (`routine<TAB>page`, optional) must have its
