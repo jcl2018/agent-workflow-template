@@ -180,7 +180,7 @@ check "check-reads maps a read of a copied skill file back to the repo file" 'gr
 # Value: protects=a module loaded by name (importlib.import_module("b"), health.py's sibling_module) is in the loader's
 # closure, and opening a missing optional file (agents.py's skills/workflow-package.json in a checkout) is no read (issue
 # 173); fails_when=narrow drops quoted module names of an importlib user, or check-reads counts a failed open;
-# why_new=lanes-trace failed on enforce.py, defects.py and workflow-package.json; seam=none; no_claim=__import__ or exec
+# why_new=lanes-trace failed on enforce.py and workflow-package.json; seam=none; no_claim=__import__ or exec
 check "a module loaded by name is in the closure, and opening a missing file reads nothing" 'grep -q "^PASS r6" <<<"$out" && grep -q "^PASS r7" <<<"$out" && ! grep -q "UNDECLARED r[67] " <<<"$out"'
 # Value: protects=regression.py reads turns the newest trace into a header, and says how to get one (issue 172);
 # fails_when=check-reads stops keeping the trace or reads stops reading it; why_new=new command; seam=<git dir>/lanes-trace.tsv;

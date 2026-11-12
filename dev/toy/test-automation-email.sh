@@ -481,7 +481,7 @@ PY
   grep -q "run=206 open=" "$G/body-77.md" && grep -q "run=local open=" <<<"$c" && grep -qF "| round cost | not read (only read in Actions) (ROUND_UNREAD) |" <<<"$c" \
     && ok "a digest run by hand keeps the last Actions run on the issue and says the cost is only read in Actions" || bad "local digest"
   python3 -B -c "
-import sys; sys.path.insert(0, '$S'); import automation, mail_render
+import sys; sys.path.insert(0, '$S'); import automation, rounds as mail_render
 c, _ = automation.compose('', '', [], {3: ('u3', 99), 4: ('u4', 0), 5: ('u5', 10)}, {}, '7', {10: 'Automation'})
 heads = [l for l in c.splitlines() if l.startswith('### ')]
 assert heads == ['### Automation', '### No milestone'], heads
