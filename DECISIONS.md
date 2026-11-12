@@ -24,3 +24,17 @@ One line each, where the roadmap didn't say.
 - 2026-11-12, feature labels: `feature_labels` stays false by default, and the requirements say "when feature_labels is on", because the code tags a feature only then. Reworded HLT-4, AUT-2, AUT-3.
 - 2026-11-12, one budget name: the setting is `test_budget_minutes` everywhere, because `test_budget_seconds` does not exist. Fixed workflow-health commands.md and the HLT-6 row descriptions; HLT-2 names no setting and stands.
 - 2026-11-12, Monitoring non-goal: "does not merge" becomes "never merges unless auto_merge is on", because MON-7 and MON-15 let the post-merge step merge. Reworded the Monitoring Non-goals.
+
+## Waiting on owner un-review (proposed 2026-11-12, not applied)
+
+These requirements are Reviewed and locked, so their text is unchanged. Each would read as below once the owner un-reviews it.
+
+- REG-5 (decision 3): "One labeled issue per failing test, updated while it fails and closed when it passes; known failures don't block; it only previews unless `--live` is given, and the scheduled workflows pass `--live`."
+- AUT-5 (decision 3): "Each routine can be turned off or rescheduled in one setting. It writes to GitHub only with `--live` (the scheduled workflows pass it), and without the secrets it needs a routine runs but writes nothing and says what is missing."
+- DEL-5 (decision 6): "Every goal ends with release. With auto_merge on it is fully automatic: it bumps the version, writes the release note, refuses to merge while a page is stale, runs my routines, merges, publishes the release and the wiki. With auto_merge off it makes a draft release for me to publish and merges nothing. Any failure shows under Needs you."
+- DEL-6 (decision 6): "Plan and review run at full depth by default (`review_depth: full`); a condensed plan and review happens only when `review_depth: condensed`, and I can override it per goal. Tests never shrink: every goal runs its test lane, the affected rows within the test budget (REG-7)."
+- DOC-1 (decision 7): replace "Nothing else goes on the page." with "Nothing else goes on the page except the generated, optional Deployments (DOC-14) and Runbook (DOC-16) sections."
+- MON-3 (decision 2): "Live board: report, dashboard and the artifact show the live board in the one fixed layout MON-4 lists; this requirement owns the board, and a check-in never prints it."
+- MON-4 (decision 2): title "Live board layout"; keep its bullets, and change the last to "Check-ins don't print this board; MON-5 owns the check-in reply."
+- MON-5 (decision 2): replace "and prints the full board every time" with "and each check-in prints only its reply layout, never the board"; the title and the layout list stay.
+- Monitoring Non-goals (decision 10): "It never merges unless auto_merge is on (MON-7, MON-15); the delivery loop merges and releases."
