@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.27.51 - 2026-11-12
+
+- Move the Automation block code from render.py to counting.py; row docs-block-split
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/health-docs-size
+- Lane: re-render the Tests tables
+- Re-render the Settings block on Home
+- Wiki: update pages for health-docs-size
+- Merge remote-tracking branch 'origin/main' into loop/health-docs-size
+- Merge remote-tracking branch 'origin/main' into loop/health-docs-size
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.50 - 2026-11-12
+
+- Merge origin/main into loop/regression-rows-set-grd
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/regression-rows-set-grd
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/regression-rows-set-grd
+- Merge remote-tracking branch 'origin/main' into loop/regression-rows-set-grd
+- Wiki: update pages for regression-rows-set-grd
+
+### How to verify
+
+1. Run `python3 skills/workflow-regression/scripts/regression.py sync`.
+   Expect: no GAP line names SET-6, SET-7, SET-9 or GRD-1 to GRD-10 as lacking a row, and no UNPROVEN line names a grd row.
+2. Run `grep -c '^grd' .loop/regression.tsv`.
+   Expect: 17 or more rows.
+
 ## v0.27.49 - 2026-11-12
 
 - package-hang: package.py never waits on stdin or forever; hard bound with one TIMEOUT line; toy test

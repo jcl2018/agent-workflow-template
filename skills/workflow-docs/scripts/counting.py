@@ -3,9 +3,10 @@
 
 docs.py check, audit and publish call counts() through docs.counts(root). prose() is the text a reader sees: no fenced
 or indented code, comments or code spans. The page map of docs.py (map_path, read_map, write_map),
-and its live() and render.py's cadence(), moved unchanged, and real(), which drops block-only commits from its staleness, sit at the end.
+and its live() and render.py's cadence(), config_of(), entries() and automation_block(), moved unchanged, and real(), which drops block-only commits from its staleness, sit at the end.
 """
 import glob
+import json
 import os
 import re
 import subprocess
@@ -211,9 +212,8 @@ def real(root, changed, paths):
 
 
 def live(root):
-    import render
     """Print each routine's live state: a workflow's newest run, a launch agent loaded or not."""
-    for e in render.entries(root):
+    for e in entries(root):
         kind, _, target = str(e.get("runs", "")).partition(":")
         if kind == "github":
             done = subprocess.run(["gh", "run", "list", "--workflow", target, "--limit", "1", "--json", "conclusion,createdAt",
@@ -240,3 +240,55 @@ def cadence(cron):  # render.py's Automation block cadence, moved here unchanged
         if f[1] == "*" and f[0].startswith("*/") and f[0][2:].isdigit():
             return "every %s minutes" % f[0][2:]
     return "cron `%s`" % cron
+
+
+def config_of(root):
+    try:
+        with open(os.path.join(root, ".loop", "config.json")) as handle:
+            held = json.load(handle)
+        return held if isinstance(held, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+BUILT_IN = (("health", "Checks the repo and files each finding.", "health_cron", "47 */4 * * *", "health.yml"),
+            ("regression", "Runs every regression row, files each failure.", "regression_cron", "17 */4 * * *", "regression.yml"),
+            ("digest email", "Mails one digest per health round.", None, "", "health.yml"))
+
+
+def entries(root):
+    """Built-in routines, then the `automation` entries of config: {name, does, cadence, runs: github:FILE | mac:LABEL |
+    claude:TASK, enabled?, last_run?}; an entry named like a built-in replaces it."""
+    cfg, out = config_of(root), []
+    for name, does, key, default, flow in BUILT_IN:
+        mail = str(cfg.get("digest_mail", "cloudflare"))
+        cron = "with each health round" if key is None else str(cfg.get(key, default))
+        out.append({"name": name, "does": does, "cadence": cron, "runs": "github:" + flow,
+                    "enabled": mail != "off" if key is None else cron != "off"})
+    for item in cfg.get("automation") or []:
+        if isinstance(item, dict) and item.get("name"):
+            out = [e for e in out if e["name"] != item["name"]] + [item]
+    return out
+
+
+def automation_block(root):
+    rows, flows = [], os.path.join(root, ".github", "workflows")
+    for e in entries(root):
+        kind, _, target = str(e.get("runs", "")).partition(":")
+        on = e.get("enabled", True) is not False and str(e.get("cadence")) != "off"
+        last, owed = str(e.get("last_run") or "docs.py automation"), "none"  # a live time in the page would change on every run
+        if kind == "github":
+            there = os.path.exists(os.path.join(flows, target))
+            where, state = ("GitHub Actions (%s)" % target) if there else "not deployed", "on" if on and there else "off"
+            owed = "run workflow-setup to write .github/workflows/" + target if on and not there else owed
+        elif kind in ("mac", "claude"):
+            where = "this Mac (launch agent %s)" % target if kind == "mac" else "Claude scheduled task %s" % target
+            state, owed = "on (declared)" if on else "off (declared)", "confirm it is live: docs.py automation"
+        else:
+            where, state, owed = "not set", "off", 'add "runs": github:FILE, mac:LABEL or claude:TASK'
+        if e["name"] == "digest email" and on and str(e.get("cadence")) != "off":
+            owed = "set the digest address and keys as Actions secrets (yours, outside git)" if owed == "none" else owed
+        rows.append([str(e["name"]), str(e.get("does", "")), state, cadence(str(e.get("cadence", ""))), where, last, owed])
+    head = ["Routine", "What it does", "State", "Cadence", "Runs on", "Last run", "Owed by you"]
+    return "\n".join(["<!-- automation:begin -->", "## Automation", "",
+                       "Health and regression, then each `automation` entry in `.loop/config.json`; to add one, add an entry.", ""] + pageformat.table(head, rows) + ["<!-- automation:end -->", ""])
