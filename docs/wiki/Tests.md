@@ -123,6 +123,7 @@
 | <a id="t-issue-154-release-pr-merge"></a>issue-154-release-pr-merge | defect | [#154](https://github.com/jcl2018/agent-workflow-template/issues/154) closed (2026-11-11) | not run | - | local | 2026-11-10 |
 | <a id="t-issue-170-patch-on-remove"></a>issue-170-patch-on-remove | defect | [#170](https://github.com/jcl2018/agent-workflow-template/issues/170) open (2026-11-11) | not run | - | local | 2026-11-10 |
 | <a id="t-del9-lane-part-no-path"></a>del9-lane-part-no-path | requirement | DEL-9 | not run | - | local | 2026-11-11 |
+| <a id="t-del9-hooks"></a>del9-hooks | requirement | DEL-9 | not run | - | local | 2026-11-11 |
 
 ## Documentation
 
@@ -257,9 +258,9 @@
 | <a id="t-hlt5-review-evidence"></a>hlt5-review-evidence | requirement | HLT-5 | not run | - | local | 2026-11-10 |
 | <a id="t-hlt6-controls-lean"></a>hlt6-controls-lean | requirement | HLT-6 | not run | - | local | 2026-11-10 |
 | <a id="t-hlt1-same-answer"></a>hlt1-same-answer | requirement | HLT-1 | not run | - | local | 2026-11-10 |
-| <a id="t-health-tokens-124"></a>health-tokens-124 | defect | [#124](https://github.com/jcl2018/agent-workflow-template/issues/124) open (2026-11-11) | not run | - | local | 2026-11-10 |
-| <a id="t-judge-cause-158"></a>judge-cause-158 | defect | [#158](https://github.com/jcl2018/agent-workflow-template/issues/158) open (2026-11-11) | not run | - | local | 2026-11-10 |
-| <a id="t-health-docs-159"></a>health-docs-159 | defect | [#159](https://github.com/jcl2018/agent-workflow-template/issues/159) open (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-health-tokens-124"></a>health-tokens-124 | defect | [#124](https://github.com/jcl2018/agent-workflow-template/issues/124) closed (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-judge-cause-158"></a>judge-cause-158 | defect | [#158](https://github.com/jcl2018/agent-workflow-template/issues/158) closed (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-health-docs-159"></a>health-docs-159 | defect | [#159](https://github.com/jcl2018/agent-workflow-template/issues/159) closed (2026-11-11) | not run | - | local | 2026-11-10 |
 | <a id="t-health-not-enforced-warn"></a>health-not-enforced-warn | requirement | HLT-2 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-health-not-enforced-fail"></a>health-not-enforced-fail | requirement | HLT-2 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-health-unreviewed-warn-issue-118"></a>health-unreviewed-warn-issue-118 | defect | [#118](https://github.com/jcl2018/agent-workflow-template/issues/118) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
@@ -377,7 +378,7 @@
 | <a id="t-est-worktree"></a>est-worktree | requirement | MON-4 | not run | - | local | 2026-11-10 |
 | <a id="t-est-similar-step"></a>est-similar-step | requirement | MON-4 | not run | - | local | 2026-11-10 |
 | <a id="t-est-stall-held"></a>est-stall-held | requirement | MON-4 | not run | - | local | 2026-11-10 |
-| <a id="t-worker-save-159"></a>worker-save-159 | defect | [#159](https://github.com/jcl2018/agent-workflow-template/issues/159) open (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-worker-save-159"></a>worker-save-159 | defect | [#159](https://github.com/jcl2018/agent-workflow-template/issues/159) closed (2026-11-11) | not run | - | local | 2026-11-10 |
 | <a id="t-reply-checkin-321"></a>reply-checkin-321 | defect | [#321](https://github.com/jcl2018/agent-workflow-template/issues/321) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-pull-ff-only-passes"></a>pull-ff-only-passes | defect | [#495](https://github.com/jcl2018/agent-workflow-template/issues/495) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-pull-plain-blocked"></a>pull-plain-blocked | defect | [#495](https://github.com/jcl2018/agent-workflow-template/issues/495) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
@@ -527,6 +528,8 @@
 | <a id="t-entry-stale"></a>entry-stale | requirement | SET-5 | not run | - | local | 2026-11-10 |
 | <a id="t-entry-adopt"></a>entry-adopt | requirement | SET-5 | not run | - | local | 2026-11-10 |
 | <a id="t-agents-wire"></a>agents-wire | requirement | SET-10 | not run | - | local | 2026-11-10 |
+| <a id="t-set8-hooks"></a>set8-hooks | requirement | SET-8 | not run | - | local | 2026-11-11 |
+| <a id="t-set8-setup-commit"></a>set8-setup-commit | requirement | SET-8 | not run | - | local | 2026-11-11 |
 
 ## Other
 

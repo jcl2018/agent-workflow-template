@@ -40,7 +40,7 @@ GROUPS = tuple(g for g in G.ORDER if g != "controls") + ("review",)
 DEFAULT = tuple(g for g in G.ORDER if g not in ("mine", "controls"))  # a preview with no group names these, never mine
 BAD = ("WARN", "FAIL", "UNREAD")
 # Shown, never filed: local paths and machine state, the controls, and the check's own clock.
-REPORT_ONLY = ("test-time", "worktrees", "local-branches", "idle-sessions", "scan-hook", "check-time", "control",
+REPORT_ONLY = ("test-time", "worktrees", "local-branches", "idle-sessions", "scan-hook", "hooks", "check-time", "control",
                "finding-age", "milestone")  # finding-age and milestone (DOC-10) are about issues themselves: filing them would feed itself
 
 
