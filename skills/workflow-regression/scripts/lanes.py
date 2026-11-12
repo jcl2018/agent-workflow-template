@@ -132,7 +132,10 @@ def run_row(command, cwd, env, timeout):
         try:
             code, tail = proc.wait(timeout=timeout), ""
         except subprocess.TimeoutExpired:  # kill the row's whole tree, so nothing it started keeps ports or writes on
-            for pid in [proc.pid] + descendants(proc.pid):
+            if os.name == "nt":  # no ps or SIGKILL there: taskkill /T takes the tree
+                import proctree
+                proctree.kill(proc.pid)
+            for pid in [] if os.name == "nt" else [proc.pid] + descendants(proc.pid):
                 try:
                     os.kill(pid, sig.SIGKILL)
                 except OSError:

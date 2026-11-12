@@ -25,6 +25,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
+import proctree  # noqa: E402
 
 LIMIT = re.compile(r"(?i)usage limit|rate limit|limit reached|quota exceeded|too many requests|out of credits")
 RESUME_PROMPT = """Use the workflow-delivery skill to continue the goal {slug} in this git worktree, on branch {branch}.
@@ -104,6 +105,8 @@ def runs():
 
 
 def alive(pid):
+    if os.name == "nt":
+        return proctree.alive(pid)
     try:
         os.kill(pid, 0)
     except (OSError, TypeError):
@@ -140,10 +143,7 @@ def stop_late_mender(state):
     """A mender still running on a goal that has landed has nothing left to do, and would judge an empty diff."""
     url = landed(state)
     if url and alive(state.get("pid")):
-        try:
-            os.killpg(state["pid"], signal.SIGTERM)
-        except OSError:
-            pass
+        proctree.kill(state["pid"], signal.SIGTERM)
         close_landed(state, url)
 
 

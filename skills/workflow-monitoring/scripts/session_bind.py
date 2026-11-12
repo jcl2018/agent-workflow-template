@@ -12,10 +12,11 @@ worker sessions (`session_command` in .loop/config.json, or $LOOP_SESSION_TOOL),
 """
 import os
 import shlex
-import signal
 import subprocess
 import sys
 import tempfile
+
+import proctree
 
 # No terminal, no waiting: a prompt from git or gh in the tool must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -143,10 +144,7 @@ def call(command, *args):
         try:
             child.wait(timeout=timeout())
         except BaseException as error:  # a timeout, or an interrupt: never leave the tool running
-            try:
-                os.killpg(child.pid, signal.SIGKILL)
-            except OSError:
-                pass
+            proctree.kill(child.pid)
             try:
                 child.wait(timeout=5)
             except subprocess.TimeoutExpired:

@@ -87,13 +87,15 @@ def lanes_dir():
 def check(pool):
     """Create the pool 0700; refuse one that isn't yours or that others can write (OSError names why)."""
     os.makedirs(pool, mode=0o700, exist_ok=True)
+    if os.name == "nt":  # no uid or group bits: the pool sits in the user's own profile, private by its ACL
+        return
     info = os.stat(pool)
     if info.st_uid != os.getuid() or info.st_mode & 0o022:
         raise OSError("not owned by you, or writable by group or others")
 
 
 def _open(path, flags=0):
-    return os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | flags, 0o600)
+    return os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | flags, 0o600)
 
 
 def _locked(fd):

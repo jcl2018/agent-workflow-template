@@ -24,6 +24,7 @@ import time
 
 import fit
 import lanekit
+import proctree
 import role
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -197,6 +198,8 @@ def depth_rule(step, state=None, runs=None):
 
 
 def alive(pid):
+    if os.name == "nt":
+        return proctree.alive(pid)
     try:
         os.kill(pid, 0)
     except OSError:
@@ -326,7 +329,7 @@ def main():
         if time.time() - held["started"] < held["limit"]:
             print("RUNNING: run this same command again")
             return 0
-        os.killpg(held["pid"], signal.SIGTERM)
+        proctree.kill(held["pid"], signal.SIGTERM)
         with open(reply, "a") as out:
             if args.step in BUDGETED:  # it finishes with what it has done and says what it left; the goal goes on
                 mins = round(held["limit"] / 60, 1)

@@ -24,6 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REG = os.path.normpath(os.path.join(HERE, "..", "..", "workflow-regression", "scripts"))
 sys.path.insert(0, HERE)
 import lanekit  # noqa: E402
+import proctree  # noqa: E402
 # No terminal, no waiting: a prompt from git or gh must fail, not block (lanekit sets it too).
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 from lanekit import NOTHING, TERMINAL, died, dirty, drop, generated, git, mtime, prep, read_json, running_line, set_last  # noqa: E402,F401
@@ -60,14 +61,13 @@ def lane_text():
 
 
 def kill(pid):
-    try:
-        os.killpg(pid, signal.SIGTERM)
-    except OSError:  # already gone
-        pass
+    proctree.kill(pid, signal.SIGTERM)
 
 
 def alive(pid):
     """A pid that runs and is no zombie. EPERM means it runs but this poller may not signal it (a sandbox): alive."""
+    if os.name == "nt":
+        return proctree.alive(pid)
     try:
         os.kill(pid, 0)
     except PermissionError:
@@ -337,7 +337,7 @@ def lane_exec(rc, seconds, last, attempt, pool, argv):
                 cut = held["prep_by"] and not os.path.exists(rc + ".started")  # before the first row: the preparation budget
                 marks["cut"] = "waiting for a slot" if "queued" in marks else "planning" if cut else ""
                 signal.signal(signal.SIGTERM, signal.SIG_IGN)
-                kill(os.getpgrp())
+                kill(getattr(os, "getpgrp", lambda: child.pid)())  # Windows: no group, the child's tree
                 try:
                     child.wait(timeout=10)
                 except subprocess.TimeoutExpired:
