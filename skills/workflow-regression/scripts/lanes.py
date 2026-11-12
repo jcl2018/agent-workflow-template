@@ -8,7 +8,6 @@ on HEAD or an ancestor of HEAD and nothing it reads changed since; anything this
 A test script whose leading comment block has `# reads: <path>...` lines is mapped narrowly (declared entry points plus
 what they reach, no folder widening); a script without one keeps the wide mapping; LANES_WIDE=1 forces wide everywhere.
 """
-import portlock as fcntl
 import hashlib
 import json
 import os
@@ -17,6 +16,7 @@ import subprocess
 import sys
 
 import narrow
+from slots import fcntl
 
 # No terminal, no waiting: a prompt from git must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")

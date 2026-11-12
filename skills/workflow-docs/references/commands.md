@@ -284,3 +284,20 @@ is `UNWRITTEN` until then) and add its requirement's regression row in the same 
 next release). `python3 scripts/prd.py convert` previews turning old Summary/Criteria pages into PRD pages, and
 `convert --write` does it (Summary becomes Problem, Criteria Requirements, every stamp kept, placeholder Non-goals and
 Success metrics added); then write the drafts, rewrite row descriptions as scenarios and run `render`.
+
+### The automation registry
+
+The Automation block lists health and regression (built in, cadence from `health_cron` and `regression_cron`) and each entry
+of `automation` in `.loop/config.json`: `{"name", "does", "cadence", "runs", "enabled", "last_run"}`, where `runs` is
+`github:FILE` (a workflow file), `mac:LABEL` (a launch agent) or `claude:TASK` (a Claude scheduled task) and `cadence` is a
+cron string, words, or `off`. Adding a routine is adding one entry. `python3 scripts/docs.py automation` prints each one's
+live state here; the committed block holds only what files and config show.
+
+### audit
+
+The one command. It checks every page against `references/template.md` (the page rules live in its `rules` block, so
+nothing else holds a number), the code (stale pages), the tests (Tests tables) and the required docs (a release note per tag; a milestone is
+optional and free form, never required). It fixes the mechanical (`FIXED`: Tests tables), lists wording for a person to write as `REWRITE`, and lists each Reviewed criterion with no
+test, or whose tests no longer match, as `UNTESTED` (also saved to `untested.tsv` under `.git/loop`, for the loop to
+queue goals from). Exit 0 only when nothing is left; `UNTESTED` and a `SKIP` for no `gh` answer don't fail it. The
+release step runs it on every goal. It never deletes a page or edits a criterion.

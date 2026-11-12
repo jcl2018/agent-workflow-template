@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
-"""The estimate model of the live board: time left per goal, as a range, from finished goals; the current step's pace and
-overrun; and stalled goals (past STALL times the estimate and STALL_FLOOR). Three candidates (CANDIDATES: step medians,
-the size rule over goals of a similar size, their blend) share one monotone envelope; steps and blend are size-light, and
-their TILT of a second per unit only keeps a larger goal strictly longer. A leave-one-out backtest picks the candidate with
-the lowest median |ln(estimate / actual)|, recomputed when a run finishes (kept in MODEL per set of runs; a goal file edited
-inside one long-lived process is not seen until a run changes). Stall and overrun follow the chosen per-step table. A new
-candidate is a cell function in CELLS and its name in CANDIDATES, scored automatically. Imported by board_status.py, which
-re-exports every name here; it imports board_log.py, board_page.py and the standard library, never board_status.py.
-"""
+"""Live-board estimate candidates, time-ordered selection, and per-goal predictions. Scores are kept in MODEL per set of
+runs; a goal file edited inside one long-lived process is not seen until a run changes. Never imports board_status.py."""
 import math
 import os
 import statistics
@@ -15,7 +8,7 @@ import sys
 import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from board_log import STEPS, current, flow_seconds, git, size_of  # noqa: E402
+from board_log import STEPS, current, flow_seconds, git, named, size_of, stamp  # noqa: E402
 import board_page  # noqa: E402
 
 SIMILAR = 5     # similar finished goals needed before an estimate stops being rough
@@ -204,12 +197,37 @@ def score(rows, name):
     return statistics.median(abs(math.log(r["left"][name] / r["actual"])) for r in rows)
 
 
+def time_folds(runs, hist, names=CANDIDATES):
+    """Retrospective folds with only goals finished strictly before each target started."""
+    windows = {}
+    for run in runs:
+        if run.get("status") != "done":
+            continue
+        log = run.get("log") or []
+        ends = [stamp(e) for e in log if named(e) and stamp(e)]
+        windows[run["slug"]] = (stamp(log[0]) if log else None, max(ends) if ends else None)
+    rows = []
+    for slug, size, seconds in hist.done:
+        start, finish = windows.get(slug, (None, None))
+        actual = sum(seconds.get(s, 0) for s in STEPS)
+        if not start or not finish or actual <= 0:
+            continue
+        earlier = [item for item in hist.done if item[0] != slug and windows.get(item[0], (None, None))[1] and windows[item[0]][1] < start]
+        if not earlier:
+            continue
+        past = History(earlier)
+        per = {c: table(c, past, size)[0] for c in names}
+        left = {c: sum(b[0] for b in p.values() if b) for c, p in per.items()}
+        if all(v > 0 for v in left.values()):
+            rows.append(dict(slug=slug, size=size, actual=actual, seconds=seconds, per=per, left=left))
+    return rows
+
+
 def backtest(runs, at, root):
-    """Leave-one-out over the finished goals: (scores, n), with n the goals every candidate could estimate (see folds) and
-    scores {candidate: score} ({} when n is under MIN_BACKTEST). Worked out once per set of runs (see model)."""
+    """Time-ordered scores for the common eligible goals; cached per set of runs."""
     m = model(runs, at, root)
     if "scores" not in m:
-        m["folds"] = rows = folds(m["hist"], CANDIDATES, m)
+        m["folds"] = rows = time_folds(runs, m["hist"], CANDIDATES)
         m["scores"] = ({c: score(rows, c) for c in CANDIDATES} if len(rows) >= MIN_BACKTEST else {}), len(rows)
     return m["scores"]
 
@@ -229,7 +247,7 @@ def chosen(runs, at, root):
         low = min(scores.values()) if scores else 0
         tied = [c for c in CANDIDATES if c in scores and scores[c] - low <= 1e-9]
         m["chosen"] = (("size", "fewer than %d scorable goals (%d)" % (MIN_BACKTEST, n)) if not scores else
-                       (tied[0], "exact tie, first in CANDIDATES" if len(tied) > 1 else "lowest leave-one-out score"))
+                       (tied[0], "exact tie, first in CANDIDATES" if len(tied) > 1 else "lowest time-ordered score"))
     return m["chosen"][0]
 
 
@@ -244,7 +262,7 @@ def accuracy_text(runs, at, root=None):
     scores, n = m["scores"]
     if not scores:
         return "estimates: size rule, error not known yet (%d of %d goals)" % (n, MIN_BACKTEST)
-    return "estimates: %s, whole goal off x%.1f (%d goals)" % (LABELS[name], math.exp(scores[name]), n)
+    return "estimates: %s, time-ordered off x%.1f (%d goals)" % (LABELS[name], math.exp(scores[name]), n)
 
 
 def estimate(run, runs, at, root=None):
