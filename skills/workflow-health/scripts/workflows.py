@@ -79,7 +79,7 @@ jobs:
       - name: Health check
         if: steps.routine.outputs.on == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}  # docs-check's issue milestones (DOC-10) and finding-age read the open issues
+          GH_TOKEN: ${{ github.token }}  # finding-age reads the open issues
         run: |
           python3 skills/workflow-health/scripts/health.py check --group @GROUPS@ > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
           { echo "## Health"; echo; echo '```'; cat "$RUNNER_TEMP/health-report.txt"; echo '```'; echo
@@ -90,8 +90,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 skills/workflow-health/scripts/milestone.py new --all --live \
-            || echo "::warning::couldn't make every feature milestone; findings whose milestone is missing go on Backlog"
           python3 skills/workflow-health/scripts/health.py file --group @GROUPS@
       - name: Judge, only with the agent key secret
         if: always() && steps.routine.outputs.on == 'true'

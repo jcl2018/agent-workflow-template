@@ -67,6 +67,7 @@ TABLE = [
     ("full_auto", REPO, True, "true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait."),
     ("pool_size", REPO, 20, "Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones."),
     ("silent_minutes", REPO, 30, "Minutes a worker may send nothing before it shows under Needs you; LOOP_SESSION_QUIET (seconds) overrides it."),
+    ("feature_labels", REPO, False, "true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label; off by default, so issues carry their group or regression label only."),
     ("command", PRIVATE, ["claude", "-p"], "Flow file: the agent command that runs each flow step unattended."),
     ("allowed_tools", PRIVATE, [], "Flow file: tools a step's agent may use, passed as --allowedTools; empty adds nothing."),
     ("model", PRIVATE, "", "Flow file: the model a step's agent uses, passed as --model; empty keeps the command's own."),

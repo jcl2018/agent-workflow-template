@@ -65,6 +65,7 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `criteria_max` | 15 | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. |
 | `digest_mail` | cloudflare | How the round's digest is mailed: cloudflare (Email Service), smtp, or off; the address and keys live only in Actions secrets. |
 | `digest_owner` | none | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). |
+| `feature_labels` | false | true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label; off by default, so issues carry their group or regression label only. |
 | `full_auto` | true | true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait. |
 | `goal_lane_minutes` | 10 | Minutes a goal's regression lane may take before health warns and its LANE line says over. |
 | `goal_levels` | land | Row levels a goal lane plans from: land, or nightly for land and nightly rows. |

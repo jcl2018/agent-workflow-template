@@ -10,8 +10,7 @@ usage: health.py check [--json] [--group NAME[,NAME]] [--skip NAME[,NAME]]
 check prints the formal report (report.py): the twelve groups of report.py, each under a heading with its angle, every
 rule marked pass, warn, fail or unread with its fix, then one verdict, HEALTH: green or not green. Only FAIL and UNREAD
 turn it red (exit 1). Every rule has a negative control (controls.py); a rule with none makes health.py refuse (exit 2).
-docs-check also fails an open issue with no milestone (issues.py, DOC-10); its unread row never turns the verdict red.
-preview lists what file would do and writes nothing; file writes GitHub issues on each finding's feature milestone
+preview lists what file would do and writes nothing; file writes GitHub issues tagged with each finding's group
 (file.py, issues.py); triage lists and closes them in batches (issues.py). Rules live here and in defects.py
 and rules.py; --json prints the rows.
 """
@@ -202,14 +201,13 @@ def sibling_module(name):
 
 
 def docs_check(root):
-    """docs.py's check plus issues.py's DOC-10 rows (an open issue with no milestone)."""
-    issues = sibling_module("issues")
-    return docs_rows(root) + (issues.rows(root) if issues else [])
+    """docs.py's check."""
+    return docs_rows(root)
 
 
 def hard_unread(item):
-    """An UNREAD row that means its function didn't run; the SOFT issue-list row (report.SOFT) doesn't."""
-    return item["state"] == "UNREAD" and not (item["family"] == "docs" and item["rule"] == "milestone")
+    """An UNREAD row that means its function didn't run."""
+    return item["state"] == "UNREAD"
 
 
 def rule_functions():
