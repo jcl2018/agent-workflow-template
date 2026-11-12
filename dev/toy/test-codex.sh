@@ -126,6 +126,9 @@ if want skip; then
   check "skip: a row that exits 77 is reported SKIPPED, not PASS or FAIL, and the lane is not failed by it" "grep -q '^SKIPPED cannot-run-here' $T/skip.out && ! grep -q '^PASS cannot-run-here' $T/skip.out && ! grep -q '^FAIL cannot-run-here' $T/skip.out && grep -q ', 1 skipped\$' $T/skip.out"
   check "skip: it is saved as SKIPPED in the run ledger and opens no issue" "grep -q '^cannot-run-here	SKIPPED' $R/.loop/regression-runs.tsv && ! grep -q 'cannot-run-here' <(grep 'WOULD open' $T/skip.out)"
   check "skip: a later lane reuses the PASS row and runs the SKIPPED row again" "grep -q '^SKIPPED cannot-run-here' $T/skip3.out && ! grep -q '^PASS pass-here' $T/skip3.out && grep -q '(1 reused)' $T/skip3.out"
+  printf 'flips\tland\ttest -f .skip-now && exit 77; cat calc.py >/dev/null\tHOM-1\t2026-11-11\tGiven a row that passed, when a later run cannot run it, then the ledger keeps its PASS.\tcriterion\t\n' >> "$R/.loop/regression.tsv"
+  (cd "$R" && git add -A && git commit -qm flips && $RG run land > /dev/null 2>&1; touch .skip-now; $RG run land > "$T/skip4.out" 2>&1)
+  check "skip: a skip never overwrites the row's last PASS in the run ledger" "grep -q '^SKIPPED flips' $T/skip4.out && grep -q '^flips	PASS' $R/.loop/regression-runs.tsv"
   check "skip: red refuses a break run that exits 77" "(cd $R && $RG red cannot-run-here --break true 2>&1 | grep -q '^REFUSED: the row exited 77')"
 fi
 

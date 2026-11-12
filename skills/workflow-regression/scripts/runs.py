@@ -70,6 +70,8 @@ def write(root, results, date, sha):
         return
     ran, run = read(root), where(sha)
     for item in results:
+        if item["state"] == "SKIPPED" and (ran.get(item["id"]) or [""] * 5)[1] == "PASS":
+            continue  # a skip here says nothing against the last pass
         flag = item["flaky"] if "flaky" in item else ran.get(item["id"], [""] * 5)[4]
         ran[item["id"]] = [item["id"], item["state"] if item["state"] in ("PASS", "SKIPPED") else "FAIL", date, run, flag[:12]]
     with open(path(root), "w") as handle:

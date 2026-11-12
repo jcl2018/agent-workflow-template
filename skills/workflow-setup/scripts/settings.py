@@ -116,7 +116,7 @@ def write_json(path, data, mode=None):
         mode = os.stat(path).st_mode & 0o777  # keep the file's own mode
     temp = "%s.%d.tmp" % (path, os.getpid())  # a full disk must not leave a truncated settings file
     try:
-        with open(temp, "w") as handle:
+        with os.fdopen(os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode or 0o644), "w") as handle:
             json.dump(data, handle, indent=2)
             handle.write("\n")
         if mode:
