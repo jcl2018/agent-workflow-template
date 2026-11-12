@@ -391,6 +391,7 @@
 | <a id="t-mon15-pod-owner"></a>mon15-pod-owner | requirement | MON-15 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-mon15-merge-lock"></a>mon15-merge-lock | requirement | MON-15 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-guards-null-report-bind-mend"></a>guards-null-report-bind-mend | requirement | MON-2 | not run | - | local | 2026-11-12 |
+| <a id="t-est-time-order-mon4"></a>est-time-order-mon4 | requirement | MON-4 | not run | - | local | 2026-11-12 |
 
 ## Regression
 
@@ -674,6 +675,9 @@
 | <a id="t-plan-seconds-nightly"></a>plan-seconds-nightly | requirement | done line lane-plan-cache:1 | not run | - | local | 2026-11-12 |
 | <a id="t-pending-none-goes-on"></a>pending-none-goes-on | requirement | done line pending-none:1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-pending-real-waits"></a>pending-real-waits | requirement | done line pending-none:2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
+| <a id="t-est-time-order-selector"></a>est-time-order-selector | requirement | done line estimate-timeorder:3 | not run | - | local | 2026-11-12 |
+| <a id="t-est-time-order-board"></a>est-time-order-board | requirement | done line estimate-timeorder:1 | not run | - | local | 2026-11-12 |
+| <a id="t-est-loo-diagnostic"></a>est-loo-diagnostic | requirement | done line estimate-timeorder:2 | not run | - | local | 2026-11-12 |
 | <a id="t-deployments-counts-pages"></a>deployments-counts-pages | requirement | done line docs-small-fixes:1 | not run | - | local | 2026-11-12 |
 | <a id="t-readme-commands-in-usage"></a>readme-commands-in-usage | requirement | done line docs-small-fixes:2 | not run | - | local | 2026-11-12 |
 | <a id="t-portlock-fallback"></a>portlock-fallback | requirement | done line package-cap-3:3 | not run | - | local | 2026-11-12 |
