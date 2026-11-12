@@ -235,11 +235,12 @@ A row must be seen failing once before it counts. Known failures don't block, an
 Keep the wiki in step with the code. Pages live in `docs/wiki/`, so they're reviewed in pull requests:
 
 ```text
-/workflow-docs init
 /workflow-docs check
 /workflow-docs publish
 /workflow-docs restore
 ```
+
+To write the first pages, ask the agent to set up the docs: it follows the skill's `init` steps (survey, choose pages, write them).
 
 `publish` only adds or updates pages it wrote, unless you name one with `--adopt`, and never deletes one. `restore`
 undoes the last publish.
