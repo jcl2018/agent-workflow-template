@@ -7,7 +7,7 @@ usage: private.py where | check | scan [--base REF]    the worker check, the lis
 
 The list lives outside the repo: `$LOOP_PRIVATE_NAMES` (a file path) or `~/.workflow-loop/private-names`, one regular
 expression per line, matched without case; `#` starts a comment. No file: the scan passes and says nothing was checked.
-Only comments: off on purpose. A broken file: every scan refuses. A hit names its place and list line, never the text.
+Only comments: off on purpose. A broken file: every scan refuses. `visibility` honors $LOOP_REPO_VISIBILITY. A hit names its place and list line, never the text.
 """
 import json
 import os
@@ -338,7 +338,7 @@ def main():
     if args[:1] in (["visibility"], ["required"], ["statuses"]):
         base = args[args.index("--base") + 1] if "--base" in args else "main"
         if args[0] == "visibility":
-            print({True: "private", False: "public"}.get(repo_is_private("."), "unknown"))
+            print(os.environ.get("LOOP_REPO_VISIBILITY") or {True: "private", False: "public"}.get(repo_is_private("."), "unknown"))
         elif args[0] == "required":
             got = required_checks(".", base) or ([], [])
             print(*got[0], *("BLOCKS: %s (BLOCKS)" % name for name in got[1] + ADVICE), sep="\n")

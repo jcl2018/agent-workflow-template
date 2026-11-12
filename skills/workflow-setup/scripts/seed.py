@@ -179,7 +179,12 @@ def mapping(found):
 def decide(repo, config, found):
     """The plan: a list of (verb, path, note, action) with action None for skip and no fit."""
     acts, wiki = [], found["wiki"]
-    old = survey.read(repo, ".loop/config.json")
+    seen, old = out(repo, "workflow-delivery", "private.py", "visibility"), survey.read(repo, ".loop/config.json")  # one live answer
+    kept = json.loads(old or "{}").get("regression_runs")  # recorded as regression_runs; unreadable is never taken as public
+    if {"private": "mac", "public": "actions"}.get(seen) or kept:
+        config["regression_runs"] = {"private": "mac", "public": "actions"}.get(seen) or kept
+    else:
+        config.pop("regression_runs", None)
     if old is None or json.loads(old) != {k: v for k, v in config.items() if k != "checks"}:
         acts.append(("add" if old is None else "convert", ".loop/config.json", "keys added; yours kept", "config"))
     for name in ("queue.md", "findings.md"):
@@ -208,17 +213,25 @@ def decide(repo, config, found):
     if config["checks"]:
         if not any("regression.tsv" in a[1] for a in acts) and survey.read(repo, ".loop/regression.tsv") is None:
             acts.append(("add", ".loop/regression.tsv", "one land row per page's first criterion", "rows"))
-        if survey.read(repo, ".github/workflows/regression.yml") is None:
+        if config.get("regression_runs") != "actions":
+            acts.append(("note", "regression workflow", "not written: " + ("a private repo's regression runs on the Mac" if seen == "private"
+                                                                      else "visibility unreadable (run gh auth login, then setup again)"), None))
+        elif survey.read(repo, ".github/workflows/regression.yml") is None:
             acts.append(("add", ".github/workflows/regression.yml", "regression run on " + config.get("regression_cron", ""), "workflow"))
-        if survey.read(repo, ".github/workflows/health.yml") is None and survey.read(repo, "skills/workflow-health/scripts/health.py") is not None:
-            acts.append(("add", ".github/workflows/health.yml", "health, digest and email run on " + config.get("health_cron", ""), "health"))
-            acts.append(("add", ".github/workflows/mail-test.yml", "one test mail, started by hand", "health"))
-        elif survey.read(repo, ".github/workflows/health.yml") is None:  # its run needs the skill in the checkout
-            acts.append(("note", "health workflow", "not written: the workflow-health skill isn't in this repo, so a run could only fail", None))
     else:
         acts.append(("no fit", ".loop/regression.tsv", "no check command found, so no test row can be seeded", None))
+    if sibling("workflow-health", "automation.py"):
+        acts.append(("add", "local schedule", "launch agent file and registry entry outside the repo; you load it by hand", "local"))
+    for line in out(repo, "workflow-delivery", "private.py", "required", "--base", config["base"]).splitlines() if seen == "private" else []:
+        if line.startswith("BLOCKS: "):
+            acts.append(("BLOCKS", line[8:-9], "no commit status can satisfy it; remove it from the ruleset or branch protection (BLOCKS)", None))
     acts.append(("note", "health", "workflow-health check works with these files; its rules are fixed", None))
     return acts
+
+
+def out(repo, skill, script, *argv):
+    path = sibling(skill, script)
+    return subprocess.run([sys.executable, path] + list(argv), cwd=repo, capture_output=True, text=True).stdout.strip() if path else ""
 
 
 def tool(repo, skill, script, *argv):
@@ -271,8 +284,8 @@ def apply(repo, config, found, acts):
         touched.append(".loop/regression.tsv")
         if any(a[3] == "workflow" for a in acts):
             tool(repo, "workflow-regression", "regression.py", "workflow")
-        if any(a[3] == "health" for a in acts):
-            tool(repo, "workflow-health", "automation.py", "workflow")
+    if any(a[3] == "local" for a in acts):
+        tool(repo, "workflow-health", "automation.py", "local", "install")
     tool(repo, "workflow-docs", "criteria.py", "render")
     return touched
 

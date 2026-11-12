@@ -16,7 +16,9 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
+import tempfile
 
 TITLE = "Automation digest"
 BOTS = ("github-actions[bot]", "app/github-actions", "github-actions")  # REST login, gh's login, gh's short form
@@ -111,9 +113,16 @@ def stamp(text):
     return when if when.year >= 1970 else None
 
 
+def is_local(run):
+    """A run the Mac's tick made: its id is the 12-digit UTC minute YYYYMMDDHHMM, larger than any Actions run id."""
+    return bool(re.fullmatch(r"20\d{10}", str(run or "")))
+
+
 def created(run):
     if not run or not run.isdigit():
         return None
+    if is_local(run):
+        return datetime.datetime.strptime(run, "%Y%m%d%H%M").replace(tzinfo=datetime.timezone.utc)
     return stamp(gh("run", "view", run, "--json", "createdAt", "-q", ".createdAt").stdout.strip())
 
 
@@ -179,6 +188,8 @@ def round_cost(run, previous=None, now=None):
     now = now or datetime.datetime.now(datetime.timezone.utc)
     if not run or not str(run).isdigit():
         return {"error": "no run id"}
+    if is_local(run):
+        return {"local": max(0, int((now - created(str(run))).total_seconds())), "seconds": 0}
     start = created(str(run))
     health = jobs(run, now)
     if start is None or health is None:
@@ -209,7 +220,7 @@ def spend(run, reg, health, reg_jobs, previous, now, cost):
     if after is None:
         return own, True
     total, read, unread, notes = 0, 0, 0, []
-    for workflow in ("regression.yml", "health.yml"):
+    for workflow in ("regression.yml",):
         listed = runs(workflow, RUN_LIMIT, after)
         if listed is None:
             return own, True
@@ -234,6 +245,8 @@ def minutes(seconds):
 
 
 def line(cost):
+    if cost and cost.get("local") is not None:
+        return "local run, %d min, 0 Actions minutes (health runs on the Mac)" % minutes(cost["local"])
     if not cost or cost.get("error"):
         return "not read (%s) (ROUND_UNREAD)" % ((cost or {}).get("error") or "no data")
     if cost["regression"] is None:
@@ -248,6 +261,23 @@ def line(cost):
     if cost["over"]:
         text = "OVER %d min: slow a routine down or turn it off. %s" % (cost["budget"], text)
     return text + ("; " + cost["note"] if cost["note"] else "")
+
+
+def fetch_suite_time(tree, env, log, child):
+    """The newest suite-time artifact of regression.yml into the git common dir, marked ci (the old health job's step)."""
+    ids = re.findall(r"\d+", child(["gh", "run", "list", "--workflow", "regression.yml", "--limit", "20", "--json", "databaseId", "-q", ".[].databaseId"], tree, env, 30, log)[1])
+    into = tempfile.mkdtemp()
+    try:
+        for number in ids:
+            if child(["gh", "run", "download", number, "--name", "suite-time", "--dir", into], tree, env, 60, log)[0] == 0 and os.path.exists(into + "/suite-time.tsv"):
+                rows = [c[:4] + ["ci"] for c in (r.split("\t") for r in open(into + "/suite-time.tsv").read().splitlines()) if len(c) >= 4 and c[1] == "full" and c[2].isdigit()]
+                where = os.path.join(tree, subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=tree, capture_output=True, text=True).stdout.strip(), "loop")
+                os.makedirs(where, exist_ok=True)
+                open(os.path.join(where, "suite-times.tsv"), "a").write("".join("\t".join(r) + "\n" for r in rows))
+                return "SUITE_TIME: the newest regression run's full-suite time is in " + where
+    finally:
+        shutil.rmtree(into, ignore_errors=True)
+    return "NOTE: no suite-time artifact from the regression workflow yet; health shows the full-suite time as unknown"
 
 
 def summary(text):

@@ -123,7 +123,7 @@ if want nobypass; then reset
   check "merge.py carries no --admin and no --auto on any gh call" '! grep -n -e "\"--admin\"" -e "\"--auto\"" "$M/merge.py" "$M/autorelease.py"'
   check "both merge calls are plain --merge" '[ "$(grep -c "\"--merge\"" "$M/merge.py")" = 2 ]'
 fi
-if want readonly; then reset; git push -q origin loop/g
+if want readonly; then reset; unset LOOP_REPO_VISIBILITY; git push -q origin loop/g
   "$here/dev/toy/make.sh" "$d/setup" >/dev/null; printf '%s\n' '[{"type": "required_status_checks", "parameters": {"required_status_checks": [{"context": "lane-a"}]}}, {"type": "merge_queue", "parameters": {}}]' > "$FAKE_GH_DIR/rules.json"
   printf '{"required_status_checks": {"checks": [{"context": "lane-b", "app_id": null}]}}\n' > "$FAKE_GH_DIR/protection.json"
   export LOOP_SCHEDULE_HOME="$d/sched" LOOP_AGENTS_DIR="$d/agents" LOOP_LAUNCHCTL="$here/dev/toy/fakegh/launchctl"

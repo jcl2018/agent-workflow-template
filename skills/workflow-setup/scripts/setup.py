@@ -288,7 +288,7 @@ def main():
     with open(config_path, "w") as handle:
         handle.write(json.dumps({k: v for k, v in config.items() if k != "checks"}, indent=2) + "\n")
     seed.apply(repo, config, found, [a for a in acts if a[3] != "agents"])
-    paths = [p for p in (".loop", found["wiki"], ".github/workflows/regression.yml", ".github/workflows/health.yml") if os.path.exists(os.path.join(repo, p))]
+    paths = [p for p in (".loop", found["wiki"], ".github/workflows/regression.yml", ".github/workflows/regression-pr.yml") if os.path.exists(os.path.join(repo, p))]
     paths += [] if args.bare else agents.apply(repo)
     git(repo, "add", "-A", "--", *paths)
     scan = seed.sibling("workflow-delivery", "private.py")  # SET-8: nothing private goes into setup's own commit
