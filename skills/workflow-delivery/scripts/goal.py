@@ -13,7 +13,7 @@ Goal steps (step, record, pr) refuse outside a worker, which also sees what the 
   answer SLUG                 a waiting goal goes on
   finding SLUG TEXT           stops a live goal; a done or merged one is only noted
   resume SLUG --why T [--by W]    the operation revives a stopped session goal
-  touches SLUG --add PATH --why T the operation widens a goal's touches (a path, or github:wiki and the like)
+  touches SLUG --add PATH --why T the operation widens a goal's touches
   set SLUG [--depth D] [--bump B] [--budget-minutes N] [--budget-tokens N] --why T   the owner's per-goal settings
   show SLUG
 A refusal that changes nothing uses no try: exit 2, the goal keeps running (guards.py).
@@ -37,7 +37,7 @@ import fit  # noqa: E402
 import role
 
 
-try:  # pods (MON-15) live in workflow-monitoring's graph.py, loaded by path; None without it
+try:  # pods (MON-15): workflow-monitoring's graph.py, loaded by path
     _spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(__file__), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
     pods = importlib.util.module_from_spec(_spec)
     _spec.loader.exec_module(pods)
@@ -112,7 +112,7 @@ def state_path(slug):
     return os.path.join(state_dir(), slug + ".json")
 
 
-SEEN = {}  # slug -> the record (JSON) as last loaded or saved here: save() writes only what changed since
+SEEN = {}  # slug -> the record (JSON) as last loaded or saved here
 
 
 def load(slug):
@@ -125,7 +125,7 @@ def load(slug):
 
 
 def save(state, note=None):
-    """Under a lock, merged with another writer's save: only the keys changed here replace the file's, and the log keeps both."""
+    """Under a lock, merged with another writer's save: only keys changed here replace the file's; the log keeps both."""
     state["updated"] = now()
     if note:
         state.setdefault("log", []).append("%s %s" % (state["updated"], note))
@@ -138,6 +138,7 @@ def save(state, note=None):
             disk = {}
         was = json.loads(SEEN.get(slug, "{}"))
         merged = dict(disk, **{key: value for key, value in state.items() if was.get(key, SEEN) != value})
+        merged = {key: value for key, value in merged.items() if key in state or key not in was}  # a removed key stays removed
         have = disk.get("log") or []
         merged["log"] = have + [line for line in state.get("log") or [] if line not in have]
         role.report(disk, merged, state["updated"])

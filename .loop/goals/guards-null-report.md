@@ -1,7 +1,7 @@
 # A goal reset never writes a null report, and the goal state file is written under a lock so two writers cannot interleave (follow-ups named in PR #1092)
 
 - Slug: guards-null-report
-- Touches: skills/workflow-delivery/scripts, dev/toy, .loop/regression.tsv, docs/wiki/Delivery.md, docs/wiki/Tests.md
+- Touches: skills/workflow-delivery/scripts, dev/toy, .loop/regression.tsv, docs/wiki/Delivery.md, docs/wiki/Tests.md, skills/workflow-monitoring/scripts/session_bind.py, skills/workflow-monitoring/scripts/mend.py
 
 ## Done lines
 

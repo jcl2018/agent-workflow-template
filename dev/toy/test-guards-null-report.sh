@@ -47,6 +47,12 @@ assert d[\"alpha\"] == \"mine\" and d[\"beta\"] == \"mine\", d
 assert sum(\"note alpha\" in l for l in d[\"log\"]) == 1 and sum(\"note beta\" in l for l in d[\"log\"]) == 1, d[\"log\"]
 assert d[\"log\"][0] == \"start\""'
 check "the file is valid JSON and no temp file is left" 'python3 -c "import json;json.load(open(\"$T/repo/.git/loop/runs/g.json\"))" && [ -z "$(ls $T/repo/.git/loop/runs | grep tmp)" ]'
+( cd "$T/repo" && python3 - "$S/workflow-delivery/scripts" <<'PY' )
+import sys; sys.path.insert(0, sys.argv[1]); import goal
+state = goal.load("g"); state["held_at"] = "x"; goal.save(state); state.pop("held_at"); goal.save(state)
+PY
+out=""; check "a key a writer removes stays removed (bind clears held_at)" 'python3 -c "
+import json; d = json.load(open(\"$T/repo/.git/loop/runs/g.json\")); assert \"held_at\" not in d, d"'
 for i in 1 2 3 4 5 6; do ( cd "$T/repo" && python3 - "$S/workflow-delivery/scripts" "k$i" <<'PY' ) & done; wait
 import sys; sys.path.insert(0, sys.argv[1]); import goal
 state = goal.load("g"); state[sys.argv[2]] = 1; goal.save(state, "w" + sys.argv[2])
