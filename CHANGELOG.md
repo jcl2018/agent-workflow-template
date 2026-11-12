@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.27.20 - 2026-11-12
+
+- Fix two small doc defects: count the wiki pages, and put the README's commands in Usage
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/docs-small-fixes
+- Home: say a repo adds a routine with one config entry
+- Merge remote-tracking branch 'origin/main' into loop/docs-small-fixes
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.19 - 2026-11-12
 
 - Merge remote-tracking branch 'origin/main' into loop/issue-cleanup
