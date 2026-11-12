@@ -23,7 +23,7 @@ GROUPS = "requirements,traceability,consistency,docs,freshness,tests,performance
 MAIL_SECRETS = ("DIGEST_TO", "DIGEST_FROM", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_EMAIL_TOKEN", "DIGEST_SMTP_USER", "DIGEST_SMTP_PASSWORD")
 HERE = os.path.dirname(os.path.abspath(__file__))
 STAMP = "%Y-%m-%dT%H:%M:%SZ"
-UID = "gui/%d" % os.getuid()
+UID = "gui/%d" % os.getuid() if hasattr(os, "getuid") else "gui/0"
 TASK, MAX_HOURS = "%s-health-regression", 4  # the one local task per repo, and the longest gap between its runs
 
 
