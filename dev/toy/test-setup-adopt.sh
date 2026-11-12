@@ -357,6 +357,11 @@ PY
   b=$(state "$d/rfD/repo"); out=$(PATH="$d/shim:$PATH" $setup 2>&1); rc=$?
   [ $rc = 1 ] && echo "$out" | grep -q 'rolled back, nothing written' || no "a failed git call: rc=$rc $(echo "$out" | tail -3)"
   same "$d/rfD/repo" "$b" "a failed git call"
+  # no pkill (Windows): the rollback must still restore
+  mk rfI; mkdir -p "$d/pk"; printf 'import subprocess\n_r = subprocess.run\ndef run(a, *x, **k):\n    if a and a[0] == "pkill": raise FileNotFoundError("pkill")\n    return _r(a, *x, **k)\nsubprocess.run = run\n' > "$d/pk/sitecustomize.py"
+  b=$(state "$d/rfI/repo"); out=$(PATH="$d/shim:$PATH" PYTHONPATH="$d/pk" $setup 2>&1); rc=$?
+  [ $rc = 1 ] && echo "$out" | grep -q 'rolled back, nothing written' || no "no pkill: rc=$rc $(echo "$out" | tail -3)"
+  same "$d/rfI/repo" "$b" "a rollback with no pkill"
   # a wiki_dir that is not a folder inside the repo is refused before anything is copied or written
   mk rfE; mkdir -p .loop; printf '{"wiki_dir": "."}\n' > .loop/config.json; git add -A; git commit -qm "odd wiki_dir"
   b=$(state "$d/rfE/repo"); out=$($setup 2>&1); rc=$?
