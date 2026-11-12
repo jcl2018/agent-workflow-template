@@ -2,11 +2,12 @@
 """The numbers the docs state that the repo can check: skills, feature pages, and a feature page's criteria and tests.
 
 docs.py check, audit and publish call counts() through docs.counts(root). prose() is the text a reader sees: no fenced
-or indented code, comments or code spans. The page map of docs.py (map_path, read_map, write_map) sits at the end.
+or indented code, comments or code spans. The page map of docs.py (map_path, read_map, write_map) and real(), which drops block-only commits from its staleness, sit at the end.
 """
 import glob
 import os
 import re
+import subprocess
 
 import criteria
 import pageformat
@@ -176,3 +177,25 @@ def write_map(root, rows):
         handle.write("# page<TAB>paths it describes, comma separated\n")
         for page in sorted(rows):
             handle.write("%s\t%s\n" % (page, ",".join(rows[page])))
+
+
+BLOCK = re.compile(r"<!-- (settings|automation|template):begin -->\n.*?<!-- \1:end -->\n", re.S)  # render.py's blocks
+
+
+def real(root, changed, paths):
+    """changed ('<sha> <subject>' lines) without the commits whose change to paths lies only inside the generated
+    blocks of README.md or a Home.md: a block refresh (or setup's insert) says nothing about the pages mapped there."""
+    git = lambda *a: subprocess.run(["git", "-C", root] + list(a), capture_output=True, text=True)  # noqa: E731
+    names = {}  # one git call for every commit's files
+    for chunk in git("log", "--no-walk=unsorted", "--no-renames", "--format=%x01%h", "--name-only",
+                     *[c.split()[0] for c in changed], "--", *paths).stdout.split("\x01")[1:]:
+        sha, *files = chunk.strip("\n").split("\n")
+        names[sha] = [f for f in files if f]
+
+    def blocks_only(sha, rel):
+        old, new = git("show", "%s^:%s" % (sha, rel)), git("show", "%s:%s" % (sha, rel))
+        bare = lambda t: re.sub(r"\n{3,}", "\n\n", BLOCK.sub("", t)).strip()  # noqa: E731 an insert leaves a blank line
+        return not old.returncode and not new.returncode and bare(old.stdout) == bare(new.stdout)
+
+    return [c for c in changed if not (names.get(c.split()[0]) and all(
+        os.path.basename(rel) in ("README.md", "Home.md") and blocks_only(c.split()[0], rel) for rel in names[c.split()[0]]))]

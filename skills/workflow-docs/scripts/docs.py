@@ -174,8 +174,8 @@ def problems(root, base):
             continue
         skip = ["^" + sha for sha in seen + [base] + merged if sha]  # merges add nothing
         mine = paths + [":(exclude).loop/config.json"] * pageformat.is_guide(text)  # a guide isn't about settings values
-        changed = git("log", "--no-merges", "--full-history", "--format=%h %s", "HEAD", *skip, "--", *mine,
-                      cwd=root).splitlines()
+        changed = counting.real(root, git("log", "--no-merges", "--full-history", "--format=%h %s", "HEAD", *skip, "--", *mine,
+                                          cwd=root).splitlines(), mine)  # block-only commits say nothing
         if changed:
             found.append(("STALE", page, "%d commits since the page: %s" % (len(changed), changed[0][:70])))
     held = os.path.join(root, folder)
