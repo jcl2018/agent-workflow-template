@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.27.5 - 2026-11-12
+
+- Private-name hooks: pre-commit, commit-msg and pre-push scan through private.py, installed by setup, flagged by health (guard-enforce)
+- Review fixes: commentChar=auto bypass, non-ASCII name leak, keep edited stubs (guard-enforce)
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- Setup page: name the two other hook outcomes (guard-enforce)
+- Merge main into guard-enforce
+- Merge main (v0.27.4, health-prd) into guard-enforce: hooks rule registered in the Security group
+- Merge remote-tracking branch 'origin/main' into loop/guard-enforce
+- Merge remote-tracking branch 'origin/main' into loop/guard-enforce
+- pr: record issue states and the lane's results
+- Wiki: update pages for guard-enforce
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.4 - 2026-11-12
 
 - health-prd: cost leaves out goals with no tokens (124); the judge error names its stderr (158)
