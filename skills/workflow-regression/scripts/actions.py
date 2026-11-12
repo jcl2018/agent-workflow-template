@@ -10,7 +10,7 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
-BUDGET_MINUTES = 30  # one budget for a scheduled regression job: REG-7 names it, AUT-7's 45-minute round is this plus 15 for health
+BUDGET_MINUTES = 30  # a scheduled regression job's budget (REG-7, AUT-7)
 SHARDS = 2  # the suite is split over this many jobs so each fits the budget
 
 
@@ -50,7 +50,7 @@ concurrency:
 jobs:
   regression:
     runs-on: ubuntu-latest
-    timeout-minutes: @BUDGET@  # the regression budget (REG-7); the suite is sharded so each job fits it
+    timeout-minutes: @BUDGET@  # the regression budget (REG-7)
     strategy:
       fail-fast: false
       matrix:
@@ -68,7 +68,7 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("regression_cron") or "")' 2>/dev/null || true)
-          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then  # off stops the schedule; tags and hand runs still run
+          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then  # off stops the schedule only
             echo "on=false" >> "$GITHUB_OUTPUT"
             echo "OFF: regression is off in .loop/config.json (regression_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -110,8 +110,12 @@ jobs:
               sys.exit(1)
           def wanted(row):
               return row[0] == TARGET if TARGET not in ("land", "nightly") else row[1] in ("land", TARGET)
-          def gh(*args):
-              return subprocess.run(("gh",) + args, capture_output=True, text=True)
+          def gh(*args, body=None):  # a text goes in a file, not the command line (Windows caps it)
+              with tempfile.TemporaryDirectory() as tmp:
+                  if body is not None:
+                      open(tmp + "/b", "wb").write(body.encode())
+                      args += ("--body-file", tmp + "/b")
+                  return subprocess.run(("gh",) + args, capture_output=True, text=True)
           def seconds(name, default):
               try:
                   value = int(os.environ.get(name) or default)
@@ -119,7 +123,7 @@ jobs:
                   return default
               return value if value > 0 else default
           ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", (@BUDGET@ - 2) * 60)
-          ROW_ENV = {k: v for k, v in os.environ.items() if k not in @ROWDROP@}  # no token, no runner file a row could write into
+          ROW_ENV = {k: v for k, v in os.environ.items() if k not in @ROWDROP@}  # no token, no runner file
           def run(command):  # own group, output to a file
               with tempfile.TemporaryFile("w+", errors="replace") as log:
                   child = subprocess.Popen(command, shell=True, stdout=log, stderr=subprocess.STDOUT, env=ROW_ENV,
@@ -150,7 +154,7 @@ jobs:
               with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "a") as handle:
                   handle.write("%s\t%s\n" % (name, state))
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
-          gh("label", "create", "defect", "--description", "A test that guards it is failing")  # an existing one keeps its colour
+          gh("label", "create", "defect", "--description", "A test that guards it is failing")
           guards = {cells[1]: cells for cells in rows(os.environ.get("REGRESSION_MAP") or os.devnull) if len(cells) > 4}
           out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "5000", "--json", "number,state,body,labels")
           issues = json.loads(out.stdout or "[]") if out.returncode == 0 else None
@@ -163,12 +167,12 @@ jobs:
               LABELS_ON = False
           failed, filed = [], [0]
           CLEANUP, halt = os.environ.get("REGRESSION_CLEANUP") == "true", []  # paced: 2 writes a close
-          def write(what, *args):
+          def write(what, *args, body=None):
               if halt or CLEANUP and time.time() - start > JOB_SECONDS - 120:
                   return halt and failed.append(what)
               if CLEANUP:
                   time.sleep(float(os.environ.get("REGRESSION_PACE") or 20))
-              done = gh(*args)
+              done = gh(*args, body=body)
               if done.returncode:
                   failed.append(what)
                   halt += ["rate limit"] * ("rate limit" in done.stderr.lower())
@@ -185,7 +189,7 @@ jobs:
                   print("FAILED label %s: %s" % (label, made.stderr.strip()[:160]))
                   return ""
               return label
-          FOUND = re.compile(r"<!-- loop-regression (\S+?)(?: placed=(\S*))? -->")  # placed= is written empty; older ones still parse
+          FOUND = re.compile(r"<!-- loop-regression (\S+?)(?: placed=(\S*))? -->")  # older markers parse
           def marked(body):
               match = FOUND.search(body or "")
               return (match.group(1), urllib.parse.unquote(match.group(2) or "")) if match else (None, "")
@@ -240,11 +244,11 @@ jobs:
                   body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "fails", about,
                                                                  said[-1500:].replace("`" * 3, "'" * 3))
                   if not hit:
-                      make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect", "--body", body]
-                      made = gh(*make, *(["--label", label] if label else []))
+                      make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect"]
+                      made = gh(*make, *(["--label", label] if label else []), body=body)
                       if made.returncode and label and "label" in made.stderr.lower():  # a refused label never loses the report
                           print("FAILED label %s: %s" % (label, made.stderr.strip()[:160]))
-                          made = gh(*make)
+                          made = gh(*make, body=body)
                       if made.returncode:
                           failed.append("issue for " + row[0])
                           print("FAILED issue for %s: %s (FILE_FAILED)" % (row[0], made.stderr.strip()[:160]))
@@ -256,12 +260,12 @@ jobs:
                       if hit["state"] != "OPEN":
                           write("reopen #" + n, "issue", "reopen", n)
                       if sk(hit):
-                          write("body #" + n, "issue", "edit", n, "--body", body)
+                          write("body #" + n, "issue", "edit", n, body=body)
                       if "defect" not in names:
                           write("label #" + n, "issue", "edit", n, "--add-label", "defect")
                       if label and label not in names:
                           write("feature label #" + n, "issue", "edit", n, "--add-label", label)
-                      write("comment #" + n, "issue", "comment", n, "--body", "Still failing.")
+                      write("comment #" + n, "issue", "comment", n, body="Still failing.")
           if TARGET == "nightly" and not CLEANUP:  # the full suite's time, for health's REG-7 check
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
@@ -300,7 +304,7 @@ jobs:
 @TESTS@
           TESTS_PY_EOF
           started=$(sed -n 's/^# started //p' "$REGRESSION_RESULTS" 2>/dev/null | head -n 1 || true)
-          case "$started" in ''|*[!0-9]*) started=$(date +%s) ;; esac  # a number, or now: never an expression
+          case "$started" in ''|*[!0-9]*) started=$(date +%s) ;; esac  # never an expression
           left=$(( started + 89 * 60 - $(date +%s) - 30 ))  # rows end by minute 88; 30 s for the summary
           [ "$left" -ge 10 ] && timeout "$(( left < 60 ? left : 60 ))" python3 -I "$here/tests.py" issues --write >/dev/null || true
           took=$(( $(date +%s) - started ))
@@ -312,7 +316,7 @@ jobs:
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@MATRIX@", "@SHARDS@", "TESTS_PY_EOF")  # what Actions or this writer would read as its own
+UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@MATRIX@", "@SHARDS@", "TESTS_PY_EOF")
 
 
 def render(cron, levels="nightly"):
@@ -323,7 +327,7 @@ def render(cron, levels="nightly"):
     if bad:
         sys.exit("REFUSED: tests.py contains %s, which the workflow can't carry. Fix: reword that line" % bad[0])
     body = "\n".join(("          " + line).rstrip() for line in source.rstrip("\n").split("\n"))
-    schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron  # off: by hand only, and the run says so
+    schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron
     return WORKFLOW.replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
         .replace("@BUDGET@", str(BUDGET_MINUTES)).replace("@SHARDS@", str(SHARDS)).replace("@MATRIX@", str(list(range(SHARDS)))) \
         .replace("@TESTS@", body)

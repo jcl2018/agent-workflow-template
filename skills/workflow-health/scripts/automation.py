@@ -228,7 +228,7 @@ def cmd_digest(args):
             print("DIGEST: gh couldn't read the digest comments, so nothing was posted.")
             return 1
         if earlier:  # an earlier attempt posted it but couldn't save the body: repair, never post twice
-            gh("issue", "edit", str(number), "--body", INTRO + rounds.marker(run_id, earlier["state"]["open"]))
+            gh("issue", "edit", str(number), body=INTRO + rounds.marker(run_id, earlier["state"]["open"]))
             print("DIGEST: already posted for run %s; state repaired (DIGEST_REPAIRED)" % run_id)
             return 0
     login, note = owner_of(args, cfg) if live else (args.owner or cfg.get("digest_owner") or "", "")
@@ -251,21 +251,21 @@ def cmd_digest(args):
         return 0
     if number is None:
         gh("label", "create", "automation", "--description", "The Automation digest")  # an existing one keeps its colour
-        made = gh("issue", "create", "--title", TITLE, "--label", "automation", "--body",
-                  INTRO + "<!-- automation-digest open= run=none -->")  # no milestone; its state only once its comment is posted
+        made = gh("issue", "create", "--title", TITLE, "--label", "automation",
+                  body=INTRO + "<!-- automation-digest open= run=none -->")  # no milestone; its state only once its comment is posted
         number = (re.findall(r"/issues/(\d+)", made.stdout) or [None])[-1]
         if made.returncode or not number:
             print("DIGEST: couldn't create the digest issue: %s" % (made.stderr.strip()[:200] or "no issue number"))
             return 1
         if gh("issue", "pin", number).returncode:
             print("WARNING: couldn't pin issue #%s (a repo pins at most three); the digest still posts there." % number)
-    posted = gh("issue", "comment", str(number), "--body", comment)
+    posted = gh("issue", "comment", str(number), body=comment)
     if posted.returncode:
         print("DIGEST: couldn't comment on #%s: %s" % (number, posted.stderr.strip()[:200]))
         return 1
     if run_id == "local" and state and state["run"].isdigit():  # a local digest keeps the last Actions run on the issue
         marker = rounds.marker(state["run"], {n: now_open[n][1] for n in now_open})
-    if gh("issue", "edit", str(number), "--body", INTRO + marker).returncode:  # the state the next round compares with
+    if gh("issue", "edit", str(number), body=INTRO + marker).returncode:  # the state the next round compares with
         print("DIGEST: posted on #%s, but couldn't save its state; a rerun repairs it from the comment" % number)
         return 1
     print("DIGEST: posted on #%s (%d open)" % (number, len(now_open)))

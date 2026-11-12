@@ -30,7 +30,9 @@ PY
 G=$(mktemp -d); export STUB="$G"
 cat > "$G/gh" <<'SH'
 #!/bin/bash
-d=${STUB:?}; printf '%s\n' "$*" >> "$d/calls.log"
+d=${STUB:?}
+args=(); while [ $# -gt 0 ]; do if [ "$1" = --body-file ]; then args+=(--body "$(cat "$2")"); shift 2; else args+=("$1"); shift; fi; done; set -- "${args[@]}"  # a text in a file reads as --body TEXT
+printf '%s\n' "$*" >> "$d/calls.log"
 case "$1 $2" in
   "issue list") [ -n "${STUB_LIST_FAIL:-}" ] && { echo "HTTP 502" >&2; exit 1; }; for l in regression health automation; do case "$*" in *"--label $l "*) cat "$d/$l.json" 2>/dev/null || echo "[]"; exit 0;; esac; done; echo "[]";;
   "run list") cat "$d/runs.json" 2>/dev/null || echo "[]";;

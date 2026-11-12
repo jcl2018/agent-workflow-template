@@ -179,8 +179,7 @@ def start(top, cfg, state):
     branch = "release/v%s-%s" % (version, slug)
     title, body = title_of(version, slug), autorelease.notes_text(state)
     autorelease.check(state, top, None, {"release PR title": title, "release notes": body})
-    made = autorelease.sh(["gh", "pr", "create", "--base", base, "--head", branch, "--title", title, "--body", body],
-                          cwd=top)
+    made = autorelease.sh_text(["gh", "pr", "create", "--base", base, "--head", branch, "--title", title], body, cwd=top)
     url = (made.stdout.strip().splitlines() or [""])[-1] if made.returncode == 0 else ""
     if not url:  # a restart may find its pull request still open
         seen = view(top, branch)

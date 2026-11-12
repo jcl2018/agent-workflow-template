@@ -1,5 +1,42 @@
 # Changelog
 
+## v0.27.42 - 2026-11-12
+
+- Windows-safe process calls in health and setup, private.py under the size cap
+- private.py: name the plural helper
+- Lane: re-render the Tests tables
+- Leave private.py to private-size; drop the size row
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Wiki: update pages for win-posix-rest
+
+### How to verify
+
+1. Run `bash dev/toy/test-portable.sh` on native Windows Python and on Linux or macOS.
+   Expect: every line reads PASS and the last line reads ALL PASS, including the lines for the calls outside proctree, the health helpers and the 20480-byte cap.
+2. Run `python skills/workflow-delivery/scripts/private.py check` and `private.py where`.
+   Expect: both print their usual lines (a pattern count; WORKER or NOT A WORKER) with no traceback.
+
+## v0.27.41 - 2026-11-12
+
+- Pass long gh texts through --body-file and --notes-file
+- health file.py: name the issue-text helper issue_text, not body_of
+- Toy: the file.run mock takes the body argument
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/pr-body-file: main's goal.py body file kept; fit.pr_create dropped
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/pr-body-file
+- Merge remote-tracking branch 'origin/main' into loop/pr-body-file
+- pr: record issue states and the lane's results
+- Wiki: update pages for pr-body-file
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.40 - 2026-11-12
 
 - test-board.sh passes on main again: the test was wrong on all three cells (board-test-fix)
