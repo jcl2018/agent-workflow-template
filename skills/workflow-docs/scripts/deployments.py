@@ -83,6 +83,31 @@ CRITERIA_MAX_DEFAULT = 10  # the owner: "make that cap as like a config as well,
 SHEET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references", "template.md")
 
 
+def owed(root, books, name):
+    """DOC-16: every routine in .loop/routines.tsv (`routine<TAB>page`, # lines are comments) has its '### routine' runbook on
+    its page. `books` maps every page to the lines of its Runbook section ([] when none). No file means no registry."""
+    out, path = [], os.path.join(root, ".loop", "routines.tsv")
+    try:
+        with open(path) as handle:
+            rows = [(n, line.rstrip("\n").split("\t")) for n, line in enumerate(handle, 1) if line.strip() and not line.startswith("#")]
+    except FileNotFoundError:
+        return out
+    except OSError as error:
+        return [bad("routines.tsv", 1, "Runbook", 16, "a readable routine registry", short(error.strerror or "unreadable"), "fix .loop/routines.tsv")]
+    seen = set()
+    for number, row in rows:
+        routine, page = (row + ["", ""])[:2]
+        if routine in seen:
+            out.append(bad("routines.tsv", number, "Runbook", 16, "each routine once", short(routine), "remove the duplicate row"))
+        seen.add(routine)
+        if page not in books:
+            out.append(bad("routines.tsv", number, "Runbook", 16, "a routine on a feature page", short(routine), "name a page from .loop/docs.tsv in .loop/routines.tsv"))
+        elif not any(line.rstrip() == "### " + routine for _, line in books[page]):
+            out.append(bad(page, 1, name, 16, "a '### %s' runbook, the routine .loop/routines.tsv gives this page" % routine, "none",
+                           "add the Runbook section with '### %s' and its fields" % routine))
+    return out
+
+
 def rules():
     """The page rules from the fenced rules block of the template sheet. Refuses when it is missing or incomplete."""
     try:

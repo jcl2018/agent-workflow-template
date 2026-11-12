@@ -97,8 +97,8 @@ def render(args):
         with open(os.path.join(root, rel)) as handle:
             text = handle.read()
         parts = criteria.sections(text)
-        if [n for n, _ in parts if n not in (criteria.rules()["usage"], criteria.rules()["deploy"], criteria.rules()["runbook"])] != criteria.rules()["sections"]:
-            continue
+        if [n for n, _ in parts if n not in (criteria.rules()["usage"], criteria.rules()["deploy"], criteria.rules()["runbook"])] != criteria.rules()["sections"] or parts[-1][0] != "Tests":
+            continue  # a section after Tests (a misplaced Runbook) would be cut off by the rewrite: leave the page for the check to name
         ids = [(m.group(1), m.group(4)) for _, m in criteria.criteria_of(dict(parts)[criteria.rules()["sections"][1]]) if m]
         head, _, _ = text.partition("\n## Tests")
         out.append((rel, text, head + "\n## Tests\n\n" + "\n".join(table(root, ids, linked)) + "\n"))

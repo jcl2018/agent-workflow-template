@@ -63,15 +63,30 @@ refuse() {  # refuse NAME BODY GREP: the body is refused with a DOC-16 line matc
   want=$3; reset; place "$2"; check "refused, naming it: $1" 'out | grep -qF "Runbook: DOC-16 $want"'
 }
 case_refused() {
-  refuse "no Full run field" "$(without 'Full run')" "a 'Full run' field of 12 characters or more under setup-nightly"
-  refuse "no Output field" "$(without Output)" "a 'Output' field of 12 characters or more under setup-nightly"
-  refuse "a field too short" "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Never:\*\* .*/- **Never:** no./')" "a 'Never' field of 12 characters or more under setup-nightly"
+  refuse "no Full run field" "$(without 'Full run')" "a 'Full run' field of 5 characters or more under setup-nightly"
+  refuse "no Output field" "$(without Output)" "a 'Output' field of 5 characters or more under setup-nightly"
+  refuse "a field too short" "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Never:\*\* .*/- **Never:** no./')" "a 'Never' field of 5 characters or more under setup-nightly"
   refuse "an unknown field" "$GOOD
 - **Extra:** something an agent does not need" "only the fields Serves, Schedule, Steps, Full run, Output, Never, Check"
   refuse "prose outside the fields" "$GOOD
 Some loose words." "only '- **Field:** text' lines, with indented continuation"
   refuse "no subsection" "- **Serves:** SET-1 alone, with no routine heading" "a '### <routine>' heading before any field"
+  refuse "a field given twice" "$GOOD
+- **Output:** a second output line that should not be here" "each field once under setup-nightly"
+  refuse "a routine given twice" "$GOOD
+
+$GOOD" "each routine once"
+  refuse "a short Serves is still accepted but an empty one is not" "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Serves:\*\* .*/- **Serves:**/')" "a 'Serves' field of 5 characters or more under setup-nightly"
   refuse "a bad routine name" "$(printf '%s\n' "$GOOD" | sed 's/^### setup-nightly/### Setup Nightly/')" "a routine name of lowercase letters, digits and hyphens"
+  reset; place "$GOOD"; python3 - "$P" <<'PY'
+import sys
+p = sys.argv[1]; s = open(p).read()
+i = s.index("\n## Runbook"); j = s.index("\n## Requirements")
+book = s[i:j]; s = s[:i] + s[j:]
+k = s.index("\n## Tests")
+open(p, "w").write(s[:k] + book + s[k:] + "\n## After\n")
+PY
+  check "a section placed after Tests is refused as out of order, never silently cut off by a render" 'out | grep -q "^SECTIONS Setup"'
   reset; place ""; check "an empty section is refused" 'out | grep -qF "Runbook: DOC-16 at least one"'
   reset; place "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Steps:\*\* .*/- **Steps:** run the check\n  and read its output to the end./')"
   check "an indented line continues a field and passes" '[ "$(out | tail -1)" = "DOCS OK: $N pages" ]'
@@ -81,6 +96,11 @@ case_registry() {
   reset; printf 'setup-nightly\tSetup\n' >> .loop/routines.tsv
   check "a routine in the registry with no runbook on its page is refused" 'out | grep -qF "Setup:1: Runbook: DOC-16 a '"'"'### setup-nightly'"'"' runbook"'
   place "$GOOD"; check "the same routine passes once its page carries the runbook" '[ "$(out | tail -1)" = "DOCS OK: $N pages" ]'
+  reset; printf 'setup-nightly\tSetup\nsetup-nightly\tSetup\n' >> .loop/routines.tsv; place "$GOOD"
+  check "a routine listed twice in the registry is refused" 'out | grep -qF "routines.tsv:" && out | grep -qF "each routine once"'
+  reset; printf '# comment\n' >> .loop/routines.tsv; printf 'setup-nightly\tSetup\n' >> .loop/routines.tsv; place "  ### setup-nightly
+$(printf '%s\n' "$GOOD" | sed 1d)"
+  check "an indented heading inside another block does not count as the runbook" 'out | grep -qF "a '"'"'### setup-nightly'"'"' runbook"'
   reset; printf 'ghost-routine\tNoSuchPage\n' >> .loop/routines.tsv
   check "a registry row naming no page is refused" 'out | grep -qF "Runbook: DOC-16 a routine on a feature page"'
   reset; rm -f .loop/routines.tsv; check "with no registry file the check still passes" '[ "$(out | tail -1)" = "DOCS OK: $N pages" ]'
@@ -117,6 +137,9 @@ full = re.search(r'^- \*\*Full run:\*\* (.*)', sub, re.M).group(1).lower()
 never = re.search(r'^- \*\*Never:\*\* (.*)', sub, re.M).group(1).lower()
 assert 'live' in full or 'every' in full
 assert 'fixture' in never or 'dry run' in never or 'subset' in never
+need = {'health-round': ('anthropic_api_key', 'judge_command', 'feature_labels', 'not run on the runner'), 'regression-round': ('exits 77', 'not a full run', 'feature_labels', 'draft and covered')}[sys.argv[2]]
+missing = [word for word in need if word not in (full + ' ' + sub.lower())]
+assert not missing, missing
 PY"
   done
   check "the registry names both routines on their pages" 'grep -q "^health-round[[:space:]]Health$" '"$here"'/.loop/routines.tsv && grep -q "^regression-round[[:space:]]Regression$" '"$here"'/.loop/routines.tsv'

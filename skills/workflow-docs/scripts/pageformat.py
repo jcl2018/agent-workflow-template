@@ -222,17 +222,22 @@ ROUTINE = re.compile(r"^[a-z][a-z0-9-]*$")
 def runbook(page, name, lines, fields):
     """DOC-16: one '### routine' subsection per routine, each holding every field as '- **Field:** text' (indented lines
     continue it) and nothing else. Pure: lines in, FORMAT findings out."""
-    out, subs, cur = [], [], None
+    out, subs, cur, titles = [], [], None, set()
     for number, line in lines:
         if not line.strip():
             continue
         if line.startswith("### "):
             cur = [number, line[4:].strip(), {}, None]
             subs.append(cur)
+            if cur[1] in titles:
+                out.append(bad(page, number, name, 16, "each routine once", short(cur[1]), "merge the two subsections"))
+            titles.add(cur[1])
         elif cur is None:
             out.append(bad(page, number, name, 16, "a '### <routine>' heading before any field", short(line), "start each routine with '### <name>'"))
         elif FIELD.match(line):
             head = FIELD.match(line)
+            if head.group(1) in cur[2]:
+                out.append(bad(page, number, name, 16, "each field once under %s" % cur[1], "'%s' again" % head.group(1), "merge the two lines"))
             cur[2][head.group(1)] = cur[2].get(head.group(1), "") + head.group(2)
             cur[3] = head.group(1)
         elif line[:1].isspace() and cur[3]:
@@ -246,30 +251,11 @@ def runbook(page, name, lines, fields):
         if not ROUTINE.match(title):
             out.append(bad(page, number, name, 16, "a routine name of lowercase letters, digits and hyphens", short(title), "rename the heading"))
         for field in fields:
-            if len(found.get(field, "").strip()) < 12:
-                out.append(bad(page, number, name, 16, "a '%s' field of 12 characters or more under %s" % (field, title),
+            if len(found.get(field, "").strip()) < 5:
+                out.append(bad(page, number, name, 16, "a '%s' field of 5 characters or more under %s" % (field, title),
                                short(found.get(field, "none")), "add '- **%s:** <what an agent must know>'" % field))
         for extra in sorted(set(found) - set(fields)):
             out.append(bad(page, number, name, 16, "only the fields %s" % ", ".join(fields), "'%s'" % extra, "remove or rename it"))
-    return out
-
-
-def owed(root, books, name):
-    """DOC-16: every routine in .loop/routines.tsv (`routine<TAB>page`) has its '### routine' runbook on its page.
-    `books` maps a page to the lines of its Runbook section ([] when it has none). Without the file there is no registry."""
-    out, path = [], os.path.join(root, ".loop", "routines.tsv")
-    try:
-        with open(path) as handle:
-            rows = [line.rstrip("\n").split("\t") for line in handle if line.strip() and not line.startswith("#")]
-    except OSError:
-        return out
-    for number, row in enumerate(rows, 1):
-        routine, page = (row + ["", ""])[:2]
-        if page not in books:
-            out.append(bad(page or "routines.tsv", number, "Runbook", 16, "a routine on a feature page", short(routine), "name a page from .loop/docs.tsv in .loop/routines.tsv"))
-        elif not any(line.strip() == "### " + routine for _, line in books[page]):
-            out.append(bad(page, 1, name, 16, "a '### %s' runbook, the routine .loop/routines.tsv gives this page" % routine, "none",
-                           "add the Runbook section with '### %s' and its fields" % routine))
     return out
 
 

@@ -184,7 +184,7 @@ def contract(root, names, seen):
     limit, on, held = criteria_max(root), rule["format"], render.maps(root)
     owns = {row[0]: re.findall(r"(?:^|,)skills/([\w-]+)", row[1]) for row in tsv(root, "docs.tsv")}
     linked, loose = test_rows(root)
-    head, books = rule["sections"], {}
+    head, books = rule["sections"], {page: [] for page in names}
     for page in names:
         with open(os.path.join(root, folder_of(root), page + ".md")) as handle:
             text = handle.read()
@@ -244,7 +244,7 @@ def contract(root, names, seen):
         if "tests" in on:
             found += [x for x in [pf.stale(page, "Tests", numbered["Tests"][0], numbered["Tests"][1], table(root, ids, linked))] if x]
     if "runbook" in on:
-        found += pf.owed(root, books, rule["runbook"])
+        found += deployments.owed(root, books, rule["runbook"])
     if "tests" in on:
         found += [("FORMAT", "Tests:1", "Tests: DOC-9 one anchor per row (got %s). Fix: rename one row id" % x)
                   for x in render.clashes([row[0] for row in tsv(root, "regression.tsv") if row[1] != "draft"])]
