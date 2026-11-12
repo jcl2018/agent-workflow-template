@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.27.36 - 2026-11-12
+
+- goal-adopt: goal.py adopt (build)
+- goal-adopt: toy test
+- goal-adopt: requirements DEL-10/11, usage, regression rows
+- goal-adopt: pages, entry point, verify by hand
+- goal-adopt: replace a stale never-started record, refuse a live one
+- Lane: re-render the Tests tables
+- goal-adopt: row seen red, pages
+- Merge remote-tracking branch 'origin/main' into loop/goal-adopt
+- Merge origin/main into loop/goal-adopt
+
+### How to verify
+
+1. In a second clone, check out a branch another machine pushed (`git switch loop/SLUG`), then run `goal.py adopt SLUG` there.
+   Expect: it prints `ADOPTED SLUG at qa from origin/loop/SLUG @ <sha>`, and `goal.py show SLUG` lists idea, plan and review as `done on another machine`.
+2. Run `goal.py pr SLUG` straight after.
+   Expect: it stops with `the flow hasn't finished: qa, ship`, not `no goal named`.
+3. Create a local branch `loop/nope` with a goal file and run `goal.py adopt nope`.
+   Expect: `REFUSED: loop/nope is not on origin ...` and no run record.
+
+## v0.27.35 - 2026-11-12
+
+- Trim private.py under the 20,480-byte cap (comments and docstrings only)
+- Merge remote-tracking branch 'origin/main' into loop/private-size-pc
+- Merge remote-tracking branch 'origin/main' into loop/private-size-pc
+- Wiki: update pages for private-size-pc
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.34 - 2026-11-12
 
 - Automation budgets: one 30 minute regression budget, sharded matrix, TRUNCATED digest, health waits for regression
