@@ -62,6 +62,7 @@ Review: **Unreviewed**
   - A preview lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups or features to file, behind an explicit `--live`.
   - A repeat updates its issue, a fix closes it, a return reopens it, and an existing open issue that already covers a finding is linked, not duplicated.
   - A finding's issue body and comment are passed to gh in a file (`--body-file`), never on the command line.
+  - Health reads only the issues a command needs, a page of 100 at a time: triage the open health issues, `file` the health issues and the open ones. A repo with thousands of issues lists within the time limit, and a page that fails refuses with one line naming it.
 - HLT-5: **Reviewed 2026-11-10** Repo review <!-- reviewed 28f88bd6 -->
   - A reviewer, separate from the rules and never part of the verdict, reads every PRD page, the README, milestones, open issues, tests and code, feature by feature, and reports:
   - Conflicts: two requirements that contradict each other, or a page that breaks a reviewed rule (for example DOC-1's Problem length).
