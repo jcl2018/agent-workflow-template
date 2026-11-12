@@ -275,7 +275,7 @@ if want setting; then fresh
   done
   check "setup names the cause when visibility is unreadable" 'grep -q "visibility unreadable" <<<"$out"'
   out=$(python3 "$here/skills/workflow-setup/scripts/settings.py" reference); check "settings lists regression_runs with its default" 'grep -q "regression_runs" <<<"$out" && grep -q "actions" <<<"$out"'
-  export FAKE_GH_PRIVATE=false; r=$(toyrepo dr "$(cfgj mac)"); install "$r" >/dev/null; out=$(tick "$r" 2>&1)
+  export FAKE_GH_PRIVATE=false; r=$(toyrepo dr2 "$(cfgj mac)"); install "$r" >/dev/null; out=$(tick "$r" 2>&1)
   check "the tick prints DRIFT when live visibility disagrees with regression_runs, and the setting still decides what runs" 'grep -q "DRIFT: regression_runs says mac but the repo is public" <<<"$out" && grep -q "bad-row" "$FAKE_GH_DIR/calls.log"'
 fi
 if want usage; then H="$here/docs/wiki/Health.md"
