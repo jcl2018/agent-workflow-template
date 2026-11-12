@@ -113,7 +113,7 @@ def check(pool):
     if os.name == "nt":  # no uid or group bits: the pool sits in the user's own profile, private by its ACL
         return
     info = os.stat(pool)
-    if info.st_uid != os.getuid() or info.st_mode & 0o022:
+    if info.st_uid != getattr(os, "getuid", lambda: 0)() or info.st_mode & 0o022:
         raise OSError("not owned by you, or writable by group or others")
 
 

@@ -1,5 +1,174 @@
 # Changelog
 
+## v0.27.48 - 2026-11-12
+
+- V1 section in the roadmap, README status points at it
+- Tests table and seen-red mark for v1-roadmap
+- Home: point at the V1 section
+- Seen-red mark for v1-roadmap-section
+- Wiki: update pages for v1-roadmap
+- Drop the V1 roadmap row: no requirement owns it
+- Roadmap V1: health facts from the review of v0.27.34
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+- Roadmap V1: states after spec-decisions, review-findings and the Windows merges
+- Wiki: update pages for v1-roadmap
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.47 - 2026-11-12
+
+- Merge origin/main into loop/migration-check
+- Settings: automation table row and the one Mac task name
+- A public repo recorded regression_runs mac keeps it
+- The base config resolver and the blocks a migration inserts
+- migration-check: one engine judges a repo's migration
+- The operation session queues one migrate goal per behind repo
+- Docs: migration-check Usage, SET-11, the Health notes and the regenerated pages
+- Docs for the version line and the Mac task name; migration regression rows (not yet seen failing)
+- Regression rows for migration-check, each seen failing on a broken copy of HEAD
+- Merge origin/main into loop/migration-check
+- goal.py: one import line, so it stays under the script size limit after the merge
+- test-migration: the version table reads its own temp repo, not the last one listed
+- Merge origin/main into loop/migration-check
+- Build: enforce.wiki_gaps stops a hung wiki clone on Windows (no os.killpg there)
+- Build: workflows.py imports on Windows (os.getuid is Mac/Linux only)
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/migration-check (SET-11 -> SET-16 for the migration requirement)
+- Health Usage: a repo recorded mac is never DRIFT
+- Merge origin/main (v0.27.42) into loop/migration-check
+- enforce.py: mark the posix-only killpg branch so test-portable passes
+- Merge origin/main into loop/migration-check (round 2)
+- Monitoring page: operate queues a migrate goal per behind repo
+- Pages: the Windows fallbacks, the migration-rule wiki clone timeout, goal.py's one import
+- Merge remote-tracking branch 'origin/main' into loop/migration-check
+- Merge remote-tracking branch 'origin/main' into loop/migration-check
+- Merge origin/main into loop/migration-check (round 4)
+
+### How to verify
+
+1. In a repo adopted before v0.27.17, run `python3 skills/workflow-setup/scripts/setup.py migration-check`. Time the run; on the toy repos a run takes about one second.
+   Expect: GAP lines for the missing Settings and Automation blocks, the missing `template_version` and the missing local task, each with a Fix line, and exit 1.
+2. In that repo run `python3 skills/workflow-setup/scripts/update.py --apply`, merge the branch it prints, then run the check again with `--pr`.
+   Expect: `MIGRATION OK (--pr: state codes not checked)` and exit 0; the full check then lists only the local task and wiki gaps, each with its fix.
+3. Run `python3 skills/workflow-health/scripts/automation.py local install`, remove each orphan wiki page the check names (`git rm -- <page>.md` in a clone of the wiki, commit, push), run `docs.py publish`, then run the full check.
+   Expect: `MIGRATION OK` and exit 0.
+4. In a repo that is behind the installed template, start a goal with `goal.py new`.
+   Expect: the one line `this repo is at vY, the template is at vX, run the migrate goal`, and a REFUSED only when the major versions differ (a `migrate-` slug is let through).
+5. After a template release, run `python3 skills/workflow-monitoring/scripts/operate.py run --once` in the operation session.
+   Expect: one `migrate-<repo>` line in the `.loop/queue.md` of each followed repo that is behind, and none for a repo that is current.
+
+## v0.27.46 - 2026-11-12
+
+- REG-10: record a red proven on another runner; a skip never sets seen red
+- Review: a darwin runner is not Windows
+- REG-10: a lane failing only on skipped, unproven rows waits for off-platform proof
+- Rows reg10-owed-* seen red
+- Fold the off-platform helpers into fit.py and runs.py: no new files under skills/
+- Record the Mac red proofs of the five reg10 rows
+- Merge origin/main into loop/red-off-platform-prd
+- Docs: Delivery, Regression and Home describe the off-platform proof
+- Merge origin/main into loop/red-off-platform-prd
+- Merge remote-tracking branch 'origin/main' into loop/red-off-platform-prd
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.45 - 2026-11-12
+
+- Skip absolute folders outside the repo in a lane's reach analysis
+- Guard lanes.walk against any path outside the repo, and test .. escapes
+- Declare skills/ for the lanes-abs-path toy, record the review
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+- pr: record issue states and the lane's results
+- Merge origin/main into loop/lanes-abs-path
+- Re-render the Tests tables after merging main
+- lanes-abs-path: normalise Windows backslashes in the .. checks (found running the goal's own test on Windows)
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+- Regression: the .. row names the Windows backslash case
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+- Merge remote-tracking branch 'origin/main' into loop/lanes-abs-path
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.44 - 2026-11-12
+
+- Merge origin/main into loop/spec-decisions
+- Wiki: update pages for spec-decisions
+- Merge origin/main into loop/spec-decisions
+- Merge origin/main into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge origin/main into loop/spec-decisions
+
+### How to verify
+
+1. Run `grep -c "^- 2026-11-12, " DECISIONS.md`.
+   Expect: it prints 10, and a "Waiting on owner un-review" section lists the locked requirements' proposed wording.
+2. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: the only line printed is `CHANGED Monitoring: Usage edited ...` (it needs the owner's review).
+
+## v0.27.43 - 2026-11-12
+
+- spec-decisions: reword the unreviewed requirements, SKILL.md and commands.md; log decisions
+- spec-decisions: proposed wording for locked requirements; regression rows
+- spec-decisions: refresh pages and the Tests render
+- spec-decisions: review fixes (HLT-6 rows, decision entries say proposed)
+- Merge origin/main into loop/spec-decisions
+- spec-decisions: refresh Home after the merge
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge spec-decisions wording so review-findings builds on it
+- Resolve Delivery.md merge conflict (keep both sides)
+- Resolve the v0.27.34 health review findings in the pages and SKILL.md
+- Re-render Tests tables; add review-findings rows
+- Render Tests for the review-findings rows
+- Review round 2: AUT-1/2 scope, GRD-6/8 owners, feature tag wording
+- DECISIONS: keep the spec-decisions entry count; prefix review-findings lines
+- Merge origin/main into review-findings
+- Merge origin/main (v0.27.41) into review-findings
+- Wiki: update pages for review-findings
+- Merge origin/main (v0.27.42) into review-findings
+- Automation: keep the native Windows note from win-posix-rest
+
+### How to verify
+
+1. Run `grep -c "health.yml" docs/wiki/Automation.md docs/wiki/Setup.md` and `wc -l skills/workflow-delivery/SKILL.md`.
+   Expect: Automation.md names `health.yml` once, only as the leftover file to `git rm`; Setup.md names it not at all in its setup entry; SKILL.md has under 150 lines.
+2. Open `docs/wiki/Automation.md` and read AUT-1, AUT-2 and the Usage list.
+   Expect: no health workflow, `--check` or Actions mail job; the regression workflow entry says a private repo gets `NOT WRITTEN`; AUT-2 says the pull request lane posts commit statuses.
+3. Open `DECISIONS.md`.
+   Expect: seven "Review findings (2026-11-12)" lines above the "Waiting on owner un-review" section, which still holds only the spec-decisions proposals.
+
+## v0.27.42 - 2026-11-12
+
+- Windows-safe process calls in health and setup, private.py under the size cap
+- private.py: name the plural helper
+- Lane: re-render the Tests tables
+- Leave private.py to private-size; drop the size row
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Wiki: update pages for win-posix-rest
+
+### How to verify
+
+1. Run `bash dev/toy/test-portable.sh` on native Windows Python and on Linux or macOS.
+   Expect: every line reads PASS and the last line reads ALL PASS, including the lines for the calls outside proctree, the health helpers and the 20480-byte cap.
+2. Run `python skills/workflow-delivery/scripts/private.py check` and `private.py where`.
+   Expect: both print their usual lines (a pattern count; WORKER or NOT A WORKER) with no traceback.
+
 ## v0.27.41 - 2026-11-12
 
 - Pass long gh texts through --body-file and --notes-file

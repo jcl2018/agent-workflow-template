@@ -153,9 +153,9 @@ def decide(repo, config, found):
     """The plan: a list of (verb, path, note, action) with action None for skip and no fit."""
     acts, wiki = [], found["wiki"]
     seen, old = out(repo, "workflow-delivery", "private.py", "visibility"), survey.read(repo, ".loop/config.json")  # one live answer
-    kept = json.loads(old or "{}").get("regression_runs")  # recorded as regression_runs; unreadable is never taken as public
-    if {"private": "mac", "public": "actions"}.get(seen) or kept:
-        config["regression_runs"] = {"private": "mac", "public": "actions"}.get(seen) or kept
+    kept, live = json.loads(old or "{}").get("regression_runs"), {"private": "mac", "public": "actions"}.get(seen)  # mac stays, public or not
+    if live or kept:
+        config["regression_runs"] = "mac" if kept == "mac" else live or kept
     else:
         config.pop("regression_runs", None)
     if old is None or json.loads(old) != agents.stored(config, json.loads(old)):
