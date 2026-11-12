@@ -282,7 +282,7 @@ def tick_repo(key, entry, begin, finish):
     seen = child(script("workflow-delivery", "private.py") + ["visibility"], tree, env, 30, log)[1].split()[-1:] or ["unknown"]
     setting = cfg.get("regression_runs")
     private = setting == "mac" if setting else seen[0] == "private"
-    if setting and seen[0] in ("private", "public") and (seen[0] == "private") != private:
+    if setting != "mac" and setting and seen[0] in ("private", "public") and (seen[0] == "private") != private:
         env["DIGEST_DRIFT"] = "DRIFT: regression_runs says %s but the repo is %s; run setup (DRIFT)" % (setting, seen[0])
     say(env.get("DIGEST_DRIFT") or "REGRESSION: runs %s%s" % ("on the Mac" if private else "in GitHub Actions", "" if setting else "; NOTE: regression_runs unset; run setup to record it"))
     if private and cfg.get("regression_cron") != "off":
