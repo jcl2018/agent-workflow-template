@@ -359,4 +359,44 @@ if want major-refused; then fresh
   check "with entry.py missing it prints a NOTE on stderr and never blocks" '[ $rc = 0 ] && grep -q "^NOTE: entry.py not found beside workflow-delivery, so the template version was not checked. Fix: reinstall the skills from one release" <<<"$out" && grep -q "^FROZEN nonag" <<<"$out"'
 fi
 
+# queue: the operation session queues one migrate-<repo> goal for each followed repo behind the template, once, in a safe place.
+if want queue; then fresh
+  want_v=$(cat "$here/VERSION")  # the baseline of a checkout is its VERSION
+  mkq() {  # NAME [template_version]: a set-up toy repo folder named NAME, on main, stamped
+    "$here/dev/toy/make.sh" "$d/q$1" >/dev/null || exit 1; mkdir -p "$d/qq"; mv "$d/q$1/repo" "$d/qq/$1"; cp "$d/q$1/flow.json" "$d/qq/flow-$1.json" 2>/dev/null
+    ( cd "$d/qq/$1" && python3 "$SETUP/setup.py" >/dev/null 2>&1; git switch -q main; git merge -q --no-edit workflow-setup
+      python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['template_version']='${2:-0.0.1}';json.dump(d,open(p,'w'),indent=2)" && git commit -qam stamp && git push -q origin main ) >/dev/null 2>&1
+  }
+  mkq app; mkq app.v2; mkq app-api; mkq current "$want_v"; export LOOP_FLOW="$d/qq/flow-app.json"
+  mkdir -p "$HOME/.workflow-loop"; printf '%s\n' "$d/qq/app.v2" "$d/qq/app-api" "$d/qq/current" > "$HOME/.workflow-loop/repos"
+  pass() { out=$(cd "$d/qq/app" && python3 "$S/workflow-monitoring/scripts/board_page.py" migrate 2>&1 < /dev/null); }
+  queue_of() { cat "$d/qq/$1/.loop/queue.md" 2>/dev/null; }
+  nomig() { ! grep -q "slug: migrate-" "$d/qq/$1/.loop/queue.md" 2>/dev/null; }
+  pass
+  check "repos app, app.v2 and app-api, all behind, each get exactly their own migrate- line (no slug matches another repo's)" 'grep -c "^- slug: migrate-app |" <<<"$(queue_of app)" | grep -qx 1 && grep -c "slug: migrate-" <<<"$(queue_of app)" | grep -qx 1 && grep -q "^- slug: migrate-app-v2 |" <<<"$(queue_of app.v2)" && grep -c "slug: migrate-" <<<"$(queue_of app.v2)" | grep -qx 1 && grep -q "^- slug: migrate-app-api |" <<<"$(queue_of app-api)"'
+  check "a repo that is current is left alone" 'nomig current'
+  check "the queued goal has one done line, the pull-request check, and states both halves" 'grep "^- slug: migrate-app |" "$d/qq/app/.loop/queue.md" | grep -q "done: setup.py migration-check --pr exits 0" && grep "slug: migrate-app |" "$d/qq/app/.loop/queue.md" | grep -q "the owner then closes the Mac and wiki gaps and runs the full migration-check"'
+  pass; check "a second pass queues nothing more and prints no guard complaint (the queued slug is found before the guard is read)" '[ "$(grep -c "slug: migrate-" "$d/qq/app/.loop/queue.md")" = 1 ] && [ -z "$out" ]'
+  # the state table: a finished goal for this version is an Issues line; a finished one for an older version allows the suffixed slug
+  git -C "$d/qq/app" checkout -q -- .loop/queue.md; C=$(cd "$d/qq/app" && cd "$(git rev-parse --git-common-dir)" && pwd); mkdir -p "$C/loop/runs"
+  printf '{"slug": "migrate-app", "status": "merged", "goal": "Migrate app to template v%s: x"}\n' "$want_v" > "$C/loop/runs/migrate-app.json"; pass
+  check "a finished migrate goal for this version with the repo still behind is an Issues line, not requeued" 'grep -q "^- app: migrate goal for v$want_v finished, repo still behind" <<<"$out" && nomig app'
+  printf '{"slug": "migrate-app", "status": "merged", "goal": "Migrate app to template v0.0.9: x"}\n' > "$C/loop/runs/migrate-app.json"; pass
+  check "a finished one for an older version allows the version-suffixed slug" 'grep -q "^- slug: migrate-app-v$(tr . - <<<"$want_v") |" "$d/qq/app/.loop/queue.md"'
+  git -C "$d/qq/app" checkout -q -- .loop/queue.md; printf '{"slug": "migrate-app", "status": "running", "goal": "Migrate app"}\n' > "$C/loop/runs/migrate-app.json"; pass
+  check "a running or waiting migrate goal skips the repo" 'nomig app && [ -z "$out" ]'
+  rm -f "$C/loop/runs/migrate-app.json"
+  # where it will not write: a checkout on another branch, a modified queue file
+  git -C "$d/qq/app-api" checkout -q -- .loop/queue.md; git -C "$d/qq/app-api" switch -q -c side; pass
+  check "a followed repo on another branch gets an Issues line saying why nothing was queued" 'grep -q "^- app-api: behind v$want_v, nothing was queued: its checkout is not on main" <<<"$out" && nomig app-api'
+  git -C "$d/qq/app-api" switch -q main; printf '\n' >> "$d/qq/app-api/.loop/queue.md"; pass
+  check "a modified queue file gets an Issues line and the file is left as it was" 'grep -q "^- app-api: behind v$want_v, nothing was queued: .loop/queue.md has uncommitted changes" <<<"$out" && ! grep -q "slug: migrate-app-api" "$d/qq/app-api/.loop/queue.md"'
+  git -C "$d/qq/app-api" checkout -q -- .loop/queue.md
+  # two passes at once queue one line
+  ( cd "$d/qq/app-api" && python3 "$S/workflow-monitoring/scripts/board_page.py" migrate >/dev/null 2>&1 < /dev/null ) & sleep 0.4
+  ( cd "$d/qq/app-api" && python3 "$S/workflow-monitoring/scripts/board_page.py" migrate >/dev/null 2>&1 < /dev/null ) & wait
+  check "two passes at once queue exactly one migrate line" '[ "$(grep -c "slug: migrate-app-api" "$d/qq/app-api/.loop/queue.md")" = 1 ]'
+  check "the lag text for the board is unchanged: a stamped-old repo prints its two Issues lines" 'out=$(cd "$d/qq/app" && python3 "$S/workflow-monitoring/scripts/board_page.py" lag); grep -q "^- app runs template v0.0.1, older than v$want_v" <<<"$out" && grep -q "^    fix: ask for workflow-setup update in that repo" <<<"$out"'
+fi
+
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
