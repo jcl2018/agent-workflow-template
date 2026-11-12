@@ -122,7 +122,7 @@ def run_alone(cmd, cwd, what):
         signal.pthread_sigmask(signal.SIG_BLOCK, STOP_SIGNALS)
     try:
         proc = subprocess.Popen(cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                text=True, **group)
+                                text=True, encoding="utf-8", errors="replace", **group)  # UTF-8 whatever the locale
         waiting["child"] = proc
     finally:
         if mask:
@@ -157,16 +157,21 @@ def walk(root):
             out.append(base)
         for here, dirs, names in os.walk(path):
             for name in names:
-                out.append(os.path.relpath(os.path.join(here, name), root))
+                out.append(os.path.relpath(os.path.join(here, name), root).replace(os.sep, "/"))
             for name in dirs:
                 if name in BAD_DIRS:
-                    out.append(os.path.relpath(os.path.join(here, name), root) + "/")
+                    out.append(os.path.relpath(os.path.join(here, name), root).replace(os.sep, "/") + "/")
     return sorted(out)
 
 
 def read(root, rel):
+    """The file's bytes as git stores them: a text file checked out with CRLF (core.autocrlf on Windows) reads as LF."""
     with open(os.path.join(root, rel), "rb") as handle:
-        return handle.read()
+        data = handle.read()
+    try:
+        return data.replace(b"\r\n", b"\n") if b"\r\n" in data and b"\0" not in data and data.decode("utf-8") else data
+    except ValueError:
+        return data
 
 
 def frontmatter(text):
@@ -268,7 +273,7 @@ def check_scripts(root, files):
             waiting["lone"] = lone
             wait_on("the copy of %s's folder" % rel)
             shutil.copytree(os.path.dirname(os.path.join(root, rel)), os.path.join(lone, "scripts"), symlinks=True)
-            rc, err = run_alone([sys.executable, "-E", "-s", os.path.join(lone, "scripts", os.path.basename(rel)), "--help"],
+            rc, err = run_alone([sys.executable, "-E", "-s", "-X", "utf8", os.path.join(lone, "scripts", os.path.basename(rel)), "--help"],
                                 lone, "%s --help" % rel)
             if rc is None:
                 fail("Scripts", "%s --help did not finish in %d seconds with no stdin (it waits on input or a child)" % (rel, CHILD_SECONDS))
@@ -281,7 +286,7 @@ def private_prefixes():
     """The private leak_prefixes setting (flow file, outside the repo): case-insensitive regexes the local leak hook blocks."""
     path = os.environ.get("LOOP_FLOW") or os.path.expanduser("~/.workflow-loop/flow.json")
     try:
-        with open(path) as handle:
+        with open(path, encoding="utf-8") as handle:
             return [p for p in json.load(handle).get("leak_prefixes", []) if isinstance(p, str) and p]
     except (OSError, ValueError, AttributeError):
         print("NOTE: no leak_prefixes in %s; only the built-in scans ran" % path)
@@ -317,7 +322,7 @@ def note_shell(root, files):
 
 
 def check_pack(root):
-    with open(os.path.join(root, "README.md")) as handle:
+    with open(os.path.join(root, "README.md"), encoding="utf-8") as handle:
         if not re.match(r"# \S", handle.readline()):
             fail("Files", "README.md must open with a # title: it names the pack")
     if not os.path.isfile(os.path.join(root, "LICENSE")):
@@ -379,7 +384,7 @@ def manifest(root, files, version):
         log = ""
     wait_on("git remote get-url origin")
     try:
-        url = subprocess.run(["git", "-C", root, "remote", "get-url", "origin"], capture_output=True, text=True,
+        url = subprocess.run(["git", "-C", root, "remote", "get-url", "origin"], capture_output=True, text=True, encoding="utf-8", errors="replace",
                              stdin=subprocess.DEVNULL, timeout=CHILD_SECONDS).stdout.strip()
     except subprocess.TimeoutExpired:
         url = ""
@@ -415,6 +420,7 @@ def main():
     parser.add_argument("--out", default=None)
     parser.add_argument("--timeout", type=int, default=None, help="hard bound in seconds (default PACKAGE_TIMEOUT, else 300)")
     args = parser.parse_args()
+    sys.stdout.reconfigure(errors="backslashreplace")  # a FAIL line quoting text the console code page lacks still prints
     try:
         seconds = args.timeout if args.timeout is not None else int(os.environ.get("PACKAGE_TIMEOUT") or 300)
     except ValueError:
