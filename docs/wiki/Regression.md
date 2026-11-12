@@ -69,16 +69,16 @@ Review: **Unreviewed**
 
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
-| [refused-unmet](Tests#t-refused-unmet) | requirement | REG-1 | Given a criterion with no test, when a release is cut, then it is refused. | PASS 2026-11-11 |
+| [refused-unmet](Tests#t-refused-unmet) | requirement | REG-1 | Given a criterion with no test, when a release is cut, then it is refused. | PASS 2026-11-12 |
 | [defect-owed](Tests#t-defect-owed) | requirement | REG-1 | Given a goal that fixes an issue, when it opens its pull request without a defect test seen failing, then it is refused. | PASS 2026-11-11 |
 | [defect-known](Tests#t-defect-known) | requirement | REG-1 | Given issues 35 and 58 and the two worker defects, when the tests are listed, then defect tests exist for each. | PASS 2026-11-11 |
 | [prd-readers](Tests#t-prd-readers) | requirement | REG-1 | Given pages under the Requirements heading or the old Criteria heading, when the release, regression, health and docs readers run, then they all find the same requirement IDs and the release refuses an unmet one. | PASS 2026-11-10 |
 | [workflow-kind-shown](Tests#t-workflow-kind-shown) | requirement | REG-1 | Given a row added with --category workflow, when sync, tests.py list and summary and the wiki Tests tables read it, then it is accepted and shown as kind workflow, after the requirement tests on its page. | PASS 2026-11-10 |
 | [list-kind-filter](Tests#t-list-kind-filter) | requirement | REG-1 | Given requirement, workflow and defect rows, when tests.py list --kind K runs, then only that kind's rows are listed. | PASS 2026-11-10 |
 | [defect-owed-branch-proved](Tests#t-defect-owed-branch-proved) | requirement | REG-1 | Given an old defect row for an issue proved before the goal, when the goal that fixes that issue runs goal.py pr, then the pull request is refused until the branch adds its own row seen failing. | PASS 2026-11-10 |
-| [unproven-blocks](Tests#t-unproven-blocks) | requirement | REG-2 | Given a test never seen failing, when the run happens, then the run is blocked. | PASS 2026-11-11 |
-| [tests-seen-failing](Tests#t-tests-seen-failing) | requirement | REG-2 | Given a test that cannot fail, when it is checked, then it stays unproven. | PASS 2026-11-11 |
-| [one-link](Tests#t-one-link) | requirement | REG-2 | Given a test linked to no criterion, when the check runs, then the check fails. | PASS 2026-11-11 |
+| [unproven-blocks](Tests#t-unproven-blocks) | requirement | REG-2 | Given a test never seen failing, when the run happens, then the run is blocked. | PASS 2026-11-12 |
+| [tests-seen-failing](Tests#t-tests-seen-failing) | requirement | REG-2 | Given a test that cannot fail, when it is checked, then it stays unproven. | PASS 2026-11-12 |
+| [one-link](Tests#t-one-link) | requirement | REG-2 | Given a test linked to no criterion, when the check runs, then the check fails. | PASS 2026-11-12 |
 | [run-ledger](Tests#t-run-ledger) | requirement | REG-2 | Given a test run, when it ends, then each test's result and date are recorded. | PASS 2026-11-11 |
 | [tests-table-columns](Tests#t-tests-table-columns) | requirement | REG-2 | Given a requirement with a test row, when the Tests are rendered, then its table row carries the test link, its Given/When/Then words and its last result. | PASS 2026-11-11 |
 | [tests-row-shape](Tests#t-tests-row-shape) | requirement | REG-2 | Given a test row, when the full Tests page is rendered, then the row carries its anchor, result, date, run and seen-failing date. | PASS 2026-11-11 |
@@ -148,9 +148,9 @@ Review: **Unreviewed**
 | [merge-wiki-skill-refused](Tests#t-merge-wiki-skill-refused) | requirement | REG-4 | Given a commit that adds a SKILL.md in the wiki folder after the pr lane, when merge.py runs, then it refuses HEAD_MOVED. | PASS 2026-11-11 |
 | [pass3-symlink-page](Tests#t-pass3-symlink-page) | requirement | REG-4 | Given a commit that adds a symlink named like a wiki page after the pr lane, when merge.py runs, then it refuses HEAD_MOVED. | PASS 2026-11-11 |
 | [merge-base-unrecorded](Tests#t-merge-base-unrecorded) | requirement | REG-4 | Given a goal whose pr lane recorded a head but no base, when merge.py checks the base, then it refuses BASE_MOVED instead of merging unchecked. | PASS 2026-11-11 |
-| [known-no-block](Tests#t-known-no-block) | requirement | REG-5 | Given a known failure, when the run happens, then it does not block the run or open an issue. | PASS 2026-11-11 |
-| [no-token-dry-run](Tests#t-no-token-dry-run) | requirement | REG-5 | Given no GitHub token, when a run happens, then it only prints what it would do. | PASS 2026-11-11 |
-| [one-issue](Tests#t-one-issue) | requirement | REG-5 | Given a failing test, when the run reports it, then one GitHub issue is opened. | PASS 2026-11-11 |
+| [known-no-block](Tests#t-known-no-block) | requirement | REG-5 | Given a known failure, when the run happens, then it does not block the run or open an issue. | PASS 2026-11-12 |
+| [no-token-dry-run](Tests#t-no-token-dry-run) | requirement | REG-5 | Given no GitHub token, when a run happens, then it only prints what it would do. | PASS 2026-11-12 |
+| [one-issue](Tests#t-one-issue) | requirement | REG-5 | Given a failing test, when the run reports it, then one GitHub issue is opened. | PASS 2026-11-12 |
 | [known-recorded](Tests#t-known-recorded) | requirement | REG-5 | Given a known failure, when the GitHub run runs it, then its result is recorded KNOWN, not FAIL. | PASS 2026-11-10 |
 | [reg-defect-label](Tests#t-reg-defect-label) | requirement | REG-5 | Given a failing test, when a local live run reports it, then its issue is labelled defect. | PASS 2026-11-10 |
 | [reg-local-relabel](Tests#t-reg-local-relabel) | requirement | REG-5 | Given an older open issue for a failing test, when a local live run reports it, then the issue gains the defect label. | PASS 2026-11-10 |
