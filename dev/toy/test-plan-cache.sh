@@ -76,10 +76,63 @@ m_calls() { cur=calls
     fail "os.walk calls flat in rows" "walks(120)-walks(20) <= 2" "walks(20)=$w20 walks(120)=$w120"; fi
 }
 
+# case_golden NAME: that case's block of plan-golden.txt, without its "== NAME" line
+case_golden() { awk -v n="== $1" '$0 == n {on = 1; next} /^== / {on = 0} on' "$G"; }
+CASES="narrow wide mixed root unmapped deleted merged record norecord nobase detached"
+
+# plan_case NAME [ENV...]: one plan of a case repo, the PLAN_CACHE lines and all
+plan_case() { local name=$1; shift; env "$@" python3 -B "$F" plan "$S" "$d/c/$name" 2>&1; }
+
+m_identity() {
+  cur=identity
+  echo "== identity: cold, warm and off plans equal the golden"
+  mkdir -p "$d/c"
+  python3 -B "$F" cases "$d/c" --scripts "$S"
+  local name want off cold warm
+  for name in $CASES; do
+    want=$(case_golden "$name")
+    off=$(plan_case "$name" LANES_NO_CACHE=1 | nocache)
+    cold=$(plan_case "$name" X=1 | nocache)
+    warm=$(plan_case "$name" X=1 | nocache)
+    # Value: protects=the planned row set never depends on the cache state (done line 2); fails_when=a cold, warm or uncached plan of a fixture case differs from the v0.27.6 golden; why_new=a stale or wrong closure would skip a row and pass a lane falsely; seam=none; no_claim=real repos (the repo's own rows move with HEAD)
+    if [ "$off" = "$want" ] && [ "$cold" = "$want" ] && [ "$warm" = "$want" ]; then ok "case $name: golden = off = cold = warm"; else
+      local which=off got=$off
+      [ "$cold" = "$want" ] || { which=cold; got=$cold; }
+      [ "$warm" = "$want" ] || { which=warm; got=$warm; }
+      fail "case $name ($which)" "golden" "$(diff <(echo "$got") <(echo "$want") | head -20)"; fi
+  done
+}
+
+m_sizes() {
+  cur=sizes
+  echo "== sizes: no script grows past its ceiling, the package stays at 99 files"
+  local r="$here/skills/workflow-regression/scripts" size
+  # Value: protects=the planner change stays inside the size budget (done line 5, read as: no script grows past its ceiling; tiers.py and narrow.py stay under 18,432); fails_when=lanes.py, actions.py or lanekit.py grows, or tiers.py or narrow.py reaches the health warn line; why_new=the cache code lives in scripts near their ceilings; seam=none; no_claim=the literal done-line text (27 scripts already exceed 18 KB)
+  for pair in "$r/lanes.py:19559" "$r/actions.py:19768" "$here/skills/workflow-delivery/scripts/lanekit.py:20007"; do
+    size=$(wc -c < "${pair%%:*}" | tr -d ' ')
+    if [ "$size" -le "${pair##*:}" ]; then ok "$(basename "${pair%%:*}") is $size bytes (ceiling ${pair##*:})"; else fail "$(basename "${pair%%:*}") size" "<= ${pair##*:}" "$size"; fi
+  done
+  for f in tiers.py narrow.py; do
+    size=$(wc -c < "$r/$f" | tr -d ' ')
+    if [ "$size" -lt 18432 ]; then ok "$f is $size bytes (under 18432)"; else fail "$f size" "< 18432" "$size"; fi
+  done
+  # Value: protects=the shipped package passes its own scan with at most 99 files and no new file under skills/; fails_when=package.py fails or counts more than 99 files, or a file is added under skills/; why_new=the cache must fit in existing scripts; seam=dev/package.py; no_claim=the new files under dev/toy (not shipped)
+  local out
+  out=$(python3 -B "$here/dev/package.py" --out "$d/pkg.zip" </dev/null 2>&1); rm -rf "$here/dist"
+  local count; count=$(sed -n 's/^PASS: \([0-9]*\) files.*/\1/p' <<<"$out")
+  if [ -n "$count" ] && [ "$count" -le 99 ]; then ok "package.py passes with $count files"; else fail "package.py" "PASS with <= 99 files" "$(tail -3 <<<"$out")"; fi
+  local added
+  added=$( { git -C "$here" ls-files --others --exclude-standard skills
+             git -C "$here" cat-file -e '6b0f23c^{commit}' 2>/dev/null && git -C "$here" diff --diff-filter=A --name-only 6b0f23c -- skills; } | tr '\n' ' ')
+  if [ -z "$added" ]; then ok "no new file under skills/"; else fail "no new file under skills/" "none" "$added"; fi
+}
+
 case "$mode" in
   golden) m_golden ;;
   calls) m_calls ;;
-  all) m_golden; m_calls ;;
+  identity) m_identity ;;
+  sizes) m_sizes ;;
+  all) m_golden; m_calls; m_identity; m_sizes ;;
   *) echo "usage: test-plan-cache.sh golden|calls|identity|key|sizes|seconds|all"; exit 2 ;;
 esac
 if [ "$fails" = 0 ]; then echo "ALL PASS"; else echo "FAILED: $fails"; exit 1; fi

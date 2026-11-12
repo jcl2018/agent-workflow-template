@@ -74,7 +74,10 @@ def current(root, name):
 
 
 def changed(root, commit, memo):
-    return memo.setdefault("from", {}).setdefault(commit, lanes.changed(root, commit) or [])
+    seen = memo.setdefault("from", {})
+    if commit not in seen:
+        seen[commit] = lanes.changed(root, commit) or []
+    return seen[commit]
 
 
 def moved(root, old, base):

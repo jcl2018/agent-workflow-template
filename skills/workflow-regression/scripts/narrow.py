@@ -78,7 +78,7 @@ def scan(root, rel, cache):
         index = cache.get("names")
         if index is None:
             index = cache["names"] = {}
-            for path in lanes.walk(root, "skills"):
+            for path in lanes.walk(root, "skills", cache):
                 index.setdefault(os.path.basename(path), set()).add(path)
         skill = "/".join(rel.split("/")[:2]) + "/" if rel.startswith("skills/") else None
         files |= {os.path.join(base, m + ".py") for m in lanes.modules(text)
@@ -158,7 +158,7 @@ def narrow(root, seeds, cache):
                 declared.append(path)
                 if path.endswith("/"):
                     deps.add(path)
-                    todo += [(f, rel) for f in lanes.walk(root, path)]
+                    todo += [(f, rel) for f in lanes.walk(root, path, cache)]
                 else:
                     todo.append((path, rel))
             files, folders = scan(root, rel, cache)
@@ -169,7 +169,7 @@ def narrow(root, seeds, cache):
                     marks.add((folder, rel))
                 else:  # a folder holding the file that names it (dev/, dev/toy/) is a prefix, not walked
                     deps.add(folder)
-                    todo += [] if rel.startswith(folder) else [(f, rel) for f in lanes.walk(root, folder)]
+                    todo += [] if rel.startswith(folder) else [(f, rel) for f in lanes.walk(root, folder, cache)]
             if rel.endswith(".sh") or "." not in os.path.basename(rel):
                 shell.append(lanes.read(root, rel, cache) or "")
                 sh.append(rel)
@@ -186,7 +186,7 @@ def narrow(root, seeds, cache):
             marks |= {(f, rel) for f in extra}
         added = False
         for folder, via in sorted(marks):
-            for path in lanes.walk(root, folder):
+            for path in lanes.walk(root, folder, cache):
                 name, stem = (re.escape(x) for x in (os.path.basename(path), os.path.splitext(os.path.basename(path))[0]))
                 used = r"(?<![\w.-])%s(?![\w-])|\b(?:import|from)\s+%s\b" % (name, stem) if path.endswith(".py") else \
                     r"(?<![\w.-])%s(?![\w-])" % name

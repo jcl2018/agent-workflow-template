@@ -16,3 +16,18 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Run `bash dev/toy/test-plan-cache.sh all`.
+   Expect: golden, calls, identity, key and sizes all print PASS lines and the run ends with `ALL PASS`.
+2. Run `bash dev/toy/test-plan-cache.sh seconds` on a quiet or busy machine.
+   Expect: it prints the off, cold and warm planning seconds of a 1,500-row fixture under 20 busy loops, the cold plan under 60 seconds, the cache file under 2 MB, and ends with `ALL PASS`.
+3. On a large real repo (owner, not run by the build), rerun a lane that was cut with "planning ran long" at a load average of 20 or more, then read the `planning Ns` part of its LANE line and the `PLAN_CACHE:` first line of its log.
+   Expect: planning is under 60 s; run the same lane again at the same HEAD and the log says `PLAN_CACHE: hit (N rows)`; after a new commit it says `PLAN_CACHE: miss (key-head)`. If planning is under 60 s, lower that repo's `prep_budget_minutes` from 25 toward the default.
+4. Run `LANES_NO_CACHE=1 python3 skills/workflow-regression/scripts/regression.py run land --reuse --tier goal` in a clean checkout of a feature branch.
+   Expect: the first output line is `PLAN_CACHE: off (LANES_NO_CACHE=1)` and the rest of the output is what it was before the cache existed.
+5. Done line 5 says "every script stays under 18 KB", but 27 scripts were already over 18,432 bytes before this goal, so it is read as: no script grows past its current size, and tiers.py and narrow.py (the two this goal edits that were under it) stay under 18,432. Run `wc -c skills/workflow-regression/scripts/tiers.py skills/workflow-regression/scripts/narrow.py skills/workflow-regression/scripts/lanes.py`.
+   Expect: tiers.py and narrow.py under 18432 and lanes.py at most 19559. If you meant every script under 18 KB, that is a different goal.
+
+## Closes
+
+Closes #710.
