@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.27.24 - 2026-11-12
+
+- Never signal a pid that only reuses a stored one; audit every signal; name the signal that ended a lane
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/lane-died
+- Merge origin/main into loop/lane-died
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.23 - 2026-11-12
 
 - Merge remote-tracking branch 'origin/main' into loop/automation-local-prd
