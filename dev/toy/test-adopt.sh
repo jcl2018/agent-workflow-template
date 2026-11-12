@@ -49,7 +49,9 @@ mk() { # mk DIR VERSION: a package tree at that version
   echo "$2" > "$1/VERSION"; printf '# Changelog\n\n## v%s - 2026-01-01\n\n- change %s\n\n## v1.0.0 - 2026-01-01\n\n- first\n' "$2" "$2" > "$1/CHANGELOG.md"
 }
 pk="python3 $here/dev/package.py"
-if want SET-3 || want SET-4 || want SET-5; then  # only these use the package; SET-1 and SET-2 never wait on its rules
+# Only SET-3 (the package's contents) and SET-4/SET-5 (installing from it) read v1.zip. SET-1 and SET-2 adopt from this
+# checkout's skills directly, so they never build the package and never fail on its rules.
+if want SET-3 || want SET-4 || want SET-5; then
   mk "$d/v1" 1.0.0; $pk --root "$d/v1" --out "$d/v1.zip" >/dev/null || no "v1 package refused"
 fi
 
