@@ -70,7 +70,7 @@ Review: **Unreviewed**
   - A test that fails then passes on the same commit is marked flaky, never silently retried.
 - REG-10: **Unreviewed** Red proof for rows a platform can't run
   - A row the local platform can't run (the bash toy rows on native Windows exit 77) is skipped with its reason and is never counted as seen failing: a skip, on any platform, never sets the seen-failing date.
-  - Its red proof runs on a capable runner (Linux CI or a Linux session), and the result is written back to the row with the runner and the commit it ran on; a Windows runner can't be named.
+  - Its red proof runs on a capable runner (Linux or macOS, in CI or a session), and the result is written back to the row with the runner and the commit it ran on; a Windows runner can't be named.
   - A pull request that adds such a row lists the exact red commands still owed, so the proof is run and written back before the row counts as proven.
   - A loop run that fails only on rows both skipped on this platform and unproven (qa or ship) waits for the off-platform proof, naming the rows and the red commands, and spends no failed try; a real failure still does.
 

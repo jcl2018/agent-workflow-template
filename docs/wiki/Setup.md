@@ -58,7 +58,8 @@ Review: **Unreviewed**
   - Comes from [#1409](https://github.com/jcl2018/agent-workflow-template/issues/1409).
 - SET-13: **Unreviewed** Workers are app sessions I can see
   - When I've chosen app sessions, a goal never falls back to a background worker: it waits for a free session and says so, including when the app refuses to start one because my message came over Remote Control.
-  - The pool asks for sessions only when free ones run short of ready goals, never a fixed number up front.
+  - The pool is kept at `pool_size` sessions (MON-12): it asks me to fill it only when it runs low, and never starts more than that.
+  - Worker and pool sessions start on the model one setting names, and the operation session sets it on every session it starts or reuses.
   - The reply and govern hooks are installed exactly once each, however many times setup or either hook command runs.
   - Comes from [#1404](https://github.com/jcl2018/agent-workflow-template/issues/1404).
 - SET-14: **Unreviewed** The connectors each repo needs are checked
