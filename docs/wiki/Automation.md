@@ -32,7 +32,7 @@ Review: **Unreviewed**
   - A push or pull request runs only the tests its change affects (Regression, REG-4), in the same place as the full suite.
   - No GitHub Actions check this tool writes is needed to merge a private repo; where its ruleset requires named checks, the pull request lane posts them as commit statuses itself, success when the lane passes and failure when it fails, so a failing lane holds that merge and a passing one releases it.
   - A failing test opens or updates one issue labeled defect, tagged with the feature it guards when feature_labels is on, naming the test and the requirement; it closes by itself when the test passes again.
-  - A scheduled run that cannot read the whole list of regression issues, or skips a row for job time, opens, changes and closes no issue for it.
+  - A scheduled run reads every open regression issue, page by page; if a page fails, or a row is skipped for job time, it opens, changes and closes no issue for it.
 - AUT-3: **Unreviewed** Health every few hours
   - Health never runs in GitHub Actions: it runs on my Mac on the schedule (every 4 hours by default), after the latest finished regression run, with all its rule groups; its report names that run with its commit and age, or says none finished, and says when health last ran.
   - The repo review always runs, using my own login on the Mac, with no API key secret; when the login has expired or can't be reached, the report says which and the next round tries again.
