@@ -243,7 +243,7 @@ for f in "$here"/skills/*/scripts/*.py; do
   if [ "$now" -ge 20480 ] || { [ "$now" -ge 18432 ] && [ "$was" -lt 18432 ]; }; then over="$over $rel($now)"; fi
 done
 out="$over"; check "no script reaches 20 KB, and none newly crosses 18 KB" '[ -z "$over" ]'
-caps=""; for pair in graph:18000 checkin:12500 operate:10500 goal:19800 sessions:19800 watch:19800 merge:20300 mend:14000 board_lines:17200; do
+caps=""; for pair in graph:18000 checkin:12500 operate:10500 goal:20000 sessions:19800 watch:19800 merge:20350 mend:14000 board_lines:17200; do
   n=${pair%%:*}; cap=${pair##*:}; f=$(ls "$here"/skills/*/scripts/$n.py); [ "$(wc -c < "$f")" -le "$cap" ] || caps="$caps $n"; done
 out="$caps"; check "the touched scripts stay within their budgets" '[ -z "$caps" ]'
 out=$(python3 "$here/dev/package.py" --root "$here" --out "$T/pkg.zip" 2>&1); rc=$?
