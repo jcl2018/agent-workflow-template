@@ -224,6 +224,25 @@ def child(argv, cwd, env, seconds, log):
     return code, text
 
 
+REGRESSION_WAIT = 20 * 60  # at most this long for a running regression to end before health goes on without it (AUT-7: 30 + 15)
+
+
+def wait_regression(path, env, log, finish):
+    """WAITED when the newest regression.yml run was in progress and ended, else the state it found; never past `finish`."""
+    began = time.time()
+    while True:
+        done = child(["gh", "run", "list", "--workflow", "regression.yml", "--limit", "1", "--json", "status"], path, env, 30, log)
+        try:
+            status = (json.loads(done[1])[0] or {}).get("status")
+        except (ValueError, IndexError, TypeError):
+            return "REGRESSION_WAIT: no regression run found, health goes on"
+        if status in (None, "completed"):
+            return "REGRESSION_WAIT: regression has finished" + (" after %d s" % (time.time() - began) if time.time() - began > 1 else "")
+        if time.time() - began > REGRESSION_WAIT or time.time() + 60 > finish:
+            return "REGRESSION_WAIT: regression still %s after %d s, health goes on without it" % (status, time.time() - began)
+        time.sleep(60)
+
+
 def tick_repo(key, entry, begin, finish):
     """One repo's tick: True when every step ran, False when a step did not, None when it was skipped."""
     path, log, py, env = entry["path"], open(os.path.join(home(), "log", "tick.log"), "a"), sys.executable, dict(os.environ)
@@ -272,6 +291,8 @@ def tick_repo(key, entry, begin, finish):
             return None
         return child(argv, tree, dict(env, **(extra or {})), seconds, log)
 
+    if conf.get("regression_runs") == "actions" and conf.get("regression_cron") != "off":
+        say(wait_regression(path, env, log, finish))  # health follows the regression run's end, not a fixed offset after its start
     got = step("health check", script("workflow-health", "health.py") + ["check"], extra={"LOOP_MIGRATION_ONLINE": "1"})
     open(report, "w").write(got[1] if got else "")
     ok &= got is not None and step("health file", script("workflow-health", "health.py") + ["file", "--group", GROUPS]) is not None
