@@ -206,6 +206,20 @@ EOF
   same "half the rows" "$r" "PLAN_CACHE: miss (partial 6 of 12)"
   same "the file those plans wrote loads" "$r" "PLAN_CACHE: hit (12 rows)"
 
+  # Value: protects=a decompression bomb is cut off at 64 MB and read as corrupt, never inflated whole (review F5); fails_when=loading a 200 MB zlib stream allocates more than 120 MB or does not answer miss (corrupt); why_new=a damaged file must not exhaust memory; seam=tracemalloc around narrow.warm; no_claim=the speed of the inflate
+  cat > "$d/bomb.py" <<'EOF'
+import sys, tracemalloc, zlib
+sys.path.insert(0, sys.argv[1])
+import narrow
+path = sys.argv[2]
+open(path, "wb").write(zlib.compress(b"0" * (200 << 20), 1))
+tracemalloc.start()
+state = narrow.warm(path, ("k", ["1"] * 6), [], {})
+print(state, "small" if tracemalloc.get_traced_memory()[1] < (120 << 20) else "BIG")
+EOF
+  local res; res=$(python3 -B "$d/bomb.py" "$S" "$d/bomb.bin")
+  [ "$res" = "miss (corrupt) small" ] && ok "a 200 MB bomb is miss (corrupt) within the memory cap" || fail "bomb" "miss (corrupt) small" "$res"
+
   # Value: protects=what the cache saves is what the cache loads (done line 2); fails_when=closure, why and table values change on a store and a warm; why_new=the null table case has a different default in lanes.reads_table; seam=python call of narrow.store and narrow.warm; no_claim=the file's bytes
   cat > "$d/rt.py" <<'EOF'
 import os, sys
