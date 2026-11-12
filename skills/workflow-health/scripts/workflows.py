@@ -165,7 +165,7 @@ def install(root, cfg, load_it=False):
         sys.exit("REFUSED: the launch agent is for macOS; plist, status and tick still work (SCHEDULE_PLATFORM)")
     if cron != "off" and not slots(cron):
         sys.exit("REFUSED: health_cron %s is not an every-N-hours or fixed-hours shape. Fix: edit .loop/config.json (SCHEDULE_CRON)" % cron)
-    if not os.environ.get("LOOP_SCHEDULE_PROGRAM") and ("/loop/worktrees/" in real or real.startswith((os.path.realpath(tempfile.gettempdir()), "/private/tmp"))):
+    if not os.environ.get("LOOP_SCHEDULE_PROGRAM") and ("/loop/worktrees/" in real or real.startswith((os.path.realpath(tempfile.gettempdir()), os.sep + "private" + os.sep + "tmp"))):
         sys.exit("REFUSED: run install from the installed skills or the repo's main checkout (SCHEDULE_PROGRAM_PATH)")
     origin = origin_of(root)
     if not origin:
