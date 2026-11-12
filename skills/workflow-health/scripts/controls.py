@@ -181,6 +181,17 @@ def f_seen_red(root):
           "r1\tland\ttrue\t-\t-\tnever red\tcriterion\t\n")
 
 
+def f_no_fit(root):
+    repo(root)
+    write(root, ".loop/findings.md", "# Findings\n\n- [adoption] own-sections: docs/wiki/A.md. Fix: add the contract sections by hand\n")
+
+
+def f_agent_tools(root):
+    repo(root)
+    write(root, ".loop/config.json", '{"base": "main", "agent_command": ["claude", "-p"]}\n')
+    os.environ["LOOP_FLOW"] = os.path.join(root, "no-flow.json")
+
+
 # rule name in groups.RULES -> (group, the rule groups.rule_of gives its rows, fixture); the rule modules add theirs
 CONTROLS = {
     "scripts": ("size", "scripts", f_size),
@@ -198,6 +209,8 @@ CONTROLS = {
     "worktrees": ("hygiene", "worktrees", f_worktrees),
     "local-branches": ("hygiene", "local-branches", f_local_branches),
     "hooks": ("security", "hooks", f_hooks),
+    "no-fit": ("adoption", "no-fit", f_no_fit),
+    "agent-tools": ("adoption", "agent-tools", f_agent_tools),
 }
 for _module in ("defects", "rules"):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
