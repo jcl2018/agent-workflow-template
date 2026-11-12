@@ -1,7 +1,7 @@
 # dev/toy/test-board.sh passes on main again: its three failing rows are traced to either drifted test text or a lost phrase in the operation guide, and the wrong side is fixed
 
 - Slug: board-test-fix
-- Touches: dev/toy/test-board.sh, skills/workflow-monitoring/references, skills/workflow-monitoring/scripts/watch.py, .loop/regression.tsv, docs/wiki/Monitoring.md, docs/wiki/Tests.md
+- Touches: dev/toy/test-board.sh, skills/workflow-monitoring/references, skills/workflow-monitoring/scripts/watch.py, .loop/regression.tsv, docs/wiki/Monitoring.md, docs/wiki/Tests.md, docs/wiki/Guardrails.md, .loop/regression-known.tsv
 
 ## Done lines
 
