@@ -14,9 +14,10 @@ usage: operate.py <command> [options]
   send SLUG TEXT [--source owner|auto]
       send a worker an answer or a follow-up (worker.py send); the worker's agent sees it the next time it runs goal.py.
       An answer to a waiting question is kept in <git common dir>/loop/answers.jsonl with its source (auto.py reads it)
-  claim
-      record this session as the operation session for the govern hook (MON-7): $CLAUDE_SESSION_ID or --id; the last
-      claim wins and names the one it replaced; refused in a worker
+  claim [--id ID]
+      add this session ($CLAUDE_SESSION_ID or --id) to loop/operation.id, for the govern hook (MON-7), in this repo and
+      every repo it follows (MON-13); sessions already there stay, so several independent operation sessions may run at
+      once and nothing refuses or warns; refused in a worker
 
 An LLM asked to run the operation session runs `operate.py run` and nothing else. It never merges.
 """
@@ -96,6 +97,9 @@ def cmd_run(args):
     common = os.path.abspath(git("rev-parse", "--git-common-dir"))
     if os.environ.get("CLAUDE_SESSION_ID"):
         cmd_claim(argparse.Namespace(id=""))
+    pod = graph.pod_id()
+    if pod:
+        os.environ.setdefault("LOOP_POD_ID", pod)  # watch, auto, send and merge inherit it
     while True:
         seen = signature(top, common)  # before the pass, so a report that lands during it still starts the next one
         delay, busy = one_pass(top, common, args)
@@ -126,25 +130,43 @@ def remember(slug, text, source):
             handle.write(json.dumps({"slug": slug, "key": " ".join(ask.lower().split()), "words": text, "source": source}) + "\n")
 
 
+def add_id(base, sid):
+    """Add sid to <base>/loop/operation.id, keeping the sessions already there; a repo that can't be written is skipped."""
+    path = os.path.join(base, "loop", "operation.id")
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path) as handle:
+            have = {line.strip() for line in handle}
+    except OSError:
+        have = set()
+    if sid not in have:
+        try:
+            with open(path, "a") as handle:
+                handle.write(sid + "\n")
+        except OSError:
+            pass
+
+
 def cmd_claim(args):
-    """The govern hook's record of the operation session; the last claim wins."""
+    """Two layers per pod (MON-13): this session joins the operation sessions of this repo and every repo it follows; the
+    others stay, and nothing refuses, because independent operation sessions may run at once."""
     sid = args.id or os.environ.get("CLAUDE_SESSION_ID", "")
     common = os.path.abspath(git("rev-parse", "--git-common-dir") or ".git")
     if os.environ.get("LOOP_ROLE") == "worker" or os.path.realpath(os.getcwd()).startswith(os.path.join(common, "loop", "worktrees") + os.sep):
         sys.exit("REFUSED: a worker can't claim the operation session. Fix: run claim from the main checkout's operation session.")
     if not sid:
         sys.exit("REFUSED: no session id. Fix: operate.py claim --id <this session's id>.")
-    path = os.path.join(common, "loop", "operation.id")
-    old = open(path).read().strip() if os.path.exists(path) else ""
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as handle:
-        handle.write(sid + "\n")
-    print("CLAIMED operation session %s%s" % (sid, " (replaced %s)" % old if old and old != sid else ""))
+    import board as bd
+    for base in [common] + [base for _, _, base in bd.followed() if base != common]:
+        add_id(base, sid)
+    print("CLAIMED operation session %s" % sid)
+    print("POD %s: set LOOP_POD_ID=%s to keep this pod if the session restarts" % (sid, sid))
     return 0
 
 
 def cmd_send(args):
     """The inbox always carries it; a goal in a worker session is also sent it by session message, which wakes it."""
+    graph.refuse(graph.load_run(args.slug))  # another pod's goal is not ours to answer
     remember(args.slug, args.text, args.source)
     code, said = script("worker.py", "send", args.slug, args.text)
     print(graph.localize(said.strip()))

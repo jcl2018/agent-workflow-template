@@ -1,0 +1,11 @@
+#!/bin/bash
+# A stand-in for `codex exec` in test-codex.sh: runs each "NAME: COMMAND" line of the prompt (its last argument) in the
+# current folder, writing .codex-out/NAME.txt and NAME.rc as the real prompt asks. No model, no network.
+prompt=${*: -1}; mkdir -p .codex-out
+printf '%s\n' "$prompt" | while IFS= read -r line; do
+  case "$line" in
+    [a-z]*:\ *) name=${line%%: *}; cmd=${line#*: }
+      bash -c "$cmd" > ".codex-out/$name.txt" 2>&1; echo $? > ".codex-out/$name.rc" ;;
+  esac
+done
+echo DONE
