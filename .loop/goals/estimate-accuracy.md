@@ -27,3 +27,7 @@ Frozen. A wrong done line needs a new goal.
 ## Owner re-review: Documentation (CHANGED)
 
 The Documentation page's Usage gained one factual sentence, on the `render` entry: "The package folds keep the scripts the docs name under 100 files: the digest mail renderer sits in health `rounds.py`, the private rules in `enforce.py` and the issue proposal in setup `sync.py`." It says where three small scripts moved; no requirement changed. The owner's re-review of the Documentation Usage is open.
+
+## Owner re-review: Health (CHANGED)
+
+The Health page's Usage gained one factual sentence on the `check` entry: "The owner's private rules (`--group mine`) run from `enforce.py`, folded in beside the not-enforced check to keep the package under 100 files." No requirement changed. The owner's re-review of the Health Usage is open.
