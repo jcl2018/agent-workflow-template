@@ -12,3 +12,8 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. Run `python3 skills/workflow-regression/scripts/regression.py sync`.
+   Expect: no GAP line names SET-6, SET-7, SET-9 or GRD-1 to GRD-10 as lacking a row, and no UNPROVEN line names a grd row.
+2. Run `grep -c '^grd' .loop/regression.tsv`.
+   Expect: 17 or more rows.
+
