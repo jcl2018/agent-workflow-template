@@ -4,6 +4,17 @@ d=${FAKE_GH_DIR:?}; mkdir -p "$d"
 args=(); while [ $# -gt 0 ]; do if [ "$1" = --body-file ]; then args+=(--body "$(cat "$2")"); shift 2; else args+=("$1"); shift; fi; done; set -- "${args[@]}"  # a text in a file reads as --body TEXT
 echo "$*" >> "$d/calls.log"
 here=$(cd "$(dirname "$0")" && pwd)
+if [ "$1" = api ] && [[ "$*" == *labels=regression* ]]; then  # the open regression issues, one JSON object a line, as gh api --paginate --jq gives them
+  [ -z "${FAKE_GH_PAGE_FAIL:-}" ] || { echo "HTTP 502: a page failed" >&2; exit 1; }
+  FAKE_GH_ARGS="$*" python3 -c '
+import json, os
+mark = "<!-- loop-regression flag placed=Alpha -->" if os.environ.get("FAKE_GH_ISSUE_PLACED") else "<!-- loop-regression flag -->"
+rows = [{"number": 100 + i, "state": "OPEN", "body": "<!-- loop-regression pad-%d -->" % i, "labels": []} for i in range(int(os.environ.get("FAKE_GH_ISSUE_COUNT") or 0))]
+rows += [{"number": 7, "state": "OPEN", "body": mark, "labels": []}] if os.environ.get("FAKE_GH_ISSUE_OPEN") else []
+print("\n".join(json.dumps(r) for r in rows[:None if "--paginate" in os.environ["FAKE_GH_ARGS"].split() else 100]))  # one page unless asked for all
+'
+  exit 0
+fi
 case "$1 $2" in
   "api "*) exec python3 "$here/fake.py" "$@";;
   "repo view") exec python3 "$here/fake.py" "$@";;

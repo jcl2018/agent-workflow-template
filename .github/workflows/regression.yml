@@ -428,10 +428,9 @@ jobs:
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           gh("label", "create", "defect", "--description", "A test that guards it is failing")
           guards = {cells[1]: cells for cells in rows(os.environ.get("REGRESSION_MAP") or os.devnull) if len(cells) > 4}
-          out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "5000", "--json", "number,state,body,labels")
-          issues = json.loads(out.stdout or "[]") if out.returncode == 0 else None
-          if issues is not None and len(issues) >= 5000:
-              issues, out.stderr = None, "list cut off at 5000"
+          out = gh("api", "--paginate", "repos/{owner}/{repo}/issues?state=open&labels=regression&per_page=100", "--jq",
+                   '.[] | select(.pull_request == null) | {number, state: "OPEN", body, labels}')  # gh issue list stops at 1000
+          issues = [json.loads(line) for line in out.stdout.splitlines() if line] if out.returncode == 0 else None
           if issues is None:
               print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
           FEATURES = {row[0] for row in rows(".loop/docs.tsv") if row and row[0] and row[0] != "Home"}
@@ -440,7 +439,7 @@ jobs:
           except (OSError, ValueError, AttributeError):
               LABELS_ON = False
           failed, filed = [], [0]
-          CLEANUP, halt = os.environ.get("REGRESSION_CLEANUP") == "true", []  # paced: 2 writes a close
+          CLEANUP, halt = os.environ.get("REGRESSION_CLEANUP") == "true", []
           def write(what, *args, body=None):
               if halt or CLEANUP and time.time() - start > JOB_SECONDS - 120:
                   return halt and failed.append(what)
@@ -449,7 +448,7 @@ jobs:
               done = gh(*args, body=body)
               if done.returncode:
                   failed.append(what)
-                  halt += ["rate limit"] * ("rate limit" in done.stderr.lower())
+                  halt.extend(["rate limit"] * ("rate limit" in done.stderr.lower()))
                   print("FAILED %s: %s (FILE_FAILED)" % (what, done.stderr.strip()[:160]))
               else:
                   filed[0] += 1

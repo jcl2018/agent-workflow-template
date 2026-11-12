@@ -40,7 +40,7 @@ if not sys.stdin or not sys.stdin.isatty():
 
 NAME = "regression-runs.tsv"
 HEADER = "# id\tstatus\tdate\trun\tflaky\n"
-ISSUE_LIMIT = 5000  # gh pages through them itself; a list this long may be cut off
+ISSUE_LIMIT = 1000  # gh issue list returns at most this many: a full list may be cut off
 SKIP_CODE = 77  # a row exits 77 when it cannot run on this machine (no Codex): SKIPPED, never PASS, never FAIL
 LABELS = ("regression", "defect")  # the tool's own label, and the defect label every failing row's issue carries
 MARK = "<!-- loop-regression %s -->"
