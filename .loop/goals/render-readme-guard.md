@@ -15,6 +15,12 @@ Frozen. A wrong done line needs a new goal.
 6. each done line has a regression row seen failing then passing, listed in the Documentation Tests table
 7. no new file under skills/
 
+## Added done lines
+
+Added after the freeze by the operation session; kept outside the frozen list above, which is hashed.
+
+- docs.py is back under 90% of the 20,480-byte size cap with no behaviour change (a block moved into an existing module, no new file), so row size-140 passes and its .loop/regression-known.tsv entry is removed. Reason, the operation session's words (2026-11-12): "size-140 (skills/workflow-docs/scripts/docs.py at 91% of the 20,480-byte cap) is yours, since you own docs.py now."
+
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->

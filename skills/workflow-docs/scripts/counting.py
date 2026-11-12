@@ -3,7 +3,7 @@
 
 docs.py check, audit and publish call counts() through docs.counts(root). prose() is the text a reader sees: no fenced
 or indented code, comments or code spans. The page map of docs.py (map_path, read_map, write_map)
-and real(), which drops block-only commits from its staleness, sit at the end.
+and its live(), moved unchanged, and real(), which drops block-only commits from its staleness, sit at the end.
 """
 import glob
 import os
@@ -208,3 +208,21 @@ def real(root, changed, paths):
 
     return [c for c in changed if not (names.get(c.split()[0]) and all(
         os.path.basename(rel) in ("README.md", "Home.md") and blocks_only(c.split()[0], rel) for rel in names[c.split()[0]]))]
+
+
+def live(root):
+    import render
+    """Print each routine's live state: a workflow's newest run, a launch agent loaded or not."""
+    for e in render.entries(root):
+        kind, _, target = str(e.get("runs", "")).partition(":")
+        if kind == "github":
+            done = subprocess.run(["gh", "run", "list", "--workflow", target, "--limit", "1", "--json", "conclusion,createdAt",
+                                   "-q", ".[0] | \"\\(.conclusion) \\(.createdAt)\""], capture_output=True, text=True)
+            said = done.stdout.strip() if done.returncode == 0 and done.stdout.strip() else "no run found or gh unavailable"
+        elif kind == "mac":
+            done = subprocess.run(["launchctl", "list", target], capture_output=True, text=True)
+            said = "loaded" if done.returncode == 0 else "not loaded"
+        else:
+            said = "a Claude scheduled task is checked in the Claude app"
+        print("%s: %s" % (e["name"], said))
+    return 0

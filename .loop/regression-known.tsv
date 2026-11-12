@@ -5,7 +5,6 @@ adopt-set-4	fails on main: v1 package refused (files over cap, automation not in
 adopt-set-5	fails on main: v1 package refused (files over cap, automation not in listing); fixed by package-cap-3
 defect-categories	fails on clean main since v0.27.17; fixed by package-cap-3
 skill-size-116	fails on clean main since v0.27.17; fixed by regression-green-2
-size-140	fails on clean main since v0.27.17; fixed by regression-green-2
 deploy-section-optional	fails on clean main since v0.27.17; fixed by docs-small-fixes
 deploy-not-locked	fails on clean main since v0.27.17; fixed by docs-small-fixes
 deploy-doc14-reviewed	fails on clean main since v0.27.17; fixed by docs-small-fixes
