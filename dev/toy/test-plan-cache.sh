@@ -383,7 +383,8 @@ m_sizes() {
   done
   # Value: protects=the shipped package passes its own scan with at most 99 files; fails_when=package.py fails or counts more than 99 files; why_new=the cache must fit in existing scripts; seam=dev/package.py with its ZIP in a temp folder; no_claim=the new files under dev/toy (not shipped)
   local out count
-  out=$(python3 -B "$here/dev/package.py" --out "$d/pkg.zip" </dev/null 2>&1)
+  mkdir -p "$d/pkgroot" && git -C "$here" archive HEAD | tar -x -C "$d/pkgroot"  # the committed files only: a stray __pycache__ in the worktree is not shipped
+  out=$(python3 -B "$here/dev/package.py" --root "$d/pkgroot" --out "$d/pkg.zip" </dev/null 2>&1)
   count=$(sed -n 's/^PASS: \([0-9]*\) files.*/\1/p' <<<"$out")
   if [ -n "$count" ] && [ "$count" -le 99 ]; then ok "package.py passes with $count files"; else fail "package.py" "PASS with <= 99 files" "$(tail -3 <<<"$out")"; fi
   # Value: protects=the owner can look up every PLAN_CACHE state in commands.md; fails_when=a state token the planner prints is missing from its Plan cache section; why_new=tokens are the owner's only view of the cache; seam=none; no_claim=the table's wording

@@ -274,7 +274,7 @@ never in the worktree). The next lane at the same HEAD loads it instead of recom
 | `PLAN_CACHE: hit (N rows)` | The file matched and held every row the plan needed; the tree is clean, and any uncommitted loop bookkeeping files are the ones the file was written with | Nothing |
 | `PLAN_CACHE: miss (absent)` | No file yet for this branch (a first lane, or after a reset); computed, then written | Nothing |
 | `PLAN_CACHE: miss (key-head)` | HEAD moved since the file was written | Nothing: the next lane at this HEAD hits |
-| `PLAN_CACHE: miss (key-rows)` | `.loop/regression.tsv` changed | Nothing |
+| `PLAN_CACHE: miss (key-rows)` | `.loop/regression.tsv` differs although HEAD is the same: rare, because an edit shows `dirty` until committed and then `key-head` (only an edit hidden from `git status`, such as `update-index --assume-unchanged`, reaches it) | Nothing |
 | `PLAN_CACHE: miss (key-runner)` | The planner's own code changed (an upgrade) | Nothing: the first lane after an upgrade misses |
 | `PLAN_CACHE: miss (key-wide)` | `LANES_WIDE` differs from the run that wrote the file | Keep `LANES_WIDE` the same between lanes |
 | `PLAN_CACHE: miss (key-loop)` | A loop file git status leaves out (`.loop/goals/`, the runs file, queue.md, findings.md) has uncommitted changes that differ from when the file was written | Nothing: the next lane with the same files hits |
