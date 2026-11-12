@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-setup/scripts/settings.py
 # reads: skills/workflow-setup/scripts/sync.py skills/workflow-setup/scripts/update.py
 # reads: skills/workflow-health/scripts/health.py skills/workflow-docs/scripts/docs.py

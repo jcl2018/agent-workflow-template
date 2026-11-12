@@ -7,7 +7,6 @@ commit the re-rendered Tests tables. One lane per goal runs at a time; a lane on
 <runs>/<slug>.<name>-lane.last. Messages: lanekit.py, workflow-regression/references/commands.md. Its TMPDIR is under
 the system temp, never in a git checkout, removed when it ends. A signal goes only to a process whose stored start time matches.
 """
-import portlock as fcntl
 import json
 import os
 import re
@@ -24,6 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REG = os.path.normpath(os.path.join(HERE, "..", "..", "workflow-regression", "scripts"))
 sys.path.insert(0, HERE)
 import lanekit  # noqa: E402
+fcntl = lanekit.fcntl
 # No terminal, no waiting.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 from lanekit import NOTHING, TERMINAL, death, dirty, drop, generated, git, mtime, prep, read_json, running_line, set_last  # noqa: E402,F401

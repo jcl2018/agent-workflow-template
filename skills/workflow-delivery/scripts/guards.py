@@ -10,7 +10,6 @@ Imported by goal.py (and role.begin); run only as `guards.py known`, which print
              of the run record can erase them.
 """
 import datetime
-import portlock as fcntl
 import json
 import os
 import re
@@ -20,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fit  # noqa: E402
 import private  # noqa: E402
 import lanekit  # noqa: E402
+fcntl = lanekit.fcntl
 import role  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))

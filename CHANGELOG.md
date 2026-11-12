@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.27.25 - 2026-11-12
+
+- Fold portlock.py into one module per skill; automation in the listing; lane headers (package-cap-3)
+- Portlock fallback test, package row, defect-categories copy includes .github, skill-size known entry removed (package-cap-3)
+- portlock test declares skills/ (package-cap-3)
+- Wiki: the lock fallback lives in the scripts, not portlock.py (package-cap-3)
+- Usage notes: the lock fallback, and where audit and automation detail live (package-cap-3)
+- Merge remote-tracking branch 'origin/main' into loop/package-cap-3
+- test-runbook declares the docs scripts it runs, not the folder (package-cap-3)
+- pr: record issue states and the lane's results
+- Merge origin/main (lane-died) into loop/package-cap-3: keep lane-died's identity checks and the folded lock shim
+- pr: record issue states and the lane's results
+- Delivery page: a stop never signals a reused pid, every signal is logged, LANE_DIED names the signal (package-cap-3)
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.24 - 2026-11-12
 
 - Never signal a pid that only reuses a stored one; audit every signal; name the signal that ended a lane

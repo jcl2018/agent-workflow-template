@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-setup/scripts/settings.py
 # reads: skills/workflow-health/scripts/health.py skills/workflow-docs/scripts/docs.py
 # Adopts fixture repos shaped like real ones: existing config checks (pull request 83's bug), CI tests with a .gitignore
