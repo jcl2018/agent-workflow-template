@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.27.30 - 2026-11-12
+
+- Add red time-ordered model regression
+- Select estimates by time-ordered backtest
+- Lane: re-render the Tests tables
+- Document time-ordered estimate selection
+- Keep Monitoring review header adjacent
+- Place estimate note with Monitoring tests
+- Lane: re-render the Tests tables
+- Record Monitoring criterion and red proof
+- Revert "Lane: re-render the Tests tables"
+- Refresh generated estimate regression docs
+- Merge origin/main (v0.27.15) into loop/estimate-timeorder: rows kept, Tests re-rendered
+- Exclude a goal from its own time-ordered past; add time_order_edges check and point mon4 at it
+- Restore board_model docstring caveats; re-render Monitoring test table
+- estimate-timeorder: commands.md says the time-ordered score picks the model; the board_report sample is a real run
+- estimate-timeorder: Monitoring Usage names the time-ordered estimate line (CHANGED until the owner re-reviews); the goal file quotes the sentence
+- Merge origin/main into loop/estimate-timeorder: rows kept, Tests re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+- Merge origin/main (v0.27.18) into estimate-timeorder
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+- Merge origin/main (v0.27.29) into estimate-timeorder
+- Remove merge markers left in the regression rows
+- Merge remote-tracking branch 'origin/main' into loop/estimate-timeorder
+
+### How to verify
+
+1. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root .` in a repo with finished goal runs.
+   Expect: the table labels the selection column `time score`, labels leave-one-out under `diagnostics: loo`, and names the chosen model.
+2. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root . --json`.
+   Expect: each candidate has a `time_ordered` score and a separate `leave_one_out` score; `chosen` names the time-ordered winner when at least ten goals are scorable.
+
 ## v0.27.29 - 2026-11-12
 
 - Goal reset writes an empty report; goal state saved under a lock with merge of concurrent writers
