@@ -3,7 +3,8 @@
 the page format checks (pageformat.py) need. The rendering functions are pure; render() writes.
 
 criteria.py render calls render(); docs.py check calls generated() and front(); setup runs `render.py blocks`, the one
-insert of the marked blocks (the rest only refresh them). Each written file goes to a temp file renamed into place, printed as WROTE <file>. It runs git and nothing else.
+insert of the marked blocks (the rest only refresh them). Each written file goes to a temp file renamed into place,
+printed as WROTE <file>. It runs git and nothing else.
 """
 import glob
 import json
@@ -357,8 +358,7 @@ def template_line(root):
 
 
 def with_blocks(text, blocks, insert=False):
-    """text with each (name, block) replaced where its markers are; with insert a missing one is appended (the
-    template line after the first paragraph)."""
+    """text with each (name, block) replaced; with insert a missing one is appended (template: after paragraph 1)."""
     for name, block in blocks:
         pattern = block_re(name)
         if pattern.search(text):
@@ -373,12 +373,12 @@ def with_blocks(text, blocks, insert=False):
     return text
 
 
-def front_files(root):
-    """[(rel, blocks)] for the README and a DOC-4 Home (never a PRD-format one), when they exist."""
+def front_files(root, insert=False):
+    """[(rel, blocks)] for the README and Home, when they exist; only a DOC-4 Home gets new blocks."""
     out = []
     home = os.path.join(criteria.folder_of(root), "Home.md")
     text = read(os.path.join(root, home)) or ""
-    if re.search(r"^## Features\s*$", text, re.M):
+    if re.search(r"^## Features\s*$", text, re.M) or (block_re("settings").search(text) and not insert):
         out.append((home, [("settings", settings_block(root)), ("automation", automation_block(root))]))
     if os.path.exists(os.path.join(root, "README.md")):
         out.append(("README.md", [("template", template_line(root)), ("settings", settings_block(root)),
@@ -387,10 +387,9 @@ def front_files(root):
 
 
 def refresh(root, check=False, insert=False):
-    """Write the blocks (or with check, only list what differs): [(rel, name)] of the blocks that were stale. Without
-    insert a block with no markers (a repo not yet migrated) is left alone."""
+    """Write the blocks (check: only list them): [(rel, name)] of stale blocks; a missing one only with insert."""
     stale = []
-    for rel, blocks in front_files(root):
+    for rel, blocks in front_files(root, insert):
         held = read(os.path.join(root, rel)) or ""
         for name, block in blocks:
             found = block_re(name).search(held)
@@ -409,6 +408,7 @@ def stale_blocks(root):
             for where, name in refresh(root, True)]
 
 
-if __name__ == "__main__" and sys.argv[1:] == ["blocks"]:  # setup's insert (criteria on)
+if __name__ == "__main__":
+    sys.argv[1:] == ["blocks"] or sys.exit("usage: render.py blocks")
     top = criteria.git("rev-parse", "--show-toplevel")
     print("\n".join("WROTE %s (%s block)" % x for x in (refresh(top, insert=True) if config_of(top).get("criteria") else [])) or "BLOCKS OK")

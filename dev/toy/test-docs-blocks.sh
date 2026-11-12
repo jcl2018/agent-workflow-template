@@ -53,7 +53,7 @@ for path in sys.argv[1:]:
     text = open(path).read()
     open(path, "w").write(re.sub(r"\n*<!-- (settings|automation|template):begin -->\n.*?<!-- \1:end -->\n", "\n", text, flags=re.S))
 PY
-  git commit -qam "Adopted before the Settings and Automation blocks"
+  git commit -qam "Adopted before the Settings and Automation blocks" || { echo "FAIL: setup inserted no blocks to strip"; exit 1; }
   cp README.md "$d/readme.before"; cp $H "$d/home.before"
   out=$($render 2>&1) || bad "render failed: $out"
   cmp -s README.md "$d/readme.before" && cmp -s $H "$d/home.before" && ok "a render leaves an unmarked README and Home byte-identical" \

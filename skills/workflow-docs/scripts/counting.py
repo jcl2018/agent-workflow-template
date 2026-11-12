@@ -2,7 +2,8 @@
 """The numbers the docs state that the repo can check: skills, feature pages, and a feature page's criteria and tests.
 
 docs.py check, audit and publish call counts() through docs.counts(root). prose() is the text a reader sees: no fenced
-or indented code, comments or code spans. The page map of docs.py (map_path, read_map, write_map) and real(), which drops block-only commits from its staleness, sit at the end.
+or indented code, comments or code spans. The page map of docs.py (map_path, read_map, write_map)
+and real(), which drops block-only commits from its staleness, sit at the end.
 """
 import glob
 import os
@@ -185,6 +186,8 @@ BLOCK = re.compile(r"<!-- (settings|automation|template):begin -->\n.*?<!-- \1:e
 def real(root, changed, paths):
     """changed ('<sha> <subject>' lines) without the commits whose change to paths lies only inside the generated
     blocks of README.md or a Home.md: a block refresh (or setup's insert) says nothing about the pages mapped there."""
+    if not changed:
+        return changed
     git = lambda *a: subprocess.run(["git", "-C", root] + list(a), capture_output=True, text=True)  # noqa: E731
     names = {}  # one git call for every commit's files
     for chunk in git("log", "--no-walk=unsorted", "--no-renames", "--format=%x01%h", "--name-only",
