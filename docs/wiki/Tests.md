@@ -717,6 +717,9 @@
 | <a id="t-flow-stale-pid-safe"></a>flow-stale-pid-safe | requirement | done line lane-died:1 | not run | - | local | 2026-11-12 |
 | <a id="t-lane-died-signal"></a>lane-died-signal | requirement | done line lane-died:2 | not run | - | local | 2026-11-12 |
 | <a id="t-lane-died-sigkill"></a>lane-died-sigkill | requirement | done line lane-died:2 | not run | - | local | 2026-11-12 |
+| <a id="t-issue-list-reads-all"></a>issue-list-reads-all | requirement | - | not run | - | local | 2026-11-12 |
+| <a id="t-issue-list-cut-off-refused"></a>issue-list-cut-off-refused | requirement | - | not run | - | local | 2026-11-12 |
+| <a id="t-job-skip-opens-no-issue"></a>job-skip-opens-no-issue | requirement | - | not run | - | local | 2026-11-12 |
 | <a id="t-review-findings-wording"></a>review-findings-wording | requirement | done line review-findings:1 | not run | - | local | 2026-11-12 |
 | <a id="t-review-findings-skill-lines"></a>review-findings-skill-lines | requirement | done line review-findings:2 | not run | - | local | 2026-11-12 |
 | <a id="t-size-lf-crlf"></a>size-lf-crlf | defect | [#3125](https://github.com/jcl2018/agent-workflow-template/issues/3125) open (2026-11-12) | not run | - | local | 2026-11-12 |
