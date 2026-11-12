@@ -114,11 +114,11 @@
 | <a id="t-del9-pr-refuses"></a>del9-pr-refuses | requirement | DEL-9 | not run | - | local | 2026-11-10 |
 | <a id="t-del9-merge-refuses"></a>del9-merge-refuses | requirement | DEL-9 | not run | - | local | 2026-11-10 |
 | <a id="t-del9-scan-sites"></a>del9-scan-sites | requirement | DEL-9 | not run | - | local | 2026-11-10 |
-| <a id="t-issue-38-verdicts"></a>issue-38-verdicts | defect | [#38](https://github.com/jcl2018/agent-workflow-template/issues/38) open (2026-11-11) | not run | - | local | 2026-11-10 |
-| <a id="t-issue-117-github-touches"></a>issue-117-github-touches | defect | [#117](https://github.com/jcl2018/agent-workflow-template/issues/117) open (2026-11-11) | not run | - | local | 2026-11-10 |
-| <a id="t-issue-129-docs-published"></a>issue-129-docs-published | defect | [#129](https://github.com/jcl2018/agent-workflow-template/issues/129) open (2026-11-11) | not run | - | local | 2026-11-10 |
-| <a id="t-issue-129-wiki-first-page"></a>issue-129-wiki-first-page | defect | [#129](https://github.com/jcl2018/agent-workflow-template/issues/129) open (2026-11-11) | not run | - | local | 2026-11-10 |
-| <a id="t-issue-134-protected-release"></a>issue-134-protected-release | defect | [#134](https://github.com/jcl2018/agent-workflow-template/issues/134) open (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-38-verdicts"></a>issue-38-verdicts | defect | [#38](https://github.com/jcl2018/agent-workflow-template/issues/38) closed (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-117-github-touches"></a>issue-117-github-touches | defect | [#117](https://github.com/jcl2018/agent-workflow-template/issues/117) closed (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-129-docs-published"></a>issue-129-docs-published | defect | [#129](https://github.com/jcl2018/agent-workflow-template/issues/129) closed (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-129-wiki-first-page"></a>issue-129-wiki-first-page | defect | [#129](https://github.com/jcl2018/agent-workflow-template/issues/129) closed (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-134-protected-release"></a>issue-134-protected-release | defect | [#134](https://github.com/jcl2018/agent-workflow-template/issues/134) closed (2026-11-11) | not run | - | local | 2026-11-10 |
 | <a id="t-issue-154-release-pr-merge"></a>issue-154-release-pr-merge | defect | [#154](https://github.com/jcl2018/agent-workflow-template/issues/154) closed (2026-11-11) | not run | - | local | 2026-11-10 |
 | <a id="t-issue-170-patch-on-remove"></a>issue-170-patch-on-remove | defect | [#170](https://github.com/jcl2018/agent-workflow-template/issues/170) open (2026-11-11) | not run | - | local | 2026-11-10 |
 | <a id="t-del9-lane-part-no-path"></a>del9-lane-part-no-path | requirement | DEL-9 | not run | - | local | 2026-11-11 |
@@ -357,14 +357,14 @@
 | <a id="t-mon11-full-auto"></a>mon11-full-auto | requirement | MON-11 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-mon12-pool"></a>mon12-pool | requirement | MON-12 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-checkin-passes-hook"></a>checkin-passes-hook | requirement | MON-5 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-deps-graph-94"></a>deps-graph-94 | defect | [#94](https://github.com/jcl2018/agent-workflow-template/issues/94) open (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-issues-phone-97"></a>issues-phone-97 | defect | [#97](https://github.com/jcl2018/agent-workflow-template/issues/97) open (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-report-held-111"></a>report-held-111 | defect | [#111](https://github.com/jcl2018/agent-workflow-template/issues/111) open (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-slot-pool-112"></a>slot-pool-112 | defect | [#112](https://github.com/jcl2018/agent-workflow-template/issues/112) open (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-state-shared-113"></a>state-shared-113 | defect | [#113](https://github.com/jcl2018/agent-workflow-template/issues/113) open (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-attempt-114"></a>attempt-114 | defect | [#114](https://github.com/jcl2018/agent-workflow-template/issues/114) open (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-held-time-115"></a>held-time-115 | defect | [#115](https://github.com/jcl2018/agent-workflow-template/issues/115) open (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-pool-edges-122"></a>pool-edges-122 | defect | [#122](https://github.com/jcl2018/agent-workflow-template/issues/122) open (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-deps-graph-94"></a>deps-graph-94 | defect | [#94](https://github.com/jcl2018/agent-workflow-template/issues/94) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-issues-phone-97"></a>issues-phone-97 | defect | [#97](https://github.com/jcl2018/agent-workflow-template/issues/97) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-report-held-111"></a>report-held-111 | defect | [#111](https://github.com/jcl2018/agent-workflow-template/issues/111) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-slot-pool-112"></a>slot-pool-112 | defect | [#112](https://github.com/jcl2018/agent-workflow-template/issues/112) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-state-shared-113"></a>state-shared-113 | defect | [#113](https://github.com/jcl2018/agent-workflow-template/issues/113) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-attempt-114"></a>attempt-114 | defect | [#114](https://github.com/jcl2018/agent-workflow-template/issues/114) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-held-time-115"></a>held-time-115 | defect | [#115](https://github.com/jcl2018/agent-workflow-template/issues/115) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-pool-edges-122"></a>pool-edges-122 | defect | [#122](https://github.com/jcl2018/agent-workflow-template/issues/122) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-merged-frees-175"></a>merged-frees-175 | defect | [#175](https://github.com/jcl2018/agent-workflow-template/issues/175) open (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-est-worktree"></a>est-worktree | requirement | MON-4 | not run | - | local | 2026-11-10 |
 | <a id="t-est-similar-step"></a>est-similar-step | requirement | MON-4 | not run | - | local | 2026-11-10 |
@@ -373,7 +373,7 @@
 | <a id="t-reply-checkin-321"></a>reply-checkin-321 | defect | [#321](https://github.com/jcl2018/agent-workflow-template/issues/321) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-pull-ff-only-passes"></a>pull-ff-only-passes | defect | [#495](https://github.com/jcl2018/agent-workflow-template/issues/495) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-pull-plain-blocked"></a>pull-plain-blocked | defect | [#495](https://github.com/jcl2018/agent-workflow-template/issues/495) closed (2026-11-11) | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-issue-117-bind-self"></a>issue-117-bind-self | defect | [#117](https://github.com/jcl2018/agent-workflow-template/issues/117) open (2026-11-11) | not run | - | local | 2026-11-10 |
+| <a id="t-issue-117-bind-self"></a>issue-117-bind-self | defect | [#117](https://github.com/jcl2018/agent-workflow-template/issues/117) closed (2026-11-11) | not run | - | local | 2026-11-10 |
 | <a id="t-est-backtest-best"></a>est-backtest-best | requirement | MON-4 | not run | - | local | 2026-11-10 |
 | <a id="t-est-backtest-loo"></a>est-backtest-loo | requirement | MON-4 | not run | - | local | 2026-11-10 |
 | <a id="t-est-accuracy-line"></a>est-accuracy-line | requirement | MON-4 | not run | - | local | 2026-11-10 |
@@ -545,7 +545,7 @@
 | <a id="t-codex-pods-collide"></a>codex-pods-collide | requirement | SET-3 | not run | - | local | 2026-11-12 |
 | <a id="t-codex-skip-77"></a>codex-skip-77 | requirement | SET-3 | not run | - | local | 2026-11-12 |
 | <a id="t-codex-harness"></a>codex-harness | requirement | SET-3 | not run | - | local | 2026-11-12 |
-| <a id="t-codex-key-commands"></a>codex-key-commands | defect | [#38](https://github.com/jcl2018/agent-workflow-template/issues/38) open (2026-11-11) | not run | - | local | 2026-11-12 |
+| <a id="t-codex-key-commands"></a>codex-key-commands | defect | [#38](https://github.com/jcl2018/agent-workflow-template/issues/38) closed (2026-11-11) | not run | - | local | 2026-11-12 |
 
 ## Other
 
