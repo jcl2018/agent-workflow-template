@@ -1,0 +1,13 @@
+<!-- automation:begin -->
+## Automation
+
+Health and regression, then each `automation` entry in `.loop/config.json`; to add one, add an entry.
+
+| Routine | What it does | State | Cadence | Runs on | Last run | Owed by you |
+|---|---|---|---|---|---|---|
+| health | Checks the repo and files each finding. | on | every 4 hours | GitHub Actions (health.yml) | docs.py automation | none |
+| regression | Runs every regression row, files each failure. | off | off | not deployed | docs.py automation | none |
+| digest email | Mails one digest per health round. | off | cron `with each health round` | GitHub Actions (health.yml) | docs.py automation | none |
+| backup | Copies things. | on (declared) | daily at 03:15 | this Mac (launch agent com.toy.backup) | docs.py automation | confirm it is live: docs.py automation |
+| report | Weekly. | on (declared) | cron `7` | Claude scheduled task weekly | docs.py automation | confirm it is live: docs.py automation |
+<!-- automation:end -->

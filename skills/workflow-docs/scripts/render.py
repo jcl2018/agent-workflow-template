@@ -243,13 +243,7 @@ def block_re(name):
     return re.compile(r"<!-- %s:begin -->\n.*?<!-- %s:end -->\n" % (name, name), re.S)
 
 
-def config_of(root):
-    try:
-        with open(os.path.join(root, ".loop", "config.json")) as handle:
-            held = json.load(handle)
-        return held if isinstance(held, dict) else {}
-    except (OSError, ValueError):
-        return {}
+config_of = counting.config_of
 
 
 def reference():
@@ -292,49 +286,6 @@ def settings_block(root):
                       + body + ["<!-- settings:end -->", ""])
 
 
-BUILT_IN = (("health", "Checks the repo and files each finding.", "health_cron", "47 */4 * * *", "health.yml"),
-            ("regression", "Runs every regression row, files each failure.", "regression_cron", "17 */4 * * *", "regression.yml"),
-            ("digest email", "Mails one digest per health round.", None, "", "health.yml"))
-
-
-def entries(root):
-    """Built-in routines, then the `automation` entries of config: {name, does, cadence, runs: github:FILE | mac:LABEL |
-    claude:TASK, enabled?, last_run?}; an entry named like a built-in replaces it."""
-    cfg, out = config_of(root), []
-    for name, does, key, default, flow in BUILT_IN:
-        mail = str(cfg.get("digest_mail", "cloudflare"))
-        cron = "with each health round" if key is None else str(cfg.get(key, default))
-        out.append({"name": name, "does": does, "cadence": cron, "runs": "github:" + flow,
-                    "enabled": mail != "off" if key is None else cron != "off"})
-    for item in cfg.get("automation") or []:
-        if isinstance(item, dict) and item.get("name"):
-            out = [e for e in out if e["name"] != item["name"]] + [item]
-    return out
-
-
-def automation_block(root):
-    rows, flows = [], os.path.join(root, ".github", "workflows")
-    for e in entries(root):
-        kind, _, target = str(e.get("runs", "")).partition(":")
-        on = e.get("enabled", True) is not False and str(e.get("cadence")) != "off"
-        last, owed = str(e.get("last_run") or "docs.py automation"), "none"  # a live time in the page would change on every run
-        if kind == "github":
-            there = os.path.exists(os.path.join(flows, target))
-            where, state = ("GitHub Actions (%s)" % target) if there else "not deployed", "on" if on and there else "off"
-            owed = "run workflow-setup to write .github/workflows/" + target if on and not there else owed
-        elif kind in ("mac", "claude"):
-            where = "this Mac (launch agent %s)" % target if kind == "mac" else "Claude scheduled task %s" % target
-            state, owed = "on (declared)" if on else "off (declared)", "confirm it is live: docs.py automation"
-        else:
-            where, state, owed = "not set", "off", 'add "runs": github:FILE, mac:LABEL or claude:TASK'
-        if e["name"] == "digest email" and on and str(e.get("cadence")) != "off":
-            owed = "set the digest address and keys as Actions secrets (yours, outside git)" if owed == "none" else owed
-        rows.append([str(e["name"]), str(e.get("does", "")), state, counting.cadence(str(e.get("cadence", ""))), where, last, owed])
-    head = ["Routine", "What it does", "State", "Cadence", "Runs on", "Last run", "Owed by you"]
-    return "\n".join(["<!-- automation:begin -->", "## Automation", "",
-                       "Health and regression, then each `automation` entry in `.loop/config.json`; to add one, add an entry.", ""] + pageformat.table(head, rows) + ["<!-- automation:end -->", ""])
-
-
 def template_line(root):
     repo = config_of(root).get("template_repo")
     if not repo:
@@ -366,10 +317,10 @@ def front_files(root, insert=False):
     home = os.path.join(criteria.folder_of(root), "Home.md")
     text = read(os.path.join(root, home)) or ""
     if re.search(r"^## Features\s*$", text, re.M) or (block_re("settings").search(text) and not insert):
-        out.append((home, [("settings", settings_block(root)), ("automation", automation_block(root))]))
+        out.append((home, [("settings", settings_block(root)), ("automation", counting.automation_block(root))]))
     if os.path.exists(os.path.join(root, "README.md")):
         out.append(("README.md", [("template", template_line(root)), ("settings", settings_block(root)),
-                                  ("automation", automation_block(root))]))
+                                  ("automation", counting.automation_block(root))]))
     return out
 
 

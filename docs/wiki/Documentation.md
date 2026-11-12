@@ -81,6 +81,7 @@ Review: **Unreviewed**
   - Home and the README carry an Automation section: each routine on or off, what it does, its cadence in plain words, where it runs, its last run when known (live, from `docs.py automation`, so the page does not change with every run) and any step still owed by the owner; health and regression are built in and a repo adds a routine with one entry in its config, with no code change.
   - The README names and links the template repo the loop came from, never a local path, and the adoption entry points to all three.
   - The docs check says STALE when a setting, a workflow file or a value changes, and render or publish refreshes them.
+  - The code that renders the blocks stays readable and under health's size warning: `counting.py` holds the Automation block code and `render.py` the rest, so the text a config renders is the same wherever the code sits (issue 1402).
 
 ### Non-functional
 - DOC-11: **Reviewed 2026-11-10** Safe publish <!-- reviewed f33a3310 -->
