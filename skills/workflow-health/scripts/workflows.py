@@ -171,6 +171,7 @@ def install(root, cfg, load_it=False):
     if not origin:
         sys.exit("REFUSED: this repo has no origin remote (SCHEDULE_NO_ORIGIN)")
     key, path = key_of(origin), os.path.realpath(root)
+    os.makedirs(os.path.join(home(), "log"), 0o700, exist_ok=True)  # launchd opens the agent's log file before the first tick
     with locked("registry", 10):
         data = load()
         other = data["repos"].get(key, {}).get("path", path)
@@ -228,6 +229,9 @@ def tick_repo(key, entry, begin, finish):
             return None
     conf = json.load(open(os.path.join(path, ".loop", "config.json"))) if os.path.exists(os.path.join(path, ".loop", "config.json")) else {}
     base, tree = conf.get("base") or "main", os.path.join(home(), key, "tree")
+    if not re.fullmatch(r"\w[\w./-]*", str(base)):  # a base is a branch name, never an option for git fetch
+        say("SKIPPED %s (base %r is not a branch name) (SCHEDULE_BASE)" % (key, base))
+        return False
     os.makedirs(os.path.dirname(tree), exist_ok=True)
     child(["git", "worktree", "prune"], path, env, 30, log)
     if child(["git", "fetch", "origin", base], path, env, 60, log)[0] or child(
