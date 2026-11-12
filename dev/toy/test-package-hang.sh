@@ -4,7 +4,9 @@
 # pipe that never closes (as in a lane), is refused within the child bound; the hard bound stops a run with one TIMEOUT
 # line naming what it waited on and leaves no child behind; a looping symlink in a scripts folder is not followed.
 # An outside SIGTERM also stops the child. Usage: test-package-hang.sh [stdin|child|bound|loop|term]... (default: all). Free: no network, no model calls.
-here=$(cd "$(dirname "$0")/../.." && pwd); T=$(mktemp -d); trap 'rm -rf "$T"' EXIT; bad=0
+here=$(cd "$(dirname "$0")/../.." && pwd)
+. "$here/dev/toy/reap.sh"
+T=$(mktemp -d); toy_on_exit 'rm -rf "$T"'; bad=0
 export HOME="$T/home"; mkdir -p "$HOME"; export LOOP_FLOW="$T/none.json"
 pkg() { # a small package whose one script is $1
   rm -rf "$T/p"; mkdir -p "$T/p/skills/demo/scripts"
@@ -52,7 +54,7 @@ time.sleep(987)"
   check "with one TIMEOUT line naming what it waited on" '[ "$(grep -c "^TIMEOUT: package.py stopped after 3 seconds waiting on skills/demo/scripts/demo.py --help$" <<<"$out")" = 1 ]'
   sleep 1
   check "and no child is left holding a slot" '! pgrep -f "sleep $tok" >/dev/null'
-  check "and no half ZIP is left at --out" '[ ! -e "$T/p.zip" ] && ! ls "$T"/*.part >/dev/null 2>&1'
+  check "and no ZIP is left at --out (stopped before the build)" '[ ! -e "$T/p.zip" ] && ! ls "$T"/*.part >/dev/null 2>&1'
   pkill -f "sleep $tok" 2>/dev/null; true
 }
 case_loop() {

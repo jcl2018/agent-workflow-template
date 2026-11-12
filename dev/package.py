@@ -114,7 +114,9 @@ def kill_group(proc):
 def run_alone(cmd, cwd, what):
     """Run one child with no stdin and a time limit; kill its whole process group when the limit is hit."""
     wait_on(what)
-    group = {"start_new_session": True} if hasattr(os, "killpg") else {"creationflags": getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)}
+    group = ({"start_new_session": True, "preexec_fn": lambda: signal.pthread_sigmask(signal.SIG_UNBLOCK, STOP_SIGNALS)}
+             if hasattr(os, "killpg") else {"creationflags": getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)})
+    # the child must not inherit the block below, or it would ignore a reaper's TERM
     mask = hasattr(signal, "pthread_sigmask")
     if mask:  # no stop signal between the child starting and its being recorded, so none escapes the bound
         signal.pthread_sigmask(signal.SIG_BLOCK, STOP_SIGNALS)
@@ -143,7 +145,7 @@ def run_alone(cmd, cwd, what):
 
 def fail(rule, text):
     failures.append((rule, text))
-    print("FAIL %s: %s" % (rule, text))
+    print("FAIL %s: %s" % (rule, text), flush=True)  # flushed, so a stopped run keeps the failures it found
 
 
 def walk(root):
@@ -399,6 +401,9 @@ def build(root, files, out, version):
             info = zipfile.ZipInfo(name, (2026, 1, 1, 0, 0, 0))
             info.external_attr = 0o644 << 16
             bundle.writestr(info, stamp)
+    umask = os.umask(0)
+    os.umask(umask)
+    os.chmod(part, 0o666 & ~umask)  # mkstemp makes 0600; the ZIP keeps the mode a plain open() would give
     os.replace(part, out)
     waiting["part"] = None
 
@@ -413,8 +418,8 @@ def main():
         seconds = args.timeout if args.timeout is not None else int(os.environ.get("PACKAGE_TIMEOUT") or 300)
     except ValueError:
         seconds = 300
-    if seconds <= 0:
-        print("REFUSED: the time bound must be a positive number of seconds, not %d" % seconds)
+    if not 0 < seconds <= 86400:
+        print("REFUSED: the time bound must be 1 to 86400 seconds, not %d" % seconds)
         return 2
     arm(seconds)
     root = os.path.abspath(args.root)

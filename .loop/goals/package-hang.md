@@ -17,8 +17,8 @@ Frozen. A wrong done line needs a new goal.
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
 1. Run `bash dev/toy/test-package-hang.sh`.
    Expect: `ALL PASS` in under a minute (stdin, child, bound, loop and term cases).
-2. Run `sleep 120 | python3 dev/package.py --out /tmp/p.zip` (stdin is a pipe that stays open).
-   Expect: package.py prints its usual PASS or FAIL lines and exits within about 15 seconds, while `sleep` keeps the pipe open; on main it never finishes.
+2. Run `sleep 100000 | python3 dev/package.py --out /tmp/p.zip` (stdin is a pipe that stays open), then stop `sleep` with Ctrl-C.
+   Expect: package.py prints its usual PASS or FAIL lines within about 15 seconds; on main it prints nothing until `sleep` exits.
 3. Run `python3 dev/package.py --timeout 1 --out /tmp/p.zip`.
    Expect: exit 3 and one line `TIMEOUT: package.py stopped after 1 seconds waiting on <phase>`, and no `/tmp/p.zip` or `.part` file.
 
@@ -28,7 +28,7 @@ Frozen. A wrong done line needs a new goal.
   (`PACKAGE_CHILD_SECONDS`, default 30). A script that reads stdin now fails fast as "does not run alone"; one that never
   ends is refused as "--help did not finish in N seconds".
 - New hard bound for the whole run: `--timeout N`, else `PACKAGE_TIMEOUT`, else 300 seconds. When hit: exit 3 and one line
-  `TIMEOUT: package.py stopped after N seconds waiting on <what>`. `--timeout` of 0 or less is refused with exit 2.
+  `TIMEOUT: package.py stopped after N seconds waiting on <what>`. A bound outside 1 to 86400 seconds is refused with exit 2.
 - SIGTERM, SIGINT and SIGHUP kill the running child's group and exit 128+N with one `STOPPED:` line; an inherited ignore
   (nohup) is kept. On Windows a timer thread gives the same bound and `taskkill /T /F` ends the child's tree.
 - The ZIP is written to a temporary `.part` file beside `--out` and renamed, so a stopped run leaves no half ZIP.
@@ -48,4 +48,9 @@ Frozen. A wrong done line needs a new goal.
 - **Follow-ups, outside this goal's touches:** govern_hook.py should print usage and exit on `--help`
   (skills/workflow-monitoring); `regression.py criteria` and `red` should bound their children the same way
   (skills/workflow-regression).
+- **Limit of done line 3.** A grandchild that leaves its process group (setsid or daemonize) and keeps the pipes open is
+  not killed by package.py: `run_alone` stops waiting on it after 5 s, so package.py itself still ends within its bound,
+  and the child no longer inherits blocked signals, so a reaper's TERM reaches it. Lanes' own reapers (reap.py, the
+  900 s row kill) cover that case; no shipped script does it today.
+- The ZIP keeps its usual mode (umask-based, 0644 here). Failure lines are flushed, so a stopped run keeps them.
 - No file under skills/ changed or was added.
