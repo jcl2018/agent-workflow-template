@@ -7,7 +7,6 @@ and never pushes; it may first commit the re-rendered Tests tables. One lane per
 HEAD is stopped first. Its latest result is <runs>/<slug>.<name>-lane.last. Messages: lanekit.py, workflow-regression/references/commands.md.
 Its TMPDIR is a folder under the system temp, per repo, goal and lane, never inside a git checkout, removed when it ends.
 """
-import portlock as fcntl
 import json
 import os
 import re
@@ -24,6 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REG = os.path.normpath(os.path.join(HERE, "..", "..", "workflow-regression", "scripts"))
 sys.path.insert(0, HERE)
 import lanekit  # noqa: E402
+fcntl = lanekit.fcntl
 # No terminal, no waiting: a prompt from git or gh must fail, not block (lanekit sets it too).
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 from lanekit import NOTHING, TERMINAL, died, dirty, drop, generated, git, mtime, prep, read_json, running_line, set_last  # noqa: E402,F401

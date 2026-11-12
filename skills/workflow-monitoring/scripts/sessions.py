@@ -27,7 +27,6 @@ request open gets the release step run for it, as worker.py does for a backgroun
 import argparse
 import contextlib
 import datetime
-import portlock as fcntl
 import json
 import os
 import re
@@ -38,7 +37,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.modules.setdefault("sessions", sys.modules[__name__])  # run as a script, pool.py's import finds this same module
 import graph  # noqa: E402
 import session_bind  # noqa: E402
-from session_bind import HUNG, LAST_ERROR, call, tool  # noqa: E402  (watch.py clears sessions.HUNG)
+from session_bind import HUNG, LAST_ERROR, call, fcntl, tool  # noqa: E402  (watch.py clears sessions.HUNG)
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")

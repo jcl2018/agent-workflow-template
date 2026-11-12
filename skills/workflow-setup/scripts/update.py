@@ -8,12 +8,11 @@ usage: update.py [--check | --apply | --propose [--file-issue]] [--take FILE ...
 (a skill file edited here). Exit 0 up to date, 1 behind, 2 refused. --apply writes the skills folder (hashes checked
 first, atomic writes, workflow-package.json last; a LOCAL FIX is kept unless --take names it), then the repo half
 (sync.py) on branch workflow-update-vX. --propose sends each LOCAL FIX back as an issue (sync.py). The source is
---from (a package or a source tree) or the template's latest GitHub release archive; the template is the installed
-stamp's repo, else template_repo (both set and different: refused unless --template). It never downgrades.
+--from (a package or a source tree) or the template's latest GitHub release archive; the template is the stamp's
+repo, else template_repo (both set and different: refused unless --template). It never downgrades.
 """
 import argparse
 import contextlib
-import portlock as fcntl
 import hashlib
 import io
 import json
@@ -24,6 +23,30 @@ import sys
 import tempfile
 import time
 import zipfile
+try:
+    import fcntl
+except ImportError:  # native Windows: msvcrt byte-range locks under flock's names
+    import msvcrt
+    import types
+
+    def _flock(handle, op):
+        fd = handle if isinstance(handle, int) else handle.fileno()
+        here = os.lseek(fd, 0, 1)
+        os.lseek(fd, 0x7FFFFFFF, 0)  # one byte far past any content: readers never block
+        try:
+            while True:
+                try:
+                    return msvcrt.locking(fd, msvcrt.LK_UNLCK if op & 8 else msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    if op & 8:
+                        return  # unlock of a lock not held: a no-op, as with flock
+                    if op & 4:
+                        raise BlockingIOError("locked")
+                    time.sleep(0.05)
+        finally:
+            os.lseek(fd, here, 0)
+
+    fcntl = types.SimpleNamespace(LOCK_SH=1, LOCK_EX=2, LOCK_NB=4, LOCK_UN=8, flock=_flock)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")

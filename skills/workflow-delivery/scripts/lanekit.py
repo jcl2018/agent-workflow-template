@@ -1,33 +1,29 @@
 #!/usr/bin/env python3
-"""The lane's kit, imported by lane.py and goal.py; not a command. Three parts:
+"""The lane's kit, imported by lane.py and goal.py; not a command. Four parts:
 
 1. Copies of the slots.py pieces lane.py uses (EXIT_WAIT, EXIT_STALE, POLL, flow_file, time_limit, lanes_dir,
    port_base, last_change, lane_limit, timeout_line, rows_line and the helpers they call): a skill imports only its own
-   scripts, so workflow-delivery keeps these copies. Each copied function (COPIED) must have exactly the same source as
-   in workflow-regression/scripts/slots.py; dev/toy/test-lane-control.sh fails when one drifts. Change both together.
-2. The one commit a lane may make before it starts (prep, generated): the re-rendered wiki Tests tables and the run
-   dates they come from. A page counts only when its edits are all in its ## Tests section (what criteria.py renders),
-   or it is the full Tests page render writes whole; any other change refuses with LANE_DIRTY and nothing is rendered or
-   committed. The commit is `git commit --only` of those paths with a 60 s timeout; a refused or hung commit unstages
-   them and starts nothing (LANE_PREP_FAILED).
+   scripts, so workflow-delivery keeps these copies. Each COPIED function must have exactly the source it has in
+   workflow-regression/scripts/slots.py; dev/toy/test-lane-control.sh fails on drift. Change both together.
+2. The one commit a lane may make before it starts (prep, generated): the re-rendered wiki Tests tables and their run
+   dates. A page counts only when its edits are all in its ## Tests section (what criteria.py renders), or it is the
+   full Tests page render writes whole; any other change refuses with LANE_DIRTY and nothing is rendered or committed.
+   The commit is `git commit --only` of those paths with a 60 s timeout; a refused or hung commit unstages them and
+   starts nothing (LANE_PREP_FAILED).
 3. What goal.py pr does after its pr lane passes, before it pushes (record(state, base)):
-  1. issue states (V5): `tests.py issues --write` once, bounded to 120 s; a failure leaves the file and prints NOTE;
-  2. run results (DX-19): `lanes_cli.py merge-runs` merges the branch's lane record's row results, with any flaky flag,
-     into .loop/regression-runs.tsv under the row lock, so the rows a goal ran show on the wiki and in health once it
-     merges; a failure prints NOTE;
+  1. issue states (V5): `tests.py issues --write` once, within 120 s; a failure leaves the file and prints NOTE;
+  2. run results (DX-19): `lanes_cli.py merge-runs` merges the lane record's row results (and any flaky flag) into
+     .loop/regression-runs.tsv under the row lock, so they show on the wiki and in health after the merge; a failure prints NOTE;
   3. one commit of those two files when they changed, with the wiki Tests tables re-rendered from them, then
   4. state["pr_lane"] (the pull request body's lane part), state["pr_head"] (the head goal.py pr pushes: the lane's
-     commit plus that bookkeeping commit) and state["pr_base"] (the base commit it was merged with), for merge.py's
-     HEAD_MOVED and BASE_MOVED checks.
+     commit plus that bookkeeping commit) and state["pr_base"] (the merged base): merge.py's HEAD_MOVED, BASE_MOVED checks.
 Exit codes and messages: workflow-regression/references/commands.md.
 
-4. The time budgets of the loop's steps (was budget.py, folded in to keep the package under its file cap):
-step_budget_minutes (default 30) bounds each review and ship step; test_budget_minutes (default 15) bounds each test
-run (regression's runs.py enforces it). Neither can be set under 15. A step that reaches its budget finishes with what
-it has done, and its record (budget_hits in the goal's run file) names what it left; the board and health show those.
-Imported by flow.py, role.py, guards.py and the monitoring and health reports.
+4. The step time budgets (was budget.py): step_budget_minutes (default 30)
+bounds each review and ship step; test_budget_minutes (default 15) bounds each test run (regression's runs.py enforces
+it). Neither can be set under 15. A step that reaches its budget finishes with what it has done; budget_hits in the
+goal's run file names what it left (board and health show it). Imported by flow.py, role.py, guards.py and the reports.
 """
-import portlock as fcntl
 import glob
 import json
 import os
@@ -37,6 +33,30 @@ import sys
 import time
 
 import tempfile
+try:
+    import fcntl
+except ImportError:  # native Windows (was portlock.py): msvcrt byte-range locks under flock's names
+    import msvcrt
+    import types
+
+    def _flock(handle, op):
+        fd = handle if isinstance(handle, int) else handle.fileno()
+        here = os.lseek(fd, 0, 1)
+        os.lseek(fd, 0x7FFFFFFF, 0)  # one byte far past any content: readers never block
+        try:
+            while True:
+                try:
+                    return msvcrt.locking(fd, msvcrt.LK_UNLCK if op & 8 else msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    if op & 8:
+                        return  # unlock of a lock not held: a no-op, as with flock
+                    if op & 4:
+                        raise BlockingIOError("locked")
+                    time.sleep(0.05)
+        finally:
+            os.lseek(fd, here, 0)
+
+    fcntl = types.SimpleNamespace(LOCK_SH=1, LOCK_EX=2, LOCK_NB=4, LOCK_UN=8, flock=_flock)
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -187,10 +207,8 @@ def set_last(path, attempt, **fields):
         return data
 
 
-# The lane's preparation budget (REG-7, DEL-8): what a lane does before its first row (the Tests-table prep, planning and the
-# slot wait) shares one budget, prep_budget_minutes. The lane child (lane.py lane-exec) writes one `.times` record (planning
-# seconds, slot-wait seconds and, for a cut, the part that was running); lane.py's finalize reads it here, says the three parts
-# on every LANE line, and on a cut prints LANE_PREP_BUDGET and records the hit (kind prep) so the board and health list it.
+# Prep budget (REG-7, DEL-8): Tests-table prep, planning and slot wait share prep_budget_minutes. lane-exec writes a
+# `.times` record; lane.py's finalize reads it, names the parts on each LANE line, and on a cut prints LANE_PREP_BUDGET.
 
 def holders(pool):
     """Labels of the lanes holding slots now, for the cut line."""
