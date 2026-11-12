@@ -103,3 +103,4 @@ Review: **Reviewed 2026-11-10** <!-- prd P=2f4bd05a R=759415cb N=d6d10cdd M=dad3
 | [aut-off-dispatch-runs](Tests#t-aut-off-dispatch-runs) | requirement | AUT-5 | Given regression_cron off, when someone starts the regression run by hand, then it still runs the rows. | PASS 2026-11-12 |
 | [aut-email-secrets](Tests#t-aut-email-secrets) | requirement | AUT-6 | Given the mail secrets, when the email step runs or fails, then their values never reach a log, the summary, an issue or the digest comment, and without them it writes nothing and names what is missing. | PASS 2026-11-10 |
 | [aut-email-rounds](Tests#t-aut-email-rounds) | requirement | AUT-7 | Given a round's runs, when the digest is written, then the run summary shows the round's job time and Actions minutes and flags a round over 45 minutes. | PASS 2026-11-10 |
+
