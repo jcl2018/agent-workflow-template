@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-health/scripts/workflows.py skills/workflow-health/scripts/automation.py skills/workflow-health/scripts/rounds.py
-# reads: skills/workflow-health/scripts/rules.py skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/tiers.py
+# reads: skills/workflow-health/scripts/rules.py skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/tiers.py skills/workflow-regression/scripts/lanes_cli.py
 # reads: skills/workflow-setup/scripts/seed.py skills/workflow-setup/scripts/setup.py skills/workflow-setup/scripts/settings.py
 # reads: skills/workflow-delivery/scripts/private.py dev/toy/fakegh/gh dev/toy/fakegh/fake.py dev/toy/fakegh/launchctl docs/wiki/Health.md
 # The local schedule (local-schedule done lines 1 to 6): one user launch agent, a registry outside every repo, a tick that runs
@@ -210,7 +210,7 @@ if want nothing; then fresh; export FAKE_GH_PRIVATE=false; r=$(toyrepo nt "$(cfg
   check "install, status and a tick leave the repo clean and put no temp home path or token in any file of it" '[ -s "$LOOP_SCHEDULE_HOME/repos.json" ] && [ -s "$LOOP_SCHEDULE_HOME/log/tick.log" ] && [ -z "$(cd "$r" && git status --porcelain)" ] && ! grep -rIl -e "$HOME" -e "gh[pousr]_" -e "sk-ant-" "$r" --exclude-dir=.git'
 fi
 if want size; then
-  out=$(cd "$here" && for f in skills/workflow-health/scripts/workflows.py skills/workflow-health/scripts/automation.py skills/workflow-health/scripts/rounds.py skills/workflow-delivery/scripts/private.py skills/workflow-delivery/scripts/goal.py skills/workflow-release/scripts/merge.py skills/workflow-release/scripts/autorelease.py skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/tiers.py skills/workflow-regression/scripts/actions.py skills/workflow-setup/scripts/seed.py skills/workflow-setup/scripts/setup.py skills/workflow-setup/scripts/settings.py skills/workflow-health/scripts/rules.py; do
+  out=$(cd "$here" && for f in skills/workflow-health/scripts/workflows.py skills/workflow-health/scripts/automation.py skills/workflow-health/scripts/rounds.py skills/workflow-delivery/scripts/private.py skills/workflow-delivery/scripts/goal.py skills/workflow-release/scripts/merge.py skills/workflow-release/scripts/autorelease.py skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/tiers.py skills/workflow-regression/scripts/lanes_cli.py skills/workflow-regression/scripts/actions.py skills/workflow-setup/scripts/seed.py skills/workflow-setup/scripts/setup.py skills/workflow-setup/scripts/settings.py skills/workflow-health/scripts/rules.py; do
       now=$(wc -c < "$f"); was=$(git show "origin/main:$f" 2>/dev/null | wc -c); [ "$was" = 0 ] && was=$now
       if [ "$now" -ge 20480 ] || { [ "$now" -ge 18432 ] && { [ "$was" -lt 18432 ] || [ $((now - was)) -gt 400 ]; }; }; then echo "OVER $f $was -> $now"; fi; done)
   check "each touched script is under the WARN line unless it started over it and grew by at most 400 bytes, and under the FAIL line" '[ -z "$out" ]'

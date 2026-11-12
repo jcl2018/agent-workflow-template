@@ -42,65 +42,6 @@ KINDS = {"requirement": "criterion", "workflow": "workflow", "defect": "defect"}
 BASE = None  # the merge-base this run planned from: lanes.save writes it into the record
 
 
-NARROW = """# Written by workflow-regression (regression.py workflow). The rows a change reaches; the full suite runs on the schedule only.
-name: regression-pr
-on:
-  pull_request:
-  push:
-    branches-ignore:
-      - "@BASE@"
-permissions:
-  contents: read
-concurrency:
-  group: regression-pr-${{ github.ref }}
-  cancel-in-progress: true
-jobs:
-  affected:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: python3 skills/workflow-regression/scripts/regression.py run @LEVELS@ --reuse --tier goal --timeout 900
-"""
-OURS = "# Written by workflow-regression"
-
-
-def workflow(root, given, write_main):
-    """regression.py workflow: where the regression runs decides what is written. A public repo gets regression.yml and
-    regression-pr.yml (the affected rows on a pull request or push); a private repo or an unreadable visibility gets nothing."""
-    cfg = config(root)
-    where = given or {"mac": "private", "actions": "public"}.get(cfg.get("regression_runs"), "")
-    if not where:
-        probe = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-delivery", "scripts", "private.py")
-        seen = subprocess.run([sys.executable, probe, "visibility"], cwd=root, capture_output=True, text=True).stdout.strip() if os.path.exists(probe) else ""
-        where = seen if seen in ("private", "public") else "unknown"
-    base = os.path.join(root, ".github", "workflows")
-    if where != "public":
-        print("NOT WRITTEN: " + ("this repo is private; its regression runs on the Mac (local schedule)" if where == "private" else
-              "the repo's visibility could not be read, so a workflow that could block a private repo is not written. Fix: gh auth login, then run this again"))
-        for name in ("regression.yml", "regression-pr.yml"):
-            if where == "private" and os.path.exists(os.path.join(base, name)) and open(os.path.join(base, name)).read().startswith(OURS):
-                print("REMOVABLE: .github/workflows/%s is ours and a private repo's regression runs on the Mac; git rm it when you choose" % name)
-        return 0
-    code = write_main()
-    path = os.path.join(base, "regression-pr.yml")
-    if not os.path.exists(os.path.join(root, "skills", "workflow-regression", "scripts", "regression.py")):
-        print("NOT WRITTEN: regression-pr.yml needs skills/workflow-regression/ in this repo (an adopting repo without it keeps the embedded runner)")
-    elif os.path.exists(path) and not open(path).read().startswith(OURS):
-        sys.exit("REFUSED: %s exists, and this tool didn't write it. Fix: merge by hand." % path)
-    else:
-        os.makedirs(base, exist_ok=True)
-        open(path, "w").write(NARROW.replace("@BASE@", str(cfg.get("base") or "main")).replace("@LEVELS@", str(cfg.get("ci_levels") or "nightly")))
-        print("WROTE " + path)
-    return code
-
-
 def kinds(rows, kind):
     """A1e: only the rows of one kind; requirement means category criterion."""
     return rows if not kind else [row for row in rows if row["category"] == KINDS[kind]]

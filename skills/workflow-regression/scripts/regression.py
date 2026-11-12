@@ -38,7 +38,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.dont_write_bytecode = True  # no __pycache__ in the skill folder: the package check refuses one
-import actions, lanes, runs, slots, tiers  # noqa: E401,E402
+import actions, lanes, lanes_cli, runs, slots, tiers  # noqa: E401,E402
 from runs import chosen, clean, criteria_ids, criterion_rows, done_lines, lines_of, today  # noqa: E402,F401
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -307,7 +307,7 @@ def cmd_run(args):
 
 
 def cmd_workflow(args):
-    return tiers.workflow(top(), args.visibility, lambda: actions.write(top(), CRON))
+    return lanes_cli.workflow(top(), args.visibility, lambda: actions.write(top(), CRON))
 
 
 def main():
