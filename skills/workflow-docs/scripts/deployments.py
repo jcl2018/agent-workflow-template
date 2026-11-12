@@ -109,15 +109,25 @@ def owed(root, books, name):
 
 
 def unserved(books, seen, name):
-    """DOC-16: each routine's Serves field names at least one requirement id, and every id it names is on some page."""
+    """DOC-16: each routine's Serves field (its indented continuation lines too) names at least one requirement id, and
+    every id it names is on some page."""
     out = []
     for page, lines in books.items():
+        fields, cur = [], None
         for number, line in lines:
             head = re.match(r"^- \*\*Serves:\*\*(.*)$", line)
-            ids = re.findall(r"[A-Z]{2,5}-\d+", head.group(1)) if head else None
-            if head and not ids:
-                out.append(bad(page, number, name, 16, "a Serves field naming a requirement id such as DOC-14", short(head.group(1)), "name the ids the routine serves"))
-            for key in ids or []:
+            if head:
+                cur = [number, head.group(1)]
+                fields.append(cur)
+            elif line.startswith(("- ", "#")):
+                cur = None
+            elif line[:1].isspace() and cur:
+                cur[1] += " " + line.strip()
+        for number, text in fields:
+            ids = re.findall(r"[A-Z]{2,5}-\d+", text)
+            if not ids:
+                out.append(bad(page, number, name, 16, "a Serves field naming a requirement id such as DOC-14", short(text), "name the ids the routine serves"))
+            for key in ids:
                 if key not in seen:
                     out.append(bad(page, number, name, 16, "a Serves id that a page defines", key, "name a requirement from a feature page"))
     return out

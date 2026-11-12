@@ -79,6 +79,11 @@ $GOOD" "each routine once"
   refuse "a short Serves is still accepted but an empty one is not" "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Serves:\*\* .*/- **Serves:**/')" "a 'Serves' field of 5 characters or more under setup-nightly"
   refuse "an unknown Serves id" "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Serves:\*\* .*/- **Serves:** ZZZ-99 nonsense./')" "a Serves id that a page defines"
   refuse "a Serves field with no id" "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Serves:\*\* .*/- **Serves:** whatever it needs./')" "a Serves field naming a requirement id"
+  reset; place "$(printf '%s\n' "$GOOD" | sed 's/^- \*\*Serves:\*\* .*/- **Serves:** the setup checks, see\n  SET-1 and SET-7./')"
+  check "an id on a continuation line of Serves counts" '[ "$(out | tail -1)" = "DOCS OK: $N pages" ]'
+  reset; place "$GOOD"; printf '\n## After\n' >> docs/wiki/Regression.md
+  check "a misordered page gives its SECTIONS finding and no false Serves finding" 'out | grep -q "^SECTIONS Regression" && ! out | grep -q "a Serves id"'
+  git checkout -q docs/wiki/Regression.md
   refuse "a bad routine name" "$(printf '%s\n' "$GOOD" | sed 's/^### setup-nightly/### Setup Nightly/')" "a routine name of lowercase letters, digits and hyphens"
   reset; place "$GOOD"; python3 - "$P" <<'PY'
 import sys

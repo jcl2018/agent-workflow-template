@@ -244,7 +244,9 @@ def contract(root, names, seen):
         if "tests" in on:
             found += [x for x in [pf.stale(page, "Tests", numbered["Tests"][0], numbered["Tests"][1], table(root, ids, linked))] if x]
     if "runbook" in on:
-        found += deployments.owed(root, books, rule["runbook"]) + deployments.unserved(books, seen, rule["runbook"])
+        found += deployments.owed(root, books, rule["runbook"])
+        if not any(item[0] == "SECTIONS" for item in found):  # a misordered page defines no ids here: say that, not a false Serves finding
+            found += deployments.unserved(books, seen, rule["runbook"])
     if "tests" in on:
         found += [("FORMAT", "Tests:1", "Tests: DOC-9 one anchor per row (got %s). Fix: rename one row id" % x)
                   for x in render.clashes([row[0] for row in tsv(root, "regression.tsv") if row[1] != "draft"])]

@@ -72,7 +72,7 @@ Review: **Unreviewed**
 - DOC-16: **Unreviewed** A feature page carries a runbook for each routine it owns
   - A page that owns a scheduled or on-demand routine has an optional Runbook section, one subsection per routine, saying what an agent given only "run routine X" must read first: the requirement ids it serves, the schedule, the exact steps or command, what a full run is (live sources and real output, never a dry run or a fixture on a scheduled run), the one output and where it goes, the forbidden shortcuts, and how to tell the run was real.
   - The docs check fails a routine listed in the routine registry whose page has no runbook for it, and a runbook missing any of those fields, naming the page, the routine and the field.
-  - A runbook's Serves field must name requirement ids that a page defines, and each routine and field appears once.
+  - A runbook's Serves field (continuation lines included) must name requirement ids that a page defines, and each routine and field appears once; a page whose sections are out of order is reported for that, not for its ids.
   - The runbook is not locked by the PRD review: an agent corrects it as it learns, and the owner's review of the requirements stays valid.
 
 - DOC-15: **Unreviewed** Home and the README show how the repo is set up and what runs by itself.
