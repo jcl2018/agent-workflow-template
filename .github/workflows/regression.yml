@@ -412,6 +412,8 @@ jobs:
                       os.killpg(child.pid, 9)
                   except OSError:
                       pass
+                  except AttributeError:  # Windows: no process groups, taskkill takes the tree
+                      subprocess.run(["taskkill", "/T", "/F", "/PID", str(child.pid)], capture_output=True)
                   child.wait()
                   log.seek(0)
                   out = log.read()

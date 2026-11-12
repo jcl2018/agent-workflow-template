@@ -310,9 +310,7 @@ UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "TE
 
 
 def render(cron, levels="nightly"):
-    """The workflow text for this cron and ci_levels: what write() saves and the tests compare. It carries tests.py,
-    the one test format, and its own row runner (the dispatch target's check too), because the GitHub job has only the
-    repo's own checkout: an adopting repo has no skills/ folder."""
+    """The workflow text for this cron and ci_levels, carrying tests.py (an adopting repo has no skills/ folder)."""
     with open(os.path.join(HERE, "tests.py")) as handle:
         source = handle.read()
     bad = [token for token in UNSAFE if token in source]
