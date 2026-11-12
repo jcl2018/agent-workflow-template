@@ -7,7 +7,7 @@ and never pushes; it may first commit the re-rendered Tests tables. One lane per
 HEAD is stopped first. Its latest result is <runs>/<slug>.<name>-lane.last. Messages: lanekit.py, workflow-regression/references/commands.md.
 Its TMPDIR is a folder under the system temp, per repo, goal and lane, never inside a git checkout, removed when it ends.
 """
-import fcntl
+import portlock as fcntl
 import json
 import os
 import re
