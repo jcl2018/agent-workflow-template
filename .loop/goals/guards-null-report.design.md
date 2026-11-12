@@ -14,3 +14,11 @@ save into another module (no module has room: goal.py is 20,341 bytes after the 
 Limits: a key one writer deletes is not removed from the file; two writers changing the same key still end last-writer-wins;
 watch.py's own save is not part of this goal.
 Tests: `dev/toy/test-guards-null-report.sh` (reset, writers, nofiles); rows `guards-null-report-reset|writers|nofiles`.
+
+## After the plan review
+- Done line 2 is read as the goal.py save path (the follow-up in PR #1092 names the goal state file's writer). Other writers
+  keep their own whole-file writes: role.begin, flow.py (tokens), lanekit.hit, watch.refresh, mend, worker, sessions. A shared
+  locked helper for them does not fit: role.py, flow.py and lanekit.py have no room under the 20,480-byte cap. Listed as the follow-up.
+- A key removed by a writer now stays removed (session_bind clears held_at). Tested.
+- A key set back to the value this process loaded is not written; two loads of one slug in a process share one snapshot; a repeated
+  identical log line is merged once. Accepted limits.
