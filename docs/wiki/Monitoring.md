@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
-Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=8c1bc7ed N=839ce3ce M=0fde98a8 U=0340d029 -->
+Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde98a8 U=0340d029 -->
 
 ## Problem
 - I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
@@ -73,9 +73,10 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=8c1bc7ed N=839ce3ce M=0fde
 - MON-14: **Reviewed 2026-11-12** The check-in dependency map is grouped by repo first: one block per repo headed by the repo's name, cross-repo dependencies drawn between blocks <!-- reviewed b94f70f7 -->
   - Each repo prints as `== name ==` within 60 characters, then a `Between repos` list for `repo/slug` dependencies, then the legend once.
 
-- MON-15: **Reviewed 2026-11-12** Pods coordinate through shared state, not messages: every goal records its owning pod and only that pod starts, answers, merges or resumes it; other pods show it read-only as owned by that pod; merges into one repo's main are serialized across pods by a short lock <!-- reviewed c7e9647e -->
+- MON-15: **Reviewed 2026-11-12** Pods coordinate through shared state, not messages: every goal records its owning pod and only that pod starts, answers, merges or resumes it; other pods show it read-only as owned by that pod; merges into one repo's main are serialized across pods by a short lock <!-- reviewed 9f4be548 -->
   - The pod id is `LOOP_POD_ID`, else the operation session's own id; a goal with no recorded pod belongs to no one. Another pod's attempt prints one `REFUSED: goal <slug> is owned by pod <id>. Fix: ...` line, exit 2, and changes nothing.
   - `merge.py` takes `<git common dir>/loop/merge.lock` for the whole merge step; a dead holder or one older than 30 minutes is replaced.
+  - A pod's watch, auto-answers and mending skip other pods' goals, and its check-in lists their questions as read-only.
 
 ### Non-functional
 - MON-7: **Reviewed 2026-11-10** Govern only <!-- reviewed da6f1852 -->
