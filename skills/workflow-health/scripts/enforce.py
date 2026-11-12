@@ -135,6 +135,12 @@ def automation_gaps(root, cfg, g, info):
         g("MIG_AUTOMATION", "regression_runs", "is not mac while regression_cron is on, public or private", "set regression_runs to mac in .loop/config.json")
 
 
+def scheduled_task(label):
+    """True when the Mac has a scheduled task folder named label (Claude's scheduled tasks); LOOP_SCHEDULED_TASKS_DIR overrides the places."""
+    dirs = [os.environ["LOOP_SCHEDULED_TASKS_DIR"]] if os.environ.get("LOOP_SCHEDULED_TASKS_DIR") else [os.path.expanduser("~/.claude/scheduled-tasks"), os.path.expanduser("~/Documents/Claude/Scheduled")]
+    return any(os.path.isdir(os.path.join(d, label)) for d in dirs)
+
+
 def task_gaps(root, cfg, g, info):
     plat = (os.environ.get("LOOP_SCHEDULE_PLATFORM") if os.environ.get("LOOP_TEST") == "1" else "") or sys.platform
     info["platform"] = plat
@@ -150,6 +156,8 @@ def task_gaps(root, cfg, g, info):
     except SystemExit:
         return g("MIG_TASK", "registry", "the local registry can't be read", "fix or remove repos.json in the schedule home, then " + tool("workflow-health", "automation.py", "local install"))
     install = tool("workflow-health", "automation.py", "local install")
+    if scheduled_task(label):
+        return  # the Mac's own scheduled task <repo>-health-regression runs it; the launch agent's registry need not list the repo
     if not origin:
         g("MIG_TASK", label, "this repo has no origin remote, so no task can be registered", "git remote add origin <url>, then " + install)
     elif found is None:
@@ -165,7 +173,7 @@ def checks_gaps(root, cfg, g):
     if cfg.get("regression_cron") == "off":
         return
     if os.path.exists(yml):
-        if "pull_request" not in read(yml):
+        if "pull_request" not in read(yml) and cfg.get("regression_runs") != "mac":  # a mac repo's pr lane posts the statuses itself (AUT-2)
             g("MIG_CHECKS", "regression.yml", "does not trigger on pull_request, so no regression check reports on a PR", "add pull_request: under on: in regression.yml")
     elif cfg.get("regression_runs") == "mac" and not any(r["level"] == "land" for r in table(root)):
         g("MIG_CHECKS", ".loop/regression.tsv", "has no land row, so a pull-request check has nothing to run", "regression.py add a row at level land")
