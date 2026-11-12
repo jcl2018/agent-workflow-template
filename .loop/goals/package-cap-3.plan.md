@@ -23,3 +23,21 @@ is reviewed against the real diff (`git diff origin/main...HEAD`).
    (docs.py belongs to render-readme-guard), handed to the operation session.
 
 Verification: dev/package.py PASS 99 files; lanes_cli.py check clean; each named row run by id; test-portlock; the lane.
+
+## Review record
+
+Autoplan was skipped: its guard hook cannot be used from this session (the transcript carries a stray snapshot init from
+an earlier goal), so the operation chose the fallback: a strategy review and an engineering review, each run by a separate
+subagent over the real diff. No DX scope (no new command or flag).
+
+- Strategy review: 2 High, 1 Low. (High) The known list had been emptied by a truncating write; restored from main and only
+  the 13 entries this goal fixes removed (size-140 stays, docs.py belongs to render-readme-guard). (High) The same cause
+  removed six unrelated entries: restored. (Low) package-passes failed where Python had written __pycache__: the row now
+  runs on a clean `git archive` copy with PYTHONDONTWRITEBYTECODE=1.
+- Engineering review: 2 Medium, 3 Low. (Medium) The wiki said locks go through portlock.py: reworded in Regression and
+  Monitoring. (Medium) Moved SKILL.md text sits under a "Moved from SKILL.md" heading in commands.md: kept, the SKILL.md
+  pointers name the file. (Low) test-portlock exercises the four host modules, not the re-exporting importers; the
+  importers are plain assignments proved by importing every changed script and by the lane. (Low) The blocking retry path is
+  as the deleted portlock.py had it, uncovered there too. (Low) the `# reads: skills/` header is wide on purpose.
+- The shim's semantics were compared with the deleted portlock.py by both reviewers: lock, unlock (a no-op when not held),
+  LOCK_NB's BlockingIOError, the 50 ms poll and the restored file position are the same; only the error text is shorter.
