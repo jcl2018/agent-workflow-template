@@ -293,6 +293,10 @@ of `automation` in `.loop/config.json`: `{"name", "does", "cadence", "runs", "en
 cron string, words, or `off`. Adding a routine is adding one entry. `python3 scripts/docs.py automation` prints each one's
 live state here; the committed block holds only what files and config show.
 
+### `restore`
+
+This reverts the last publish. It refuses if the wiki has changed since.
+
 ### audit
 
 The one command. It checks every page against `references/template.md` (the page rules live in its `rules` block, so

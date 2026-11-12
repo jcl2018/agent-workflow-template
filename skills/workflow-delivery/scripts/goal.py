@@ -11,12 +11,12 @@ usage: goal.py <command> <slug> [options]
 Goal steps (step, record, pr) refuse outside a worker.
   wait SLUG --ask TEXT --words W [--words W]
   answer SLUG                 a waiting goal goes on
-  finding SLUG TEXT           stops a live goal; a done or merged one is only noted
+  finding SLUG TEXT   stops a live goal; a done or merged one is only noted
   resume SLUG --why T [--by W]    the operation revives a stopped session goal
   touches SLUG --add PATH --why T the operation widens a goal's touches
-  set SLUG [--depth D] [--bump B] [--budget-minutes N] [--budget-tokens N] --why T   the owner's per-goal settings
+  set SLUG [--depth D] [--bump B] [--budget-minutes N] [--budget-tokens N] --why T
   show SLUG
-A refusal that changes nothing uses no try: exit 2, the goal keeps running (guards.py).
+A refusal that changes nothing uses no try (exit 2, guards.py).
 """
 import argparse
 import datetime
@@ -110,7 +110,7 @@ def state_path(slug):
     return os.path.join(state_dir(), slug + ".json")
 
 
-SEEN = {}  # slug -> record last loaded or saved
+SEEN = {}  # slug -> last record
 
 
 def load(slug):
@@ -123,7 +123,7 @@ def load(slug):
 
 
 def save(state, note=None):
-    """Locked save: only keys changed here replace the file's; the log keeps both."""
+    """Locked save: only keys changed here win."""
     state["updated"] = now()
     if note:
         state.setdefault("log", []).append("%s %s" % (state["updated"], note))
@@ -265,6 +265,10 @@ def cmd_new(args):
     return 0
 
 
+def cmd_adopt(args):
+    return fit.cmd_adopt(sys.modules[__name__], args)
+
+
 def cmd_queue(args):
     return fit.cmd_queue(sys.modules[__name__], args)
 
@@ -289,11 +293,11 @@ def next_step(state):
 
 
 def cmd_record(args):
-    """Apply what a flow step left: done or skipped moves on, pending waits, a failed run is a try."""
+    """Apply a flow step's result."""
     state = held(args.slug)
     guards.waiting_gate(sys.modules[__name__], state)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
-    if args.in_session:  # the worker session ran it itself
+    if args.in_session:  # the session ran it
         args.file = role.session_reply(state, args.slug, args.step, args.file, state_dir(), FLOW)
     lane = role.need_lane(state_dir(), args.slug, args.file, args.step) if args.step in ("qa", "ship") else None
     if lane:
@@ -411,8 +415,10 @@ def cmd_pr(args):
         no("push failed:\n" + pushed.stderr)
     url = info["url"] if info.get("state") == "OPEN" else ""
     if not url:
+        path = state_path(args.slug) + ".body"
+        write(path, body)
         done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
-                    "--title", state["goal"][:70], "--body", body], check=True)
+                    "--title", state["goal"][:70], "--body-file", path], check=True)
         url = done.stdout.strip().splitlines()[-1]
     state["pr"] = url
     state["statuses"] = "ok" if private.pr_result(root(), config()["base"], head, state["branch"], True) else "failed"
@@ -463,6 +469,7 @@ def main():
             ("--touches", {"default": ""}))
     add("new", cmd_new, *goal, ("--release", {"default": ""}), ("--here", {"action": "store_true"}))
     add("queue", cmd_queue, *goal, ("--depends-on", {"default": ""}))
+    add("adopt", cmd_adopt)
     add("step", cmd_step, ("name", {}), ("--note", {"default": ""}), ("--tokens", {"type": int, "default": 0}))
     add("record", cmd_record, ("step", {"choices": FLOW}), ("--file", {"required": True}), ("--in-session", {"action": "store_true"}))
     add("wait", cmd_wait, ("--ask", {"required": True}), ("--words", {"action": "append", "required": True}))

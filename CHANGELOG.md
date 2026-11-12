@@ -1,5 +1,149 @@
 # Changelog
 
+## v0.27.42 - 2026-11-12
+
+- Windows-safe process calls in health and setup, private.py under the size cap
+- private.py: name the plural helper
+- Lane: re-render the Tests tables
+- Leave private.py to private-size; drop the size row
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-rest
+- Wiki: update pages for win-posix-rest
+
+### How to verify
+
+1. Run `bash dev/toy/test-portable.sh` on native Windows Python and on Linux or macOS.
+   Expect: every line reads PASS and the last line reads ALL PASS, including the lines for the calls outside proctree, the health helpers and the 20480-byte cap.
+2. Run `python skills/workflow-delivery/scripts/private.py check` and `private.py where`.
+   Expect: both print their usual lines (a pattern count; WORKER or NOT A WORKER) with no traceback.
+
+## v0.27.41 - 2026-11-12
+
+- Pass long gh texts through --body-file and --notes-file
+- health file.py: name the issue-text helper issue_text, not body_of
+- Toy: the file.run mock takes the body argument
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/pr-body-file: main's goal.py body file kept; fit.pr_create dropped
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/pr-body-file
+- Merge remote-tracking branch 'origin/main' into loop/pr-body-file
+- pr: record issue states and the lane's results
+- Wiki: update pages for pr-body-file
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.40 - 2026-11-12
+
+- test-board.sh passes on main again: the test was wrong on all three cells (board-test-fix)
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Review Monitoring page: owner said "approve"
+- Wiki: update pages for board-test-fix
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+- Merge origin/main into loop/board-test-fix
+- Merge remote-tracking branch 'origin/main' into loop/board-test-fix
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.39 - 2026-11-12
+
+- Size and skill-lines rules judge committed (LF) bytes and lines
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/size-rule-lf
+- Merge remote-tracking branch 'origin/main' into loop/size-rule-lf
+- pr: record issue states and the lane's results
+- Wiki: update pages for size-rule-lf
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.38 - 2026-11-12
+
+- Regression green: stale row, narrow lanes, CI leftovers, issue flood, test-tree once
+- Regression green: rows seen red, Tests rendered, the workflow's issue rules on the Regression page
+- Automation: the regression workflow's issue rules and cleanup run in Usage
+- Regression green: review fixes
+- Regression green: tests for the keeper, quoted text, rewrite and rate-limit warning
+- test-tree-once: wording the repo's old-paths grep allows
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Regression page: the keeper and the rate-limit stop
+- Toy headers main added: test-pods declares what it reads whole, test-settings-table drops an unbacked folder; Automation usage
+- workflow-docs SKILL.md back under 150 lines: the automation registry and restore moved word for word to references/commands.md
+- Documentation: where the automation registry and restore detail now live; goal touches synced
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Toy headers main added: test-adopt-fixtures and test-setup-adopt declare that they read every skill
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Merge origin/main into loop/regression-green-2 (rows unioned; docs hunks combined)
+- Review: actions.py under the 20 KB script cap; regression.yml regenerated after the merge
+- tree-once: a replayed skip (exit 77) writes TOY_SKIP_FILE, so repo-narrow-178 reads SKIPPED off Linux, not FAIL
+- Merge origin/main (v0.27.34) into loop/regression-green-2: shard filter kept ahead of the cleanup rules; actions.py 20,457 bytes
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Wiki: update pages for regression-green-2
+- Merge remote-tracking branch 'origin/main' into loop/regression-green-2
+- Fixes #100: test toy-no-leftovers, seen failing 2026-11-12, passing
+
+### How to verify
+
+1. After the merge, open the next scheduled regression run on GitHub (Actions, regression).
+   Expect: breaking-asks, lanes-headers, lanes-repo-narrow, one-way-to-run, prd-repo-green and toy-no-leftovers read
+   PASS, and no row reads FAIL that passed on the run before.
+2. Run `gh workflow run regression.yml -f cleanup=true`, wait for it to finish, and read its log.
+   Expect: a line `CLEANUP closed <n> issues`; repeat about two hours later until it reads 0.
+3. Run `gh issue list --label regression --state open`.
+   Expect: one issue per row that failed on the latest run, and no issue for a row that passed or was skipped.
+4. In a checkout, run `python3 skills/workflow-regression/scripts/lanes_cli.py affected skills/workflow-monitoring/scripts/batch.py | head -1`.
+   Expect: `AFFECTED n of m rows` with n well under half of m (it read 515 of 515 before).
+
+## v0.27.37 - 2026-11-12
+
+- Migration lessons: 12 dated findings, Delivery wording (DEL-10, DEL-11), a row that checks them
+- Verify by hand: migration-lessons
+- Merge remote-tracking branch 'origin/main' into loop/migration-lessons
+- fix: goal.py pr passes the PR body as a file, not a command line
+- Merge remote-tracking branch 'origin/main' into loop/migration-lessons
+- Docs: Delivery Tests table, Home names native Windows
+- Merge origin/main into loop/migration-lessons: my Delivery wording is DEL-12 and DEL-13 (goal-adopt took DEL-10 and DEL-11)
+
+### How to verify
+
+1. Open FINDINGS.md and read the last twelve entries.
+   Expect: twelve entries dated 2026-11-12, "migration, lesson 1" to "lesson 12", each ending in the issue, pull request or release that tracks it.
+2. Run `gh issue list --search "migration" --limit 3` or open issues 2871 to 2877.
+   Expect: seven new open issues, one per lesson that nothing tracked, each starting with "Found in the 2026-11-11/12 migration".
+
+## v0.27.36 - 2026-11-12
+
+- goal-adopt: goal.py adopt (build)
+- goal-adopt: toy test
+- goal-adopt: requirements DEL-10/11, usage, regression rows
+- goal-adopt: pages, entry point, verify by hand
+- goal-adopt: replace a stale never-started record, refuse a live one
+- Lane: re-render the Tests tables
+- goal-adopt: row seen red, pages
+- Merge remote-tracking branch 'origin/main' into loop/goal-adopt
+- Merge origin/main into loop/goal-adopt
+
+### How to verify
+
+1. In a second clone, check out a branch another machine pushed (`git switch loop/SLUG`), then run `goal.py adopt SLUG` there.
+   Expect: it prints `ADOPTED SLUG at qa from origin/loop/SLUG @ <sha>`, and `goal.py show SLUG` lists idea, plan and review as `done on another machine`.
+2. Run `goal.py pr SLUG` straight after.
+   Expect: it stops with `the flow hasn't finished: qa, ship`, not `no goal named`.
+3. Create a local branch `loop/nope` with a goal file and run `goal.py adopt nope`.
+   Expect: `REFUSED: loop/nope is not on origin ...` and no run record.
+
 ## v0.27.35 - 2026-11-12
 
 - Trim private.py under the 20,480-byte cap (comments and docstrings only)

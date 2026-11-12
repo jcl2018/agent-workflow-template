@@ -55,10 +55,6 @@ Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows
 count only changes since that point. `cut` counts from the goal's base the same way. `publish` has no `--base`: it
 counts every commit.
 
-## `automation` registry
-
-The Automation block lists health, regression and each `automation` entry of `.loop/config.json`; `python3 scripts/docs.py automation` prints each one's live state. Entry fields: `references/commands.md` (The automation registry).
-
 ## `audit`
 
 ```bash
@@ -114,11 +110,8 @@ python3 scripts/docs.py publish
 - It refuses to replace a wiki page it didn't write. `--adopt <page>` replaces one. Use that only when the user named
   that page.
 
-Tell the user the `PUBLISHED` link and the pages it changed.
-
-## `restore`
-
-This reverts the last publish. It refuses if the wiki has changed since.
+Tell the user the `PUBLISHED` link and the pages it changed. `restore` reverts the last publish, and the `automation`
+registry fills the Automation block: both in `references/commands.md`.
 
 ## Rules
 

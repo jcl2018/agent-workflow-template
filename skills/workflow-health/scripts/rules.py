@@ -306,7 +306,8 @@ def workflow_permissions(root):
 def skill_lines(root):
     out = []
     for path in sorted(glob.glob(os.path.join(root, "skills", "*", "SKILL.md"))):
-        count = sum(1 for _ in open(path, errors="replace"))
+        with open(path, "rb") as handle:  # LF lines, as git holds them
+            count = len(handle.read().replace(b"\r\n", b"\n").splitlines())
         if count >= SKILL_LINES:
             name = os.path.relpath(path, root)
             out.append(row("FAIL", "size", name, "skill-lines", "%d lines, %d or more" % (count, SKILL_LINES),

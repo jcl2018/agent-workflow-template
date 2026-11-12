@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""What a goal decides at freeze and reads later: its size and review depth (DEL-6), its budget (DEL-8), its release
-bump (DEL-5), where it resumes (DEL-7) and what a deliberate rerun clears. Pure functions with no guards import, so
-role, flow, goal, release and the board can all read them.
+"""What a goal decides at freeze and reads later (DEL-5 to DEL-8). Pure functions with no guards import, so every script reads them.
 
 Size: a goal is small with at most 3 done lines, no `github:` touch and at most one code area. An area is a touched
 path's first two components (`skills/workflow-release`, `src/api`) or a top-level folder; paths under docs/, .loop/,
@@ -41,7 +39,7 @@ SMALL_DONE = 3
 
 
 def surface(path):
-    """The GitHub surface a `github:` touch names, '' for a repo path, None for a bad `github:` entry."""
+    """The GitHub surface a `github:` touch names, '' for a repo path, None if bad."""
     if not path.startswith("github:"):
         return ""
     name = path[len("github:"):]
@@ -49,7 +47,7 @@ def surface(path):
 
 
 def area(path, top=None):
-    """The code area a repo path belongs to, or None when it counts for no area."""
+    """The code area a repo path belongs to, or None."""
     clean = path.strip().strip("/")
     if not clean or surface(path) != "" or any((clean + "/").startswith(item) for item in NOT_AREAS):
         return None
@@ -60,7 +58,7 @@ def area(path, top=None):
 
 
 def size_of(done_lines, touches, top=None):
-    """{"small": bool, "why": str}, decided from the frozen done lines and the touches."""
+    """{"small": bool, "why": str} from the done lines and touches."""
     count = len(done_lines)
     if not touches:
         return {"small": False, "why": "large: no touches declared"}
@@ -74,7 +72,7 @@ def size_of(done_lines, touches, top=None):
 
 
 def sidecar(runs, slug):
-    """The owner's settings for a goal, from the operation sidecar ({} when none)."""
+    """The owner's settings for a goal ({} when none)."""
     try:
         with open(os.path.join(runs, slug + ".extra.json")) as handle:
             found = json.load(handle)
@@ -85,7 +83,7 @@ def sidecar(runs, slug):
 
 
 def view(state, runs=None):
-    """The run record with the owner's settings merged over it (settings win)."""
+    """The run record with the owner's settings merged over it."""
     merged = dict(state or {})
     if runs and merged.get("slug"):
         merged.update(sidecar(runs, merged["slug"]))
@@ -106,7 +104,7 @@ def depth_for(setting, seen):
 
 
 def budget_of(cfg):
-    """The repo's budget: time_budget_minutes and token_budget, 0 meaning none set."""
+    """The repo's time_budget_minutes and token_budget, 0 meaning none set."""
     def number(key):
         value = (cfg or {}).get(key)
         return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else 0
@@ -114,7 +112,7 @@ def budget_of(cfg):
 
 
 def budget(seen, cfg):
-    """(budget, source): a budget the goal carries wins, even 0; a record from before budgets uses the repo's."""
+    """(budget, source): the goal's budget wins, even 0; else the repo's."""
     held = seen.get("budget")
     if isinstance(held, dict):
         return {"minutes": int(held.get("minutes") or 0), "tokens": int(held.get("tokens") or 0)}, "the goal's budget"
@@ -122,7 +120,7 @@ def budget(seen, cfg):
 
 
 def spent_tokens(run):
-    """Tokens a goal has spent: the per-step values when any exist, else the total a background worker wrote."""
+    """Tokens a goal has spent: per-step values, else the worker's total."""
     value = run.get("tokens") if isinstance(run.get("tokens"), dict) else {}
     steps = [n for key, n in value.items() if key != "total" and isinstance(n, int) and not isinstance(n, bool)]
     if steps:
@@ -136,8 +134,7 @@ def recorded(state, step):
 
 
 def resume_at(state, moved=None):
-    """The step a stopped or crashed goal goes on from, read from its record only. With idea and plan recorded and
-    review not: build when no commit landed after the plan record (moved False or unknown), else review."""
+    """The step a stopped goal goes on from: build when no commit landed after the plan record, else review."""
     left = [step for step in STEPS if not recorded(state, step)]
     if not left:
         return "pr"
@@ -153,8 +150,7 @@ def next_command(state, step):
 
 
 def again(state, step):
-    """Clear a step's record and every later step's (result, depth, verdicts) for a deliberate rerun. Tries, tokens,
-    size, budget and the owner's settings stay. Returns the steps cleared."""
+    """Clear a step and every later step (result, depth, verdicts) for a rerun; returns the steps cleared."""
     later = list(STEPS[STEPS.index(step):])
     cleared = [s for s in later if s in (state.get("flow") or {})]
     for key in ("flow", "depth", "verdicts"):
@@ -166,7 +162,7 @@ def again(state, step):
 
 
 def says_bump(goal):
-    """minor or major when the goal text names one (a hint for the operation; never stored)."""
+    """minor or major when the goal text names one (never stored)."""
     found = re.search(r"\b(minor|major)\b", goal or "", re.I)
     return found.group(1).lower() if found else ""
 
@@ -225,6 +221,39 @@ def cmd_queue(g, args):
     return 0
 
 
+def cmd_adopt(g, args):
+    """Run record for a goal another machine pushed: idea to review done there; qa, ship and pr run here."""
+    slug, branch = args.slug, "loop/" + args.slug
+    old, note = g.state_path(slug), ""
+    if not g.SLUG.match(slug):
+        g.no("bad slug.")
+    if os.path.exists(old):
+        was = json.loads(g.read(old))
+        if was.get("status") != "running" or was.get("pid") or was.get("flow"):
+            g.no("%s has a live, started or finished run record here." % slug)
+        g.SEEN[slug], note = json.dumps(was), "; replaced a stale record: running, no pid, no steps"
+    if g.git("branch", "--show-current") != branch:
+        g.no("not on %s. Fix: run this in its worktree." % branch)
+    if g.run(["git", "fetch", "origin", branch]).returncode or g.run(["git", "merge-base", "--is-ancestor", "FETCH_HEAD", "HEAD"]).returncode:
+        g.no("%s is not on origin, or this worktree lacks its commits. Fix: push, then fetch." % branch)
+    sha, lines, text = g.git("rev-parse", "--short", "FETCH_HEAD"), g.done_lines(slug), g.read(g.goal_file(slug))
+    seen = g.run(["gh", "pr", "view", branch, "--json", "url,state"])
+    info = json.loads(seen.stdout) if seen.returncode == 0 else {}
+    if not lines or info.get("state") != "OPEN":
+        g.no("%s needs done lines and an open pull request." % slug)
+    found = re.search(r"^- Touches: (.*)$", text, re.M)
+    touches = [t.strip() for t in found.group(1).split(",") if t.strip() != "not declared"] if found else []
+    args.goal = text.splitlines()[0].lstrip("# ")
+    state = dict(slug=slug, goal=args.goal, status="running", step="qa", tries=0, branch=branch, worktree=g.root(), touches=touches,
+                 pid=None, pr=info["url"], batch=False, done_sha=g.done_sha(lines), release="", waiting=None, finding="", log=[],
+                 flow={s: "done on another machine: " + sha for s in g.FLOW[:3]}, **frozen_fields(g, args, lines, touches))
+    g.guards.stamp(state, "qa")
+    g.pods and g.pods.stamp(state)
+    g.save(state, "adopted from origin/%s @ %s (%s)%s" % (branch, sha, info["url"], note))
+    print("ADOPTED %s at qa from origin/%s @ %s%s; qa, ship and pr run here" % (slug, branch, sha, note))
+    return 0
+
+
 def keep(g, state, step, text):
     """What record keeps from a done, skipped or auto-approved reply: its verdicts (issue 38) and, for plan, the HEAD
     it was recorded at (resume_at tells build from review by commits after it)."""
@@ -246,7 +275,7 @@ def nag(g, args):
 
 
 def frozen_fields(g, args, lines, touches):
-    """What `new` records beside the done lines: the goal's size and the budget it carries (0 = none set)."""
+    """The goal's size and budget, recorded beside the done lines."""
     bad = [t for t in touches if surface(t) is None]
     if bad:
         g.no("%s isn't a GitHub surface. Fix: one of github:%s" % (", ".join(bad), ", github:".join(SURFACES)))
@@ -277,7 +306,7 @@ VERDICT = re.compile(r"^\W*VERDICT:\s*(.+?)\s*$", re.M)
 
 
 def verdicts(text):
-    """The `VERDICT: <who>: <verdict>` lines of a step reply, at most 12, each cut to 200 characters."""
+    """The `VERDICT: <who>: <verdict>` lines of a step reply, at most 12."""
     return [" ".join(item.split())[:200] for item in VERDICT.findall(text or "")][:12]
 
 
@@ -293,7 +322,7 @@ def step_line(step, seen):
 
 
 def regen_warnings(top, base):
-    """For each file the branch deletes, tracked scripts and workflows that name its path."""
+    """For each deleted file, tracked scripts and workflows that name its path."""
     def git(*args):
         done = subprocess.run(["git"] + list(args), cwd=top, capture_output=True, text=True)
         return done.stdout if done.returncode == 0 else ""
@@ -309,7 +338,7 @@ def regen_warnings(top, base):
 
 
 def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
-    """The pull request body. Keeps `## Result` and the `Skill flow:` lines other tools read."""
+    """The pull request body; keeps `## Result` and the `Skill flow:` lines."""
     depth, why = depth_for(setting, seen)
     held, source = budget(seen, cfg)
     parts = ["%dm" % held["minutes"] if held["minutes"] else "", "%s tokens" % format(held["tokens"], ",") if held["tokens"] else ""]
@@ -329,7 +358,7 @@ def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
     return body
 
 
-# ---- issues and findings a goal fixes that still lack a defect test (was defect.py)
+# ---- fixes without a defect test (was defect.py)
 VERB = r"\b(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+"
 SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date
 FIXES = re.compile(VERB + r"(?:issue\s+)?#(\d+)|" + VERB + r"finding:([a-z0-9][a-z0-9-]*)", re.I)
@@ -350,7 +379,7 @@ def has(link, ref):
 
 
 def before(root):
-    """{row id: seen_red} at the merge-base with origin/<base> (else <base>); None when there is none to compare."""
+    """{row id: seen_red} at the merge-base with origin/<base>; None if none."""
     try:
         with open(os.path.join(root, ".loop", "config.json")) as handle:
             base = json.load(handle).get("base") or "main"
@@ -365,7 +394,7 @@ def before(root):
 
 
 def owed(root, text):
-    """The refs the text fixes with no defect row this branch added or proved, seen failing and passing now (E-10)."""
+    """The refs the text fixes with no defect row proved on this branch (E-10)."""
     owe, old = [], before(root)
     for number, finding in FIXES.findall(text):
         ref = number or finding.lower()
