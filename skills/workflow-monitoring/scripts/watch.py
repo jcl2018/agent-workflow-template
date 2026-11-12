@@ -152,7 +152,7 @@ def runs():
     for name in sorted(os.listdir(folder)):
         if name.endswith(".json"):
             state = load(name[:-5])
-            if state and state.get("slug"):
+            if state and state.get("slug") and not graph.foreign(state):  # another pod's goals are not this pod's to watch
                 found.append(state)
     return found
 

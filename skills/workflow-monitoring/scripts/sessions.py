@@ -259,6 +259,7 @@ def cmd_free(args):
     bad_slug(args.slug)
     with locked():
         found, state = pool(), load(args.slug)
+        graph.refuse(state or {})
         if state.get("pid") and state.get("status") == "running" and alive(state["pid"]):
             sys.exit("REFUSED: %s is running as background pid %s; let it end first." % (args.slug, state["pid"]))
         if state.get("status") == "waiting":

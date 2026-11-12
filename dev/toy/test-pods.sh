@@ -132,7 +132,7 @@ echo "== MON-15: only the owning pod acts on a goal"
 echo '{"auto_merge": true}' > "$T/alpha-app/.loop/config.json"
 own alpha-app core pod-a failed; own alpha-app mine pod-a done 7; own alpha-app plain - failed; own alpha-app held1 pod-a waiting
 line='REFUSED: goal core is owned by pod pod-a.'
-for cmdline in "python3 $SCRIPTS/sessions.py send core hi" "python3 $SCRIPTS/sessions.py bind core s9" "python3 $GOAL resume core --why x" \
+for cmdline in "python3 $SCRIPTS/sessions.py send core hi" "python3 $SCRIPTS/sessions.py bind core s9" "python3 $SCRIPTS/sessions.py free core" "python3 $SCRIPTS/worker.py send core hi" "python3 $GOAL resume core --why x" \
                "python3 $SCRIPTS/watch.py resume core" "python3 $SCRIPTS/operate.py send core hi" "python3 $MERGE core"; do
   before=$(fp alpha-app core); [ "${cmdline##* }" = core ] || true
   [ "${cmdline#*merge.py}" != "$cmdline" ] && { own alpha-app core pod-a done 7; before=$(fp alpha-app core); }
@@ -184,6 +184,8 @@ PY
 : > "$T/lock.log"; holder one 2>"$T/e1" & holder two 2>"$T/e2" & wait
 check "two concurrent holders do not overlap" '[ "$(cut -d" " -f1 "$T/lock.log" | tr "\n" " ")" = "in out in out " ] && [ "$(cat "$T/lock.log" "$T/e1" "$T/e2" | grep -c "WAITING: another pod")" = 1 ]' 
 check "the lock file is gone after both end" '[ ! -e "$C/loop/merge.lock" ]'
+echo 999999 > "$C/loop/merge.lock"; : > "$T/lock.log"; holder three 2>/dev/null & holder four 2>/dev/null & wait
+check "two waiters finding the same dead lock do not both take it" '[ "$(cut -d" " -f1 "$T/lock.log" | tr "\n" " ")" = "in out in out " ]'; rm -f "$C/loop/merge.lock"
 echo 999999 > "$C/loop/merge.lock"; start=$(date +%s)
 r "python3 - $SCRIPTS $C <<'PY'
 import sys; sys.path.insert(0, sys.argv[1]); import graph; graph.merge_lock(sys.argv[2]); print('TOOK')
@@ -243,7 +245,7 @@ for f in "$here"/skills/*/scripts/*.py; do
   if [ "$now" -ge 20480 ] || { [ "$now" -ge 18432 ] && [ "$was" -lt 18432 ]; }; then over="$over $rel($now)"; fi
 done
 out="$over"; check "no script reaches 20 KB, and none newly crosses 18 KB" '[ -z "$over" ]'
-caps=""; for pair in graph:18000 checkin:12500 operate:10500 goal:20000 sessions:19800 watch:19800 merge:20350 mend:14000 board_lines:17200; do
+caps=""; for pair in graph:18300 checkin:12500 operate:10500 goal:20000 sessions:19800 watch:19800 merge:20350 mend:14000 board_lines:17200; do
   n=${pair%%:*}; cap=${pair##*:}; f=$(ls "$here"/skills/*/scripts/$n.py); [ "$(wc -c < "$f")" -le "$cap" ] || caps="$caps $n"; done
 out="$caps"; check "the touched scripts stay within their budgets" '[ -z "$caps" ]'
 out=$(python3 "$here/dev/package.py" --root "$here" --out "$T/pkg.zip" 2>&1); rc=$?

@@ -339,7 +339,7 @@ def stamp(state):
 
 
 def foreign(state):
-    owner = str(state.get("pod") or "")
+    owner = str(state.get("pod") or "") if isinstance(state, dict) else ""
     return owner if owner and os.environ.get("LOOP_ROLE") != "worker" and owner != pod_id() else ""
 
 
@@ -363,10 +363,11 @@ def merge_lock(common):
                 handle.write("%d\n" % os.getpid())
             break
         except FileExistsError:
-            pid, dead, age = 0, False, 0
+            pid, dead, age, seen = 0, False, 0, ""
             try:
                 age = time.time() - os.stat(path).st_mtime
-                pid = int(open(path).read().split()[0])
+                seen = open(path).read()
+                pid = int(seen.split()[0])
                 os.kill(pid, 0)
             except ProcessLookupError:
                 dead = True
@@ -375,9 +376,12 @@ def merge_lock(common):
             except (OSError, ValueError, IndexError):
                 pass
             if dead or age > int(os.environ.get("LOOP_MERGE_LOCK_SECONDS") or 1800):
+                mine = "%s.stale.%d" % (path, os.getpid())
                 try:
-                    os.rename(path, "%s.stale.%d" % (path, os.getpid()))
-                    os.unlink("%s.stale.%d" % (path, os.getpid()))
+                    os.rename(path, mine)
+                    if open(mine).read() != seen:  # a new holder took the path since we looked: put its lock back
+                        os.link(mine, path)
+                    os.unlink(mine)
                 except OSError:
                     pass
                 continue

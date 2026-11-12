@@ -93,7 +93,7 @@ def render(root=None, at=None, stamp=None):
                 broken.append((name, lb.plain(type(error).__name__, 40)))
     pod = [mine] + others
     ready, _ = graph.ready(queue, {r["slug"]: r for r in runs}, graph.parallel_of(cfg), taken, why)
-    counts = lambda *names: sum(g["states"][r["slug"]] in names for g in pod for r in g["live"])
+    counts = lambda *names: sum(g["states"][r["slug"]] in names for g in pod for r in g["live"] if not graph.foreign(r))
     pool_line = pl.status_line(found or {}, cfg) if found is not None else "pool: unreadable"
     out = ["%d running, %d waiting on you, %d queued; %s" % (counts("running", "held", "silent"),
                                                             counts("waiting", "failed", "stopped"), sum(len(g["queue"]) for g in pod), pool_line), "",
@@ -166,7 +166,9 @@ def render(root=None, at=None, stamp=None):
     for g in others:
         for run in g["live"]:
             ask = run.get("waiting") or {}
-            if g["states"][run["slug"]] == "waiting":
+            if graph.foreign(run) and g["states"][run["slug"]] == "waiting":
+                readonly.append("- %s/%s asks (owned by %s, read-only here)" % (g["name"], run["slug"], graph.foreign(run)))
+            elif g["states"][run["slug"]] == "waiting" and not graph.foreign(run):
                 needs.append("%s/%s asks: %s; options: %s" % (g["name"], run["slug"], lb.plain(ask.get("ask"), 160),
                                                               " / ".join('"%s"' % w for w in ask.get("words") or ["go on"])))
     needs += ["%s: can't be read (%s); the other repos are shown" % item for item in broken]
