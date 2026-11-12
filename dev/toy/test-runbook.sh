@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-docs/scripts/ skills/workflow-docs/references/template.md docs/wiki/ .loop/ README.md CLAUDE.md AGENTS.md
+# reads: skills/workflow-docs/scripts/criteria.py skills/workflow-docs/scripts/docs.py skills/workflow-docs/references/template.md docs/wiki/ .loop/ README.md CLAUDE.md AGENTS.md
 # Proves the optional Runbook section (DOC-16) on a copy of this repo's own wiki: a good runbook passes, each missing or
 # stray part is refused naming the page, routine and field, a routine in .loop/routines.tsv with no runbook on its page
 # is refused, a Reviewed page that gains a Runbook is not locked, and this repo's Health and Regression pages carry the
