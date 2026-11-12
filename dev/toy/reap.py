@@ -39,7 +39,7 @@ def fail(why, hint):
 
 def table():
     """{pid: (ppid, start, zombie)} for every process of this user."""
-    uid, out = os.getuid(), {}
+    uid, out = (os.getuid() if hasattr(os, "getuid") else -1), {}
     if LINUX:
         for name in os.listdir("/proc"):
             if not name.isdigit():
@@ -215,7 +215,8 @@ def options(args, flags, valued):
 
 
 def main(argv):
-    signal.signal(signal.SIGPIPE, signal.SIG_IGN)
+    if hasattr(signal, "SIGPIPE"):  # no SIGPIPE on native Windows
+        signal.signal(signal.SIGPIPE, signal.SIG_IGN)
     if not argv:
         usage()
     cmd, args = argv[0], argv[1:]
