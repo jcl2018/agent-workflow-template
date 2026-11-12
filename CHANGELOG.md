@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.27.9 - 2026-11-12
+
+- Lane TMPDIR: a fresh folder under the system temp, never inside a git checkout (lane-tmpdir, #814)
+- Lane reference: quote the LANE_TMPDIR message as lane.py prints it (lane-tmpdir)
+- Merge remote-tracking branch 'origin/main' into loop/lane-tmpdir
+- Wiki: update pages for lane-tmpdir
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.8 - 2026-11-12
 
 - estimate-accuracy: move the log facts to board_log.py and the estimate model to board_model.py (no behavior change)
