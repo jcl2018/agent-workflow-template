@@ -52,3 +52,4 @@ Open (from the issue-cleanup triage of the open non-regression issues, 2026-11-1
 - release-draft-wording-no-wiki: the release skill still describes a draft when auto_merge is off while DEL-5 says there is no draft step, and the first-page wiki message does not cover a repo with no GitHub wiki (issue #129, reopened by this triage)
 - lane-plan-cache-proof: add a regression row proving lane planning stays under 60 s at load 20 with an unchanged row set; the loop/lane-plan-cache goal carries it (issue #710)
 - guard-enforce-red: Failed 3 tries. Last: merging main conflicts in: docs/wiki/Tests.md
+- spec-decisions: Failed 3 tries. Last: merging main conflicts in: docs/wiki/Documentation.md, docs/wiki/Regression.md
