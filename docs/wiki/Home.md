@@ -1,10 +1,6 @@
 <!-- workflow-docs -->
 # agent-workflow-template
 
-## Status
-
-What is left before V1 is the [V1 section of the roadmap](https://github.com/jcl2018/agent-workflow-template/blob/main/docs/ROADMAP.md#v1): seven items, each linked to its goal, issue or pull request.
-
 ## Features
 
 | Feature | What it does | How to use | Milestone |
