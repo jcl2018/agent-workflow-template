@@ -2,20 +2,7 @@
 operate-all	fails on main v0.12.0 (test-operate timing), issue 126
 adopt-set-1	fails on clean main since v0.27.17; fixed by render-readme-guard
 adopt-set-2	fails on clean main since v0.27.17; fixed by render-readme-guard
-adopt-set-3	fails on clean main since v0.27.17; fixed by render-readme-guard
-adopt-set-4	fails on clean main since v0.27.17; fixed by render-readme-guard
-adopt-set-5	fails on clean main since v0.27.17; fixed by render-readme-guard
-defect-categories	fails on clean main since v0.27.17; fixed by package-cap-3
-skill-size-116	fails on clean main since v0.27.17; fixed by regression-green-2
 size-140	fails on clean main since v0.27.17; fixed by regression-green-2
 deploy-section-optional	fails on clean main since v0.27.17; fixed by docs-small-fixes
 deploy-not-locked	fails on clean main since v0.27.17; fixed by docs-small-fixes
 deploy-doc14-reviewed	fails on clean main since v0.27.17; fixed by docs-small-fixes
-lanes-headers	fails on clean main since v0.27.17; fixed by package-cap-3
-lanes-repo-narrow	fails on clean main since v0.27.17; fixed by package-cap-3
-narrow-root-172	fails on clean main since v0.27.17; fixed by package-cap-3
-prd-repo-green	fails on clean main since v0.27.17; fixed by package-cap-3
-plan-sizes	fails on clean main since v0.27.17; fixed by package-cap-3
-pods-size	fails on clean main since v0.27.17; fixed by package-cap-3
-sync-check-preview	fails on clean main since v0.27.17; fixed by package-cap-3
-sync-board-lag	fails on clean main since v0.27.17; fixed by package-cap-3

@@ -5,18 +5,17 @@
    last_change, lane_limit, timeout_line, rows_line and their helpers): a skill imports only its own scripts. Each copy
    (COPIED) must match workflow-regression/scripts/slots.py exactly; dev/toy/test-lane-control.sh fails on drift.
 2. The one commit a lane may make before it starts (prep, generated): the re-rendered wiki Tests tables and the run
-   dates they come from, as `git commit --only` of those paths with a 60 s timeout. Any other change refuses with
-   LANE_DIRTY; a refused or hung commit unstages and starts nothing (LANE_PREP_FAILED).
+   dates they come from, as `git commit --only` of those paths (60 s timeout). Any other change refuses with LANE_DIRTY;
+   a refused or hung commit unstages and starts nothing (LANE_PREP_FAILED).
 3. What goal.py pr does after its lane passes, before it pushes (record(state, base)): issue states (`tests.py issues
    --write`, 120 s), run results merged into .loop/regression-runs.tsv (`lanes_cli.py merge-runs`), one commit of
    those two files with the Tests tables re-rendered, then state["pr_lane"], ["pr_head"] and ["pr_base"] for
    merge.py's HEAD_MOVED and BASE_MOVED checks. Messages: workflow-regression/references/commands.md.
-4. The step budgets: step_budget_minutes (default 30) bounds a review or ship step, test_budget_minutes (default 15)
-a test run; neither goes under 15; budget_hits in the run file names what a stopped step left.
-5. Who may signal a lane: pstart/same (a pid counts only while its start time matches the one stored with it), audit
-(runs/kills.log, one line per signal sent) and died/death (LANE_DIED names the signal that ended a lane).
+4. The step budgets: step_budget_minutes (default 30) bounds a review or ship step, test_budget_minutes (15) a test
+run; neither goes under 15; budget_hits in the run file names what a stopped step left.
+5. Who may signal a lane: pstart/same (a pid counts only while its start time matches the stored one), audit
+(runs/kills.log, a line per signal sent) and died/death (LANE_DIED names the signal that ended a lane).
 """
-import portlock as fcntl
 import glob
 import json
 import os
@@ -26,6 +25,30 @@ import sys
 import time
 
 import tempfile
+try:
+    import fcntl
+except ImportError:  # Windows: msvcrt locks
+    import msvcrt
+    import types
+
+    def _flock(handle, op):
+        fd = handle if isinstance(handle, int) else handle.fileno()
+        here = os.lseek(fd, 0, 1)
+        os.lseek(fd, 0x7FFFFFFF, 0)  # one far byte: readers never block
+        try:
+            while True:
+                try:
+                    return msvcrt.locking(fd, msvcrt.LK_UNLCK if op & 8 else msvcrt.LK_NBLCK, 1)
+                except OSError:
+                    if op & 8:
+                        return  # not held: no-op
+                    if op & 4:
+                        raise BlockingIOError("locked")
+                    time.sleep(0.05)
+        finally:
+            os.lseek(fd, here, 0)
+
+    fcntl = types.SimpleNamespace(LOCK_SH=1, LOCK_EX=2, LOCK_NB=4, LOCK_UN=8, flock=_flock)
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -176,10 +199,8 @@ def set_last(path, attempt, **fields):
         return data
 
 
-# The lane's preparation budget (REG-7, DEL-8): what a lane does before its first row (the Tests-table prep, planning and the
-# slot wait) shares one budget, prep_budget_minutes. The lane child (lane.py lane-exec) writes one `.times` record (planning
-# seconds, slot-wait seconds and, for a cut, the part that was running); lane.py's finalize reads it here, says the three parts
-# on every LANE line, and on a cut prints LANE_PREP_BUDGET and records the hit (kind prep) so the board and health list it.
+# Prep budget (REG-7, DEL-8): Tests-table prep, planning and slot wait share prep_budget_minutes. lane-exec writes a
+# `.times` record; lane.py's finalize reads it, names the parts on each LANE line, and on a cut prints LANE_PREP_BUDGET.
 
 def holders(pool):
     """Labels of the lanes holding slots now, for the cut line."""

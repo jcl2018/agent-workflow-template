@@ -46,7 +46,7 @@ real() { # a git copy of what the repo-wide checks read (skills, docs, README, t
   mkdir -p "$d/real/.loop" && cp -R "$here/skills" "$here/docs" "$here/README.md" "$d/real/" \
     && cp "$here/.loop/regression.tsv" "$here/.loop/regression-runs.tsv" "$here/.loop/regression-issues.tsv" \
       "$here/.loop/regression-known.tsv" "$here/.loop/docs.tsv" "$here/.loop/config.json" "$d/real/.loop/" \
-    && cp -R "$here/.loop/goals" "$d/real/.loop/" \
+    && cp -R "$here/.loop/goals" "$d/real/.loop/" && { [ ! -d "$here/.github" ] || cp -R "$here/.github" "$d/real/"; } \
     && cd "$d/real" && git init -q && git add -A && git -c user.name=t -c user.email=t@t commit -qm copy \
     && { u=$(git -C "$here/." remote get-url origin 2>/dev/null) && git remote add origin "$u" || true; } || no "cannot copy the repo"  # the Tests page links runs to origin; "$here/." not "$here": the plain form is a root runner again (issue 172)
 }

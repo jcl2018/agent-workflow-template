@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/
 # reads: skills/workflow-delivery/scripts/private.py skills/workflow-setup/scripts/seed.py skills/workflow-setup/scripts/setup.py skills/workflow-delivery/references/commands.md
 # The worker push guard: a goal worker's git push may only update refs/heads/loop/<its slug>. Runs real pushes under the
 # real pre-push hook (installed by setup --git-hooks) from a goal worktree under <common>/loop/worktrees/, and from the
