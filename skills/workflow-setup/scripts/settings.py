@@ -4,15 +4,18 @@
 usage: settings.py reference [--write]   print the settings reference (--write saves references/settings.md)
        settings.py fill-repo [--repo DIR]  add every missing repo setting, with its default, to .loop/config.json
        settings.py fill-private [--file F]  add every missing private setting to the private flow file (mode 0600)
+       settings.py show [--repo DIR] [--json]  each value with its layer (default, repo or local) and home
 
-Repo settings live in .loop/config.json, committed and shared. Private settings live outside the repo, never committed:
-the flow file ~/.workflow-loop/flow.json (or $LOOP_FLOW), the health rules ~/.workflow-loop/health.json (or $LOOP_HEALTH)
-and the followed repos ~/.workflow-loop/repos. A value already set is never overwritten, and every script reads the
-files fresh on each run, so a change takes effect at once.
+Repo settings live in .loop/config.json (committed). Private settings live outside the repo and are never committed: the flow
+file ~/.workflow-loop/flow.json ($LOOP_FLOW), the health rules health.json ($LOOP_HEALTH) and the followed repos file. A value
+already set is never overwritten, and every script reads the files fresh, so a change takes effect at once.
 """
 import argparse
+import functools
+import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -186,6 +189,63 @@ def fill_private(path=None):
     return added
 
 
+def health_path():
+    return os.path.expanduser(os.environ.get("LOOP_HEALTH") or "~/.workflow-loop/health.json")
+
+
+@functools.lru_cache(None)
+def names():
+    """The owner's private-name patterns (workflow-delivery's private.py reads the list); none when absent or unreadable."""
+    try:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-delivery", "scripts", "private.py")
+        spec = importlib.util.spec_from_file_location("private_names", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        state, found, _ = mod.patterns()
+        return tuple(p for _, p in found) if state == "on" else ()
+    except Exception:
+        return ()
+
+
+def private_value(text):
+    """True when text holds the home folder, an email, a token-looking string or a match in the private-name list."""
+    text, home = str(text), os.path.expanduser("~")
+    return bool((len(home) > 1 and home in text) or any(p.search(text) for p in names())
+                or re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+|\b(?:sk-|ghp_|github_pat_|xox[abp]-|AKIA)[\w-]{8,}|\b[A-Za-z0-9]{41,}\b", text))
+
+
+def resolve(repo):
+    """[(setting, value, layer, home)]: default, then repo (.loop/config.json), then local (flow or health file), a later layer
+    winning. Each setting has one home today, so a key is its default or its home's value."""
+    held, flow, health = load(os.path.join(repo, ".loop", "config.json")), load(private_path()), load(health_path())
+    named = lambda var, path: "$" + var if os.environ.get(var) else path.replace(os.path.expanduser("~"), "~")
+    homes = {"flow": named("LOOP_FLOW", private_path()), "health": named("LOOP_HEALTH", health_path())}
+    rows = []
+    for key, home, default, _ in TABLE:
+        src = health if key == "rules" else flow
+        at = ".loop/config.json" if home == REPO else "~/.workflow-loop/repos" if key == "repos" else homes["health" if key == "rules" else "flow"]
+        value, layer = default, "default"
+        if home == PRIVATE and key in src:
+            value, layer = src[key], "local"
+        if key in held:
+            value, layer = held[key], "repo" if home == REPO else "repo (local setting in a committed file)"
+        rows.append((key, value, layer, at))
+    return rows
+
+
+def show(repo, as_json):
+    """Each setting with the layer its value came from; a private value is withheld and env prints its names only."""
+    out = []
+    for key, value, layer, at in resolve(repo):
+        value = sorted(value) if key == "env" and isinstance(value, dict) else value
+        out.append((key, "(withheld: holds a private value)" if private_value(json.dumps(value)) else value, layer, at))
+    if as_json:
+        return print(json.dumps([dict(zip(("setting", "value", "layer", "home"), r)) for r in out], indent=2))
+    print("| setting | value | layer | home |\n|---|---|---|---|")
+    print("\n".join("| %s | %s | %s | %s |" % (k, v if isinstance(v, str) else shown(v), layer, at) for k, v, layer, at in out))
+    print("NOTE: scripts read repo values directly; a local value wins only where its own home is read")
+
+
 def fill_repo(path):
     """Add each missing repo setting, with its default and _help line, to the config at path; never changes a value set.
     Keeps the config's key order, new keys last. Returns what was added (update's repo half calls it too)."""
@@ -211,6 +271,9 @@ def main():
     fr.add_argument("--repo", default=".")
     fp = sub.add_parser("fill-private")
     fp.add_argument("--file", default="")
+    sh = sub.add_parser("show")
+    sh.add_argument("--repo", default=".")
+    sh.add_argument("--json", action="store_true")
     args = parser.parse_args()
     if args.command == "reference":
         text = reference()
@@ -221,6 +284,9 @@ def main():
             print("WROTE " + os.path.normpath(path))
         else:
             print(text, end="")
+    elif args.command == "show":
+        top = subprocess.run(["git", "-C", args.repo, "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
+        show(top or args.repo, args.json)
     elif args.command == "fill-repo":
         top = subprocess.run(["git", "-C", args.repo, "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
         path = os.path.join(top or args.repo, ".loop", "config.json")
