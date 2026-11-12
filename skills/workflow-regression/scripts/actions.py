@@ -173,14 +173,14 @@ jobs:
                   (code, said), skipped = run(row[2]), False
               hits = [item for item in issues or [] if marked(item["body"])[0] == row[0]]
               hit = next((item for item in hits if item["state"] == "OPEN"), hits[0] if hits else None)
-              state = "PASS" if code == 0 else "SKIPPED" if skipped else "KNOWN" if row[0] in known else "FAIL"
+              state = "PASS" if code == 0 else "SKIPPED" if skipped or code == 77 else "KNOWN" if row[0] in known else "FAIL"
               print(state, row[0])
               result(row[0], state)
               if code == 0:
                   for item in hits:
                       if item["state"] == "OPEN":
                           gh("issue", "close", str(item["number"]), "--comment", "Passing again.")
-              elif row[0] not in known:
+              elif row[0] not in known and code != 77:  # 77: the row says it cannot run here (SKIPPED), not a failure
                   red.append(row[0])
                   if issues is None:
                       continue

@@ -77,7 +77,7 @@ def load(path, root):
         with open(path) as handle:
             data = json.load(handle)
         rows = data["rows"]
-        assert all(row["status"] in ("PASS", "FAIL", "KNOWN", "LEFT") and row["commit"] for row in rows.values())
+        assert all(row["status"] in ("PASS", "FAIL", "KNOWN", "LEFT", "SKIPPED") and row["commit"] for row in rows.values())
     except (OSError, ValueError, KeyError, TypeError, AssertionError) as error:
         return None, "record unreadable (%s)" % (type(error).__name__,)
     if data.get("schema") != SCHEMA or data.get("runner") != runner():
@@ -352,8 +352,9 @@ def plan(root, selected, record, current_tsv, current_known):
         if prior and prior["commit"] not in kin:
             kin[prior["commit"]] = ancestor(root, prior["commit"])
             odd |= set(deleted(root, prior["commit"]) if kin[prior["commit"]] else [])
-        if always or not prior or prior.get("flaky") or not kin[prior["commit"]]:  # a flaky row is never reused
-            (rest if always and prior else hot).append(rid)  # a new row, or one with no usable record, is the goal's own: first
+        skipped = bool(prior) and prior.get("status") == "SKIPPED"  # a row that could not run last time runs again
+        if always or skipped or not prior or prior.get("flaky") or not kin[prior["commit"]]:  # a flaky row is never reused
+            (rest if (always or skipped) and prior else hot).append(rid)  # a new row, or one with no usable record, is the goal's own: first
             continue
         if prior["commit"] not in since:
             since[prior["commit"]] = changed(root, prior["commit"])
