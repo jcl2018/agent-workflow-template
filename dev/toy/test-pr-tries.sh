@@ -65,7 +65,13 @@ mk() { cd "$T" && rm -rf "$T/s"; git clone -q "$T/origin.git" "$T/s"; cd "$T/s";
 mk; sed -i.bak 's/^base-row\(.*\)\ta row\t/base-row\1\tours edit\t/' .loop/regression.tsv; rm .loop/regression.tsv.bak; git commit -qam ours
 ( cd "$other" && git pull -q origin main && sed -i.bak 's/^base-row\(.*\)\ta row\t/base-row\1\ttheirs edit\t/' .loop/regression.tsv && rm .loop/regression.tsv.bak && git commit -qam theirs && git push -q origin main )
 git fetch -q origin; git merge -q --no-edit origin/main >/dev/null 2>&1; out=$(mend x)
-check "a row both sides edited keeps one line, ours" 'grep -q "^MEND True" <<<"$out" && [ "$(grep -c "^base-row" .loop/regression.tsv)" = 1 ] && grep -q "ours edit" .loop/regression.tsv'
+check "a row both sides changed differently stays a real conflict: nothing is chosen for the owner" 'grep -q "^MEND False" <<<"$out"'
+git merge --abort 2>/dev/null
+mk; sed -i.bak '/^base-row/d' .loop/regression.tsv; rm .loop/regression.tsv.bak; git commit -qam "ours deletes"
+( cd "$other" && git pull -q origin main && row more-row >> .loop/regression.tsv && git add -A && git commit -qm "theirs adds next to it" && git push -q origin main )
+git fetch -q origin; git merge -q --no-edit origin/main >/dev/null 2>&1; out=$(mend x)
+check "a row the branch deleted is never brought back by a mend" '! grep -q "^MEND True" <<<"$out"'
+git merge --abort 2>/dev/null
 mk; mkdir -p docs/wiki .loop; printf '# Tests\n\nours\n' > docs/wiki/Tests.md; printf 'x\n' > .loop/docs.tsv; git add -A; git commit -qm ours-tests
 ( cd "$other" && git pull -q origin main && mkdir -p docs/wiki && printf '# Tests\n\ntheirs\n' > docs/wiki/Tests.md && git add -A && git commit -qm theirs-tests && git push -q origin main )
 git fetch -q origin; git merge -q --no-edit origin/main >/dev/null 2>&1; out=$(mend x)
@@ -116,12 +122,32 @@ out=$(python3 - "$D" d1 <<'PY'
 import sys
 sys.path.insert(0, sys.argv[1]); import goal
 st = goal.load(sys.argv[2]); st["tries"] = 0; st["free"] = 0
-goal.failed_try(st, "qa failed: failed regression lane: LANE_DIED: the lane ended", "qa", "again")
+goal.failed_try(st, "qa failed: regression lane: LANE_DIED: the lane ended", "qa", "again")
 print(st["tries"], st["free"])
 PY
 )
 check "a dead qa or ship lane, which reaches the same place through record, is free too" '[ "$(tail -1 <<<"$out")" = "0 1" ]'
+out=$(python3 - "$D" d1 <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1]); import goal
+st = goal.load(sys.argv[2]); st["tries"] = 0; st["free"] = 0
+goal.failed_try(st, "qa failed: the tests are red; see lane x: LANE_DIED: not really", "qa", "again")
+print(st["tries"], st["free"])
+PY
+)
+check "words an agent wrote that merely mention LANE_DIED are not a dead lane: they cost a try" '[ "$(tail -1 <<<"$out")" = "1 0" ]'
 git switch -q main
+echo x >> calc.py
+( cd "$other" && git pull -q origin main && echo y >> calc.py && git add -A && git commit -qm "main edits calc" && git push -q origin main )
+git fetch -q origin
+out=$(python3 - "$D" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1]); import role
+print(role.sync("main")[0])
+PY
+)
+check "a dirty tree that stops the merge is not a conflict: sync says dirty, so no try is spent" '[ "$(tail -1 <<<"$out")" = dirty ]'
+git checkout -q -- calc.py
 
 fi
 if want paths; then
@@ -140,7 +166,7 @@ print(p("/mnt/x/a/b/log.txt"), "|", p("/mnt/x"), "|", p("see https://github.com/
 PY
 )
 check "a finding keeps the file name and the row id but no absolute path" 'python3 -c "import json,sys;s=json.load(open(sys.argv[1]));f=s[\"finding\"];assert \"d1.pr-lane.txt\" in f and \"LANE_FAIL r1\" in f and sys.argv[2] not in f and not any(sys.argv[2] in l for l in s[\"log\"])" "$R/d1.json" "$T/" && ! grep -q "$T/" .loop/findings.md && grep -q "LANE_FAIL r1" .loop/findings.md'
-check "plain() cuts a path to its last part, a bare home folder to <path>, and leaves URLs, relative paths and issue refs alone" '[ "$(tail -1 <<<"$out")" = "log.txt | <path> | see https://github.com/o/r/issues/436 and skills/a/b.py and ./x and #436" ]'
+check "plain() cuts a path to its last part, a bare top folder to ~, and leaves URLs, relative paths and issue refs alone" '[ "$(tail -1 <<<"$out")" = "log.txt | ~ | see https://github.com/o/r/issues/436 and skills/a/b.py and ./x and #436" ]'
 fi
 
 echo; [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

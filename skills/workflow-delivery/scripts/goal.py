@@ -357,6 +357,8 @@ def cmd_pr(args):
         failed_try(state, "merging %s conflicts in: %s" % (config()["base"], detail), "build",
                    "merge %s yourself, resolve the conflicts, commit, then pr" % config()["base"])
         return 1
+    if what == "dirty":
+        no("the merge was refused: %s. Fix: commit or remove the changes, then run pr again." % detail)
     if what == "merged":
         print("MERGED %s into the branch" % detail)
         state = held(args.slug)

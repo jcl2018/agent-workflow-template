@@ -246,7 +246,7 @@ def fail_stop(g, state, text):
 
 def failed_try(g, state, why, step, fix):
     why = private.plain(why)
-    if re.search(r"lane[^:]*: LANE_DIED", why) and state.get("free", 0) < 3:  # not the goal's fault
+    if re.search(r"^(regression lane failed|\w+ failed: regression lane): LANE_DIED:", why) and state.get("free", 0) < 3:
         state["free"], state["step"] = state.get("free", 0) + 1, step
         g.save(state, "lane died, not counted (%d of 3)" % state["free"])
         print("TRY NOT COUNTED (free rerun %d of 3; the next death counts)\nNEXT: run the same command again" % state["free"])
@@ -254,7 +254,7 @@ def failed_try(g, state, why, step, fix):
     state["tries"] = state.get("tries", 0) + 1
     most = int(g.config().get("max_tries") or g.MAX_TRIES)
     if state["tries"] >= most:
-        fail_stop(g, state, "Failed %d tries. Last: %s" % (state["tries"], why))
+        fail_stop(g, state, "Failed %d tries%s. Last: %s" % (state["tries"], " (+%d free reruns)" % state["free"] if state.get("free") else "", why))
     state["step"] = step
     g.save(state, "try %d failed: %s" % (state["tries"], why))
     print("TRY %d OF %d FAILED: %s" % (state["tries"], most, why))
@@ -293,7 +293,7 @@ def waiting_gate(g, state):
 
 
 def advance(g, state):
-    """After a recorded step: the next step starts under the rules known now, and the goal file's touches catch up."""
+    """After a recorded step: the next step starts under the rules known now; the touches catch up."""
     left = [step for step in g.FLOW if step not in state.get("flow", {})]
     if left:
         stamp(state, left[0])
@@ -315,8 +315,7 @@ def operation_only(g, name, slug):
 
 
 def cmd_resume(g, args):
-    """The operation revives a failed or stopped goal for the session that owns it. Every check runs first; nothing is
-    written on a refusal. It never starts a process."""
+    """The operation revives a failed or stopped goal for its session. Every check runs first; it starts no process."""
     operation_only(g, "resume", args.slug)
     state, slug = g.load(args.slug), args.slug
     if state.get("status") not in ("failed", "stopped"):

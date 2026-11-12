@@ -100,9 +100,11 @@ def sync(base):
         return "merged", ref
     files = git("diff", "--name-only", "--diff-filter=U").stdout.split()
     import private  # lazily: private is a script of its own
-    if private.mend(git, files, ref):
+    if files and private.mend(git, files, ref):
         return "merged", ref
     git("merge", "--abort")
+    if not files:
+        return "dirty", " ".join((done.stderr or done.stdout).split())[:200]
     return "conflict", ", ".join(files) or " ".join((done.stderr or done.stdout).split())[:200]
 
 
@@ -286,7 +288,8 @@ def lane_part(slug):
     base = os.path.join(os.path.abspath(common), "loop", "runs", "%s.pr-lane" % slug) if common and slug else ""
     try:
         with open(base + ".last") as handle:
-            line = re.sub(r"; log: \S+", "", str(json.load(handle).get("line", "")).split("\n")[0])  # no local log path in a pull request (DEL-9)
+            import private  # lazily
+            line = private.plain(re.sub(r"; log: \S+", "", str(json.load(handle).get("line", "")).split("\n")[0]))  # no local path in a pull request (DEL-9)
         with open(base + ".txt") as handle:
             rows = [text.rstrip() for text in handle if text.startswith(("SELECTED ", "FULL (", "UNMAPPED "))]
     except (OSError, ValueError):
