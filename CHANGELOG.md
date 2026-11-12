@@ -1,5 +1,50 @@
 # Changelog
 
+## v0.27.49 - 2026-11-12
+
+- package-hang: package.py never waits on stdin or forever; hard bound with one TIMEOUT line; toy test
+- package-hang: plan with review amendments; signal-safe stop, no escape window, Windows timer, child and term cases
+- package-hang: rows seen red then green, Tests rendered
+- package-hang: review fixes (reap.sh, child signal mask cleared, ZIP mode kept, failures flushed, bound range)
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/package-hang
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/package-hang; regression rows from both sides kept, Tests re-rendered
+- Merge origin/main into loop/package-hang
+- Re-render the Tests tables after merging main
+- Merge remote-tracking branch 'origin/main' into loop/package-hang
+- Merge origin/main into loop/package-hang
+- Lane: re-render the Tests tables
+
+### How to verify
+
+1. Run `bash dev/toy/test-package-hang.sh`.
+   Expect: `ALL PASS` in under a minute (stdin, child, bound, loop and term cases).
+2. Run `sleep 100000 | python3 dev/package.py --out /tmp/p.zip` (stdin is a pipe that stays open), then stop `sleep` with Ctrl-C.
+   Expect: package.py prints its usual PASS or FAIL lines within about 15 seconds; on main it prints nothing until `sleep` exits.
+3. Run `python3 dev/package.py --timeout 1 --out /tmp/p.zip`.
+   Expect: exit 3 and one line `TIMEOUT: package.py stopped after 1 seconds waiting on <phase>`, and no `/tmp/p.zip` or `.part` file.
+
+## v0.27.48 - 2026-11-12
+
+- V1 section in the roadmap, README status points at it
+- Tests table and seen-red mark for v1-roadmap
+- Home: point at the V1 section
+- Seen-red mark for v1-roadmap-section
+- Wiki: update pages for v1-roadmap
+- Drop the V1 roadmap row: no requirement owns it
+- Roadmap V1: health facts from the review of v0.27.34
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+- Roadmap V1: states after spec-decisions, review-findings and the Windows merges
+- Wiki: update pages for v1-roadmap
+- Merge remote-tracking branch 'origin/main' into loop/v1-roadmap
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.47 - 2026-11-12
 
 - Merge origin/main into loop/migration-check
