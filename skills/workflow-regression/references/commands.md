@@ -262,6 +262,48 @@ setting for tests only; the LANE line says when it is in effect. Without `--tier
 | `UNMAPPED <file>: no row declares it. Note: ...` / `UNMAPPED <file>: deleted. Note: ...` | Every lane: advisory; the rows that name the file and the runners run, never the full suite |
 | `FULL (no merge-base with <base>): ...` | A shallow clone or a missing base ref: every row is a candidate and the time budget keeps what fits |
 
+## Plan cache
+
+A goal lane's planning step works out, for every row, which files it reads. That closure is computed once per lane and kept
+per branch in `<git common dir>/loop/plans/<branch file name>` (zlib-compressed JSON, next to the lane records in `loop/tests/`,
+never in the worktree). The next lane at the same HEAD loads it instead of recomputing. Every plan prints one first line,
+`PLAN_CACHE: <state>`; the rest of the plan output, and the planned rows, are the same with the cache on or off.
+
+| State and token | Means | What to do |
+|---|---|---|
+| `PLAN_CACHE: hit (N rows)` | The file matched and held every row the plan needed; the tree is clean apart from the loop's bookkeeping files | Nothing |
+| `PLAN_CACHE: miss (absent)` | No file yet for this branch (a first lane, or after a reset); computed, then written | Nothing |
+| `PLAN_CACHE: miss (key-head)` | HEAD moved since the file was written | Nothing: the next lane at this HEAD hits |
+| `PLAN_CACHE: miss (key-rows)` | `.loop/regression.tsv` changed | Nothing |
+| `PLAN_CACHE: miss (key-runner)` | The planner's own code changed (an upgrade) | Nothing: the first lane after an upgrade misses |
+| `PLAN_CACHE: miss (key-wide)` | `LANES_WIDE` differs from the run that wrote the file | Keep `LANES_WIDE` the same between lanes |
+| `PLAN_CACHE: miss (partial M of N)` | The file held M of the N rows this plan needs (another level planned first, or a row reads a bookkeeping file and is never kept) | Nothing: the plan writes all N |
+| `PLAN_CACHE: miss (corrupt)` | The file could not be read, or is from another format; it is ignored and replaced | Nothing; if it repeats, remove the folder as below |
+| `PLAN_CACHE: dirty (N paths, cache not used)` | Files are uncommitted; closures read working-tree files, so nothing is read or written | Commit or remove them |
+| `PLAN_CACHE: off (LANES_NO_CACHE=1)` | The cache is switched off | Unset `LANES_NO_CACHE` |
+| `PLAN_CACHE: none (no branch)` | A detached HEAD has no branch to name a file | Nothing |
+| `PLAN_CACHE: not saved (<error class>)` | After the plan, only when the write failed (for example `PermissionError`); the plan itself is unaffected | Fix the folder's permissions, or remove it as below |
+
+Tokens are added, never renamed. In a lane log:
+
+```text
+PLAN_CACHE: miss (absent)         cold: computed, then written
+PLAN_CACHE: hit (498 rows)        warm: the next lane at the same HEAD
+PLAN_CACHE: off (LANES_NO_CACHE=1)  switched off
+```
+
+- The safe reset is `rm -r <git common dir>/loop/plans`: the next lane misses and writes it again. Files older than 30 days are pruned when a lane writes.
+- `LANES_NO_CACHE` turns the cache off when it is `1`, `true` or `yes` in any case; `0` or empty leave it on. (`LANES_WIDE` is different: only the literal `1` counts, and it changes the closures, so it is part of the key.)
+- The key is HEAD, `.loop/regression.tsv`, the planner's code and `LANES_WIDE`. Ignored files are not in it: change one a row reads and a lane at the same HEAD still hits.
+- A row that reads a file under `.loop/goals/` or another bookkeeping file is never kept, because those files are exempt from the clean check.
+
+| Why do I keep seeing `miss`? | Cause | Fix |
+|---|---|---|
+| `key-head` on every lane | Each lane starts after a new commit | Expected: the qa, ship and pr lanes at one HEAD hit after the first |
+| `dirty` every time | A row or the lane leaves untracked files | Commit or `.gitignore` them; a lane that leaves files is already reported as `LANE_DIRTY` |
+| `partial M of N` every time | A row reaches a bookkeeping file, or two levels (land and nightly) alternate | Expected for that row; the other rows still hit |
+| `corrupt` every time | The folder is shared with an older release | `rm -r <git common dir>/loop/plans` |
+
 ## Lanes: what runs when, and every message a lane prints
 
 A lane is one background run of the regression rows for a goal's step (qa, ship or pr), started by

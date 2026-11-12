@@ -20,13 +20,19 @@ count: either order (FAIL then PASS, PASS then FAIL) marks the row, and the mark
 is still flaky), until a later commit's clean run passes. A dirty tree, `regression.py red`, another runner, or an older
 record or regression-runs.tsv without these fields never marks. The exit status follows the actual result, and a flaky
 row is never reused (lanes.plan, tiers.reason). workflow-regression/references/commands.md.
+
+PLAN CACHE: each row's closure is kept per branch in <git common dir>/loop/plans/, keyed by HEAD, .loop/regression.tsv, the
+planner's code and LANES_WIDE (key, narrow.warm, narrow.store). A dirty tree never uses it; LANES_NO_CACHE=1 turns it off. The
+first output line, `PLAN_CACHE: <state>`, names what happened (commands.md `## Plan cache`).
 """
+import hashlib
 import json
 import os
 import platform
 import socket
 
 import lanes
+import narrow
 
 KNOWN = ".loop/regression-known.tsv"
 KINDS = {"requirement": "criterion", "workflow": "workflow", "defect": "defect"}
@@ -78,6 +84,36 @@ def changed(root, commit, memo):
     if commit not in seen:
         seen[commit] = lanes.changed(root, commit) or []
     return seen[commit]
+
+
+def key(root):
+    """(sha256 hex, parts) of the plan cache's key: schema, planner code, HEAD, the row file, LANES_WIDE."""
+    try:
+        with open(os.path.join(root, lanes.TABLE), "rb") as handle:
+            rows = hashlib.sha256(handle.read()).hexdigest()
+    except OSError:
+        rows = ""
+    parts = ["1", lanes.runner(), (lanes.git(root, "rev-parse", "HEAD") or "").strip(), rows,
+             "1" if os.environ.get("LANES_WIDE") == "1" else "0"]
+    return hashlib.sha256(json.dumps(parts).encode()).hexdigest(), parts
+
+
+def plan_file(record):
+    """The record's path with its tests folder swapped for plans: the cache file of that branch."""
+    folder, name = os.path.split(record)
+    return os.path.join(os.path.dirname(folder), "plans", name)
+
+
+def lead(root, picked, record, cache):
+    """Decide the cache state, print its PLAN_CACHE line first and seed cache; (file, key) when a miss may be saved."""
+    off, now, path, left = os.environ.get("LANES_NO_CACHE", "").lower() in ("1", "true", "yes"), None, None, []
+    if not off and record:
+        left = lanes.dirty(root)
+        path, now = plan_file(record), key(root)
+    line = "off (LANES_NO_CACHE=1)" if off else "none (no branch)" if not record else \
+        "dirty (%d paths, cache not used)" % len(left) if left else narrow.warm(path, now, picked, cache)
+    print("PLAN_CACHE: " + line)
+    return (path, now) if line.startswith("miss") else (None, None)
 
 
 def moved(root, old, base):
@@ -168,6 +204,7 @@ def plan(root, picked, record):
     name = config(root).get("base") or "main"
     BASE = merge_base(root, name)
     cache, memo = {}, {"tsv": current(root, "regression.tsv"), "known": current(root, "regression-known.tsv")}
+    saved, now = lead(root, picked, record, cache)
     old, ok = usable(root, record, BASE)
     memo["moved"] = moved(root, old, BASE)
     loose, gone, why = [], [], {}
@@ -185,6 +222,8 @@ def plan(root, picked, record):
     reused = [rid for rid in why if ok and rid in old["rows"] and not why[rid]]
     print("\n".join(lines)) if lines else None
     summary(picked, todo, why, len(loose) + len(gone), (full, text), old if ok else None)
+    failed = narrow.store(saved, now, cache) if saved and key(root) == now else None
+    print("PLAN_CACHE: not saved (%s)" % failed) if failed else None
     return todo, reused, old if ok else None, full
 
 

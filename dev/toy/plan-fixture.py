@@ -158,7 +158,15 @@ def plan(scripts, repo, count_walks=False):
     import tiers
     from runs import chosen
     root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip()
-    rows = chosen(regression.read_rows(root), "land")
+    if os.environ.get("PLAN_KEY_FLIP"):  # a test hook: tiers.key answers differently from its second call on
+        real, seen = tiers.key, []
+
+        def flip(where):
+            seen.append(1)
+            digest, parts = real(where)
+            return (digest if len(seen) < 2 else "x" + digest), parts
+        tiers.key = flip
+    rows = chosen(regression.read_rows(root), os.environ.get("PLAN_TARGET", "land"))
     todo, reused, old, full = tiers.plan(root, rows, regression.lanes.record_path(root))
     print("RETURN todo=%s reused=%s old=%s full=%s" % (
         ",".join(todo), ",".join(reused), (old["commit"] + " " + old["at"]) if old else "none", full))
