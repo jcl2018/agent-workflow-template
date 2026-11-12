@@ -22,10 +22,11 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   esac
 fi
 [ -z "${_toy_reap_on:-}" ] || return 0
-# Native Windows cannot run a test that needs the gh fake (CreateProcess does not launch a script named gh): it says so
-# with exit 77, and writes $TOY_SKIP_FILE when a lane set one, since a row's `| grep -q` hides the exit status.
+# The toy tests are written for POSIX (bash, /tmp shared with python, a script named gh that CreateProcess cannot launch).
+# On native Windows only a test marked "# windows: ok" runs; the rest exit 77 (the lane reports SKIPPED, not FAIL) and write
+# $TOY_SKIP_FILE when a lane set one, since a row's `| grep -q` hides the exit status. Linux CI is their check.
 toy_skip() { echo "SKIP: $*"; [ -z "${TOY_SKIP_FILE:-}" ] || echo skip > "$TOY_SKIP_FILE"; exit 77; }
-case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) grep -q fakegh "$0" && toy_skip "$(basename "$0") needs the gh fake, which native Windows cannot launch";; esac
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) grep -q "^# windows: ok" "$0" || toy_skip "$(basename "$0") is not marked '# windows: ok'";; esac
 export LOOP_NO_GIT_HOOKS=1  # a toy never installs git hooks into its repos (the guard-enforce test unsets it)
 export LOOP_NO_HEALTH=1 LOOP_NO_ISSUES=1  # setup's two health runs and its issue filing are off in a toy; the setup-adopt rows that test them unset these
 _toy_reap_on=1
