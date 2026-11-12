@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: dev/toy/tree-once.sh
-# tree-once.sh runs its command once per tree state and replays it, and a lock left by a dead holder is taken over
+# tree-once.sh runs its command once per tree state and replays it, and a lock left by a dead holder is claimed at once
 # rather than waited on (a row killed at its limit must not stall the rows after it). A stand-in command; no model.
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
@@ -20,5 +20,5 @@ mkdir "$base.lock" && echo "$dead" > "$base.lock/pid"
 [ -d "$base.lock" ] || bad "the test made no lock at tree-once's own path"
 s=$(date +%s); out=$(bash "$here/dev/toy/tree-once.sh"); rc=$?
 [ "$out" = hello ] && [ $rc = 3 ] && [ $(( $(date +%s) - s )) -lt 10 ] \
-  && [ "$(wc -l < "$T/count" | tr -d ' ')" = 1 ] && ok "a lock whose holder died is taken over at once, not waited on" || bad "takeover: $out/$rc after $(( $(date +%s) - s ))s"
+  && [ "$(wc -l < "$T/count" | tr -d ' ')" = 1 ] && ok "a lock whose holder died is claimed at once, not waited on" || bad "takeover: $out/$rc after $(( $(date +%s) - s ))s"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
