@@ -327,7 +327,7 @@ if want lag-line; then fresh
   mig "$here" --pr --offline
   check "and MIG_VERSION never fires there" '! grep -q "MIG_VERSION" <<<"$out"'
   v() {  # JSON-VALUE-OF-template_version-or-ABSENT EXPECT(line|none) [--new SLUG EXPECTED-EXIT]: the version table
-    local t="$d/vt$RANDOM"; mkdir -p "$t/.loop"; if [ "$1" = ABSENT ]; then echo '{}' > "$t/.loop/config.json"; else echo "{\"template_version\": $1}" > "$t/.loop/config.json"; fi
+    local t="$d/vt$RANDOM"; VT="$t"; mkdir -p "$t/.loop"; if [ "$1" = ABSENT ]; then echo '{}' > "$t/.loop/config.json"; else echo "{\"template_version\": $1}" > "$t/.loop/config.json"; fi
     got=$(LOOP_INSTALLED_VERSION=1.2.3 python3 "$DOCS/entry.py" lag --repo "$t" ${3:+--new $3} 2>&1); grc=$?
   }
   v ABSENT; check "version absent: behind (read as v0), never refused" '[ "$got" != "" ] && [ $grc = 0 ] && grep -q "this repo is at v0, the template is at v1.2.3" <<<"$got"'
@@ -337,9 +337,9 @@ if want lag-line; then fresh
   v '"1.0.0"'; check "version older, same major: one warning line, exit 0" '[ $grc = 0 ] && grep -q "this repo is at v1.0.0, the template is at v1.2.3" <<<"$got"'
   v '"1.2.3"'; check "version equal: nothing" '[ $grc = 0 ] && [ -z "$got" ]'
   v '"1.9.0"'; check "version newer than installed: nothing (repo ahead)" '[ $grc = 0 ] && [ -z "$got" ]'
-  v '"0.9.0"' "" ; v '"0.9.0"' x; got=$(LOOP_INSTALLED_VERSION=1.2.3 python3 "$DOCS/entry.py" lag --repo "$d/$(ls "$d" | grep ^vt | tail -1)" --new some-goal 2>&1); grc=$?
+  v '"0.9.0"' "" ; v '"0.9.0"' x; got=$(LOOP_INSTALLED_VERSION=1.2.3 python3 "$DOCS/entry.py" lag --repo "$VT" --new some-goal 2>&1); grc=$?
   check "a differing major refuses a new goal: exit 3 and REFUSED with the fix" '[ $grc = 3 ] && grep -q "^REFUSED: this repo is at v0.9.0 and the template at v1.2.3 (different major). Fix: start it as a migrate-.* goal; nothing was changed" <<<"$got"'
-  got=$(LOOP_INSTALLED_VERSION=1.2.3 python3 "$DOCS/entry.py" lag --repo "$d/$(ls "$d" | grep ^vt | tail -1)" --new migrate-app 2>&1); grc=$?
+  got=$(LOOP_INSTALLED_VERSION=1.2.3 python3 "$DOCS/entry.py" lag --repo "$VT" --new migrate-app 2>&1); grc=$?
   check "a migrate- slug passes a differing major (the migration is its own way out)" '[ $grc = 0 ] && grep -q "run the migrate goal" <<<"$got"'
 fi
 
