@@ -87,6 +87,8 @@ Review: **Unreviewed**
 | [aut-email-retry](Tests#t-aut-email-retry) | requirement | AUT-4 | Given a provider that throttles once, when the round's mail is sent, then it is retried once, and only when the provider cannot have accepted it. | PASS 2026-11-10 |
 | [aut-email-test](Tests#t-aut-email-test) | requirement | AUT-4 | Given the mail secrets, when the Mail test workflow runs, then one test mail goes out touching no issue, and a missing secret or mail off fails the run. | PASS 2026-11-10 |
 | [aut-email-digest](Tests#t-aut-email-digest) | requirement | AUT-4 | Given open issues with and without milestones, when a round ends, then the digest groups the new, still-open and fixed issues by feature with the cost and email rows, shows a milestone title as a suffix, and an older or repeated run never posts twice. | PASS 2026-11-10 |
+| [runbook-repo](Tests#t-runbook-repo) | requirement | AUT-8 | Given this repo's Health and Regression pages, when their Runbook sections are read, then each routine in the registry has every field, says a full run is live, and names a fixture or dry run as forbidden. | not run |
+| - | requirement | AUT-8 | no passing test | not enforced |
 | [bad-schedule-refused](Tests#t-bad-schedule-refused) | requirement | AUT-5 | Given a schedule setting that is not a cron time, when it is applied, then it is refused. | PASS 2026-11-12 |
 | [aut-health-off](Tests#t-aut-health-off) | requirement | AUT-5 | Given health_cron off, when the health workflow runs, then it writes nothing and says the routine is off. | PASS 2026-11-12 |
 | [aut-regression-off](Tests#t-aut-regression-off) | requirement | AUT-5 | Given regression_cron off, when the regression workflow runs, then it writes nothing and says the routine is off. | PASS 2026-11-12 |
