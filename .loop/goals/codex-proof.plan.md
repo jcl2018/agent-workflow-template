@@ -27,3 +27,7 @@ The branch holds steps 1 to 6 as first written; the items below are pending on i
 - Item 13 (step 1; `regression.py`): `regression.py criteria` reports a row exiting 77 as skipped, not failing.
 
 Deferred (each repeated at the gate): a Codex-capable runner for the live row, so the SET-3 scenario can show a dated PASS; a default flow that picks its agent from the host (`settings.py` defaults to `claude -p`); regeneration of an adopter's `regression.yml` by the update path; a strict-skip option for CI; an environment fingerprint in the reuse key.
+
+## Build status after the review
+
+Items 1, 2, 4, 4b, 5, 6, 7 (setup's code, not the runner's UPPER_SNAKE for `go`), 8, 9, 10, 11, 12 and 13 are built and committed on the branch; the deferred list stands. Item 7's missing-flow refusal for `go` already says the fix on its line.
