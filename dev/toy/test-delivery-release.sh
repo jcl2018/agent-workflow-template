@@ -8,7 +8,7 @@
 # The release half of delivery-prd (DEL-5, DEL-9, issues 129, 134, 154, 170) on a throwaway toy repo, with a
 # test-local gh shim (dev/toy/release-gh.py) around dev/toy/fakegh and a pre-receive hook in the toy origin that stands in for a protected main.
 # usage: test-delivery-release.sh [CASE]   CASE: patch removed bump protected rules review pending nomatch crash
-#        dirty mismatch exists latebump private wikiname firstpage docs (default: all). Prints PASS:/FAIL: lines; exits non-zero on any FAIL.
+#        dirty mismatch exists latebump private wikiname firstpage wikinull docs (default: all). Prints PASS:/FAIL: lines; exits non-zero on any FAIL.
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION LOOP_BATCH LOOP_PRIVATE_NAMES TOY_PROTECT TOY_PR_MODE
 set -u
 export LOOP_ROLE=worker
@@ -233,7 +233,7 @@ if want private; then
     && ! grep -qx "pr merge $url --merge" "$d/gh/calls.log" && ok "DEL-9: private.py moved away refuses with PRIVATE_MODULE, nothing merged" || bad "DEL-9: module missing"
 fi
 
-if want wikiname || want firstpage; then
+if want wikiname || want firstpage || want wikinull; then
   git switch -q main; git pull -q origin main
   $goal new wk --here --goal "Wiki checks" --done "the wiki is checked" >/dev/null
 fi
@@ -259,6 +259,30 @@ if want firstpage; then
   mv "$d/aside.wiki.git" "$d/origin.wiki.git"
   [ $rc -ne 0 ] && grep -q "create the first page in the repo's Wiki tab, then run merge.py wk again" <<<"$(state wk wiki_error)" \
     && ok "#129: a wiki with no first page names the fix" || bad "#129: first page"
+fi
+
+if want wikinull; then
+  echo "== a wiki refusal never crashes on a goal state with no usable report"
+  for kind in null str; do
+    case $kind in null) value=null ;; str) value='"an old note"' ;; esac
+    python3 - "$R/wk.json" "$value" <<'PY'
+import json, sys
+state = json.load(open(sys.argv[1])); state["report"] = json.loads(sys.argv[2]); state.pop("wiki_error", None)
+json.dump(state, open(sys.argv[1], "w"), indent=2)
+PY
+    mv "$d/origin.wiki.git" "$d/aside.wiki.git"
+    rc=0; out=$($wiki publish wk 2>"$d/wiki-err.txt") || rc=$?
+    mv "$d/aside.wiki.git" "$d/origin.wiki.git"
+    [ $rc -eq 1 ] && grep -q "^WIKI REFUSED wk: .*create the first page in the repo's Wiki tab, then run merge.py wk again" <<<"$out" && ! grep -qE "Traceback|AttributeError" <<<"$out$(cat "$d/wiki-err.txt")" \
+      && ok "a $kind report: the wiki refusal prints WIKI REFUSED on stdout with its fix, exit 1, no traceback" || bad "a $kind report: wiki refusal crashed or lost its text ($rc: ${out:0:160})"
+    python3 - "$R/wk.json" "$kind" <<'PY' && ok "a $kind report: the wiki failure is recorded in a dict report" || bad "a $kind report: wiki failure not recorded"
+import json, sys
+state = json.load(open(sys.argv[1])); report = state["report"]
+assert isinstance(report, dict) and "Wiki not published:" in report["text"] and state["wiki_error"]
+if sys.argv[2] == "str":
+    assert "the stored report was a str and was reset" in report["text"]
+PY
+  done
 fi
 
 if want docs; then

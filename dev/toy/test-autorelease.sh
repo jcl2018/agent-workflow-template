@@ -120,6 +120,30 @@ v=$(remote_file VERSION)
 state half release_error | grep -q "gh release create" && ok "release failure recorded" || bad "release record"
 PRS=MERGED merge half | grep -q "^RELEASED" && [ "$(remote_file VERSION)" = "$v" ] && ok "retry only created the release" || bad "retry"
 
+echo "== 5b. a refusal never crashes on a goal state with no usable report"
+setrep() {  # SLUG JSON: the goal state's report becomes that JSON value (a reset leaves null)
+  python3 - "$(git rev-parse --git-common-dir)/loop/runs/$1.json" "$2" <<'PY'
+import json, sys
+state = json.load(open(sys.argv[1])); state["report"] = json.loads(sys.argv[2])
+json.dump(state, open(sys.argv[1], "w"), indent=2)
+PY
+}
+for kind in null str num; do
+  case $kind in null) value=null ;; str) value='"an old note"' ;; num) value='{"text": 7}' ;; esac
+  finish rep-$kind; export FAKE_GH_MERGE_BRANCH=loop/rep-$kind; setrep rep-$kind "$value"
+  rc=0; out=$(FAKE_GH_RELEASE_FAIL=1 merge rep-$kind 2>"$d/err-$kind.txt") || rc=$?
+  err=$(cat "$d/err-$kind.txt")
+  [ $rc -ne 0 ] && grep -q "^REFUSED: gh release create" <<<"$err" && grep -q "run merge.py again" <<<"$err" && ! grep -qE "Traceback|AttributeError|TypeError" <<<"$err$out" \
+    && ok "a $kind report: the release failure prints REFUSED on stderr with its fix, exit $rc, no traceback" || bad "a $kind report: refusal crashed or lost its text ($rc: ${err:0:160})"
+  python3 - "$(git rev-parse --git-common-dir)/loop/runs/rep-$kind.json" "$kind" <<'PY' && ok "a $kind report: the failure is recorded on the goal in a dict report" || bad "a $kind report: nothing recorded"
+import json, sys
+state = json.load(open(sys.argv[1])); report = state["report"]
+assert isinstance(report, dict) and "Release failed: gh release create" in report["text"] and "gh release create" in state["release_error"]
+if sys.argv[2] == "str":
+    assert "the stored report was a str and was reset" in report["text"]
+PY
+done
+
 echo "== 6. a stale page refuses the merge"
 git switch -q main; git pull -q origin main; mkdir -p docs/wiki; echo page > docs/wiki/Calc.md; printf 'Calc\tcalc.py\n' > .loop/docs.tsv
 git add -A; git commit -qm "Map the Calc page"; git push -q origin main

@@ -60,7 +60,7 @@ def board_items(live, queue, freezing, lines, runs, at, root, waits, held=None):
     the slugs the session pool says are held (None when unknown), whose step time stops growing."""
     def item(run, mark, depends):
         found = estimate_full(run, runs, at, root, held)
-        return dict(slug=run["slug"], mark=mark, depends=waits(depends), stage=0, est=found and found[:4],
+        return dict(slug=run["slug"], mark=mark, depends=waits(depends), stage=0, est=found and found[:4], owner=graph.foreign(run),
                     left=found[0] if found else None, partial=bool(found and found[4]))
     out = [item(r, board_page.mark(r.get("status")), r.get("waits_on") or []) for r in live]
     out += [item(dict(g, status="queued"), "queued", g["depends"]) for g in queue]

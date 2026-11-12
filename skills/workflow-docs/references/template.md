@@ -73,6 +73,7 @@ default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (
   `| Feature | What it does | How to use | Milestone |`, nothing else, with one row per feature page. Feature is
   `[Page](Page)`; How to use is `[README](https://github.com/OWNER/REPO#how-to-use-<feature>)`, an anchor of the README's
   `### How to use <Feature>` heading; Milestone is optional: empty, a link such as `…/milestone/N`, or free text, never checked.
+  Home may also hold the generated `## Settings` and `## Automation` blocks, each between `<!-- settings:begin -->`/`end` (or `automation`) markers; the check skips them and holds them to a fresh render instead.
 - **README** (`frontdoor`, DOC-5): `## How to use`, then one `### How to use <Feature>` per feature page, each with at most
   one intro line and a table `| You say | What happens |`. A You-say cell is a quoted phrase the owner says: no
   backticks, and no `/`, `python` or `bash` at its start.
