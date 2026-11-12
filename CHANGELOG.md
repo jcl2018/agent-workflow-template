@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.27.17 - 2026-11-12
+
+- Show the settings table and the automation status on Home and in the README
+- Lane: re-render the Tests tables
+- Make Automation a routine registry: one config entry adds a routine
+- Lane: re-render the Tests tables
+- Keep the committed Automation block free of live times; guard render.py's processes
+- Merge origin/main into loop/settings-table
+- Say why the Automation block holds no live time
+- Reword the Settings intro so Home is brought up to date with main
+- Keep the Documentation page in step with the Settings intro
+- pr: record issue states and the lane's results
+- Merge origin/main into loop/settings-table
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.16 - 2026-11-12
+
+- Merge remote-tracking branch 'origin/main' into loop/pending-none
+- A step reply's PENDING: none (or nothing, n/a, an empty PENDING line) no longer makes a goal wait (pending-none)
+- Rows seen failing, Tests re-rendered (pending-none)
+- Wiki: update pages for pending-none
+- Review fixes: a decision under a bare PENDING heading waits; linear item trim (pending-none)
+- Wiki: update pages for pending-none
+- Merge origin/main into loop/pending-none: Tests re-rendered
+- pr: record issue states and the lane's results
+- Merge origin/main into loop/pending-none: rows unioned, Tests re-rendered
+- Merge origin/main into loop/pending-none: rows unioned, Tests re-rendered
+- goal.py: trim the usage docstring back under its 19,500-byte ceiling (pending-none)
+- Wiki: update pages for pending-none
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.15 - 2026-11-12
 
 - lane-plan-cache: idea design

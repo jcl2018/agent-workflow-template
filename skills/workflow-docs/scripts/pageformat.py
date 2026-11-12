@@ -103,6 +103,8 @@ def anchors(readme):
 def home(text, features, existing, readme, repo):
     """DOC-4: the marker, '# title', '## Features' and one table HOME, one row per feature page, nothing else."""
     out, seen, keys = [], [], anchors(readme)
+    # the generated Settings and Automation blocks are Home's own (render.py), held to a fresh render instead
+    text = re.sub(r"<!-- (settings|automation):begin -->\n.*?<!-- \1:end -->\n", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
     lines = list(enumerate(text.splitlines(), 1))
     body = [(n, x) for n, x in lines if x.strip() and x.strip() != MARKER]
     found, other = tables([(n, x) for n, x in lines if not x.startswith(("# ", "## Features")) and x.strip() != MARKER])

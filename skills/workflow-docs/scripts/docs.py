@@ -13,6 +13,7 @@ usage: docs.py <command> [options]
   publish [--dry-run] [--adopt PAGE]
                                copy the pages to the wiki, commit and push
   restore                      revert the last publish, if nothing came after it
+  automation                   each routine's live state here: a workflow's newest run, a launch agent loaded or not
 
 With "criteria": true in .loop/config.json, check also enforces the PRD page contract (references/template.md).
 It also enforces the page format (pageformat.py, FORMAT lines) and that the generated Tests page matches a fresh render.
@@ -182,9 +183,9 @@ def problems(root, base):
         for name in sorted(os.listdir(held)):
             if name.endswith(".md") and name[:-3] not in rows and name[:-3] not in pageformat.GENERATED:
                 found.append(("UNMAPPED", name[:-3], "not in .loop/docs.tsv"))
-    if config(root).get("criteria") and feature_pages(root):
+    if config(root).get("criteria"):
         import render
-        found += render.generated(root)
+        found += render.stale_blocks(root) + (render.generated(root) if feature_pages(root) else [])
     return found
 
 
@@ -294,6 +295,9 @@ def cmd_publish(args):
     rows = read_map(root)
     if not rows:
         sys.exit("REFUSED: no pages. Fix: run add first.")
+    if config(root).get("criteria"):
+        import render
+        render.refresh(root)  # the Settings and Automation blocks are written fresh, so the wiki gets them
     found = problems(root, None) + [c for c in contract(root) if c[0] != "CHANGED"]  # Usage drift waits on the owner
     found += [c for c in counts(root) if c[1].startswith(wiki_dir(root) + "/")]
     if found:
@@ -346,6 +350,28 @@ def cmd_publish(args):
     return 0
 
 
+def live(root):
+    import render
+    """Print each routine's live state: a workflow's newest run, a launch agent loaded or not."""
+    for e in render.entries(root):
+        kind, _, target = str(e.get("runs", "")).partition(":")
+        if kind == "github":
+            done = subprocess.run(["gh", "run", "list", "--workflow", target, "--limit", "1", "--json", "conclusion,createdAt",
+                                   "-q", ".[0] | \"\\(.conclusion) \\(.createdAt)\""], capture_output=True, text=True)
+            said = done.stdout.strip() if done.returncode == 0 and done.stdout.strip() else "no run found or gh unavailable"
+        elif kind == "mac":
+            done = subprocess.run(["launchctl", "list", target], capture_output=True, text=True)
+            said = "loaded" if done.returncode == 0 else "not loaded"
+        else:
+            said = "a Claude scheduled task is checked in the Claude app"
+        print("%s: %s" % (e["name"], said))
+    return 0
+
+
+def cmd_automation(_args):
+    return live(top())
+
+
 def cmd_restore(_args):
     try:
         with open(state_file()) as handle:
@@ -392,6 +418,7 @@ def main():
     item.add_argument("--adopt", action="append", default=[])
     item.set_defaults(func=cmd_publish)
     sub.add_parser("restore").set_defaults(func=cmd_restore)
+    sub.add_parser("automation").set_defaults(func=cmd_automation)
     args = parser.parse_args()
     return args.func(args)
 
