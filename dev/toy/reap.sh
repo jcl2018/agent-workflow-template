@@ -57,3 +57,7 @@ trap '_toy_reap_sig 130' INT
 trap '_toy_reap_sig 143' TERM
 trap '_toy_reap_sig 129' HUP
 trap '_toy_reap_sig 141' PIPE
+
+# toy_need_posix WHY: a test that cannot run on native Windows (no /tmp shared with python, backslash paths, fake gh
+# on PATH) says so with exit 77, which the regression lane reports as SKIPPED instead of failing the lane.
+toy_need_posix() { case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) echo "SKIP: $*"; exit 77;; esac; }

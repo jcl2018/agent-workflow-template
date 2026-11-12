@@ -146,7 +146,7 @@ def run_row(command, cwd, env, timeout):
         out = log.read() + tail
     num = -code if code < 0 else (code - 128 if 128 < code < 160 else 0)
     names = {s.value: s.name for s in sig.Signals}
-    return code, out or "", proc.pid, names.get(num)
+    return code, out or "", proc.pid, names.get(num) if num else None  # Windows has CTRL_C_EVENT = 0
 
 
 def dirty(root):

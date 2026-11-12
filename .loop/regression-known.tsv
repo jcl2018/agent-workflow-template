@@ -1,2 +1,5 @@
 # id	reason
 operate-all	fails on main v0.12.0 (test-operate timing), issue 126
+one-issue	fails on a native Windows PC only (win-posix-calls): the fake gh log is under /tmp, which python does not share with bash there; Linux CI is the check
+refused-unmet	fails on a native Windows PC only (win-posix-calls): the fixture runs the real gh, which refuses a toy repo with no GitHub remote; Linux CI is the check
+size-fail	fails on a native Windows PC only (win-posix-calls): health prints backslash paths; Linux CI is the check
