@@ -33,6 +33,9 @@ Review: **Unreviewed**
 - AUT-4: **Reviewed 2026-11-10** A digest by email <!-- reviewed f06a9042 -->
   - After each round, one email goes to the address I set: what ran and its results, then the new, still-open and fixed issues grouped by feature, each with its link and the request to give the agent to fix it.
   - The same digest is also posted as one comment on a pinned Automation digest issue.
+- AUT-8: **Unreviewed** Every routine has a runbook an agent follows exactly
+  - Each routine is listed in the routine registry with the feature page that owns it (health-round on Health, regression-round on Regression), and that page's Runbook section says what a full run is, the one output, the forbidden shortcuts and how to check the run was real.
+  - An automation prompt for a routine reduces to "read the <page> Runbook and follow it exactly"; a scheduled run never sends a dry run, a fixture or a test mail in place of the real output.
 
 ### Non-functional
 - AUT-5: **Reviewed 2026-11-10** Under my control <!-- reviewed ede1ff25 -->

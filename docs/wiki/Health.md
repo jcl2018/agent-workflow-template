@@ -17,6 +17,17 @@ Review: **Unreviewed**
 - `/workflow-health file --group NAME[,NAME]` — Files the named groups' findings as GitHub issues, each tagged with its group and, when the `feature_labels` setting is on (off by default), with the feature whose path holds it; no milestone is made or set, and an issue you put on a milestone stays where you put it. Prints `DONE <open|update|reopen|close> ...`, `FAILED <action>: <error>` or `SAME #<n> <key>` per issue. Refuses (exit 1) `REFUSED: file needs --group NAME[,NAME], one of ... Run preview first.`, `REFUSED: unknown group <names>. ...`, `REFUSED: not inside a git repo.`, `REFUSED: file.py is not installed beside health.py` and `REFUSED: could not read the health issues: <why>`; (exit 2) `REFUSED: rule <name> has no negative control. ...`
 - `/workflow-health judge` — Prints the check report, then a judge section of suggestions that never changes the verdict. Prints the report ending in `HEALTH: green|not green (...)`, then `JUDGE (suggestions, never part of the verdict)` with its sections through `== next steps ==`, or `JUDGE UNAVAILABLE: <why>`; exits 1 when not green. Refuses (exit 1) `REFUSED: not inside a git repo.`; (exit 2) `REFUSED: rule <name> has no negative control. ...`
 
+## Runbook
+
+### health-round
+- **Serves:** HLT-2, HLT-3, HLT-4, HLT-5, AUT-1, AUT-3, AUT-4.
+- **Schedule:** every 4 hours, 30 minutes after regression (`health_cron` in `.loop/config.json`, default `47 */4 * * *`); also by hand from the Actions tab. `off` stops the schedule only; a run started by hand still runs.
+- **Steps:** Run the `health` workflow (`.github/workflows/health.yml`) and let its jobs run in order, one command each. Check: `python3 skills/workflow-health/scripts/health.py check --group requirements,traceability,consistency,docs,freshness,tests,security,size,adoption`. File: the same command with `file` in place of `check`. Judge: `python3 skills/workflow-health/scripts/health.py judge`, only when the `ANTHROPIC_API_KEY` secret is set. Digest: `python3 skills/workflow-health/scripts/automation.py digest`. Mail: `python3 skills/workflow-health/scripts/mail.py send` (the `mail` job).
+- **Full run:** a full run reads the live repo and its live open issues on the runner, runs every group listed above and ends with the real `HEALTH:` verdict line, files every finding as one tagged issue, posts the digest comment on the pinned Automation digest issue from that real run, and mails it. The groups performance, Mine and hygiene read this machine's own records and are not run on the runner; the report says so.
+- **Output:** one digest comment on the pinned Automation digest issue, and one email of that same comment to the address in the `DIGEST_TO` secret, from `DIGEST_FROM`, through `digest_mail`. The run summary holds the report and the judge section.
+- **Never:** never send a fixture, a sample or a test mail in place of the round's digest (the `mail test` command is for the Mail test workflow only); never run a dry run or `preview` on a scheduled run; never skip a group to save time; never invent the verdict or the issue list; never push, merge or release; never put the address or a key in any text.
+- **Check:** the run summary shows a real `HEALTH: green|not green (...)` line and the run's job times; the digest comment names this run's id and the cost line; the mail step prints `MAIL: sent (MAIL_SENT)` (or `MAIL_ALREADY` for a rerun); an issue the report names exists on GitHub with its group and feature tag.
+
 ## Requirements
 
 ### Functional

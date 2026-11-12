@@ -6,11 +6,12 @@ A finding is ("FORMAT", "<Page>:<line>", "<Section>: DOC-n <what> (got <value>).
 `format` key of the template sheet's rules block (CHECKS, default all). The words of a line are its whitespace tokens
 after `[text](url)` becomes text and backticks are stripped; one sentence means no `[.!?] ` followed by a capital.
 """
+import os
 import re
 
 GENERATED = {"Tests"}  # pages render writes; never mapped to paths, never a feature page
 GUIDE = "<!-- workflow-docs guide -->"  # a line marking a guide page: mapped and kept fresh, but not a feature page
-CHECKS = ("home", "frontdoor", "usage", "bullets", "problem", "tests", "deployments")  # deployments: deployments.py
+CHECKS = ("home", "frontdoor", "usage", "bullets", "problem", "tests", "deployments", "runbook")  # deployments: deployments.py
 BANNED = "script, function, regex, json, tsv, stdout"
 MARKER = "<!-- workflow-docs -->"
 HOME = ("Feature", "What it does", "How to use", "Milestone")
@@ -209,6 +210,64 @@ def usage(page, name, lines, maps, own):
         if "`" not in head.group(2) and not re.search(r"\b(prints|ends with)\b", head.group(2), re.I):
             out.append(bad(page, number, name, 6, "each entry says what it prints", short(head.group(1)),
                            "add what it prints on success, in backticks"))
+    return out
+
+
+FIELD = re.compile(r"^- \*\*([A-Z][A-Za-z ]*):\*\*\s*(.*)$")
+ROUTINE = re.compile(r"^[a-z][a-z0-9-]*$")
+
+
+def runbook(page, name, lines, fields):
+    """DOC-16: one '### routine' subsection per routine, each holding every field as '- **Field:** text' (indented lines
+    continue it) and nothing else. Pure: lines in, FORMAT findings out."""
+    out, subs, cur = [], [], None
+    for number, line in lines:
+        if not line.strip():
+            continue
+        if line.startswith("### "):
+            cur = [number, line[4:].strip(), {}, None]
+            subs.append(cur)
+        elif cur is None:
+            out.append(bad(page, number, name, 16, "a '### <routine>' heading before any field", short(line), "start each routine with '### <name>'"))
+        elif FIELD.match(line):
+            head = FIELD.match(line)
+            cur[2][head.group(1)] = cur[2].get(head.group(1), "") + head.group(2)
+            cur[3] = head.group(1)
+        elif line[:1].isspace() and cur[3]:
+            cur[2][cur[3]] += " " + line.strip()
+        else:
+            out.append(bad(page, number, name, 16, "only '- **Field:** text' lines, with indented continuation", short(line),
+                           "write it as a field of the routine, or remove it"))
+    if not subs:
+        out.append(bad(page, lines[0][0] if lines else 1, name, 16, "at least one '### <routine>' subsection", "none", "add one, or remove the section"))
+    for number, title, found, _ in subs:
+        if not ROUTINE.match(title):
+            out.append(bad(page, number, name, 16, "a routine name of lowercase letters, digits and hyphens", short(title), "rename the heading"))
+        for field in fields:
+            if len(found.get(field, "").strip()) < 12:
+                out.append(bad(page, number, name, 16, "a '%s' field of 12 characters or more under %s" % (field, title),
+                               short(found.get(field, "none")), "add '- **%s:** <what an agent must know>'" % field))
+        for extra in sorted(set(found) - set(fields)):
+            out.append(bad(page, number, name, 16, "only the fields %s" % ", ".join(fields), "'%s'" % extra, "remove or rename it"))
+    return out
+
+
+def owed(root, books, name):
+    """DOC-16: every routine in .loop/routines.tsv (`routine<TAB>page`) has its '### routine' runbook on its page.
+    `books` maps a page to the lines of its Runbook section ([] when it has none). Without the file there is no registry."""
+    out, path = [], os.path.join(root, ".loop", "routines.tsv")
+    try:
+        with open(path) as handle:
+            rows = [line.rstrip("\n").split("\t") for line in handle if line.strip() and not line.startswith("#")]
+    except OSError:
+        return out
+    for number, row in enumerate(rows, 1):
+        routine, page = (row + ["", ""])[:2]
+        if page not in books:
+            out.append(bad(page or "routines.tsv", number, "Runbook", 16, "a routine on a feature page", short(routine), "name a page from .loop/docs.tsv in .loop/routines.tsv"))
+        elif not any(line.strip() == "### " + routine for _, line in books[page]):
+            out.append(bad(page, 1, name, 16, "a '### %s' runbook, the routine .loop/routines.tsv gives this page" % routine, "none",
+                           "add the Runbook section with '### %s' and its fields" % routine))
     return out
 
 

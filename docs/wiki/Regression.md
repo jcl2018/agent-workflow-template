@@ -20,6 +20,17 @@ Review: **Unreviewed**
 - `/workflow-regression list` — Lists every regression test from the recorded runs, grouped by feature. Prints `FEATURE <title>`, then `<test> | <kind> | <guards> | <checks> | <runs> | <last result> | seen failing <date|no>` per test, or `NO TESTS`. Refuses nothing.
 - `/workflow-regression issues` — Reads each defect test's issue or pull request state from GitHub and records it. Prints `ISSUE <link> <state>`. Refuses (exit 1) `ISSUES: cannot read issues (gh: <cause>). Fix: gh auth login, or set GH_TOKEN`
 
+## Runbook
+
+### regression-round
+- **Serves:** REG-4, REG-5, REG-9, AUT-1, AUT-2.
+- **Schedule:** every 4 hours (`regression_cron` in `.loop/config.json`, default `17 */4 * * *`), on every release tag, and by hand from the Actions tab. `off` stops the schedule only.
+- **Steps:** Run the `regression` workflow (`.github/workflows/regression.yml`): its "Run the rows" step runs every land and nightly row of `.loop/regression.tsv`, keeps one issue per failing row, and its summary step writes the run summary, one table per feature. Outside Actions the same rows run with `python3 skills/workflow-regression/scripts/regression.py run nightly`. The health round that follows reads this run's suite time.
+- **Full run:** a full run executes every land and nightly row in `.loop/regression.tsv` against the checked-out repo with no row left out and no reuse of an earlier result, records each real result as the row ends, and opens, updates or closes one `defect` issue per failing row tagged with the feature it guards. A row that exits 77 is recorded `SKIPPED`, never `PASS`, and opens no issue.
+- **Output:** the run summary (a header with totals and the run time, then one table per feature) and one open issue per failing row; the regression digest is the failing-test part of the health round's digest comment and email, which the health round posts after this run.
+- **Never:** never run a subset, `--reuse` or `--tier` on a scheduled run; never report a row as passed that did not run; never write results by hand into `.loop/regression-runs.tsv`; never close an issue while its row fails; never push, merge or release.
+- **Check:** the run summary totals equal the number of rows in `.loop/regression.tsv` (passed, known, failed and skipped add up); each failing row has exactly one open issue; a `SKIPPED` row names its reason; the run time is real and under the time budget.
+
 ## Requirements
 
 ### Functional

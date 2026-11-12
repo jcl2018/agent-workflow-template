@@ -9,6 +9,8 @@ sections: Problem, Requirements, Non-goals, Success metrics, Tests
 problem_lines: 3
 metrics_lines: 3
 usage_section: Usage
+runbook_section: Runbook
+runbook_fields: Serves, Schedule, Steps, Full run, Output, Never, Check
 deployments_section: Deployments
 deployments_page: Page, Link, Access, Shows, Live build
 deployments_delivery: Delivery, Channel, Recipients, What's sent, Status
@@ -18,14 +20,14 @@ scenario: Given ..., when ..., then ...
 milestone_line: Milestone
 problem_banned: script, function, regex, json, tsv, stdout
 requirement_groups: Functional, Non-functional
-format: home, frontdoor, usage, bullets, problem, tests, deployments
+format: home, frontdoor, usage, bullets, problem, tests, deployments, runbook
 ```
 
 ## Layout
 
 The first line is `<!-- workflow-docs -->`, then `# <Feature>`, then an optional free-form `Milestone: <url>` line (a
 milestone is never required), then the PRD review line, then the sections in the order of `sections`, and nothing else. The
-optional `usage_section` goes between Problem and Requirements, and the optional `deployments_section` between Success
+optional `usage_section` and `runbook_section` go between Problem and Requirements (Usage first), and the optional `deployments_section` between Success
 metrics and Tests. `format` lists which shape checks (DOC-4..DOC-9 and DOC-14) run,
 default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (got <value>). Fix: <how>`.
 
@@ -41,6 +43,14 @@ default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (
   ``- `<syntax>` — <what it does>``: the exact syntax, what it prints on success (a backticked output, or "prints"/
   "ends with"), and each refusal with its message and exit code, and nothing else but blank lines. The command's first word (or a `/skill verb`, or the routine after python3) must be in that skill's
   `## Command map`, either column. Left out when nothing applies; never empty.
+- **Runbook** (optional, `runbook`, DOC-16): for a feature that owns a scheduled or on-demand routine, what an agent
+  given only "run routine X" must read first. One `### <routine>` subsection per routine (lowercase letters, digits and
+  hyphens), each holding every field of `runbook_fields` as ``- **Field:** text`` (indented lines continue it), each
+  12 characters or more, nothing else: **Serves** (the PRD requirement ids it serves), **Schedule**, **Steps** (the
+  exact command or steps), **Full run** (what a full run is: live sources and real output, never a dry run or a fixture
+  on a scheduled run), **Output** (the one output and where it goes), **Never** (the forbidden shortcuts) and **Check**
+  (how to tell the run was real). A routine listed in `.loop/routines.tsv` (`routine<TAB>page`, optional) must have its
+  `### routine` runbook on its page. Not part of the PRD fingerprints: an agent corrects a runbook as it learns.
 - **Requirements** (`bullets`, DOC-7): grouped under exactly the `requirement_groups` headings, in order:
   `### Functional` (what it does), then `### Non-functional` (qualities and limits: privacy, safety, reliability,
   performance, size and time limits), with nothing before the first. A group with no requirement holds the single line

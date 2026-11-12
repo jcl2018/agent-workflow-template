@@ -101,6 +101,8 @@ def rules():
                 "review": found["review_line"], "milestone": found["milestone_line"], "format": on,
                 "banned": listed("problem_banned", pageformat.BANNED),
                 "groups": listed("requirement_groups", ", ".join(pageformat.GROUPS)),
+                "runbook": found.get("runbook_section", "Runbook"),
+                "fields": listed("runbook_fields", "Serves, Schedule, Steps, Full run, Output, Never, Check"),
                 "deploy": found.get("deployments_section", "Deployments"), "access": listed("deployments_access", "public, sign-in"),
                 "page_cols": listed("deployments_page", ", ".join(deployments.PAGE_COLS)),
                 "delivery_cols": listed("deployments_delivery", ", ".join(deployments.DELIVERY_COLS))}
