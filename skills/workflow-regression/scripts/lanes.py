@@ -8,7 +8,7 @@ on HEAD or an ancestor of HEAD and nothing it reads changed since; anything this
 A test script whose leading comment block has `# reads: <path>...` lines is mapped narrowly (declared entry points plus
 what they reach, no folder widening); a script without one keeps the wide mapping; LANES_WIDE=1 forces wide everywhere.
 """
-import fcntl
+import portlock as fcntl
 import hashlib
 import json
 import os

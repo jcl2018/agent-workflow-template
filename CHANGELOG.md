@@ -1,5 +1,41 @@
 # Changelog
 
+## v0.27.18 - 2026-11-12
+
+- Render the Settings and Automation blocks only with criteria on
+- Hold the README front door to the page format without the generated blocks
+- Guard both v0.27.17 slips with regression checks
+- Render the Tests page for format-frontdoor's new seen-failing date
+- Documentation: render writes the generated blocks only with criteria on
+- Merge remote-tracking branch 'origin/main' into loop/wiki-release-fix
+- Render the settings blocks for main's cadence entry
+- pr: record issue states and the lane's results
+- Guardrails and Regression: note the v0.27.17 config and the portable lock
+- Monitoring: note the portable lock in the operate usage
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.17 - 2026-11-12
+
+- Show the settings table and the automation status on Home and in the README
+- Lane: re-render the Tests tables
+- Make Automation a routine registry: one config entry adds a routine
+- Lane: re-render the Tests tables
+- Keep the committed Automation block free of live times; guard render.py's processes
+- Merge origin/main into loop/settings-table
+- Say why the Automation block holds no live time
+- Reword the Settings intro so Home is brought up to date with main
+- Keep the Documentation page in step with the Settings intro
+- pr: record issue states and the lane's results
+- Merge origin/main into loop/settings-table
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.16 - 2026-11-12
 
 - Merge remote-tracking branch 'origin/main' into loop/pending-none
