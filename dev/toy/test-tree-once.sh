@@ -21,4 +21,8 @@ mkdir "$base.lock" && echo "$dead" > "$base.lock/pid"
 s=$(date +%s); out=$(bash "$here/dev/toy/tree-once.sh"); rc=$?
 [ "$out" = hello ] && [ $rc = 3 ] && [ $(( $(date +%s) - s )) -lt 10 ] \
   && [ "$(wc -l < "$T/count" | tr -d ' ')" = 1 ] && ok "a lock whose holder died is claimed at once, not waited on" || bad "takeover: $out/$rc after $(( $(date +%s) - s ))s"
+rm -f "$T"/toy-tree-once-*.rc "$T"/toy-tree-once-*.out; rm -rf "$T"/toy-tree-once-*.lock
+export TREE_ONCE_CMD="echo SKIP: stand-in; exit 77"
+bash "$here/dev/toy/tree-once.sh" >/dev/null; TOY_SKIP_FILE=$T/skip bash "$here/dev/toy/tree-once.sh" >/dev/null; rc=$?
+[ $rc = 77 ] && [ -s "$T/skip" ] && ok "a replayed skip (exit 77) writes TOY_SKIP_FILE, so its row reads SKIPPED, not FAIL" || bad "skip replay: rc $rc, file $(cat "$T/skip" 2>/dev/null)"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

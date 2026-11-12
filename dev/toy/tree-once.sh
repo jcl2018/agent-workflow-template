@@ -28,5 +28,8 @@ while [ ! -s "$base.rc" ]; do
   [ "$i" -lt 7800 ] || { echo "FAIL: tree-once: test-tree.sh did not finish in 13 minutes (lock held by pid ${holder:-?})"; exit 1; }
   sleep 0.1; i=$((i + 1))
 done
+rc=$(cat "$base.rc")
+# 77: the run skipped itself. The caller that ran it wrote $TOY_SKIP_FILE; a replay writes it too, or its row reads FAIL.
+[ "$rc" != 77 ] || [ -z "${TOY_SKIP_FILE:-}" ] || echo skip > "$TOY_SKIP_FILE"
 cat "$base.out"
-exit "$(cat "$base.rc")"
+exit "$rc"
