@@ -1,4 +1,5 @@
 #!/bin/bash
+# reads: skills/ skills/workflow-delivery/
 # reads: skills/workflow-monitoring/scripts/operate.py skills/workflow-monitoring/scripts/checkin.py skills/workflow-monitoring/scripts/board.py
 # reads: skills/workflow-monitoring/scripts/board_lines.py skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
 # reads: skills/workflow-monitoring/scripts/reply_hook.py skills/workflow-monitoring/scripts/govern_hook.py docs/wiki/Monitoring.md
