@@ -33,6 +33,8 @@ import rounds  # noqa: E402
 from issues import NO_FEATURE, feature_group, features  # noqa: E402
 import workflows  # noqa: E402
 
+ISSUE_LIMIT = 1000  # a label with this many open issues may have more: the digest then says TRUNCATED
+CUT = []  # the labels whose listing reached ISSUE_LIMIT, set by open_issues
 LABELS = ("regression", "health")  # the issues the digest follows: failing tests and health findings
 TITLE = rounds.TITLE
 INTRO = "The Automation routines post one comment here per round, and mail it when the mail secrets are set.\n\n"
@@ -89,10 +91,13 @@ def open_issues(pages=()):
     gh can't list them. A feature is the issue's feature label, else a milestone named like a page, else No feature."""
     found, group = {}, {}
     for label in LABELS:
-        done = gh("issue", "list", "--label", label, "--state", "open", "--limit", "300", "--json", "number,url,milestone,labels")
+        done = gh("issue", "list", "--label", label, "--state", "open", "--limit", str(ISSUE_LIMIT), "--json", "number,url,milestone,labels")
         if done.returncode:
             return None, {}
-        for item in loads(done, []):
+        listed = loads(done, [])
+        if len(listed) >= ISSUE_LIMIT and label not in CUT:
+            CUT.append(label)
+        for item in listed:
             stone = item.get("milestone") or {}
             found[item["number"]] = (item["url"], int(stone.get("number") or 0))
             group[item["number"]] = feature_group({"labels": [l.get("name") for l in item.get("labels") or []],
@@ -233,6 +238,8 @@ def cmd_digest(args):
            ("health", health_line(os.environ.get("HEALTH_REPORT") or "")),
            ("round cost", rounds.line(cost) if cost else "not read (dry run)" if not live else rounds.line({"error": "only read in Actions"})),
            ("email", email_line(cfg, previous))]
+    if CUT:
+        ran.append(("issues", "TRUNCATED: %s listed %d open issues, so the counts below may be cut off (TRUNCATED)" % (", ".join(CUT), ISSUE_LIMIT)))
     titles = (rounds.milestone_titles() if live else {}) or {}  # unreadable titles show nowhere: no note, no failure
     comment, marker = compose(login, note, ran, now_open, before, run_id, titles, groups, pages)
     if cost is not None:
