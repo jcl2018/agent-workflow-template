@@ -22,7 +22,7 @@ record or regression-runs.tsv without these fields never marks. The exit status 
 row is never reused (lanes.plan, tiers.reason). workflow-regression/references/commands.md.
 
 PLAN CACHE: each row's closure is kept per branch in <git common dir>/loop/plans/, keyed by HEAD, .loop/regression.tsv, the
-planner's code and LANES_WIDE (key, narrow.warm, narrow.store). A dirty tree never uses it; LANES_NO_CACHE=1 turns it off. The
+planner's code, LANES_WIDE and the loop's uncommitted files (key, narrow.warm, narrow.store). A dirty tree never uses it; LANES_NO_CACHE=1 turns it off. The
 first output line, `PLAN_CACHE: <state>`, names what happened (commands.md `## Plan cache`).
 """
 import hashlib
@@ -86,15 +86,29 @@ def changed(root, commit, memo):
     return seen[commit]
 
 
+def loop_state(root):
+    """A digest of the loop's own uncommitted files (lanes.BOOKKEEPING): git status leaves them out, so the key takes them."""
+    digest = hashlib.sha256()
+    for line in sorted((lanes.git(root, "status", "--porcelain", "--no-renames", "--untracked-files=all") or "").splitlines()):
+        if line[3:].strip('"').startswith(lanes.BOOKKEEPING):
+            digest.update(line.encode())
+            try:
+                with open(os.path.join(root, line[3:].strip('"')), "rb") as handle:
+                    digest.update(handle.read())
+            except OSError:
+                pass
+    return digest.hexdigest()
+
+
 def key(root):
-    """(sha256 hex, parts) of the plan cache's key: schema, planner code, HEAD, the row file, LANES_WIDE."""
+    """(sha256 hex, parts) of the plan cache's key: schema, planner code, HEAD, the row file, LANES_WIDE, the loop's files."""
     try:
         with open(os.path.join(root, lanes.TABLE), "rb") as handle:
             rows = hashlib.sha256(handle.read()).hexdigest()
     except OSError:
         rows = ""
     parts = ["1", lanes.runner(), (lanes.git(root, "rev-parse", "HEAD") or "").strip(), rows,
-             "1" if os.environ.get("LANES_WIDE") == "1" else "0"]
+             "1" if os.environ.get("LANES_WIDE") == "1" else "0", loop_state(root)]
     return hashlib.sha256(json.dumps(parts).encode()).hexdigest(), parts
 
 

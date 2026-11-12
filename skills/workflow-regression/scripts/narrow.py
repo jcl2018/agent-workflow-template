@@ -27,7 +27,7 @@ GLOB = re.compile(r"(?:\$here/)?((?:skills|dev|docs)/[\w./-]*?)/?\*")
 FILEISH = re.compile(r"\.(?:py|md|json|sh|tsv|txt|yml|yaml|toml)$")
 
 
-PARTS = ("schema", "runner", "head", "rows", "wide")
+PARTS = ("schema", "runner", "head", "rows", "wide", "loop")
 
 
 def sound(path):
@@ -66,13 +66,12 @@ def warm(path, key, picked, cache):
 
 
 def store(path, key, cache):
-    """Write every row closure the plan holds, except rows reaching the loop's bookkeeping files (dirty() exempts
-    them); atomic, last writer wins, files over 30 days old pruned. The OSError class name on failure, else None."""
+    """Write every row closure the plan holds (a path the cache may not hold drops its row); atomic, last writer wins,
+    files over 30 days old pruned. The OSError class name on failure, else None."""
     rows = {}
     for item in [k for k in cache if isinstance(k, tuple) and k[0] == "closure"]:
         deps, always = cache[item]
-        if all(sound(d) for d in deps) and not any(d.startswith(lanes.BOOKKEEPING) for d in deps) and not any(
-                lanes.hits(b, deps) for b in lanes.BOOKKEEPING):
+        if all(sound(d) for d in deps):
             rows[item[1]] = [sorted(deps), always, cache.get(("why", item[1])), cache.get(("table", item[1]))]
     names = sorted({d for row in rows.values() for d in row[0]})
     place = {n: i for i, n in enumerate(names)}

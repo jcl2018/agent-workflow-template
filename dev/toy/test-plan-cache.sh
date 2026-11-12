@@ -178,7 +178,7 @@ EOF
   same "HEAD moved" "$r" "PLAN_CACHE: miss (key-head)"
   P "$r" LANES_NO_CACHE=1 | grep -q '^SELECTED t0: reaches app/b.txt$' && ok "t0 is selected because it now reaches app/b.txt" || bad "t0 reaches app/b.txt after the HEAD move"
 
-  # Value: protects=every part of the key changes it: HEAD, the row file, the planner code, LANES_WIDE (done line 3); fails_when=one of them leaves the key equal; why_new=a part missing from the key is a stale hit; seam=a copy of the scripts folder; no_claim=ignored files (not in the key, a documented limit)
+  # Value: protects=every part of the key changes it: HEAD, the row file, the planner code, LANES_WIDE, the loop files (done line 3); fails_when=one of them leaves the key equal; why_new=a part missing from the key is a stale hit; seam=a copy of the scripts folder; no_claim=ignored files (not in the key, a documented limit)
   r=$(newrepo parts)
   local k0 k1 k2 k3 k4 k5
   k0=$(keyof "$S" "$r"); k1=$(keyof "$S" "$r")
@@ -233,7 +233,7 @@ EOF
   same "stray untracked file" "$r" "PLAN_CACHE: dirty (1 paths, cache not used)"
   [ -z "$(planfile "$r")" ] && ok "a dirty plan wrote no cache file" || bad "a dirty plan wrote a cache file"
 
-  # Value: protects=a row that reads a loop bookkeeping file is never cached, because git status exempts those files and the key cannot see them; fails_when=such a row is stored, or an uncommitted edit under .loop/goals/ changes the plan; why_new=the dirty check exempts bookkeeping so lanes run; seam=none; no_claim=rows that read other .loop files
+  # Value: protects=an uncommitted edit to a loop bookkeeping file (git status leaves them out) never lets a stale closure be served, while the row stays cached; fails_when=a row reading .loop/goals/ is dropped from the file, an edit there still hits, or the edited plan differs from the uncached one; why_new=every row of a large repo can reach .loop/goals/, so skipping those rows would leave the cache empty; seam=none; no_claim=rows that read other .loop files
   r=$(newrepo book)
   mkdir -p "$r/.loop/goals"; echo goal > "$r/.loop/goals/g.md"
   printf '#!/bin/bash\n# reads: .loop/goals/g.md\ncat .loop/goals/g.md\n' > "$r/dev/toy/bk.sh"
@@ -241,9 +241,14 @@ EOF
   git -C "$r" add -A; git -C "$r" -c core.hooksPath=/dev/null commit -qm "bookkeeping row" 2>&1 | head -2
   P "$r" > /dev/null; f=$(planfile "$r")
   local held; held=$(python3 -B -c 'import json,sys,zlib; print("bash dev/toy/bk.sh" in json.loads(zlib.decompress(open(sys.argv[1],"rb").read()))["rows"])' "$f")
-  [ "$held" = False ] && ok "a row reaching .loop/goals/ is not stored" || fail "bookkeeping row not stored" "False" "$held"
+  [ "$held" = True ] && ok "a row reaching .loop/goals/ is cached" || fail "bookkeeping row cached" "True" "$held"
+  same "no edit under .loop/goals/" "$r" "PLAN_CACHE: hit (13 rows)"
   echo "edited" >> "$r/.loop/goals/g.md"
-  same "uncommitted edit under .loop/goals/" "$r" "PLAN_CACHE: miss (partial 12 of 13)"
+  same "uncommitted edit under .loop/goals/" "$r" "PLAN_CACHE: miss (key-loop)"
+  same "the same edit, planned again" "$r" "PLAN_CACHE: hit (13 rows)"
+  local kl1 kl2
+  kl1=$(keyof "$S" "$r"); echo "more" >> "$r/.loop/goals/g.md"; kl2=$(keyof "$S" "$r")
+  [ "$kl1" != "$kl2" ] && ok "the key follows the content of an edited bookkeeping file" || fail "key follows bookkeeping content" "different keys" "equal"
 
   # Value: protects=a key that changes between the read and the write stops the write; fails_when=a cache is written under a key that no longer matches the tree; why_new=the tree can move while a plan runs; seam=PLAN_KEY_FLIP hook in the plan driver; no_claim=a move after the write
   r=$(newrepo flip)
@@ -334,7 +339,7 @@ m_sizes() {
   # Value: protects=the owner can look up every PLAN_CACHE state in commands.md; fails_when=a state token the planner prints is missing from its Plan cache section; why_new=tokens are the owner's only view of the cache; seam=none; no_claim=the table's wording
   local section missing="" token
   section=$(awk '/^## Plan cache/ {on = 1; next} /^## / {on = 0} on' "$here/skills/workflow-regression/references/commands.md")
-  for token in "hit (N rows)" "miss (absent)" "miss (corrupt)" "miss (key-head)" "miss (key-rows)" "miss (key-runner)" "miss (key-wide)" \
+  for token in "hit (N rows)" "miss (absent)" "miss (corrupt)" "miss (key-head)" "miss (key-rows)" "miss (key-runner)" "miss (key-wide)" "miss (key-loop)" \
     "miss (partial M of N)" "dirty (N paths, cache not used)" "off (LANES_NO_CACHE=1)" "none (no branch)" "not saved (<error class>)" \
     LANES_NO_CACHE "loop/plans"; do
     grep -qF "$token" <<<"$section" || missing="$missing [$token]"
