@@ -15,3 +15,19 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+## Codex run report
+
+Run on 2026-11-11 with codex-cli 0.167.0, signed in with a ChatGPT account, model `gpt-6-luna` (the machine's configured default, `gpt-5.4`, is not supported by the account; the harness picks from codex's model cache). A clean toy repo, a fresh HOME with no private settings, `codex exec -s workspace-write` with the git folder, the remote and `~/.workflow-loop` as writable roots. About 10.7K tokens per run.
+
+| Command | Result in Codex |
+|---|---|
+| setup (adopt) | wrote the adoption on branch workflow-setup |
+| merge into main | exit 0 |
+| go (`goal.py new`) | froze the goal, goal file written |
+| live board (`monitor.py report`) | exit 0, lists the goal |
+| health check | prints `HEALTH:` (not green on a bare toy, as on any new repo) |
+| regression run | prints `RESULT` |
+
+What broke and was fixed: setup crashed with a traceback when the sandbox left the home folder read-only (now a NOTE, adoption goes on). Collision checks between a Codex pod and a Claude pod found none. See the design's findings.
+Where Codex is not available (not installed, not signed in, usage limit, unsupported model) the live row exits 77 and the run records SKIPPED, never PASS.
