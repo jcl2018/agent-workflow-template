@@ -60,12 +60,12 @@ python3 -c "import json; c = json.load(open('.loop/config.json')); c['parallel']
 $docs publish --dry-run >/dev/null 2>&1
 grep -q 'overridden:\*\* `7`' $H && ok "publish refreshes the block before it copies the pages" || bad "publish left the block stale"
 a=$(sed -n '/automation:begin/,/automation:end/p' $H)
-grep -q '^| health | .* | off | every 4 hours | not deployed | unknown | run workflow-setup to write .github/workflows/health.yml |' <<<"$a" && ok "Automation says on, the cadence in words, not deployed and the step owed when the workflow file is missing" || bad "automation health row: $(grep '^| health' <<<"$a")"
+grep -q '^| health | .* | off | every 4 hours | not deployed | docs.py automation | run workflow-setup to write .github/workflows/health.yml |' <<<"$a" && ok "Automation says on, the cadence in words, not deployed and the step owed when the workflow file is missing" || bad "automation health row: $(grep '^| health' <<<"$a")"
 mkdir -p .github/workflows; : > .github/workflows/health.yml
 python3 -c "import json; c = json.load(open('.loop/config.json')); c['health_cron'] = '30 6 * * *'; c['automation'] = [{'name': 'money brief', 'does': 'Mails a daily money brief.', 'cadence': '0 7 * * *', 'runs': 'mac:com.example.brief'}]; json.dump(c, open('.loop/config.json', 'w'), indent=2)"
 $cri render >/dev/null 2>&1
 a=$(sed -n '/automation:begin/,/automation:end/p' $H)
-grep -q '^| health | .* | on | daily at 06:30 | GitHub Actions (health.yml) | unknown | none |' <<<"$a" && grep -q '^| money brief | Mails a daily money brief. | on (declared) | daily at 07:00 | this Mac (launch agent com.example.brief) | unknown |' <<<"$a" && ok "Automation reads a daily cron in words, where it runs from the workflow file, and a routine added as one config entry" || bad "automation rows: $a"
+grep -q '^| health | .* | on | daily at 06:30 | GitHub Actions (health.yml) | docs.py automation | none |' <<<"$a" && grep -q '^| money brief | Mails a daily money brief. | on (declared) | daily at 07:00 | this Mac (launch agent com.example.brief) | docs.py automation |' <<<"$a" && ok "Automation reads a daily cron in words, where it runs from the workflow file, and a routine added as one config entry" || bad "automation rows: $a"
 $docs automation 2>&1 | grep -q '^money brief: not loaded$' && ok "docs.py automation reports a launch agent entry as not loaded when it is not" || bad "live status: $($docs automation 2>&1)"
 python3 -c "import json; c = json.load(open('.loop/config.json')); c['health_cron'] = 'off'; json.dump(c, open('.loop/config.json', 'w'), indent=2)"
 $cri render >/dev/null 2>&1

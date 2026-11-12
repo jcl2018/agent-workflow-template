@@ -15,6 +15,11 @@ import sys
 import criteria
 import pageformat
 
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
+
 SCENARIO = re.compile(r"^Given .+, when .+, then .+", re.I)
 TESTS = ("Test", "Kind", "Guards", "Checks", "Last result")
 FULL = ("Test", "Kind", "Guards", "Result", "Date", "Run", "Seen failing")
@@ -299,11 +304,6 @@ def cadence(cron):
     return "cron `%s`" % cron
 
 
-def last_run(root):
-    days = sorted(row[2] for row in criteria.tsv(root, "regression-runs.tsv") if len(row) > 2)
-    return days[-1] if days else "unknown"
-
-
 BUILT_IN = (("health", "Checks the repo and files each finding.", "health_cron", "47 */4 * * *", "health.yml"),
             ("regression", "Runs every regression row, files each failure.", "regression_cron", "17 */4 * * *", "regression.yml"),
             ("digest email", "Mails one digest per health round.", None, "", "health.yml"))
@@ -329,12 +329,11 @@ def automation_block(root):
     for e in entries(root):
         kind, _, target = str(e.get("runs", "")).partition(":")
         on = e.get("enabled", True) is not False and str(e.get("cadence")) != "off"
-        last, owed = str(e.get("last_run") or "unknown"), "none"
+        last, owed = str(e.get("last_run") or "docs.py automation"), "none"  # a live time in the page would change on every run
         if kind == "github":
             there = os.path.exists(os.path.join(flows, target))
             where, state = ("GitHub Actions (%s)" % target) if there else "not deployed", "on" if on and there else "off"
             owed = "run workflow-setup to write .github/workflows/" + target if on and not there else owed
-            last = last_run(root) if e["name"] == "regression" else last
         elif kind in ("mac", "claude"):
             where = "this Mac (launch agent %s)" % target if kind == "mac" else "Claude scheduled task %s" % target
             state, owed = "on (declared)" if on else "off (declared)", "confirm it is live: docs.py automation"
@@ -346,23 +345,6 @@ def automation_block(root):
     head = ["Routine", "What it does", "State", "Cadence", "Runs on", "Last run", "Owed by you"]
     return "\n".join(["<!-- automation:begin -->", "## Automation", "",
                        "Health and regression, then each `automation` entry in `.loop/config.json`; to add one, add an entry.", ""] + pageformat.table(head, rows) + ["<!-- automation:end -->", ""])
-
-
-def live(root):
-    """Print each routine's live state: a workflow's newest run, a launch agent loaded or not."""
-    for e in entries(root):
-        kind, _, target = str(e.get("runs", "")).partition(":")
-        if kind == "github":
-            done = subprocess.run(["gh", "run", "list", "--workflow", target, "--limit", "1", "--json", "conclusion,createdAt",
-                                   "-q", ".[0] | \"\\(.conclusion) \\(.createdAt)\""], capture_output=True, text=True)
-            said = done.stdout.strip() if done.returncode == 0 and done.stdout.strip() else "no run found or gh unavailable"
-        elif kind == "mac":
-            done = subprocess.run(["launchctl", "list", target], capture_output=True, text=True)
-            said = "loaded" if done.returncode == 0 else "not loaded"
-        else:
-            said = "a Claude scheduled task is checked in the Claude app"
-        print("%s: %s" % (e["name"], said))
-    return 0
 
 
 def template_line(root):

@@ -456,7 +456,7 @@ Health and regression, then each `automation` entry in `.loop/config.json`; to a
 
 | Routine | What it does | State | Cadence | Runs on | Last run | Owed by you |
 |---|---|---|---|---|---|---|
-| health | Checks the repo and files each finding. | on | every 4 hours | GitHub Actions (health.yml) | unknown | none |
-| regression | Runs every regression row, files each failure. | on | every 4 hours | GitHub Actions (regression.yml) | 2026-11-12 | none |
-| digest email | Mails one digest per health round. | on | cron `with each health round` | GitHub Actions (health.yml) | unknown | set the digest address and keys as Actions secrets (yours, outside git) |
+| health | Checks the repo and files each finding. | on | every 4 hours | GitHub Actions (health.yml) | docs.py automation | none |
+| regression | Runs every regression row, files each failure. | on | every 4 hours | GitHub Actions (regression.yml) | docs.py automation | none |
+| digest email | Mails one digest per health round. | on | cron `with each health round` | GitHub Actions (health.yml) | docs.py automation | set the digest address and keys as Actions secrets (yours, outside git) |
 <!-- automation:end -->
