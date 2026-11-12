@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """Check the package against the Agensi rules and build the ZIP.
 
-usage: package.py [--root DIR] [--out FILE]
+usage: package.py [--root DIR] [--out FILE] [--timeout SECONDS]
 
 The ZIP holds the skills, shared/ (the files every skill reads), PACKAGE.json (the version from VERSION, a hash of every
 skill file and the newest changelog entries, which update.py reads) and the same stamp as shared/workflow-package.json.
 
 Checks run in the order of the roadmap's rule table. Every failure is printed as
 `FAIL <rule>: <what>`. One failure means no ZIP and exit 1.
+
+Never hangs: each script's --help run gets no stdin (/dev/null) and CHILD_SECONDS (PACKAGE_CHILD_SECONDS, else 30), in its own process group that is
+killed when the time is up, and copies keep symlinks as links. The whole run has a hard bound (--timeout, else
+PACKAGE_TIMEOUT, else 300 seconds): when it is hit, package.py kills any child, prints one line
+`TIMEOUT: package.py stopped after N seconds waiting on <what>` and exits 3.
 """
 import argparse
 import ast
@@ -16,6 +21,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -35,7 +41,51 @@ DANGEROUS = [r"\bos\.system\(", r"chmod\s+777", r"\brm\s+-rf\s+/(\s|$)", r"\b(cu
 INJECTION = [r"(?i)ignore previous instructions", r"(?i)do not tell the user", r"(?i)\bsecretly\b"]
 SHARED = {"skills/loop-files.md": "shared/loop-files.md", "skills/design-guide.md": "shared/design-guide.md"}  # in a pack, only shared/ reaches every skill
 LIMITS = {"tags": 10, "keywords": 10, "use_cases": 8}
+try:
+    CHILD_SECONDS = max(1, int(os.environ.get("PACKAGE_CHILD_SECONDS") or 30))
+except ValueError:
+    CHILD_SECONDS = 30
 failures = []
+waiting = {"on": "starting", "child": None}
+
+
+def wait_on(what):
+    waiting["on"] = what
+
+
+def on_timeout(seconds):
+    def handler(signum, frame):
+        child = waiting["child"]
+        if child is not None:
+            kill_group(child)
+        sys.stdout.write("TIMEOUT: package.py stopped after %d seconds waiting on %s\n" % (seconds, waiting["on"]))
+        sys.stdout.flush()
+        os._exit(3)
+    return handler
+
+
+def kill_group(proc):
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except (OSError, ProcessLookupError):
+        pass
+
+
+def run_alone(cmd, cwd, what):
+    """Run one child with no stdin and a time limit; kill its whole process group when the limit is hit."""
+    wait_on(what)
+    proc = subprocess.Popen(cmd, cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True, start_new_session=True)
+    waiting["child"] = proc
+    try:
+        out, err = proc.communicate(timeout=CHILD_SECONDS)
+        return proc.returncode, err
+    except subprocess.TimeoutExpired:
+        kill_group(proc)
+        proc.communicate()
+        return None, ""
+    finally:
+        waiting["child"] = None
 
 
 def fail(rule, text):
@@ -47,6 +97,7 @@ def walk(root):
     out = []
     for base in SHIPPED:
         path = os.path.join(root, base)
+        wait_on("the walk of " + path)
         if os.path.isfile(path):
             out.append(base)
         for here, dirs, names in os.walk(path):
@@ -158,11 +209,14 @@ def check_scripts(root, files):
         if re.search(r"skills/|\.\./", text.replace("../loop-files.md", "")) and re.search(r"open\([^)]*(skills/|\.\./)", text):
             fail("Scripts", "%s opens another package file" % rel)
         with tempfile.TemporaryDirectory() as lone:  # a copy of its own scripts folder only: siblings, nothing else
-            shutil.copytree(os.path.dirname(os.path.join(root, rel)), os.path.join(lone, "scripts"))
-            done = subprocess.run([sys.executable, "-E", "-s", os.path.join(lone, "scripts", os.path.basename(rel)), "--help"],
-                                  capture_output=True, text=True, cwd=lone)
-            if done.returncode:
-                fail("Scripts", "%s does not run alone: %s" % (rel, done.stderr.strip()[-200:]))
+            wait_on("the copy of %s's folder" % rel)
+            shutil.copytree(os.path.dirname(os.path.join(root, rel)), os.path.join(lone, "scripts"), symlinks=True)
+            rc, err = run_alone([sys.executable, "-E", "-s", os.path.join(lone, "scripts", os.path.basename(rel)), "--help"],
+                                lone, "%s --help" % rel)
+            if rc is None:
+                fail("Scripts", "%s --help did not finish in %d seconds with no stdin (it waits on input or a child)" % (rel, CHILD_SECONDS))
+            elif rc:
+                fail("Scripts", "%s does not run alone: %s" % (rel, err.strip()[-200:]))
 
 
 def private_prefixes():
@@ -265,7 +319,12 @@ def manifest(root, files, version):
         log = "\n".join(part.rstrip() for part in re.split(r"(?m)^(?=## v)", log)[1:4])
     except OSError:
         log = ""
-    url = subprocess.run(["git", "-C", root, "remote", "get-url", "origin"], capture_output=True, text=True).stdout.strip()
+    wait_on("git remote get-url origin")
+    try:
+        url = subprocess.run(["git", "-C", root, "remote", "get-url", "origin"], capture_output=True, text=True,
+                             stdin=subprocess.DEVNULL, timeout=CHILD_SECONDS).stdout.strip()
+    except subprocess.TimeoutExpired:
+        url = ""
     found = re.search(r"github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$", url)  # update.py reads releases from this repo
     return {"version": version, "files": dict(sorted(hashes.items())), "changelog": log[:6000], "repo": found.group(1) if found else ""}
 
@@ -288,23 +347,36 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
     parser.add_argument("--out", default=None)
+    parser.add_argument("--timeout", type=int, default=None, help="hard bound in seconds (default PACKAGE_TIMEOUT, else 300)")
     args = parser.parse_args()
+    try:
+        seconds = args.timeout or int(os.environ.get("PACKAGE_TIMEOUT") or 300)
+    except ValueError:
+        seconds = 300
+    signal.signal(signal.SIGALRM, on_timeout(seconds))
+    signal.alarm(max(1, seconds))
     root = os.path.abspath(args.root)
     files = walk(root)
+    wait_on('the frontmatter checks')
     check_frontmatter(root, files)
     check_inventory(root, files)
     version = version_of(root)
     listing = load_listing(root)
     check_listing(listing)
+    wait_on('reading the shipped files')
     check_files(root, files)
+    wait_on('the script checks')
     check_scripts(root, files)
+    wait_on('the safety scans')
     check_safety(root, files)
+    wait_on('the disclosure checks')
     check_disclosure(root, files, listing)
     check_pack(root)
     if failures:
         print("REFUSED: %d rule failure(s); no ZIP built" % len(failures))
         return 1
     out = args.out or "dist/agent-workflow-template-v%s.zip" % version
+    wait_on("writing the ZIP " + out)
     build(root, files, out, version)
     note_shell(root, files)
     print("PASS: %d files, ZIP at %s (%d bytes), version %s" % (len(files), os.path.abspath(out), os.path.getsize(out), version))
