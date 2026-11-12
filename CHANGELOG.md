@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.27.33 - 2026-11-12
+
+- setup-machine-prd: SET-11..SET-15 and the golden adoption fixture
+- setup-machine-prd: render Tests, Home and README
+- setup-machine-prd: render Home and README Settings (config holds cadence as "30")
+- setup-machine-prd: verify by hand
+- setup-machine-prd: golden step 1 includes the qa lane on the adopter's platform
+- Merge origin/main into loop/setup-machine-prd
+- Merge remote-tracking branch 'origin/main' into loop/setup-machine-prd
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Open `docs/wiki/Setup.md` and read SET-11 to SET-15.
+   Expect: five requirements marked **Unreviewed**, each ending with the issue it comes from (#1408, #1409, #1404, #1410, #1411), and SET-1 to SET-10 unchanged.
+2. Open `dev/toy/adoption-golden.tsv`.
+   Expect: eight steps in order, prerequisites to the first check-in, each with a check, golden result and fix, and no path, account or private repo name.
+3. Run `bash dev/toy/test-adoption-golden.sh`.
+   Expect: four PASS lines and `ALL PASS`.
+
 ## v0.27.32 - 2026-11-12
 
 - Fix prd-new row's stale PASS name; guard reap.py's POSIX-only calls on Windows
