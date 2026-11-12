@@ -261,3 +261,30 @@ def chosen(rows, target):
 def lines_of(root, name):
     return {line.split("\t")[0]: line.rstrip("\n") for line in open(path_of(root, name)) if line.strip() and line[0] != "#"} \
         if os.path.exists(path_of(root, name)) else {}
+
+
+# regression.py red --off-platform (REG-10): a red result proven on another runner, with the runner and commit named.
+OFF_WINDOWS = re.compile(r"\b(win(dows)?(32|64)?|msys\d*|mingw\d*|cygwin)\b|\b(msys|mingw)\w*", re.I)  # a Windows machine can only skip a bash row
+OFF_SHA = re.compile(r"^[0-9a-f]{7,40}$")
+
+
+def off_record(root, row_id, runner, commit, today, read_rows, edit_rows):
+    if row_id not in read_rows(root):
+        sys.exit("REFUSED: no row %s. Fix: add it first." % row_id)
+    runner = (runner or "").strip()
+    if not runner or "\t" in runner or "\n" in runner:
+        sys.exit("REFUSED: --runner names the machine that saw the row fail (linux-ci, a Linux session). Fix: pass --runner NAME.")
+    if OFF_WINDOWS.search(runner):
+        sys.exit("REFUSED: runner %s is Windows, where these rows only skip (exit 77) and a skip never sets seen red. "
+                 "Fix: prove it red on a Linux or Mac runner." % runner)
+    if not OFF_SHA.match(commit or "") or subprocess.run(["git", "cat-file", "-e", commit + "^{commit}"], cwd=root,
+                                                     capture_output=True).returncode:
+        sys.exit("REFUSED: %s is not a commit in this repo. Fix: git fetch, and pass the commit the red run used." % commit)
+    day = today()
+    edit_rows(root, lambda current: current[row_id].update(seen_red=day))
+    path = os.path.join(root, ".loop", "regression-red.tsv")
+    kept = [line for line in (open(path).read().splitlines() if os.path.exists(path) else []) if line and line.split("\t")[0] != row_id]
+    with open(path, "w", newline="\n") as out:
+        out.write("\n".join(kept + ["\t".join((row_id, day, runner, commit))]) + "\n")
+    print("SEEN RED %s on %s (proved on %s at %s)" % (row_id, day, runner, commit))
+    return 0

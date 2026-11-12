@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.27.46 - 2026-11-12
+
+- REG-10: record a red proven on another runner; a skip never sets seen red
+- Review: a darwin runner is not Windows
+- REG-10: a lane failing only on skipped, unproven rows waits for off-platform proof
+- Rows reg10-owed-* seen red
+- Fold the off-platform helpers into fit.py and runs.py: no new files under skills/
+- Record the Mac red proofs of the five reg10 rows
+- Merge origin/main into loop/red-off-platform-prd
+- Docs: Delivery, Regression and Home describe the off-platform proof
+- Merge origin/main into loop/red-off-platform-prd
+- Merge remote-tracking branch 'origin/main' into loop/red-off-platform-prd
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.45 - 2026-11-12
 
 - Skip absolute folders outside the repo in a lane's reach analysis
