@@ -106,7 +106,7 @@ def held(root):
 
 def held_all(root):
     """({marker key: issue} of the health issues, every issue, why) or (None, None, why) when gh can't list them all."""
-    found, why = IS.fetch(root)
+    found, why = IS.fetch(root, "held")
     if found is None:
         return None, None, why
     out = {}
