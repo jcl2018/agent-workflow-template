@@ -523,8 +523,8 @@
 | <a id="t-reg10-commit-checked"></a>reg10-commit-checked | requirement | REG-10 | not run | - | local | no |
 | <a id="t-reg10-off-platform-red"></a>reg10-off-platform-red | requirement | REG-10 | not run | - | local | no |
 | <a id="t-reg10-provenance"></a>reg10-provenance | requirement | REG-10 | not run | - | local | no |
-| <a id="t-reg10-owed-waits"></a>reg10-owed-waits | requirement | REG-10 | not run | - | local | no |
-| <a id="t-reg10-real-fail-costs-try"></a>reg10-real-fail-costs-try | requirement | REG-10 | not run | - | local | no |
+| <a id="t-reg10-owed-waits"></a>reg10-owed-waits | requirement | REG-10 | not run | - | local | 2026-11-12 |
+| <a id="t-reg10-real-fail-costs-try"></a>reg10-real-fail-costs-try | requirement | REG-10 | not run | - | local | 2026-11-12 |
 
 ## Setup
 
