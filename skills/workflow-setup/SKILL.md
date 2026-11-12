@@ -30,7 +30,7 @@ cannot fix (a bare `agent_command`, an ignore rule outside the repo) with the fi
 and its fix above it); it exits 0 whenever the adoption is on its branch, and `--strict` exits 3 on gaps.
 
 - A refusal rolls everything back and says `nothing written`: the tree, index, branches and the private folder are as
-  before. Codes: `SETUP_REPO_STATE` (merge, rebase, detached HEAD, branch checked out elsewhere), `SETUP_BRANCH_DIVERGED`,
+  before. Codes: `SETUP_REPO_STATE` (merge, rebase, detached HEAD, branch checked out elsewhere), `SETUP_BRANCH_DIVERGED`, `SETUP_WIKI_DIR` (wiki_dir outside the repo),
   `SETUP_MIXED_VERSION` (run update), `SETUP_PRIVATE_NAME`, `SETUP_PRIVATE_VALUE` (a local setting or private value on a
   line the adoption adds), `SETUP_HOOK_REFUSED`, `SETUP_UNEXPECTED` (see the trace file it names), `SETUP_INTERRUPTED`,
   `SETUP_HALF_UNDONE` (exit 4: a restore could not finish, run the commands it prints), `SETUP_PLANNED_PATH_DIRTY` and
