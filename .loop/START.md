@@ -83,7 +83,7 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `pr_bumps_version` | false | true moves the last number of the version file once on a goal's branch. |
 | `prep_budget_minutes` | 25 | Minutes a lane may spend before its first test row (preparing, planning, waiting for a slot), 15 or more; a lane past it stops and says which part ran long. |
 | `regression_cron` | 17 */4 * * * | Five cron fields: when the full regression runs: in GitHub Actions for a public repo, with each Mac tick for a private one; off turns it off. |
-| `regression_runs` | (empty) | Where the full regression runs: actions (a public repo) or mac (a private repo, with each Mac tick); setup records it from the repo's live visibility, and unset means it is not known (nothing is written for GitHub). |
+| `regression_runs` | none | Where the full regression runs: actions (a public repo) or mac (a private repo, with each Mac tick); setup records it from the repo's live visibility, and unset means it is not known (nothing is written for GitHub). |
 | `reply_hook` | true | false turns off the reply-format hook (setup.py --reply-hook installs it) in the operation session. |
 | `resume_on_limit` | false | true lets watch resume a goal that hit a usage limit. |
 | `review_depth` | full | full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run. |
@@ -96,7 +96,7 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `step_budget_minutes` | 30 | Minutes one review or ship step may take, 15 or more; a step at its limit finishes with what it has done and records what it left. |
 | `step_limit` | 0 | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. |
 | `template_repo` | none | The template's GitHub repo (owner/name) update reads releases from, when the installed package names none. |
-| `template_version` | 0.27.17 |  |
+| `template_version` | 0.27.29 |  |
 | `test_budget_minutes` | 15 | Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite. |
 | `time_budget_minutes` | 120 |  |
 | `token_budget` | 3000000 | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
