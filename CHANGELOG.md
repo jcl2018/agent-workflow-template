@@ -1,5 +1,56 @@
 # Changelog
 
+## v0.27.44 - 2026-11-12
+
+- Merge origin/main into loop/spec-decisions
+- Wiki: update pages for spec-decisions
+- Merge origin/main into loop/spec-decisions
+- Merge origin/main into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge origin/main into loop/spec-decisions
+
+### How to verify
+
+1. Run `grep -c "^- 2026-11-12, " DECISIONS.md`.
+   Expect: it prints 10, and a "Waiting on owner un-review" section lists the locked requirements' proposed wording.
+2. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: the only line printed is `CHANGED Monitoring: Usage edited ...` (it needs the owner's review).
+
+## v0.27.43 - 2026-11-12
+
+- spec-decisions: reword the unreviewed requirements, SKILL.md and commands.md; log decisions
+- spec-decisions: proposed wording for locked requirements; regression rows
+- spec-decisions: refresh pages and the Tests render
+- spec-decisions: review fixes (HLT-6 rows, decision entries say proposed)
+- Merge origin/main into loop/spec-decisions
+- spec-decisions: refresh Home after the merge
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge spec-decisions wording so review-findings builds on it
+- Resolve Delivery.md merge conflict (keep both sides)
+- Resolve the v0.27.34 health review findings in the pages and SKILL.md
+- Re-render Tests tables; add review-findings rows
+- Render Tests for the review-findings rows
+- Review round 2: AUT-1/2 scope, GRD-6/8 owners, feature tag wording
+- DECISIONS: keep the spec-decisions entry count; prefix review-findings lines
+- Merge origin/main into review-findings
+- Merge origin/main (v0.27.41) into review-findings
+- Wiki: update pages for review-findings
+- Merge origin/main (v0.27.42) into review-findings
+- Automation: keep the native Windows note from win-posix-rest
+
+### How to verify
+
+1. Run `grep -c "health.yml" docs/wiki/Automation.md docs/wiki/Setup.md` and `wc -l skills/workflow-delivery/SKILL.md`.
+   Expect: Automation.md names `health.yml` once, only as the leftover file to `git rm`; Setup.md names it not at all in its setup entry; SKILL.md has under 150 lines.
+2. Open `docs/wiki/Automation.md` and read AUT-1, AUT-2 and the Usage list.
+   Expect: no health workflow, `--check` or Actions mail job; the regression workflow entry says a private repo gets `NOT WRITTEN`; AUT-2 says the pull request lane posts commit statuses.
+3. Open `DECISIONS.md`.
+   Expect: seven "Review findings (2026-11-12)" lines above the "Waiting on owner un-review" section, which still holds only the spec-decisions proposals.
+
 ## v0.27.42 - 2026-11-12
 
 - Windows-safe process calls in health and setup, private.py under the size cap

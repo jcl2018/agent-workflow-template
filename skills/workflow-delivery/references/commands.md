@@ -489,7 +489,7 @@ tokens, no cache reads); report a step it didn't run with `goal.py step <slug> <
 
 ### The regression lane
 
-**The regression lane.** The full suite runs once per goal, in qa. Before your qa skill starts, `flow.py qa` runs the
+**The regression lane.** The loop runs only the affected rows, once per goal, in qa, within `test_budget_minutes`; the full suite runs on the schedule. Before your qa skill starts, `flow.py qa` runs the
 lane, `python3 <workflow-regression>/scripts/regression.py run land --reuse`, in the background (`RUNNING` until it
 ends). It runs through your flow file's `test_record` prefix when you set one (a receipt recorder, so your ship skill's
 own check of recorded test runs can reuse it), and tests the committed HEAD only: an unclean tree fails it (`LANE_DIRTY`).
