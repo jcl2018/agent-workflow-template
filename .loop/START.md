@@ -94,7 +94,8 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `stale_branch_days` | 14 | Days a local branch on no remote may sit before health lists it with its removal command. |
 | `step_budget_minutes` | 30 | Minutes one review or ship step may take, 15 or more; a step at its limit finishes with what it has done and records what it left. |
 | `step_limit` | 0 | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. |
-| `template_repo` | (empty) | The template's GitHub repo (owner/name) update reads releases from, when the installed package names none. |
+| `template_repo` | none | The template's GitHub repo (owner/name) update reads releases from, when the installed package names none. |
+| `template_version` | 0.27.17 |  |
 | `test_budget_minutes` | 15 | Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite. |
 | `time_budget_minutes` | 120 |  |
 | `token_budget` | 3000000 | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
