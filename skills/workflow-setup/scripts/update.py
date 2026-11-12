@@ -13,7 +13,7 @@ stamp's repo, else template_repo (both set and different: refused unless --templ
 """
 import argparse
 import contextlib
-import fcntl
+import portlock as fcntl
 import hashlib
 import io
 import json
