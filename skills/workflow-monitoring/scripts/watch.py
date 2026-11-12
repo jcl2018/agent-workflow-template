@@ -152,7 +152,7 @@ def runs():
     for name in sorted(os.listdir(folder)):
         if name.endswith(".json"):
             state = load(name[:-5])
-            if state and state.get("slug"):
+            if state and state.get("slug") and not graph.foreign(state):  # another pod's goals are not this pod's to watch
                 found.append(state)
     return found
 
@@ -283,6 +283,7 @@ def freeze(goal, cfg):
              "done_sha": hashlib.sha256("\n".join(lines).encode()).hexdigest(),
              "release": goal.get("release", ""), "waiting": None, "finding": "", "log": [],
              "waits_on": goal["depends"], "rules_at": {"idea": known_rules()}}
+    graph.stamp(state)
     save(state, "queued")
     if git("rev-parse", "--verify", "--quiet", "refs/heads/" + branch, check=False):
         git("worktree", "add", tree, branch)
@@ -473,6 +474,7 @@ def cmd_watch(args):
 
 
 def cmd_resume(args):
+    graph.refuse(load(args.slug) or {})
     refresh()
     if not os.path.exists(mend_helper()):
         sys.exit("REFUSED: resume needs mend.py beside watch.py.")

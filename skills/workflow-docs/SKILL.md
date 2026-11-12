@@ -48,11 +48,20 @@ python3 scripts/docs.py check [--base <ref>]
 | `UNMAPPED` | A page has no row in `.loop/docs.tsv` (the generated `Tests` page never needs one) | Run `add` |
 | `FORMAT` | With `"criteria": true`, a page breaks a shape rule of `references/template.md` (DOC-4 Home, DOC-5 README front door, DOC-6 Usage, DOC-7 Requirements, DOC-8 Problem, DOC-9 Tests), printed as `FORMAT <Page>:<line>: <Section>: DOC-n <what> (got <value>). Fix: <how>`; the sheet's `format` key picks the rules | Do what the Fix says |
 | `STALE Tests` | The generated `docs/wiki/Tests.md` differs from a fresh render; the line names the first difference | Run `/workflow-docs render` |
+| `STALE Settings`, `STALE Automation`, `STALE README line` | With `"criteria": true`, the generated Settings and Automation blocks (on Home and in the README, between `<!-- settings:begin -->` markers) or the README's template-repo line differ from a fresh render of `settings.py reference`, `.loop/config.json` and the workflow files; the setting is marked overridden only when its value differs from the default | Run `/workflow-docs render`; `publish` refreshes them too |
 | `COUNT` | The README, a wiki page or a top-level doc in `skills/` states a count of skills, feature pages, or a feature page's criteria or tests that the repo doesn't match; all but skills need `"criteria": true`. A feature page's tests count includes its defect tests. One word may sit between number and noun only if it means all of them ("eight workflow-ready skills"); "N defect tests" is checked against the defect tests. Skipped: the word "one", a limit ("up to 6"), a part or label ("two delivery skills"), fenced and indented code and comments as Markdown renders them, a line naming one of the page's own criteria, the criteria and tests counts on a line naming another page's criterion, and a line marked `<!-- not-a-count -->`; a code fence that never closes is itself a `COUNT` line. Wrapped lines are read as one paragraph. `publish` refuses only on wiki pages | Correct the number |
 
 Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to
 count only changes since that point. `cut` counts from the goal's base the same way. `publish` has no `--base`: it
 counts every commit.
+
+## `automation` registry
+
+The Automation block lists health and regression (built in, cadence from `health_cron` and `regression_cron`) and each entry
+of `automation` in `.loop/config.json`: `{"name", "does", "cadence", "runs", "enabled", "last_run"}`, where `runs` is
+`github:FILE` (a workflow file), `mac:LABEL` (a launch agent) or `claude:TASK` (a Claude scheduled task) and `cadence` is a
+cron string, words, or `off`. Adding a routine is adding one entry. `python3 scripts/docs.py automation` prints each one's
+live state here; the committed block holds only what files and config show.
 
 ## `audit`
 
@@ -142,6 +151,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-docs prd NAME "<idea>" --paths A,B` | `python3 scripts/prd.py new NAME "<idea>" --paths A,B` |
 | `/workflow-docs convert` | `python3 scripts/prd.py convert --write` |
 | `/workflow-docs render` | `python3 scripts/criteria.py render` |
+| `/workflow-docs automation` | `python3 scripts/docs.py automation` |
 | `/workflow-docs entry` | `python3 scripts/entry.py write` (`check`, `render`, `block`) |
 | `/workflow-docs publish` | `python3 scripts/docs.py publish` |
 | `/workflow-docs restore` | `python3 scripts/docs.py restore` |
