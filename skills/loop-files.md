@@ -17,6 +17,7 @@ The workflow skills share this contract. `design-guide.md` beside it explains ho
 | `.loop/regression-issues.tsv` | Each defect test's issue or pull request: link, state, date; written only by `tests.py issues --write`, shown in the wiki Tests lines and the health report |
 | `.loop/regression-runs.tsv` | Each row's last run: id, PASS or FAIL, date; written by `regression.py run`, shown in the wiki Tests tables |
 | `.loop/regression-known.tsv` | Rows expected to fail, with a reason; they don't block |
+| `.loop/regression-red.tsv` | Red results proven on another runner: id, date, runner, commit |
 | `.loop/START.md` | The generated entry point every new session reads first (`entry.py write`); never edited by hand |
 | `CLAUDE.md`, `AGENTS.md` | Each agent's entry file; setup wires the same marked `<!-- workflow-loop -->` block into each (`agent_files`), text outside it is the repo's own |
 | `.loop/config.json` key `template_version` | The template version that last wrote the repo's generated files; `update` moves it, the board flags a repo behind |

@@ -537,6 +537,13 @@
 | <a id="t-lanes-abs-same-reach"></a>lanes-abs-same-reach | requirement | REG-4 | not run | - | local | 2026-11-12 |
 | <a id="t-lanes-dotdot-not-walked"></a>lanes-dotdot-not-walked | requirement | REG-4 | not run | - | local | 2026-11-12 |
 | <a id="t-budgets-agree"></a>budgets-agree | requirement | REG-7 | not run | - | local | 2026-11-12 |
+| <a id="t-reg10-skip-never-red"></a>reg10-skip-never-red | requirement | REG-10 | not run | - | local | 2026-11-12 |
+| <a id="t-reg10-windows-refused"></a>reg10-windows-refused | requirement | REG-10 | not run | - | local | 2026-11-12 |
+| <a id="t-reg10-commit-checked"></a>reg10-commit-checked | requirement | REG-10 | not run | - | local | 2026-11-12 |
+| <a id="t-reg10-off-platform-red"></a>reg10-off-platform-red | requirement | REG-10 | not run | - | local | 2026-11-12 |
+| <a id="t-reg10-provenance"></a>reg10-provenance | requirement | REG-10 | not run | - | local | 2026-11-12 |
+| <a id="t-reg10-owed-waits"></a>reg10-owed-waits | requirement | REG-10 | not run | - | local | 2026-11-12 |
+| <a id="t-reg10-real-fail-costs-try"></a>reg10-real-fail-costs-try | requirement | REG-10 | not run | - | local | 2026-11-12 |
 
 ## Setup
 
@@ -557,6 +564,19 @@
 | <a id="t-depth-setup"></a>depth-setup | requirement | SET-2 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-09 |
 | <a id="t-depth-reference"></a>depth-reference | requirement | SET-2 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-09 |
 | <a id="t-depth-fill-repo-help"></a>depth-fill-repo-help | requirement | SET-2 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-09 |
+| <a id="t-migration-clean"></a>migration-clean | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-gaps-pr"></a>migration-gaps-pr | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-gaps-state"></a>migration-gaps-state | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-flags"></a>migration-flags | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-writes-nothing"></a>migration-writes-nothing | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-health-same"></a>migration-health-same | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-base-config"></a>migration-base-config | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-robustness"></a>migration-robustness | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-lag-line"></a>migration-lag-line | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-major-refused"></a>migration-major-refused | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-blocks-inserted"></a>migration-blocks-inserted | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-queue"></a>migration-queue | requirement | SET-16 | not run | - | local | 2026-11-12 |
+| <a id="t-migration-mac-kept"></a>migration-mac-kept | requirement | SET-16 | not run | - | local | 2026-11-12 |
 | <a id="t-sync-check-preview"></a>sync-check-preview | requirement | SET-4 | not run | - | local | 2026-11-10 |
 | <a id="t-sync-apply-keeps"></a>sync-apply-keeps | requirement | SET-4 | not run | - | local | 2026-11-10 |
 | <a id="t-sync-default-source"></a>sync-default-source | requirement | SET-4 | not run | - | local | 2026-11-10 |

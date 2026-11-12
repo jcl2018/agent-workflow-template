@@ -1,5 +1,64 @@
 # Changelog
 
+## v0.27.47 - 2026-11-12
+
+- Merge origin/main into loop/migration-check
+- Settings: automation table row and the one Mac task name
+- A public repo recorded regression_runs mac keeps it
+- The base config resolver and the blocks a migration inserts
+- migration-check: one engine judges a repo's migration
+- The operation session queues one migrate goal per behind repo
+- Docs: migration-check Usage, SET-11, the Health notes and the regenerated pages
+- Docs for the version line and the Mac task name; migration regression rows (not yet seen failing)
+- Regression rows for migration-check, each seen failing on a broken copy of HEAD
+- Merge origin/main into loop/migration-check
+- goal.py: one import line, so it stays under the script size limit after the merge
+- test-migration: the version table reads its own temp repo, not the last one listed
+- Merge origin/main into loop/migration-check
+- Build: enforce.wiki_gaps stops a hung wiki clone on Windows (no os.killpg there)
+- Build: workflows.py imports on Windows (os.getuid is Mac/Linux only)
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/migration-check (SET-11 -> SET-16 for the migration requirement)
+- Health Usage: a repo recorded mac is never DRIFT
+- Merge origin/main (v0.27.42) into loop/migration-check
+- enforce.py: mark the posix-only killpg branch so test-portable passes
+- Merge origin/main into loop/migration-check (round 2)
+- Monitoring page: operate queues a migrate goal per behind repo
+- Pages: the Windows fallbacks, the migration-rule wiki clone timeout, goal.py's one import
+- Merge remote-tracking branch 'origin/main' into loop/migration-check
+- Merge remote-tracking branch 'origin/main' into loop/migration-check
+- Merge origin/main into loop/migration-check (round 4)
+
+### How to verify
+
+1. In a repo adopted before v0.27.17, run `python3 skills/workflow-setup/scripts/setup.py migration-check`. Time the run; on the toy repos a run takes about one second.
+   Expect: GAP lines for the missing Settings and Automation blocks, the missing `template_version` and the missing local task, each with a Fix line, and exit 1.
+2. In that repo run `python3 skills/workflow-setup/scripts/update.py --apply`, merge the branch it prints, then run the check again with `--pr`.
+   Expect: `MIGRATION OK (--pr: state codes not checked)` and exit 0; the full check then lists only the local task and wiki gaps, each with its fix.
+3. Run `python3 skills/workflow-health/scripts/automation.py local install`, remove each orphan wiki page the check names (`git rm -- <page>.md` in a clone of the wiki, commit, push), run `docs.py publish`, then run the full check.
+   Expect: `MIGRATION OK` and exit 0.
+4. In a repo that is behind the installed template, start a goal with `goal.py new`.
+   Expect: the one line `this repo is at vY, the template is at vX, run the migrate goal`, and a REFUSED only when the major versions differ (a `migrate-` slug is let through).
+5. After a template release, run `python3 skills/workflow-monitoring/scripts/operate.py run --once` in the operation session.
+   Expect: one `migrate-<repo>` line in the `.loop/queue.md` of each followed repo that is behind, and none for a repo that is current.
+
+## v0.27.46 - 2026-11-12
+
+- REG-10: record a red proven on another runner; a skip never sets seen red
+- Review: a darwin runner is not Windows
+- REG-10: a lane failing only on skipped, unproven rows waits for off-platform proof
+- Rows reg10-owed-* seen red
+- Fold the off-platform helpers into fit.py and runs.py: no new files under skills/
+- Record the Mac red proofs of the five reg10 rows
+- Merge origin/main into loop/red-off-platform-prd
+- Docs: Delivery, Regression and Home describe the off-platform proof
+- Merge origin/main into loop/red-off-platform-prd
+- Merge remote-tracking branch 'origin/main' into loop/red-off-platform-prd
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.45 - 2026-11-12
 
 - Skip absolute folders outside the repo in a lane's reach analysis

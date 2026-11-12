@@ -3,17 +3,17 @@
 
 usage: sync.py [--repo DIR] [--version X] [--wrote-skills]   (update.py --apply runs it; alone it syncs to the installed version)
 
-It reads the base branch's .loop/config.json, never the person's checkout, and writes in a temporary worktree on
-branch workflow-update-vX cut from the base branch:
+It reads the base branch's .loop/config.json, never the checkout's, and writes in a temporary worktree on branch
+workflow-update-vX cut from the base branch:
 
     base ──(git worktree add -b workflow-update-vX)──> <git common dir>/loop/update-worktree
       fill missing repo settings (settings.fill_repo) · template_version = X · entry.py write · agents.py wire
       commit .loop/config.json .loop/START.md and the agent files ──> remove the worktree (always)
-    branch states: none -> cut from base; unmerged -> reused (no new commit if nothing changed: PENDING);
+    branch states: none -> cut from base; unmerged -> reused (no new commit if unchanged: PENDING);
                    merged but base's config still older -> refused (UPDATE_BRANCH_MERGED)
 
-Hand-written data (config values already set, pages, rules, local settings) is only added to; the generated files
-(START.md, the marked agent blocks, the stamp) are replaced. It never merges or pushes: NEXT says how to merge.
+Hand-written data (config values set, pages, rules, local settings) is only added to; generated files (START.md, the marked
+agent blocks, the stamp) are replaced. It never merges or pushes: NEXT says how to merge.
 """
 import argparse
 import difflib
@@ -34,8 +34,8 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 
 
 class Txn:
-    """setup's transaction: its folders are copied and a journal kept in the git dir before the first write, so a refusal, an
-    exception, a signal or a hard kill (the next run recovers) leaves the tree, index and branches as they were."""
+    """setup's transaction: folders copied and a journal kept in the git dir before the first write, so a refusal, exception,
+    signal or hard kill (the next run recovers) leaves the tree, index and branches as they were."""
 
     def __init__(self, repo, branch, extra=(), journal=None):
         self.repo, self.branch, self.j = repo, branch, journal
@@ -145,23 +145,21 @@ def git(repo, *args, check=True):
     return done.stdout.strip() if done.returncode == 0 else ""
 
 
-def base_of(repo):
-    try:
-        with open(os.path.join(repo, ".loop", "config.json")) as handle:
-            return json.load(handle).get("base") or "main"
-    except (OSError, ValueError, AttributeError):
-        return git(repo, "symbolic-ref", "--short", "refs/remotes/origin/HEAD", check=False).split("/")[-1] or "main"
-
-
 def base_config(repo):
-    """The base branch's .loop/config.json ({} when the base has none)."""
-    base = base_of(repo)
-    text = git(repo, "show", "%s:.loop/config.json" % base, check=False)
+    """The base branch's .loop/config.json ({} when none): origin/<b> before <b>, b from the checkout's base, origin/HEAD, main, master."""
     try:
-        found = json.loads(text) if text else {}
-    except ValueError:
-        found = {}
-    return dict(found, base=found.get("base") or base) if found else {}
+        own = json.load(open(os.path.join(repo, ".loop", "config.json")))["base"]
+    except (OSError, ValueError, KeyError, TypeError):
+        own = ""
+    for name in filter(None, dict.fromkeys((str(own), git(repo, "symbolic-ref", "--short", "refs/remotes/origin/HEAD", check=False)[7:], "main", "master"))):
+        for ref in ("origin/" + name, name):
+            try:
+                found = json.loads(git(repo, "show", ref + ":.loop/config.json", check=False))
+            except ValueError:
+                continue
+            if found and isinstance(found, dict):
+                return dict(found, base=found.get("base") or name)
+    return {}
 
 
 def branch(version):
@@ -268,20 +266,7 @@ def apply_repo(repo, cfg, target, wrote_skills):
 
 
 # --- Propose: skill files edited in an adopted repo (LOCAL FIX lines) go back to the template as one GitHub issue.
-# import difflib
-# import getpass
-# import hashlib
-# import json
-# import os
-# import re
-# import subprocess
-# import sys
-# 
-# 
-# # No terminal, no waiting: a prompt from git or gh must fail, not block.
-# os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
-# 
-# def base_copy(skills, old, rel):
+
 
 def base_copy(skills, old, rel):
     """The package copy a local fix was made on: the kept copy, else what the stamp's hash says was installed (unknown)."""
