@@ -439,6 +439,32 @@ def check_backtest_loo():
     need(abs(bs.score(list(rows.values()), "steps") - hand) < 1e-9, "the score is the median |log error| worked out by hand")
 
 
+def check_time_order_selector():
+    repo = Repo()
+    for i in range(12):
+        repo.done("g%d" % i, 1, 1, {"build": 10 if i < 10 else 20}, start=-100000 + i * 2000)
+    old_names, old_cells, old_labels = bm.CANDIDATES, dict(bm.CELLS), dict(bm.LABELS)
+    def cell(minutes):
+        return lambda hist, out: lambda x, y: {s: (minutes * 60,) * 3 if s == "build" else None for s in STEPS}
+    try:
+        bm.CANDIDATES = ("future", "steady")
+        bm.CELLS.update(future=lambda hist, out: cell(20 if len(hist.done) < 10 else 10)(hist, out), steady=cell(15))
+        bm.LABELS.update(future="future", steady="steady")
+        runs = repo.records()
+        bm.MODEL.clear()
+        loo = bm.folds(bm.model(runs, AT, repo.root)["hist"], bm.CANDIDATES)
+        need(bs.score(loo, "future") < bs.score(loo, "steady"), "future model wins leave-one-out")
+        scores, n = bm.backtest(runs, AT, repo.root)
+        need(n == 11 and scores["steady"] < scores["future"], "time order rejects future-data model: %s" % scores)
+        need(bm.chosen(runs, AT, repo.root) == "steady", "the board selects the time-ordered winner")
+        need("time-ordered" in bm.accuracy_text(runs, AT, repo.root), "the board names the error's time order")
+    finally:
+        bm.CANDIDATES = old_names
+        bm.CELLS.clear(); bm.CELLS.update(old_cells)
+        bm.LABELS.clear(); bm.LABELS.update(old_labels)
+        bm.MODEL.clear()
+
+
 def check_accuracy_line():
     repo = set_a()
     lines = repo.board()
