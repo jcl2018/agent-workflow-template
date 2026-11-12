@@ -47,12 +47,12 @@
 | <a id="t-aut-email-mail"></a>aut-email-mail | requirement | AUT-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-aut-email-retry"></a>aut-email-retry | requirement | AUT-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-aut-email-test"></a>aut-email-test | requirement | AUT-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-aut-email-digest"></a>aut-email-digest | requirement | AUT-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | no |
+| <a id="t-aut-email-digest"></a>aut-email-digest | requirement | AUT-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-12 |
 | <a id="t-aut-email-upgrade"></a>aut-email-upgrade | requirement | AUT-1 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-aut-email-secrets"></a>aut-email-secrets | requirement | AUT-6 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-aut-email-rounds"></a>aut-email-rounds | requirement | AUT-7 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
-| <a id="t-aut-email-file"></a>aut-email-file | requirement | AUT-3 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | no |
-| <a id="t-aut-email-regression"></a>aut-email-regression | requirement | AUT-2 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | no |
+| <a id="t-aut-email-file"></a>aut-email-file | requirement | AUT-3 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-12 |
+| <a id="t-aut-email-regression"></a>aut-email-regression | requirement | AUT-2 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-12 |
 
 ## Delivery
 
@@ -131,7 +131,7 @@
 | <a id="t-publish-refused-stale"></a>publish-refused-stale | requirement | DOC-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-07 |
 | <a id="t-refuse-replace"></a>refuse-replace | requirement | DOC-11 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-07 |
 | <a id="t-stale-merge-order"></a>stale-merge-order | requirement | DOC-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-07 |
-| <a id="t-milestones-once"></a>milestones-once | requirement | DOC-10 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | no |
+| <a id="t-milestones-once"></a>milestones-once | requirement | DOC-10 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-page-shape"></a>page-shape | requirement | DOC-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-07 |
 | <a id="t-criteria-no-scripts"></a>criteria-no-scripts | requirement | DOC-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-07 |
 | <a id="t-tests-not-enforced"></a>tests-not-enforced | requirement | DOC-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-07 |
@@ -242,7 +242,7 @@
 | <a id="t-hlt6-clean-quiet"></a>hlt6-clean-quiet | requirement | HLT-6 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-hlt6-never-filed"></a>hlt6-never-filed | requirement | HLT-6 | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-10 |
 | <a id="t-hlt2-twelve-groups"></a>hlt2-twelve-groups | requirement | HLT-2 | not run | - | local | 2026-11-10 |
-| <a id="t-hlt4-feature-milestones"></a>hlt4-feature-milestones | requirement | HLT-4 | not run | - | local | no |
+| <a id="t-hlt4-feature-milestones"></a>hlt4-feature-milestones | requirement | HLT-4 | not run | - | local | 2026-11-12 |
 | <a id="t-hlt5-review-evidence"></a>hlt5-review-evidence | requirement | HLT-5 | not run | - | local | 2026-11-10 |
 | <a id="t-hlt6-controls-lean"></a>hlt6-controls-lean | requirement | HLT-6 | not run | - | local | 2026-11-10 |
 | <a id="t-hlt1-same-answer"></a>hlt1-same-answer | requirement | HLT-1 | not run | - | local | 2026-11-10 |
@@ -552,15 +552,15 @@
 | <a id="t-lane-died-wait"></a>lane-died-wait | requirement | done line lane-control:3 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-11 |
 | <a id="t-lane-pass-dirty"></a>lane-pass-dirty | requirement | done line lane-control:3 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-11 |
 | <a id="t-lane-orphan-poll"></a>lane-orphan-poll | requirement | done line lane-control:3 | PASS | 2026-11-11 | [CI 2026-11-11](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-11) | 2026-11-11 |
-| <a id="t-no-milestone-issue-ok"></a>no-milestone-issue-ok | requirement | done line milestone-freeform:2 | not run | - | local | no |
-| <a id="t-no-milestone-page-ok"></a>no-milestone-page-ok | requirement | done line milestone-freeform:2 | not run | - | local | no |
-| <a id="t-home-milestone-optional"></a>home-milestone-optional | requirement | done line milestone-freeform:2 | not run | - | local | no |
-| <a id="t-pr-no-milestone"></a>pr-no-milestone | requirement | done line milestone-freeform:2 | not run | - | local | no |
-| <a id="t-health-file-no-milestone"></a>health-file-no-milestone | requirement | done line milestone-freeform:2 | not run | - | local | no |
-| <a id="t-regression-issue-no-milestone"></a>regression-issue-no-milestone | requirement | done line milestone-freeform:2 | not run | - | local | no |
-| <a id="t-digest-no-milestone"></a>digest-no-milestone | requirement | done line milestone-freeform:2 | not run | - | local | no |
-| <a id="t-setup-no-milestone-step"></a>setup-no-milestone-step | requirement | done line milestone-freeform:2 | not run | - | local | no |
-| <a id="t-health-workflow-no-milestone"></a>health-workflow-no-milestone | requirement | done line milestone-freeform:2 | not run | - | local | no |
-| <a id="t-milestone-v1-free-form"></a>milestone-v1-free-form | requirement | done line milestone-freeform:3 | not run | - | local | no |
-| <a id="t-milestone-wording-unreviewed"></a>milestone-wording-unreviewed | requirement | done line milestone-freeform:1 | not run | - | local | no |
-| <a id="t-milestone-rows-seen-red"></a>milestone-rows-seen-red | requirement | done line milestone-freeform:4 | not run | - | local | no |
+| <a id="t-no-milestone-issue-ok"></a>no-milestone-issue-ok | requirement | done line milestone-freeform:2 | not run | - | local | 2026-11-12 |
+| <a id="t-no-milestone-page-ok"></a>no-milestone-page-ok | requirement | done line milestone-freeform:2 | not run | - | local | 2026-11-12 |
+| <a id="t-home-milestone-optional"></a>home-milestone-optional | requirement | done line milestone-freeform:2 | not run | - | local | 2026-11-12 |
+| <a id="t-pr-no-milestone"></a>pr-no-milestone | requirement | done line milestone-freeform:2 | not run | - | local | 2026-11-12 |
+| <a id="t-health-file-no-milestone"></a>health-file-no-milestone | requirement | done line milestone-freeform:2 | not run | - | local | 2026-11-12 |
+| <a id="t-regression-issue-no-milestone"></a>regression-issue-no-milestone | requirement | done line milestone-freeform:2 | not run | - | local | 2026-11-12 |
+| <a id="t-digest-no-milestone"></a>digest-no-milestone | requirement | done line milestone-freeform:2 | not run | - | local | 2026-11-12 |
+| <a id="t-setup-no-milestone-step"></a>setup-no-milestone-step | requirement | done line milestone-freeform:2 | not run | - | local | 2026-11-12 |
+| <a id="t-health-workflow-no-milestone"></a>health-workflow-no-milestone | requirement | done line milestone-freeform:2 | not run | - | local | 2026-11-12 |
+| <a id="t-milestone-v1-free-form"></a>milestone-v1-free-form | requirement | done line milestone-freeform:3 | not run | - | local | 2026-11-12 |
+| <a id="t-milestone-wording-unreviewed"></a>milestone-wording-unreviewed | requirement | done line milestone-freeform:1 | not run | - | local | 2026-11-12 |
+| <a id="t-milestone-rows-seen-red"></a>milestone-rows-seen-red | requirement | done line milestone-freeform:4 | not run | - | local | 2026-11-12 |
