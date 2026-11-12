@@ -45,7 +45,7 @@ try:  # pods (MON-15): workflow-monitoring's graph.py, loaded by path
 except Exception:
     pods = None
 
-# No terminal, no waiting: a prompt from git or gh must fail, not block.
+# A git or gh prompt must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
@@ -126,7 +126,7 @@ def load(slug):
 
 
 def save(state, note=None):
-    """Under a lock, merged with another writer's save: only keys changed here replace the file's; the log keeps both."""
+    """Locked save: only keys changed here replace the file's; the log keeps both."""
     state["updated"] = now()
     if note:
         state.setdefault("log", []).append("%s %s" % (state["updated"], note))
@@ -138,8 +138,8 @@ def save(state, note=None):
         except (OSError, ValueError):
             disk = {}
         was = json.loads(SEEN.get(slug, "{}"))
-        merged = dict(disk, **{key: value for key, value in state.items() if key not in was or was[key] != value})
-        merged = {key: value for key, value in merged.items() if key in state or key not in was}  # a removed key stays removed
+        merged = dict(disk, **{k: v for k, v in state.items() if k not in was or was[k] != v})
+        merged = {k: v for k, v in merged.items() if k in state or k not in was}
         have = disk.get("log") or []
         merged["log"] = have + [line for line in state.get("log") or [] if line not in have]
         role.report(disk, merged, state["updated"])
