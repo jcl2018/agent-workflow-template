@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.27.44 - 2026-11-12
+
+- Merge origin/main into loop/spec-decisions
+- Wiki: update pages for spec-decisions
+- Merge origin/main into loop/spec-decisions
+- Merge origin/main into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge remote-tracking branch 'origin/main' into loop/spec-decisions
+- Merge origin/main into loop/spec-decisions
+
+### How to verify
+
+1. Run `grep -c "^- 2026-11-12, " DECISIONS.md`.
+   Expect: it prints 10, and a "Waiting on owner un-review" section lists the locked requirements' proposed wording.
+2. Run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: the only line printed is `CHANGED Monitoring: Usage edited ...` (it needs the owner's review).
+
 ## v0.27.43 - 2026-11-12
 
 - spec-decisions: reword the unreviewed requirements, SKILL.md and commands.md; log decisions
