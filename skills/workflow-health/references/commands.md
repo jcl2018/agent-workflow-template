@@ -33,7 +33,7 @@ unchanged repo print the same lines.
 | Consistency (do the pages agree?) | `ids-unique` | a requirement id is defined on two pages (FAIL) |
 | | `refs` | a page names an id of a known prefix that no page defines (FAIL) |
 | | `usage-readme` | the README names a `/workflow-x verb` no page's Usage names (WARN) |
-| Docs (does each page match the template and the code?) | `docs-check` | `docs.py check`: a stale page WARNs, any other gap FAILs (its requirement count belongs to Size); `issues.py` (DOC-10): an open issue with no milestone FAILs, and an unreadable issue list is shown as UNREAD but never turns the verdict red |
+| Docs (does each page match the template and the code?) | `docs-check` | `docs.py check`: a stale page WARNs, any other gap FAILs (its requirement count belongs to Size); no check reads a milestone |
 | Freshness (is anything out of date?) | `nightly` | the newest nightly run is older than a day (WARN) |
 | | `unreleased` | commits after the newest `v*` tag, the oldest over 3 days old (WARN) |
 | | `finding-age` | an open health issue is older than 30 days (WARN) |
@@ -88,15 +88,16 @@ module's `FUNCTIONS`, and add a fixture to its `CONTROLS` that makes it fire. He
   subagent answers it, and the rerun takes its saved reply with `--judge-answer FILE`. With no session (the scheduled
   GitHub Actions run) they run `judge_command` (`claude -p`). Each report logs `judge: session` or
   `judge: claude -p (no session)`.
-- `file` puts each finding on its feature's milestone: the page whose `.loop/docs.tsv` path is the longest prefix of the
-  finding's path, the page defining its requirement id, the page of its row's requirement, an issue's own milestone, or a
-  review finding's feature. Backlog when none fits.
-  - Its marker is `<!-- loop-health KEY evidence=H placed=P -->`, where H hashes the finding's identity and stable citations,
-    never its ages, counts or sizes, and P is the milestone `file` put it on: it moves to its feature only while it is still
-    there, so an issue you moved anywhere else, `Backlog` included, stays. Markers from before the twelve groups are found
-    and moved to the new key. A feature milestone that isn't there falls back to `Backlog` (made when needed); create the
-    milestones first (see Milestones). When the milestones can't be read, issues are placed by title and none is moved.
-  - An open non-health issue on that milestone naming the subject (exact path, id or row id) gets one comment marked
+- `file` tags each finding's issue with its group and places it on no milestone. Its feature is the page whose `.loop/docs.tsv` path is
+  the longest prefix of the finding's path, the page defining its requirement id, the page of its row's requirement, an
+  issue's own feature, or a review finding's feature; none when none fits. With the `feature_labels` setting on it also
+  tags `feature:<Page>`, made first with `label create --force`; if that label can't be made or set, the issue is filed
+  without it and `FAILED label feature:X: ...` says so.
+  - Its marker is `<!-- loop-health KEY evidence=H placed= -->`, where H hashes the finding's identity and stable citations,
+    never its ages, counts or sizes; `placed=` is always empty, and an older marker that names a milestone still parses.
+    No milestone is read, made or set, and an issue you put on one stays. Markers from before the twelve groups are found
+    and moved to the new key.
+  - An open non-health issue naming the subject (exact path, id or row id) gets one comment marked
     `<!-- loop-health-link KEY evidence=H -->`, instead of a new issue.
   - An issue closes only when its own rule ran and read its data. One closed in triage (`health:closed`) stays closed while
     its evidence hash is unchanged.
@@ -105,7 +106,6 @@ module's `FUNCTIONS`, and add a fixture to its `CONTROLS` that makes it fire. He
 
 Refusals print `REFUSED[code]` and exit 2: `[file]`, `[gh]`, `[review]`, `[feature]`, `[kind]`, `[why]`, `[cap]`.
 
-The milestones the issues land in are on the [Documentation](Documentation) page.
 
 ### Stage charts
 
@@ -138,13 +138,13 @@ flowchart TD
   b["Find each finding's feature and its issue"]
   c["Print WOULD lines (preview stops here)"]
   d{{"Owner names the groups to file"}}
-  e["Open, update, close, reopen or link on each feature milestone"]
+  e["Open, update, close, reopen or link, tagged with group and feature"]
   a --> b --> c --> d --> e
   classDef owner fill:#fde68a,stroke:#b45309,color:#1f2937
   class d owner
 ```
 
-Status: built and proven: Run the rules, and read a saved review; Find each finding's feature and its issue; Print WOULD lines (preview stops here); Owner names the groups to file; Open, update, close, reopen or link on each feature milestone. Built only: none. Planned: none.
+Status: built and proven: Run the rules, and read a saved review; Find each finding's feature and its issue; Print WOULD lines (preview stops here); Owner names the groups to file; Open, update, close, reopen or link, tagged with group and feature. Built only: none. Planned: none.
 Stops for the owner: Owner names the groups to file.
 Proof: toy tests with a stand-in for GitHub.
 
@@ -213,28 +213,53 @@ written workflow older than the skills (`STALE_WORKFLOW`) or one not written by 
 (`digest_mail`), to the address in the `DIGEST_TO` secret; `mail.py test` (`mail-test.yml`, by hand) sends one fixed mail.
 Codes and fixes are in the Automation wiki page.
 
-## Milestones: commands and flows
+## Milestones: free form, optional, an owner's commands
 
-Moved from the wiki page, which is now only a summary, criteria and tests.
+A milestone is only for planning by version (for example v1.0). Nothing requires a feature page, issue or pull request to
+have one, and no check, rule, `file`, `goal.py pr` or setup step fails, warns or refuses for lacking one. No command here
+runs on its own; they are the owner's.
 
 ### Milestone commands
 
 ```text
-features
-new FEATURE|backlog|--all [--live]
-attach SLUG [--live]
-move ISSUE FEATURE|backlog [--live]
+new TITLE [--live]
+move ISSUE TITLE|none [--live]
 ```
 
-- `features` lists the features: the pages in the page map except Home.
-- `new` creates the milestone for one feature, the `Backlog`, or all of them, and nothing that already exists.
-- `attach` puts a goal's pull request in the milestone of the feature its touched files belong to. The pull request step
-  of the delivery skill runs it, and a failure never stops the goal.
-- `move` puts an issue in a feature's milestone, or back on the `Backlog`.
+```text
+$ milestone.py new v1.0 --live
+CREATED v1.0
+$ milestone.py new v1.0 --live
+EXISTS v1.0
+$ milestone.py move 42 v1.0 --live
+MOVED issue 42 to milestone v1.0
+$ milestone.py move 42 none --live
+MOVED issue 42 to no milestone
+```
 
-Each one prints what it would do and writes nothing unless you pass `--live` or set `GH_TOKEN` or `GITHUB_TOKEN`. None
-of them closes, deletes or merges anything. The `file --group` command of [Health](Health) files findings on their feature's milestone, or on the `Backlog` when
-no feature fits.
+- `new` creates the milestone TITLE (any text, `backlog` included) and nothing that already exists. Without `--live` it prints
+  `WOULD create milestone TITLE (dry run; add --live)` and writes nothing; `--live` with no token refuses
+  (`REFUSED: no GitHub token, nothing created. ...`, exit 1).
+- `move` puts an issue on an existing milestone, or clears it with `none`. A title that doesn't exist refuses
+  (`REFUSED: no milestone TITLE (issue N unchanged). Fix: milestone.py new TITLE --live`, exit 1), and so does a gh failure
+  (`REFUSED: could not move issue N: ... Fix: gh issue view N ...`).
+- `features`, `attach` and `new --all` were removed: each prints one line `REFUSED: <name> was removed, milestones are free form.
+  Fix: drop the call.` and exits 1. A health workflow written by an older template still has that step; it only echoes a
+  warning, so its job goes on. Regenerate the workflow (`automation.py workflow`) to drop it.
+
+A milestone that exists is still shown: on Home when the owner links it, in the digest beside an issue's request, and in
+triage and the judge as the issue's own milestone. Nothing is ever closed, deleted or merged by these commands.
+
+### Feature tag and grouping
+
+- An issue is about a feature by its `feature:<Page>` label (`issues.feature_label`: the page name without commas or control
+  characters, cut at 42 characters so the label stays within GitHub's 50; two page names sharing their first 42 characters
+  share a label, accepted). Only when the `feature_labels` setting is on (default off) do `file` and the regression workflow
+  create that label and apply it; with it off, issues carry their group (or `regression`) label only.
+- Triage, `--feature`, the digest and the judge group by `issues.feature_group`: the feature label, else a milestone named
+  like a page (an old feature milestone), else `No feature`. A free-form milestone such as v1.0 or `Backlog` never becomes a
+  feature, so until the owner labels an issue (`gh issue edit N --add-label "feature:<Page>"`, an owner command) grouping
+  is mixed: labelled and page-milestoned issues under their feature, the rest under `No feature`.
 
 ### Stage charts
 
@@ -245,48 +270,23 @@ Amber marks where the command stops for the owner. [Home](Home) says what each s
 ```mermaid
 flowchart LR
   a["Read the milestones that exist"]
-  b["Create the missing ones"]
+  b["Create it unless it exists"]
   a --> b
 ```
 
-Status: built and proven: Read the milestones that exist; Create the missing ones. Built only: none. Planned: none.
+Status: built and proven: Read the milestones that exist; Create it unless it exists. Built only: none. Planned: none.
 Stops for the owner: none.
-Proof: toy tests with a stand-in for GitHub. No real milestone exists on this repo yet.
-
-#### `attach`
-
-```mermaid
-flowchart LR
-  a["Find the feature from the goal's touches"]
-  b["Put the pull request in its milestone"]
-  a --> b
-```
-
-Status: built and proven: Find the feature from the goal's touches; Put the pull request in its milestone. Built only: none. Planned: none.
-Stops for the owner: none.
-Proof: toy tests with a stand-in for GitHub. It has never run on a real pull request.
+Proof: toy tests with a stand-in for GitHub.
 
 #### `move`
 
 ```mermaid
 flowchart LR
-  a["Choose the feature or the Backlog"]
-  b["Put the issue in that milestone"]
+  a["Check the milestone exists, or none"]
+  b["Put the issue on it, or clear it"]
   a --> b
 ```
 
-Status: built and proven: Choose the feature or the Backlog; Put the issue in that milestone. Built only: none. Planned: none.
+Status: built and proven: Check the milestone exists, or none; Put the issue on it, or clear it. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests with a stand-in for GitHub.
-
-#### `features`
-
-```mermaid
-flowchart LR
-  a["List the pages in the page map except Home"]
-  a
-```
-
-Status: built and proven: List the pages in the page map except Home. Built only: none. Planned: none.
-Stops for the owner: none.
-Proof: toy tests use it through `new --all`.

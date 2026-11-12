@@ -5,7 +5,8 @@ echo "$*" >> "$d/calls.log"
 here=$(cd "$(dirname "$0")" && pwd)
 case "$1 $2" in
   "api "*) exec python3 "$here/fake.py" "$@";;
-  "issue list"|"issue create") [[ "$*" == *"--label health"* || "$*" == *"--milestone"* || "$*" == *"--repo "* || "$*" == *"number,title,milestone"* ]] && exec python3 "$here/fake.py" "$@";;
+  "label create"|"label list") exec python3 "$here/fake.py" "$@";;
+  "issue list"|"issue create") [[ "$*" == *"--label health"* || "$*" == *"--label feature:"* || "$*" == *"--milestone"* || "$*" == *"--repo "* || "$*" == *"number,title,milestone"* ]] && exec python3 "$here/fake.py" "$@";;
   "issue view") [ -f "$d/issues.json" ] && exec python3 "$here/fake.py" "$@";;
   "issue edit"|"issue close"|"issue reopen"|"issue comment"|"pr edit") [ -f "$d/issues.json" ] || [ "$1" = pr ] && exec python3 "$here/fake.py" "$@";;
 esac
@@ -28,6 +29,7 @@ case "$1 $2" in
      grep -qx "$3" "$d/releases" 2>/dev/null && exit 0; echo "release not found" >&2; exit 1;;
   "release download") [[ "$*" == *"--archive zip"* ]] || exit 1; dir=.; while [ $# -gt 0 ]; do [ "$1" = --dir ] && dir=$2; shift; done
      [ -f "${FAKE_GH_ARCHIVE:-}" ] || { echo "release not found" >&2; exit 1; }; cp "$FAKE_GH_ARCHIVE" "$dir/";;
+  "auth token") [ -n "${FAKE_GH_NO_AUTH:-}" ] && { echo "not logged in" >&2; exit 1; }; echo "fake-token";;
   "pr list") echo "[]";;
   "issue list") python3 -c '
 import datetime, json, os

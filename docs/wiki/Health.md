@@ -3,29 +3,29 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/4
 
-Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c50b43 U=faad868e -->
+Review: **Unreviewed**
 
 ## Problem
 - My rules, requirements and standards are spread across many pages and sometimes conflict, and I can't see where the repo falls short of its own PRDs.
 - I want a reviewer that reads everything (every PRD page, the README, milestones, open issues, tests and code) and tells me per feature what conflicts, what's missing and what's slow, alongside fixed checks that give the same answer every time.
-- Its findings should land as issues on each feature's milestone, previewed first, so I can triage them in one place later.
+- Its findings should land as issues tagged with their feature, previewed first, so I can triage them in one place later.
 
 ## Usage
 
 - `/workflow-health check [--group NAME] [--skip controls] [--json]` — Runs the fixed rules and prints one line per finding, then the verdict. Prints `HEALTH REPORT`, then `<STATE> <group> <subject> <rule>: <detail>` per row, and last `HEALTH: green|not green (<p> pass, <w> warn, <f> fail, <u> unread)` (with `--json`, one object with green, counts, rows and verdict); exits 1 when not green. Refuses (exit 1) `REFUSED: unknown group <names>. Groups: ...` and `REFUSED: not inside a git repo.`; (exit 2) `REFUSED: --skip leaves no group to check` and `REFUSED: rule <name> has no negative control. ...` Its hygiene group includes a `hooks` rule: it warns when a private-name hook (pre-commit, commit-msg or pre-push, installed by workflow-setup) is missing, is not ours or calls a script that is gone, or when the private-name list is broken. The owner's private rules (`--group mine`) run from `enforce.py`, folded in beside the not-enforced check to keep the package under 100 files.
 - `/workflow-health preview [--group NAME[,NAME]]` — Lists what file would do, and writes nothing. Prints `WOULD <open|update|reopen|close> ...` or `SAME #<n> <key> [<tag>]` per issue, then `PREVIEW: <count> to write, nothing written. ...`. Refuses (exit 1) `REFUSED: unknown group <names>. ...`, `REFUSED: not inside a git repo.`, `REFUSED: file.py is not installed beside health.py` and `REFUSED: could not read the health issues: <why>`; (exit 2) `REFUSED: rule <name> has no negative control. ...`
-- `/workflow-health file --group NAME[,NAME]` — Files the named groups' findings as GitHub issues, each on the milestone of the feature whose path holds it (Backlog when none fits, made once if missing); an issue you moved stays where you put it, and when the milestones can't be read issues are placed by title and none is moved. Prints `DONE <open|update|reopen|close> ...`, `FAILED <action>: <error>` or `SAME #<n> <key>` per issue. Refuses (exit 1) `REFUSED: file needs --group NAME[,NAME], one of ... Run preview first.`, `REFUSED: unknown group <names>. ...`, `REFUSED: not inside a git repo.`, `REFUSED: file.py is not installed beside health.py` and `REFUSED: could not read the health issues: <why>`; (exit 2) `REFUSED: rule <name> has no negative control. ...`
+- `/workflow-health file --group NAME[,NAME]` — Files the named groups' findings as GitHub issues, each tagged with its group and, when the `feature_labels` setting is on (off by default), with the feature whose path holds it; no milestone is made or set, and an issue you put on a milestone stays where you put it. Prints `DONE <open|update|reopen|close> ...`, `FAILED <action>: <error>` or `SAME #<n> <key>` per issue. Refuses (exit 1) `REFUSED: file needs --group NAME[,NAME], one of ... Run preview first.`, `REFUSED: unknown group <names>. ...`, `REFUSED: not inside a git repo.`, `REFUSED: file.py is not installed beside health.py` and `REFUSED: could not read the health issues: <why>`; (exit 2) `REFUSED: rule <name> has no negative control. ...`
 - `/workflow-health judge` — Prints the check report, then a judge section of suggestions that never changes the verdict. Prints the report ending in `HEALTH: green|not green (...)`, then `JUDGE (suggestions, never part of the verdict)` with its sections through `== next steps ==`, or `JUDGE UNAVAILABLE: <why>`; exits 1 when not green. Refuses (exit 1) `REFUSED: not inside a git repo.`; (exit 2) `REFUSED: rule <name> has no negative control. ...`
 
 ## Requirements
 
 ### Functional
-- HLT-2: **Reviewed 2026-11-10** The rules <!-- reviewed 268500bd -->
+- HLT-2: **Unreviewed** The rules
   - Health checks exactly these groups, each with the angle its tests take:
   - Requirements (my angle: is every promise I approved proven?): every Reviewed requirement has a test seen failing and passing now; done lines have tests; none stays not enforced over 7 days.
-  - Traceability (an auditor's angle: can I follow any work end to end?): requirement to test to last run; issue to milestone to feature; pull request to goal to done lines; release to the issues it fixed.
+  - Traceability (an auditor's angle: can I follow any work end to end?): requirement to test to last run; issue to feature; pull request to goal to done lines; release to the issues it fixed.
   - Consistency (a reader's angle: do the pages agree?): IDs unique across pages; no reference to a missing ID; a command named the same in Usage and the README; no two requirements that contradict.
-  - Docs (a newcomer's angle: does each page match the template and the code?): template sections and limits; Usage matches the real commands and output; Home complete; every open issue on a milestone.
+  - Docs (a newcomer's angle: does each page match the template and the code?): template sections and limits; Usage matches the real commands and output; Home complete.
   - Freshness (my angle when I come back: is anything out of date?): the nightly suite ran in the last 24 hours; no merged work unreleased over 3 days; pages updated after their code changed; no finding older than 30 days.
   - Tests (a skeptic's angle: do the tests prove anything?): every row seen failing once; no flaky rows; no row skipped over 7 days; slowest rows named; no test touches the network.
   - Performance (my clock's and my wallet's angle: is it fast and cheap enough?): goal runs and the full suite within their time limits; goals within their time and token budgets; the health check within its limit.
@@ -38,8 +38,8 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
   - At most 12 groups plus Mine; adding one means retiring one or raising the cap on purpose.
 - HLT-3: **Reviewed 2026-11-10** Formal report <!-- reviewed a5cc0046 -->
   - A header listing every group it ran (and any skipped), then each group with every rule marked pass, warn, fail or unread with its fix, then one verdict. A rule that can't read its data is never shown as passing.
-- HLT-4: **Reviewed 2026-11-10** Findings become issues on their feature's milestone <!-- reviewed 2ab4d59e -->
-  - Each finding, from a rule or from the review, is one GitHub issue on the milestone of the feature it's about (Backlog only when it fits none), tagged with its group or kind.
+- HLT-4: **Unreviewed** Findings become issues tagged with their feature and group
+  - Each finding, from a rule or from the review, is one GitHub issue tagged with its group or kind and the feature it is about; it sits on a milestone only when I put it there.
   - A preview lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups or features to file.
   - A repeat updates its issue, a fix closes it, a return reopens it, and an existing open issue that already covers a finding is linked, not duplicated.
 - HLT-5: **Reviewed 2026-11-10** Repo review <!-- reviewed 28f88bd6 -->
@@ -71,7 +71,7 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
 
 ## Success metrics
 - Two rule checks on an unchanged repo print the same lines.
-- After the first full review, every feature milestone holds that feature's findings as issues, each with its evidence, and none is a duplicate.
+- After the first full review, every feature's findings are issues tagged with that feature, each with its evidence, and none is a duplicate.
 - The verdict is never green while a rule could not be read.
 
 ## Tests
@@ -90,13 +90,12 @@ Review: **Reviewed 2026-11-10** <!-- prd P=5376f52c R=a0157a0e N=e89b4f3b M=96c5
 | [unread-not-green](Tests#t-unread-not-green) | requirement | HLT-3 | Given a health rule that cannot be read, when health runs, then it is never shown green. | PASS 2026-11-12 |
 | [report-header](Tests#t-report-header) | requirement | HLT-3 | Given a repo with findings in several groups, when health check runs, then the report header names every group it ran and the one it skipped. | PASS 2026-11-10 |
 | [no-token-would](Tests#t-no-token-would) | requirement | HLT-4 | Given no token and no --live flag, when health previews its findings, then it prints only WOULD lines and writes nothing. | PASS 2026-11-12 |
-| [update-in-place](Tests#t-update-in-place) | requirement | HLT-4 | Given an existing health issue moved to another milestone, when a later health run happens, then it updates that issue onto its finding's feature milestone and opens no other. | PASS 2026-11-12 |
 | [fixed-closes](Tests#t-fixed-closes) | requirement | HLT-4 | Given a finding with an open issue, when the finding is fixed, then its issue is closed. | PASS 2026-11-12 |
 | [repeat-no-second](Tests#t-repeat-no-second) | requirement | HLT-4 | Given a finding with an open issue, when the finding repeats, then no second issue is opened. | PASS 2026-11-12 |
 | [unread-closes-none](Tests#t-unread-closes-none) | requirement | HLT-4 | Given a rule that could not be read, when health runs, then none of its issues are closed. | PASS 2026-11-12 |
 | [preview-writes-nothing](Tests#t-preview-writes-nothing) | requirement | HLT-4 | Given findings in several groups, when health preview runs, then it lists each issue it would open, update, close or reopen with its tag and makes no write call. | PASS 2026-11-10 |
 | [file-one-group](Tests#t-file-one-group) | requirement | HLT-4 | Given open issues in several groups, when health files only the docs group, then only the docs issue is closed and no other group's issue changes. | PASS 2026-11-10 |
-| [hlt4-feature-milestones](Tests#t-hlt4-feature-milestones) | requirement | HLT-4 | Given findings about a feature and about none, when they are previewed and filed, then each lands on its feature milestone or Backlog with its tag; a repeat updates, a fix closes, a return reopens, an old marker moves, and an open issue that names the subject is linked once instead of duplicated. | not run |
+| [hlt4-feature-milestones](Tests#t-hlt4-feature-milestones) | requirement | HLT-4 | Given findings about a feature and about none, when they are previewed and filed, then each is a tagged issue on no milestone, a repeat updates, a fix closes, a return reopens, an old marker moves, and an issue that names the subject is linked once instead of duplicated. | not run |
 | [judge-section-format](Tests#t-judge-section-format) | requirement | HLT-5 | Given the judge, when it runs, then it prints its three reviews in a section marked as suggestions. | PASS 2026-11-11 |
 | [judge-verdict-unchanged](Tests#t-judge-verdict-unchanged) | requirement | HLT-5 | Given a failing or garbage judge, when health runs, then the verdict and exit code are unchanged. | PASS 2026-11-11 |
 | [judge-needs-you](Tests#t-judge-needs-you) | requirement | HLT-5 | Given suggested criterion wording, when the board is printed, then it is listed under Needs you for the owner to apply. | PASS 2026-11-11 |

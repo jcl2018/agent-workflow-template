@@ -7,7 +7,7 @@ usage: goal.py <command> <slug> [options]
   queue SLUG --goal TEXT --done LINE [--touches A,B] [--depends-on A,B]
   step SLUG NAME [--note TEXT] [--tokens N]
   record SLUG STEP --file REPLY [--in-session]  record a flow step flow.py or the goal's worker session ran
-  pr SLUG  merge the latest base, push, open the PR, join its milestone
+  pr SLUG  merge the latest base, push, open the PR
 Goal steps (step, record, pr) refuse outside a worker, which also sees what the operation session sent it.
   wait SLUG --ask TEXT --words W [--words W]
   answer SLUG                 a waiting goal goes on
@@ -404,9 +404,6 @@ def cmd_pr(args):
     state["status"] = "done"
     save(state, "pull request " + url)
     print("PR " + url)
-    hook = os.path.normpath(os.path.join(sys.argv[0], "..", "..", "..", "workflow-health", "scripts", "milestone.py"))
-    if os.path.exists(hook):
-        print(run([sys.executable, hook, "attach", args.slug, "--live"]).stdout.strip())
     print("NEXT: " + ("workflow-release merges it: merge.py %s" % args.slug if config().get("auto_merge") is True
                       else "workflow-release asks cut or leave. The loop never merges."))
     return 0

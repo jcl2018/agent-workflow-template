@@ -37,9 +37,9 @@ workflow
   `.loop/regression-known.tsv`. It keeps one issue per failing row; without a token it only prints `WOULD` lines.
 - `workflow` writes `.github/workflows/regression.yml` (on `regression_cron`, every 4 hours by default, or only by hand
   when it is `off`, which a scheduled run reads first and then writes nothing; on `v*` tags and by hand, which still run). A failing row's issue is
-  labelled `regression` and `defect`, names the feature and requirement the row guards, and goes on that feature's
-  milestone (`Backlog` when it guards no `.loop/docs.tsv` page, made when missing); an issue you moved stays where you put
-  it, and a failed issue write fails the step after the last row (`FILE_FAILED`). The job has 90 minutes; each
+  labelled `regression` and `defect`, names the feature and requirement the row guards, and, with the `feature_labels` setting on, carries that feature's
+  `feature:<Page>` label (made first; if it can't be, the issue is filed without it and `FAILED label` says so). No milestone is read,
+  made or set, and a failed issue write fails the step after the last row (`FILE_FAILED`). The job has 90 minutes; each
   row runs in its own process group with a 15-minute limit and starts only if that limit still fits an 88-minute
   budget (`REGRESSION_ROW_SECONDS` and `REGRESSION_JOB_SECONDS` in the step's environment override them). A row that
   doesn't fit is skipped (`SKIPPED`) and fails with an issue. Each result is saved as the row ends, and a last step
@@ -303,6 +303,7 @@ part is advice and never blocks.
 | LANE_PREP | lanekit.py | — | the lane first committed the re-rendered Tests tables and run dates | none |
 | LANE_PREP_FAILED | lanekit.py | 1 | that commit or the render failed or hung (60 s); nothing committed | make the commit pass, then run again |
 | LANE_RECORDER | lane.py | 1 | the flow file's `test_record` command isn't on this machine | install it or remove it |
+| LANE_TMPDIR | lane.py | 1 | the system temp folder is inside a git checkout; no job was made | set TMPDIR to a folder outside any repo, then run again |
 | LANE_DIED | lane.py | 1 | the lane ended with no exit status | the next call starts a new lane |
 | LANE_MISSING / HEAD_MOVED (record) | lane.py via goal.py | 2 | `goal.py record qa\|ship` with no passing lane on this HEAD; no try is used | run `role.py lane SLUG NAME` |
 | NO LANE | lane.py | 3 | `lane-wait` found no lane for this HEAD | start one with `role.py lane SLUG NAME` |
@@ -335,7 +336,12 @@ lane ends.
 - `goal_levels` (land) and `ci_levels` (nightly): the levels a goal lane plans from (nightly adds the nightly rows a
   change reaches) and the CI target. A CI run cut short by its job time still records its time, so health warns.
 - Each lane child gets its own `TMPDIR` and `LOOP_LANE_PORT_BASE` (a leased range of 100 ports from 20000); a row that
-  binds ports uses that range or picks a free port itself.
+  binds ports uses that range or picks a free port itself. The `TMPDIR` is a new folder per lane start,
+  `<system temp>/loop-lane-<repo key>-<goal>-<lane>-<random>` (mode 0700), never inside a git checkout, so a test that
+  refuses to write inside a repo passes under the lane as it does when run directly (issue 814). It is removed when the
+  lane ends or is stopped; a lane that crashes leaves its folder in the system temp until the OS clears it. When the
+  system temp itself is inside a git checkout the lane refuses before it starts: `LANE_TMPDIR: <path> is in a git
+  checkout. Fix: set TMPDIR to a folder outside any repo; the lane committed and pushed nothing.` (example: `TMPDIR=/tmp role.py lane SLUG qa`).
 - Internal handoff variables (`_LOOP_LANE_HELD`, `_LOOP_LANE_LABEL`, `_LOOP_LANE_QUEUED`, `_LOOP_LANE_STARTED`,
   `_LOOP_LANE_NOTE`) are set by the lane; a `test_record` wrapper must keep the environment.
 

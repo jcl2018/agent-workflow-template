@@ -120,7 +120,9 @@ edit $H "## Features" "Welcome to the toy.
 ## Features"; has "^FORMAT Home:[0-9]*: Features: DOC-4 a line outside the features table (got 'Welcome to the toy.')" && ok "DOC-4 a Home line outside the table fails naming Home, Features and DOC-4" || bad "home stray"; reset
 edit $H "What it does" "Description"; has "^FORMAT Home:[0-9]*: Features: DOC-4 one table with the header" && ok "DOC-4 a Home table with other columns fails" || bad "home header"; reset
 edit $H "#how-to-use-delivery" "#how-to-use-nothing"; has "^FORMAT Home:[0-9]*: Features: DOC-4 How to use links the README's '### How to use Delivery' section" && ok "DOC-4 a How to use link to no README anchor fails" || bad "home anchor"; reset
-edit $H "https://github.com/toy/repo/milestone/1" "soon"; has "^FORMAT Home:[0-9]*: Features: DOC-4 Milestone links the feature's milestone (got 'soon')" && ok "DOC-4 a Milestone cell with no milestone link fails" || bad "home milestone"; reset
+hm=1; for cell in "soon" "v1.0" " " "https://github.com/toy/repo/milestone/1"; do edit $H "https://github.com/toy/repo/milestone/1" "$cell"; has "FORMAT Home" && hm=0; reset; done
+[ "$hm" = 1 ] && ok "DOC-4 a Home Milestone cell may be free text, v1.0, empty or a link" || bad "home milestone"
+[ "$hm" = 1 ] && echo "PASS milestone-freeform:home-milestone-optional"
 python3 - $H <<'PY'
 import sys; p = sys.argv[1]; kept = [l for l in open(p) if not l.startswith("| [Delivery]")]; open(p, "w").write("".join(kept))
 PY

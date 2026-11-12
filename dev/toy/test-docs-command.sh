@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-docs/references/template.md skills/workflow-docs/scripts/criteria.py
-# reads: skills/workflow-docs/scripts/docs.py skills/workflow-health/scripts/milestone.py
+# reads: skills/workflow-docs/scripts/docs.py skills/workflow-docs/scripts/audit.py
 # reads: skills/workflow-regression/scripts/regression.py skills/workflow-release/scripts/release.py
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-docs/
 # Test the one docs command (docs.py audit) on a throwaway toy repo with a fake gh. usage: test-docs-command.sh [DIR]
@@ -19,7 +19,6 @@ unset GH_TOKEN GITHUB_TOKEN
 docs="python3 $here/skills/workflow-docs/scripts/docs.py"
 cri="python3 $here/skills/workflow-docs/scripts/criteria.py"
 reg="python3 $here/skills/workflow-regression/scripts/regression.py"
-ms="python3 $here/skills/workflow-health/scripts/milestone.py"
 cd "$d/repo" || exit 1
 python3 "$here/skills/workflow-setup/scripts/setup.py" --bare >/dev/null
 git switch -q main; git merge -q --no-edit workflow-setup
@@ -102,15 +101,13 @@ $reg add del-1 --level land --command "true" --goal DEL-1 >/dev/null; $reg run d
 $cri render >/dev/null; git add -A; git commit -qm "Passing" >/dev/null
 $docs audit | grep -q "^UNTESTED" && bad "a passing test still listed" || ok "a passing test clears the line"
 
-echo "== 4. milestone links, the Backlog and release notes"
+echo "== 4. no milestone is asked for, and release notes"
+f0=$fails; git add -A; git commit -qm "Settled" >/dev/null; sum=$(cksum < docs/wiki/Delivery.md)
 out=$($docs audit); echo "$out"
-grep -q "^MILESTONE Backlog: missing" <<<"$out" && grep -q "^MILESTONE Delivery: no milestone" <<<"$out" && ok "a missing Backlog and feature milestone are found" || bad "missing milestones"
-$ms new --all --live | grep -q "^LINKED Delivery" && grep -q "^Milestone: https://example.test/milestone/" docs/wiki/Delivery.md && ok "milestone.py links the feature page to its milestone" || bad "link"
-git add -A; git commit -qm "Linked" >/dev/null
-$docs audit | grep -q "^MILESTONE" && bad "milestones still missing" || ok "with the Backlog and the link, the milestone check is clean"
-sed -i.bak '/^Milestone: /d' docs/wiki/Delivery.md; rm -f docs/wiki/Delivery.md.bak; git commit -qam "Drop link"
-$docs audit | grep -q "^FIXED Delivery: add the Milestone line" && grep -q "^Milestone: " docs/wiki/Delivery.md && ok "a missing link is fixed" || bad "fix link"
-git commit -qam "Relinked"
+! grep -q "MILESTONE" <<<"$out" && ok "a repo with no milestone and a page with no Milestone line: no MILESTONE line" || bad "milestone line"
+[ ! -f "$FAKE_GH_DIR/milestones.json" ] && ! grep -q "milestones" "$FAKE_GH_DIR/calls.log" 2>/dev/null && ok "the audit reads and makes no milestone" || bad "milestone call"
+! grep -q "^Milestone:" docs/wiki/Delivery.md && [ "$(cksum < docs/wiki/Delivery.md)" = "$sum" ] && ! grep -q "Milestone line" <<<"$out" && ok "the audit writes no Milestone line to the page" || bad "page written"
+[ "$fails" = "$f0" ] && echo "PASS milestone-freeform:no-milestone-page-ok"
 git tag v9.9.9
 $docs audit | grep -q "^RELEASE v9.9.9: has no release note" && ok "a tag with no release note is found" || bad "release note"
 printf '# Changelog\n\n## v9.9.9 - 2026-11-08\n\n- Toy release\n' > CHANGELOG.md; git add -A; git commit -qm "Changelog" >/dev/null

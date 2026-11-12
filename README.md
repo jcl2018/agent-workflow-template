@@ -87,7 +87,7 @@ Say these to the agent:
 | "How healthy is this repo?" | You get the formal report: every rule by group, each problem with its fix, the tests, and one verdict. |
 | "Check only the docs health" | The same report for that one group. |
 | "What would you file?" | Each issue it would open, update, close or reopen is listed; nothing is written. |
-| "File the docs findings" | Only that group's findings become issues on the Backlog milestone, each tagged with its group. |
+| "File the docs findings" | Only that group's findings become issues, each tagged with its group. |
 | "Judge the repo" | The report, plus suggestions on requirement wording, test strength and speed, with ranked next steps; the verdict doesn't change. |
 
 ### How to use Setup
@@ -166,8 +166,7 @@ anything only you can decide under Waiting on you. Nothing is approved for you. 
 mode, so delivery opens the pull request itself, with each step's result in its body.
 
 Regression and health also run on a schedule in GitHub Actions (every 4 hours by default, `off` per routine in
-`.loop/config.json`), filing failing tests as `defect` issues and health findings as tagged issues on their feature's
-milestone, and posting one digest comment per round on a pinned `Automation digest` issue, which is also emailed to you
+`.loop/config.json`), filing failing tests as `defect` issues and health findings as tagged issues, and posting one digest comment per round on a pinned `Automation digest` issue, which is also emailed to you
 once per round when the mail secrets are set (Cloudflare Email Service or SMTP). These runs use Actions minutes, and
 each round's cost is shown and flagged over 45 minutes.
 
