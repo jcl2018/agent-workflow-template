@@ -111,12 +111,21 @@ def reference():
 
 
 def write_json(path, data, mode=None):
+    path = os.path.realpath(path)  # a symlinked settings file (dotfiles) is written through, never replaced
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "w") as handle:
-        json.dump(data, handle, indent=2)
-        handle.write("\n")
-    if mode:
-        os.chmod(path, mode)
+    if mode is None and os.path.exists(path):
+        mode = os.stat(path).st_mode & 0o777  # keep the file's own mode
+    temp = "%s.%d.tmp" % (path, os.getpid())  # a full disk must not leave a truncated settings file
+    try:
+        with os.fdopen(os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode or 0o644), "w") as handle:
+            json.dump(data, handle, indent=2)
+            handle.write("\n")
+        if mode:
+            os.chmod(temp, mode)
+        os.replace(temp, path)
+    finally:
+        if os.path.exists(temp):
+            os.remove(temp)
 
 
 def load(path):

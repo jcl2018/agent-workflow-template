@@ -288,6 +288,14 @@ From install to one finished goal.
    yourself. The other skills read the config from the base branch. Setup also writes `.loop/START.md`, the entry point
    any new session reads first, and the same workflow-loop block into `CLAUDE.md` and `AGENTS.md`, so Claude Code and
    Codex run the same loop.
+
+   To run the loop from Codex, use `codex exec -s workspace-write` with these writable roots in
+   `sandbox_workspace_write.writable_roots`: the repo's git folder, its remote, and `~/.workflow-loop` (setup and `go`
+   write the private settings there; a read-only home leaves them unwritten and `go` is refused). The git folder root
+   also lets a run write `.git/hooks`, which a narrower `.git/loop` root would not. The first setup run exits 1 until
+   `agent_command` names the tools you allow. Pick the model yourself (`-m`): a model your account does not support is
+   rejected before anything runs. `dev/toy/test-codex.sh` proves this on a clean toy repo and is skipped, never passed,
+   where Codex cannot answer.
 3. **Start a goal.** From the main checkout, on the base branch:
    `/workflow-monitoring go "add result caching" --done "repeat searches are served from the cache"`. Done lines are
    frozen once the goal starts, so make each one provable before the pull request, by a test or by what a person
