@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-health/scripts/cost.py skills/workflow-health/scripts/health.py
-# reads: skills/workflow-health/scripts/mine.py skills/workflow-setup/scripts/setup.py skills/workflow-health/scripts/
+# reads: skills/workflow-health/scripts/enforce.py skills/workflow-setup/scripts/setup.py skills/workflow-health/scripts/
 # Test workflow-health on a throwaway toy repo. usage: test-health.sh [DIR]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
@@ -35,14 +35,14 @@ echo "== size: a script near and over 20 KB"
 pad 19000 > skills/x/scripts/near.py; pad 21000 > skills/x/scripts/over.py
 git add -A; git commit -qm "Big scripts"
 out=$($health check --family size); rc=$?; echo "$out"
-grep -q "^WARN size skills/x/scripts/near.py limit: .* -> fix: " <<<"$out" && ok "90 percent of the limit is a WARN with a fix" || bad "size warn"
-grep -q "^FAIL size skills/x/scripts/over.py limit: .* -> fix: " <<<"$out" && ok "over 20 KB is a FAIL with a fix" || bad "size fail"
+grep -q "^WARN size skills/x/scripts/near.py scripts: .* -> fix: " <<<"$out" && ok "90 percent of the limit is a WARN with a fix" || bad "size warn"
+grep -q "^FAIL size skills/x/scripts/over.py scripts: .* -> fix: " <<<"$out" && ok "over 20 KB is a FAIL with a fix" || bad "size fail"
 [ $rc = 1 ] && tail -1 <<<"$out" | grep -q "^HEALTH: not green" && ok "a FAIL makes the verdict not green" || bad "red verdict"
 git rm -q skills/x/scripts/over.py; git commit -qm "Drop the big one"
 out=$($health check --family size); rc=$?
 [ $rc = 0 ] && grep -q "^HEALTH: green (.* 1 warn, 0 fail" <<<"$out" && ok "a WARN alone stays green" || bad "warn green"
 
-echo "== docs and criteria are composed, not re-implemented"
+echo "== docs and requirements are composed, not re-implemented"
 mkdir -p docs/wiki
 printf '<!-- workflow-docs -->\n# Calc\n\n## Criteria\n\n- REL-1: **Reviewed 2026-01-01** calc adds.\n' > docs/wiki/Calc.md
 printf 'Calc\tcalc.py\nGhost\tghost.py\n' > .loop/docs.tsv
@@ -51,16 +51,17 @@ echo "# change" >> calc.py; git commit -qam "Change calc"
 out=$($health check --family docs); echo "$out"
 grep -q "^WARN docs Calc stale: " <<<"$out" && ok "a stale page shows as a docs row naming it" || bad "stale"
 grep -q "^FAIL docs Ghost missing: " <<<"$out" && ok "a missing page shows as a FAIL" || bad "missing"
-out=$($health check --family criteria); echo "$out"
-grep -q "^FAIL criteria REL-1 rows: not enforced for [0-9]* days since Reviewed 2026-01-01" <<<"$out" && ok "a criterion with no row is a FAIL" || bad "criterion row"
+out=$($health check --family requirements); echo "$out"
+grep -q "^FAIL requirements REL-1 rows: not enforced for [0-9]* days since Reviewed 2026-01-01" <<<"$out" && ok "a criterion with no row is a FAIL" || bad "criterion row"
+[ "$($health check --family criteria)" = "$out" ] && ok "the old group name criteria still works" || bad "criteria alias"
 python3 - <<'PY'
 import os
 os.makedirs(".loop/goals", exist_ok=True)
 open(".loop/goals/old.md", "w").write("# Old\n\n## Done lines\n\nFrozen.\n\n1. Calc adds.\n\n## Design\n")
 PY
 mkdir -p "$(git rev-parse --git-common-dir)/loop/runs"; echo '{"status": "running"}' > "$(git rev-parse --git-common-dir)/loop/runs/old.json"  # a goal still being built (issue 143)
-out=$($health check --family criteria)
-grep -q "^WARN criteria done-lines rows: [0-9]* done lines have no regression row" <<<"$out" && ok "done lines with no row are one WARN row" || bad "done lines"
+out=$($health check --family requirements)
+grep -q "^WARN requirements done-lines done: [0-9]* done lines have no regression row" <<<"$out" && ok "done lines with no row are one WARN row" || bad "done lines"
 
 echo "== Mine: the owner's own rules, from a private setting outside the repo"
 export LOOP_HEALTH="$d/health.json"
@@ -73,7 +74,7 @@ cat > "$LOOP_HEALTH" <<JSON
  {"name": "meh", "command": ["$d/warn.sh"], "fix": "look at meh"}, {"name": "gone", "command": ["$d/nope.sh"]}]}
 JSON
 out=$($health check --family mine); rc=$?; echo "$out"
-grep -q "^== Mine ==" <<<"$out" && grep -q "^PASS mine good mine: " <<<"$out" && ok "a passing own rule is PASS" || bad "mine pass"
+grep -qx "== Mine (my private angle) ==" <<<"$out" && grep -q "^PASS mine good mine: " <<<"$out" && ok "a passing own rule is PASS" || bad "mine pass"
 grep -q "^FAIL mine bad mine: broke -> fix: fix bad" <<<"$out" && grep -q "^WARN mine meh mine: .* -> fix: look at meh" <<<"$out" && ok "exit 1 is FAIL and exit 2 is WARN, each with its fix" || bad "mine fail/warn"
 grep -q "^UNREAD mine gone mine: could not run" <<<"$out" && [ $rc = 1 ] && tail -1 <<<"$out" | grep -q "^HEALTH: not green" && ok "a rule that cannot run is UNREAD and never green" || bad "mine unread"
 echo "{ not json" > "$LOOP_HEALTH"
@@ -84,7 +85,9 @@ rm -f "$LOOP_HEALTH"
 echo "== one fixed template"
 out=$($health check); echo "$out" | head -3
 [ "$(head -1 <<<"$out")" = "HEALTH REPORT" ] && ok "starts with the title" || bad "title"
-[ "$(grep -n '^== ' <<<"$out" | sed 's/^[0-9]*:== \(.*\) ==$/\1/' | tr '\n' ' ')" = "size criteria docs hygiene performance Mine (skipped) controls " ] && ok "groups come in a fixed order" || bad "group order"
+[ "$(grep '^== ' <<<"$out" | sed 's/^== \([^(]*\) (.*$/\1/' | tr '\n' ',')" = "Requirements,Traceability,Consistency,Docs,Freshness,Tests,Performance,Security and privacy,Size,Hygiene,Adoption,Mine,Controls," ] \
+  && grep -qx "== Requirements (my angle: is every promise I approved proven?) ==" <<<"$out" && grep -qx "== Mine (my private angle) (skipped) ==" <<<"$out" \
+  && ok "groups come in a fixed order, each with its angle" || bad "group order"
 [ "$(grep -c '^HEALTH: ' <<<"$out")" = 1 ] && tail -1 <<<"$out" | grep -q "^HEALTH: " && ok "exactly one verdict line, last" || bad "one verdict"
 awk '/^TESTS$/{t=1; next} t && /^$/{t=0; next} !t' <<<"$out" | grep -v '^\(HEALTH\|==\|groups run:\)' | grep -v '^\(PASS\|WARN\|FAIL\|UNREAD\|INFO\) [a-z]* ' | grep -q . && bad "a line outside the template" || ok "every line is a title, group, finding or verdict"
 
@@ -105,7 +108,7 @@ grep -q "^missing: feature Empty has no requirement" <<<"$a" && ok "a feature wi
 grep -q "^next 1: FAIL " <<<"$a" && ok "next steps are ranked, failures first" || bad "ranked"
 [ "$a" = "$b" ] && ok "hints repeat exactly" || bad "hints differ"
 c=$($health check); e=$($health check); [ "$c" = "$e" ] && ! grep -q "JUDGE" <<<"$c" && ok "check stays apart from the judge and repeats" || bad "check same"
-grep -rn "claude\|anthropic\|urllib\|http" "$here"/skills/workflow-health/scripts/cost.py "$here"/skills/workflow-health/scripts/mine.py >/dev/null && bad "model or network in a rule module" || ok "no model or network call in the rule modules"
+grep -rn "claude\|anthropic\|urllib\|http" "$here"/skills/workflow-health/scripts/cost.py "$here"/skills/workflow-health/scripts/enforce.py >/dev/null && bad "model or network in a rule module" || ok "no model or network call in the rule modules"
 
 echo "== a rule that cannot read says UNREAD, never green"
 lone=$(mktemp -d); cp "$here/skills/workflow-health/scripts/health.py" "$lone/"
@@ -121,8 +124,9 @@ $health check >/dev/null; $health check --json >/dev/null
 after="$(git status --porcelain --ignored)|$(git rev-parse HEAD)|$(git branch | wc -l)|$(git stash list | wc -l)"
 [ "$before" = "$after" ] && ok "check writes no file and makes no commit" || bad "check changed the repo"
 mkdir -p "$d/bin"; printf '#!/bin/bash\necho "$*" >> "%s/gh-calls"\nexit 1\n' "$d" > "$d/bin/gh"; chmod +x "$d/bin/gh"
-PATH="$d/bin:$PATH" $health check >/dev/null; [ ! -e "$d/gh-calls" ] && ok "check makes no gh call" || bad "check called gh"
-for f in health mine judge cost; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 20480 ] || bad "size of $f.py"; done; ok "health scripts under 20 KB"
+PATH="$d/bin:$PATH" $health check >/dev/null
+[ "$(cat "$d/gh-calls" 2>/dev/null)" = 'api --paginate --slurp repos/{owner}/{repo}/issues?state=all&per_page=100' ] && ok "check reads gh once, read-only" || bad "check gh calls: $(cat "$d/gh-calls" 2>/dev/null)"
+for f in health enforce judge cost; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 20480 ] || bad "size of $f.py"; done; ok "health scripts under 20 KB"
 
 echo "repo: $d/repo"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

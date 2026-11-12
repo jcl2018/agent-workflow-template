@@ -4,7 +4,8 @@ The mail secrets reach only the mail job (its own runner and fresh checkout, aft
 such as the judge can touch its files or environment) and the mail-test job; the digest step gets three true/false
 values, never a secret. Nothing here pushes.
 """
-GROUPS = "size,criteria,docs"  # what a runner can read: cost, Mine and two hygiene checks need this machine's run records
+GROUPS = "requirements,traceability,consistency,docs,freshness,tests,security,size,adoption"  # what a runner can read:
+# performance, hygiene and Mine need this machine's run records, worktrees and private settings
 MAIL_SECRETS = ("DIGEST_TO", "DIGEST_FROM", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_EMAIL_TOKEN", "DIGEST_SMTP_USER",
                 "DIGEST_SMTP_PASSWORD")
 HEADER = "# Written by workflow-health"
@@ -78,11 +79,11 @@ jobs:
       - name: Health check
         if: steps.routine.outputs.on == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}  # the issue-milestone rule reads the open issues
+          GH_TOKEN: ${{ github.token }}  # docs-check's issue milestones (DOC-10) and finding-age read the open issues
         run: |
           python3 skills/workflow-health/scripts/health.py check --group @GROUPS@ > "$RUNNER_TEMP/health-report.txt" 2>&1 || true
           { echo "## Health"; echo; echo '```'; cat "$RUNNER_TEMP/health-report.txt"; echo '```'; echo
-            echo "Not run here: performance (the Cost rule), Mine and hygiene read this machine's run records, branches and private files, which a runner doesn't have."
+            echo "Not run here: performance, Mine and hygiene read this machine's run records, branches and private files, which a runner doesn't have."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: File the findings as tagged issues
         if: always() && steps.routine.outputs.on == 'true'

@@ -3,18 +3,13 @@
 A requirement with no passing test shows as not enforced. Health warns while it is new and fails only when it stays not
 enforced: an Unreviewed requirement warns; a Reviewed one warns for GRACE days after its Reviewed date, then fails.
 The date comes from the requirement's own line on its wiki page, so no goal mapping is needed.
-
-
-The defect-tests rule is here too (defects: closed, guarded, missing): every closed issue or finding needs a regression
-row of category defect. A closed issue or finding is one a merged goal says it fixed ("fixes #35", "fixes finding:SLUG"
-in .loop/goals/*.md), or a line of .loop/findings.md marked [closed]. A defect row links it: its link holds the issue's
-URL or finding:SLUG. Reads files only: health check makes no gh call.
 """
 import datetime
 import glob
 import json
 import os
 import re
+import subprocess
 
 GRACE = 7  # days a Reviewed requirement may stay not enforced (HLT-2: "none stays not enforced over 7 days")
 
@@ -53,46 +48,55 @@ def row(root, key, make, today=None):
     return make("FAIL", "criteria", key, "rows", "criterion has no regression row", fix)
 
 
-VERB = r"\b(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+"
-FIXES = re.compile(VERB + r"(?:issue\s+)?#(\d+)|" + VERB + r"finding:([a-z0-9][a-z0-9-]*)", re.I)
+# The Mine group (health.py reads it through sibling_module("enforce")): The Mine group: the owner's own rules, named in a private file outside the repo.
+# 
+# ~/.workflow-loop/health.json (or the file LOOP_HEALTH names):
+#   {"rules": [{"name": "lint", "command": ["make", "lint"], "fix": "run make lint"}]}
+# Each command runs in the repo. Exit 0 is PASS, 2 is WARN, 1 is FAIL; any other exit, a missing command, a timeout
+# or an unreadable setting is UNREAD, never a pass. Rules run the owner's commands, so Mine is outside the
+# "changes nothing" and "same answer twice" promises of the fixed rules.
+# No terminal, no waiting: a prompt from git or gh must fail, not block. health.py sets the same.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
+GROUP = "mine"
 
 
-def read(path):
+def setting_path():
+    return os.environ.get("LOOP_HEALTH") or os.path.join(os.path.expanduser("~"), ".workflow-loop", "health.json")
+
+
+def mine_row(state, subject, detail, fix=""):
+    return {"state": state, "family": GROUP, "subject": subject, "rule": "mine", "detail": detail, "fix": fix}
+
+
+def mine_rows(root):
+    path = setting_path()
+    if not os.path.exists(path):
+        return [mine_row("INFO", "setting", "no private rules set (%s)" % path)]
     try:
         with open(path) as handle:
-            return handle.read()
-    except OSError:
-        return ""
-
-
-def closed(root):
-    """Ref -> where it was closed: '#N' for an issue, 'finding:SLUG' for a finding."""
-    found = {}
-    for path in sorted(glob.glob(os.path.join(root, ".loop", "goals", "*.md"))):
-        if path.endswith(".design.md"):
+            rules = json.load(handle)["rules"]
+        assert isinstance(rules, list)
+    except (OSError, ValueError, KeyError, AssertionError):
+        return [mine_row("UNREAD", "setting", "cannot read the private rules at %s" % path, "fix the file: a JSON object with a rules list")]
+    rows = []
+    for number, rule in enumerate(rules, 1):
+        name = rule.get("name") if isinstance(rule, dict) else None
+        command = rule.get("command") if isinstance(rule, dict) else None
+        name = str(name or "rule-%d" % number)
+        if not (isinstance(command, list) and command and all(isinstance(part, str) for part in command)):
+            rows.append(mine_row("UNREAD", name, "the rule has no command list", "give the rule a command as a list of words"))
             continue
-        for number, finding in FIXES.findall(read(path)):
-            found.setdefault("#" + number if number else "finding:" + finding.lower(), os.path.basename(path)[:-3])
-    for line in read(os.path.join(root, ".loop", "findings.md")).splitlines():
-        named = re.match(r"^- ([a-z0-9][a-z0-9-]*):.*\[closed\]", line)
-        if named:
-            found.setdefault("finding:" + named.group(1), "findings.md")
-    return found
-
-
-def guarded(root):
-    """The links of the defect rows, as one text."""
-    cells = [line.rstrip("\n").split("\t") + [""] * 8 for line in read(os.path.join(root, ".loop", "regression.tsv")).splitlines()
-             if line.strip() and line[0] != "#"]
-    return " ".join(c[7] for c in cells if c[6] == "defect")
-
-
-def missing(root):
-    """(ref, source) for each closed issue or finding no defect row links."""
-    links = guarded(root)
-    out = []
-    for ref, source in closed(root).items():
-        pattern = r"(?:issues/|#)%s\b" % ref[1:] if ref[0] == "#" else re.escape(ref) + r"(?![\w-])"
-        if not re.search(pattern, links):
-            out.append((ref, source))
-    return out
+        fix = str(rule.get("fix") or "run: " + " ".join(command))
+        try:
+            done = subprocess.run(command, cwd=root, capture_output=True, text=True, timeout=int(rule.get("timeout") or 120))
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            rows.append(mine_row("UNREAD", name, "could not run: %s" % str(error)[:100], fix))
+            continue
+        out = ((done.stdout or "").strip().splitlines() or (done.stderr or "").strip().splitlines() or [""])[-1][:100]
+        state = {0: "PASS", 1: "FAIL", 2: "WARN"}.get(done.returncode)
+        if state is None:
+            rows.append(mine_row("UNREAD", name, "exited %d, not 0, 1 or 2" % done.returncode, fix))
+        else:
+            rows.append(mine_row(state, name, out or "exit %d" % done.returncode, "" if state == "PASS" else fix))
+    return rows or [mine_row("INFO", "setting", "the private file lists no rules")]

@@ -30,21 +30,23 @@ count() { python3 -c "import json,sys;print(sum(1 for i in json.loads(sys.argv[1
 
 echo "== the formal report"
 out=$($health check); echo "$out"
-[ "$(sed -n 1p <<<"$out")" = "HEALTH REPORT" ] && sed -n 2p <<<"$out" | grep -q "^groups run: size, criteria, docs, hygiene, performance, controls; skipped: Mine (no private rules set)$" \
+[ "$(sed -n 1p <<<"$out")" = "HEALTH REPORT" ] && sed -n 2p <<<"$out" | grep -q "^groups run: Requirements, Traceability, Consistency, Docs, Freshness, Tests, Performance, Security and privacy, Size, Hygiene, Adoption, Controls; skipped: Mine (no private rules set)$" \
   && ok "the header names every group run and the one skipped" || bad "header"
-[ "$(grep -n '^== ' <<<"$out" | sed 's/^[0-9]*:== \(.*\) ==$/\1/' | tr '\n' ' ')" = "size criteria docs hygiene performance Mine (skipped) controls " ] && ok "groups in the fixed order, Cost shown as performance" || bad "order"
-for g in size:limit criteria:rows criteria:defect-tests docs:"(check|missing)" hygiene:findings hygiene:waiting hygiene:"(branches|branch)" performance:cost; do
+[ "$(grep '^== ' <<<"$out" | sed 's/^== \([^(]*\) (.*$/\1/' | tr '\n' ',')" = "Requirements,Traceability,Consistency,Docs,Freshness,Tests,Performance,Security and privacy,Size,Hygiene,Adoption,Mine,Controls," ] \
+  && grep -qx "== Performance (my clock's and my wallet's angle: is it fast and cheap enough?) ==" <<<"$out" && grep -qx "== Mine (my private angle) (skipped) ==" <<<"$out" \
+  && ok "groups in the fixed order with their angles, Cost shown as Performance" || bad "order"
+for g in size:scripts requirements:rows traceability:defect-tests docs:"(check|missing)" hygiene:findings hygiene:waiting hygiene:"(branches|branch)" performance:cost; do
   grep -Eq "^(PASS|WARN|FAIL|UNREAD|INFO) ${g%%:*} [^ ]+ ${g##*:}:" <<<"$out" || bad "rule missing from the report: $g"
 done; ok "every rule of every group is listed with a state"
 grep -E "^(WARN|FAIL|UNREAD)" <<<"$out" | grep -qv -e "-> fix: " && bad "a non-pass line has no fix" || ok "each non-pass line carries its fix"
 grep -q "^WARN size skills/x/scripts/near.py" <<<"$out" && grep -q "^FAIL docs Ghost missing" <<<"$out" && grep -q "^WARN hygiene loop/old branch" <<<"$out" \
-  && grep -q "^FAIL criteria REL-1 rows" <<<"$out" && ok "findings from four groups show" || bad "findings"
+  && grep -q "^FAIL requirements REL-1 rows" <<<"$out" && ok "findings from four groups show" || bad "findings"
 [ "$(grep -c '^HEALTH: ' <<<"$out")" = 1 ] && tail -1 <<<"$out" | grep -q "^HEALTH: not green" && ok "one verdict, last" || bad "verdict"
 grep -q "^[A-Z]* cost " <<<"$out" && bad "cost leaked into a line" || ok "no line says cost"
 lone="$d/lone/skills/workflow-health"; mkdir -p "$lone"; cp -R "$here/skills/workflow-health/scripts" "$lone/"
 out=$(python3 "$lone/scripts/health.py" check --group docs); rc=$?
 grep -q "^UNREAD docs docs check: " <<<"$out" && ! grep -q "^PASS docs" <<<"$out" && [ $rc = 1 ] && ok "a rule that cannot read its data is UNREAD, never pass" || bad "unread"
-$health check --group nothing 2>&1 | grep -q "^REFUSED: unknown group" && ok "an unknown group is refused" || bad "unknown group"
+$health check --group nothing >"$d/ug" 2>&1; ug=$?; grep -q "^REFUSED\[group\]: unknown group" "$d/ug" && [ $ug = 2 ] && ok "an unknown group is refused (REFUSED[group], exit 2)" || bad "unknown group"
 # Value: protects=a docs check problem of any kind is never also shown as a passing docs check; fails_when=rule_of maps
 #   only some docs kinds to check, so complete() pads PASS docs check beside a FAIL; why_new=the report test only had a
 #   missing page, which was mapped; seam=none; no_claim=none beyond protects
@@ -54,8 +56,8 @@ grep -q "^FAIL docs Extra unmapped" <<<"$out" && ! grep -q "^PASS docs" <<<"$out
 # Value: protects=a rule that shares an unreadable source is UNREAD, never a pass; fails_when=complete() pads done-lines
 #   as PASS when regression sync could not be read; why_new=the lone test only ran the docs group; seam=none;
 #   no_claim=none beyond protects
-out=$(python3 "$lone/scripts/health.py" check --group criteria)
-grep -q "^UNREAD criteria done-lines" <<<"$out" && ! grep -q "^PASS criteria done-lines" <<<"$out" && ok "an unread source leaves its other rule UNREAD" || bad "unread padding"
+out=$(python3 "$lone/scripts/health.py" check --group requirements)
+grep -q "^UNREAD requirements done done: its source could not be read" <<<"$out" && ! grep -q "^PASS requirements" <<<"$out" && ok "an unread source leaves its other rule UNREAD" || bad "unread padding"
 # Value: protects=check --json rows agree with its counts, padded PASS rows included; fails_when=report() hands back the
 #   raw rows; why_new=no JSON shape test; seam=none; no_claim=none beyond protects
 $health check --json | python3 -c "import json,sys; d=json.load(sys.stdin); c=d['counts']; sys.exit(0 if sum(1 for r in d['rows'] if r['state'] in c) == sum(c.values()) else 1)" \
@@ -68,25 +70,26 @@ $health check --json | python3 -c "import json,sys; d=json.load(sys.stdin); c=d[
 #   complete() pads groups that did not run, or the header drops "not asked"; why_new=only the full check header is
 #   asserted; seam=none; no_claim=none beyond protects
 out=$($health check --group docs)
-sed -n 2p <<<"$out" | grep -q "^groups run: docs; skipped: size (not asked), criteria (not asked), hygiene (not asked), performance (not asked), Mine (not asked), controls (not asked)$" \
-  && ! grep -Eq "^PASS (size|criteria|hygiene|performance) " <<<"$out" && ok "a named group run lists the rest as skipped, none shown passing" || bad "named group header"
+sed -n 2p <<<"$out" | grep -q "^groups run: Docs; skipped: Requirements (not asked), Traceability (not asked), Consistency (not asked), Freshness (not asked), Tests (not asked), Performance (not asked), Security and privacy (not asked), Size (not asked), Hygiene (not asked), Adoption (not asked), Mine (not asked), Controls (not asked)$" \
+  && ! grep -Eq "^PASS (requirements|traceability|consistency|freshness|tests|performance|security|size|hygiene|adoption) " <<<"$out" && ok "a named group run lists the rest as skipped, none shown passing" || bad "named group header"
 # Value: protects=an unread issue list (SOFT) never hides the passing docs check row; fails_when=complete() counts the
 #   SOFT milestone row as the docs group's check row; why_new=no test ran complete() with only a SOFT row; seam=none
-(cd "$here/skills/workflow-health/scripts" && python3 -B -c "import report; r = report.complete([{'state': 'UNREAD', 'family': 'docs', 'subject': 'issues', 'rule': 'milestone', 'detail': 'x', 'fix': ''}], ['docs']); exit(not any(x['state'] == 'PASS' and x['rule'] == 'check' for x in r))") \
+(cd "$here/skills/workflow-health/scripts" && python3 -B -c "import report; r = report.complete([{'state': 'UNREAD', 'family': 'docs', 'subject': 'issues', 'rule': 'milestone', 'detail': 'x', 'fix': ''}], ['docs']); exit(not any(x['state'] == 'PASS' and x['rule'] == 'docs-check' for x in r))") \
   && ok "an UNREAD issue list still shows the PASS docs check row" || bad "soft row hid the docs check"
 
 echo "== preview writes nothing"
 before=$(writes)
 out=$($health preview); echo "$out"
-grep -q "^WOULD open issue 'health: size skills/x/scripts/near.py limit' on Backlog \[health:size\]" <<<"$out" \
+grep -q "^WOULD open issue 'health: size skills/x/scripts/near.py scripts' on Backlog \[health:size\]" <<<"$out" \
+  && grep -q "^WOULD open issue 'health: requirements REL-1 rows' on Calc \[health:requirements\]" <<<"$out" \
   && grep -q "^WOULD open issue 'health: docs Ghost missing' on Ghost \[health:docs\]" <<<"$out" \
-  && grep -q "\[health:hygiene\]" <<<"$out" && grep -q "\[health:criteria\]" <<<"$out" && ok "each issue it would open shows with its tag" || bad "preview lines"
+  && grep -q "\[health:hygiene\]" <<<"$out" && ! grep -q "\[health:criteria\]" <<<"$out" && ok "each issue it would open shows with its tag and feature milestone" || bad "preview lines"
 [ "$(writes)" = "$before" ] && [ ! -f "$FAKE_GH_DIR/issues.json" ] && ok "preview made no write call" || bad "preview wrote"
 GH_TOKEN=x $health preview >/dev/null; [ "$(writes)" = "$before" ] && ok "a token does not make preview write" || bad "token"
 # Value: protects=the old run --live (cron, habit) now only previews and writes nothing; fails_when=run is pointed back at
 #   file or --live regains a write path; why_new=no test calls run or --live since the rename; seam=none; no_claim=none beyond protects
 $health run --live | grep -q "^PREVIEW: " && [ "$(writes)" = "$before" ] && ok "the old run --live only previews, writes nothing" || bad "run alias"
-$health file 2>&1 | grep -q "^REFUSED: file needs --group" && [ "$(writes)" = "$before" ] && ok "file with no group refuses and writes nothing" || bad "file no group"
+out=$($health file 2>&1); rc=$?; grep -q "^REFUSED\[file\]: file needs --group" <<<"$out" && [ $rc = 2 ] && [ "$(writes)" = "$before" ] && ok "file with no group refuses and writes nothing" || bad "file no group"
 
 echo "== file --group writes only the named groups"
 $health file --group docs >/dev/null
@@ -141,10 +144,10 @@ grep -q "PRIVATE-OUTPUT" "$FAKE_GH_DIR/issues.json" && bad "mine output filed" |
 #   back to an empty list, so every finding reopens as a duplicate; why_new=the fake gh always answers; seam=none;
 #   no_claim=real gh error text (a stand-in gh that prints no JSON)
 mkdir -p "$d/badgh"; printf '#!/bin/bash\necho "$*" >> "%s/badgh/calls"\necho "HTTP 502" >&2; exit 1\n' "$d" > "$d/badgh/gh"; chmod +x "$d/badgh/gh"
-p=$(PATH="$d/badgh:$PATH" $health preview --group size 2>&1); f=$(PATH="$d/badgh:$PATH" $health file --group size 2>&1)
-grep -q "^REFUSED: could not read the health issues: HTTP 502" <<<"$p" && grep -q "^REFUSED: could not read the health issues" <<<"$f" \
-  && ! grep -qEv "^issue list " "$d/badgh/calls" && ok "an unreadable issue list refuses, writes nothing" || bad "gh unreadable"
-[ "$(cd "$here/skills/workflow-health/scripts" && python3 -c "import file; print(file.tag_of('cost'))")" = health:performance ] && ok "the Cost group is tagged health:performance" || bad "performance tag"
+p=$(PATH="$d/badgh:$PATH" $health preview --group size 2>&1); prc=$?; f=$(PATH="$d/badgh:$PATH" $health file --group size 2>&1); frc=$?
+grep -q "^REFUSED\[gh\]: can't list the issues (.*HTTP 502.*). Nothing was written." <<<"$p" && grep -q "^REFUSED\[gh\]: can't list the issues" <<<"$f" \
+  && [ $prc = 2 ] && [ $frc = 2 ] && ! grep -qEv "^api --paginate --slurp repos/\{owner\}/\{repo\}/issues" "$d/badgh/calls" && ok "an unreadable issue list refuses, writes nothing" || bad "gh unreadable"
+[ "$(cd "$here/skills/workflow-health/scripts" && python3 -c "import file, health; print(file.tag_of(health.groups_of('cost')[0]))")" = health:performance ] && ok "the Cost group is tagged health:performance" || bad "performance tag"
 for f in health report file; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 18432 ] && ok "$f.py under the size warning" || bad "$f.py size"; done
 
 echo "repo: $d/repo"

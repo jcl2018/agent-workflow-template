@@ -7,7 +7,7 @@ usage: update.py [--check | --apply | --propose [--file-issue]] [--take FILE ...
 --check (or no flag) writes nothing: INSTALLED, AVAILABLE, REPO, what's new, each file to change and each LOCAL FIX
 (a skill file edited here). Exit 0 up to date, 1 behind, 2 refused. --apply writes the skills folder (hashes checked
 first, atomic writes, workflow-package.json last; a LOCAL FIX is kept unless --take names it), then the repo half
-(sync.py) on branch workflow-update-vX. --propose sends each LOCAL FIX back as an issue (propose.py). The source is
+(sync.py) on branch workflow-update-vX. --propose sends each LOCAL FIX back as an issue (sync.py). The source is
 --from (a package or a source tree) or the template's latest GitHub release archive; the template is the installed
 stamp's repo, else template_repo (both set and different: refused unless --template). It never downgrades.
 """
@@ -263,9 +263,8 @@ def main():
     old, tree = stamp(skills), checkout(skills)
     fixes = [] if tree else local_fixes(skills, old)
     if args.propose:
-        import propose
         name = template(skills, base_cfg, args.template)[0]
-        return propose.run(skills, old, fixes, name, repo, args.file_issue)
+        return sync.run(skills, old, fixes, name, repo, args.file_issue)
     if tree == "unknown":
         print("SKIPPED repo: the checkout's VERSION can't be found, so there is no version to stamp (UPDATE_CHECKOUT)")
         repo = ""

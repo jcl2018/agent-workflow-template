@@ -36,6 +36,7 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `ci_levels` | `nightly` | Target of the scheduled and tag regression runs: nightly (every row) or land. |
 | `token_budget` | `0` | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
 | `test_budget_minutes` | `15` | Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite. |
+| `prep_budget_minutes` | `15` | Minutes a lane may spend before its first test row (preparing, planning, waiting for a slot), 15 or more; a lane past it stops and says which part ran long. |
 | `step_budget_minutes` | `30` | Minutes one review or ship step may take, 15 or more; a step at its limit finishes with what it has done and records what it left. |
 | `stale_branch_days` | `14` | Days a local branch on no remote may sit before health lists it with its removal command. |
 | `mend` | `false` | true lets watch start a fresh agent for a failed goal. |

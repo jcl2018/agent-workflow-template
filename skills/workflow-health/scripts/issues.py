@@ -1,0 +1,303 @@
+"""DOC-10 for health.py's docs-check rule: every open issue sits on a milestone (its feature's, or Backlog).
+
+rows(root) runs `gh issue list --state open --limit 1000 --json number,title,milestone` and gives one FAIL row per open
+issue with no milestone. When gh is missing, fails, or returns exactly LIMIT issues (the list may be cut), it gives one
+UNREAD row instead; report.py shows that row but never lets it turn the verdict red (SOFT). A repo with no GitHub remote
+has no issues to read, so it gives no row and makes no gh call. Read-only: it never edits an issue.
+It also holds what the other commands read from gh and from the pages: the cached list of every issue (fetch), the feature
+a finding is about (feature_of, from .loop/docs.tsv), an issue's marker key and evidence hash (key_of, legacy, evidence_of,
+covering), and triage (listing, close): open findings per feature, closed in a batch only with the owner's words.
+"""
+import datetime
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+
+from defects import defined, table
+
+
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+if not sys.stdin or not sys.stdin.isatty():
+    os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
+
+LIMIT = 1000
+RULE = "milestone"
+FIX_UNREAD = "gh auth login, then rerun health.py check"
+
+
+def row(state, subject, detail, fix):
+    return {"state": state, "family": "docs", "subject": subject, "rule": RULE, "detail": detail, "fix": fix}
+
+
+def on_github(root):
+    """True when a remote points at a GitHub host: only then can the repo have issues."""
+    try:
+        done = subprocess.run(["git", "remote", "-v"], cwd=root, capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return "github" in done.stdout.lower()
+
+
+def unread(text):
+    first = next((line.strip() for line in (text or "").splitlines() if line.strip()), "no answer")
+    return [row("UNREAD", "issues", first[:120], FIX_UNREAD)]
+
+
+def rows(root, gh="gh"):
+    if not on_github(root):
+        return []
+    args = [gh, "issue", "list", "--state", "open", "--limit", str(LIMIT), "--json", "number,title,milestone"]
+    try:
+        done = subprocess.run(args, cwd=root, capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as error:
+        return unread(str(error))
+    try:
+        issues = json.loads(done.stdout) if not done.returncode else None
+    except ValueError:
+        issues = None
+    if not isinstance(issues, list):
+        return unread(done.stderr or done.stdout)
+    if len(issues) >= LIMIT:
+        return unread("truncated at %d open issues" % LIMIT)
+    return [row("FAIL", "#%s" % one.get("number"), (one.get("title") or "")[:120],
+                "gh issue edit %s --milestone <Feature|Backlog>" % one.get("number"))
+            for one in sorted(issues, key=lambda one: one.get("number") or 0) if not one.get("milestone")]
+
+
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
+CACHE = {}
+FIELDS = ("number", "title", "body", "state", "labels", "milestone", "created_at", "closed_at", "pull_request")
+
+
+def slim(item):
+    out = {key: item.get(key) for key in FIELDS}
+    out["labels"] = [label.get("name") if isinstance(label, dict) else str(label) for label in item.get("labels") or []]
+    stone = item.get("milestone")
+    out["milestone"] = stone.get("title") if isinstance(stone, dict) else stone
+    return out
+
+
+def fetch(root):
+    """(issues or None, why). Pull requests are left out."""
+    if root in CACHE:
+        return CACHE[root]
+    fixture = os.environ.get("LOOP_HEALTH_GH_FIXTURE")
+    if fixture:
+        try:
+            with open(fixture) as handle:
+                found = [slim(item) for item in json.load(handle)]
+            CACHE[root] = ([i for i in found if not i.get("pull_request")], "")
+        except (OSError, ValueError, AttributeError) as error:
+            CACHE[root] = (None, "the issue fixture can't be read: %s" % error)
+        return CACHE[root]
+    try:
+        done = subprocess.run(["gh", "api", "--paginate", "--slurp", "repos/{owner}/{repo}/issues?state=all&per_page=100"],
+                              cwd=root, capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError) as error:
+        CACHE[root] = (None, "gh not available here (%s)" % str(error)[:80])
+        return CACHE[root]
+    if done.returncode:
+        CACHE[root] = (None, "gh not available here (%s)" % ((done.stderr.strip().splitlines() or ["exit %d" % done.returncode])[0][:100]))
+        return CACHE[root]
+    try:
+        pages = json.loads(done.stdout or "[]")
+        found = [slim(item) for page in pages for item in (page if isinstance(page, list) else [page])]
+    except (ValueError, AttributeError) as error:
+        CACHE[root] = (None, "gh gave unreadable output (%s)" % str(error)[:80])
+        return CACHE[root]
+    CACHE[root] = ([i for i in found if not i.get("pull_request")], "")
+    return CACHE[root]
+
+
+def is_health(issue):
+    return "health" in (issue.get("labels") or [])
+
+
+OLD = {"requirements": "criteria", "performance": "cost", "traceability": "criteria", "tests": "criteria"}
+OLD_RULE = {"scripts": "limit", "seen-red": "proof", "done": "rows"}
+
+
+def key_of(item):
+    return "%s:%s:%s" % (item["family"], item["subject"], item["rule"])
+
+
+def legacy(item):
+    """The keys an older health wrote for this finding."""
+    family, rule = OLD.get(item["family"]), OLD_RULE.get(item["rule"], item["rule"])
+    out = ["%s:%s:%s" % (family, item["subject"], rule)] if family else []
+    if item["family"] == "size":
+        out.append("size:%s:limit" % item["subject"])
+    return out
+
+
+def evidence_of(item):
+    """sha8 of the finding's identity and stable citations; never details, ages, counts or sizes (review: normalized)."""
+    cites = item.get("evidence") or item["subject"]
+    if item["family"] == "review":
+        cites = ",".join(sorted({re.sub(r":\d+(-\d+)?$", "", c.strip()) for c in cites.split(",") if c.strip()}))
+    return hashlib.sha1(("%s|%s" % (key_of(item), cites)).encode()).hexdigest()[:8]
+
+
+def title_of(stone):
+    """A milestone's title from gh's {"title": ...}, issues.fetch's plain title, or nothing."""
+    return (stone.get("title") if isinstance(stone, dict) else stone) or ""
+
+
+def covering(item, issues, stone):
+    """An open non-health issue on the finding's milestone naming its subject as a whole token."""
+    subject = (item.get("evidence") or item["subject"]).split(",")[0].strip()
+    if not re.search(r"[/.]|^[A-Z]{2,5}-\d+", subject) or len(subject) < 4:  # a path or an id, never a plain word
+        return None
+    pattern = re.compile(r"(?<![\w./-])%s(?![\w/-])" % re.escape(subject))
+    for issue in issues:
+        if issue.get("state") == "open" and not is_health(issue) and issue.get("milestone") == stone and \
+                pattern.search("%s\n%s" % (issue.get("title") or "", issue.get("body") or "")):
+            return issue
+    return None
+
+
+BACKLOG = "Backlog"
+ID = re.compile(r"^[A-Z]{2,5}-\d+[a-z]?$")
+
+
+def features(root):
+    """{page: [paths]} from .loop/docs.tsv, Home left out."""
+    out = {}
+    try:
+        with open(os.path.join(root, ".loop", "docs.tsv")) as handle:
+            for line in handle:
+                if line.strip() and not line.startswith("#"):
+                    page, _, paths = line.rstrip("\n").partition("\t")
+                    if page.strip() and page.strip() != "Home":
+                        out[page.strip()] = [p.strip().rstrip("/") for p in paths.split(",") if p.strip()]
+    except OSError:
+        pass
+    return out
+
+
+def by_path(path, pages):
+    path = path.split(":")[0].strip()
+    if path.startswith("/workflow-"):  # a command: /workflow-docs init is about skills/workflow-docs
+        path = "skills/" + path.split()[0].lstrip("/")
+    path = path[2:] if path.startswith("./") else path.lstrip("/")
+    best, length = None, -1
+    for page, paths in pages.items():
+        for prefix in paths + ["docs/wiki/%s.md" % page]:
+            if (path == prefix or path.startswith(prefix + "/")) and len(prefix) > length:
+                best, length = page, len(prefix)
+    return best
+
+
+def feature_of(root, item, cache=None):
+    """The feature (page name) a finding is about, or Backlog."""
+    cache = cache if cache is not None else {}
+    pages = cache.setdefault("pages", features(root))
+    named = item.get("feature")
+    if named:
+        return named if named in pages else BACKLOG
+    known = cache.setdefault("ids", defined(root))
+    rows = cache.setdefault("rows", {r["id"]: r for r in table(root)})
+    for text in (item.get("subject") or "", item.get("evidence") or ""):
+        text = text.strip()
+        if not text:
+            continue
+        if ID.match(text) and text in known:
+            page = known[text][0]
+            return page if page in pages else BACKLOG
+        if text in rows and rows[text]["goal"] in known:
+            page = known[rows[text]["goal"]][0]
+            return page if page in pages else BACKLOG
+        if text.startswith("#") and text[1:].isdigit():
+            found, _ = fetch(root)
+            stone = next((i.get("milestone") for i in found or [] if str(i["number"]) == text[1:]), None)
+            if stone in pages:
+                return stone
+            continue
+        page = text if text in pages else by_path(text, pages)  # a page-level finding (docs stale) names its page
+        if page:
+            return page
+    return BACKLOG
+
+
+# No terminal, no waiting: a prompt from git or gh must fail, not block.
+os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+
+
+CAP = 20
+
+
+def age(issue):
+    try:
+        when = datetime.date.fromisoformat(str(issue.get("created_at"))[:10])
+    except ValueError:
+        return 0
+    return (datetime.date.today() - when).days
+
+
+def kind_of(issue):
+    tags = [t for t in issue.get("labels") or [] if t.startswith("health:") and t != "health:closed"]
+    return tags[0][len("health:"):] if tags else "health"
+
+
+def open_findings(root, only=None):
+    found, why = fetch(root)
+    if found is None:
+        return None, why
+    return [i for i in found if i.get("state") == "open" and is_health(i)
+            and (not only or (i.get("milestone") or "Backlog") == only)], ""
+
+
+def listing(root, only=None):
+    found, why = open_findings(root, only)
+    if found is None:
+        print("REFUSED[gh]: can't list the issues (%s). Nothing was read." % why)
+        return 2
+    if not found:
+        print("TRIAGE: no open findings%s" % (" on " + only if only else ""))
+        return 0
+    table = {}
+    for issue in found:
+        table.setdefault(issue.get("milestone") or "Backlog", {}).setdefault(kind_of(issue), []).append(age(issue))
+    print("TRIAGE: %d open findings on %d features" % (len(found), len(table)))
+    for stone in sorted(table, key=lambda s: (-sum(len(v) for v in table[s].values()), s)):
+        print("== %s: %d ==" % (stone, sum(len(v) for v in table[stone].values())))
+        for kind, ages in sorted(table[stone].items(), key=lambda kv: (-len(kv[1]), kv[0])):
+            print("  %-22s %3d open, oldest %d days, newest %d days" % (kind, len(ages), max(ages), min(ages)))
+    return 0
+
+
+def close(root, kind, why, only=None, older=0, yes=False, most=CAP):
+    if not (why or "").strip():
+        print("REFUSED[why]: close needs --why with the owner's words. Nothing was closed.")
+        return 2
+    found, reason = open_findings(root, only)
+    if found is None:
+        print("REFUSED[gh]: can't list the issues (%s). Nothing was closed." % reason)
+        return 2
+    match = [i for i in found if kind_of(i) == kind and age(i) >= older]
+    if not match:
+        print("NOTHING TO CLOSE: no open %s findings%s%s" % (kind, " on " + only if only else "", " %d days or older" % older if older else ""))
+        return 0
+    for issue in match:
+        print("  #%d %s (%d days, %s)" % (issue["number"], issue.get("title") or "", age(issue), issue.get("milestone") or "Backlog"))
+    if len(match) > most:
+        print("REFUSED[cap]: %d match, over --max %d. Narrow it with --feature or --older, or raise --max." % (len(match), most))
+        return 2
+    if not yes:
+        print("DRY RUN: %d would close with: %s. To close them, run again with --yes." % (len(match), why))
+        return 0
+    subprocess.run(["gh", "label", "create", "health:closed", "--description", "Closed in triage by the owner", "--force"],
+                   cwd=root, capture_output=True, text=True)
+    for issue in match:
+        number = str(issue["number"])
+        done = subprocess.run(["gh", "issue", "close", number, "--comment", "Closed in triage by the owner: " + why.strip()],
+                              cwd=root, capture_output=True, text=True)
+        if not done.returncode:
+            done = subprocess.run(["gh", "issue", "edit", number, "--add-label", "health:closed"], cwd=root, capture_output=True, text=True)
+        print(("FAILED #%s: %s" % (number, done.stderr.strip()[:120])) if done.returncode else "CLOSED #%s" % number)
+    return 0

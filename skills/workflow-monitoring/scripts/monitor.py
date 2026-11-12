@@ -206,7 +206,7 @@ def status_block(fragment=False):
 def over_budget(states):
     """(slug, line) for each step or test run that reached its time budget, with what it left (the run file's budget_hits)."""
     return [(state["slug"], "%s %s hit its %s-minute budget; left: %s" % (
-        hit.get("step"), "step" if hit.get("kind") == "step" else "tests", hit.get("minutes"), hit.get("left")))
+        hit.get("step"), {"step": "step", "prep": "preparation"}.get(hit.get("kind"), "tests"), hit.get("minutes"), hit.get("left")))
         for state in states for hit in state.get("budget_hits") or [] if isinstance(hit, dict)]
 
 
