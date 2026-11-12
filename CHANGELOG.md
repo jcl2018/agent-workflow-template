@@ -1,5 +1,133 @@
 # Changelog
 
+## v0.27.16 - 2026-11-12
+
+- Merge remote-tracking branch 'origin/main' into loop/pending-none
+- A step reply's PENDING: none (or nothing, n/a, an empty PENDING line) no longer makes a goal wait (pending-none)
+- Rows seen failing, Tests re-rendered (pending-none)
+- Wiki: update pages for pending-none
+- Review fixes: a decision under a bare PENDING heading waits; linear item trim (pending-none)
+- Wiki: update pages for pending-none
+- Merge origin/main into loop/pending-none: Tests re-rendered
+- pr: record issue states and the lane's results
+- Merge origin/main into loop/pending-none: rows unioned, Tests re-rendered
+- Merge origin/main into loop/pending-none: rows unioned, Tests re-rendered
+- goal.py: trim the usage docstring back under its 19,500-byte ceiling (pending-none)
+- Wiki: update pages for pending-none
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.15 - 2026-11-12
+
+- lane-plan-cache: idea design
+- lane-plan-cache: plan
+- lane-plan-cache: fixtures, v0.27.6 golden plans, golden and calls tests
+- lane-plan-cache: memoize the per-row changed call and the folder walk
+- lane-plan-cache: a per-branch closure cache keyed by HEAD, the row file, the planner and LANES_WIDE
+- lane-plan-cache: seen-red dates for plan-cache-key and plan-seconds-nightly; render Tests
+- lane-plan-cache: key the cache on the loop's uncommitted bookkeeping files
+- Merge origin/main (v0.27.8) into loop/lane-plan-cache: Tests re-rendered
+- lane-plan-cache: review fixes F1 to F11
+- lane-plan-cache: test the inflate cap with a 200 MB bomb
+- Merge origin/main (lane-tmpdir v0.27.9) into loop/lane-plan-cache: Regression Usage keeps both sentences, rows kept
+- Merge remote-tracking branch 'origin/main' into loop/lane-plan-cache
+- lane-plan-cache: tiers.py carries the no-terminal guard (the lane caught it: DEL-10 and no-hang)
+- lane-plan-cache: qa fixes: sizes builds the package from the committed files, key-rows documented as rare, Regression Usage says planning asks git once per plan
+- lane-plan-cache: ship fixes: locale crash, outside symlinks, doc wording
+- Merge origin/main (v0.27.11) into loop/lane-plan-cache: rows kept
+- Merge origin/main (v0.27.12) into loop/lane-plan-cache: Regression Usage keeps both sentences
+- lane-plan-cache: after the v0.27.12 merge, tiers.py back under 18,432 and lanes.py ceiling set to main's size
+- lane-plan-cache: Regression Usage names LANES_NO_CACHE
+- Merge origin/main (v0.27.13) into loop/lane-plan-cache: Tests re-rendered
+- pr: record issue states and the lane's results
+- Merge origin/main (v0.27.14) into loop/lane-plan-cache: rows kept
+
+### How to verify
+
+1. Run `bash dev/toy/test-plan-cache.sh all`.
+   Expect: golden, calls, identity, key and sizes all print PASS lines and the run ends with `ALL PASS`.
+2. Run `bash dev/toy/test-plan-cache.sh seconds` on a quiet or busy machine.
+   Expect: it prints the off, cold and warm planning seconds of a 1,500-row fixture under 20 busy loops, the cold plan under 60 seconds, the cache file under 2 MB, and ends with `ALL PASS`.
+3. On a large real repo (owner, not run by the build), rerun a lane that was cut with "planning ran long" at a load average of 20 or more, then read the `planning Ns` part of its LANE line and the `PLAN_CACHE:` line of its log (the planner's first line).
+   Expect: planning is under 60 s; run the same lane again at the same HEAD and the log says `PLAN_CACHE: hit (N rows)`; after a new commit it says `PLAN_CACHE: miss (key-head)`. If planning is under 60 s, lower that repo's `prep_budget_minutes` from 25 toward the default.
+4. Run `LANES_NO_CACHE=1 python3 skills/workflow-regression/scripts/regression.py run land --reuse --tier goal` in a clean checkout of a feature branch.
+   Expect: the first planner line (after any `SKIP <id>: draft` or `covered` lines) is `PLAN_CACHE: off (LANES_NO_CACHE=1)` and the rest of the output is what it was before the cache existed.
+5. Done line 5 says "every script stays under 18 KB", but 27 scripts were already over 18,432 bytes before this goal, so it is read as: no script grows past its current size, and tiers.py and narrow.py (the two this goal edits that were under it) stay under 18,432. Run `wc -c skills/workflow-regression/scripts/tiers.py skills/workflow-regression/scripts/narrow.py skills/workflow-regression/scripts/lanes.py`.
+   Expect: tiers.py and narrow.py under 18432 and lanes.py at most 19710 (its size on main at v0.27.12; this goal's own change to it is a net shrink). If you meant every script under 18 KB, that is a different goal.
+
+## v0.27.14 - 2026-11-12
+
+- test-guard-enforce: the health block asks the Security group for the hooks rule
+- Docs: the hooks rule is in the Security group; set8-health seen failing and rendered
+- Lane: re-render the Tests tables
+- Merge origin/main (v0.27.11) into loop/guard-enforce-red: rows unioned, Tests re-rendered
+- Merge origin/main into loop/guard-enforce-red: Tests re-rendered
+- Merge origin/main into loop/guard-enforce-red: Tests re-rendered
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.13 - 2026-11-12
+
+- Pods: one shared owner check and merge lock, claim adds sessions, per-repo check-in blocks
+- Pods: regression rows and size budgets
+- Pods: rows seen red, Tests tables, LOOP_POD_ID in the usage
+- Pods: review fixes (atomic stale-lock takeover, free and worker send refuse, read-only others, watch skips foreign goals)
+- Merge origin/main into loop/pods
+- Pods: graph.py sets the no-prompt guard its git calls need
+- Lane: re-render the Tests tables
+- Pods: test the package from a clean export, check only the review lock
+- Merge remote-tracking branch 'origin/main' into loop/pods
+- Monitoring page: MON-15 names the skipped goals and the read-only questions
+- Merge origin/main into loop/pods
+- Merge remote-tracking branch 'origin/main' into loop/pods
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. In one repo run `CLAUDE_SESSION_ID=pod-a python3 skills/workflow-monitoring/scripts/operate.py claim`, then the same with `pod-b`. Expect: both print `CLAIMED operation session` with no REFUSED, WARN or `replaced`; `cat .git/loop/operation.id` lists pod-a and pod-b.
+2. Queue a goal as pod-a (`LOOP_POD_ID=pod-a python3 skills/workflow-monitoring/scripts/watch.py watch --once`), then `cat .git/loop/runs/<slug>.json`. Expect: `"pod": "pod-a"`.
+3. As pod-b run `LOOP_POD_ID=pod-b python3 skills/workflow-monitoring/scripts/operate.py send <slug> hi`. Expect: exactly one line `REFUSED: goal <slug> is owned by pod pod-a. Fix: ...`, exit status 2, the record unchanged.
+4. Run `python3 skills/workflow-monitoring/scripts/checkin.py` as pod-b. Expect: the goal reads `owned by pod-a` and no question for it is numbered under Needs you; as pod-a it has no such words.
+5. In two shells run `python3 skills/workflow-release/scripts/merge.py <slug>` for two goals of one auto_merge repo at once. Expect: the second prints `WAITING: another pod is merging into this repo` and starts only after the first ends; `.git/loop/merge.lock` is gone afterwards.
+6. Write a dead pid into `.git/loop/merge.lock` (`echo 999999 > ...`) and run a merge. Expect: it takes the lock at once (no WAITING).
+7. Run `python3 skills/workflow-monitoring/scripts/checkin.py` with two followed repos in `~/.workflow-loop/repos`. Expect: one `== name ==` block per repo, no line over 60 characters, `Between repos` for a `repo/slug` dependency, the legend once.
+
+## v0.27.12 - 2026-11-12
+
+- Codex proof: a SKIPPED result for rows that cannot run, setup survives a read-only home, the Codex harness and pod-collision tests
+- Codex proof: design, plan, run report, Regression page usage
+- Codex proof: fixes from the plan review (SKIPPED never reused, red refuses 77, RESULT counts skips, narrower setup catch, stronger tests, Codex quickstart)
+- Touch the Automation and Home pages after the runner and README changes
+- settings: write through a symlinked settings file and keep its mode
+- Ledger keeps a row's last PASS when a later run is SKIPPED; settings temp file is created with its final mode
+- Touch the Setup page after the settings write fix
+- Lane: re-render the Tests tables
+- Touch the Regression page after the ledger change
+- Merge origin/main into loop/codex-proof
+- Re-render the Regression tests table; touch the Automation page
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/codex-proof
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.11 - 2026-11-12
+
+- Release refusals never crash on a goal state with no usable report (autorelease-fail-crash)
+- Merge remote-tracking branch 'origin/main' into loop/autorelease-fail-crash
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.10 - 2026-11-12
 
 - Merge remote-tracking branch 'origin/main' into loop/milestone-freeform

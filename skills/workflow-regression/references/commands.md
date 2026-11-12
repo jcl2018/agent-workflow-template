@@ -42,7 +42,7 @@ workflow
   made or set, and a failed issue write fails the step after the last row (`FILE_FAILED`). The job has 90 minutes; each
   row runs in its own process group with a 15-minute limit and starts only if that limit still fits an 88-minute
   budget (`REGRESSION_ROW_SECONDS` and `REGRESSION_JOB_SECONDS` in the step's environment override them). A row that
-  doesn't fit is skipped (`SKIPPED`) and fails with an issue. Each result is saved as the row ends, and a last step
+  doesn't fit is skipped (`SKIPPED`) and fails with an issue. A row that exits 77 says it cannot run on this machine (no Codex signed in, say): it is `SKIPPED` too, never `PASS`, never reused by a later lane (`SKIPPED <id>` is printed and `RESULT` ends `, <n> skipped`), does not fail the lane, opens no issue, and `red` refuses a break run that exits 77. Each result is saved as the row ends, and a last step
   that always runs writes the run summary: one header with totals and the run time, then one table per feature, or the
   plain results if that fails. Rows run with no GitHub token and none of the runner's own files in their environment
   (`regression.py run` too), and the checkout uses `persist-credentials: false`.
@@ -261,6 +261,52 @@ setting for tests only; the LANE line says when it is in effect. Without `--tier
 | `ROWS: S selected (A affected, N new, R root runners, F failure reruns), U reused; unmapped: K` | The plan; the LANE line repeats it with the unfinished count and the log path |
 | `UNMAPPED <file>: no row declares it. Note: ...` / `UNMAPPED <file>: deleted. Note: ...` | Every lane: advisory; the rows that name the file and the runners run, never the full suite |
 | `FULL (no merge-base with <base>): ...` | A shallow clone or a missing base ref: every row is a candidate and the time budget keeps what fits |
+
+## Plan cache
+
+A goal lane's planning step works out, for every row, which files it reads. That closure is computed once per lane and kept
+per branch in `<git common dir>/loop/plans/<branch file name>` (zlib-compressed JSON, next to the lane records in `loop/tests/`,
+never in the worktree). The next lane at the same HEAD loads it instead of recomputing. `PLAN_CACHE: <state>` is the first line the
+planner prints (`regression.py run` prints a `SKIP <id>: draft` or `SKIP <id>: covered` line for such rows before it); the rest of the plan output, and the planned rows, are the same with the cache on or off.
+
+| State and token | Means | What to do |
+|---|---|---|
+| `PLAN_CACHE: hit (N rows)` | The file matched and held every row the plan needed; the tree is clean, and any uncommitted loop bookkeeping files are the ones the file was written with | Nothing |
+| `PLAN_CACHE: miss (absent)` | No file yet for this branch (a first lane, or after a reset); computed, then written | Nothing |
+| `PLAN_CACHE: miss (key-head)` | HEAD moved since the file was written | Nothing: the next lane at this HEAD hits |
+| `PLAN_CACHE: miss (key-rows)` | `.loop/regression.tsv` differs although HEAD is the same: rare, because an edit shows `dirty` until committed and then `key-head` (only an edit hidden from `git status`, such as `update-index --assume-unchanged`, reaches it) | Nothing |
+| `PLAN_CACHE: miss (key-runner)` | The planner's own code changed (an upgrade) | Nothing: the first lane after an upgrade misses |
+| `PLAN_CACHE: miss (key-wide)` | `LANES_WIDE` differs from the run that wrote the file | Keep `LANES_WIDE` the same between lanes |
+| `PLAN_CACHE: miss (key-loop)` | A loop bookkeeping file that `lanes.dirty` ignores (`.loop/goals/`, the runs file, queue.md, findings.md) has uncommitted changes that differ from when the file was written | Nothing: the next lane with the same files hits |
+| `PLAN_CACHE: miss (partial M of N)` | The file held M of the N rows this plan needs (another level planned first, such as nightly after land) | Nothing: the plan writes all N |
+| `PLAN_CACHE: miss (corrupt)` | The file could not be read, or is from another format; it is ignored and replaced | Nothing; if it repeats, remove the folder as below |
+| `PLAN_CACHE: dirty (N paths, cache not used)` | Files are uncommitted; closures read working-tree files, so nothing is read or written | Commit or remove them |
+| `PLAN_CACHE: off (LANES_NO_CACHE=1)` | The cache is switched off | Unset `LANES_NO_CACHE` |
+| `PLAN_CACHE: none (no branch)` | A detached HEAD has no branch to name a file | Nothing |
+| `PLAN_CACHE: dirty (git status failed, cache not used)` | `git status` failed, so a clean tree cannot be shown; nothing is read or written | Fix the repository (a broken index, a missing git) |
+| `PLAN_CACHE: not saved (ignored file read)` | After the plan: it read or listed a git-ignored file, whose changes neither HEAD nor git status shows, so nothing is written (the plan itself is unaffected) | Nothing; to cache it, commit the file or stop naming it in a row |
+| `PLAN_CACHE: not saved (symlink outside repo)` | After the plan: a file it read resolves outside the repo (a symlink), where a change leaves git status clean, so nothing is written (the plan itself is unaffected) | Nothing; keep rows from reading through links that leave the repo |
+| `PLAN_CACHE: not saved (<error class>)` | After the plan, only when the write failed (for example `PermissionError`); the plan itself is unaffected | Fix the folder's permissions, or remove it as below |
+
+Tokens are added, never renamed. In a lane log:
+
+```text
+PLAN_CACHE: miss (absent)         cold: computed, then written
+PLAN_CACHE: hit (498 rows)        warm: the next lane at the same HEAD
+PLAN_CACHE: off (LANES_NO_CACHE=1)  switched off
+```
+
+- The safe reset is `rm -r <git common dir>/loop/plans`: the next lane misses and writes it again. Files older than 30 days are pruned when a lane writes.
+- `LANES_NO_CACHE` turns the cache off when it is `1`, `true` or `yes` in any case; `0` or empty leave it on. (`LANES_WIDE` is different: only the literal `1` counts, and it changes the closures, so it is part of the key.)
+- The key is HEAD, `.loop/regression.tsv`, the planner's code, `LANES_WIDE` and the content of the loop's uncommitted bookkeeping files (`lanes.dirty` ignores those, and a row can read them). A plan that read or listed an ignored file, or read through a symlink that leaves the repo, is never saved, so those cannot go stale. What the key does not hold: a file created later, or ignored later (for example through `.git/info/exclude`), is outside it, and a later `hit` can then be stale. Then run `rm -r <git common dir>/loop/plans`, or set `LANES_NO_CACHE=1`. A symlink that stays inside the repo needs nothing: its target is tracked, so an edit shows as a dirty tree and a commit moves HEAD.
+
+| Why do I keep seeing `miss`? | Cause | Fix |
+|---|---|---|
+| `key-head` on every lane | Each lane starts after a new commit | Expected: the qa, ship and pr lanes at one HEAD hit after the first |
+| `dirty` every time | A row or the lane leaves untracked files | Commit or `.gitignore` them; a lane that leaves files is already reported as `LANE_DIRTY` |
+| `partial M of N` every time | Two levels (land and nightly) alternate | Expected: the plan writes every row it needs, so the next one of that level hits |
+| `key-loop` on every lane | A goal file or the runs file is edited between lanes | Expected while you edit it; commit it to stop |
+| `corrupt` every time | The folder is shared with an older release | `rm -r <git common dir>/loop/plans` |
 
 ## Lanes: what runs when, and every message a lane prints
 

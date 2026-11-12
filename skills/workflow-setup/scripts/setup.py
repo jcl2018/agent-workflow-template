@@ -19,6 +19,7 @@ LOOP_NO_GIT_HOOKS=1. A hook that is not ours is never touched; --check [--json] 
 """
 import argparse
 import contextlib
+import errno
 import io
 import json
 import os
@@ -277,7 +278,7 @@ def adopt(args, repo):
         post = git(repo, "rev-parse", "--short", "HEAD")
     if not (args.bare or args.no_git_hooks or os.environ.get("LOOP_NO_GIT_HOOKS") == "1"):
         update.step("git hooks", "python3 setup.py --git-hooks", lambda: seed.git_hooks(repo, adopting=True), failed)
-    update.step("private settings", "python3 settings.py fill-private", lambda: print("PRIVATE settings added to %s: %s" % (settings.private_path(), ", ".join(settings.fill_private()) or "none missing")), failed)
+    update.step("private settings", "python3 settings.py fill-private", fill_private, failed)
     if post and (kinds or bare) and not args.bare:
         update.step("issue filing", "workflow-health file --group adoption --open-only", lambda: survey.file_issues(repo, args.no_issues, len(kinds) + bool(bare)), failed)
     if post:
@@ -287,6 +288,16 @@ def adopt(args, repo):
         return 0
     end, why = measure(repo)
     return 3 if verdict(end, why, failed) and args.strict else 0
+
+
+def fill_private():
+    try:
+        print("PRIVATE settings added to %s: %s" % (settings.private_path(), ", ".join(settings.fill_private()) or "none missing"))
+    except OSError as error:  # a sandbox (Codex's workspace-write) can leave the home folder read-only
+        if error.errno not in (errno.EACCES, errno.EPERM, errno.EROFS):
+            raise  # a full disk or a bad path is a real failure, not a read-only home
+        print("PRIVATE_NOT_WRITTEN: private settings not written (%s). The repo adoption goes on. Fix: allow writes to %s and run setup.py again; "
+              "go is refused until they exist." % (error.strerror or type(error).__name__, os.path.dirname(settings.private_path())))
 
 
 def main():

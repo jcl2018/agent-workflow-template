@@ -33,6 +33,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import board_status as bs  # noqa: E402
+import graph  # noqa: E402
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")  # no prompt ever blocks
 
 KINDS = ("routine", "destructive", "money", "security", "owner")
@@ -125,7 +126,7 @@ def decide_all(root=None, now=None, dry=False):
         if not isinstance(run, dict) or run.get("status") != "waiting" or not isinstance(run.get("waiting"), dict):
             continue
         waiting = run["waiting"]
-        if waiting.get("auto"):
+        if waiting.get("auto") or graph.foreign(run):  # a pod never answers another pod's question
             continue
         reason = why_not(waiting, cfg, owner_answered(folder, run.get("slug")))
         if reason == "full_auto is off":

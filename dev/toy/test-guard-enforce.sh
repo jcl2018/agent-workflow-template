@@ -165,23 +165,23 @@ r "env -u LOOP_PRIVATE_NAMES HOME=$T/nohome git -C $T/s10 commit --allow-empty -
 check "no list at all passes the commit silently" '[ $rc = 0 ]'
 
 echo "== SET-8: health reports the hooks"
-r "cd $T/s10 && $HEALTH check --group hygiene"
-check "health passes a repo with the hooks installed" 'has "^PASS hygiene hooks hooks: the private-name hooks are installed"'
+r "cd $T/s10 && $HEALTH check --group security"
+check "health passes a repo with the hooks installed" 'has "^PASS security hooks hooks: the private-name hooks are installed"'
 python3 "$SETUP" --repo "$T/s10" --git-hooks --remove >/dev/null 2>&1
-r "cd $T/s10 && $HEALTH check --group hygiene"
-check "health WARNs a repo with the hooks removed, naming each, with no home path" 'has "^WARN hygiene hooks hooks: commit-msg: missing; pre-commit: missing; pre-push: missing" && ! has "$HOME"'
-r "cd $T/s10 && GITHUB_ACTIONS=true $HEALTH check --group hygiene"
-check "the rule is skipped on GitHub Actions" 'has "^PASS hygiene hooks hooks: skipped on GitHub Actions"'
+r "cd $T/s10 && $HEALTH check --group security"
+check "health WARNs a repo with the hooks removed, naming each, with no home path" 'has "^WARN security hooks hooks: commit-msg: missing; pre-commit: missing; pre-push: missing" && ! has "$HOME"'
+r "cd $T/s10 && GITHUB_ACTIONS=true $HEALTH check --group security"
+check "the rule is skipped on GitHub Actions" 'has "^PASS security hooks hooks: skipped on GitHub Actions"'
 r "cd $T/s10 && GITHUB_ACTIONS=true $HEALTH check --group controls"
 check "its negative control still fires on Actions" 'has "^PASS controls hooks control: fires on its fixture"'
-r "cd $T/s9 && $HEALTH check --group hygiene"
+r "cd $T/s9 && $HEALTH check --group security"
 check "a stub whose private.py moved is a stale WARN before it blocks a commit" 'has "pre-commit: stale"'
-mk s11; inst s11; r "cd $T/s11 && LOOP_PRIVATE_NAMES=$T/badre $HEALTH check --group hygiene"
-check "a broken list is a WARN that names the way to see the line, never the pattern" 'has "WARN hygiene hooks hooks: the private-name list is broken" && ! has "$TOKEN"'
-r "cd $T/s11 && env -u LOOP_PRIVATE_NAMES HOME=$T/nohome $HEALTH check --group hygiene"
-check "no list is not a health finding (the board lists it)" 'has "^PASS hygiene hooks hooks: the private-name hooks are installed"'
+mk s11; inst s11; r "cd $T/s11 && LOOP_PRIVATE_NAMES=$T/badre $HEALTH check --group security"
+check "a broken list is a WARN that names the way to see the line, never the pattern" 'has "WARN security hooks hooks: the private-name list is broken" && ! has "$TOKEN"'
+r "cd $T/s11 && env -u LOOP_PRIVATE_NAMES HOME=$T/nohome $HEALTH check --group security"
+check "no list is not a health finding (the board lists it)" 'has "^PASS security hooks hooks: the private-name hooks are installed"'
 mkdir -p "$T/old/skills"; cp -R "$here/skills/." "$T/old/skills/"; printf 'import sys\nsys.exit(2)\n' > "$T/old/skills/workflow-setup/scripts/setup.py"
-r "cd $T/s11 && python3 $T/old/skills/workflow-health/scripts/health.py check --group hygiene"
+r "cd $T/s11 && python3 $T/old/skills/workflow-health/scripts/health.py check --group security"
 check "an old setup.py beside the new health is one WARN to update the skills" 'has "cannot read the hook state" && has "update the skills so setup.py has --git-hooks --check"'
 r "python3 $SETUP --repo $T/s11 --git-hooks --check --json"
 check "--check --json carries a schema version, the list state and each hook, no pattern" 'has "\"version\": 1" && has "\"list\": \"on\"" && has "\"pre-commit\": \"installed\"" && ! has "$TOKEN"'

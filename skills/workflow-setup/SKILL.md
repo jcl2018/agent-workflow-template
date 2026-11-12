@@ -52,7 +52,7 @@ and its fix above it); it exits 0 whenever the adoption is on its branch, and `-
 1. Tell the user that `workflow-monitoring` needs them to allow tools in `agent_command`, because a background agent
    can't answer a permission prompt. For Claude Code, that looks like
    `["claude", "-p", "--allowedTools=Bash,Read,Write,Edit"]`. For Codex, it means `-s workspace-write` with the git
-   folder and the remote in `sandbox_workspace_write.writable_roots`. They choose the list. You don't.
+   folder, the remote and `~/.workflow-loop` in `sandbox_workspace_write.writable_roots` (a read-only home leaves the private settings unwritten: setup says so and goes on, and `go` is refused until they exist). They choose the list. You don't.
 2. Tell the user to review the branch and merge it. The other skills read the config from the base branch.
 
 Keep to these rules:
