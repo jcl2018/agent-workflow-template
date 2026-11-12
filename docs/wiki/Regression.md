@@ -79,13 +79,13 @@ Review: **Unreviewed**
 | [unproven-blocks](Tests#t-unproven-blocks) | requirement | REG-2 | Given a test never seen failing, when the run happens, then the run is blocked. | PASS 2026-11-12 |
 | [tests-seen-failing](Tests#t-tests-seen-failing) | requirement | REG-2 | Given a test that cannot fail, when it is checked, then it stays unproven. | PASS 2026-11-12 |
 | [one-link](Tests#t-one-link) | requirement | REG-2 | Given a test linked to no criterion, when the check runs, then the check fails. | PASS 2026-11-12 |
-| [run-ledger](Tests#t-run-ledger) | requirement | REG-2 | Given a test run, when it ends, then each test's result and date are recorded. | PASS 2026-11-11 |
-| [tests-table-columns](Tests#t-tests-table-columns) | requirement | REG-2 | Given a requirement with a test row, when the Tests are rendered, then its table row carries the test link, its Given/When/Then words and its last result. | PASS 2026-11-11 |
-| [tests-row-shape](Tests#t-tests-row-shape) | requirement | REG-2 | Given a test row, when the full Tests page is rendered, then the row carries its anchor, result, date, run and seen-failing date. | PASS 2026-11-11 |
-| [describe-needed](Tests#t-describe-needed) | requirement | REG-2 | Given a test row with no description, when the check runs, then it is flagged. | PASS 2026-11-11 |
-| [keeps-seen-red](Tests#t-keeps-seen-red) | requirement | REG-2 | Given a row with a seen-failing date, when a description is added, then the date is kept. | PASS 2026-11-11 |
-| [every-row-described](Tests#t-every-row-described) | requirement | REG-2 | Given this repo's test rows, when they are checked, then every row has a plain one-line description. | PASS 2026-11-11 |
-| [defect-categories](Tests#t-defect-categories) | requirement | REG-2 | Given the test rows, when they are checked, then every row has a category, defect rows link their issue, and the page shows defect tests apart. | PASS 2026-11-11 |
+| [run-ledger](Tests#t-run-ledger) | requirement | REG-2 | Given a test run, when it ends, then each test's result and date are recorded. | PASS 2026-11-12 |
+| [tests-table-columns](Tests#t-tests-table-columns) | requirement | REG-2 | Given a requirement with a test row, when the Tests are rendered, then its table row carries the test link, its Given/When/Then words and its last result. | PASS 2026-11-12 |
+| [tests-row-shape](Tests#t-tests-row-shape) | requirement | REG-2 | Given a test row, when the full Tests page is rendered, then the row carries its anchor, result, date, run and seen-failing date. | PASS 2026-11-12 |
+| [describe-needed](Tests#t-describe-needed) | requirement | REG-2 | Given a test row with no description, when the check runs, then it is flagged. | PASS 2026-11-12 |
+| [keeps-seen-red](Tests#t-keeps-seen-red) | requirement | REG-2 | Given a row with a seen-failing date, when a description is added, then the date is kept. | PASS 2026-11-12 |
+| [every-row-described](Tests#t-every-row-described) | requirement | REG-2 | Given this repo's test rows, when they are checked, then every row has a plain one-line description. | PASS 2026-11-12 |
+| [defect-categories](Tests#t-defect-categories) | requirement | REG-2 | Given the test rows, when they are checked, then every row has a category, defect rows link their issue, and the page shows defect tests apart. | PASS 2026-11-12 |
 | [summary-groups](Tests#t-summary-groups) | requirement | REG-2 | Given tests guarding requirements on two wiki pages and one guarding none, when they are listed, then they come grouped by feature in page order, then Other. | PASS 2026-11-10 |
 | [summary-fields](Tests#t-summary-fields) | requirement | REG-2 | Given requirement and defect tests, when they are listed, then each shows its kind, what it guards (requirement ID and words, or issue link and state), what it checks, when it runs, its last result and date, and seen failing. | PASS 2026-11-10 |
 | [summary-escapes](Tests#t-summary-escapes) | requirement | REG-2 | Given a description with a pipe and a backtick, when tests are listed as tables, then the pipe cannot split a column. | PASS 2026-11-10 |

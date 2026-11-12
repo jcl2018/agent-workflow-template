@@ -1,5 +1,65 @@
 # Changelog
 
+## v0.27.8 - 2026-11-12
+
+- estimate-accuracy: move the log facts to board_log.py and the estimate model to board_model.py (no behavior change)
+- estimate-accuracy: hold and free entries pause step time; held goals pass the pool's word down
+- estimate-accuracy: a step is never stalled before 15 minutes (STALL_FLOOR)
+- estimate-accuracy: the board uses whichever candidate model backtests most accurate
+- estimate-accuracy: board_report.py prints the backtest of every candidate and why the board uses one
+- estimate-accuracy: board_report.py --help ends with the example command
+- estimate-accuracy: the live board passes held goals to the estimates and prints the accuracy line under Finish
+- estimate-accuracy: toy checks for the backtest, the accuracy line, the stall floor, held time and the module split
+- estimate-accuracy: docs for the model choice, the accuracy line, held time and the stall floor
+- estimate-accuracy: render the Monitoring and Tests pages with the new rows
+- estimate-accuracy: board checks read the finish line after Finish; the speed check counts CPU seconds
+- estimate-accuracy: render the Monitoring and Tests pages with the speed row's new text
+- fix: with the session pool unreadable, a trailing hold entry no longer makes a goal read stalled
+- estimate-accuracy: unreadable-pool stall row seen failing once; Tests re-rendered
+- Merge origin/main (v0.23.0 and later) into loop/estimate-accuracy
+- Merge origin/main (v0.27.0, with step-budget and lane-control) into loop/estimate-accuracy
+- Package under 100 files again: defects.py folded into enforce.py, issues.py into milestone.py, milestones.md into the health commands reference
+- Pages touched
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/estimate-accuracy
+- Merge origin/main (v0.27.2) into loop/estimate-accuracy
+- pr: record issue states and the lane's results
+- Merge origin/main (v0.27.4) into loop/estimate-accuracy
+- Merge remote-tracking branch 'origin/main' into loop/estimate-accuracy
+- pr: record issue states and the lane's results
+- Merge remote-tracking branch 'origin/main' into loop/estimate-accuracy
+- Wiki: update pages for estimate-accuracy
+- Wiki: update pages for estimate-accuracy
+- Merge remote-tracking branch 'origin/main' into loop/estimate-accuracy
+- Merge remote-tracking branch 'origin/main' into loop/estimate-accuracy
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 skills/workflow-monitoring/scripts/live_board.py` in the repo and read the last line, under the finish time.
+   Expect: `estimates: <model>, whole goal off xN.N (N goals)`, at most 60 characters, or `error not known yet (N of 10 goals)`.
+2. Run `python3 skills/workflow-monitoring/scripts/board_report.py --root .`.
+   Expect: one row per candidate, and the `chosen:` line names the candidate with the lowest loo score, the same model the board's last line names.
+3. Look at Issues on the live board for any goal whose current step has run under 15 minutes, and for any goal marked held.
+   Expect: none of them is listed as stalled.
+
+## v0.27.7 - 2026-11-12
+
+- Merge remote-tracking branch 'origin/main' into loop/worker-push-guard
+- Worker push guard: private.py where and worker_push, toy test, commands.md
+- Worker push guard: rows seen red, Tests table, verify by hand
+- Worker push guard: review fixes (symlink kept inside temp dir, INTERNAL fix text)
+- Wiki: update pages for worker-push-guard
+- Merge origin/main into loop/worker-push-guard
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. In a goal worktree run `python3 skills/workflow-delivery/scripts/private.py where`. Expect: `WORKER <slug>`; the same in the main checkout prints `NOT A WORKER (not a goal worktree)`.
+2. In a goal worktree run `git push origin HEAD:refs/heads/main` with the hooks installed. Expect: `REFUSED: a worker session for goal <slug> may push only loop/<slug> ... (WORKER_PUSH)` and nothing on origin changes.
+3. Run `git push origin HEAD:refs/heads/loop/<slug>` in the same worktree. Expect: the push goes through.
+4. In the main checkout run `git push origin main`. Expect: the push goes through (the operation session is unaffected).
+
 ## v0.27.6 - 2026-11-12
 
 - Fix issue 116: size splits of criteria.py, docs.py and regression.py (skill-size-2)

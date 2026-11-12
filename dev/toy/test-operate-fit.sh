@@ -68,7 +68,7 @@ check "errors and asks that are still open stay, with the exact words" 'issues "
 check "with GitHub saying open, the unmerged goal keeps its error" 'issues "$T/open" | grep -q "^- wiki pages are out of date:.*saved: page Home is stale"'
 check "a pull request merged on GitHub leaves the board, and its dependant no longer waits on it" '! grep -q "^- gh \|^- rec \|^merged" "$T/block" && grep "^- q " "$T/block" | grep -q "waits on run" && ! grep "^- q " "$T/block" | grep -q "gh"'
 check "only live goals are drawn, with a 10-cell bar, and the dependant drawn under it" '! grep -q "^- old1\|^- newer" "$T/block" && grep -q "^- run  \[##--------\] 25%" "$T/block" && grep -q "^- wait " "$T/block" && grep -q "^- stale " "$T/block" && grep -qx "\[ \] q <- run" "$T/block"'
-check "the board ends with one finish line" 'tail -2 "$T/block" | head -1 | grep -qx Finish && tail -1 "$T/block" | grep -q "finish about\|no estimate yet\|nothing left"'
+check "the board ends with one finish line" 'tail -3 "$T/block" | head -1 | grep -qx Finish && tail -2 "$T/block" | head -1 | grep -q "finish about\|no estimate yet\|nothing left" && tail -1 "$T/block" | grep -q "^estimates: "'
 
 echo "== closed, healed and old goals"
 rm -f "$(git rev-parse --git-common-dir)/loop/pr-states.json"  # the cached MERGED is final; this step makes 81 closed instead

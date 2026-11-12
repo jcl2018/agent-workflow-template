@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-health/scripts/cost.py skills/workflow-health/scripts/health.py
-# reads: skills/workflow-health/scripts/mine.py skills/workflow-setup/scripts/setup.py skills/workflow-health/scripts/
+# reads: skills/workflow-health/scripts/enforce.py skills/workflow-setup/scripts/setup.py skills/workflow-health/scripts/
 # Test workflow-health on a throwaway toy repo. usage: test-health.sh [DIR]
 set -u
 unset LOOP_SESSION_TOOL LOOP_OPERATION_SESSION  # a toy test never reaches a real session tool
@@ -108,7 +108,7 @@ grep -q "^missing: feature Empty has no requirement" <<<"$a" && ok "a feature wi
 grep -q "^next 1: FAIL " <<<"$a" && ok "next steps are ranked, failures first" || bad "ranked"
 [ "$a" = "$b" ] && ok "hints repeat exactly" || bad "hints differ"
 c=$($health check); e=$($health check); [ "$c" = "$e" ] && ! grep -q "JUDGE" <<<"$c" && ok "check stays apart from the judge and repeats" || bad "check same"
-grep -rn "claude\|anthropic\|urllib\|http" "$here"/skills/workflow-health/scripts/cost.py "$here"/skills/workflow-health/scripts/mine.py >/dev/null && bad "model or network in a rule module" || ok "no model or network call in the rule modules"
+grep -rn "claude\|anthropic\|urllib\|http" "$here"/skills/workflow-health/scripts/cost.py "$here"/skills/workflow-health/scripts/enforce.py >/dev/null && bad "model or network in a rule module" || ok "no model or network call in the rule modules"
 
 echo "== a rule that cannot read says UNREAD, never green"
 lone=$(mktemp -d); cp "$here/skills/workflow-health/scripts/health.py" "$lone/"
@@ -126,7 +126,7 @@ after="$(git status --porcelain --ignored)|$(git rev-parse HEAD)|$(git branch | 
 mkdir -p "$d/bin"; printf '#!/bin/bash\necho "$*" >> "%s/gh-calls"\nexit 1\n' "$d" > "$d/bin/gh"; chmod +x "$d/bin/gh"
 PATH="$d/bin:$PATH" $health check >/dev/null
 [ "$(cat "$d/gh-calls" 2>/dev/null)" = 'api --paginate --slurp repos/{owner}/{repo}/issues?state=all&per_page=100' ] && ok "check reads gh once, read-only" || bad "check gh calls: $(cat "$d/gh-calls" 2>/dev/null)"
-for f in health mine judge cost; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 20480 ] || bad "size of $f.py"; done; ok "health scripts under 20 KB"
+for f in health enforce judge cost; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 20480 ] || bad "size of $f.py"; done; ok "health scripts under 20 KB"
 
 echo "repo: $d/repo"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
