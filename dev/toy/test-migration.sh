@@ -54,4 +54,40 @@ if want mac-kept; then fresh; export FAKE_GH_PRIVATE=false
   check "the tick fetches only origin/<base> (no pull-request or fork ref is ever fetched or run)" 'grep -q "\"fetch\", \"origin\", base" <<<"$out" && [ "$(tail -1 <<<"$out")" = 0 ]'
 fi
 
+# base-config: update.py --check reads the base branch's config from origin/<base> first, never the checkout it is on.
+if want base-config; then fresh
+  r=$(adopt bc); cfgset "$r" "d.pop('template_version',None)"; ( cd "$r" && git commit -qam "no stamp" && git push -q origin main )
+  U="python3 $SETUP/update.py"; word="^REPO: template_version"
+  ( cd "$r" && git switch -q -c early main~3 )
+  out=$(cd "$r" && $U --check 2>&1); check "from a branch cut before setup (no config in the checkout) it reports the base config" 'grep -q "$word" <<<"$out" && ! grep -q "no .loop/config.json" <<<"$out"'
+  ( cd "$r" && git branch -q -D main )
+  out=$(cd "$r" && $U --check 2>&1); check "with no local main branch at all it reads origin/main" 'grep -q "$word" <<<"$out" && ! grep -q "no .loop/config.json" <<<"$out"'
+  git clone -q "$d/bc/origin.git" "$d/bc/clone" 2>/dev/null; ( cd "$d/bc/clone" && git switch -q -c work && git branch -q -D main )
+  out=$(cd "$d/bc/clone" && $U --check 2>&1); check "from a fresh clone with only a work branch (origin/HEAD set) it reports the base config" 'grep -q "$word" <<<"$out"'
+  "$here/dev/toy/make.sh" "$d/tr" >/dev/null; ( cd "$d/tr/repo" && git branch -q -m main trunk && git push -q origin trunk && git -C "$d/tr/origin.git" symbolic-ref HEAD refs/heads/trunk \
+    && git push -q origin --delete main && git branch -q -u origin/trunk && python3 "$SETUP/setup.py" >/dev/null 2>&1; git switch -q trunk; git merge -q --no-edit workflow-setup; git push -q origin trunk; git switch -q -c side trunk ) >/dev/null 2>&1
+  out=$(cd "$d/tr/repo" && git remote set-head origin -d >/dev/null 2>&1; $U --check 2>&1); check "a default branch that is neither main nor master, with origin/HEAD unset, reports from the checkout's own config" 'grep -q "$word" <<<"$out"'
+  ( cd "$r" && git switch -q -c stale origin/main 2>/dev/null; git branch -q main origin/main~1 2>/dev/null )
+  out=$(cd "$r" && $U --check 2>&1); check "a stale local main does not hide the newer origin/main config" 'grep -q "$word" <<<"$out"'
+fi
+
+# blocks-inserted: a repo adopted before v0.27.17 gets its Settings and Automation blocks and README line from update --apply.
+if want blocks-inserted; then fresh
+  r=$(adopt bi)
+  python3 - "$r/README.md" "$r/docs/wiki/Home.md" <<'PY'
+import re, sys
+for path in sys.argv[1:]:
+    text = open(path).read()
+    open(path, "w").write(re.sub(r"\n*<!-- (settings|automation|template):begin -->\n.*?<!-- \1:end -->\n", "\n", text, flags=re.S))
+PY
+  cfgset "$r" "d.pop('template_version',None); d.pop('automation',None)"
+  ( cd "$r" && git commit -qam "adopted before the blocks" && git push -q origin main )
+  marks() { grep -c -e '<!-- settings:begin -->' -e '<!-- automation:begin -->' -e '<!-- template:begin -->' "$1" 2>/dev/null; }
+  [ "$(marks "$r/README.md")" = 0 ] || { echo "FAIL: the strip left blocks in the README"; exit 1; }
+  out=$(checkout_apply "$r"); br=$(cd "$r" && git branch --list 'workflow-update-*' | tr -d ' *'); readme=$(cd "$r" && git show "$br:README.md"); home=$(cd "$r" && git show "$br:docs/wiki/Home.md")
+  check "update --apply inserts the Settings and Automation blocks and the template line into the README" 'grep -q "<!-- settings:begin -->" <<<"$readme" && grep -q "<!-- automation:begin -->" <<<"$readme" && grep -q "<!-- template:begin -->" <<<"$readme"'
+  check "update --apply inserts the Settings and Automation blocks into Home" 'grep -q "<!-- settings:begin -->" <<<"$home" && grep -q "<!-- automation:begin -->" <<<"$home"'
+  check "update --apply stamps template_version and declares the three routines" '( cd "$r" && git show "$br:.loop/config.json" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d[\"template_version\"] and len(d[\"automation\"]) == 3" )'
+fi
+
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

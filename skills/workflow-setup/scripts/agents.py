@@ -142,8 +142,16 @@ def apply(repo):
         print("WARN: entry.py write failed (exit %s); .loop/START.md may be stale. Fix: run docs.py audit" % code, file=sys.stderr)
     for line in wire(repo)[1]:
         print(line, file=sys.stderr if line.startswith("REFUSED") else sys.stdout)
-    root = os.path.realpath(repo)
-    return [p for p in [os.path.join(".loop", "START.md")] + targets(repo)
+    root, render = os.path.realpath(repo), os.path.join(os.path.dirname(ENTRY), "render.py")
+    try:
+        folder = json.load(open(os.path.join(repo, ".loop", "config.json"))).get("wiki_dir") or "docs/wiki"
+    except (OSError, ValueError, AttributeError):
+        folder = "docs/wiki"
+    front, seen = ["README.md", os.path.join(str(folder), "Home.md")], lambda: [open(os.path.join(repo, p)).read() if os.path.isfile(os.path.join(repo, p)) else "" for p in front]  # noqa: E731
+    before = seen()
+    if os.path.isfile(render):  # the Settings and Automation blocks and the README line an older setup never wrote
+        subprocess.run([sys.executable, render, "blocks"], cwd=repo, capture_output=True)
+    return [p for p in [os.path.join(".loop", "START.md")] + targets(repo) + [f for f, a, b in zip(front, before, seen()) if a != b]
             if os.path.exists(os.path.join(repo, p)) and inside(root, os.path.realpath(os.path.join(repo, p)))]
 
 
