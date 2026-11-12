@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The private-name scan: nothing private ships (DEL-9); every push or GitHub write runs it, and setup's git hooks run it as
-`hook staged | message FILE | push`. Also a private repo's commit statuses, which live here as every other script is full.
+`hook staged | message FILE | push`. Also a private repo's commit statuses (gh calls in fit.py; scripts are capped).
 
 usage: private.py where | check | scan [--base REF]    the worker check, the list, the scan from REF (default origin/<base>)
        private.py visibility | required | statuses --head SHA --ok|--fail [--base B]   the private-repo statuses
@@ -17,6 +17,9 @@ import subprocess
 import sys
 import time
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path[:0] = [HERE]
+import fit  # noqa
 # No terminal, no waiting: a prompt from git must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
@@ -79,7 +82,6 @@ def mend(git, files, base):
     return True
 
 
-HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT = "~/.workflow-loop/private-names"
 LIMIT, WIDTH = 60, 4096  # seconds for a whole scan (git included), characters per matched piece of a line
 PRIVATE_NAME, PRIVATE_LIST = "PRIVATE_NAME", "PRIVATE_LIST"
@@ -306,18 +308,6 @@ def hook(mode="", arg=""):
     return max(code, {"broken": 2, "hit": 1}.get(got["state"], 0))
 
 
-def gh(top, *args):
-    try:
-        done = subprocess.run(["gh", *args], cwd=top, capture_output=True, text=True, timeout=20)
-    except (OSError, subprocess.TimeoutExpired):
-        return 1, "no answer"
-    return done.returncode, done.stdout if not done.returncode else re.sub(r"(gh[pousr]_|github_pat_)\w+|//\S+@", "<x>", done.stderr)[:160]
-
-
-def repo_is_private(top):
-    return {"true": True, "false": False}.get(gh(top, "repo", "view", "--json", "isPrivate", "-q", ".isPrivate")[1].strip())
-
-
 NOSTATUS = r"strict\w*|required_(?:approving_review_count|\w*resolution|linear_history|signatures)|merge_queue"
 ADVICE = []  # rules no status can satisfy
 
@@ -325,8 +315,8 @@ ADVICE = []  # rules no status can satisfy
 def required_checks(top, base):
     """(contexts to post, bound ones) from base's rulesets and protection; None when unreadable."""
     named, bound, quoted = set(), set(), base.replace("/", "%2F")
-    rc, out = gh(top, "api", "--paginate", "--slurp", "repos/{owner}/{repo}/rules/branches/" + quoted)
-    rc2, out2 = gh(top, "api", "repos/{owner}/{repo}/branches/%s/protection" % quoted)
+    rc, out = fit.gh(top, "api", "--paginate", "--slurp", "repos/{owner}/{repo}/rules/branches/" + quoted)
+    rc2, out2 = fit.gh(top, "api", "repos/{owner}/{repo}/branches/%s/protection" % quoted)
     if rc or (rc2 and "404" not in out2):
         return print("STATUSES none: rules unreadable: %s; Fix: gh auth refresh -s repo (STATUSES_UNREADABLE)" % (out if rc else out2))
     rules, info = [r for page in json.loads(out) for r in page], {} if rc2 else json.loads(out2)
@@ -337,24 +327,8 @@ def required_checks(top, base):
     return sorted(named - bound), sorted(bound)
 
 
-def post_statuses(top, head, ok, contexts):
-    failed = []
-    for context in contexts:
-        for attempt in range(3):
-            rc, out = gh(top, "api", "-X", "POST", "repos/{owner}/{repo}/statuses/" + head, "-f", "context=" + context,
-                         "-f", "description=workflow-loop pr lane, local run, " + time.strftime("%Y-%m-%d", time.gmtime()),
-                         "-f", "state=" + ("success" if ok else "failure"))
-            if not rc or re.search(r"HTTP 4\d\d", out):
-                break
-        failed += [context + " " + out] * bool(rc)
-    if failed:
-        print("STATUS_FAILED posted %d of %d; failed: %s; safe to rerun: private.py statuses --head %s --%s (STATUS_FAILED)" % (
-            len(contexts) - len(failed), len(contexts), ", ".join(failed), head, "ok" if ok else "fail"))
-    return not failed
-
-
 def pr_result(top, base, head, branch, ok):
-    got = repo_is_private(top) and required_checks(top, base)
+    got = fit.repo_is_private(top) and required_checks(top, base)
     if not got:
         return print("STATUSES none: public or unreadable") or True
     for name in got[1] + ADVICE:
@@ -362,7 +336,7 @@ def pr_result(top, base, head, branch, ok):
     there = subprocess.run(["git", "ls-remote", "origin", "refs/heads/" + branch], cwd=top, capture_output=True, text=True).stdout.split()
     if not got[0] or not ok and there[:1] != [head]:
         return print("STATUSES none: " + ("no required checks" if not got[0] else "head not on the remote")) or True
-    done = post_statuses(top, head, ok, got[0])
+    done = fit.post_statuses(top, head, ok, got[0])
     if done:
         print("STATUSES posted %s for %s on %s" % ("success" if ok else "failure", ", ".join(got[0]), head[:12]))
     return done
@@ -398,7 +372,7 @@ def main():
     if args[:1] in (["visibility"], ["required"], ["statuses"]):
         base = args[args.index("--base") + 1] if "--base" in args else "main"
         if args[0] == "visibility":
-            print(os.environ.get("LOOP_REPO_VISIBILITY") or {True: "private", False: "public"}.get(repo_is_private("."), "unknown"))
+            print(os.environ.get("LOOP_REPO_VISIBILITY") or {True: "private", False: "public"}.get(fit.repo_is_private("."), "unknown"))
         elif args[0] == "required":
             got = required_checks(".", base) or ([], [])
             print(*got[0], *("BLOCKS: %s (BLOCKS)" % name for name in got[1] + ADVICE), sep="\n")

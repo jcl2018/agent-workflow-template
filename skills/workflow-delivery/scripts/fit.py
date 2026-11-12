@@ -14,7 +14,8 @@ goal runs condensed and a larger one full.
 Owner settings (`goal.py set`) live in the operation sidecar `<runs>/<slug>.extra.json` under its lock, so a worker's
 save of the run record can't erase them; `view` merges them over the run record.
 
-Also here, so the package stays under its file cap: the operation's `set` and `queue` commands and what `new`, `record`
+Also here, so the package stays under its file cap: the GitHub helpers (gh, repo_is_private, post_statuses) that private.py's
+commit-status posting calls, the operation's `set` and `queue` commands and what `new`, `record`
 and `pr` keep (each takes goal.py's module as g, and imports guards, private and role lazily, since they import fit),
 and the pull request body: each step's result, depth, tokens and VERDICT lines (issue 38), the decided depth, the
 budget, the private-name scan, GitHub surfaces and scripts that may write back what the goal deletes (issue 117).
@@ -29,6 +30,7 @@ import json
 import os
 import re
 import subprocess
+import time
 
 # No terminal, no waiting: a prompt from git must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -377,3 +379,31 @@ if __name__ == "__main__":
         sys.exit(1 if left else 0)
     print("usage: fit.py owed SLUG   the issues and findings a goal fixes that still lack a defect test")
     sys.exit(0 if sys.argv[1:] in ([], ["-h"], ["--help"]) else 2)
+
+
+def gh(top, *args):
+    try:
+        done = subprocess.run(["gh", *args], cwd=top, capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        return 1, "no answer"
+    return done.returncode, done.stdout if not done.returncode else re.sub(r"(gh[pousr]_|github_pat_)\w+|//\S+@", "<x>", done.stderr)[:160]
+
+
+def repo_is_private(top):
+    return {"true": True, "false": False}.get(gh(top, "repo", "view", "--json", "isPrivate", "-q", ".isPrivate")[1].strip())
+
+
+def post_statuses(top, head, ok, contexts):
+    failed = []
+    for context in contexts:
+        for attempt in range(3):
+            rc, out = gh(top, "api", "-X", "POST", "repos/{owner}/{repo}/statuses/" + head, "-f", "context=" + context,
+                         "-f", "description=workflow-loop pr lane, local run, " + time.strftime("%Y-%m-%d", time.gmtime()),
+                         "-f", "state=" + ("success" if ok else "failure"))
+            if not rc or re.search(r"HTTP 4\d\d", out):
+                break
+        failed += [context + " " + out] * bool(rc)
+    if failed:
+        print("STATUS_FAILED posted %d of %d; failed: %s; safe to rerun: private.py statuses --head %s --%s (STATUS_FAILED)" % (
+            len(contexts) - len(failed), len(contexts), ", ".join(failed), head, "ok" if ok else "fail"))
+    return not failed
