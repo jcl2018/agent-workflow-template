@@ -5,8 +5,6 @@ Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
 Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde98a8 U=0340d029 -->
 
-The live board selects its estimate model by typical error on time-ordered goals: each goal is predicted only from goals finished before it started. `board_report.py` shows the selection score and a separate leave-one-out diagnostic.
-
 ## Problem
 - I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
 - I want one session that only governs: it starts every ready goal in its own worker session, passes my answers along, and never builds anything itself.
@@ -99,6 +97,8 @@ The live board selects its estimate model by typical error on time-ordered goals
 - With full auto on, a run needs me only for decisions MON-11 excludes.
 
 ## Tests
+
+The live board selects its estimate model by typical error on time-ordered goals: each goal is predicted only from goals finished before it started. `board_report.py` shows the selection score and a separate leave-one-out diagnostic.
 
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
