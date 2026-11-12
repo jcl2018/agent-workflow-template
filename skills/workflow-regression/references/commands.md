@@ -341,7 +341,7 @@ lane ends.
   refuses to write inside a repo passes under the lane as it does when run directly (issue 814). It is removed when the
   lane ends or is stopped; a lane that crashes leaves its folder in the system temp until the OS clears it. When the
   system temp itself is inside a git checkout the lane refuses before it starts: `LANE_TMPDIR: <path> is in a git
-  checkout. Fix: set TMPDIR to a folder outside any repo; nothing was changed.` (example: `TMPDIR=/tmp role.py lane SLUG qa`).
+  checkout. Fix: set TMPDIR to a folder outside any repo; the lane committed and pushed nothing.` (example: `TMPDIR=/tmp role.py lane SLUG qa`).
 - Internal handoff variables (`_LOOP_LANE_HELD`, `_LOOP_LANE_LABEL`, `_LOOP_LANE_QUEUED`, `_LOOP_LANE_STARTED`,
   `_LOOP_LANE_NOTE`) are set by the lane; a `test_record` wrapper must keep the environment.
 
