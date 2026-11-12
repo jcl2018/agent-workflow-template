@@ -603,6 +603,6 @@
 | <a id="t-pods-independent"></a>pods-independent | requirement | done line pods:4 | not run | - | local | 2026-11-12 |
 | <a id="t-pods-blocks"></a>pods-blocks | requirement | done line pods:5 | not run | - | local | 2026-11-12 |
 | <a id="t-pods-size"></a>pods-size | requirement | done line pods:6 | not run | - | local | 2026-11-12 |
-| <a id="t-guards-null-report-reset"></a>guards-null-report-reset | requirement | done line guards-null-report:1 | not run | - | local | 2026-11-12 |
+| <a id="t-guards-null-report-reset"></a>guards-null-report-reset | requirement | done line guards-null-report:1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-guards-null-report-writers"></a>guards-null-report-writers | requirement | done line guards-null-report:2 | not run | - | local | 2026-11-12 |
-| <a id="t-guards-null-report-nofiles"></a>guards-null-report-nofiles | requirement | done line guards-null-report:3 | not run | - | local | 2026-11-12 |
+| <a id="t-guards-null-report-nofiles"></a>guards-null-report-nofiles | requirement | done line guards-null-report:3 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
