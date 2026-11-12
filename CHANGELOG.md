@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.27.52 - 2026-11-12
+
+- Page and filter the issue listing in health; toy and rows
+- Health page: the listing is filtered and paged
+- Refuse, not truncate, past the page cap
+- Lane: re-render the Tests tables
+- Wiki: update pages for health-issues-listing
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.51 - 2026-11-12
 
 - Move the Automation block code from render.py to counting.py; row docs-block-split
