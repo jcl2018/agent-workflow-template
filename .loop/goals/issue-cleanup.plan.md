@@ -42,3 +42,6 @@ The checks are the evidence: each close names a commit, a PR or a check output a
 ### Not in scope
 
 The 722 defect+regression issues; any code change; labels, milestones, deletion.
+
+## Review record
+
