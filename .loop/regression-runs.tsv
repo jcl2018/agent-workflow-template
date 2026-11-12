@@ -6,22 +6,22 @@ adopt-set-4	PASS	2026-11-11
 adopt-set-5	PASS	2026-11-11	
 affected-quiet-release	PASS	2026-11-11	
 attempt-114	PASS	2026-11-10	
-aut-backlog-milestone	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-by-hand-runs	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-cron-check	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-cron-newline	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-defect-issue	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-digest-comment-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-digest-create	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-digest-dry-run	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-digest-format	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-digest-list-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-digest-no-title	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-digest-no-token	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-digest-org	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-digest-pin-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-digest-rerun	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-digest-rounds	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-backlog-milestone	PASS	2026-11-12	
+aut-by-hand-runs	PASS	2026-11-12	
+aut-cron-check	PASS	2026-11-12	
+aut-cron-newline	PASS	2026-11-12	
+aut-defect-issue	PASS	2026-11-12	
+aut-digest-comment-fails	PASS	2026-11-12	
+aut-digest-create	PASS	2026-11-12	
+aut-digest-dry-run	PASS	2026-11-12	
+aut-digest-format	PASS	2026-11-12	
+aut-digest-list-fails	PASS	2026-11-12	
+aut-digest-no-title	PASS	2026-11-12	
+aut-digest-no-token	PASS	2026-11-12	
+aut-digest-org	PASS	2026-11-12	
+aut-digest-pin-fails	PASS	2026-11-12	
+aut-digest-rerun	PASS	2026-11-12	
+aut-digest-rounds	PASS	2026-11-12	
 aut-email-digest	PASS	2026-11-10	
 aut-email-file	PASS	2026-11-10	
 aut-email-mail	PASS	2026-11-10	
@@ -31,27 +31,27 @@ aut-email-rounds	PASS	2026-11-10
 aut-email-secrets	PASS	2026-11-10	
 aut-email-test	PASS	2026-11-10	
 aut-email-upgrade	PASS	2026-11-10	
-aut-foreign-workflow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-health-off	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-health-schedule	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-health-workflow-current	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-issue-list-fails	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-judge-fails-green	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-judge-no-program	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-judge-no-secret	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-missing-skills	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-no-push	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-off-by-hand	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-off-dispatch-runs	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-off-push-runs	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-old-issue-relabel	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-regression-off	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-regression-off-written	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-regression-schedule-mismatch	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-schedule-mismatch	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-secret-mapped	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-secret-name	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-aut-setup-health-only-with-skill	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+aut-foreign-workflow	PASS	2026-11-12	
+aut-health-off	PASS	2026-11-12	
+aut-health-schedule	PASS	2026-11-12	
+aut-health-workflow-current	PASS	2026-11-12	
+aut-issue-list-fails	PASS	2026-11-12	
+aut-judge-fails-green	PASS	2026-11-12	
+aut-judge-no-program	PASS	2026-11-12	
+aut-judge-no-secret	PASS	2026-11-12	
+aut-missing-skills	PASS	2026-11-12	
+aut-no-push	PASS	2026-11-12	
+aut-off-by-hand	PASS	2026-11-12	
+aut-off-dispatch-runs	PASS	2026-11-12	
+aut-off-push-runs	PASS	2026-11-12	
+aut-old-issue-relabel	PASS	2026-11-12	
+aut-regression-off	PASS	2026-11-12	
+aut-regression-off-written	PASS	2026-11-12	
+aut-regression-schedule-mismatch	PASS	2026-11-12	
+aut-schedule-mismatch	PASS	2026-11-12	
+aut-secret-mapped	PASS	2026-11-12	
+aut-secret-name	PASS	2026-11-12	
+aut-setup-health-only-with-skill	PASS	2026-11-12	
 auto-approved	PASS	2026-11-09	
 auto-release	PASS	2026-11-11	
 bad-schedule-refused	PASS	2026-11-11	
