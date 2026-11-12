@@ -48,7 +48,7 @@ python3 scripts/docs.py check [--base <ref>]
 | `UNMAPPED` | A page has no row in `.loop/docs.tsv` (the generated `Tests` page never needs one) | Run `add` |
 | `FORMAT` | With `"criteria": true`, a page breaks a shape rule of `references/template.md` (DOC-4 Home, DOC-5 README front door, DOC-6 Usage, DOC-7 Requirements, DOC-8 Problem, DOC-9 Tests), printed as `FORMAT <Page>:<line>: <Section>: DOC-n <what> (got <value>). Fix: <how>`; the sheet's `format` key picks the rules | Do what the Fix says |
 | `STALE Tests` | The generated `docs/wiki/Tests.md` differs from a fresh render; the line names the first difference | Run `/workflow-docs render` |
-| `STALE Settings`, `STALE Automation`, `STALE README line` | With `"criteria": true`, the generated Settings and Automation blocks (on Home and in the README, between `<!-- settings:begin -->` markers) or the README's template-repo line differ from a fresh render of `settings.py reference`, `.loop/config.json` and the workflow files; the setting is marked overridden only when its value differs from the default | Run `/workflow-docs render`; `publish` refreshes them too |
+| `STALE Settings`, `STALE Automation`, `STALE README line` | With `"criteria": true`, the generated Settings and Automation blocks (on Home and in the README, between `<!-- settings:begin -->` markers) or the README's template-repo line differ from a fresh render of `settings.py reference`, `.loop/config.json` and the workflow files; the setting is marked overridden only when its value differs from the default | Run `/workflow-docs render`; `publish` refreshes them too. A block with no markers is left alone until setup inserts it (`python3 scripts/render.py blocks`) |
 | `COUNT` | The README, a wiki page or a top-level doc in `skills/` states a count of skills, feature pages, or a feature page's criteria or tests that the repo doesn't match; all but skills need `"criteria": true`. A feature page's tests count includes its defect tests. One word may sit between number and noun only if it means all of them ("eight workflow-ready skills"); "N defect tests" is checked against the defect tests. Skipped: the word "one", a limit ("up to 6"), a part or label ("two delivery skills"), fenced and indented code and comments as Markdown renders them, a line naming one of the page's own criteria, the criteria and tests counts on a line naming another page's criterion, and a line marked `<!-- not-a-count -->`; a code fence that never closes is itself a `COUNT` line. Wrapped lines are read as one paragraph. `publish` refuses only on wiki pages | Correct the number |
 
 Exit 0 prints `DOCS OK`. `NO PAGES` and exit 1 mean `.loop/docs.tsv` has no rows yet: run `add`. Pass `--base <ref>` to
@@ -57,11 +57,7 @@ counts every commit.
 
 ## `automation` registry
 
-The Automation block lists health and regression (built in, cadence from `health_cron` and `regression_cron`) and each entry
-of `automation` in `.loop/config.json`: `{"name", "does", "cadence", "runs", "enabled", "last_run"}`, where `runs` is
-`github:FILE` (a workflow file), `mac:LABEL` (a launch agent) or `claude:TASK` (a Claude scheduled task) and `cadence` is a
-cron string, words, or `off`. Adding a routine is adding one entry. `python3 scripts/docs.py automation` prints each one's
-live state here; the committed block holds only what files and config show.
+The Automation block lists health, regression and each `automation` entry of `.loop/config.json`; `python3 scripts/docs.py automation` prints each one's live state. Entry fields: `references/commands.md` (The automation registry).
 
 ## `audit`
 
@@ -69,12 +65,7 @@ live state here; the committed block holds only what files and config show.
 python3 scripts/docs.py audit [--base <ref>] [--dry-run]
 ```
 
-The one command. It checks every page against `references/template.md` (the page rules live in its `rules` block, so
-nothing else holds a number), the code (stale pages), the tests (Tests tables) and the required docs (a release note per tag; a milestone is
-optional and free form, never required). It fixes the mechanical (`FIXED`: Tests tables), lists wording for a person to write as `REWRITE`, and lists each Reviewed criterion with no
-test, or whose tests no longer match, as `UNTESTED` (also saved to `untested.tsv` under `.git/loop`, for the loop to
-queue goals from). Exit 0 only when nothing is left; `UNTESTED` and a `SKIP` for no `gh` answer don't fail it. The
-release step runs it on every goal. It never deletes a page or edits a criterion.
+The one command: it checks every page against `references/template.md`, the code, the tests and the required docs, fixes the mechanical (`FIXED`: Tests tables), and lists wording for a person as `REWRITE` and Reviewed criteria with no test as `UNTESTED`. Exit 0 only when nothing is left. It never deletes a page or edits a criterion. Details: `references/commands.md` (audit).
 
 ## `criteria`: the PRD page
 

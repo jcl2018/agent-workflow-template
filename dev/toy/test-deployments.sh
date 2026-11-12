@@ -5,12 +5,12 @@
 # Proves the optional Deployments section (DOC-14) on a copy of this repo's own wiki: a page with or without it passes,
 # each malformed table is refused naming the table and column, the section never locks a Reviewed page, review and
 # render keep it; and issue 495 (the govern hook passes `git pull --ff-only`, refuses other pulls). No network.
-# usage: test-deployments.sh [CASE ...]   cases: section refused locked doc14 pull (default: all)
+# usage: test-deployments.sh [CASE ...]   cases: section refused locked doc14 pull readme (default: all)
 set -u
 unset LOOP_ROLE LOOP_GOVERN_HOOK
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
-cases=("$@"); [ ${#cases[@]} -eq 0 ] && cases=(section refused locked doc14 pull)
+cases=("$@"); [ ${#cases[@]} -eq 0 ] && cases=(section refused locked doc14 pull readme)
 T=$(mktemp -d); toy_on_exit 'rm -rf "$T"'
 fails=0
 ok() { echo "PASS: $1"; }
@@ -23,6 +23,7 @@ git init -q && git add -A && git -c user.email=t@example.test -c user.name=Toy c
 python3 skills/workflow-docs/scripts/criteria.py render >/dev/null 2>&1  # the generated Tests page follows this copy's history
 git add -A && git -c user.email=t@example.test -c user.name=Toy commit -qm render
 D="python3 skills/workflow-docs/scripts/docs.py check"
+n=$(python3 -c "import sys; sys.path.insert(0, 'skills/workflow-docs/scripts'); import docs; print(len(docs.read_map('.')))")  # the wiki's pages, counted, not remembered
 P=docs/wiki/Setup.md; cp "$P" "$T/setup.orig"
 GOOD_PAGE='| Page | Link | Access | Shows | Live build |
 |---|---|---|---|---|
@@ -44,12 +45,12 @@ reset() { cp "$T/setup.orig" "$P"; }
 out() { $D 2>&1; }
 
 case_section() {
-  reset; check "a page without Deployments passes" '[ "$(out | tail -1)" = "DOCS OK: 8 pages" ]'
-  reset; place "$GOOD_PAGE"; check "a page with a good Page table passes" '[ "$(out | tail -1)" = "DOCS OK: 8 pages" ]'
-  reset; place "$GOOD_DELIVERY"; check "a page with a good Delivery table passes" '[ "$(out | tail -1)" = "DOCS OK: 8 pages" ]'
+  reset; check "a page without Deployments passes" '[ "$(out | tail -1)" = "DOCS OK: $n pages" ]'
+  reset; place "$GOOD_PAGE"; check "a page with a good Page table passes" '[ "$(out | tail -1)" = "DOCS OK: $n pages" ]'
+  reset; place "$GOOD_DELIVERY"; check "a page with a good Delivery table passes" '[ "$(out | tail -1)" = "DOCS OK: $n pages" ]'
   reset; place "$GOOD_PAGE
 
-$GOOD_DELIVERY"; check "a page with both tables passes" '[ "$(out | tail -1)" = "DOCS OK: 8 pages" ]'
+$GOOD_DELIVERY"; check "a page with both tables passes" '[ "$(out | tail -1)" = "DOCS OK: $n pages" ]'
   reset; place "$GOOD_PAGE"; python3 - "$P" <<'PY'
 import sys
 p = sys.argv[1]; s = open(p).read()
@@ -138,14 +139,14 @@ p = sys.argv[1]; s = open(p).read(); head, _, tests = s.partition("\n## Tests\n"
 open(p, "w").write(head + "\n## Tests\n" + tests.replace("| requirement |", "| stale |", 1))
 PY
   python3 skills/workflow-docs/scripts/criteria.py render >/dev/null 2>&1
-  check "render rewrites a stale Tests table on a page with Deployments" '! grep -q "| stale |" "$P" && [ "$(out | tail -1)" = "DOCS OK: 8 pages" ]'
+  check "render rewrites a stale Tests table on a page with Deployments" '! grep -q "| stale |" "$P" && [ "$(out | tail -1)" = "DOCS OK: $n pages" ]'
 }
 
 case_doc14() {
   reset
   check "the Documentation page carries DOC-14, Reviewed, with both owner messages" \
     'grep -q "^- DOC-14: \*\*Reviewed " docs/wiki/Documentation.md && grep -q "or a delivery people receive (for example a scheduled email)" docs/wiki/Documentation.md && grep -q "the live build (the sha in build.txt)" docs/wiki/Documentation.md'
-  check "this repo's docs check passes with DOC-14" '[ "$(out | tail -1)" = "DOCS OK: 8 pages" ]'
+  check "this repo's docs check passes with DOC-14" '[ "$(out | tail -1)" = "DOCS OK: $n pages" ]'
 }
 
 pull() { printf '%s' "$1" | python3 skills/workflow-monitoring/scripts/govern_hook.py check; }
@@ -156,6 +157,20 @@ case_pull() {
     '[ "$(pull "git pull -r")$(pull "git pull --rebase=merges")$(pull "git pull --no-ff")$(pull "git pull --ff-only --rebase")" = "BLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pull" ]'
   check "#495 negative control: --ff after --ff-only, a +refspec, -f and a -c, --config-env or GIT_CONFIG fetch override are refused (git takes the last flag)" \
     '[ "$(pull "git pull --ff-only --ff")$(pull "git pull --ff-only origin +main:main")$(pull "git pull --ff-only -f")$(pull "git -c remote.origin.fetch=+refs/heads/main:refs/heads/main pull --ff-only origin")$(pull "git --config-env=remote.origin.fetch=V pull --ff-only")$(pull "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.fetch GIT_CONFIG_VALUE_0=+refs/heads/main:refs/heads/main git pull --ff-only")" = "BLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pullBLOCK: git pull" ]'
+}
+
+case_readme() {
+  # every command the README shows in a text block appears in a wiki page's Usage, or the README stops naming it
+  missing=$(python3 - <<'PY'
+import glob, re
+text = open("README.md").read()
+want = {m.group(1) for block in re.findall(r"```text\n(.*?)```", text, re.S) for line in block.splitlines()
+        for m in [re.match(r"^(/workflow-[a-z]+(?: [a-z-]+)?)", line.strip())] if m}
+usage = "".join(open(f).read().partition("## Usage")[2].partition("\n## ")[0] for f in glob.glob("docs/wiki/*.md"))
+print(" ".join(sorted(c for c in want if "`" + c not in usage)))
+PY
+)
+  check "every command the README names appears in a page's Usage (missing: ${missing:-none})" '[ -z "$missing" ]'
 }
 
 for c in "${cases[@]}"; do "case_$c"; done

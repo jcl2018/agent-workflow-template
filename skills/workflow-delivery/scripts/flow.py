@@ -196,12 +196,13 @@ def depth_rule(step, state=None, runs=None):
             "condense it on your own; a condensed reply is refused." % why)
 
 
-def alive(pid):
+def alive(pid, start=""):
+    """pid runs and, given a start time, still began then: a reused pid is another process."""
     try:
         os.kill(pid, 0)
     except OSError:
         return False
-    return True
+    return not start or lanekit.same(pid, start)
 
 
 def start(args, runs, reply, job):
@@ -231,7 +232,7 @@ def start(args, runs, reply, job):
         limit = spec.get("limit") or int(cfg.get("step_limit") or 0) or args.limit
         if args.step in BUDGETED:  # review and ship stop at min(the flow file's limit, step_budget_minutes)
             limit = lanekit.seconds(cfg, "step_budget_minutes", limit)
-        json.dump({"pid": child.pid, "started": time.time(), "limit": limit}, handle)
+        json.dump({"pid": child.pid, "pstart": lanekit.pstart(child.pid), "started": time.time(), "limit": limit}, handle)
     print("FLOW %s: running your %s skill unattended" % (args.step, args.step))
     print("RUNNING: run this same command again")
 
@@ -320,13 +321,16 @@ def main():
         return 0
     held = json.loads(read(job))
     stop = time.time() + args.wait
-    while alive(held["pid"]) and time.time() < stop:
+    mine = held.get("pstart", "")
+    while alive(held["pid"], mine) and time.time() < stop:
         time.sleep(min(1, args.wait))
-    if alive(held["pid"]):
+    if alive(held["pid"], mine):
         if time.time() - held["started"] < held["limit"]:
             print("RUNNING: run this same command again")
             return 0
-        os.killpg(held["pid"], signal.SIGTERM)
+        if lanekit.same(held["pid"], mine):  # never a process that only reuses the pid
+            lanekit.audit(runs, "flow %s %s" % (args.slug, args.step), held["pid"], "step past its limit")
+            os.killpg(held["pid"], signal.SIGTERM)
         with open(reply, "a") as out:
             if args.step in BUDGETED:  # it finishes with what it has done and says what it left; the goal goes on
                 mins = round(held["limit"] / 60, 1)
