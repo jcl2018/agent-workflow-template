@@ -229,7 +229,8 @@ def need_lane(runs, slug, reply, step="qa"):
     """(why, fix, code) when record qa|ship must refuse (no lane passed on HEAD), else None."""
     text = open(reply).read() if os.path.isfile(reply) else ""
     found = re.findall(r"^\W*STEP:\s*(done|skipped|pending|failed)\b", text, re.M | re.I)
-    if found and found[-1].lower() == "failed" and not re.search(r"^\W*PENDING:", text, re.M):
+    import guards  # lazily: guards imports role
+    if found and found[-1].lower() == "failed" and not guards.pending_items(text):
         return None
     head = git("rev-parse", "HEAD").stdout.strip()
     try:
