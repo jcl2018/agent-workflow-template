@@ -25,6 +25,8 @@ import sys
 import time
 
 import tempfile
+import proctree
+from proctree import pstart  # noqa: F401
 try:
     import fcntl
 except ImportError:  # Windows: msvcrt locks
@@ -95,13 +97,15 @@ def lanes_dir():
 def check(pool):
     """Create the pool 0700; refuse one that isn't yours or that others can write (OSError names why)."""
     os.makedirs(pool, mode=0o700, exist_ok=True)
+    if os.name == "nt":  # no uid or group bits: the pool is in the user's own profile, private by its ACL
+        return
     info = os.stat(pool)
     if info.st_uid != os.getuid() or info.st_mode & 0o022:
         raise OSError("not owned by you, or writable by group or others")
 
 
 def _open(path, flags=0):
-    return os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | flags, 0o600)
+    return os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | flags, 0o600)
 
 
 def port_base():
@@ -243,11 +247,6 @@ def prep_hit(base, name, held, plan, wait, part):
                round(held.get("budget", 0) / 60), left)
 
 
-def pstart(pid):
-    """A process's start time as ps prints it; a reused pid reads differently."""
-    return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
-
-
 def same(pid, start):
     """pid still began at start; with none stored it is never ours to signal."""
     return bool(start) and pstart(pid) == start
@@ -348,11 +347,7 @@ def prep(top, cfg, log):
         out, err = proc.communicate(timeout=60)
         why = (err or out).strip().splitlines()[-1:] if proc.returncode else None
     except subprocess.TimeoutExpired:
-        import signal
-        try:
-            os.killpg(proc.pid, signal.SIGKILL)
-        except OSError:  # already gone
-            pass
+        proctree.kill(proc.pid)
         out, err = proc.communicate()
         lock = os.path.join(top, git("rev-parse", "--git-path", "index.lock").stdout.strip())
         if os.path.exists(lock):  # the commit we killed held it; left behind it blocks every later commit

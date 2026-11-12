@@ -20,7 +20,6 @@ A refusal that changes nothing uses no try: exit 2, the goal keeps running (guar
 """
 import argparse
 import datetime
-import fcntl
 import hashlib
 import importlib.util
 import json
@@ -32,6 +31,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lanekit  # noqa: E402
+fcntl = lanekit.fcntl
 import guards  # noqa: E402
 import fit  # noqa: E402
 import private  # noqa: E402
@@ -113,7 +113,7 @@ def state_path(slug):
     return os.path.join(state_dir(), slug + ".json")
 
 
-SEEN = {}  # slug -> the record (JSON) as last loaded or saved here
+SEEN = {}  # slug -> record last loaded or saved
 
 
 def load(slug):

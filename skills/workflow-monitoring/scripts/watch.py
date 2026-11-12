@@ -27,6 +27,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
+import proctree  # noqa: E402
 try:
     import sessions  # noqa: E402  worker sessions in the app; without it, background processes
 except ImportError:
@@ -180,14 +181,14 @@ def alive(pid):
     if not pid:
         return False
     try:
-        if os.waitpid(pid, os.WNOHANG)[0] == pid:
+        if hasattr(os, "WNOHANG") and os.waitpid(pid, os.WNOHANG)[0] == pid:  # no zombies on Windows
             return False
     except ChildProcessError:
         pass
     except OSError:
         return False
     try:
-        os.kill(pid, 0)
+        proctree.probe(pid)
     except ProcessLookupError:
         return False
     except PermissionError:

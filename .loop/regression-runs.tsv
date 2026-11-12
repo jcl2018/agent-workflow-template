@@ -133,7 +133,7 @@ done-line-rows-128	PASS	2026-11-12
 done-lines-warning-143	PASS	2026-11-12	
 entry-stale	PASS	2026-11-12	
 estimates-shown	PASS	2026-11-12	
-every-row-described	PASS	2026-11-12	
+every-row-described	FAIL	2026-11-12	
 failed-waits-mender	PASS	2026-11-09	
 file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 fixed-closes	PASS	2026-11-12	
@@ -436,6 +436,7 @@ step-label-live	PASS	2026-11-12
 steps-in-session	PASS	2026-11-12	
 steps-through-flow	PASS	2026-11-09	
 stop-after-3-tries	PASS	2026-11-09	
+stop-takes-tree	PASS	2026-11-12	
 stuck-stays-top	PASS	2026-11-12	
 suite-time-recorded	PASS	2026-11-10	
 summary-escapes	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
