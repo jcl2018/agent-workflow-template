@@ -10,7 +10,7 @@ usage: goal.py <command> <slug> [options]
   pr SLUG  merge the latest base, push, open the PR
 Goal steps (step, record, pr) refuse outside a worker.
   wait SLUG --ask TEXT --words W [--words W]
-  answer SLUG   a waiting goal goes on
+  answer SLUG                 a waiting goal goes on
   finding SLUG TEXT   stops a live goal; a done or merged one is only noted
   resume SLUG --why T [--by W]    the operation revives a stopped session goal
   touches SLUG --add PATH --why T the operation widens a goal's touches
@@ -113,7 +113,7 @@ def state_path(slug):
     return os.path.join(state_dir(), slug + ".json")
 
 
-SEEN = {}  # slug -> record last loaded or saved
+SEEN = {}  # slug -> last record
 
 
 def load(slug):
@@ -126,7 +126,7 @@ def load(slug):
 
 
 def save(state, note=None):
-    """Locked save: only keys changed here replace the file's."""
+    """Locked save: only keys changed here win."""
     state["updated"] = now()
     if note:
         state.setdefault("log", []).append("%s %s" % (state["updated"], note))
@@ -267,6 +267,10 @@ def cmd_new(args):
     return 0
 
 
+def cmd_adopt(args):
+    return fit.cmd_adopt(sys.modules[__name__], args)
+
+
 def cmd_queue(args):
     return fit.cmd_queue(sys.modules[__name__], args)
 
@@ -291,7 +295,7 @@ def next_step(state):
 
 
 def cmd_record(args):
-    """Apply what a step left: done or skipped moves on, pending waits, failed is a try."""
+    """Apply a flow step's result."""
     state = held(args.slug)
     guards.waiting_gate(sys.modules[__name__], state)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
@@ -414,7 +418,7 @@ def cmd_pr(args):
     url = info["url"] if info.get("state") == "OPEN" else ""
     if not url:
         path = state_path(args.slug) + ".body"
-        write(path, body)  # not --body: Windows caps a command line
+        write(path, body)
         done = run(["gh", "pr", "create", "--base", config()["base"], "--head", state["branch"],
                     "--title", state["goal"][:70], "--body-file", path], check=True)
         url = done.stdout.strip().splitlines()[-1]
@@ -467,6 +471,7 @@ def main():
             ("--touches", {"default": ""}))
     add("new", cmd_new, *goal, ("--release", {"default": ""}), ("--here", {"action": "store_true"}))
     add("queue", cmd_queue, *goal, ("--depends-on", {"default": ""}))
+    add("adopt", cmd_adopt)
     add("step", cmd_step, ("name", {}), ("--note", {"default": ""}), ("--tokens", {"type": int, "default": 0}))
     add("record", cmd_record, ("step", {"choices": FLOW}), ("--file", {"required": True}), ("--in-session", {"action": "store_true"}))
     add("wait", cmd_wait, ("--ask", {"required": True}), ("--words", {"action": "append", "required": True}))
