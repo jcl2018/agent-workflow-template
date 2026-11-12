@@ -41,7 +41,10 @@ def warm(path, key, picked, cache):
     digest, parts = key
     try:
         with open(path, "rb") as handle:
-            data = json.loads(zlib.decompress(handle.read()))
+            inflate = zlib.decompressobj()
+            text = inflate.decompress(handle.read(), 64 << 20)  # a cap: a bomb is a bad file
+            assert inflate.eof and not inflate.unconsumed_tail
+            data = json.loads(text)
         paths, rows, was = data["paths"], data["rows"], data["parts"]
         assert data["v"] == 1 and isinstance(data["key"], str) and isinstance(rows, dict) and isinstance(paths, list)
         assert isinstance(was, list) and len(was) == len(parts) and all(sound(p) for p in paths)
@@ -51,7 +54,7 @@ def warm(path, key, picked, cache):
             assert isinstance(table, (bool, type(None)))
     except FileNotFoundError:
         return "miss (absent)"
-    except (OSError, zlib.error, ValueError, KeyError, TypeError, IndexError, AssertionError):
+    except Exception:  # fail open on anything (a bad file, RecursionError, MemoryError)
         return "miss (corrupt)"
     if data["key"] != digest:
         first = next((n for n, a, b in zip(PARTS, parts, was) if a != b), "schema")
@@ -84,15 +87,17 @@ def store(path, key, cache):
             handle.write(zlib.compress(json.dumps(data, sort_keys=True).encode()))
         os.replace(temp, path)
     except OSError as error:
-        if os.path.exists(temp):
-            os.remove(temp)
-        return type(error).__name__
-    for name in os.listdir(folder):
         try:
-            if name.endswith((".json", ".tmp")) and time.time() - os.path.getmtime(os.path.join(folder, name)) > 2592000:
-                os.remove(os.path.join(folder, name))
+            os.remove(temp)
         except OSError:
             pass
+        return type(error).__name__
+    try:
+        for name in os.listdir(folder):
+            if name.endswith((".json", ".tmp")) and time.time() - os.path.getmtime(os.path.join(folder, name)) > 2592000:
+                os.remove(os.path.join(folder, name))
+    except OSError:
+        pass
     return None
 
 

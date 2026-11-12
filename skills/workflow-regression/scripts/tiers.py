@@ -21,15 +21,17 @@ is still flaky), until a later commit's clean run passes. A dirty tree, `regress
 record or regression-runs.tsv without these fields never marks. The exit status follows the actual result, and a flaky
 row is never reused (lanes.plan, tiers.reason). workflow-regression/references/commands.md.
 
-PLAN CACHE: each row's closure is kept per branch in <git common dir>/loop/plans/, keyed by HEAD, .loop/regression.tsv, the
-planner's code, LANES_WIDE and the loop's uncommitted files (key, narrow.warm, narrow.store). A dirty tree never uses it; LANES_NO_CACHE=1 turns it off. The
-first output line, `PLAN_CACHE: <state>`, names what happened (commands.md `## Plan cache`).
+Plan cache: each row's closure is kept per branch in <git common dir>/loop/plans/, keyed by HEAD, .loop/regression.tsv, the
+planner's code, LANES_WIDE and the loop's uncommitted files (key, narrow.warm, narrow.store). A dirty tree never uses it, and a
+plan that read an ignored file is not saved; LANES_NO_CACHE=1 turns it off. The first output line, `PLAN_CACHE: <state>`, names
+what happened (commands.md `## Plan cache`).
 """
 import hashlib
 import json
 import os
 import platform
 import socket
+import subprocess
 
 import lanes
 import narrow
@@ -86,10 +88,16 @@ def changed(root, commit, memo):
     return seen[commit]
 
 
-def loop_state(root):
+def status(root):
+    """git status lines with plain (unquoted) non-ASCII paths, or None when git failed."""
+    out = lanes.git(root, "-c", "core.quotepath=false", "status", "--porcelain", "--no-renames", "--untracked-files=all")
+    return None if out is None else out.splitlines()
+
+
+def loop_state(root, lines):
     """A digest of the loop's own uncommitted files (lanes.BOOKKEEPING): git status leaves them out, so the key takes them."""
     digest = hashlib.sha256()
-    for line in sorted((lanes.git(root, "status", "--porcelain", "--no-renames", "--untracked-files=all") or "").splitlines()):
+    for line in sorted(lines or []):
         if line[3:].strip('"').startswith(lanes.BOOKKEEPING):
             digest.update(line.encode())
             try:
@@ -100,15 +108,32 @@ def loop_state(root):
     return digest.hexdigest()
 
 
-def key(root):
+def clean(lines):
+    """Whether git status worked and lists nothing but the loop's own files."""
+    return lines is not None and all(line[3:].strip('"').startswith(lanes.BOOKKEEPING) for line in lines)
+
+
+def ignored(root, cache):
+    """Whether any file the plan read, listed or reaches is git-ignored: neither HEAD nor git status can see its changes."""
+    names = set(cache.get("text", ()))
+    for item, value in cache.items():
+        if isinstance(item, tuple) and item[0] in ("closure", "walk"):
+            names |= set(value[0] if item[0] == "closure" else value)
+    done = subprocess.run(["git", "check-ignore", "--stdin", "-z"], cwd=root, capture_output=True, text=True,
+                          input="\0".join(sorted(n for n in names if not n.endswith("/"))))
+    return done.returncode != 1
+
+
+def key(root, lines=None):
     """(sha256 hex, parts) of the plan cache's key: schema, planner code, HEAD, the row file, LANES_WIDE, the loop's files."""
+    lines = status(root) if lines is None else lines
     try:
         with open(os.path.join(root, lanes.TABLE), "rb") as handle:
             rows = hashlib.sha256(handle.read()).hexdigest()
     except OSError:
         rows = ""
     parts = ["1", lanes.runner(), (lanes.git(root, "rev-parse", "HEAD") or "").strip(), rows,
-             "1" if os.environ.get("LANES_WIDE") == "1" else "0", loop_state(root)]
+             "1" if os.environ.get("LANES_WIDE") == "1" else "0", loop_state(root, lines)]
     return hashlib.sha256(json.dumps(parts).encode()).hexdigest(), parts
 
 
@@ -120,11 +145,12 @@ def plan_file(record):
 
 def lead(root, picked, record, cache):
     """Decide the cache state, print its PLAN_CACHE line first and seed cache; (file, key) when a miss may be saved."""
-    off, now, path, left = os.environ.get("LANES_NO_CACHE", "").lower() in ("1", "true", "yes"), None, None, []
-    if not off and record:
-        left = lanes.dirty(root)
-        path, now = plan_file(record), key(root)
+    off = os.environ.get("LANES_NO_CACHE", "").lower() in ("1", "true", "yes")
+    lines = status(root) if record and not off else []
+    left = [line for line in lines or [] if not line[3:].strip('"').startswith(lanes.BOOKKEEPING)]
+    path, now = (plan_file(record), key(root, lines)) if record and lines is not None else (None, None)
     line = "off (LANES_NO_CACHE=1)" if off else "none (no branch)" if not record else \
+        "dirty (git status failed, cache not used)" if lines is None else \
         "dirty (%d paths, cache not used)" % len(left) if left else narrow.warm(path, now, picked, cache)
     print("PLAN_CACHE: " + line)
     return (path, now) if line.startswith("miss") else (None, None)
@@ -236,7 +262,11 @@ def plan(root, picked, record):
     reused = [rid for rid in why if ok and rid in old["rows"] and not why[rid]]
     print("\n".join(lines)) if lines else None
     summary(picked, todo, why, len(loose) + len(gone), (full, text), old if ok else None)
-    failed = narrow.store(saved, now, cache) if saved and key(root) == now else None
+    failed = None
+    if saved:
+        again = status(root)
+        if clean(again) and key(root, again) == now:  # nothing changed while the plan ran
+            failed = "ignored file read" if ignored(root, cache) else narrow.store(saved, now, cache)
     print("PLAN_CACHE: not saved (%s)" % failed) if failed else None
     return todo, reused, old if ok else None, full
 

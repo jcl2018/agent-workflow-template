@@ -161,11 +161,19 @@ def plan(scripts, repo, count_walks=False):
     if os.environ.get("PLAN_KEY_FLIP"):  # a test hook: tiers.key answers differently from its second call on
         real, seen = tiers.key, []
 
-        def flip(where):
+        def flip(where, lines=None):
             seen.append(1)
-            digest, parts = real(where)
+            digest, parts = real(where, lines)
             return (digest if len(seen) < 2 else "x" + digest), parts
         tiers.key = flip
+    if os.environ.get("PLAN_STRAY"):  # a test hook: a file appears while the plan runs
+        done = tiers.summary
+
+        def stray(*args):
+            done(*args)
+            with open("stray-during.txt", "w") as handle:
+                handle.write("x\n")
+        tiers.summary = stray
     rows = chosen(regression.read_rows(root), os.environ.get("PLAN_TARGET", "land"))
     todo, reused, old, full = tiers.plan(root, rows, regression.lanes.record_path(root))
     print("RETURN todo=%s reused=%s old=%s full=%s" % (

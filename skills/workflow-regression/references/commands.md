@@ -283,6 +283,8 @@ never in the worktree). The next lane at the same HEAD loads it instead of recom
 | `PLAN_CACHE: dirty (N paths, cache not used)` | Files are uncommitted; closures read working-tree files, so nothing is read or written | Commit or remove them |
 | `PLAN_CACHE: off (LANES_NO_CACHE=1)` | The cache is switched off | Unset `LANES_NO_CACHE` |
 | `PLAN_CACHE: none (no branch)` | A detached HEAD has no branch to name a file | Nothing |
+| `PLAN_CACHE: dirty (git status failed, cache not used)` | `git status` failed, so a clean tree cannot be shown; nothing is read or written | Fix the repository (a broken index, a missing git) |
+| `PLAN_CACHE: not saved (ignored file read)` | After the plan: it read or listed a git-ignored file, whose changes neither HEAD nor git status shows, so nothing is written (the plan itself is unaffected) | Nothing; to cache it, commit the file or stop naming it in a row |
 | `PLAN_CACHE: not saved (<error class>)` | After the plan, only when the write failed (for example `PermissionError`); the plan itself is unaffected | Fix the folder's permissions, or remove it as below |
 
 Tokens are added, never renamed. In a lane log:
@@ -295,7 +297,7 @@ PLAN_CACHE: off (LANES_NO_CACHE=1)  switched off
 
 - The safe reset is `rm -r <git common dir>/loop/plans`: the next lane misses and writes it again. Files older than 30 days are pruned when a lane writes.
 - `LANES_NO_CACHE` turns the cache off when it is `1`, `true` or `yes` in any case; `0` or empty leave it on. (`LANES_WIDE` is different: only the literal `1` counts, and it changes the closures, so it is part of the key.)
-- The key is HEAD, `.loop/regression.tsv`, the planner's code, `LANES_WIDE` and the content of the loop's uncommitted bookkeeping files (git status leaves those out, and a row can read them). Ignored files are not in it: change one a row reads and a lane at the same HEAD still hits.
+- The key is HEAD, `.loop/regression.tsv`, the planner's code, `LANES_WIDE` and the content of the loop's uncommitted bookkeeping files (git status leaves those out, and a row can read them). A plan that read or listed an ignored file is never saved (`not saved (ignored file read)`), so an ignored file cannot make a stale closure hit. A path a row names that does not exist yet is not covered: create it and commit it.
 
 | Why do I keep seeing `miss`? | Cause | Fix |
 |---|---|---|
