@@ -1,5 +1,118 @@
 # Changelog
 
+## v0.27.36 - 2026-11-12
+
+- goal-adopt: goal.py adopt (build)
+- goal-adopt: toy test
+- goal-adopt: requirements DEL-10/11, usage, regression rows
+- goal-adopt: pages, entry point, verify by hand
+- goal-adopt: replace a stale never-started record, refuse a live one
+- Lane: re-render the Tests tables
+- goal-adopt: row seen red, pages
+- Merge remote-tracking branch 'origin/main' into loop/goal-adopt
+- Merge origin/main into loop/goal-adopt
+
+### How to verify
+
+1. In a second clone, check out a branch another machine pushed (`git switch loop/SLUG`), then run `goal.py adopt SLUG` there.
+   Expect: it prints `ADOPTED SLUG at qa from origin/loop/SLUG @ <sha>`, and `goal.py show SLUG` lists idea, plan and review as `done on another machine`.
+2. Run `goal.py pr SLUG` straight after.
+   Expect: it stops with `the flow hasn't finished: qa, ship`, not `no goal named`.
+3. Create a local branch `loop/nope` with a goal file and run `goal.py adopt nope`.
+   Expect: `REFUSED: loop/nope is not on origin ...` and no run record.
+
+## v0.27.35 - 2026-11-12
+
+- Trim private.py under the 20,480-byte cap (comments and docstrings only)
+- Merge remote-tracking branch 'origin/main' into loop/private-size-pc
+- Merge remote-tracking branch 'origin/main' into loop/private-size-pc
+- Wiki: update pages for private-size-pc
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.34 - 2026-11-12
+
+- Automation budgets: one 30 minute regression budget, sharded matrix, TRUNCATED digest, health waits for regression
+- Seen-red marks and regenerated tests tables for automation-budgets
+- Review fix: the suite-time fetch reads the per-shard artifacts and takes the slowest
+- Merge origin/main into loop/automation-budgets
+- Regenerate Tests after merge
+- Wiki: update pages for automation-budgets
+- Merge remote-tracking branch 'origin/main' into loop/automation-budgets
+- Merge remote-tracking branch 'origin/main' into loop/automation-budgets
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.33 - 2026-11-12
+
+- setup-machine-prd: SET-11..SET-15 and the golden adoption fixture
+- setup-machine-prd: render Tests, Home and README
+- setup-machine-prd: render Home and README Settings (config holds cadence as "30")
+- setup-machine-prd: verify by hand
+- setup-machine-prd: golden step 1 includes the qa lane on the adopter's platform
+- Merge origin/main into loop/setup-machine-prd
+- Merge remote-tracking branch 'origin/main' into loop/setup-machine-prd
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Open `docs/wiki/Setup.md` and read SET-11 to SET-15.
+   Expect: five requirements marked **Unreviewed**, each ending with the issue it comes from (#1408, #1409, #1404, #1410, #1411), and SET-1 to SET-10 unchanged.
+2. Open `dev/toy/adoption-golden.tsv`.
+   Expect: eight steps in order, prerequisites to the first check-in, each with a check, golden result and fix, and no path, account or private repo name.
+3. Run `bash dev/toy/test-adoption-golden.sh`.
+   Expect: four PASS lines and `ALL PASS`.
+
+## v0.27.32 - 2026-11-12
+
+- Fix prd-new row's stale PASS name; guard reap.py's POSIX-only calls on Windows
+- Lane: re-render the Tests tables
+- Merge origin/main (v0.27.31) into loop/regression-defects; take main's reap.py
+
+### How to verify
+
+1. Run `out=$(bash dev/toy/test-prd.sh 2>&1); echo "$out" | grep "PASS: an optional Milestone line goes under the title"`.
+   Expect: the PASS line prints, so the `prd-new` row's last check finds its line.
+2. Run `python3 dev/toy/reap.py` with no arguments on native Windows.
+   Expect: a usage message, not an AttributeError about SIGPIPE.
+
+## v0.27.31 - 2026-11-12
+
+- fix: lanes, slots and step timeouts on native Windows Python (#1396)
+- Seen red: port-base-windows, stop-takes-tree
+- proctree: declare the Windows handle types (review)
+- Lane: re-render the Tests tables
+- fix: tmp_for ends at a Windows drive root instead of looping forever
+- fix: dev/toy/reap.py is a no-op on Windows (no ps, uid or SIGPIPE) so toy tests keep their own status
+- fix: liveness probes stop sending Ctrl+C on Windows
+- fix: Windows lane results: CTRL_C_EVENT mislabel, killpg in the generated runner, toy rows that cannot run there
+- Windows-only skips: three rows exit 77 on native Windows instead of being known failures everywhere
+- Windows: toy tests that need the gh fake are skipped (exit 77) and the lane counts them SKIPPED through a row's pipe
+- Merge origin/main into loop/win-posix-calls
+- fix: tmp_for ends at a drive root again after the merge
+- fix: lane-exec's signal names do not need SIGHUP on Windows
+- Windows: the toy suite runs only tests marked '# windows: ok'; the rest are SKIPPED, Linux CI is their check
+- Windows: the lane runs a row with bash; shorten two row descriptions over 400 characters
+- Merge remote-tracking branch 'origin/main' into loop/win-posix-calls
+- pr: record issue states and the lane's results
+- docs: Monitoring and Guardrails name the native Windows case
+- Revert "docs: Monitoring and Guardrails name the native Windows case"
+- Wiki: update pages for win-posix-calls
+- Fixes #1396: test stop-takes-tree, seen failing 2026-11-12, passing
+
+### How to verify
+
+1. On a Windows PC with native Python (no WSL), from the repo root run `cd skills/workflow-regression/scripts` and then
+   `python -c "import slots; print(slots.port_base())"`.
+   Expect: it prints a pair like `(3, 20000)`, not an AttributeError about getuid or O_NOFOLLOW.
+2. In the same folder run `python -c "import subprocess, sys, time, proctree; p = subprocess.Popen([sys.executable, '-c', 'import subprocess, sys, time; subprocess.Popen([sys.executable, \"-c\", \"import time; time.sleep(60)\"]); time.sleep(60)']); time.sleep(2); proctree.kill(p.pid)"`
+   and watch Task Manager (or `tasklist | findstr python`) while it runs.
+   Expect: the two sleeping python processes it started are gone right after it returns.
+
 ## v0.27.30 - 2026-11-12
 
 - Add red time-ordered model regression

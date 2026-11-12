@@ -10,6 +10,10 @@ os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="t
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
+BUDGET_MINUTES = 30  # one budget for a scheduled regression job: REG-7 names it, AUT-7's 45-minute round is this plus 15 for health
+SHARDS = 2  # the suite is split over this many jobs so each fits the budget
+
+
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
             "REGRESSION_RESULTS", "REGRESSION_MAP", "RUNNER_TEMP", "SUITE_TIME_FILE")
 
@@ -41,7 +45,11 @@ concurrency:
 jobs:
   regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: @BUDGET@  # the regression budget (REG-7); the suite is sharded so each job fits it
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: @MATRIX@
     steps:
       - uses: actions/checkout@v4
         with:
@@ -73,6 +81,7 @@ jobs:
           SUITE_TIME_FILE: ${{ runner.temp }}/suite-time.tsv  # a full run's time, kept as artifact suite-time for health
           REGRESSION_TARGET: ${{ inputs.target }}  # a run by hand; checked below, never put into a shell line
           REGRESSION_LEVELS: "@LEVELS@"  # the schedule and v* tags run ci_levels
+          REGRESSION_SHARD: "${{ matrix.shard }}/@SHARDS@"  # this job runs one wanted row in @SHARDS@
         run: |
           here=$(mktemp -d)  # a private folder: what each row guards, read before any row runs
           cat > "$here/tests.py" <<'TESTS_PY_EOF'
@@ -103,7 +112,7 @@ jobs:
               except ValueError:
                   return default
               return value if value > 0 else default
-          ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", 88 * 60)
+          ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", (@BUDGET@ - 2) * 60)
           ROW_ENV = {k: v for k, v in os.environ.items() if k not in @ROWDROP@}  # no token, no runner file a row could write into
           def run(command):  # own process group, output to a file: a row that times out fails alone and keeps what it printed
               with tempfile.TemporaryFile("w+", errors="replace") as log:
@@ -118,6 +127,8 @@ jobs:
                       os.killpg(child.pid, 9)
                   except OSError:
                       pass
+                  except AttributeError:  # Windows: no process groups, taskkill takes the tree
+                      subprocess.run(["taskkill", "/T", "/F", "/PID", str(child.pid)], capture_output=True)
                   child.wait()
                   log.seek(0)
                   out = log.read()
@@ -164,8 +175,13 @@ jobs:
           red, start = [], time.time()
           with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
               handle.write("# started %d\n" % start)
+          mine, seen = (os.environ.get("REGRESSION_SHARD") or "0/1").split("/"), 0
+          mine, shards = int(mine[0]), int(mine[1])
           for row in rows(".loop/regression.tsv"):
               if len(row) < 3 or not wanted(row):
+                  continue
+              seen += 1
+              if (seen - 1) % shards != mine:  # another shard's row
                   continue
               if time.time() - start + ROW_SECONDS > JOB_SECONDS:  # a row may run its full limit, so it must still fit
                   code, said, skipped = 125, "skipped: out of job time; this row did not run", True
@@ -225,7 +241,7 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: suite-time
+          name: suite-time-${{ matrix.shard }}
           path: ${{ runner.temp }}/suite-time.tsv
           if-no-files-found: ignore
           retention-days: 30
@@ -253,7 +269,7 @@ jobs:
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "TESTS_PY_EOF")  # what Actions or this writer would read as its own
+UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@MATRIX@", "@SHARDS@", "TESTS_PY_EOF")  # what Actions or this writer would read as its own
 
 
 def render(cron, levels="nightly"):
@@ -268,6 +284,7 @@ def render(cron, levels="nightly"):
     body = "\n".join(("          " + line).rstrip() for line in source.rstrip("\n").split("\n"))
     schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron  # off: by hand only, and the run says so
     return WORKFLOW.replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
+        .replace("@BUDGET@", str(BUDGET_MINUTES)).replace("@SHARDS@", str(SHARDS)).replace("@MATRIX@", str(list(range(SHARDS)))) \
         .replace("@TESTS@", body)
 
 

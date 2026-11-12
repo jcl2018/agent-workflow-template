@@ -5,9 +5,8 @@
 usage: private.py where | check | scan [--base REF]    the worker check, the list, the scan from REF (default origin/<base>)
        private.py visibility | required | statuses --head SHA --ok|--fail [--base B]   the private-repo statuses
 
-The list lives outside the repo: `$LOOP_PRIVATE_NAMES` (a file path) or `~/.workflow-loop/private-names`, one regular
-expression per line, matched without case; `#` starts a comment. No file: the scan passes and says nothing was checked.
-Only comments: off on purpose. A broken file: every scan refuses. `visibility` honors $LOOP_REPO_VISIBILITY. A hit names its place and list line, never the text.
+The list: `$LOOP_PRIVATE_NAMES` (a file path) or `~/.workflow-loop/private-names`, one regex per line, matched without
+case; `#` starts a comment. No file: nothing checked. Only comments: off. A broken file: every scan refuses.
 """
 import json
 import os
@@ -17,7 +16,6 @@ import subprocess
 import sys
 import time
 
-# No terminal, no waiting: a prompt from git must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 
 LOCAL_PATH = re.compile(r"(?<![\w/.:~])/(?:Users|home|private|var|tmp|mnt|opt|srv|root|etc|usr|Volumes)(?:/[\w.@+-]+)+")
@@ -25,16 +23,13 @@ HOME_DIR = re.compile(r"(?:file://)?/(?:Users|home)/[^/\s]+")
 
 
 def plain(text):
-    """Local absolute paths cut to their last part (a home folder alone to ~): findings go in a pull request."""
-    text = HOME_DIR.sub("/mnt/u", text)  # the account name never survives, whatever follows it
+    text = HOME_DIR.sub("/mnt/u", text)
     return LOCAL_PATH.sub(lambda m: m.group(0).split("/")[-1] if m.group(0).count("/") > 2 else "~", text)
 
 
 def mend(git, files, base):
-    """A merge that conflicts only in generated files is resolved here: the regression tsv files union (a row both sides
-    changed, or one side deleted, stays a real conflict), Tests.md takes the base's page and is re-rendered from the rows.
-    Else False, nothing kept (the caller aborts the merge)."""
-    import tempfile  # lazily: only a conflict needs it
+    """Resolve a merge that conflicts only in generated files (tsv rows union, Tests.md re-rendered); else False."""
+    import tempfile
     top, tsv = git("rev-parse", "--show-toplevel").stdout.strip(), (".loop/regression.tsv", ".loop/regression-runs.tsv")
     page = lambda f: os.path.basename(f) == "Tests.md" and os.path.dirname(f).endswith("wiki")
     criteria = os.path.join(HERE, "..", "..", "workflow-docs", "scripts", "criteria.py")
@@ -81,7 +76,7 @@ def mend(git, files, base):
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT = "~/.workflow-loop/private-names"
-LIMIT, WIDTH = 60, 4096  # seconds for a whole scan (git included), characters per matched piece of a line
+LIMIT, WIDTH = 60, 4096
 PRIVATE_NAME, PRIVATE_LIST = "PRIVATE_NAME", "PRIVATE_LIST"
 WORKER_PUSH, WORKER_PUSH_INTERNAL = "WORKER_PUSH", "WORKER_PUSH_INTERNAL"
 SEE_WHY = "run private.py where in this folder to see why, then tell the owner; do not use --no-verify"
@@ -95,7 +90,7 @@ def source():
 def patterns():
     path, shown = source()
     if not os.path.exists(path):
-        if os.environ.get("LOOP_PRIVATE_NAMES"):  # a list named on purpose that isn't there is a typo, not "no list"
+        if os.environ.get("LOOP_PRIVATE_NAMES"):
             return "broken", [], "%s names a file that doesn't exist" % shown
         return "none", [], ""
     try:
@@ -169,7 +164,6 @@ def shown_place(place, found):
 
 
 def scan(top, base, texts=None, head="HEAD", items=None):
-    """{"state": clean|hit|none|off|broken, "hits": [...], "note": str}; base None scans only the texts; items replaces the branch."""
     state, found, error = patterns()
     shown = source()[1]
     if state != "on":
@@ -212,7 +206,6 @@ def refusal(result, base="the base branch", pushed=False):
 
 
 def where():
-    """(slug, why): the goal a worktree under <common>/loop/worktrees/ belongs to, else (None, why); (None, None) if unsure."""
     for attempt in range(2):
         done = subprocess.run(["git", "rev-parse", "--is-inside-work-tree", "--git-common-dir", "--show-toplevel"],
                               capture_output=True, text=True)
@@ -229,7 +222,6 @@ def where():
 
 
 def worker_push(lines):
-    """(why, fix, code) when a goal worker's push must stop, else None."""
     slug, why = where()
     if slug is None and why is None:
         return ("the worker-branch check could not read where this push runs; nothing was pushed",
@@ -260,7 +252,7 @@ def hook_items(mode, arg):
                                  stop=stop).splitlines(), "staged")
         elif mode == "message":
             char = git(".", "config", "--default", "#", "core.commentChar", stop=stop).strip()
-            char = "#" if char == "auto" else char[:1]  # auto: its comment lines are scanned
+            char = "#" if char == "auto" else char[:1]
             for row in open(arg, errors="replace").read().splitlines():
                 if row.startswith(char + " ------------------------ >8"):
                     break
@@ -269,7 +261,7 @@ def hook_items(mode, arg):
         else:
             for row in arg.splitlines():
                 _, local, ref, _ = (row.split() + [""] * 4)[:4]
-                if local.strip("0"):  # not a deletion
+                if local.strip("0"):
                     yield "ref name " + ref, ref
                     shas = git(".", "rev-list", "--reverse", local, "--not", os.environ.get("LOOP_HOOK_RANGE") or "--remotes",
                                stop=stop).split()
@@ -281,7 +273,6 @@ def hook_items(mode, arg):
 
 
 def hook(mode="", arg=""):
-    """Exit 1 a hit, 2 broken, 64 usage; a scan is killed past LOOP_HOOK_DEADLINE seconds (default 30)."""
     if mode not in ("staged", "push", "message") or (mode == "message" and not arg):
         print("usage: private.py hook staged | message FILE | push")
         return 64
@@ -319,11 +310,10 @@ def repo_is_private(top):
 
 
 NOSTATUS = r"strict\w*|required_(?:approving_review_count|\w*resolution|linear_history|signatures)|merge_queue"
-ADVICE = []  # rules no status can satisfy
+ADVICE = []
 
 
 def required_checks(top, base):
-    """(contexts to post, bound ones) from base's rulesets and protection; None when unreadable."""
     named, bound, quoted = set(), set(), base.replace("/", "%2F")
     rc, out = gh(top, "api", "--paginate", "--slurp", "repos/{owner}/{repo}/rules/branches/" + quoted)
     rc2, out2 = gh(top, "api", "repos/{owner}/{repo}/branches/%s/protection" % quoted)
