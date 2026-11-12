@@ -10,7 +10,7 @@ Imported by goal.py (and role.begin); run only as `guards.py known`, which print
              of the run record can erase them.
 """
 import datetime
-import fcntl
+import portlock as fcntl
 import json
 import os
 import re
