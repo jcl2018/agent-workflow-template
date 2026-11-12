@@ -16,7 +16,7 @@ Review: **Unreviewed**
 - `/workflow-docs criteria PAGE` — Prints the requirement format (`FORMAT ...`) and the next free ID (`NEXT DEL-7`). Refuses a page with no requirements (exit 1, `REFUSED: PAGE has no criteria. Fix: use a page listed in .loop/docs.tsv, not Home.`).
 - `/workflow-docs review PAGE|ID [--date D]` — Only on the owner's own words. Marks the whole PRD, or one requirement, Reviewed with a date. Prints `REVIEWED PAGE Delivery` or `REVIEWED DEL-1`. Refuses, changing nothing (exit 1): without the owner's words (`REFUSED: only the owner changes a review. Fix: pass --user when their own words said to.`), a future or malformed date, an unknown ID (`REFUSED: no requirement X ... Nothing was changed.`), or a name that isn't a feature page.
 - `/workflow-docs unreview PAGE|ID` — Lifts the owner's review lock. Prints `UNREVIEWED PAGE Delivery` or `UNREVIEWED DEL-1`. Same refusals as review.
-- `/workflow-docs render` — Rewrites each page's Tests from the regression rows. Prints `RENDERED <page>` per page changed, or `TABLES OK`. The package folds keep the scripts the docs name under 100 files: the digest mail renderer sits in health `rounds.py`, the private rules in `enforce.py` and the issue proposal in setup `sync.py`.
+- `/workflow-docs render` — Rewrites each page's Tests from the regression rows, and the generated Settings and Automation blocks on Home and in the README plus the README's template-repo line (`WROTE <file> (<name> block)`). Prints `RENDERED <page>` per page changed, or `TABLES OK`. The package folds keep the scripts the docs name under 100 files: the digest mail renderer sits in health `rounds.py`, the private rules in `enforce.py` and the issue proposal in setup `sync.py`.
 - `/workflow-docs entry` — Writes the entry point, `.loop/START.md`, from the PRD pages (each feature's first Problem bullet and its Usage entries) and the loop config, and refreshes the workflow-loop block in each agent file that holds one. Prints `FIXED .loop/START.md` and `FIXED <file>` per file it rewrote, or `NO CHANGE .loop/START.md` (exit 0). `entry check` prints `STALE <path>: ... (ENTRY_STALE)` or `MISSING <path>: ... (ENTRY_MISSING)` (exit 1), `LAG <path>: installed v<v>, repo v<v>: ask for workflow-setup update (ENTRY_LAG)` (exit 0), or `ENTRY OK` (exit 0).
 - `/workflow-docs prd NAME "IDEA" --paths A,B` — Drafts a new feature's PRD, Unreviewed, and maps it. Prints `DRAFTED <page>: Review **Unreviewed**, requirement XX-1`, then `NEXT` lines for what is left. Refuses (exit 1) with no --paths, no idea, a bad name, a page that already exists, or no free ID prefix.
 - `/workflow-docs convert` — Turns old Summary/Criteria pages into PRD pages, keeping IDs and Reviewed stamps. A preview prints `DRY RUN: nothing written.` Refuses a page without the needed sections (`REFUSED N page(s). ...`).
@@ -68,6 +68,12 @@ Review: **Unreviewed**
   - Deliveries: one row each, with its channel, recipients as a group (never an email address), what is sent and its status.
   - The docs check refuses a malformed Deployments table, naming the table and the column.
   - A listed public link that doesn't answer, or a live build that isn't the promoted one, fails the deploying repo's own check for now; the template takes that check over later.
+
+- DOC-15: **Unreviewed** Home and the README show how the repo is set up and what runs by itself.
+  - Home and the README carry a Settings section: each setting's name, what it means, how to set it, its default and this repo's value, marked overridden only when it differs from the default.
+  - Home and the README carry an Automation section: each routine on or off, its cadence in plain words, where it runs, its last run when known and any step still owed by the owner.
+  - The README names and links the template repo the loop came from, never a local path, and the adoption entry points to all three.
+  - The docs check says STALE when a setting, a workflow file or a value changes, and render or publish refreshes them.
 
 ### Non-functional
 - DOC-11: **Reviewed 2026-11-10** Safe publish <!-- reviewed f33a3310 -->
@@ -156,6 +162,10 @@ Review: **Unreviewed**
 | [deploy-table-refused](Tests#t-deploy-table-refused) | requirement | DOC-14 | Given a Deployments section with prose, no table, a wrong header, two tables of a kind, no row, a wrong cell count, an empty cell, a bad link, access, build or an email address, when the docs check runs, then it refuses it naming the table and column, and never prints the address. | PASS 2026-11-10 |
 | [deploy-not-locked](Tests#t-deploy-not-locked) | requirement | DOC-14 | Given a Reviewed page that gains a Deployments section, when the docs check, the owner's review and render run, then the page is neither locked nor changed, the review works and render keeps the section byte for byte. | PASS 2026-11-10 |
 | [deploy-doc14-reviewed](Tests#t-deploy-doc14-reviewed) | requirement | DOC-14 | Given this repo's Documentation page, when the docs check runs, then it carries DOC-14 Reviewed with both owner messages and passes. | PASS 2026-11-10 |
+| [settings-overridden](Tests#t-settings-overridden) | requirement | DOC-15 | Given a toy repo with one overridden setting, when render runs, then Home's Settings table marks exactly that one overridden with its value. | not run |
+| [settings-stale](Tests#t-settings-stale) | requirement | DOC-15 | Given a setting changed after render, when docs check runs, then it says STALE Settings. | not run |
+| [automation-cron-words](Tests#t-automation-cron-words) | requirement | DOC-15 | Given a daily cron, a workflow file and a named routine, when render runs, then Automation reads the cadence in words, where it runs and the routine. | not run |
+| - | requirement | DOC-15 | no passing test | not enforced |
 | [refuse-replace](Tests#t-refuse-replace) | requirement | DOC-11 | Given a wiki page the tool did not write, when the tool writes pages, then that page is never overwritten. | PASS 2026-11-12 |
 | [publish-restore](Tests#t-publish-restore) | requirement | DOC-11 | Given a publish that adopted a page someone else wrote, when restore runs, then the original page is back. | PASS 2026-11-10 |
 | [docs-check-speed](Tests#t-docs-check-speed) | requirement | DOC-12 | Given this repo, when the docs check runs, then it finishes in under 30 seconds. | PASS 2026-11-10 |

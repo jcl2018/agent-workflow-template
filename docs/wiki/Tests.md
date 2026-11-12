@@ -208,6 +208,9 @@
 | <a id="t-deploy-table-refused"></a>deploy-table-refused | requirement | DOC-14 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-deploy-not-locked"></a>deploy-not-locked | requirement | DOC-14 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-deploy-doc14-reviewed"></a>deploy-doc14-reviewed | requirement | DOC-14 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
+| <a id="t-settings-overridden"></a>settings-overridden | requirement | DOC-15 | not run | - | local | no |
+| <a id="t-settings-stale"></a>settings-stale | requirement | DOC-15 | not run | - | local | no |
+| <a id="t-automation-cron-words"></a>automation-cron-words | requirement | DOC-15 | not run | - | local | no |
 
 ## Health
 
@@ -588,3 +591,9 @@
 | <a id="t-worker-push-guard-refuse"></a>worker-push-guard-refuse | requirement | done line worker-push-guard:1 | not run | - | local | 2026-11-12 |
 | <a id="t-worker-push-guard-allow"></a>worker-push-guard-allow | requirement | done line worker-push-guard:3 | not run | - | local | 2026-11-12 |
 | <a id="t-worker-push-guard-unaffected"></a>worker-push-guard-unaffected | requirement | done line worker-push-guard:2 | not run | - | local | 2026-11-12 |
+| <a id="t-settings-default-row"></a>settings-default-row | requirement | done line settings-table:1 | not run | - | local | no |
+| <a id="t-settings-template-line"></a>settings-template-line | requirement | done line settings-table:2 | not run | - | local | no |
+| <a id="t-settings-refresh"></a>settings-refresh | requirement | done line settings-table:3 | not run | - | local | no |
+| <a id="t-settings-publish-refresh"></a>settings-publish-refresh | requirement | done line settings-table:3 | not run | - | local | no |
+| <a id="t-settings-entry"></a>settings-entry | requirement | done line settings-table:4 | not run | - | local | no |
+| <a id="t-automation-missing-workflow"></a>automation-missing-workflow | requirement | done line settings-table:5 | not run | - | local | no |

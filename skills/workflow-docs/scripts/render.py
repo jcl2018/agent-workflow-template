@@ -6,8 +6,10 @@ criteria.py render calls render(); docs.py check calls generated() and front(). 
 renamed into place, printed as WROTE <file>. It runs git and nothing else.
 """
 import glob
+import json
 import os
 import re
+import subprocess
 import sys
 
 import criteria
@@ -103,6 +105,8 @@ def render(args):
         except OSError:
             held = None
         out.append((rel, held, tests_page(root)))
+    for where, name in refresh(root, args.check):
+        stale.append("%s (%s block)" % (where, name))
     for rel, text, fresh in out:
         if fresh != text:
             stale.append(rel)
@@ -220,3 +224,161 @@ def clashes(names):
             out.append("%s and %s share t-%s" % (seen[key], name, key))
         seen.setdefault(key, name)
     return out
+
+
+# --- the Settings and Automation blocks on Home, and the README's template line (generated, marked, kept fresh)
+SKILLS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+TEMPLATE_REPO = "jcl2018/agent-workflow-template"  # last resort when the install's origin names no GitHub repo
+MARKS = ("settings", "automation", "template")
+
+
+def block_re(name):
+    return re.compile(r"<!-- %s:begin -->\n.*?<!-- %s:end -->\n" % (name, name), re.S)
+
+
+def config_of(root):
+    try:
+        with open(os.path.join(root, ".loop", "config.json")) as handle:
+            held = json.load(handle)
+        return held if isinstance(held, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def reference():
+    """[(name, default, meaning)] from `settings.py reference`, the repo settings table; [] when it can't be read."""
+    path = os.path.join(SKILLS, "workflow-setup", "scripts", "settings.py")
+    done = subprocess.run([sys.executable, path, "reference"], capture_output=True, text=True) if os.path.exists(path) else None
+    rows, on = [], False
+    for line in (done.stdout.splitlines() if done and done.returncode == 0 else []):
+        if line.startswith("## "):
+            on = line.strip() == "## Repo settings"
+        found = re.match(r"^\| `(\w+)` \| (.+?) \| (.+) \|$", line) if on else None
+        if found:
+            rows.append((found.group(1), found.group(2).strip("`"), found.group(3)))
+    return rows
+
+
+def parsed(text):
+    if text == "(empty)":
+        return ""
+    try:
+        return json.loads(text)
+    except ValueError:
+        return text
+
+
+def shown(value):
+    return "(empty)" if value == "" else (value if isinstance(value, str) else json.dumps(value))
+
+
+def settings_block(root):
+    cfg, rows = config_of(root), []
+    for name, default, meaning in reference():
+        over = name in cfg and cfg[name] != parsed(default)
+        rows.append(["`%s`" % name, meaning, 'set "%s" in .loop/config.json' % name, "`%s`" % default,
+                     "**overridden:** `%s`" % shown(cfg[name]) if over else "default"])
+    head = ["Name", "What it means", "How to set it", "Default", "This repo"]
+    body = pageformat.table(head, rows) if rows else ["The settings reference is not installed here."]
+    return "\n".join(["<!-- settings:begin -->", "## Settings", "",
+                       "Every repo setting, from the template's settings reference and this repo's `.loop/config.json`.", ""]
+                      + body + ["<!-- settings:end -->", ""])
+
+
+def cadence(cron):
+    if cron == "off":
+        return "off"
+    f = cron.split()
+    if len(f) == 5 and f[2:] == ["*", "*", "*"]:
+        if f[1].startswith("*/") and f[1][2:].isdigit():
+            return "every %s hours" % f[1][2:]
+        if f[0].isdigit() and f[1].isdigit():
+            return "daily at %02d:%02d" % (int(f[1]), int(f[0]))
+        if f[1] == "*" and f[0].startswith("*/") and f[0][2:].isdigit():
+            return "every %s minutes" % f[0][2:]
+    return "cron `%s`" % cron
+
+
+def last_run(root):
+    days = sorted(row[2] for row in criteria.tsv(root, "regression-runs.tsv") if len(row) > 2)
+    return days[-1] if days else "unknown"
+
+
+def automation_block(root):
+    cfg, rows = config_of(root), []
+    flows = os.path.join(root, ".github", "workflows")
+    for name, key, default, flow, last in (("health", "health_cron", "47 */4 * * *", "health.yml", "unknown"),
+                                         ("regression", "regression_cron", "17 */4 * * *", "regression.yml", last_run(root))):
+        cron = str(cfg.get(key, default))
+        there = os.path.exists(os.path.join(flows, flow))
+        owed = "" if cron == "off" or there else "run workflow-setup to write .github/workflows/" + flow
+        rows.append([name, "off" if cron == "off" else "on", cadence(cron), "GitHub Actions" if there else "not deployed", last, owed or "none"])
+    mail = str(cfg.get("digest_mail", "cloudflare"))
+    there = os.path.exists(os.path.join(flows, "health.yml"))
+    rows.append(["digest email", "off" if mail == "off" else "on (%s)" % mail,
+                 "with each health round" if mail != "off" else "off", "GitHub Actions" if there else "not deployed", "unknown",
+                 "set the digest address and keys as Actions secrets (yours, outside git)" if mail != "off" else "none"])
+    for command in cfg.get("routines") or []:
+        rows.append(["`%s`" % command, "on", "before each release merge", "this Mac (the release step)", "unknown", "none"])
+    head = ["Routine", "State", "Cadence", "Runs on", "Last run", "Owed by you"]
+    return "\n".join(["<!-- automation:begin -->", "## Automation", "",
+                       "Each routine, from `.loop/config.json`, the workflow files and the regression runs file.", ""]
+                      + pageformat.table(head, rows) + ["<!-- automation:end -->", ""])
+
+
+def template_line(root):
+    repo = config_of(root).get("template_repo")
+    if not repo:
+        done = subprocess.run(["git", "-C", SKILLS, "remote", "get-url", "origin"], capture_output=True, text=True)
+        repo = pageformat.owner_repo(done.stdout) if done.returncode == 0 else ""
+    repo = repo if repo and re.match(r"^[\w.-]+/[\w.-]+$", str(repo)) else TEMPLATE_REPO
+    return "<!-- template:begin -->\nBuilt with the [%s](https://github.com/%s) workflow loop.\n<!-- template:end -->\n" % (repo, repo)
+
+
+def with_blocks(text, blocks):
+    """text with each (name, block) put in place: replaced where its markers are, else appended (the template line
+    goes after the first paragraph)."""
+    for name, block in blocks:
+        pattern = block_re(name)
+        if pattern.search(text):
+            text = pattern.sub(lambda _: block, text, 1)
+        elif name == "template":
+            head, sep, rest = text.partition("\n\n")
+            text = head + "\n\n" + block + ("\n" + rest if sep else "")
+        else:
+            text = text.rstrip("\n") + "\n\n" + block
+    return text
+
+
+def front_files(root):
+    """[(rel, blocks)] for Home and the README, when they exist."""
+    out = []
+    home = os.path.join(criteria.folder_of(root), "Home.md")
+    if os.path.exists(os.path.join(root, home)):
+        out.append((home, [("settings", settings_block(root)), ("automation", automation_block(root))]))
+    if os.path.exists(os.path.join(root, "README.md")):
+        out.append(("README.md", [("template", template_line(root)), ("settings", settings_block(root)),
+                                  ("automation", automation_block(root))]))
+    return out
+
+
+def refresh(root, check=False):
+    """Write the blocks (or with check, only list what differs): [(rel, name)] of the blocks that were stale."""
+    stale = []
+    for rel, blocks in front_files(root):
+        held = read(os.path.join(root, rel)) or ""
+        for name, block in blocks:
+            found = block_re(name).search(held)
+            if not found or found.group(0) != block:
+                stale.append((rel, name))
+        fresh = with_blocks(held, blocks)
+        if fresh != held and not check:
+            put(os.path.join(root, rel), fresh)
+    return stale
+
+
+def stale_blocks(root):
+    """(STALE, Settings|Automation|README line, where and how to fix) for each block that differs from a fresh render."""
+    names = {"settings": "Settings", "automation": "Automation", "template": "README line"}
+    return [("STALE", names[name], "%s is missing or differs from a fresh render. Fix: /workflow-docs render" % where)
+            for where, name in refresh(root, True)]

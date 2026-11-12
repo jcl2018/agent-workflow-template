@@ -182,9 +182,9 @@ def problems(root, base):
         for name in sorted(os.listdir(held)):
             if name.endswith(".md") and name[:-3] not in rows and name[:-3] not in pageformat.GENERATED:
                 found.append(("UNMAPPED", name[:-3], "not in .loop/docs.tsv"))
-    if config(root).get("criteria") and feature_pages(root):
+    if config(root).get("criteria"):
         import render
-        found += render.generated(root)
+        found += render.stale_blocks(root) + (render.generated(root) if feature_pages(root) else [])
     return found
 
 
@@ -294,6 +294,9 @@ def cmd_publish(args):
     rows = read_map(root)
     if not rows:
         sys.exit("REFUSED: no pages. Fix: run add first.")
+    if config(root).get("criteria"):
+        import render
+        render.refresh(root)  # the Settings and Automation blocks are written fresh, so the wiki gets them
     found = problems(root, None) + [c for c in contract(root) if c[0] != "CHANGED"]  # Usage drift waits on the owner
     found += [c for c in counts(root) if c[1].startswith(wiki_dir(root) + "/")]
     if found:
