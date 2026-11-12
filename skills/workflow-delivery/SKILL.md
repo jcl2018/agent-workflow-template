@@ -75,8 +75,8 @@ or follow-up. How steps report tokens (and how to report a step `flow.py` didn't
 The idea step writes the design and the plan step reviews it into a plan, both in your skills' own files. Commit
 anything they put in the worktree.
 
-**The regression lane.** The full suite runs once per goal, in qa: `flow.py qa` runs it on the committed HEAD before
-your skill starts, and `flow.py ship` and `goal.py pr` reuse it (`REUSED`). `references/commands.md` (The regression
+**The regression lane.** The loop runs only the affected rows, once per goal, in qa, within `test_budget_minutes`: `flow.py qa` runs
+them on the committed HEAD before your skill starts, and `flow.py ship` and `goal.py pr` reuse them (`REUSED`). The full suite runs on the schedule. `references/commands.md` (The regression
 lane) has its rules: the `test_record` prefix, `LANE_DIRTY`, `LANE_MISSING` and the failed-try exception.
 
 ### 3. Build

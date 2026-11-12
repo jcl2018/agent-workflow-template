@@ -21,26 +21,27 @@ Review: **Unreviewed**
 ### Functional
 
 - GRD-1: **Unreviewed** One visible set of guardrails, each with its protection, owner, setting and health check
-  - This page must list every guardrail the template has or needs, each with what it protects against, where it is enforced, the setting that controls it and the health rule that proves it is on.
-  - Each part names the feature that owns it, by its requirement ID where one exists, and "new" where none does yet; the owner's requirement holds the exact wording.
+  - This page is an index: it lists every guardrail the template has or needs, each with what it protects against, where it is enforced, the setting that controls it and the health rule that proves it is on.
+  - Each guardrail points to the requirement id that owns it (DEL-8, REG-7, DEL-9, SET-8, MON-7, MON-8) and says "new" where none does yet; the page restates none of the owner's text, which holds the exact wording.
   - A guardrail counts as on only when its Tests row here passes; until then it reads not enforced.
 - GRD-2: **Unreviewed** Time and token budgets stop a goal or a step before it runs away
-  - A review or ship step stops at `step_budget_minutes` (default 30, never under 15), finishes with what it has done and records what it left (Delivery, DEL-8).
-  - An in-loop test run stops at `test_budget_minutes` (default 15, never under 15) and leaves the rest to the scheduled full suite (Regression, REG-7).
+  - Review and ship step time limit: DEL-8.
+  - In-loop test run time limit: REG-7.
   - The work before a lane's first test row (preparing, planning and waiting for a slot) stops at `prep_budget_minutes` (default 15, never under 15; this repo sets 25); the lane says which part ran long and the goal can rerun it (Delivery, Regression).
   - A goal past `time_budget_minutes` starts no new step, and the setting is in the settings reference with its default (Delivery, new).
   - A goal past `token_budget` starts no new step, whether its steps run in a session or headless (Delivery, DEL-8 for showing it on the board; new for steps run in a session: today only headless goals are refused).
+  - A goal with no token count records "unknown" and the board shows "tokens unread", never 0, so an unread count is never mistaken for an unspent budget (Delivery, new).
 - GRD-3: **Unreviewed** Nothing private is committed, and no commit skips the hooks that check it
-  - Every commit and push passes the private-name scan before it leaves the machine (Delivery, DEL-9).
+  - Private-name scan on every commit and push: DEL-9.
   - A commit or push that skips the repo's hooks (a no-verify flag, an empty hooks path) is refused by the loop's own commands and flagged by health (Delivery, new).
-  - The names the scan looks for live only in a private setting, never in the repo (Setup, SET-8; SET-2 for the private layer).
+  - Where the scanned names live: SET-8 (SET-2 for the private layer).
 - GRD-4: **Unreviewed** A worker writes only its own goal's work, never shared loop state or its own limits
   - A worker can't widen its own goal's touches, resume itself or change its own budget; only the operation session can (Delivery, new: today a role check, not a boundary).
   - Shared loop state (run records, the session pool, the queue) is written only by the operation session or the main checkout, never from a goal's worktree (Monitoring, new).
-  - The operation session never edits code, commits or pushes (Monitoring, MON-7).
-- GRD-5: **Unreviewed** Nothing is written to GitHub without an explicit confirm
-  - Every command that writes issues, comments, milestones or releases previews by default and writes only when told to (Health, HLT-4; Regression and Automation, new: today REG-5 and AUT-5 write whenever a token is present).
-  - The page of each such command says which flag or environment token turns writing on (each owner, new).
+  - The operation session never edits code, commits or pushes: MON-7.
+- GRD-5: **Unreviewed** Nothing is written to GitHub without an explicit `--live`
+  - Every command that writes issues, comments, milestones or releases previews by default and writes only behind an explicit `--live` switch; a token in the environment does not turn writing on (Health, HLT-4, REG-5 and AUT-5 hold the wording; Regression new: today it writes whenever a token is present).
+  - The scheduled workflows pass `--live`; the page of each such command says so (each owner, new).
 - GRD-6: **Unreviewed** The base branch is protected and merges only with its required checks green
   - The base branch refuses direct pushes and force pushes, and a pull request merges only when the repo's required checks pass (Setup, new).
   - Where the platform can enforce it (branch rules, required status checks), the platform does, and health reads that it is set (Health, new).
@@ -50,7 +51,7 @@ Review: **Unreviewed**
   - Each round shows its Actions minutes and goes over its limit loudly (Automation, AUT-7); runs or minutes per day past a set limit raise one alarm (Automation, new).
 - GRD-8: **Unreviewed** A step far past its usual tokens or time is flagged while it runs
   - A step whose tokens pass a set multiple of that step's usual is flagged on the board and in the check-in (Monitoring, new).
-  - A step past three times its estimate is shown as stalled under Issues on the board (Monitoring, new; MON-4 keeps a stuck worker at the top of Issues), and a worker silent past `silent_minutes` (default 30) shows under Needs you (Monitoring, MON-8).
+  - A step past three times its estimate is shown as stalled under Issues on the board (Monitoring, new; MON-4 keeps a stuck worker at the top of Issues), and a worker silent past `silent_minutes` shows under Needs you: MON-8.
   - A goal's test lane past `goal_lane_minutes` (default 10) says so in its LANE line (Regression, REG-8).
 - GRD-9: **Unreviewed** Health proves every guardrail is present and working, each rule with a negative control
   - Each guardrail has a health rule that reads whether it is present and working, in an existing group (Performance, Security and privacy, Hygiene or Adoption), within the cap of 12 groups (Health, HLT-2).

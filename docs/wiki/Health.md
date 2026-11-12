@@ -57,9 +57,9 @@ Review: **Unreviewed**
   - At most 12 groups plus Mine; adding one means retiring one or raising the cap on purpose.
 - HLT-3: **Reviewed 2026-11-10** Formal report <!-- reviewed a5cc0046 -->
   - A header listing every group it ran (and any skipped), then each group with every rule marked pass, warn, fail or unread with its fix, then one verdict. A rule that can't read its data is never shown as passing.
-- HLT-4: **Unreviewed** Findings become issues tagged with their feature and group
-  - Each finding, from a rule or from the review, is one GitHub issue tagged with its group or kind and the feature it is about; it sits on a milestone only when I put it there.
-  - A preview lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups or features to file.
+- HLT-4: **Unreviewed** Findings become issues tagged with their group, and their feature when feature_labels is on
+  - Each finding, from a rule or from the review, is one GitHub issue tagged with its group or kind and, when feature_labels is on (it is off by default), the feature it is about; it sits on a milestone only when I put it there.
+  - A preview lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups or features to file, behind an explicit `--live`.
   - A repeat updates its issue, a fix closes it, a return reopens it, and an existing open issue that already covers a finding is linked, not duplicated.
 - HLT-5: **Reviewed 2026-11-10** Repo review <!-- reviewed 28f88bd6 -->
   - A reviewer, separate from the rules and never part of the verdict, reads every PRD page, the README, milestones, open issues, tests and code, feature by feature, and reports:
@@ -124,8 +124,8 @@ Review: **Unreviewed**
 | [hlt6-controls-fire](Tests#t-hlt6-controls-fire) | requirement | HLT-6 | Given every health rule, when health check runs its controls, then each rule's negative control makes it fire. | PASS 2026-11-10 |
 | [hlt6-cannot-fire](Tests#t-hlt6-cannot-fire) | requirement | HLT-6 | Given a rule broken so it can never report, when health check runs its controls, then that rule is reported as one that cannot fire, with how to look. | PASS 2026-11-10 |
 | [hlt6-refused](Tests#t-hlt6-refused) | requirement | HLT-6 | Given a new rule with no negative control, when health.py starts, then it refuses before any report and names the control to add. | PASS 2026-11-10 |
-| [hlt6-test-time](Tests#t-hlt6-test-time) | requirement | HLT-6 | Given a land lane recorded over test_budget_seconds, when health check runs, then it warns and names the slowest rows and scripts to move to nightly. | PASS 2026-11-10 |
-| [hlt6-test-quiet](Tests#t-hlt6-test-quiet) | requirement | HLT-6 | Given a land lane within test_budget_seconds, when health check runs, then the test-time rule passes. | PASS 2026-11-10 |
+| [hlt6-test-time](Tests#t-hlt6-test-time) | requirement | HLT-6 | Given a land lane recorded over test_budget_minutes, when health check runs, then it warns and names the slowest rows and scripts to move to nightly. | PASS 2026-11-10 |
+| [hlt6-test-quiet](Tests#t-hlt6-test-quiet) | requirement | HLT-6 | Given a land lane within test_budget_minutes, when health check runs, then the test-time rule passes. | PASS 2026-11-10 |
 | [hlt6-run-times](Tests#t-hlt6-run-times) | requirement | HLT-6 | Given a regression run, when it saves its lane record, then the record holds each row's time and the total. | PASS 2026-11-10 |
 | [hlt6-judge-time](Tests#t-hlt6-judge-time) | requirement | HLT-6 | Given a lane record, when the judge gathers its facts, then its performance review sees the land lane's total and slowest rows as well as tokens. | PASS 2026-11-10 |
 | [hlt6-worktrees](Tests#t-hlt6-worktrees) | requirement | HLT-6 | Given a loop worktree no live goal names, when health check runs, then it lists it with the command that removes it, and leaves a live goal's worktree alone. | PASS 2026-11-10 |

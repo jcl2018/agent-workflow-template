@@ -31,11 +31,11 @@ Review: **Unreviewed**
   - The full regression suite runs on the schedule (every 4 hours by default) and on every release, in GitHub Actions for a public repo and on my Mac for a private one; the report names every test it skipped and why.
   - A push or pull request runs only the tests its change affects, in the same place as the full suite.
   - No check this tool writes ever blocks a private repo's merge.
-  - A failing test opens or updates one issue labeled defect, tagged with the feature it guards, naming the test and the requirement; it closes by itself when the test passes again.
+  - A failing test opens or updates one issue labeled defect, tagged with the feature it guards when feature_labels is on, naming the test and the requirement; it closes by itself when the test passes again.
 - AUT-3: **Unreviewed** Health every few hours
   - Health never runs in GitHub Actions: it runs on my Mac on the schedule (every 4 hours by default), after the latest finished regression run, with all its rule groups; its report names that run with its commit and age, or says none finished, and says when health last ran.
   - The repo review always runs, using my own login on the Mac, with no API key secret; when the login has expired or can't be reached, the report says which and the next round tries again.
-  - Every finding becomes one issue tagged with its group and its feature, updated, closed or reopened as things change, never duplicated.
+  - Every finding becomes one issue tagged with its group and, when feature_labels is on, its feature, updated, closed or reopened as things change, never duplicated.
 - AUT-4: **Reviewed 2026-11-10** A digest by email <!-- reviewed f06a9042 -->
   - After each round, one email goes to the address I set: what ran and its results, then the new, still-open and fixed issues grouped by feature, each with its link and the request to give the agent to fix it.
   - The same digest is also posted as one comment on a pinned Automation digest issue.
