@@ -113,6 +113,10 @@ Review: **Unreviewed**
 | [del6-owner-override](Tests#t-del6-owner-override) | requirement | DEL-6 | Given a large goal, when the owner sets its depth to condensed with goal.py set, then a condensed review is recorded; a worker can't set it. | not run |
 | [del6-full-lane](Tests#t-del6-full-lane) | requirement | DEL-6 | Given a goal whose review ran condensed, when its qa step runs, then it runs the same land regression lane as a full-depth goal, with no row dropped for depth. | not run |
 | - | requirement | DEL-6 | no passing test | not enforced |
+| [adopt-record-qa](Tests#t-adopt-record-qa) | requirement | DEL-10 | Given a goal pushed from another machine with an open pull request, when goal.py adopt runs on its branch, then a run record exists at step qa with the pull request, idea, plan and review done on another machine and qa, ship and pr not recorded. | not run |
+| - | requirement | DEL-10 | no passing test | not enforced |
+| [adopt-refuses-unpushed](Tests#t-adopt-refuses-unpushed) | requirement | DEL-11 | Given a branch that is not on origin, when goal.py adopt runs, then it is refused in one line and no run record is written. | not run |
+| - | requirement | DEL-11 | no passing test | not enforced |
 | [frozen-done-lines](Tests#t-frozen-done-lines) | requirement | DEL-2 | Given a running goal, when a frozen done line is changed, then the goal stops. | PASS 2026-11-09 |
 | [del7-kill-resume](Tests#t-del7-kill-resume) | requirement | DEL-7 | Given a goal whose review was killed mid-step, when it is resumed, then it reruns review from its recorded plan, never from the start, and moves on to qa. | not run |
 | [del7-recorded-refused](Tests#t-del7-recorded-refused) | requirement | DEL-7 | Given a goal with recorded steps, when a recorded step is run again without --again, then it is refused with no try and names the step to resume from. | not run |

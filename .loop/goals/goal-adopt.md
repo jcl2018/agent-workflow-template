@@ -13,3 +13,11 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. In a second clone, check out a branch another machine pushed (`git switch loop/SLUG`), then run `goal.py adopt SLUG` there.
+   Expect: it prints `ADOPTED SLUG at qa from origin/loop/SLUG @ <sha>`, and `goal.py show SLUG` lists idea, plan and review as `done on another machine`.
+2. Run `goal.py pr SLUG` straight after.
+   Expect: it stops with `the flow hasn't finished: qa, ship`, not `no goal named`.
+3. Create a local branch `loop/nope` with a goal file and run `goal.py adopt nope`.
+   Expect: `REFUSED: loop/nope is not on origin ...` and no run record.
+
