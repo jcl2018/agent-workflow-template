@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.27.26 - 2026-11-12
+
+- Statuses: a private repo's pr lane posts its real result under every required check
+- Local schedule: one launch agent, a registry and a tick; no health workflow; narrow PR workflow
+- Local schedule: rows, Usage and the wiki pages
+- Local schedule: package disclosure, setup registry check, sturdier toy assertions, seen-red dates
+- Docs: re-render Tests, Setup note
+- Local schedule: reject a base that is not a branch name, create the agent's log dir at install
+- Row ls-nothing-in-repo: require the install and tick to have run
+- Toy test: the second 'dr' repo gets its own name (two sections shared one folder, so the full run failed)
+- Lane: re-render the Tests tables
+- Health: build the temp-folder prefix without a literal path (the lane's reach analysis walked every file under it, 284k, cutting planning at the budget)
+- Merge origin/main into loop/local-schedule (prep_budget_minutes stays 25)
+- After the merge: move workflow() and its template from tiers.py to lanes_cli.py, trim merge.py comments, so every script is under 20480 bytes
+- Lane: re-render the Tests tables
+- README: the settings reference regenerated from settings.py (a row rewrote it during the lane)
+- Merge origin/main (v0.27.22) into loop/local-schedule
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/local-schedule; rows placed mid-file
+- Merge remote-tracking branch 'origin/main' into loop/local-schedule
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/local-schedule
+- Wiki: update pages for local-schedule
+- Wiki: update pages for local-schedule
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.25 - 2026-11-12
 
 - Fold portlock.py into one module per skill; automation in the listing; lane headers (package-cap-3)
