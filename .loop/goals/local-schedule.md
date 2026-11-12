@@ -1,7 +1,7 @@
 # Routines run where they can run fully, as the Automation page (AUT-1..3) now says: health (all groups plus the agent review) runs every 4 hours on the owner's Mac for every repo and never in GitHub Actions; the full regression runs every 4 hours in GitHub Actions for a public repo and on the Mac for a private one; a push or pull request runs only the affected rows; no GitHub check blocks a private repo's merge; issues and the digest are filed as before (owner, 2026-11-11: "for public repo, because that's free ... in the private repo, I want it to be completely in the local machine, like in the Mac, so it will never block, and it shouldn't block the check in that case. So basically you should mimic the scheduled run for them, and both of them will send the issue")
 
 - Slug: local-schedule
-- Touches: skills/workflow-regression, skills/workflow-health, skills/workflow-setup, dev/toy, .loop/regression.tsv, docs/wiki/Regression.md, docs/wiki/Health.md, docs/wiki/Setup.md, docs/wiki/Tests.md, .loop/config.json
+- Touches: skills/workflow-regression, skills/workflow-health, skills/workflow-setup, dev/toy, .loop/regression.tsv, docs/wiki/Regression.md, docs/wiki/Health.md, docs/wiki/Setup.md, docs/wiki/Tests.md, .loop/config.json, skills/workflow-regression/scripts/narrow.py, skills/workflow-regression/scripts/lanes.py
 
 ## Done lines
 
