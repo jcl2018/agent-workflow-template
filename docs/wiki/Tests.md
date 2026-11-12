@@ -34,7 +34,7 @@
 | <a id="t-aut-email-retry"></a>aut-email-retry | requirement | AUT-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-aut-email-test"></a>aut-email-test | requirement | AUT-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-aut-email-digest"></a>aut-email-digest | requirement | AUT-4 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-12 |
-| <a id="t-aut-email-secrets"></a>aut-email-secrets | requirement | AUT-6 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | no |
+| <a id="t-aut-email-secrets"></a>aut-email-secrets | requirement | AUT-6 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-12 |
 | <a id="t-aut-email-rounds"></a>aut-email-rounds | requirement | AUT-7 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-aut-email-file"></a>aut-email-file | requirement | AUT-3 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-12 |
 | <a id="t-aut-email-regression"></a>aut-email-regression | requirement | AUT-2 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-12 |
@@ -577,35 +577,35 @@
 | <a id="t-worker-push-guard-refuse"></a>worker-push-guard-refuse | requirement | done line worker-push-guard:1 | not run | - | local | 2026-11-12 |
 | <a id="t-worker-push-guard-allow"></a>worker-push-guard-allow | requirement | done line worker-push-guard:3 | not run | - | local | 2026-11-12 |
 | <a id="t-worker-push-guard-unaffected"></a>worker-push-guard-unaffected | requirement | done line worker-push-guard:2 | not run | - | local | 2026-11-12 |
-| <a id="t-ls-plist"></a>ls-plist | requirement | done line local-schedule:1 | not run | - | local | no |
-| <a id="t-ls-registry"></a>ls-registry | requirement | done line local-schedule:1 | not run | - | local | no |
-| <a id="t-ls-no-health-workflow"></a>ls-no-health-workflow | requirement | done line local-schedule:1 | not run | - | local | no |
-| <a id="t-ls-private-tick"></a>ls-private-tick | requirement | done line local-schedule:1 | not run | - | local | no |
-| <a id="t-ls-public-tick"></a>ls-public-tick | requirement | done line local-schedule:1 | not run | - | local | no |
-| <a id="t-ls-digest-parity"></a>ls-digest-parity | requirement | done line local-schedule:1 | not run | - | local | no |
-| <a id="t-ls-private-no-workflow"></a>ls-private-no-workflow | requirement | done line local-schedule:2 | not run | - | local | no |
-| <a id="t-ls-blocks-named"></a>ls-blocks-named | requirement | done line local-schedule:2 | not run | - | local | no |
-| <a id="t-ls-narrow-triggers"></a>ls-narrow-triggers | requirement | done line local-schedule:3 | not run | - | local | no |
-| <a id="t-ls-missed-run"></a>ls-missed-run | requirement | done line local-schedule:4 | not run | - | local | no |
-| <a id="t-ls-dry-run"></a>ls-dry-run | requirement | done line local-schedule:1 | not run | - | local | no |
-| <a id="t-ls-log-bounded"></a>ls-log-bounded | requirement | done line local-schedule:4 | not run | - | local | no |
-| <a id="t-ls-hung-child"></a>ls-hung-child | requirement | done line local-schedule:4 | not run | - | local | no |
-| <a id="t-ls-offline-keeps-last"></a>ls-offline-keeps-last | requirement | done line local-schedule:4 | not run | - | local | no |
-| <a id="t-ls-judge-login"></a>ls-judge-login | requirement | done line local-schedule:5 | not run | - | local | no |
-| <a id="t-ls-usage-steps"></a>ls-usage-steps | requirement | done line local-schedule:5 | not run | - | local | no |
-| <a id="t-ls-messages-table"></a>ls-messages-table | requirement | done line local-schedule:5 | not run | - | local | no |
-| <a id="t-ls-nothing-in-repo"></a>ls-nothing-in-repo | requirement | done line local-schedule:6 | not run | - | local | no |
-| <a id="t-ls-size-budget"></a>ls-size-budget | requirement | done line local-schedule:1 | not run | - | local | no |
-| <a id="t-ls-scheduled-rule"></a>ls-scheduled-rule | requirement | done line local-schedule:1 | not run | - | local | no |
-| <a id="t-ls-regression-setting"></a>ls-regression-setting | requirement | done line local-schedule:2 | not run | - | local | no |
-| <a id="t-st-pass"></a>st-pass | requirement | done line local-schedule:7 | not run | - | local | no |
-| <a id="t-st-fail-never-success"></a>st-fail-never-success | requirement | done line local-schedule:7 | not run | - | local | no |
-| <a id="t-st-public-zero"></a>st-public-zero | requirement | done line local-schedule:7 | not run | - | local | no |
-| <a id="t-st-unreadable-zero"></a>st-unreadable-zero | requirement | done line local-schedule:7 | not run | - | local | no |
-| <a id="t-st-rerun-failed-head"></a>st-rerun-failed-head | requirement | done line local-schedule:7 | not run | - | local | no |
-| <a id="t-st-union-contexts"></a>st-union-contexts | requirement | done line local-schedule:7 | not run | - | local | no |
-| <a id="t-st-merge-wiki-head"></a>st-merge-wiki-head | requirement | done line local-schedule:7 | not run | - | local | no |
-| <a id="t-st-release-pr"></a>st-release-pr | requirement | done line local-schedule:7 | not run | - | local | no |
-| <a id="t-st-no-bypass"></a>st-no-bypass | requirement | done line local-schedule:7 | not run | - | local | no |
-| <a id="t-st-post-fails"></a>st-post-fails | requirement | done line local-schedule:7 | not run | - | local | no |
-| <a id="t-st-setup-readonly"></a>st-setup-readonly | requirement | done line local-schedule:2 | not run | - | local | no |
+| <a id="t-ls-plist"></a>ls-plist | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-registry"></a>ls-registry | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-no-health-workflow"></a>ls-no-health-workflow | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-private-tick"></a>ls-private-tick | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-public-tick"></a>ls-public-tick | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-digest-parity"></a>ls-digest-parity | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-private-no-workflow"></a>ls-private-no-workflow | requirement | done line local-schedule:2 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-blocks-named"></a>ls-blocks-named | requirement | done line local-schedule:2 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-narrow-triggers"></a>ls-narrow-triggers | requirement | done line local-schedule:3 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-missed-run"></a>ls-missed-run | requirement | done line local-schedule:4 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-dry-run"></a>ls-dry-run | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-log-bounded"></a>ls-log-bounded | requirement | done line local-schedule:4 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-hung-child"></a>ls-hung-child | requirement | done line local-schedule:4 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-offline-keeps-last"></a>ls-offline-keeps-last | requirement | done line local-schedule:4 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-judge-login"></a>ls-judge-login | requirement | done line local-schedule:5 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-usage-steps"></a>ls-usage-steps | requirement | done line local-schedule:5 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-messages-table"></a>ls-messages-table | requirement | done line local-schedule:5 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-nothing-in-repo"></a>ls-nothing-in-repo | requirement | done line local-schedule:6 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-size-budget"></a>ls-size-budget | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-scheduled-rule"></a>ls-scheduled-rule | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-regression-setting"></a>ls-regression-setting | requirement | done line local-schedule:2 | not run | - | local | 2026-11-12 |
+| <a id="t-st-pass"></a>st-pass | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-fail-never-success"></a>st-fail-never-success | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-public-zero"></a>st-public-zero | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-unreadable-zero"></a>st-unreadable-zero | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-rerun-failed-head"></a>st-rerun-failed-head | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-union-contexts"></a>st-union-contexts | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-merge-wiki-head"></a>st-merge-wiki-head | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-release-pr"></a>st-release-pr | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-no-bypass"></a>st-no-bypass | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-post-fails"></a>st-post-fails | requirement | done line local-schedule:7 | not run | - | local | 2026-11-12 |
+| <a id="t-st-setup-readonly"></a>st-setup-readonly | requirement | done line local-schedule:2 | not run | - | local | 2026-11-12 |
