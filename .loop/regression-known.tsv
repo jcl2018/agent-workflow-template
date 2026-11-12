@@ -6,9 +6,6 @@ adopt-set-3	fails on clean main since v0.27.17; fixed by render-readme-guard
 adopt-set-4	fails on clean main since v0.27.17; fixed by render-readme-guard
 adopt-set-5	fails on clean main since v0.27.17; fixed by render-readme-guard
 defect-categories	fails on clean main since v0.27.17; fixed by package-cap-3
-deploy-section-optional	fails on clean main since v0.27.17; fixed by docs-small-fixes
-deploy-not-locked	fails on clean main since v0.27.17; fixed by docs-small-fixes
-deploy-doc14-reviewed	fails on clean main since v0.27.17; fixed by docs-small-fixes
 lanes-headers	fails on clean main since v0.27.17; fixed by package-cap-3
 lanes-repo-narrow	fails on clean main since v0.27.17; fixed by package-cap-3
 narrow-root-172	fails on clean main since v0.27.17; fixed by package-cap-3
