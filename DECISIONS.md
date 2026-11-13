@@ -34,6 +34,18 @@ One line each, where the roadmap didn't say.
 
 ## Waiting on owner un-review
 
+Drafted by health-v1; none of it is applied until the owner un-reviews the requirement and approves the wording. Apply after merging origin/main (drop-usage and backlog-milestones touch the same page first).
+
+- HLT-2 Hygiene: replace "no idle worker sessions" with "no idle worker sessions beyond the pool size (MON-12)".
+- HLT-2 Performance: replace "the health check within its limit" with "the health round within AUT-7's budget".
+- HLT-7 (Fast check): delete the requirement and its bullet ("The rule check without controls finishes in under 60 seconds."). The round is bounded by AUT-7's budget, so health needs no separate limit; its test (test-health-time.sh) and rows go with it.
+- HLT-4: add a last bullet on top of backlog-milestones' HLT-4: "A drift finding that breaks a Reviewed requirement is a defect issue; any other drift finding is backlog."
+- HLT-2 Traceability: no wording change needed (its bullet does not mention defect tests; REG-6 owns that rule). Built: a closed issue labelled `health` is exempt from the defect-test rule, and `backlog` too once that label exists on closed issues the listing reads; a closed bug and a closed `finding:` still need a defect row.
+- HLT-9: replace the bullet with "Every review finding names its feature and cites its evidence: a file and line, or a test row. A requirement ID or an issue link may be added but never stands alone. A finding without that evidence is dropped, and nothing is filed twice."
+- HLT-2 cap: replace "At most 12 groups plus Mine; adding one means retiring one or raising the cap on purpose." with "At most 12 groups plus Mine; adding one means retiring one or raising the cap on purpose. A repo's own rules (HLT-10) are not groups and do not count against the cap."
+- HLT-10 (new, next free id; code is built later by health-repo-rules, not by health-v1) "Repo rules": "A repo extends health with its own rules in a committed file, `.loop/health-rules.json`. Each rule names its group (one of the twelve, or `repo`), its feature, the command that runs it (exit 0 pass, 2 warn, 1 fail; any other code is unread), its fix, and a break command that proves it can fail (the Controls group runs it). A repo may set a default rule's threshold (for example the script size cap), or turn a default rule off only with a written reason, which the report shows. Mine stays the owner's private, machine-level rules."
+- HLT-8 (as built): "close a batch" also covers one finding by its number (`triage --close --issue N`).
+
 Drafted 2026-11-13 by the automation-routines goal; nothing below is on the pages (AUT-1, AUT-2, AUT-3, AUT-4 and AUT-8 are Reviewed). The code and the Runbook-pointer prompt already work (`docs.py prompts`, health's `prompt-pointer`, the docs check for a routine in the config's `automation` list with a `page`). The owner reviews each wording and un-reviews the requirement to apply it.
 
 - Decision: health-round and regression-round are only the first, built-in routines. Any repo adds its own (a digest, a site deploy) with one entry in the config's `automation` list (`name`, `does`, `cadence`, `runs`, `page`, optional `routine`). It gets a row in the Automation block, a required Runbook on its page, a generated one-line prompt and its output in the digest. A routine's scheduled prompt is never more than a pointer to its Runbook in the repo, because steps copied into a prompt drift between machines.
