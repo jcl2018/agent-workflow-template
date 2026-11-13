@@ -541,7 +541,7 @@ PY
 fi
 
 if want file; then
-  echo "== file: findings tagged with their group, no milestone placed or made, the feature tag behind its switch"
+  echo "== file: findings tagged with their group and kind, on their Backlog milestone, the feature tag behind its switch"
   export FAKE_GH_DIR="$G/fake"; mkdir -p "$FAKE_GH_DIR"; F=$here/dev/toy/fakegh
   printf 'Automation\tskills/workflow-health/scripts/automation.py,.github/workflows\nHealth\tskills/workflow-health\nOld\tskills/old\n' > .loop/docs.tsv
   # the fake gh first on PATH, a token that cannot work and a host that cannot resolve: the real gh could change nothing
@@ -553,16 +553,16 @@ issues, why = file.held('$r'); acts = file.plan(rows, issues, ['size'], root='$r
   f0=$fail; cfg '{}'; : > "$FAKE_GH_DIR/issues.json"; rm -f "$FAKE_GH_DIR/calls.log" "$FAKE_GH_DIR/labels.json"
   out=$(fl skills/workflow-health/scripts/automation.py skills/nowhere/x.py)
   [ -s "$FAKE_GH_DIR/calls.log" ] && ok "the fake gh saw every call (calls.log exists)" || bad "FAIL milestone-freeform:file: calls.log absent, real gh may have run. Fix: put dev/toy/fakegh first on PATH"
-  python3 - "$FAKE_GH_DIR/issues.json" <<'PY' && ok "a finding is filed with health and health:size only, on no milestone, with an empty placed=" || bad "tagging"
+  python3 - "$FAKE_GH_DIR/issues.json" <<'PY' && ok "a finding is filed with health, health:size and backlog, on its Backlog milestone, with an empty placed=" || bad "tagging"
 import json, sys
 i = {x["title"].split()[2]: x for x in json.load(open(sys.argv[1]))}
-for path in ("skills/workflow-health/scripts/automation.py", "skills/nowhere/x.py"):
+for path, home in (("skills/workflow-health/scripts/automation.py", "Backlog: Automation"), ("skills/nowhere/x.py", "Backlog: Other")):
     x = i[path]
-    assert not x["milestone"], x
-    assert sorted(l["name"] for l in x["labels"]) == ["health", "health:size"], x["labels"]
+    assert x["milestone"]["title"] == home, x
+    assert sorted(l["name"] for l in x["labels"]) == ["backlog", "health", "health:size"], x["labels"]
     assert " placed= -->" in x["body"], x["body"]
 PY
-  ! grep -qi "milestone\|backlog" "$FAKE_GH_DIR/calls.log" && ! grep -q "feature:" "$FAKE_GH_DIR/calls.log" && ok "no milestone or feature label call is made while feature_labels is off" || bad "calls: $(cat "$FAKE_GH_DIR/calls.log")"
+  grep -q -- "--milestone Backlog: Automation" "$FAKE_GH_DIR/calls.log" && grep -q -- "--milestone Backlog: Other" "$FAKE_GH_DIR/calls.log" && ! grep -q "feature:" "$FAKE_GH_DIR/calls.log" && ok "the Backlog milestones are set and no feature label call is made while feature_labels is off" || bad "calls: $(cat "$FAKE_GH_DIR/calls.log")"
   out=$(fl skills/workflow-health/scripts/automation.py skills/nowhere/x.py)
   [ "$(nissues)" = 2 ] && grep -q "^SAME" <<<"$out" && ok "a second run duplicates no open issue" || bad "duplicate"
   python3 - "$FAKE_GH_DIR/issues.json" <<'PY'
@@ -605,9 +605,9 @@ print('parsed')" ) > "$G/old.out" 2>&1
 import json, sys
 i = {x["title"].split()[2]: x for x in json.load(open(sys.argv[1]))}
 assert "feature:Automation" in [l["name"] for l in i["skills/workflow-health/scripts/automation.py"]["labels"]]
-assert [l["name"] for l in i["skills/nowhere/x.py"]["labels"]] == ["health", "health:size"]
+assert sorted(l["name"] for l in i["skills/nowhere/x.py"]["labels"]) == ["backlog", "health", "health:size"]
 assert "feature:Automation" in json.load(open(sys.argv[2])) and "feature:Old" not in json.load(open(sys.argv[2]))
-assert not any(x["milestone"] for x in i.values())
+assert all((x["milestone"] or {}).get("title", "").startswith("Backlog: ") for x in i.values())
 PY
   python3 - "$FAKE_GH_DIR/issues.json" <<'PY'
 import json, sys
