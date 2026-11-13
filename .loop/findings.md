@@ -65,3 +65,4 @@ Open (from the issue-cleanup triage of the open non-regression issues, 2026-11-1
 - package-under-cap: done line over-scoped by the operation session
 - package-under-cap: done line over-scoped by the operation session
 - drop-usage: Failed 5 tries. Last: regression lane failed: review-findings-skill-lines, settings-render-fresh
+- wiki-catchup: done line rested on a wrong cause; STALE is real
