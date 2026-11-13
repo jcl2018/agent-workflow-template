@@ -297,6 +297,8 @@ def cmd_report(args):
         text = args.text or "%s: %s" % ((state.get("session") or {}).get("name") or args.slug, said or "report")
         state.setdefault("reports", []).append({"at": now(), "step": args.step or state.get("step") or "-", "status": said or "-", "text": text})
         del state["reports"][:-30]
+        if args.hold:
+            state["hold_at"] = now()
         save(state, "session report kept (done is final): " + text)
         print("KEPT done for %s: report recorded, status %s not applied (done is final)." % (args.slug, said or "(none)"))
         if said == "merged":  # a merged report always frees the session (issue 175, MON-6)
@@ -304,6 +306,10 @@ def cmd_report(args):
         return 0
     if said in ("merged", "failed") or (said == "waiting" and not args.ask):
         pool()  # a goal that ends frees its session: check the pool can be written before any change
+    if args.hold:
+        state["hold_at"] = now()  # an explicit hold: the exit fallback never merges it, whatever the report says (#3868)
+    elif args.step or args.status == "running":
+        state.pop("hold_at", None)  # a step or a running report ends it
     if args.step:
         state["step"] = args.step
     if args.pr:
@@ -383,6 +389,7 @@ def main():
     for flag in ("--step", "--pr", "--text", "--ask", "--recommend", "--attempt"):
         item.add_argument(flag, default="")
     item.add_argument("--words", action="append", default=[])
+    item.add_argument("--hold", action="store_true", help="the goal is held: only its own merge.py or the operation's go merges it")
     item.add_argument("--kind", default="", choices=["", "routine", "destructive", "money", "security", "owner"])
     item = sub.add_parser("send")
     item.add_argument("slug")

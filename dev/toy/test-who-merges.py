@@ -43,8 +43,8 @@ subprocess.run = run
 worker.merged = sessions.merged = lambda url: False
 
 
-def report(slug, status, text="PR open; holding before merge.py"):
-    args = argparse.Namespace(slug=slug, status=status, step="", pr="https://example.test/pull/" + slug[-1], ask="", words=[],
+def report(slug, status, text="PR open; holding before merge.py", hold=False):
+    args = argparse.Namespace(hold=hold, slug=slug, status=status, step="", pr="https://example.test/pull/" + slug[-1], ask="", words=[],
                               text=text, recommend="", kind="", attempt=None)
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
@@ -86,6 +86,12 @@ with tempfile.TemporaryDirectory() as tmp:
     worker.release_step(dict(held, release=""))
     check(not calls, "the worker's exit fallback skips a goal the operation holds")
     check(not worker.held_by_operation(sessions.load("goal1")), "a goal that only reported its pull request waiting is not held")
+    report("goal2", "waiting", "PR open, wait for the go", hold=True)  # wording says nothing about holding
+    held2 = sessions.load("goal2")
+    check(worker.held_by_operation(held2), "report --hold holds a goal whatever the report says")
+    del calls[:]
+    worker.release_step(dict(held2, release=""))
+    check(not calls, "the worker's exit fallback skips a goal held with --hold")
     os.chdir(here)
 subprocess.run = real
 # no other monitoring or delivery script starts merge.py or gh pr merge: watch.py and auto.py only advise it in prompts
@@ -99,6 +105,7 @@ for folder in ("workflow-monitoring", "workflow-delivery"):
                 runs.append(name)
 check(runs == ["worker.py"], "only worker.py (the worker's own exit) starts merge.py among the monitoring and delivery scripts: %s" % runs)
 if not failed:
+    print("PASS: #3868: report --hold holds a goal whatever its wording says")
     print("PASS: #3868: a report merges neither goal; merge.py runs only for the goal it is asked for")
     print("PASS: #3868: the worker exit fallback runs merge.py for an unheld goal and skips a held one")
 sys.exit(1 if failed else 0)

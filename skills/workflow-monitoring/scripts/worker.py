@@ -108,13 +108,13 @@ def merged(url):
 
 
 def held_by_operation(state):
-    """Whether the operation holds the goal: held_at is stamped, or its run log's last hold entry (a session report that it
+    """Whether the operation holds the goal: held_at or hold_at (sessions.py report --hold) is stamped, or its run log's last hold entry (a session report that it
     is held at or before a step) has no later step, bind or resume (board_log.holding). A held goal merges only on a go."""
     import board_log
     paused = False
     for entry in state.get("log") or []:
         paused = board_log.holding(entry, paused)
-    return paused or bool(state.get("held_at"))
+    return paused or bool(state.get("held_at") or state.get("hold_at"))
 
 
 def release_step(state):
