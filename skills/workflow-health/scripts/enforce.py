@@ -197,49 +197,46 @@ def docs_gaps(root, g):
 
 
 def carries(name, skill, text, *places):
-    """True when the installed template's own files name the feature (so an older template is never failed for it).
-    Test-only: LOOP_TEST=1 with LOOP_TEMPLATE_HAS (comma list of feature names) decides instead."""
+    """True when the installed template names the feature (test-only: LOOP_TEST=1 with LOOP_TEMPLATE_HAS decides)."""
     if os.environ.get("LOOP_TEST") == "1" and "LOOP_TEMPLATE_HAS" in os.environ:
         return name in os.environ["LOOP_TEMPLATE_HAS"].split(",")
     for place in places or ("scripts/*.py", "references/*.md"):
         for path in glob.glob(os.path.join(SKILLS, skill, place)):
-            if os.path.basename(path) != "enforce.py" and text in read(path):  # this file names the features it asks about
+            if os.path.basename(path) != "enforce.py" and text in read(path):  # it names them itself
                 return True
     return False
 
 
 def format_gaps(root, cfg, g, steps):
-    """Tonight's format changes, each judged only when the installed template carries it: no Usage section (MIG_USAGE), .loop/health-rules.json
-    (MIG_RULES), routine prompts that are one-line Runbook pointers (MIG_ROUTINES). steps: the OWNER STEP list, appended to."""
+    """Format changes, judged only when the template carries them."""
     if not carries("usage-kept", "workflow-docs", "usage_section", "references/template.md"):
         for page in sorted(glob.glob(os.path.join(root, "docs", "wiki", "*.md"))):
             if re.search(r"^## Usage\s*$", read(page), re.M):
-                g("MIG_USAGE", os.path.basename(page), "still has a Usage section", "delete the section: " + tool("workflow-docs", "docs.py", "audit"))
+                g("MIG_USAGE", os.path.basename(page), "still has a Usage section", "delete the section, then " + tool("workflow-docs", "docs.py", "audit"))
     if carries("health-rules", "workflow-health", "health-rules.json") and not os.path.exists(os.path.join(root, ".loop", "health-rules.json")):
         g("MIG_RULES", ".loop/health-rules.json", "missing", "run workflow-setup (setup.py), which writes it")
     if carries("runbook-pointer", "workflow-docs", "Runbook pointer"):
-        for item in cfg.get("automation") if isinstance(cfg.get("automation"), list) else []:
+        for item in cfg.get("automation") or []:
             prompt = item.get("prompt") if isinstance(item, dict) else None
             if isinstance(prompt, str) and (len(prompt.splitlines()) > 1 or "Runbook" not in prompt):
-                g("MIG_ROUTINES", clean(item.get("name", "?")), "its prompt is not a one-line Runbook pointer", "replace the prompt with: Run the <page> Runbook")
+                g("MIG_ROUTINES", clean(item.get("name", "?")), "prompt is not a one-line Runbook pointer", "use: Run the <page> Runbook")
     if carries("backlog", "workflow-health", "Backlog", "scripts/milestone.py"):
-        steps.append(("milestones", "Backlog", "approve the Backlog milestones: review them in the milestone list, then keep or close each"))
+        steps.append(("milestones", "Backlog", "approve the Backlog milestones: keep or close each in the milestone list"))
 
 
 def hook_gaps(root, g, steps):
-    """The reply and govern hooks of the operation session: each installed once in .claude/settings.local.json (twice is a gap, none an owner step)."""
-    path = os.path.join(root, ".claude", "settings.local.json")
-    text = read(path) if os.path.exists(path) else ""
+    """Each hook once in .claude/settings.local.json (twice: a gap; none: an owner step)."""
+    text = read(os.path.join(root, ".claude", "settings.local.json"))
     for name in ("reply_hook.py", "govern_hook.py"):
         count = text.count(name)
         if count > 1:
-            g("MIG_HOOKS", name, "is installed %d times" % count, "remove the duplicate entry in .claude/settings.local.json")
+            g("MIG_HOOKS", name, "is installed %d times" % count, "remove the duplicate entry")
         elif not count:
-            steps.append(("hook", name, "run " + tool("workflow-setup", "setup.py", "--reply-hook") + " in the operation repo (it installs both hooks once)"))
+            steps.append(("hook", name, "in the operation repo run " + tool("workflow-setup", "setup.py", "--reply-hook") + " (both hooks)"))
 
 
 def owner_steps(root, steps):
-    """What only the owner can do, each with its exact instruction: gh signed in, the smoke cell for this platform."""
+    """What only the owner can do."""
     done = shutil.which("gh") and subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, stdin=subprocess.DEVNULL)
     if not done or done.returncode:
         steps.append(("gh", "sign-in", "install gh, then sign in: gh auth login --web"))
@@ -247,6 +244,30 @@ def owner_steps(root, steps):
     for r in table(root):
         if r["id"] == "smoke-" + plat:
             steps.append(("smoke", r["id"], "run the %s smoke cell: %s" % (plat, tool("workflow-regression", "regression.py", "run --id " + r["id"]))))
+    toolchain_steps(root, steps)
+
+
+def toolchain_steps(root, steps):
+    """node and python as the repo asks (engines, .nvmrc, .tool-versions, requires-python)."""
+    get = lambda rel: read(os.path.join(root, rel))
+    try:
+        eng = json.loads(get("package.json") or "{}")["engines"]["node"]
+    except (ValueError, KeyError, TypeError):
+        eng = ""
+    tv = dict(l.split()[:2] for l in get(".tool-versions").splitlines() if len(l.split()) > 1)
+    py = re.search(r'requires-python\s*=\s*"([^"]*)"', get("pyproject.toml"))
+    plat = (os.environ.get("LOOP_SCHEDULE_PLATFORM") if os.environ.get("LOOP_TEST") == "1" else "") or sys.platform
+    ask = {"node": (str(eng or get(".nvmrc") or tv.get("nodejs", "")), "node", ("winget install OpenJS.NodeJS.LTS", "brew install node@%s", "nvm install %s")),
+           "python": ((py and py[1]) or tv.get("python", ""), "python3", ("winget install Python.Python.%s", "brew install python@%s", "install python %s"))}
+    for name, (spec, exe, cmds) in ask.items():
+        m = re.search(r"(\d+)(?:\.(\d+))?", spec)
+        if m:
+            need = (int(m[1]),) if name == "node" else (int(m[1]), int(m[2] or 0))
+            path = shutil.which(exe) or shutil.which(name)
+            got = tuple(int(x) for x in re.findall(r"\d+", subprocess.run([path, "--version"], capture_output=True, text=True).stdout if path else "")[:len(need)])
+            if not got or got < need:
+                ver, cmd = ".".join(map(str, need)), cmds[0 if plat == "win32" else 1 if plat == "darwin" else 2]
+                steps.append(("toolchain", name, "needs %s %s (%s here): %s" % (name, ver, ".".join(map(str, got)) or "none", cmd % ver if "%s" in cmd else cmd)))
 
 
 def wiki_gaps(root, g, info):

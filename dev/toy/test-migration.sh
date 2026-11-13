@@ -429,7 +429,7 @@ if want v1; then fresh
   check "the real installed template (no override) carries none of the new features yet, so a clean toy gets no new gap" '[ $rc = 0 ] && ! grep -qE "^GAP MIG_(USAGE|RULES|ROUTINES|HOOKS)" <<<"$out"'
   export LOOP_TEMPLATE_HAS=usage-kept; mig "$r" --offline
   check "a clean toy whose template carries no new feature exits 0 and prints no new gap" '[ $rc = 0 ] && ! grep -qE "^GAP MIG_(USAGE|RULES|ROUTINES|HOOKS)" <<<"$out"'
-  check "the clean toy still lists what only the owner can do, as OWNER STEP lines with their instruction" 'grep -q "^OWNER STEP hook reply_hook.py: run .*--reply-hook" <<<"$out" && grep -q "^CHECKLIST: " <<<"$out"'
+  check "the clean toy still lists what only the owner can do, as OWNER STEP lines with their instruction" 'grep -q "^OWNER STEP hook reply_hook.py: in the operation repo run .*--reply-hook" <<<"$out" && grep -q "^CHECKLIST: " <<<"$out"'
   export LOOP_TEMPLATE_HAS=usage-kept,health-rules; mig "$r" --offline
   check "a template that carries .loop/health-rules.json: its absence is a gap with its fix, exit 1" '[ $rc = 1 ] && grep -q "^GAP MIG_RULES .loop/health-rules.json: missing. Fix: run workflow-setup" <<<"$out"'
   echo "{}" > "$r/.loop/health-rules.json"; mig "$r" --offline
@@ -439,13 +439,21 @@ if want v1; then fresh
   check "a template that dropped Usage: a feature page still holding a Usage section is a gap naming the page, exit 1" '[ $rc = 1 ] && grep -q "^GAP MIG_USAGE $(basename "$page"): still has a Usage section" <<<"$out"'
   export LOOP_TEMPLATE_HAS=usage-kept,runbook-pointer; reset "$r" HEAD
   cfgset "$r" "d['automation']=[{'name':'health','runs':'x','prompt':'do a long thing'+chr(10)+'over two lines'}]"; mig "$r" --offline
-  check "a template with Runbook-pointer prompts: a two-line routine prompt is a MIG_ROUTINES gap, exit 1" '[ $rc = 1 ] && grep -q "^GAP MIG_ROUTINES health: its prompt is not a one-line Runbook pointer" <<<"$out"'
+  check "a template with Runbook-pointer prompts: a two-line routine prompt is a MIG_ROUTINES gap, exit 1" '[ $rc = 1 ] && grep -q "^GAP MIG_ROUTINES health: prompt is not a one-line Runbook pointer" <<<"$out"'
   reset "$r" HEAD; export LOOP_TEMPLATE_HAS=usage-kept,backlog; mig "$r" --offline
   check "a template with the Backlog milestones: the approval is an OWNER STEP that does not fail the check" '[ $rc = 0 ] && grep -q "^OWNER STEP milestones Backlog: approve the Backlog milestones" <<<"$out"'
   export LOOP_TEMPLATE_HAS=usage-kept; mkdir -p "$r/.claude"; printf '{"hooks":{"Stop":[{"command":"reply_hook.py"},{"command":"reply_hook.py"}]}}' > "$r/.claude/settings.local.json"; mig "$r" --offline
   check "a hook installed twice is a MIG_HOOKS gap with its fix, exit 1; govern_hook.py not installed is an OWNER STEP" '[ $rc = 1 ] && grep -q "^GAP MIG_HOOKS reply_hook.py: is installed 2 times" <<<"$out" && grep -q "^OWNER STEP hook govern_hook.py" <<<"$out"'
   mig "$r" --offline --pr
   check "--pr (the gaps a pull request can close) prints no hook gap or owner step" '! grep -qE "MIG_HOOKS|^OWNER STEP" <<<"$out"'
+  rm -rf "$r/.claude"
+  printf '{"engines":{"node":">=99"}}' > "$r/package.json"; printf '[project]\nrequires-python = ">=3.99"\n' > "$r/pyproject.toml"; mig "$r" --offline
+  check "a repo whose engines ask for a node this PC lacks: an OWNER STEP with the platform's install command (brew on a Mac), exit 0" '[ $rc = 0 ] && grep -q "^OWNER STEP toolchain node: needs node 99 (.* here): brew install node@99" <<<"$out" && grep -q "^OWNER STEP toolchain python: needs python 3.99 (.* here): brew install python@3.99" <<<"$out"'
+  LOOP_SCHEDULE_PLATFORM=win32 mig "$r" --offline
+  check "on Windows the same repo gets the winget command" 'grep -q "^OWNER STEP toolchain node: .*winget install OpenJS.NodeJS.LTS" <<<"$out" && grep -q "winget install Python.Python.3.99" <<<"$out"'
+  mig "$r" --offline --pr
+  check "--pr prints no toolchain step" '! grep -q "toolchain" <<<"$out"'
+  rm -f "$r/package.json" "$r/pyproject.toml"
   unset LOOP_TEMPLATE_HAS
 fi
 
