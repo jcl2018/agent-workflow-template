@@ -4,7 +4,7 @@
 usage: operate.py <command> [options]
 
   run [--once] [--poll S] [--max N] [--skill-dir DIR] [--board]
-      Each pass first fast-forwards the main checkout to origin/<base> (fresh.py, --ff-only, never a merge commit, uncommitted work
+      Each pass first fast-forwards the main checkout to origin/<base> (refresh below, --ff-only, never a merge commit, uncommitted work
       left alone) and prints one line when it moved or could not. Then: watch.py watch --once (starts every queued goal and batch line whose dependencies are merged, up to
       parallel; mends and resumes if the config allows), board.py board, board_page.py. It prints the check-in every pass, even when nothing changed
       (--board adds the live board and its changes). Then it waits the gap from `board.py cadence`,
@@ -63,8 +63,43 @@ def signature(top, common):
     return found
 
 
+ENV = dict(os.environ, GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true")
+
+
+def fgit(root, *args, timeout=60):
+    try:
+        done = subprocess.run(["git", "-C", root] + list(args), capture_output=True, text=True, timeout=timeout, env=ENV)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return 1, str(error)
+    return done.returncode, (done.stdout if done.returncode == 0 else done.stderr or done.stdout).strip()
+
+
+def refresh(common, base="main"):
+    """One line when the main checkout moved or could not, else ''. `common` is the repo's git common dir."""
+    common = os.path.abspath(common)
+    root = os.path.dirname(common) if os.path.basename(common) == ".git" else ""
+    if not root or not os.path.isdir(root):
+        return ""  # a bare repo has no checkout to move
+    head = fgit(root, "rev-parse", "--abbrev-ref", "HEAD")[1]
+    if head != base:
+        return "CHECKOUT NOT FAST-FORWARDED: %s is on %s, not %s; its skills run as they are" % (os.path.basename(root), head or "no branch", base)
+    code, said = fgit(root, "fetch", "-q", "origin", base)
+    if code:
+        return "CHECKOUT NOT FAST-FORWARDED: cannot fetch origin/%s (%s)" % (base, said.splitlines()[0][:80] if said else "no reply")
+    behind = fgit(root, "rev-list", "--count", "HEAD..origin/" + base)[1]
+    ahead = fgit(root, "rev-list", "--count", "origin/%s..HEAD" % base)[1]
+    if behind in ("", "0"):
+        return ""
+    if ahead not in ("", "0"):
+        return "CHECKOUT NOT FAST-FORWARDED: %s has %s commits origin/%s lacks and is %s behind; merge or push by hand" % (base, ahead, base, behind)
+    code, said = fgit(root, "merge", "--ff-only", "-q", "origin/" + base)
+    if code:
+        return "CHECKOUT NOT FAST-FORWARDED: %s commits behind origin/%s; git refused (%s)" % (behind, base, said.splitlines()[0][:80] if said else "no reason")
+    return "CHECKOUT FAST-FORWARDED %s by %s commits to %s" % (base, behind, fgit(root, "rev-parse", "--short", "HEAD")[1])
+
+
 def one_pass(top, common, args):
-    moved = script("fresh.py", cwd=top)[1].strip()  # the main checkout, where the skills and hooks run, follows origin (MON-4)
+    moved = refresh(common)  # the main checkout, where the skills and hooks run, follows origin (MON-4)
     moved and print(moved)
     flags = (["--max", str(args.max)] if args.max else []) + (["--skill-dir", args.skill_dir] if args.skill_dir else [])
     code, said = script("watch.py", "watch", "--once", *flags, cwd=top)

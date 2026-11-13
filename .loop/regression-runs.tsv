@@ -68,6 +68,7 @@ board-sections	PASS	2026-11-09
 breaking-asks	PASS	2026-11-09	
 builtin-flow	PASS	2026-11-12	
 cap-default-10	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+capture-row-ci	FAIL	2026-11-13	
 check-writes-nothing	PASS	2026-11-12	
 checkin-passes-hook	PASS	2026-11-10	
 ci-bad-target	PASS	2026-11-10	

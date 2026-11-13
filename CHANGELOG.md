@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.28.17 - 2026-11-13
+
+- Package passes: 99 files, scripts under 20,480 bytes, every script standalone
+- Wiki: where the built-in flow, entry templates and bind now live
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Merge origin/main (v0.28.9) into loop/package-pass; fold fresh.py into operate.py; trim fit.py again
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Fold reply_deps into checkin, actions_summary into slots, cost into milestone: back to 99 files
+- Wiki: where the cost rule, Dependencies check and summary job now live
+- Merge origin/main (v0.28.14) into loop/package-pass
+- listing.json: disclose the backlog and leftovers commands (the package check needs them)
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.16 - 2026-11-13
 
 - Automation: a repo's own routines get a Runbook, a pointer prompt and a health check

@@ -87,7 +87,7 @@ and the wiki pages on the `workflow-setup` branch and leaves existing values and
 ## Outside the repo: your skill flow
 
 `~/.workflow-loop/flow.json` (or the file `$LOOP_FLOW` names) is yours and is never committed. Delivery refuses without it.
-Setup writes one whose suite maps the five steps to `built-in`, delivery's own routine (`workflow-delivery/references/default-flow.md`),
+Setup writes one whose suite maps the five steps to `built-in`, delivery's own routine (`workflow-delivery/references/commands.md`, The built-in flow),
 so it runs with no suite of your own; it fills a suite that was never configured (every value empty, no `steps`) the same way.
 
 ```json
