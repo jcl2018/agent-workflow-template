@@ -8,8 +8,12 @@ POSIX: kill is os.killpg, so the child's whole session goes; pstart is ps. Windo
 reaches (and os.kill(pid, 0) there sends Ctrl+C, os.getuid and ps do not exist), so kill runs taskkill /T /F, which stops
 the child and every process it started, and alive and pstart ask the process itself. Either kill is quiet when gone.
 """
+import json
 import os
+import shutil
 import subprocess
+import tempfile
+import zlib
 
 if os.name == "nt":
     import ctypes
@@ -69,6 +73,63 @@ else:
 
     def pstart(pid):
         return subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+
+
+def alive_since(pid, start=""):
+    """A pid that runs, is no zombie and, given a start, still began then."""
+    try:
+        probe(pid)
+    except PermissionError:
+        pass
+    except (OSError, TypeError):
+        return False
+    if start and pstart(pid) != start:
+        return False
+    return os.name == "nt" or subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()[:1] != "Z"
+
+
+def tmp_for(top, slug, name):
+    """REG-8: prefix of the lane's temp folder, outside every checkout; "" when the system temp is in one."""
+    root = here = os.path.realpath(tempfile.gettempdir())
+    while not os.path.lexists(here + "/.git") and os.path.dirname(here) != here:
+        here = os.path.dirname(here)
+    return "" if os.path.lexists(here + "/.git") else "%s/loop-lane-%08x-%s-%s-" % (root, zlib.crc32(os.path.realpath(top).encode()), slug, name)
+
+
+def rm_tmp(held):
+    path = (held or {}).get("tmp") or ""
+    if os.path.basename(path).startswith("loop-lane-") and not os.path.islink(path):
+        shutil.rmtree(path, ignore_errors=True)
+
+
+FLOW_FILE = "~/.workflow-loop/flow.json"
+NO_FLOW = ("no skill flow is set. Fix: write %s naming your idea, plan, review, test and ship skills and their "
+           "unattended command (loop-files.md)." % FLOW_FILE)
+FLOW = ("idea", "plan", "review", "qa", "ship")
+TEMPLATE = """# {goal}
+
+- Slug: {slug}
+- Touches: {touches}
+
+## Done lines
+
+Frozen. A wrong done line needs a new goal.
+
+{done}
+
+## Verify by hand
+
+<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+"""
+
+
+def flow_set():
+    try:
+        spec = json.load(open(os.path.expanduser(os.environ.get("LOOP_FLOW") or FLOW_FILE)))
+        steps = dict(spec.get("suite") or {}, **(spec.get("steps") or {}))
+    except (OSError, ValueError, AttributeError, TypeError):
+        return False
+    return all(steps.get(step) for step in FLOW)
 
 
 if __name__ == "__main__":

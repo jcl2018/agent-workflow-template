@@ -54,18 +54,6 @@ LABELS = {"sync": "rows", "done-lines": "done", "open": "findings", "run": "wait
           "branch": "branches", "time": "cost", "tokens": "cost", "limit": "scripts"}
 
 
-def no_fit(root):
-    """no-fit: each open `- [adoption] <kind>: <subjects>. Fix: <fix>` line of .loop/findings.md (setup writes them) is one WARN row."""
-    from defects import row
-    try:
-        text = open(os.path.join(root, ".loop", "findings.md")).read()
-    except OSError:
-        return []
-    found = [(re.match(r"^- \[adoption\] ([\w-]+): (.+?)\. Fix: (.+?)\s*$", l), l) for l in text.splitlines()]
-    return [row("WARN", "adoption", m.group(1), "no-fit", "did not fit when adopted: " + m.group(2), m.group(3), m.group(2))
-            for m, line in found if m and not line.rstrip().endswith("[closed]")]
-
-
 def bare_agent(command):
     """True for a claude or codex command that grants its agent no tools (so it stops at its first permission prompt)."""
     allows = {"claude": ("--allowedtools", "--allowed-tools", "--permission-mode"), "codex": ("-s", "--sandbox", "--full-auto")}
@@ -86,31 +74,6 @@ def agent_tools(root):
     return [row("WARN", "adoption", "agent_command", "agent-tools", "%s grants no tools, so a background agent stops at its first permission prompt"
                 % " and ".join(named), 'set "agent_command" in .loop/config.json to add --allowedTools Bash,Read,Write,Edit (claude) or --full-auto (codex); '
                 "the flow file's command and allowed_tools also run agents", "agent_command")] if named else []
-
-
-POINTER = re.compile(r"^In \S+, fast-forward to origin/main, then read \S+'s Runbook section \S+ and follow it exactly\.$")  # docs.py prompts
-
-
-def prompt_pointer(root):
-    """prompt-pointer: WARN for each installed scheduled-task prompt (a routine's runs: claude:TASK or mac:LABEL) holding a line other than the Runbook pointer."""
-    from defects import row
-    try:
-        items = json.load(open(os.path.join(root, ".loop", "config.json"))).get("automation") or []
-    except (OSError, ValueError, AttributeError):
-        return []
-    base, out = os.environ.get("LOOP_SCHEDULED_TASKS_DIR") or os.path.expanduser("~/.claude/scheduled-tasks"), []
-    tasks = {str(e.get("runs")).partition(":")[2] for e in items if isinstance(e, dict) and str(e.get("runs")).partition(":")[0] in ("claude", "mac")}
-    for task in sorted(tasks - {""}):
-        try:
-            text = open(os.path.join(base, task, "SKILL.md"), encoding="utf-8").read()
-        except OSError:
-            continue
-        body = re.sub(r"\A---\n.*?\n---\n", "", text.replace("\r\n", "\n"), flags=re.S)
-        extra = [x for x in (line.strip() for line in body.splitlines()) if x and not POINTER.match(x)]
-        if extra:
-            out.append(row("WARN", "adoption", task, "prompt-pointer", "the scheduled prompt holds %d line(s) beyond the Runbook pointer, the first: %s" % (len(extra), extra[0][:60]),
-                           "replace its prompt with the lines docs.py prompts prints; the steps live in the Runbook", task))
-    return out
 
 
 def heading(slug, skipped=False):
