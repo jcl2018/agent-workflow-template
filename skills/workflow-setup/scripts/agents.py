@@ -236,7 +236,7 @@ def reply_hook(repo, remove, name="reply_hook.py"):
         return refuse("%s has hooks in a shape this can't edit safely; nothing was written" % path,
                       'make "hooks" an object whose "%s" is a list of {"hooks": [...]} groups' % event)
     command = "if [ -f '%s' ]; then python3 '%s'; fi" % (script, script)
-    mine = lambda h: isinstance(h, dict) and "/%s'" % name in str(h.get("command", ""))
+    mine = lambda h: isinstance(h, dict) and "/%s'" % name in str(h.get("command", "")).replace("\\", "/")
     had = [h for g in stops for h in g.get("hooks", []) if mine(h)]
     if remove and not had:
         print("HOOK: not installed%s" % ("" if name == "reply_hook.py" else " (%s)" % name))
