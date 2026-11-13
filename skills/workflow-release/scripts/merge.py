@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Merge a finished goal's pull request into the base branch: the release step, for now.
+"""Merge a finished goal's pull request into the base branch: the release step.
 
 usage: merge.py SLUG
 
 It refuses unless `"auto_merge": true` is in .loop/config.json, the goal is done and its pull request is open (a repo
-without that switch keeps the owner's merge). Then it runs the routines listed in .loop/config.json on the base branch and refuses if one fails, merges, and
+without that switch keeps the owner's merge). Then it runs the base branch's routines (refusing if one fails), merges, and
 releases: one version bump, a CHANGELOG entry and a published GitHub release (autorelease.py); a failure is recorded as
-`release_error`. Where .loop/docs.tsv maps pages, it first refuses while a page the goal's paths map to is stale, and after the merge
+`release_error`. Where .loop/docs.tsv maps pages, it first refuses while a mapped page is stale, and after the merge
 publishes the wiki through wiki.py; a refused publish is recorded as `wiki_error`, not undone.
 Before merging it scans the branch and release notes for private names (refusing, nothing merged), and holds the merge
 (REQUIREMENT_MISSING) while a criterion row the goal adds names a requirement ID no base wiki page names, where the base's
@@ -18,7 +18,8 @@ Also here, the release pull request (autorelease.py calls `merge.advance` when t
 the release commit to `release/vX-<slug>`, opens `Release vX (<slug>)` with the notes as its body (scanned for private
 names first) and merges it with `gh pr merge --merge`, never `--admin`. `gh pr view` decides the next move: MERGED: VERSION
 at the merge commit must be vX (else RELEASE_VERSION_MISMATCH); OPEN: pending checks wait (`release_pr_waiting`), a review
-or a block records RELEASE_PR_BLOCKED with the owner's command, a conflict starts again with the next version; CLOSED: start again.
+or a block records RELEASE_PR_BLOCKED with the owner's command, a head with no passing status RELEASE_STATUS_FAILED
+or _UNTESTED naming the cause (autorelease.py), a conflict starts again with the next version; CLOSED: start again.
 """
 import argparse
 import datetime
@@ -34,7 +35,7 @@ import release
 import wiki
 
 
-def _pods():  # pods and the merge lock (MON-15) live in workflow-monitoring's graph.py, loaded by path; None without it
+def _pods():  # pods and the merge lock (MON-15): workflow-monitoring's graph.py, or None
     try:
         spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
         mod = importlib.util.module_from_spec(spec)
@@ -96,7 +97,7 @@ def base_moved(state, cfg, top):
     """None when the merge may go ahead, else (exit code, refusal): the base moved since the pr lane in paths this goal's
     rows reach (2), or origin can't be fetched to tell (3). A move elsewhere only notes it. workflow-regression/references/commands.md."""
     base, was = cfg.get("base", "main"), state.get("pr_base")
-    if not was and state.get("pr_head"):  # goal.py pr recorded a head but no base (origin/<base> unresolved): unknown, never clear
+    if not was and state.get("pr_head"):  # a head but no base recorded: unknown, never clear
         return 2, "REFUSED (BASE_MOVED): the base the pr lane ran on was not recorded. Fix: goal.py pr %s, then merge.py %s" % (
             state.get("slug", "SLUG"), state.get("slug", "SLUG"))
     if not was:  # PR opened before goal.py pr recorded its base
@@ -112,7 +113,7 @@ def base_moved(state, cfg, top):
     now = run(["git", "rev-parse", "origin/" + base], cwd=top).stdout.strip()
     if now == was:
         return None
-    def names(a, b):  # None when git can't diff (a commit missing here): unknown, so refused below
+    def names(a, b):  # None when git can't diff: refused below
         done = run(["git", "diff", "--name-only", "--no-renames", a, b], cwd=top)
         return None if done.returncode else [p for p in done.stdout.split("\n") if p]
     theirs, ours = [None if x is None else reach(top, x) for x in (names(was, now), names(was, state.get("pr_head") or "HEAD"))]
@@ -137,7 +138,7 @@ def missing_ids(top, cfg, head="HEAD"):
         return [], []
     names = run(["git", "ls-tree", "--name-only", base, folder + "/"], cwd=top).stdout.split()
     text = "\n".join(run(["git", "show", "%s:%s" % (base, name)], cwd=top).stdout for name in names if name.endswith(".md"))
-    mine = run(["git", "ls-tree", "--name-only", head, folder + "/"], cwd=top).stdout.split()  # a page this goal adds or edits counts
+    mine = run(["git", "ls-tree", "--name-only", head, folder + "/"], cwd=top).stdout.split()  # a page this goal adds counts
     own = "\n".join(run(["git", "show", head + ":" + name], cwd=top).stdout for name in mine if name.endswith(".md"))
     gone = sorted(i for i in ids if not re.search(r"\b%s\b" % re.escape(i), text + "\n" + own))
     held = [i for i in gone if names and re.search(r"\b%s\d+\b" % re.escape(i.split("-")[0] + "-"), text)]
@@ -239,6 +240,7 @@ def advance(top, cfg, state, again=False):
               % (slug, url, slug))
         return None
     state["release_tries"] = state.get("release_tries", 0) + 1
+    autorelease.status_held(state, url, number)
     why = "a review is required" if seen.get("reviewDecision") in REVIEW else "it is %s, %s" % (
         status or "unreadable", seen.get("mergeStateStatus") or said or "no reason given")
     autorelease.fail(state, "the release PR %s (#%s) can't merge: %s; it needs the owner to approve and merge it. Fix: "
