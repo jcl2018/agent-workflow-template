@@ -146,6 +146,11 @@ def render(root=None, at=None, stamp=None):
     needs += [" ".join(line.split()) for line in stuck if line.startswith("- ")]
     if ready and pl.plan_pause(cfg):  # MON-12: the weekly plan is nearly used
         needs.append("%d ready goal(s) wait: %s" % (len(ready), pl.plan_pause(cfg)))
+    if ready and pl.memory_hold(cfg):
+        needs.append("%d ready goal(s) wait: %s" % (len(ready), pl.memory_hold(cfg)))
+    waited = pl.memory_waits(folder)
+    if waited:
+        needs.append("%d lane wait(s) for memory in the last hour; the last: %s" % (len(waited), waited[-1][21:140]))
     if ready and pl.active_limit(cfg) and len(live) >= pl.active_limit(cfg):
         needs.append("%d ready goal(s) wait: %d goals are live, at max_active_goals/parallel %d (ACTIVE_GOALS)" % (len(ready), len(live), pl.active_limit(cfg)))
     if found is not None:

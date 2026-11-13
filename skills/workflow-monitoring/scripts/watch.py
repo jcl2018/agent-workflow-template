@@ -331,8 +331,9 @@ def start_round(args, cfg):
     if sessions:
         sessions.HUNG.clear()  # a session tool that hung last round gets another chance
     begun, held = plan(limit_of(args, cfg))
-    if begun and pl.plan_pause(cfg):  # the weekly plan is nearly used: nothing new starts
-        begun, held = [], held + [(goal, pl.plan_pause(cfg)) for goal in begun]
+    stop = begun and (pl.plan_pause(cfg) or pl.memory_hold(cfg))  # the weekly plan or the machine's memory is used up: nothing new starts
+    if stop:
+        begun, held = [], held + [(goal, stop) for goal in begun]
     for goal in list(begun):
         now_taken = taken()
         if now_taken is None or goal["slug"] in now_taken:  # the pool broke, or a session took it since plan

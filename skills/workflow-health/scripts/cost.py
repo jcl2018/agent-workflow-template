@@ -152,6 +152,13 @@ def limit_rows(root):
         if rounds and "MERGE_ROUNDS" in str((state.get("waiting") or {}).get("ask", "")):
             rows.append(row("WARN", state.get("slug") or os.path.basename(path)[:-5], "rounds", "waits after more than %d merge-main-and-rerun rounds" % rounds,
                             "land it when main is quiet, or raise max_merge_rounds, then goal.py answer"))
+    try:
+        with open(os.path.join(loop, "memory-waits.log")) as handle:
+            waits = len(handle.read().splitlines())
+        if waits and number(config, "min_free_memory_gb", 4):
+            rows.append(row("WARN", "memory", "waits", "%d lane wait(s) for free memory (min_free_memory_gb %s)" % (waits, config.get("min_free_memory_gb", 4)), "close sessions to free memory, or lower min_free_memory_gb"))
+    except OSError:
+        pass
     active = number(config, "max_active_goals", 20)
     if active and live > active:
         rows.append(row("WARN", "goals", "active", "%d goals live, over max_active_goals %d" % (live, active), "finish or stop goals, or raise max_active_goals"))

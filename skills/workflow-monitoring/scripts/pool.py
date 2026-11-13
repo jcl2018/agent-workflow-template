@@ -88,6 +88,32 @@ def plan_pause(cfg):
     return "plan usage %g%% is above plan_pause_percent %d%%; no new goal starts until it falls (PLAN_PAUSE)" % (used, limit) if limit and used is not None and used > limit else ""
 
 
+def memory_hold(cfg):
+    """Why no new goal starts, or '': free memory (workflow-regression's slots.free_gb, loaded by path) below min_free_memory_gb (default 4, 0 is off)."""
+    need = cfg.get("min_free_memory_gb", 4)
+    if isinstance(need, bool) or not isinstance(need, (int, float)) or need <= 0:
+        return ""
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("slots", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-regression", "scripts", "slots.py"))
+        slots = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(slots)
+        free = slots.free_gb()
+    except Exception:
+        return ""
+    return "free memory %.1f GB is below min_free_memory_gb %g; no new goal starts (LOW_MEMORY)" % (free, need) if free is not None and free < need else ""
+
+
+def memory_waits(root_loop, hours=1):
+    """The lane waits for memory logged by the last `hours` (<git common dir>/loop/memory-waits.log), newest last."""
+    try:
+        with open(os.path.join(root_loop, "memory-waits.log")) as handle:
+            lines = handle.read().splitlines()
+    except OSError:
+        return []
+    cut = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 3600 * hours))
+    return [line for line in lines if line[:20] >= cut]
+
 def board_line(found, root):
     """The pool line under the live board's Running goals; '' if it can't be built (the board never fails for it)."""
     try:

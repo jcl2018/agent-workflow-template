@@ -270,6 +270,8 @@ def cmd_run(args):
             ids = ", ".join(todo[:10]) + (", +%d more" % (len(todo) - 10) if len(todo) > 10 else "")
             print("AFFECTED %d of %d rows (%s): %s" % (len(todo), len(picked), ids,
                                                        " ".join(lanes.changed(root, old["commit"]) or [])[:400]))
+    if todo and args.target in ("land", "nightly"):  # a by-id run never waits
+        slots.wait_memory(root)  # min_free_memory_gb: no rows start on a machine out of memory
     if todo and args.target in ("land", "nightly") and (why or not args.reuse):  # a lane with no plan to follow waits for a slot
         slot = slots.acquire(root, os.environ.get("_LOOP_LANE_LABEL") or os.path.basename(root) + " by hand", head, unclean)
     else:

@@ -16,13 +16,14 @@ import tempfile
 from types import SimpleNamespace
 
 root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-for skill in ("delivery", "monitoring", "health", "setup"):
+for skill in ("delivery", "monitoring", "health", "setup", "regression"):
     sys.path.insert(0, os.path.join(root, "skills", "workflow-" + skill, "scripts"))
 os.environ.pop("LOOP_ROLE", None)
 import fit  # noqa: E402
 import pool  # noqa: E402
 import cost  # noqa: E402
 import settings  # noqa: E402
+import slots  # noqa: E402
 
 failed = []
 
@@ -111,13 +112,47 @@ with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
     rows = cost.limit_rows(tmp)
     check({r["rule"] for r in rows if r["state"] == "WARN"} == {"rounds", "active", "usage"}, "health warns on merge rounds, active goals and plan usage over their limits")
 
-# 6. every setting is in the settings table with its default, and this repo's config carries them
+# 6. min_free_memory_gb: no lane or new goal starts below it; a faked memory reading drives it
+with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
+    tmp = os.path.realpath(tmp)
+    subprocess.run(["git", "init", "-q", "-b", "main", tmp], check=True, capture_output=True)
+    os.makedirs(os.path.join(tmp, ".loop"))
+    os.makedirs(os.path.join(tmp, ".git", "loop"))
+    with open(os.path.join(tmp, ".loop", "config.json"), "w") as handle:
+        json.dump({}, handle)
+    os.environ["LOOP_MEMORY_WAIT_SECONDS"] = "1"
+    os.environ["LOOP_FREE_GB"] = "9"
+    check(slots.free_gb() == 9.0 and refused(slots.wait_memory, tmp) == "", "a lane starts at once when free memory is above min_free_memory_gb (default 4)")
+    os.environ["LOOP_FREE_GB"] = "1.5"
+    try:
+        slots.wait_memory(tmp)
+        code = None
+    except SystemExit as stop:
+        code = stop.code
+    log = os.path.join(tmp, ".git", "loop", "memory-waits.log")
+    check(code == slots.EXIT_WAIT, "a lane below min_free_memory_gb waits, then gives up with exit 4 rather than running")
+    check(os.path.exists(log) and "LANE_MEMORY: 1.5 GB free" in open(log).read(), "the wait is logged for the check-in and health")
+    with open(os.path.join(tmp, ".loop", "config.json"), "w") as handle:
+        json.dump({"min_free_memory_gb": 0}, handle)
+    check(refused(slots.wait_memory, tmp) == "", "min_free_memory_gb 0 turns the wait off")
+    with open(os.path.join(tmp, ".loop", "config.json"), "w") as handle:
+        json.dump({"min_free_memory_gb": 1}, handle)
+    check(refused(slots.wait_memory, tmp) == "", "a lower min_free_memory_gb lets the lane start")
+    check("LOW_MEMORY" in pool.memory_hold({}) and pool.memory_hold({"min_free_memory_gb": 1}) == "" and pool.memory_hold({"min_free_memory_gb": 0}) == "", "no new goal starts below min_free_memory_gb, and the hold names LOW_MEMORY")
+    check(len(pool.memory_waits(os.path.join(tmp, ".git", "loop"))) == 1, "the check-in reads the lane waits of the last hour")
+    with open(os.path.join(tmp, ".loop", "config.json"), "w") as handle:
+        json.dump({"max_active_goals": 50}, handle)
+    check({r["rule"] for r in cost.limit_rows(tmp) if r["state"] == "WARN"} == {"waits"}, "health warns when lanes waited for memory")
+    del os.environ["LOOP_FREE_GB"]
+    del os.environ["LOOP_MEMORY_WAIT_SECONDS"]
+
+# 7. every setting is in the settings table with its default, and this repo's config carries them
 table = {name: default for name, home, default, _ in settings.TABLE}
-check(table.get("time_budget_minutes") == 120 and table.get("max_merge_rounds") == 3 and table.get("max_active_goals") == 20 and table.get("plan_pause_percent") == 80,
+check(table.get("time_budget_minutes") == 120 and table.get("max_merge_rounds") == 3 and table.get("max_active_goals") == 20 and table.get("plan_pause_percent") == 80 and table.get("min_free_memory_gb") == 4,
       "the settings table lists time_budget_minutes, max_merge_rounds, max_active_goals and plan_pause_percent with their defaults")
 with open(os.path.join(root, ".loop", "config.json")) as handle:
     live = json.load(handle)
-check(all(key in live for key in ("max_merge_rounds", "max_active_goals", "plan_pause_percent", "time_budget_minutes")), "this repo's config carries the new settings")
+check(all(key in live for key in ("max_merge_rounds", "max_active_goals", "plan_pause_percent", "time_budget_minutes", "min_free_memory_gb")), "this repo's config carries the new settings")
 with open(os.path.join(root, "skills", "workflow-delivery", "scripts", "flow.py")) as handle:
     text = handle.read()
 check("fit.budget_stop(" in text, "flow.py checks the budgets before it starts a step")
