@@ -57,3 +57,4 @@ Open (from the issue-cleanup triage of the open non-regression issues, 2026-11-1
 - govern-hook-notes: Failed 3 tries. Last: merging main conflicts in: .loop/regression-runs.tsv, docs/wiki/Tests.md
 - capture-row-output: Failed 4 tries. Last: merging main conflicts in: .loop/regression-issues.tsv
 - prd-link-topics: Failed 3 tries. Last: regression lane failed: review-findings-skill-lines, settings-render-fresh, capture-row-ci
+- prd-link-topics: Failed 4 tries. Last: merging main conflicts in: docs/wiki/Documentation.md
