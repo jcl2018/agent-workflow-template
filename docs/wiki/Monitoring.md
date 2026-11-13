@@ -70,7 +70,7 @@ Review: **Unreviewed**
 - MON-13: **Reviewed 2026-11-12** Two layers per pod: one operation session governs every repo in its pod directly and talks to each worker, with no per-repo operation session; several pods may run concurrently and independently <!-- reviewed 7dca4de6 -->
   - A claim adds the session to every repo the pod follows and keeps the other sessions already claimed; nothing refuses or warns when a second operation session runs.
 
-- MON-14: **Unreviewed** Dependency map grouped by repo
+- MON-14: **Reviewed 2026-11-13** Dependency map grouped by repo <!-- reviewed 93444ac1 -->
   - The check-in dependency map is grouped by repo first: one block per repo headed by the repo's name, cross-repo dependencies drawn between blocks.
   - Each goal shows its expected time left from past runs, each repo block ends with its expected finish, and each wait is drawn as an arrow.
   - The map lists only live goals: a record with no goal or status, a stopped goal and a goal left with release: leave are not drawn, and a worker held at pr reads holding, not stuck.
