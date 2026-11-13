@@ -93,3 +93,11 @@ The owner decided 2026-11-13: "remove the usage section, because you cannot say 
 - Documentation Problem, last bullet, replace with: I need my approved requirements to stay exactly as I wrote them, while the loop keeps tests up to date for me. (It names Usage; Problem is locked, so this needs the same un-review.)
 - HLT-2, Consistency bullet, replace "a command named the same in Usage and the README" with: a command named the same in its skill's command reference and the README.
 - HLT-2, Docs bullet, replace "Usage matches the real commands and output" with: each skill's command reference matches the real commands and output.
+
+## Waiting on owner un-review (stale pages: #3848, #3860, #3861)
+
+Drafted 2026-11-13 by the drop-usage goal. Main's recent code changes left three Reviewed pages stale, and Usage edits no longer touch pages. One real, accurate sub-bullet each, none applied until the owner un-reviews the named requirement and page and approves the wording; the code and tests it describes are already on main.
+
+- Automation (#3848, suite-shard), AUT-2, add this sub-bullet after the last one: The CI suite runs in eight shards with one combined summary: each row is given the time left, the suite-time line counts the rows skipped for time (the unrun rows), and a newer run on the same ref cancels the older.
+- Guardrails (#3860, backlog-milestones' `criteria_max` 16 to 17), GRD-9, add this sub-bullet after the last one: A page's requirement cap, `criteria_max` (17 in this repo), is read by health's Size group, so a page too large to review shows as a finding.
+- Monitoring (#3861, the reply hook and the check-in dependency code), MON-14, add this sub-bullet after the last one: The reply hook flags a check-in whose Dependencies section leaves out a goal on the board.
