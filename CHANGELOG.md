@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.27.57 - 2026-11-13
+
+- Regression issues: read the whole list, skip opens no issue
+- Merge origin/main into loop/regression-issue-paging
+- Regenerate regression.yml after merging main
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/regression-issue-paging; keep actions.py under the cap
+- Merge origin/main into loop/regression-issue-paging
+- Keep actions.py under the size cap
+- Lane: re-render the Tests tables
+- Wiki: update pages for regression-issue-paging; link the new rows to REG-5
+- Merge remote-tracking branch 'origin/main' into loop/regression-issue-paging
+- Merge remote-tracking branch 'origin/main' into loop/regression-issue-paging
+- Merge origin/main into loop/regression-issue-paging
+- Page every open regression issue with gh api; fix halt in write; refuse on a failed page
+- Wiki: describe the paged issue read
+- Merge origin/main into regression-issue-paging
+- Drop wiki bullets under reviewed requirements; render Tests
+- Merge remote-tracking branch 'origin/main' into loop/regression-issue-paging
+- Lane: re-render the Tests tables
+- Wiki: update pages for regression-issue-paging
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.56 - 2026-11-13
 
 - migration-check: a scheduled <repo>-health-regression task counts, and a mac repo is not asked for pull_request (#3780)
