@@ -11,7 +11,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 BUDGET_MINUTES = 30  # a scheduled regression job's budget (REG-7, AUT-7)
-SHARDS = 2
+SHARDS = 4  # the full suite is about 90 minutes of rows; four jobs of the 30-minute budget cover it (REG-4, REG-7)
 
 
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
@@ -125,13 +125,13 @@ jobs:
               return value if value > 0 else default
           ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", (@BUDGET@ - 2) * 60)
           ROW_ENV = {k: v for k, v in os.environ.items() if k not in @ROWDROP@}
-          def run(command):  # own group, output to a file
+          def run(command, limit):  # own group, output to a file; limit: seconds this row may take
               with tempfile.TemporaryFile("w+", errors="replace") as log:
                   child = subprocess.Popen(command, shell=True, stdout=log, stderr=subprocess.STDOUT, env=ROW_ENV,
                                            start_new_session=True)
                   timed_out = False
                   try:
-                      child.wait(timeout=ROW_SECONDS)
+                      child.wait(timeout=limit)
                   except subprocess.TimeoutExpired:
                       timed_out = True
                       try:  # so a hang names itself
@@ -149,7 +149,7 @@ jobs:
                   log.seek(0)
                   out = log.read()
               if timed_out:
-                  return 124, out + "\ntimed out after %d s" % ROW_SECONDS
+                  return 124, out + "\ntimed out after %d s" % limit
               return child.returncode, out
           def result(name, state):
               with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "a") as handle:
@@ -210,10 +210,12 @@ jobs:
                   break
               if CLEANUP:
                   code, said, skipped = 125, "", True
-              elif time.time() - start + ROW_SECONDS > JOB_SECONDS:
+              elif JOB_SECONDS - (time.time() - start) < 30:  # a row gets the time that is left, up to ROW_SECONDS
                   code, said, skipped = 125, "skipped: out of job time; this row did not run", True
+                  with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "a") as handle:
+                      handle.write("# unrun %s\n" % row[0])
               else:
-                  (code, said), skipped = run(row[2]), False
+                  (code, said), skipped = run(row[2], int(min(ROW_SECONDS, JOB_SECONDS - (time.time() - start)))), False
               hits = sorted((item for item in issues or [] if marked(item["body"])[0] == row[0]), key=lambda i: i["number"])
               sk = lambda i: (i["body"] or "").split("\n")[1:2] == ["The row `%s` was skipped." % row[0]]
               hit = next((i for i in hits if i["state"] == "OPEN" and not sk(i)), None) or next(
@@ -294,25 +296,64 @@ jobs:
           path: ${{ runner.temp }}/suite-time.tsv
           if-no-files-found: ignore
           retention-days: 30
-      - name: Write the run summary, one table per feature
+      - name: Keep this shard's results for the summary
         if: always() && steps.routine.outputs.on == 'true'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.shard }}
+          path: ${{ runner.temp }}/regression-results.tsv
+          if-no-files-found: ignore
+          retention-days: 30
+  summary:
+    needs: regression
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download every shard's results
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: results-*
+          path: ${{ runner.temp }}/shards
+      - name: Write one run summary, one table per feature
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
-          REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv
+          SHARDS: "@SHARDS@"
         run: |
           here=$(mktemp -d)
           cat > "$here/tests.py" <<'TESTS_PY_EOF'
 @TESTS@
           TESTS_PY_EOF
-          started=$(sed -n 's/^# started //p' "$REGRESSION_RESULTS" 2>/dev/null | head -n 1 || true)
+          all="$here/results.tsv"; : > "$all"
+          reported=0
+          for f in "$RUNNER_TEMP"/shards/*/regression-results.tsv; do
+            [ -f "$f" ] || continue
+            reported=$(( reported + 1 )); cat "$f" >> "$all"
+          done
+          started=$(sed -n 's/^# started //p' "$all" | sort -n | head -n 1 || true)
           case "$started" in ''|*[!0-9]*) started=$(date +%s) ;; esac  # never an expression
-          left=$(( started + 89 * 60 - $(date +%s) - 30 ))
-          [ "$left" -ge 10 ] && timeout "$(( left < 60 ? left : 60 ))" python3 -I "$here/tests.py" issues --write >/dev/null || true
+          unrun=$(grep -c '^# unrun ' "$all" || true)
+          timeout 120 python3 -I "$here/tests.py" issues --write >/dev/null || true
           took=$(( $(date +%s) - started ))
-          GH_TOKEN= python3 -I "$here/tests.py" summary --results "$REGRESSION_RESULTS" --took "$took" >> "$GITHUB_STEP_SUMMARY" || {
-            printf '## Regression\n\nThe grouped summary could not be written; see this step'"'"'s log.\n\n| Test | Result |\n|---|---|\n'
-            grep -v '^#' "$REGRESSION_RESULTS" 2>/dev/null | awk -F'\t' '{print "| " $1 " | " $2 " |"}'
+          {
+            GH_TOKEN= python3 -I "$here/tests.py" summary --results "$all" --took "$took" || {
+              printf '## Regression\n\nThe grouped summary could not be written; see this step'"'"'s log.\n\n| Test | Result |\n|---|---|\n'
+              grep -v '^#' "$all" | awk -F'\t' '{print "| " $1 " | " $2 " |"}'
+            }
+            printf '\nSHARDS %s of %s reported. UNRUN %s (rows skipped for out of job time).\n' "$reported" "$SHARDS" "$unrun"
           } >> "$GITHUB_STEP_SUMMARY"
 """
 
