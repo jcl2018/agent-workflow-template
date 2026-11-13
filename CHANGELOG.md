@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.28.31 - 2026-11-13
+
+- fix: monitor.py skips a loop/runs file that is not a run record (#3862)
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/monitor-report-crash
+- Merge remote-tracking branch 'origin/main' into loop/monitor-report-crash
+- Lane: re-render the Tests tables
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.30 - 2026-11-13
 
 - machine-local: owed off-machine proofs become to-do issues, not blocks
