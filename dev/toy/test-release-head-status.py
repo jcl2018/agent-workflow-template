@@ -49,6 +49,14 @@ def pr_result(top, base, head, branch, ok):
     return True
 
 
+def real_runs():
+    """The common dir this toy was started in: release.save writes run records there from the current directory."""
+    common = subprocess.run(["git", "rev-parse", "--git-common-dir"], capture_output=True, text=True).stdout.strip()
+    folder = os.path.join(os.path.abspath(common), "loop", "runs")
+    return sorted(os.listdir(folder)) if os.path.isdir(folder) else []
+
+
+before = real_runs()
 autorelease.LOADED["private"] = types.SimpleNamespace(pr_result=pr_result)
 
 
@@ -79,6 +87,7 @@ with tempfile.TemporaryDirectory() as tmp:
     top = os.path.join(tmp, "repo")
     os.makedirs(top)
     git(top, "init", "-q", "-b", "main")
+    os.chdir(top)  # run records (release.save) go to this temp repo's common dir, never the real one
     commit(top, {"VERSION": "1\n", "CHANGELOG.md": "# x\n", "src/a.txt": "a\n"}, "base")
     bump = commit(top, {"VERSION": "2\n", "CHANGELOG.md": "# x\n## 2\n"}, "Release v2 (g)")
     code = commit(top, {"src/a.txt": "b\n", "VERSION": "3\n"}, "Release v3 (g)")
@@ -103,5 +112,9 @@ with tempfile.TemporaryDirectory() as tmp:
     state = release(top, code, {"slug": "g", "statuses": "ok", "release_status": "success"}, lane(1, "FAIL row-b\n"))
     check(not ran and not posted, "a head already at success is left alone")
 
+    mine = os.path.join(top, ".git", "loop", "runs", "g.json")
+    check(os.path.exists(mine), "the refusal saved its run record in the toy's own repo")
+    os.chdir(here)  # leave the temp repo before it is removed
+check(real_runs() == before, "no run record reached the real repo's common dir")
 if failed:
     sys.exit("%d check(s) failed" % len(failed))
