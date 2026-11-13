@@ -196,6 +196,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=f91170ed N=9967b317 M=0fde
 | [mon14-repo-blocks](Tests#t-mon14-repo-blocks) | requirement | MON-14 | Given a cross-repo dependency, when the check-in prints, then it is listed between headed repo blocks. | PASS 2026-11-12 |
 | [mon15-pod-owner](Tests#t-mon15-pod-owner) | requirement | MON-15 | Given another pod's goal, when a pod acts on it, then it is refused naming the owner and shown owned by that pod. | PASS 2026-11-12 |
 | [mon15-merge-lock](Tests#t-mon15-merge-lock) | requirement | MON-15 | Given two pods merging into one main, when they run together, then the lock serializes them. | PASS 2026-11-12 |
+| [resume-ask-prompt](Tests#t-resume-ask-prompt) | requirement | MON-15 | Given a goal set to ask and auto_merge on, when it is resumed, then its prompt asks the owner and never tells the worker to run merge.py. | not run |
 | [mon7-govern-blocks](Tests#t-mon7-govern-blocks) | requirement | MON-7 | Given the operation session, when it tries an edit, a commit or a push, then the govern hook refuses it with the fix, while workers, other sessions and the off switch pass. | PASS 2026-11-10 |
 | [mon16-notes-pass](Tests#t-mon16-notes-pass) | requirement | MON-7 | Given the operation session, when it writes a file outside every followed repo, then the govern hook lets it through. | not run |
 | [mon16-edit-inside-refused](Tests#t-mon16-edit-inside-refused) | requirement | MON-7 | Given the operation session, when it edits a file inside a followed repo, then the govern hook refuses it. | not run |

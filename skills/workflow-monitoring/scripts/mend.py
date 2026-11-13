@@ -157,7 +157,7 @@ MERGE = ("this repo has auto_merge on, so run its release step yourself, merge.p
 
 
 def release_text(state):
-    if config().get("auto_merge") is True:
+    if config().get("auto_merge") is True and state.get("release") != "ask":  # an ask holds across a resume (#812)
         return MERGE.format(slug=state["slug"])
     return ASK.format(slug=state["slug"]) if state.get("release") == "ask" else LEAVE
 
