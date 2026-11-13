@@ -27,7 +27,6 @@ import os
 import re
 import subprocess
 import sys
-import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lanekit, guards, fit, private  # noqa: E402,E401
@@ -381,20 +380,7 @@ def cmd_pr(args):
     body = fit.pr_text(ME, state)
     state["step"] = "pr"
     save(state, "pr")
-    for wait in (2, 5, 0):
-        pushed = run(["git", "push", "-u", "origin", state["branch"]])
-        if not pushed.returncode:
-            break
-        time.sleep(wait)
-    if pushed.returncode:
-        no("push failed:\n" + pushed.stderr)
-    url = info["url"] if info.get("state") == "OPEN" else ""
-    if not url:
-        path = state_path(args.slug) + ".body"
-        write(path, body)
-        done = run(["gh", "pr", "create", "--base", base, "--head", state["branch"],
-                    "--title", state["goal"][:70], "--body-file", path], check=True)
-        url = done.stdout.strip().splitlines()[-1]
+    url = fit.pr_open(ME, state, base, info, body)
     state["pr"] = url
     state["statuses"] = "ok" if private.pr_result(root(), base, head, state["branch"], True) else "failed"
     state["step"] = "release"

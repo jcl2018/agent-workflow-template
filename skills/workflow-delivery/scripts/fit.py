@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 # No terminal, no waiting: a prompt from git must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -252,6 +253,23 @@ def frozen_fields(g, args, lines, touches):
         print("WARN: the goal text says %s; the operation records it with goal.py set %s --bump %s --why ..." % (
             says_bump(args.goal), args.slug, says_bump(args.goal)))
     return {"size": size_of(lines, touches, g.root()), "budget": budget_of(g.config())}
+
+
+def pr_open(g, state, base, info, body):
+    """Push the branch, then the open pull request's url (created when none is open)."""
+    for wait in (2, 5, 0):
+        pushed = g.run(["git", "push", "-u", "origin", state["branch"]])
+        if not pushed.returncode:
+            break
+        time.sleep(wait)
+    if pushed.returncode:
+        g.no("push failed:\n" + pushed.stderr)
+    if info.get("state") == "OPEN":
+        return info["url"]
+    path = g.state_path(state["slug"]) + ".body"
+    g.write(path, body)
+    done = g.run(["gh", "pr", "create", "--base", base, "--head", state["branch"], "--title", state["goal"][:70], "--body-file", path], check=True)
+    return done.stdout.strip().splitlines()[-1]
 
 
 def pr_text(g, state):
