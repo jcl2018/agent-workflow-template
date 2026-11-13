@@ -271,8 +271,26 @@ def entries(root):
     return out
 
 
+def runbook_link(root, entry, wiki):
+    """The wiki link to the Runbook of an entry's routine: its `runbook` key, else the .loop/routines.tsv routine named like it
+    (health -> health-round); '' when there is none or the repo has no GitHub origin."""
+    try:
+        with open(os.path.join(root, ".loop", "routines.tsv"), encoding="utf-8") as handle:
+            held = [line.split("\t")[:2] for line in handle if line.strip() and line[0] != "#" and "\t" in line]
+    except OSError:
+        return ""
+    name = str(entry.get("runbook") or entry["name"])
+    for routine, page in held:
+        if wiki and (routine == name or routine.startswith(name + "-")):
+            return "[%s](%s/%s#%s)" % (entry["name"], wiki, page.strip(), routine)
+    return ""
+
+
 def automation_block(root):
     rows, flows = [], os.path.join(root, ".github", "workflows")
+    origin = subprocess.run(["git", "-C", root, "remote", "get-url", "origin"], capture_output=True, text=True)
+    slug = pageformat.owner_repo(origin.stdout) if origin.returncode == 0 else ""
+    wiki = "https://github.com/%s/wiki" % slug if slug else ""
     for e in entries(root):
         kind, _, target = str(e.get("runs", "")).partition(":")
         on = e.get("enabled", True) is not False and str(e.get("cadence")) != "off"
@@ -288,7 +306,7 @@ def automation_block(root):
             where, state, owed = "not set", "off", 'add "runs": github:FILE, mac:LABEL or claude:TASK'
         if e["name"] == "digest email" and on and str(e.get("cadence")) != "off":
             owed = "set the digest address and keys as Actions secrets (yours, outside git)" if owed == "none" else owed
-        rows.append([str(e["name"]), str(e.get("does", "")), state, cadence(str(e.get("cadence", ""))), where, last, owed])
+        rows.append([runbook_link(root, e, wiki) or str(e["name"]), str(e.get("does", "")), state, cadence(str(e.get("cadence", ""))), where, last, owed])
     head = ["Routine", "What it does", "State", "Cadence", "Runs on", "Last run", "Owed by you"]
     return "\n".join(["<!-- automation:begin -->", "## Automation", "",
                        "Health and regression, then each `automation` entry in `.loop/config.json`; to add one, add an entry.", ""] + pageformat.table(head, rows) + ["<!-- automation:end -->", ""])

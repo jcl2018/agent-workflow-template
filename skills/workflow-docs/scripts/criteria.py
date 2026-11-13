@@ -238,6 +238,7 @@ def contract(root, names, seen):
             found += deployments.deployments(page, rule["deploy"], numbered[rule["deploy"]][1], rule["page_cols"], rule["delivery_cols"], rule["access"])
         if "runbook" in on and rule["runbook"] in numbered:
             found += pf.runbook(page, rule["runbook"], books[page], rule["fields"])
+            found += pf.linked(page, rule["runbook"], books[page], numbered.get(rule["deploy"], (0, []))[1])
         if "problem" in on:
             found += pf.problem(page, head[0], numbered[head[0]][1], rule["problem_lines"], rule["banned"])
         if "tests" in on:

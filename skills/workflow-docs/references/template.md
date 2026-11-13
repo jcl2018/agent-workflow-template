@@ -43,7 +43,7 @@ default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (
   hyphens), each holding every field of `runbook_fields` as ``- **Field:** text`` (indented lines continue it), each
   5 characters or more, nothing else: **Serves** (the PRD requirement ids it serves, each an id some page defines), **Schedule**, **Steps** (the
   exact command or steps), **Full run** (what a full run is: live sources and real output, never a dry run or a fixture
-  on a scheduled run), **Output** (the one output and where it goes), **Never** (the forbidden shortcuts) and **Check**
+  on a scheduled run), **Output** (the one output and where it goes; it may end with `Deployments row: NAME`, and the check verifies that row exists in the page's Deployments tables), **Never** (the forbidden shortcuts) and **Check**
   (how to tell the run was real). A routine listed in `.loop/routines.tsv` (`routine<TAB>page`, optional) must have its
   `### routine` runbook on its page. Not part of the PRD fingerprints: an agent corrects a runbook as it learns.
 - **Requirements** (`bullets`, DOC-7): grouped under exactly the `requirement_groups` headings, in order:

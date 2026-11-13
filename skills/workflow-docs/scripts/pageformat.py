@@ -227,6 +227,32 @@ def runbook(page, name, lines, fields):
     return out
 
 
+ROW_NAMED = re.compile(r"Deployments row:\s*`?([^`;,.)\n]+?)`?\s*(?=[;,.)]|$)")
+
+
+def linked(page, name, runbook, deploy):
+    """DOC-16: a routine's Output may name the Deployments row it produces ('Deployments row: NAME'); that row, the first cell
+    of a table row in the Deployments section, must exist. Pure: (number, line) pairs in, FORMAT findings out."""
+    rows = {c.strip().strip("`") for _, line in deploy for c in line.split("|")[1:2] if line.lstrip().startswith("|")}
+    out, text = [], ""
+    for number, line in runbook:
+        if line.startswith("- **Output:**"):
+            text, at = line, number
+        elif text and line[:1].isspace():
+            text += " " + line.strip()
+        elif text:
+            for named in ROW_NAMED.findall(text):
+                if named.strip() not in rows:
+                    out.append(bad(page, at, name, 16, "the Deployments row the Output names exists", short(named.strip()),
+                                   "name a row of the Deployments tables, or drop the Deployments row clause"))
+            text = ""
+    for named in ROW_NAMED.findall(text):
+        if named.strip() not in rows:
+            out.append(bad(page, at, name, 16, "the Deployments row the Output names exists", short(named.strip()),
+                           "name a row of the Deployments tables, or drop the Deployments row clause"))
+    return out
+
+
 GROUPS = ["Functional", "Non-functional"]
 
 
