@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.28.29 - 2026-11-13
+
+- pr queue per repo, and a try lost to main moving has its own cap (#3877)
+- Design and plan for the pr queue
+- pr queue: an unreadable own ticket is not a crash; docs and toys follow the new conflict rule
+- Lane: re-render the Tests tables
+- Wiki: update pages for pr-queue
+- Wiki: update pages for pr-queue
+- Wiki: update pages for pr-queue
+- Wiki: update pages for pr-queue
+- pr-queue: regression runs
+- pr-body-by-file reads fit.py now
+- pr-queue: the defect-test check moves from fit.py to pool.py, so fit.py is under 19,000 bytes
+- pr-queue: link the moved-try row to DEL-1
+- Merge origin/main into loop/pr-queue
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.28 - 2026-11-13
 
 - who-merges: a report never runs merge.py; toy and row
