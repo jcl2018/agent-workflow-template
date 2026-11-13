@@ -12,7 +12,8 @@
   scheduled         the regression or health workflow is missing, or has no schedule (WARN)
   no-fit            an open [adoption] line in .loop/findings.md, written by setup: one WARN row each (report.py)
   agent-tools       agent_command (or the flow file's command) grants its agent no tools (WARN) (report.py)
-  prompt-pointer    an installed scheduled-task prompt holds a line beyond the Runbook pointer docs.py prompts prints (WARN) (report.py)
+  prompt-pointer    a scheduled-task prompt holds more than the Runbook pointer (WARN)
+  milestones        a GitHub repo lacks a standing Backlog milestone, one per feature page and Other (WARN; INFO when gh can't list them)
 Security and privacy, Size, Performance check-time and Hygiene idle-sessions rules (also read-only):
   private                tracked files matching a leak pattern (leak_patterns in the private flow file): FAIL with
                          file:line and the pattern's number only, never the matched text; INFO with no pattern set
@@ -39,7 +40,6 @@ from defects import LINE, behind, pages, row, table
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
-
 
 
 def today():
@@ -170,9 +170,25 @@ def scheduled(root):
     return out
 
 
+def milestones(root):
+    """milestones: a WARN for each standing "Backlog: <Feature>" milestone, and "Backlog: Other", a GitHub repo lacks (DOC-10, SET-17).
+    A repo with no GitHub origin has nothing to check; a list gh can't give is one INFO row. LOOP_BACKLOG_MILESTONES (a JSON list of
+    titles) stands in for gh in the control."""
+    if "github.com" not in (git_raw(root, "remote", "get-url", "origin") or ""):
+        return []
+    import milestone
+    try:
+        have = set(json.loads(os.environ["LOOP_BACKLOG_MILESTONES"])) if "LOOP_BACKLOG_MILESTONES" in os.environ else set(milestone.held(root))
+    except (SystemExit, ValueError, TypeError) as error:
+        return [row("INFO", "adoption", "milestones", "milestones", "not checked: %s" % str(error)[:90], "gh auth login")]
+    return [row("WARN", "adoption", title, "milestones", "this standing milestone is missing", "milestone.py backlog --live (setup makes them)", title)
+            for title in milestone.standing(root) if title not in have]
+
+
 FUNCTIONS = {"nightly": nightly, "unreleased": unreleased, "finding-age": finding_age, "skipped": skipped,
              "network": network, "config": config, "checks-run-tests": checks_run_tests,
-             "template-version": lambda root: template_version(root) + behind(root), "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools, "prompt-pointer": _report.prompt_pointer}
+             "template-version": lambda root: template_version(root) + behind(root), "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools, "prompt-pointer": _report.prompt_pointer,
+             "milestones": milestones}
 
 
 def _c():
@@ -232,11 +248,11 @@ def f_scheduled(root):
     c.write(root, ".github/workflows/health.yml", "name: health\n")
 
 
-def f_prompt_pointer(root):
+def f_milestones(root):
     c = _c(); c.repo(root)
-    c.write(root, ".loop/config.json", '{"base": "main", "automation": [{"name": "digest", "runs": "claude:t1"}]}')
-    c.write(root, "tasks/t1/SKILL.md", "---" + "\n" + "name: t1" + "\n" + "---" + "\n" + "Run the digest steps: 1. fetch, 2. mail." + "\n")
-    os.environ["LOOP_SCHEDULED_TASKS_DIR"] = os.path.join(root, "tasks")
+    c.write(root, ".loop/docs.tsv", "A\tsrc\n")
+    git_raw(root, "remote", "add", "origin", "https://github.com/o/r.git")
+    os.environ["LOOP_BACKLOG_MILESTONES"] = "[]"
 
 
 CONTROLS = {"nightly": ("freshness", "nightly", f_nightly), "unreleased": ("freshness", "unreleased", f_unreleased),
@@ -244,10 +260,8 @@ CONTROLS = {"nightly": ("freshness", "nightly", f_nightly), "unreleased": ("fres
             "network": ("tests", "network", f_network), "config": ("adoption", "config", f_config),
             "checks-run-tests": ("adoption", "checks-run-tests", f_checks_run_tests),
             "template-version": ("adoption", "template-version", f_template_version),
-            "scheduled": ("adoption", "scheduled", f_scheduled),
-            "prompt-pointer": ("adoption", "prompt-pointer", f_prompt_pointer)}
-
-
+            "scheduled": ("adoption", "scheduled", f_scheduled), "milestones": ("adoption", "milestones", f_milestones),
+            "prompt-pointer": ("adoption", "prompt-pointer", lambda root: _c().f_prompt_pointer(root))}
 
 
 SKILL_LINES = 150

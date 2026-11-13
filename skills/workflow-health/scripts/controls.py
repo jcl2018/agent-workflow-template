@@ -153,6 +153,13 @@ def f_worktrees(root):
     git(root, "worktree", "add", "-q", "-b", "loop/gone", os.path.join(root, ".git", "loop", "worktrees", "gone"))
 
 
+def f_prompt_pointer(root):
+    repo(root)
+    write(root, ".loop/config.json", '{"base": "main", "automation": [{"name": "digest", "runs": "claude:t1"}]}')
+    write(root, "tasks/t1/SKILL.md", "---" + "\n" + "name: t1" + "\n" + "---" + "\n" + "Run the digest steps: 1. fetch, 2. mail." + "\n")
+    os.environ["LOOP_SCHEDULED_TASKS_DIR"] = os.path.join(root, "tasks")
+
+
 def f_hooks(root):
     """A repo with no hooks; the environment makes it fire on Actions and never read the real HOME or list."""
     repo(root)
