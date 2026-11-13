@@ -36,7 +36,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=4bb528ed N=e89b4f3b M=39cf
   - Security and privacy (a leak's angle: can anything private escape?): no private names, paths, emails or keys in tracked files; secrets only in the environment or secrets; the commit scan hook installed; workflows with least permissions.
   - Size (a maintainer's angle: can someone still read this?): scripts under 20 KB with a warning from 90%; SKILL.md under 150 lines; requirements per page within the limit.
   - Hygiene (a janitor's angle: is anything left lying around?): open findings within the cap; no wait on me over 24 hours; no merged or stale branches or worktrees; no idle worker sessions.
-  - Adoption (another repo's angle: would this work installed fresh?): config valid; every check runs at least one test; template version current; the local schedule installed and, for a public repo, the regression workflow present and firing.
+  - Adoption (another repo's angle: would this work installed fresh?): config valid; every check runs at least one test; template version current; the local schedule installed and, for a public repo, the regression workflow present and firing. The `migration` rule also prints each step only the owner can do as an INFO row `owner step <name>`, warns on a hook installed twice (`MIG_HOOKS`) and on a scheduled prompt that holds more than its Runbook pointer (`MIG_ROUTINES`).
   - Controls (the checker's own angle: can each rule fire?): every rule has a negative control run against a deliberately broken copy.
   - Mine (my private angle): rules I add in a private setting.
   - At most 12 groups plus Mine; adding one means retiring one or raising the cap on purpose.
