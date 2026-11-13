@@ -235,7 +235,8 @@ def plan_for(h, root, asked, with_judge, only=None, saved=None):
     issues, everything, why = filing.held_all(root)
     if issues is None:
         refuse("gh", "can't list the issues (%s). Nothing was written." % why)
-    return filing, filing.plan(rows, issues, groups, extra, judged, root, ran, everything, only), groups
+    return filing, filing.plan(rows, issues, groups, extra, judged, root, ran, everything, only,
+                               bool(saved) and bool(h.sibling_module("judge").answered(saved))), groups
 
 
 def cmd_preview(h, args):
@@ -264,9 +265,9 @@ def cmd_triage(h, args):
     triage = h.sibling_module("issues") or refuse("triage", "issues.py is not installed beside health.py")
     root = h.repo_root()
     if args.close:
-        if not args.kind:
-            refuse("kind", "close needs --kind (a group such as docs, or review-gap)")
-        return triage.close(root, args.kind, args.why, args.feature, args.older, args.yes, args.max)
+        if not args.kind and not args.issue:
+            refuse("kind", "close needs --kind (a group such as docs, or review-gap) or --issue N")
+        return triage.close(root, args.kind, args.why, args.feature, args.older, args.yes, args.max, tuple(args.issue))
     return triage.listing(root, args.feature)
 
 
@@ -305,6 +306,7 @@ def add(sub, h):
     item.add_argument("--feature")
     item.add_argument("--close", action="store_true")
     item.add_argument("--kind")
+    item.add_argument("--issue", type=int, action="append", default=[], help="close only this issue number (repeatable)")
     item.add_argument("--why", default="")
     item.add_argument("--older", type=int, default=0)
     item.add_argument("--yes", action="store_true")

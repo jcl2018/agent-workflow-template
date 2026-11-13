@@ -5,7 +5,7 @@ usage: health.py check [--json] [--group NAME[,NAME]] [--skip NAME[,NAME]]
        health.py review [--feature NAME] [--json]          (judge.py; judge and suggest are aliases)
        health.py preview [--group NAME[,NAME]] [--feature NAME] [--review FILE]
        health.py file --group NAME[,NAME] [--feature NAME] [--review FILE]
-       health.py triage [--feature NAME] [--close --kind K --why WORDS [--older DAYS] [--yes] [--max N]]
+       health.py triage [--feature NAME] [--close (--kind K | --issue N ...) --why WORDS [--older DAYS] [--yes] [--max N]]
 
 check prints the formal report (report.py): the twelve groups of report.py, each under a heading with its angle, every
 rule marked pass, warn, fail or unread with its fix, then one verdict, HEALTH: green or not green. Only FAIL and UNREAD

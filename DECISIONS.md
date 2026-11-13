@@ -32,6 +32,17 @@ One line each, where the roadmap didn't say.
 - Review findings (2026-11-12), Usage is current behaviour: the refactor history is out of the Delivery `record` and `pr` entries and the Setup and Health install entries (rollback internals, lock details, script-size notes, a repeated walk-through).
 - Review findings (2026-11-12), `workflow-delivery` SKILL.md goes under 150 lines by trimming repeated prose, not rules.
 
+## Waiting on owner un-review
+
+Drafted by health-v1; none of it is applied until the owner un-reviews the requirement and approves the wording. Apply after merging origin/main (drop-usage and backlog-milestones touch the same page first).
+
+- HLT-2 Hygiene: replace "no idle worker sessions" with "no idle worker sessions beyond the pool size (MON-12)".
+- HLT-2 Performance: replace "the health check within its limit" with "the health round within AUT-7's budget".
+- HLT-7 (Fast check): delete the requirement and its bullet ("The rule check without controls finishes in under 60 seconds."). The round is bounded by AUT-7's budget, so health needs no separate limit; its test (test-health-time.sh) and rows go with it.
+- HLT-4: add a last bullet on top of backlog-milestones' HLT-4: "A drift finding that breaks a Reviewed requirement is a defect issue; any other drift finding is backlog."
+- HLT-9 (as built): the review's evidence is a file and line or a test row; a requirement ID or issue link may be added but never stands alone. The page text still lists a page and requirement ID or an issue link, so the owner may want the wording tightened to match.
+- HLT-8 (as built): "close a batch" also covers one finding by its number (`triage --close --issue N`).
+
 ## Applied 2026-11-12 (owner sitting)
 
 The owner un-reviewed these requirements and approved the wording below; it is now on the pages, and the pages were reviewed again in the same sitting.
