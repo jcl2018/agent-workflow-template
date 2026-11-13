@@ -383,7 +383,7 @@ report-held-111	PASS	2026-11-10
 report-sub-bullets	PASS	2026-11-12	
 retired-leaves-waiting	PASS	2026-11-09	
 review-dated	PASS	2026-11-12	
-review-findings-skill-lines	FAIL	2026-11-13	
+review-findings-skill-lines	PASS	2026-11-13	
 review-owner-only	PASS	2026-11-12	
 reviewed-lock	PASS	2026-11-12	
 row-timeout-holds	PASS	2026-11-11	
