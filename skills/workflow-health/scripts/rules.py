@@ -12,6 +12,9 @@
   scheduled         the regression or health workflow is missing, or has no schedule (WARN)
   no-fit            an open [adoption] line in .loop/findings.md, written by setup: one WARN row each (report.py)
   agent-tools       agent_command (or the flow file's command) grants its agent no tools (WARN) (report.py)
+  matrix            .loop/matrix-runs.tsv (written by dev/toy/matrix-smoke.py; its presence turns the rule on) has no passing smoke in
+                    7 days for a cell of agent x machine: WARN "not proven"; FAIL when a V1-required cell has none (Claude Code on
+                    Windows, Claude Code on macOS, CI on Linux)
 Security and privacy, Size, Performance check-time and Hygiene idle-sessions rules (also read-only):
   private                tracked files matching a leak pattern (leak_patterns in the private flow file): FAIL with
                          file:line and the pattern's number only, never the matched text; INFO with no pattern set
@@ -169,9 +172,50 @@ def scheduled(root):
     return out
 
 
+MATRIX_DAYS = 7
+MATRIX_AGENTS = ("claude-app", "claude-cli", "codex")
+MATRIX_OS = ("windows", "macos", "linux")
+# Cells a V1 release needs: (label, [(agent, os) any of which proves it])
+MATRIX_V1 = (("Claude Code on Windows", [("claude-app", "windows"), ("claude-cli", "windows")]),
+             ("Claude Code on macOS", [("claude-app", "macos"), ("claude-cli", "macos")]),
+             ("CI on Linux", [("ci", "linux")]))
+
+
+def matrix(root):
+    """Cells with no passing smoke in MATRIX_DAYS days. Off (no rows) while .loop/matrix-runs.tsv does not exist."""
+    path = os.path.join(root, ".loop", "matrix-runs.tsv")
+    if not os.path.exists(path):
+        return []
+    proven = set()
+    try:
+        with open(path) as handle:
+            for line in handle:
+                cells = line.rstrip("\n").split("\t")
+                if line.strip() and not line.startswith("#") and len(cells) >= 6 and cells[5] == "pass":
+                    age = days_since(cells[0])
+                    if age is not None and age <= MATRIX_DAYS:
+                        proven.add((cells[1], cells[2]))
+    except OSError:
+        return []
+    out, covered = [], set()
+    for label, members in MATRIX_V1:
+        covered.update(members)
+        if not proven.intersection(members):
+            out.append(row("FAIL", "adoption", label, "matrix", "no passing smoke in %d days (V1-required)" % MATRIX_DAYS,
+                           "run dev/toy/matrix-smoke.py on that machine, or the matrix job in CI", ".loop/matrix-runs.tsv"))
+    for agent in MATRIX_AGENTS:
+        for os_name in MATRIX_OS:
+            if (agent, os_name) not in proven and (agent, os_name) not in covered:
+                out.append(row("WARN", "adoption", "%s on %s" % (agent, os_name), "matrix",
+                               "not proven: no passing smoke in %d days" % MATRIX_DAYS,
+                               "run dev/toy/matrix-smoke.py --agent %s there" % agent, ".loop/matrix-runs.tsv"))
+    return out
+
+
 FUNCTIONS = {"nightly": nightly, "unreleased": unreleased, "finding-age": finding_age, "skipped": skipped,
              "network": network, "config": config, "checks-run-tests": checks_run_tests,
-             "template-version": lambda root: template_version(root) + behind(root), "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools}
+             "template-version": lambda root: template_version(root) + behind(root), "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools,
+             "matrix": matrix}
 
 
 def _c():
@@ -231,12 +275,18 @@ def f_scheduled(root):
     c.write(root, ".github/workflows/health.yml", "name: health\n")
 
 
+def f_matrix(root):
+    c = _c(); c.repo(root)
+    c.write(root, ".loop/matrix-runs.tsv", "# date\tagent\tos\tmachine\tcommit\tresult\n2000-01-01\tclaude-cli\twindows\tm1\tabc\tpass\n")
+
+
 CONTROLS = {"nightly": ("freshness", "nightly", f_nightly), "unreleased": ("freshness", "unreleased", f_unreleased),
             "finding-age": ("freshness", "finding-age", f_finding_age), "skipped": ("tests", "skipped", f_skipped),
             "network": ("tests", "network", f_network), "config": ("adoption", "config", f_config),
             "checks-run-tests": ("adoption", "checks-run-tests", f_checks_run_tests),
             "template-version": ("adoption", "template-version", f_template_version),
-            "scheduled": ("adoption", "scheduled", f_scheduled)}
+            "scheduled": ("adoption", "scheduled", f_scheduled),
+            "matrix": ("adoption", "matrix", f_matrix)}
 
 
 
