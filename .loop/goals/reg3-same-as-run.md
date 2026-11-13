@@ -12,3 +12,8 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. After the release run, open the `regression (1)` job of the Actions run for the release.
+   Expect: `PASS workflow-same-as-run` in its log, and issue #3133 closes with "Passing again."
+2. Run `bash dev/toy/test-regression.sh` on a Mac or Linux box.
+   Expect: `PASS: a row cannot see the runner's shard, levels or cleanup (issue 3133)` and `ALL PASS`.
