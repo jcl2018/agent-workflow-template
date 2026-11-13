@@ -16,6 +16,7 @@ import sys
 import counting
 import criteria
 import pageformat
+from deployments import link_of, read_link, regroup, topics_of
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -101,6 +102,14 @@ def render(args):
         with open(os.path.join(root, rel)) as handle:
             text = handle.read()
         parts = criteria.sections(text)
+        url = link_of(text, counting.sources(root).get(os.path.basename(rel)[:-3], ""))
+        if url:  # a link-form page: the ids come from the linked PRD, read now and never copied here; unreadable, leave the page
+            body, _ = read_link(url)
+            if body is None or not parts or parts[-1][0] != "Tests":
+                continue
+            ids = [(m.group(1), m.group(4)) for n, ls in criteria.sections(body) if n == criteria.rules()["sections"][1] for _, m in criteria.criteria_of(ls) if m]
+            out.append((rel, text, text.partition("\n## Tests")[0] + "\n## Tests\n\n" + "\n".join(table(root, ids, linked)) + "\n"))
+            continue
         if [n for n, _ in parts if n not in (criteria.rules()["usage"], criteria.rules()["deploy"], criteria.rules()["runbook"])] != criteria.rules()["sections"] or parts[-1][0] != "Tests":
             continue  # a section after Tests (a misplaced Runbook) would be cut off by the rewrite: leave the page for the check to name
         ids = [(m.group(1), m.group(4)) for _, m in criteria.criteria_of(dict(parts)[criteria.rules()["sections"][1]]) if m]
@@ -155,7 +164,7 @@ def front(root, names):
     readme, home = read(os.path.join(root, "README.md")) or "", read(os.path.join(folder, "Home.md"))
     if "home" in on and home is not None:
         existing = {name[:-3] for name in os.listdir(folder) if name.endswith(".md")}
-        out += pageformat.home(home, names, existing, readme, repo_of(root, home))
+        out += pageformat.home(home, names, existing, readme, repo_of(root, home), topics_of(root))
     if "frontdoor" in on and names:
         out += pageformat.frontdoor(readme, names)
     return out
@@ -334,6 +343,9 @@ def refresh(root, check=False, insert=False):
             if (found and found.group(0) != block) or (insert and not found):
                 stale.append((rel, name))
         fresh = with_blocks(held, blocks, insert)
+        if os.path.basename(rel) == "Home.md" and regroup(fresh, topics_of(root)) != fresh:
+            stale.append((rel, "topics"))
+            fresh = regroup(fresh, topics_of(root))
         if fresh != held and not check:
             put(os.path.join(root, rel), fresh)
     return stale
@@ -341,7 +353,7 @@ def refresh(root, check=False, insert=False):
 
 def stale_blocks(root):
     """(STALE, Settings|Automation|README line, where and how to fix) for each block that differs from a fresh render."""
-    names = {"settings": "Settings", "automation": "Automation", "template": "README line"}
+    names = {"settings": "Settings", "automation": "Automation", "template": "README line", "topics": "Topics"}
     return [("STALE", names[name], "%s differs from a fresh render. Fix: /workflow-docs render" % where)
             for where, name in refresh(root, True)]
 

@@ -7,8 +7,11 @@ read <link> and addresses <address>. The live-link and promoted-build check runs
 import json
 import os
 import re
+import subprocess
 import sys
+import urllib.request
 
+import pageformat as pf
 from pageformat import RULE, bad, short, tables
 
 PAGE_COLS = ("Page", "Link", "Access", "Shows", "Live build")
@@ -172,3 +175,118 @@ def criteria_max(root):
         sys.exit("REFUSED: criteria_max is %r in %s. Fix: set it to a whole number from 1 to 50, or remove it for the default %d."
                  % (value, path, CRITERIA_MAX_DEFAULT))
     return value
+
+
+# --- link-form feature pages (DOC-1, DOC-2) and Home's Topic column (DOC-4) ---
+
+LINK = re.compile(r"^PRD:\s*(\S+)\s*$")
+READER = "LOOP_PRD_READER"  # a command run as `COMMAND URL`; its stdout is the linked PRD (an agent's Notion connector sets it)
+
+
+def link_of(text, listed=""):
+    """Where a link-form page's PRD lives, else None: the docs.tsv source (`url:<link>` or `mcp:<server>:<resource>`; `page`
+    or empty means the PRD is on the page) or, with no entry there, the page's own 'PRD: <source>' line before its first
+    section. A bare link on that line is a url."""
+    if listed and listed != "page":
+        return listed
+    found = next((m.group(1) for m in (LINK.match(x.strip()) for x in __import__("prd").head(text)) if m), None)
+    return found if found is None or found.startswith(("url:", "mcp:")) else "url:" + found
+
+
+def read_link(url):
+    """(text, None) of the PRD at a source (`url:<link>` or `mcp:<server>:<resource>`), or (None, why) when it cannot be
+    read: never a guess, never a cached copy. A reader command in $LOOP_PRD_READER (given the whole source) wins, and is
+    how an MCP connector is reached; else a url that is a file path or file: link or an http(s) page. An mcp source, or a
+    Notion link, needs the reader, because a script cannot sign in."""
+    try:
+        source, url = url, url[4:] if url.startswith("url:") else url
+        if os.environ.get(READER):
+            done = subprocess.run(os.environ[READER].split() + [source], capture_output=True, text=True, timeout=120)
+            return (done.stdout, None) if done.returncode == 0 and done.stdout.strip() else (None, "the reader %s printed nothing (exit %d)" % (os.environ[READER].split()[0], done.returncode))
+        if url.startswith("file:"):
+            url = urllib.request.url2pathname(url[5:].lstrip("/") if re.match(r"file:/+\w:", url) else url[5:])
+        if os.path.exists(url):
+            with open(url, encoding="utf-8") as handle:
+                return handle.read(), None
+        if source.startswith("mcp:") or re.search(r"notion\.(so|site)/", url):
+            return None, "this source needs its MCP connector: set %s to a command that prints the document" % READER
+        if url.startswith(("http://", "https://")):
+            with urllib.request.urlopen(url, timeout=20) as page:
+                return page.read().decode("utf-8", "replace"), None
+        return None, "not a path or an http(s) link"
+    except Exception as error:  # an unreadable link is UNREAD, never a crash
+        return None, "%s: %s" % (type(error).__name__, str(error)[:80])
+
+
+def link_page(root, page, text, link, parts, numbered, rule, seen, linked, on):
+    """Trouble for a link-form page, as (kind, page, detail). The requirement ids come from the linked PRD, read fresh
+    each time and never copied into the repo; an unreadable link is UNREAD, never a pass, and its ids count as unknown."""
+    import criteria
+    import pageformat as pf
+    import render
+    found, mine = [], [x for x in (rule["runbook"], rule["deploy"], "Tests") if x]
+    shown = link_of(text)  # what the page itself says; the docs.tsv source, when there is one, must be the same
+    if shown != link:
+        found.append(("FORMAT", page, "DOC-1 the 'PRD: <source>' line must show where the PRD lives (got %s, docs.tsv says %s). "
+                      "Fix: write 'PRD: %s' under the title" % (shown or "no line", link, link)))
+    have = [name for name, _ in parts]
+    if have != [x for x in mine if x in have] or "Tests" not in have:
+        found.append(("SECTIONS", page, "have %s, want only %s, in that order, after the 'PRD: <link>' line. Fix: move the PRD "
+                      "text to the linked document" % (", ".join(have) or "none", ", ".join(mine))))
+        return found
+    body, why = read_link(link)
+    if body is None:
+        return [("UNREAD", page, "the linked PRD %s cannot be read (%s). Fix: make the link readable here; its ids and the "
+                 "Tests table stay unchecked, so this is not a pass" % (link, why))]
+    ids = []
+    for name, lines in criteria.sections(body):
+        if name == rule["sections"][1]:
+            for line, match, _ in criteria.blocks(lines):
+                if match and match.group(1) in seen:
+                    found.append(("DUPLICATE", page, "%s is also in %s" % (match.group(1), seen[match.group(1)])))
+                elif match:
+                    seen[match.group(1)] = page
+                    ids.append((match.group(1), match.group(4)))
+    if not ids:
+        found.append(("CRITERION", page, "the linked PRD has no '- ID: **Unreviewed** text' line under %s" % rule["sections"][1]))
+    if "deployments" in on and rule["deploy"] in numbered:
+        found += deployments(page, rule["deploy"], numbered[rule["deploy"]][1], rule["page_cols"], rule["delivery_cols"], rule["access"])
+    if "runbook" in on and rule["runbook"] in numbered:
+        found += pf.runbook(page, rule["runbook"], numbered[rule["runbook"]][1], rule["fields"])
+    if "tests" in on:
+        found += [x for x in [pf.stale(page, "Tests", numbered["Tests"][0], numbered["Tests"][1], criteria.table(root, ids, linked))] if x]
+    return found
+
+
+UNREAD = set()  # link-form pages whose link could not be read in this run: rows linking to their ids are not judged
+
+
+def linked(root, page, text):
+    import counting
+    return link_of(text, counting.sources(root).get(page, ""))
+
+
+def topics_of(root):
+    import counting
+    """The `topics` setting as {topic: [pages]}, or {} when the repo sets none (Home then has no Topic column)."""
+    topics = counting.config_of(root).get("topics")
+    return {str(k): [str(x) for x in v] for k, v in topics.items() if isinstance(v, list)} if isinstance(topics, dict) else {}
+
+
+def regroup(text, topics):
+    """Home's features table with a leading Topic column, its rows grouped by topic (the setting's order, then Other) and
+    by feature name inside one; text unchanged when there is no such table or no topics."""
+    lines = text.split("\n")
+    start = next((i for i, x in enumerate(lines) if x.startswith("| Feature") or x.startswith("| Topic")), None)
+    if not topics or start is None:
+        return text
+    end = start
+    while end < len(lines) and lines[end].startswith("|"):
+        end += 1
+    rows = [pf.cells(x) for x in lines[start + 2:end]]
+    rows = [r[-4:] for r in rows if len(r) in (4, 5)]
+    name = lambda r: r[0].strip("[]").split("](")[0]
+    order = pf.topic_order(topics)
+    rows.sort(key=lambda r: (order.index(pf.topic_of(name(r), topics)), name(r)))
+    table = pf.table(("Topic",) + pf.HOME, [[pf.topic_of(name(r), topics)] + r for r in rows])
+    return "\n".join(lines[:start] + table + lines[end:])

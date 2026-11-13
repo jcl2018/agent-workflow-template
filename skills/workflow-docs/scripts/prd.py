@@ -34,8 +34,6 @@ PLACEHOLDER = "Write this page from what is really in the repo."
 REVIEW = re.compile(r"^Review: \*\*(Unreviewed|Reviewed (\d{4}-\d\d-\d\d))\*\*"
                     r"(?: <!-- prd P=(\w{8}) R=(\w{8}) N=(\w{8}) M=(\w{8}) U=(\w{8}) -->)?$")
 KEYS = "PRNMU"
-
-
 def names(rule):
     """Section names in fingerprint order: Problem, Requirements, Non-goals, Success metrics, Usage."""
     return rule["sections"][:4] + [rule["usage"]]

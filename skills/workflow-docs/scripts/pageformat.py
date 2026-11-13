@@ -15,6 +15,16 @@ CHECKS = ("home", "frontdoor", "usage", "bullets", "problem", "tests", "deployme
 BANNED = "script, function, regex, json, tsv, stdout"
 MARKER = "<!-- workflow-docs -->"
 HOME = ("Feature", "What it does", "How to use", "Milestone")
+OTHER = "Other"  # the topic of a feature no topic lists
+
+
+def topic_of(name, topics):
+    """The topic that lists this page; OTHER when none does."""
+    return next((topic for topic, pages in topics.items() if name in pages), OTHER)
+
+
+def topic_order(topics):
+    return list(topics) + [OTHER]
 FRONT = ("You say", "What happens")
 RULE = re.compile(r"^\|(\s*:?-+:?\s*\|)+$")
 PATH = re.compile(r"(?<![\w/])/[\w.-]+/")
@@ -106,9 +116,11 @@ def unblocked(text):
     return re.sub(r"<!-- (settings|automation|template):begin -->\n.*?<!-- \1:end -->\n", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
 
 
-def home(text, features, existing, readme, repo):
-    """DOC-4: the marker, '# title', '## Features' and one table HOME, one row per feature page, nothing else."""
-    out, seen, keys = [], [], anchors(readme)
+def home(text, features, existing, readme, repo, topics=None):
+    """DOC-4: the marker, '# title', '## Features' and one table HOME, one row per feature page, nothing else. With
+    topics (the `topics` setting) the table leads with a Topic column and its rows are grouped by topic."""
+    out, seen, keys, last = [], [], anchors(readme), -1
+    want_head = (("Topic",) + HOME) if topics else HOME
     text = unblocked(text)
     lines = list(enumerate(text.splitlines(), 1))
     body = [(n, x) for n, x in lines if x.strip() and x.strip() != MARKER]
@@ -118,11 +130,12 @@ def home(text, features, existing, readme, repo):
                        "write '# <repo>', then '## Features', then the features table"))
     for number, line in other:
         out.append(bad("Home", number, "Features", 4, "a line outside the features table", short(line), "move it to the README or a feature page"))
-    if len(found) != 1 or tuple(found[0][1]) != HOME:
-        return out + [bad("Home", found[0][0] if found else 1, "Features", 4, "one table with the header | %s |" % " | ".join(HOME),
+    if len(found) != 1 or tuple(found[0][1]) != want_head:
+        return out + [bad("Home", found[0][0] if found else 1, "Features", 4, "one table with the header | %s |" % " | ".join(want_head),
                           "%d tables%s" % (len(found), ", header " + short(" | ".join(found[0][1])) if found else ""),
                           "use exactly that header, in one table")]
     for number, row in found[0][2]:
+        topic, row = (row[0], row[1:]) if topics and len(row) == 5 else (None, row)
         page = re.match(r"^\[([^\]]+)\]\(([^)]+)\)$", row[0]) if len(row) == 4 else None
         if not page or page.group(1) != page.group(2) or page.group(1) not in existing:
             out.append(bad("Home", number, "Features", 4, "the Feature cell links an existing page as [X](X)", short(row[0]),
@@ -130,6 +143,12 @@ def home(text, features, existing, readme, repo):
             continue
         name = page.group(1)
         seen.append(name)
+        if topics:
+            order, held = topic_order(topics), topic_of(name, topics)
+            if topic != held or order.index(held) < last:
+                out.append(bad("Home", number, "Features", 4, "the Topic cell names the page's topic and rows are grouped by topic",
+                               short(topic or ""), "write %s here and keep each topic's rows together, in the order of the topics setting" % held))
+            last = max(last, order.index(held)) if held in order else last
         if name not in features:
             out.append(bad("Home", number, "Features", 4, "a row for a page that is not a feature page", name, "remove the row"))
         link = re.match(r"^\[[^\]]+\]\(https://github\.com/([\w.-]+/[\w.-]+)#([\w-]+)\)$", row[2])

@@ -173,18 +173,35 @@ def read_map(root):
             for line in handle:
                 if line.strip() and not line.startswith("#"):
                     page, _, paths = line.rstrip("\n").partition("\t")
+                    paths = paths.partition("\t")[0]  # an optional third column is the PRD source (sources())
                     rows[page] = [item.strip() for item in paths.split(",") if item.strip()]
     except OSError:
         pass
     return rows
 
 
+def sources(root):
+    """{page: PRD source} from the optional third column of .loop/docs.tsv: `page` (the wiki page itself, the default),
+    `url:<link>` or `mcp:<server>:<resource>`; a page with no entry has its PRD on the page."""
+    out = {}
+    try:
+        with open(map_path(root)) as handle:
+            for line in handle:
+                cols = line.rstrip("\n").split("\t")
+                if line.strip() and not line.startswith("#") and len(cols) > 2 and cols[2].strip():
+                    out[cols[0]] = cols[2].strip()
+    except OSError:
+        pass
+    return out
+
+
 def write_map(root, rows):
+    held = sources(root)
     os.makedirs(os.path.dirname(map_path(root)), exist_ok=True)
     with open(map_path(root), "w") as handle:
         handle.write("# page<TAB>paths it describes, comma separated\n")
         for page in sorted(rows):
-            handle.write("%s\t%s\n" % (page, ",".join(rows[page])))
+            handle.write("\t".join([page, ",".join(rows[page])] + ([held[page]] if page in held else [])) + "\n")
 
 
 BLOCK = re.compile(r"<!-- (settings|automation|template):begin -->\n.*?<!-- \1:end -->\n", re.S)  # render.py's blocks
