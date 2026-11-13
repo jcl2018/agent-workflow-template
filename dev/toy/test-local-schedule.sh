@@ -9,6 +9,9 @@
 # Value: protects=a private repo's health, regression and digest run on the owner's Mac and never in GitHub, and a missed run says so;
 # fails_when=the plist loads itself, holds a secret, a tick changes issues offline, a child outlives its cap, or a health workflow is written;
 # why_new=health and the regression used to run in GitHub Actions; seam=none; no_claim=launchd firing the agent (the owner's kickstart check)
+# macOS only: automation.py local install refuses off macOS (SCHEDULE_PLATFORM), so on any other host every part would FAIL. A row this
+# host can't run is SKIPPED with its reason (exit 77, REG-10), never a FAIL that opens an issue.
+if [ "$(uname -s)" != Darwin ]; then echo "SKIP: macOS only (launchd, SCHEDULE_PLATFORM); this host is $(uname -s)"; exit 77; fi
 set -u
 unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID LOOP_SESSION_TOOL LOOP_OPERATION_SESSION ANTHROPIC_API_KEY CLAUDECODE
 here=$(cd "$(dirname "$0")/../.." && pwd); only=${1:-}
