@@ -136,8 +136,8 @@ def automation_gaps(root, cfg, g, info):
 
 
 def scheduled_task(label):
-    """True when the Mac has a scheduled task folder named label (Claude's scheduled tasks); LOOP_SCHEDULED_TASKS_DIR overrides the places."""
-    dirs = [os.environ["LOOP_SCHEDULED_TASKS_DIR"]] if os.environ.get("LOOP_SCHEDULED_TASKS_DIR") else [os.path.expanduser("~/.claude/scheduled-tasks"), os.path.expanduser("~/Documents/Claude/Scheduled")]
+    """True when the Mac has a scheduled task folder named label (Claude's scheduled tasks, each at ~/.claude/scheduled-tasks/<id>/SKILL.md); LOOP_SCHEDULED_TASKS_DIR overrides the places."""
+    dirs = [os.environ["LOOP_SCHEDULED_TASKS_DIR"]] if os.environ.get("LOOP_SCHEDULED_TASKS_DIR") else [os.path.expanduser("~/.claude/scheduled-tasks")]
     return any(os.path.isdir(os.path.join(d, label)) for d in dirs)
 
 
