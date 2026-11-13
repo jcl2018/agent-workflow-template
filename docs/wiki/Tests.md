@@ -126,6 +126,8 @@
 | <a id="t-adopt-replaces-stale"></a>adopt-replaces-stale | requirement | DEL-10 | not run | - | local | 2026-11-12 |
 | <a id="t-del5-docs-bump-minor"></a>del5-docs-bump-minor | requirement | DEL-5 | not run | - | local | 2026-11-13 |
 | <a id="t-del5-docs-patch-default"></a>del5-docs-patch-default | requirement | DEL-5 | not run | - | local | 2026-11-13 |
+| <a id="t-resume-ask-worker-step"></a>resume-ask-worker-step | requirement | DEL-5 | not run | - | local | 2026-11-13 |
+| <a id="t-resume-unasked-merges"></a>resume-unasked-merges | requirement | DEL-5 | not run | - | local | 2026-11-13 |
 
 ## Documentation
 
@@ -433,6 +435,7 @@
 | <a id="t-guards-null-report-bind-mend"></a>guards-null-report-bind-mend | requirement | MON-2 | not run | - | local | 2026-11-12 |
 | <a id="t-est-time-order-mon4"></a>est-time-order-mon4 | requirement | MON-4 | not run | - | local | 2026-11-12 |
 | <a id="t-stop-tree-session-tool"></a>stop-tree-session-tool | defect | [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) closed (2026-11-12) | not run | - | local | 2026-11-12 |
+| <a id="t-resume-ask-prompt"></a>resume-ask-prompt | requirement | MON-15 | not run | - | local | 2026-11-13 |
 | <a id="t-mon16-notes-pass"></a>mon16-notes-pass | requirement | MON-7 | not run | - | local | 2026-11-13 |
 | <a id="t-mon16-edit-inside-refused"></a>mon16-edit-inside-refused | requirement | MON-7 | not run | - | local | 2026-11-13 |
 
@@ -776,6 +779,6 @@
 | <a id="t-health-listing-filtered"></a>health-listing-filtered | defect | [#1402](https://github.com/jcl2018/agent-workflow-template/issues/1402) closed (2026-11-12) | not run | - | local | 2026-11-12 |
 | <a id="t-health-listing-paged"></a>health-listing-paged | defect | [#1402](https://github.com/jcl2018/agent-workflow-template/issues/1402) closed (2026-11-12) | not run | - | local | 2026-11-12 |
 | <a id="t-health-listing-page-fails"></a>health-listing-page-fails | defect | [#1402](https://github.com/jcl2018/agent-workflow-template/issues/1402) closed (2026-11-12) | not run | - | local | 2026-11-12 |
-| <a id="t-migration-fix-sched-task"></a>migration-fix-sched-task | defect | [#3780](https://github.com/jcl2018/agent-workflow-template/issues/3780) open (2026-11-12) | not run | - | local | 2026-11-13 |
-| <a id="t-migration-fix-mac-no-yml"></a>migration-fix-mac-no-yml | defect | [#3780](https://github.com/jcl2018/agent-workflow-template/issues/3780) open (2026-11-12) | not run | - | local | 2026-11-13 |
+| <a id="t-migration-fix-sched-task"></a>migration-fix-sched-task | defect | [#3780](https://github.com/jcl2018/agent-workflow-template/issues/3780) closed (2026-11-13) | not run | - | local | 2026-11-13 |
+| <a id="t-migration-fix-mac-no-yml"></a>migration-fix-mac-no-yml | defect | [#3780](https://github.com/jcl2018/agent-workflow-template/issues/3780) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-stale-net-diff-revert"></a>stale-net-diff-revert | requirement | done line stale-net-diff:1 | not run | - | local | 2026-11-13 |
