@@ -426,7 +426,7 @@ def cmd_pr(args):
     state["status"] = "done"
     save(state, "pull request " + url)
     print("PR " + url)
-    print("NEXT: " + ("workflow-release merges it: merge.py %s" % args.slug if config().get("auto_merge") is True
+    print("NEXT: " + ("workflow-release merges it: merge.py %s" % args.slug if config().get("auto_merge") is True and state.get("release") != "ask"
                       else "workflow-release asks cut or leave. The loop never merges."))
     if state["statuses"] == "failed":
         print("NEXT: the pull request will not merge until the status posts; run private.py statuses --head %s --ok" % head)
