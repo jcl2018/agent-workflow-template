@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.28.22 - 2026-11-13
+
+- Fold and trim for package headroom
+- Keep the three proctree.py copies identical
+- Wiki: Setup usage note, Tests tables
+- Wiki usage notes
+- Merge origin/main into loop/package-headroom
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.21 - 2026-11-13
 
 - health-v1: Runbook for the Mac round, triage --issue, evidence-or-drop, review recheck, drafted wording
