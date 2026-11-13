@@ -477,6 +477,7 @@
 | <a id="t-who-merges-report"></a>who-merges-report | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-who-merges-fallback"></a>who-merges-fallback | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-who-merges-hold-flag"></a>who-merges-hold-flag | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
+| <a id="t-held-time-3878"></a>held-time-3878 | defect | [#3878](https://github.com/jcl2018/agent-workflow-template/issues/3878) state unknown | not run | - | local | 2026-11-13 |
 
 ## Regression
 
@@ -834,3 +835,8 @@
 | <a id="t-stale-net-diff-revert"></a>stale-net-diff-revert | requirement | done line stale-net-diff:1 | not run | - | local | 2026-11-13 |
 | <a id="t-no-usage-section"></a>no-usage-section | requirement | done line drop-usage:1 | not run | - | local | 2026-11-13 |
 | <a id="t-pr-queue-goal"></a>pr-queue-goal | requirement | done line pr-queue:1 | not run | - | local | 2026-11-13 |
+| <a id="t-held-time-pr-queue"></a>held-time-pr-queue | requirement | done line held-time-budget:1 | not run | - | local | 2026-11-13 |
+| <a id="t-held-time-session-hold"></a>held-time-session-hold | requirement | done line held-time-budget:1 | not run | - | local | 2026-11-13 |
+| <a id="t-held-time-owner-wait"></a>held-time-owner-wait | requirement | done line held-time-budget:1 | not run | - | local | 2026-11-13 |
+| <a id="t-held-time-stopped"></a>held-time-stopped | requirement | done line held-time-budget:1 | not run | - | local | 2026-11-13 |
+| <a id="t-held-time-over-still-stops"></a>held-time-over-still-stops | requirement | done line held-time-budget:1 | not run | - | local | 2026-11-13 |
