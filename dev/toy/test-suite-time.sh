@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/tiers.py
-# reads: skills/workflow-regression/scripts/actions.py skills/workflow-health/scripts/cost.py
+# reads: skills/workflow-regression/scripts/actions.py skills/workflow-regression/scripts/actions_summary.py skills/workflow-health/scripts/cost.py
 # reads: skills/workflow-health/scripts/automation.py skills/workflow-health/scripts/workflows.py
 # Proves the full-suite time (REG-7, S14, S25) on a throwaway repo with a fake gh: only the plain `regression.py run
 # nightly` appends `<sha> TAB full TAB <seconds> TAB <date>` to <git common dir>/loop/suite-times.tsv and prints
