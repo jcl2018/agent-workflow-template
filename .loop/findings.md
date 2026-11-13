@@ -56,7 +56,11 @@ Open (from the issue-cleanup triage of the open non-regression issues, 2026-11-1
 - settings-render-windows: Failed 3 tries. Last: regression lane failed: LANE_DIRTY at start: .loop/regression-issues.tsv. Fix: commit or remove them; the lane committed and pushed nothing.
 - govern-hook-notes: Failed 3 tries. Last: merging main conflicts in: .loop/regression-runs.tsv, docs/wiki/Tests.md
 - capture-row-output: Failed 4 tries. Last: merging main conflicts in: .loop/regression-issues.tsv
+- health-v1: Failed 3 tries. Last: merging main conflicts in: .loop/regression.tsv, DECISIONS.md, docs/wiki/Health.md, docs/wiki/Tests.md
+- health-v1: Failed 4 tries. Last: merging main conflicts in: .loop/regression.tsv, DECISIONS.md, docs/wiki/Health.md, docs/wiki/Tests.md
 - doc-fixes-v1: Failed 3 tries. Last: regression lane failed: capture-row-ci
 - doc-fixes-v1: Failed 4 tries. Last: regression lane failed: capture-row-ci
 - drop-usage: Failed 3 tries. Last: merging main conflicts in: .loop/START.md, .loop/regression.tsv, docs/wiki/Delivery.md, docs/wiki/Health.md, docs/wiki/Monitoring.md, docs/wiki/Regression.md, docs/wiki/Setup.md, skills/design-guide.md
 - drop-usage: Failed 4 tries. Last: merging main conflicts in: .loop/START.md, .loop/findings.md, .loop/regression.tsv, docs/wiki/Delivery.md, docs/wiki/Health.md, docs/wiki/Monitoring.md, docs/wiki/Regression.md, docs/wiki/Setup.md, skills/design-guide.md
+- package-under-cap: done line over-scoped by the operation session
+- package-under-cap: done line over-scoped by the operation session

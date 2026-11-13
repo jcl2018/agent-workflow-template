@@ -536,6 +536,8 @@ Proof: toy tests (dev/toy/test-guards.sh).
 
 ## Exact command entries (as of main, 2026-11-13, when the Usage section was retired)
 
+- Every skill holds the same `proctree.py` copy.
+
 - `/workflow-monitoring cleanup` — Deletes local `loop/` branches already merged into the base branch. Prints `DELETED <branch>`, `KEPT <branch>: git would not delete it` and `<n> merged loop branch(es) deleted`. Refuses nothing. `sessions.py bind` and the session tool live in `worker.py`.
 
 - `/workflow-monitoring reply-check FILE` — Checks a check-in reply against the required layout. Prints one line per problem, such as `missing section <name>`, and exits 1; a clean reply prints nothing and exits 0. Refuses exit 2 `REFUSED: cannot read <file> (<reason>). Fix: name a readable file, or - for stdin.` The Dependencies check (MON-14) is `checkin.missing`.
