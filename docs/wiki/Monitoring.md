@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=1e7005de N=9967b317 M=0fde98a8 U=03828777 -->
 
 ## Problem
 - I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
@@ -27,7 +27,7 @@ Review: **Unreviewed**
   - `report`, `dashboard` and "Where do things stand?" print the live board in one fixed format: Issues first (only what is open now, each with its fix in plain words); then Running goals with progress bar, time left, step flow with the current step marked and the next step; then Queued goals; then dependency arrows; then one finish time.
   - Merged work, history and totals are left out; a stuck worker stays at the top of Issues until I answer.
   - Check-ins don't print this board; MON-5 owns the check-in reply.
-- MON-5: **Unreviewed** Cadence and reply format
+- MON-5: **Reviewed 2026-11-13** Cadence and reply format <!-- reviewed 02876e30 -->
   - The operation session updates the board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new, and each check-in prints only its reply layout, never the board.
   - Every check-in reply has the same layout: one headline line;
   - All sessions, one table of every session across my repos with what it is for, its status, progress, time left, tokens left and latest report;

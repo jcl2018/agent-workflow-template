@@ -134,5 +134,5 @@ The owner types two sentences in the operation session:
 1. Un-review: "Un-review the Guardrails, Regression, Health and Monitoring pages and the requirements GRD-11 (new), REG-10, HLT-2 and MON-5 so the machine-local wording can be added."
 2. Review, after the goal has added it: "Review the Guardrails, Regression, Health and Monitoring pages, GRD-11, REG-10, HLT-2 and MON-5 again."
 
-Progress 2026-11-13: the owner typed sentence 1 in the machine-local session; the pages and REG-10, HLT-2, MON-5 were un-reviewed, GRD-11 was added (Unreviewed) and the sub-bullets above were written into the pages. Waiting on sentence 2 (the review).
+Progress 2026-11-13: the owner typed sentence 1 in the machine-local session; the pages and REG-10, HLT-2, MON-5 were un-reviewed, GRD-11 was added (Unreviewed) and the sub-bullets above were written into the pages. Applied: the owner typed sentence 2 and the pages and requirements were reviewed again.
 

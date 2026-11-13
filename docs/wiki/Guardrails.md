@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/11
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=a0f1201a N=e6bf17f7 M=5109e571 U=03828777 -->
 
 ## Problem
 
@@ -56,7 +56,7 @@ Review: **Unreviewed**
 - GRD-10: **Reviewed 2026-11-13** Setup installs the whole set when a repo is adopted, and health judges it <!-- reviewed c53adea9 -->
   - Adopting a repo installs every guardrail on this page with its default setting, and setup lists each one it installed (Setup, SET-1 for installing; listing each one is new).
   - Health judges a freshly adopted repo's guardrails on the same rules as the template's (Setup, SET-1).
-- GRD-11: **Unreviewed** A goal depends only on what its own machine can do
+- GRD-11: **Reviewed 2026-11-13** A goal depends only on what its own machine can do <!-- reviewed c1c9c836 -->
   - A step only another machine can do (a red proof on another platform, a smoke cell, a Mac-only check) is filed as a to-do issue on the feature's milestone and never blocks the goal, its merge or the release.
   - A row whose red proof needs another platform is recorded owed (Regression, `red ID --owed --runner R`): it reads PENDING, opens one `other-machine` to-do on its feature milestone, and its goal merges.
   - Health warns on an owed proof older than 7 days and never fails on it (Health); the check-in lists owed items under Coming up, and the operation session never holds a goal for another pod or machine (Monitoring).

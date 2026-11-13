@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/4
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=e469ca09 N=e89b4f3b M=39cf9800 U=03828777 -->
 
 ## Problem
 - My rules, requirements and standards are spread across many pages and sometimes conflict, and I can't see where the repo falls short of its own PRDs.
@@ -24,7 +24,7 @@ Review: **Unreviewed**
 ## Requirements
 
 ### Functional
-- HLT-2: **Unreviewed** The rules
+- HLT-2: **Reviewed 2026-11-13** The rules <!-- reviewed 4008d2ac -->
   - Health checks exactly these groups, each with the angle its tests take:
   - Requirements (my angle: is every promise I approved proven?): every Reviewed requirement has a test seen failing and passing now; done lines have tests; none stays not enforced over 7 days.
   - Traceability (an auditor's angle: can I follow any work end to end?): requirement to test to last run; issue to feature; pull request to goal to done lines; release to the issues it fixed.

@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/7
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-13** <!-- prd P=14b68802 R=b2106ed4 N=f86bd012 M=d4d1a48b U=03828777 -->
 
 ## Problem
 - I can't trust a requirement or a fix unless a test proves it, and every fix I've ever shipped should stay fixed without me re-checking it.
@@ -57,7 +57,7 @@ Review: **Unreviewed**
 - REG-9: **Reviewed 2026-11-10** Honest results <!-- reviewed 194b357d -->
   - Every test has been seen failing once, or shows as unproven.
   - A test that fails then passes on the same commit is marked flaky, never silently retried.
-- REG-10: **Unreviewed** Red proof for rows a platform can't run
+- REG-10: **Reviewed 2026-11-13** Red proof for rows a platform can't run <!-- reviewed fe76007f -->
   - A row whose red proof needs another machine can be recorded owed (`red ID --owed --runner R`): it reads PENDING instead of UNPROVEN, one to-do issue labelled `other-machine` opens on the row's feature milestone, and neither the goal's pr lane nor the release waits for it. A real red proof clears it.
   - A row the local platform can't run (the bash toy rows on native Windows exit 77) is skipped with its reason and is never counted as seen failing: a skip, on any platform, never sets the seen-failing date.
   - Its red proof runs on a capable runner (Linux or macOS, in CI or a session), and the result is written back to the row with the runner and the commit it ran on; a Windows runner can't be named.
