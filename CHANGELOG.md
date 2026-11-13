@@ -1,5 +1,66 @@
 # Changelog
 
+## v0.28.16 - 2026-11-13
+
+- Automation: a repo's own routines get a Runbook, a pointer prompt and a health check
+- Automation: registry docs, prompt-pointer rule line, Tests tables
+- DECISIONS: draft AUT-1, 2, 3, 4, 8 wording under Waiting on owner un-review
+- Merge origin/main into loop/automation-routines
+- Home: the Automation row says routines point to their Runbook
+- Merge origin/main into loop/automation-routines
+- Merge remote-tracking branch 'origin/main' into loop/automation-routines
+
+### How to verify
+
+1. Run `python3 dev/toy/test-automation-routines.py` from the repo root.
+   Expect: every line starts with `PASS:`.
+2. Run `python3 skills/workflow-docs/scripts/docs.py prompts`.
+   Expect: one `PROMPT <routine>: In <repo>, fast-forward to origin/main, then read docs/wiki/<Page>.md's Runbook section <routine> and follow it exactly.` line for health-round and regression-round.
+3. Add an entry such as `{"name": "site-deploy", "cadence": "0 6 * * *", "runs": "claude:site-deploy", "page": "Health"}` to `automation` in `.loop/config.json`, then run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: a finding says Health needs a `### site-deploy` Runbook; add it and the finding goes; `docs.py prompts` now prints a line for site-deploy.
+
+## v0.28.15 - 2026-11-13
+
+- publish-tables: re-render generated tables in the publish tree, toy and rows
+- publish-tables: regression runs, Tests render
+- Wiki: update pages for publish-tables
+- publish-tables: describe the rows, link DOC-11
+- Wiki: update pages for publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.14 - 2026-11-13
+
+- backlog-milestones: Backlog milestones, defect/backlog filing by kind, ship-time FILE lines, Adoption milestones rule; wording proposed in DECISIONS.md
+- backlog-milestones: older health toys expect defect and backlog homes
+- Lane: re-render the Tests tables
+- backlog-milestones: Home says where health files findings
+- backlog-milestones: backlog renames the old Backlog milestone to Backlog: Other
+- backlog-milestones: docs follow the rename
+- backlog-milestones: a size FAIL is a defect (owner's change)
+- backlog-milestones: the owner's wording on DOC-10, HLT-4, DEL-14, SET-17, reviewed; criteria_max 17 for SET-17
+- backlog-milestones: pages re-reviewed by the owner; Guardrails notes criteria_max 17
+- backlog-milestones: Guardrails wording
+- Merge origin/main (v0.28.12) into loop/backlog-milestones: rows unioned, Tests re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/backlog-milestones
+
+### How to verify
+
+1. Run `python3 skills/workflow-health/scripts/milestone.py backlog` in the template repo.
+   Expect: nine lines, `EXISTS Backlog: <Feature>` for the eight feature pages and `EXISTS Backlog: Other`, and nothing created.
+2. Run `python3 skills/workflow-health/scripts/health.py check --group adoption`.
+   Expect: a `PASS adoption milestones` line; delete one Backlog milestone on GitHub and it becomes a `WARN` naming that milestone.
+3. Run `python3 dev/toy/test-backlog.py`.
+   Expect: every line `PASS:` and the last `PASS: every filing has one home`.
+4. Write a ship reply with the line `FILE backlog Health: an idea` and run `python3 skills/workflow-health/scripts/milestone.py leftovers THAT_FILE` (no `--live`).
+   Expect: `WOULD file backlog on milestone Backlog: Health: an idea (dry run; add --live)` and no issue created.
+
 ## v0.28.13 - 2026-11-13
 
 - A regression row no longer inherits the runner's shard, levels or cleanup (#3133)

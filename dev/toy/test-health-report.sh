@@ -78,7 +78,7 @@ out=$($health preview); echo "$out"
 grep -q "^WOULD open issue 'health: size skills/x/scripts/near.py scripts' \[health:size\]" <<<"$out" \
   && grep -q "^WOULD open issue 'health: requirements REL-1 rows' \[health:requirements\]" <<<"$out" \
   && grep -q "^WOULD open issue 'health: docs Ghost missing' \[health:docs\]" <<<"$out" \
-  && grep -q "\[health:hygiene\]" <<<"$out" && ! grep -q "\[health:criteria\]" <<<"$out" && ! grep -qi "milestone\|backlog" <<<"$out" && ok "each issue it would open shows with its tag and no milestone" || bad "preview lines"
+  && grep -q "\[health:hygiene\]" <<<"$out" && ! grep -q "\[health:criteria\]" <<<"$out" && grep -q "as backlog on Backlog: " <<<"$out" && ok "each issue it would open shows with its tag and where it goes" || bad "preview lines"
 [ "$(writes)" = "$before" ] && [ ! -f "$FAKE_GH_DIR/issues.json" ] && ok "preview made no write call" || bad "preview wrote"
 GH_TOKEN=x $health preview >/dev/null; [ "$(writes)" = "$before" ] && ok "a token does not make preview write" || bad "token"
 # Value: protects=the old run --live (cron, habit) now only previews and writes nothing; fails_when=run is pointed back at
@@ -89,13 +89,13 @@ out=$($health file 2>&1); rc=$?; grep -q "^REFUSED\[file\]: file needs --group" 
 echo "== file --group writes only the named groups"
 $health file --group docs >/dev/null
 [ "$(count health:docs OPEN)" = 1 ] && [ "$(count health)" = 1 ] && ok "file --group docs opened only the docs issue" || bad "docs only"
-$health file --group size | tee "$d/out" ; python3 - <<'PYEND' && ok "size issue: tagged health:size, on no milestone" || bad "size issue"
+$health file --group size | tee "$d/out" ; python3 - <<'PYEND' && ok "size issue: tagged health:size and backlog, on its Backlog milestone" || bad "size issue"
 import json, os
 issues = json.load(open(os.environ["FAKE_GH_DIR"] + "/issues.json"))
 size = [i for i in issues if "size:" in i["body"]]
-assert len(size) == 1 and not size[0]["milestone"]
+assert len(size) == 1 and size[0]["milestone"]["title"].startswith("Backlog: "), size[0]["milestone"]
 names = [l["name"] for l in size[0]["labels"]]
-assert "health:size" in names and "health" in names and "health:docs" not in names, names
+assert "health:size" in names and "health" in names and "backlog" in names and "health:docs" not in names, names
 assert len(issues) == 2
 PYEND
 grep -q "^DONE open issue" "$d/out" && ! grep -q "docs\|hygiene\|criteria" "$d/out" && ok "filing size printed only size work" || bad "size output"

@@ -293,6 +293,14 @@ of `automation` in `.loop/config.json`: `{"name", "does", "cadence", "runs", "en
 cron string, words, or `off`. Adding a routine is adding one entry. `python3 scripts/docs.py automation` prints each one's
 live state here; the committed block holds only what files and config show.
 
+A routine of your own adds `"page": "<Page>"` (the feature page that carries its Runbook) and optionally `"routine": "<heading>"`
+(the `### ` heading, default its name) to its entry. The docs check then requires that Runbook exactly as it does for a
+`.loop/routines.tsv` routine (DOC-16), and `python3 scripts/docs.py prompts` prints one line per routine, built-in or yours:
+`PROMPT <routine>: In <repo>, fast-forward to origin/main, then read <wiki_dir>/<Page>.md's Runbook section <routine> and follow
+it exactly.` That line is the whole prompt a scheduler holds (a Claude scheduled task, a launch agent or an Actions job); the
+steps live only in the Runbook, so any agent on any machine runs the same round. Health's `prompt-pointer` rule warns on an
+installed scheduled-task prompt that holds anything else.
+
 ### `restore`
 
 This reverts the last publish. It refuses if the wiki has changed since.
