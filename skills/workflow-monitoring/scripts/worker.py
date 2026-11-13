@@ -85,7 +85,7 @@ def release_step(state):
     except (OSError, ValueError):
         return
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-release", "scripts", "merge.py")
-    if auto and state.get("status") == "done" and state.get("pr") and not merged(state["pr"]) and os.path.exists(script):
+    if auto and state.get("release") != "ask" and state.get("status") == "done" and state.get("pr") and not merged(state["pr"]) and os.path.exists(script):
         done = subprocess.run([sys.executable, script, state["slug"]], cwd=tree, capture_output=True, text=True)
         print("release step for %s: exit %d %s" % (state["slug"], done.returncode, (done.stdout + done.stderr).strip()[-300:]))
 

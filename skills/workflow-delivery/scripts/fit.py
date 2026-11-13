@@ -129,6 +129,12 @@ def spent_tokens(run):
     return total if isinstance(total, int) else 0
 
 
+def tokens_text(run):
+    """'1,234 tokens', or 'tokens unread' when no count was recorded (never 0)."""
+    value = run.get("tokens") if isinstance(run.get("tokens"), dict) else {}
+    return "%s tokens" % format(spent_tokens(run), ",") if any(isinstance(n, int) and n for n in value.values()) else "tokens unread"
+
+
 def recorded(state, step):
     return str((state.get("flow") or {}).get(step, "")).startswith(("done", "skipped"))
 
@@ -345,8 +351,7 @@ def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
     body = goal_text + "\n## Result\n\nSkill flow:" + "".join(step_line(step, seen) for step in STEPS) + "\n"
     body += seen.get("pr_lane", "")  # the lane's results (lanekit.record)
     body += "\nReview depth: %s (%s).\n" % (depth, why)
-    body += "Budget: %s (%s); spent %s tokens.\n" % (", ".join(p for p in parts if p) or "none set", source,
-                                                     format(spent_tokens(seen), ","))
+    body += "Budget: %s (%s); spent: %s.\n" % (", ".join(p for p in parts if p) or "none set", source, tokens_text(seen))
     body += scan_note + "\n"
     surfaces = [t for t in (seen.get("touches") or []) if t.startswith("github:")]
     if surfaces:
@@ -388,6 +393,14 @@ def pr_fail(g, state, head, line, ids):
     g.failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
                  "fix the failing rows, commit, then run pr again")
     return 1
+
+
+def main_here(g, args):
+    """`new --here` in the repo's main checkout (a repo with <common>/loop/worktrees) would leave it on a loop branch (#3468)."""
+    gitdir, common = (os.path.realpath(g.git("rev-parse", flag)) for flag in ("--git-dir", "--git-common-dir"))
+    if gitdir == common and os.path.isdir(os.path.join(common, "loop", "worktrees")):
+        g.no("--here in the repo's main checkout would leave it on a loop branch. Fix: git worktree add -b loop/%s "
+             "%s origin/main, then run goal.py new there" % (args.slug, os.path.join(common, "loop", "worktrees", args.slug).replace(os.sep, "/")))
 
 
 SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date

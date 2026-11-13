@@ -8,7 +8,8 @@ usage: govern_hook.py          the PreToolUse hook: reads the hook's JSON on std
 Which session: the operation session only, known by its id in <git common dir>/loop/operation.id (`operate.py claim`
 adds its session and keeps the others: several independent operation sessions may run at once) or by the reply hook's record that the session ran
 `operate.py run`. A session whose folder is a goal worktree is a worker and is never checked, nor is any other repo.
-What it blocks there: Edit, Write and NotebookEdit; and each Bash segment (split on && || ; | and new lines, with
+What it blocks there: Edit, Write and NotebookEdit on a path inside a followed repo (this one, its worktrees, or one in
+~/.workflow-loop/repos), so the session's own notes and other files outside every repo pass (issue 2850); and each Bash segment (split on && || ; | and new lines, with
 `env X=Y`, `bash -c` and `sh -c` bodies read once more) that runs git, after any -C, -c, --git-dir or --work-tree
 options, with commit, push, merge, rebase, reset, cherry-pick, revert, am or pull (a `pull --ff-only` passes, issue 495). Each segment is judged alone, so
 `merge.py X && git push` is blocked. The merge and post-merge steps (merge.py, release.py, autorelease.py, wiki.py,
@@ -161,6 +162,27 @@ def log(common, text):
         pass
 
 
+def followed_roots(top, common):
+    """Real paths of every followed repo: this checkout, its git common dir's parent and worktrees, and each repo listed in
+    ~/.workflow-loop/repos (the board's list)."""
+    roots = [top, os.path.dirname(common) if os.path.basename(common) == ".git" else common]
+    try:
+        with open(os.path.expanduser("~/.workflow-loop/repos")) as handle:
+            roots += [line.strip() for line in handle if line.strip()]
+    except OSError:
+        pass
+    return [os.path.normcase(os.path.realpath(r)) for r in roots if r]
+
+
+def in_followed(given, cwd, top, common):
+    """True when an edit tool's target path is inside a followed repo. A path it can't read counts as inside."""
+    target = str(given.get("file_path") or given.get("notebook_path") or given.get("path") or "")
+    if not target:
+        return True
+    target = os.path.normcase(os.path.realpath(os.path.join(cwd, os.path.expanduser(target))))
+    return any(target == r or target.startswith(r.rstrip(os.sep) + os.sep) for r in followed_roots(top, common))
+
+
 def decide(payload):
     """The deny reason for one tool call, or '' to let it run."""
     cwd = os.path.realpath(str(payload.get("cwd") or ""))
@@ -169,13 +191,15 @@ def decide(payload):
     where = reply_hook.repo_of(str(payload.get("cwd") or ""))
     if not where or str(where[2].get("govern_hook", True)).strip().lower() in ("false", "0", "off", "no"):
         return ""
-    _, common, _ = where
+    top, common, _ = where
     try:
         claim(payload, common)
         if not is_operation(payload, common):
             return ""
         tool, given = payload.get("tool_name"), payload.get("tool_input") or {}
         if tool in EDITS:
+            if not in_followed(given, str(payload.get("cwd") or ""), top, common):
+                return ""  # a file outside every followed repo, such as the agent's memory notes (issue 2850)
             log(common, "blocked %s %s" % (tool, os.path.basename(str(given.get("file_path", "")))))
             return "%s is refused here: %s" % (tool, FIX)
         if tool == "Bash":

@@ -15,3 +15,6 @@ pods-size	fails on clean main since v0.27.17; fixed by package-cap-3
 sync-check-preview	fails on clean main since v0.27.17; fixed by package-cap-3
 sync-board-lag	fails on clean main since v0.27.17; fixed by package-cap-3
 size-140	fails on clean main since v0.27.17: skills/workflow-docs/scripts/docs.py is 18,702 bytes, past the 90% size warning; fixed by package-cap-3 (moves a block out of docs.py)
+grd1-guardrail-list	not built: the Guardrails page is a definition only, no table yet (GRD-1)
+del8-session-tokens	not built: only headless goals are refused past token_budget (DEL-8)
+grd3-hook-bypass	not built: no refusal of a commit or push that skips hooks (GRD-3)

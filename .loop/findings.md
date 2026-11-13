@@ -54,3 +54,5 @@ Open (from the issue-cleanup triage of the open non-regression issues, 2026-11-1
 - guard-enforce-red: Failed 3 tries. Last: merging main conflicts in: docs/wiki/Tests.md
 - spec-decisions: Failed 3 tries. Last: merging main conflicts in: docs/wiki/Documentation.md, docs/wiki/Regression.md
 - settings-render-windows: Failed 3 tries. Last: regression lane failed: LANE_DIRTY at start: .loop/regression-issues.tsv. Fix: commit or remove them; the lane committed and pushed nothing.
+- govern-hook-notes: Failed 3 tries. Last: merging main conflicts in: .loop/regression-runs.tsv, docs/wiki/Tests.md
+- capture-row-output: Failed 4 tries. Last: merging main conflicts in: .loop/regression-issues.tsv

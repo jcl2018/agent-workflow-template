@@ -13,7 +13,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 BUDGET_MINUTES = 30  # a scheduled regression job's budget (REG-7, AUT-7)
-SHARDS = 8  # the full suite is about 150 minutes of rows (a 4-shard run left 189 of 731 unrun); eight jobs of the 30-minute budget cover it (REG-4, REG-7)
+SHARDS = 8  # 4 shards left 189 of 731 rows unrun (REG-4, REG-7)
 
 
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
@@ -48,8 +48,8 @@ permissions:
   issues: write
   pull-requests: read
 concurrency:
-  group: regression-${{ github.ref }}  # one run per ref: a branch run no longer waits behind a release tag run
-  cancel-in-progress: true  # a newer run on the same ref cancels the one it supersedes (GRD-7)
+  group: regression-${{ github.ref }}  # one run per ref
+  cancel-in-progress: true  # GRD-7
 jobs:
   regression:
     runs-on: ubuntu-latest
@@ -104,6 +104,7 @@ jobs:
               if not os.path.exists(path):
                   return []
               return [line.rstrip("\n").split("\t") for line in open(path) if line.strip() and not line.startswith("#")]
+@ROWTAIL@
           known = {row[0] for row in rows(".loop/regression-known.tsv")}
           TARGET = os.environ.get("REGRESSION_TARGET") or os.environ.get("REGRESSION_LEVELS") or "nightly"
           if not re.fullmatch(r"land|nightly|[A-Za-z0-9_.-]+", TARGET) or TARGET not in ("land", "nightly") and \
@@ -212,7 +213,7 @@ jobs:
                   break
               if CLEANUP:
                   code, said, skipped = 125, "", True
-              elif JOB_SECONDS - (time.time() - start) < 30:  # a row gets the time that is left, up to ROW_SECONDS
+              elif JOB_SECONDS - (time.time() - start) < 30:
                   code, said, skipped = 125, "skipped: out of job time; this row did not run", True
                   unrun[0] += 1
                   with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "a") as handle:
@@ -249,7 +250,7 @@ jobs:
                   mark = "<!-- loop-regression %s placed= -->" % row[0]
                   about = "- Feature: %s\n- Guards: %s\n- Checks: %s\n\n" % (cells[0] or "-", cells[3] or "-", cells[4] or "-")
                   body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "fails", about,
-                                                                 said[-1500:].replace("`" * 3, "'" * 3))
+                                                                 shown(run, row[2], code, said))
                   if not hit:
                       make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect"]
                       made = gh(*make, *(["--label", label] if label else []), body=body)
@@ -276,7 +277,7 @@ jobs:
           if TARGET == "nightly" and not CLEANUP:
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
-                  handle.write("%s\tfull\t%d\t%s\t%d\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime()), unrun[0]))  # 5th: rows skipped for time
+                  handle.write("%s\tfull\t%d\t%s\t%d\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime()), unrun[0]))
               print("SUITE_TIME %d" % took)
           if CLEANUP:
               ids = {row[0] for row in rows(".loop/regression.tsv") if row}
@@ -312,7 +313,7 @@ jobs:
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@MATRIX@", "@SHARDS@", "@SUMMARY@", "TESTS_PY_EOF")
+UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@ROWTAIL@", "@MATRIX@", "@SHARDS@", "@SUMMARY@", "TESTS_PY_EOF")
 
 
 def render(cron, levels="nightly"):
@@ -323,10 +324,12 @@ def render(cron, levels="nightly"):
     if bad:
         sys.exit("REFUSED: tests.py contains %s, which the workflow can't carry. Fix: reword that line" % bad[0])
     body = "\n".join(("          " + line).rstrip() for line in source.rstrip("\n").split("\n"))
+    with open(os.path.join(HERE, "rowtail.py")) as handle:
+        tail = "\n".join(("          " + line).rstrip() for line in handle.read().rstrip("\n").split("\n"))
     schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron
     return WORKFLOW.replace("@SUMMARY@", SUMMARY_JOB).replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
         .replace("@BUDGET@", str(BUDGET_MINUTES)).replace("@SHARDS@", str(SHARDS)).replace("@MATRIX@", str(list(range(SHARDS)))) \
-        .replace("@TESTS@", body)
+        .replace("@TESTS@", body).replace("@ROWTAIL@", tail)
 
 
 def write(root, default):
