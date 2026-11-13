@@ -200,13 +200,14 @@ def feature_labels_on(root):
 
 def feature_group(issue, pages):
     """The feature (page name) an issue is about: the page whose feature_label it carries (two pages with one label give
-    No feature), else its milestone's title when that is a page's name (an old feature milestone), else No feature. A
-    free-form milestone such as v1.0 never makes a feature."""
+    No feature), else its milestone's title when that is a page's name (an old feature milestone) or "Backlog: <page>", else
+    No feature. A free-form milestone such as v1.0 never makes a feature."""
     names = {str(n).lower() for n in issue.get("labels") or []}
     tagged = [p for p in pages if feature_label(p).lower() in names]
     if tagged:
         return tagged[0] if len(tagged) == 1 else NO_FEATURE
     stone = title_of(issue.get("milestone"))
+    stone = stone[len("Backlog: "):] if stone.startswith("Backlog: ") else stone
     return stone if stone in pages else NO_FEATURE
 
 
@@ -278,12 +279,16 @@ def listing(root, only=None):
     if not found:
         print("TRIAGE: no open findings%s" % (" on " + only if only else ""))
         return 0
-    table, pages = {}, features(root)
+    table, pages, mix = {}, features(root), {}
     for issue in found:
         table.setdefault(feature_group(issue, pages), {}).setdefault(kind_of(issue), []).append(age(issue))
+        for label in ("defect", "backlog"):
+            mix.setdefault(feature_group(issue, pages), {}).setdefault(label, 0)
+            mix[feature_group(issue, pages)][label] += label in (issue.get("labels") or [])
     print("TRIAGE: %d open findings on %d features" % (len(found), len(table)))
     for stone in sorted(table, key=lambda s: (-sum(len(v) for v in table[s].values()), s)):
         print("== %s: %d ==" % (stone, sum(len(v) for v in table[stone].values())))
+        print("  %d defects, %d backlog" % (mix[stone]["defect"], mix[stone]["backlog"]))
         for kind, ages in sorted(table[stone].items(), key=lambda kv: (-len(kv[1]), kv[0])):
             print("  %-22s %3d open, oldest %d days, newest %d days" % (kind, len(ages), max(ages), min(ages)))
     return 0

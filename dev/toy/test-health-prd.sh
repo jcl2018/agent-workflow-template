@@ -49,7 +49,7 @@ check "report.py refuses a thirteenth group" 'python3 -c "import sys;sys.path.in
 fi
 
 if want h4; then
-echo "== HLT-4: findings become tagged issues with no milestone; repeat, fix, return; covering issues linked; old markers moved"
+echo "== HLT-4: findings become tagged issues, a defect on no milestone and a backlog item on its Backlog milestone; repeat, fix, return; covering issues linked; old markers moved"
 # Value: protects=HLT-4; fails_when=a finding is placed on a milestone, a covered finding is duplicated, an old marker is
 # closed instead of moved, a fix closes the wrong issue, or the feature tag appears with feature_labels off; why_new=every
 # issue used to be placed on its feature's milestone or Backlog; seam=fake gh; no_claim=GitHub's own label and milestone API
@@ -62,13 +62,13 @@ json.dump([{"number": 1, "title": "old size finding", "state": "OPEN", "labels":
 PY
 out=$($H preview --group size,consistency 2>&1)
 check "an old marker is moved to the new key, not closed" 'grep -q "^WOULD update #1 size:skills/calc/scripts/near.py:scripts \[health:size\]" <<<"$out" && ! grep -q "close #1" <<<"$out"'
-check "a finding is tagged with its group and no milestone is named" 'grep -q "^WOULD open issue .health: consistency /workflow-zzz frob usage-readme. \[health:consistency\]" <<<"$out" && ! grep -qi "milestone\|backlog" <<<"$out"'
+check "a finding is tagged with its group and the preview says where it goes" 'grep -q "^WOULD open issue .health: consistency /workflow-zzz frob usage-readme. \[health:consistency\]" <<<"$out" && grep -qE "\] as (defect|backlog on Backlog: .+)$" <<<"$out"'
 pf=$(r=$PWD; cd "$S" && python3 -B -c "import issues; print(issues.feature_of('$r', {'subject': 'Calc', 'evidence': 'Calc'}), issues.feature_of('$r', {'subject': 'nothing/here.py', 'evidence': ''}))" 2>&1)
 check "a page-level finding (a stale page) is about that page, one that fits none about none ($pf)" '[ "$pf" = "Calc None" ]'
 : > "$FAKE_GH_DIR/calls.log"
 $H file --group size,consistency >/dev/null 2>&1
 m=$(python3 -c "import json;print([i['milestone']['title'] for i in json.load(open('$FAKE_GH_DIR/issues.json')) if i['number']==1][0])")
-check "file leaves an issue the owner put on a milestone where it is, and makes and sets none" '[ "$m" = Backlog ] && ! grep -q -- "milestone" "$FAKE_GH_DIR/calls.log" && ! grep -q "feature:" "$FAKE_GH_DIR/calls.log"'
+check "file leaves an issue the owner put on a milestone where it is" '[ "$m" = Backlog ] && ! grep -q "feature:" "$FAKE_GH_DIR/calls.log"'
 out=$($H preview --group size,consistency 2>&1)
 check "a repeat is SAME, a key with a space (a /workflow command) included" 'grep -q "^SAME #1 " <<<"$out" && grep -q "^SAME #2 consistency:/workflow-zzz frob:usage-readme" <<<"$out" && grep -q "PREVIEW: 0 to write" <<<"$out"'
 printf '# small\n' > skills/calc/scripts/near.py; git commit -qam fixed
