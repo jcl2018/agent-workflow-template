@@ -66,6 +66,32 @@ def no_fit(root):
             for m, line in found if m and not line.rstrip().endswith("[closed]")]
 
 
+MATRIX_DAYS = 7
+MATRIX_V1 = (("Claude Code on Windows", (("claude-app", "windows"), ("claude-cli", "windows"))),  # label, cells any of which proves it
+             ("Claude Code on macOS", (("claude-app", "macos"), ("claude-cli", "macos"))),
+             ("CI on Linux", (("ci", "linux"),)))
+
+
+def matrix(root):
+    """matrix: cells of agent x machine with no passing smoke in 7 days, from .loop/matrix-runs.tsv (dev/toy/matrix-smoke.py
+    writes it; no file, no rows). An unproven cell is a WARN "not proven"; an unproven V1-required cell is a FAIL."""
+    from defects import row
+    from rules import days_since
+    try:
+        lines = [l.rstrip("\n").split("\t") for l in open(os.path.join(root, ".loop", "matrix-runs.tsv")) if l.strip() and not l.startswith("#")]
+    except OSError:
+        return []
+    proven = {(c[1], c[2]) for c in lines if len(c) >= 6 and c[5] == "pass" and (days_since(c[0]) or 0) <= MATRIX_DAYS and days_since(c[0]) is not None}
+    covered = {cell for _, cells in MATRIX_V1 for cell in cells}
+    out = [row("FAIL", "adoption", label, "matrix", "no passing smoke in %d days (V1-required)" % MATRIX_DAYS,
+               "run dev/toy/matrix-smoke.py on that machine, or the matrix job in CI", ".loop/matrix-runs.tsv")
+           for label, cells in MATRIX_V1 if not proven.intersection(cells)]
+    return out + [row("WARN", "adoption", "%s on %s" % cell, "matrix", "not proven: no passing smoke in %d days" % MATRIX_DAYS,
+                      "run dev/toy/matrix-smoke.py --agent %s there" % cell[0], ".loop/matrix-runs.tsv")
+                  for cell in ((a, o) for a in ("claude-app", "claude-cli", "codex") for o in ("windows", "macos", "linux"))
+                  if cell not in proven and cell not in covered]
+
+
 def bare_agent(command):
     """True for a claude or codex command that grants its agent no tools (so it stops at its first permission prompt)."""
     allows = {"claude": ("--allowedtools", "--allowed-tools", "--permission-mode"), "codex": ("-s", "--sandbox", "--full-auto")}

@@ -186,6 +186,11 @@ def f_no_fit(root):
     write(root, ".loop/findings.md", "# Findings\n\n- [adoption] own-sections: docs/wiki/A.md. Fix: add the contract sections by hand\n")
 
 
+def f_matrix(root):
+    repo(root)
+    write(root, ".loop/matrix-runs.tsv", "# date\tagent\tos\tmachine\tcommit\tresult\n")
+
+
 def f_agent_tools(root):
     repo(root)
     write(root, ".loop/config.json", '{"base": "main", "agent_command": ["claude", "-p"]}\n')
@@ -211,6 +216,7 @@ CONTROLS = {
     "hooks": ("security", "hooks", f_hooks),
     "no-fit": ("adoption", "no-fit", f_no_fit),
     "agent-tools": ("adoption", "agent-tools", f_agent_tools),
+    "matrix": ("adoption", "matrix", f_matrix),
 }
 for _module in ("defects", "rules"):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
