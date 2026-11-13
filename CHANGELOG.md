@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.27.55 - 2026-11-13
+
+- SET-13 pool and worker-model wording, REG-10 Linux or macOS (review sitting edits)
+- Apply the owner's 2026-11-12 review sitting: nine proposals applied, eight pages reviewed
+- Rows follow the sitting: SET-11 is Reviewed, MON-5 sits in sub-bullets, the decisions log is Applied
+- Lane: re-render the Tests tables
+- Wiki: update pages for review-sitting
+- Merge remote-tracking branch 'origin/main' into loop/review-sitting
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.54 - 2026-11-12
 
 - fix: dev/package.py gives Windows the Linux verdict (#1397)
