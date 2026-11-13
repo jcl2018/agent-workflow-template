@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.28.26 - 2026-11-13
+
+- DECISIONS: sub-bullet and owner sentences for the stale Documentation page
+- DOC-15: health and the digest run on the Mac's local schedule (owner un-reviewed Documentation and DOC-15)
+- Home: the Documentation row names health's local schedule
+- Documentation and DOC-15 reviewed again by the owner
+- Merge remote-tracking branch 'origin/main' into loop/doc15-local-schedule
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.25 - 2026-11-13
 
 - Toys read the delivery governance line as it now reads; Tests list checks match the table
