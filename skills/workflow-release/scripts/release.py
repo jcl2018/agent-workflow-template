@@ -148,15 +148,15 @@ def auto_need(top, state):
     docs = re.compile(r"^(docs|tests?|dev/toy)/|\.md$|(^|/)test[-_.]|[-_.]test\.")
     code = [r for r in rows if not docs.search(r[1])]
     msgs = git("log", "--format=%s%n%b", base + "..HEAD", cwd=top, check=False)
-    if not code:
+    import autorelease
+    fit, stop = autorelease.sibling("fit")
+    if stop:
+        sys.exit("REFUSED: %s. Fix: %s (%s)" % stop)
+    part = fit.view(state, os.path.dirname(state_path(state["slug"]))).get("bump")
+    part = part if part in ("minor", "major") else None  # the owner's recorded bump wins on any goal (issue 3787)
+    if not code and not part:
         need = ("leave", "only docs, tests or .loop changed")
     else:  # patch unless the owner set the goal's bump; a removal or BREAKING is only named (issue 170)
-        import autorelease
-        fit, stop = autorelease.sibling("fit")
-        if stop:
-            sys.exit("REFUSED: %s. Fix: %s (%s)" % stop)
-        part = fit.view(state, os.path.dirname(state_path(state["slug"]))).get("bump")
-        part = part if part in ("minor", "major") else None
         why = ["the goal's bump, set with goal.py set" if part else "a code change: patch by default"]
         gone = [p for k, p in code if k == "D"]
         why += ["removes %s" % ", ".join(gone[:3])] * bool(gone)
