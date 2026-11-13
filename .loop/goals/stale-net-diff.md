@@ -12,3 +12,5 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Run `python3 dev/stale_net_check.py`. Expect: `OK: an add and its revert leave the page current; a real change reads STALE`.
