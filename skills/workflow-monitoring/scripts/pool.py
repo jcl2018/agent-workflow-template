@@ -259,7 +259,7 @@ def pr_turn(runs, slug):
             line.append((joined, name))
         except (OSError, ValueError):
             continue
-    return min(line)[1] if min(line)[1] != slug else ""
+    return min(line)[1] if line and min(line)[1] != slug else ""
 
 
 def pr_ahead(runs, base):
