@@ -74,10 +74,6 @@ Review: **Unreviewed**
 
 - I want the median of my numbers without working it out by hand.
 
-## Usage
-
-- `/toy median LIST` — Works out the median and prints it (`MEDIAN 2`). Refuses an empty list (exit 1, `REFUSED: no numbers`).
-
 ## Requirements
 
 ### Functional

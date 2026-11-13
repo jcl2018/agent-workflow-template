@@ -25,7 +25,7 @@ mkrepo() {  # a repo with one feature (Calc, skills/calc) and a near-limit scrip
   echo '{"base": "main", "wiki_dir": "docs/wiki"}' > .loop/config.json
   printf '# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\n' > .loop/regression.tsv
   printf 'Calc\tskills/calc\n' > .loop/docs.tsv
-  printf '# Calc\n\n## Usage\n\n- /workflow-calc add adds.\n\n## Requirements\n\n### Functional\n- CAL-1: **Reviewed 2026-11-10** Calc adds.\n\n### Non-functional\n- CAL-2: **Reviewed 2026-11-10** Calc is fast.\n' > docs/wiki/Calc.md
+  printf '# Calc\n\n## Requirements\n\n### Functional\n- CAL-1: **Reviewed 2026-11-10** Calc adds.\n\n### Non-functional\n- CAL-2: **Reviewed 2026-11-10** Calc is fast.\n' > docs/wiki/Calc.md
   printf '# pad\n%.0s' $(seq 1 3400) > skills/calc/scripts/near.py
   echo 'Run /workflow-zzz frob.' > README.md
   git add -A; git commit -qm toy; echo '[]' > "$FAKE_GH_DIR/issues.json"; echo '[{"number": 1, "title": "Backlog", "state": "open"}, {"number": 2, "title": "Calc", "state": "open"}]' > "$FAKE_GH_DIR/milestones.json"
