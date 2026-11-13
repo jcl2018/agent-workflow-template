@@ -7,6 +7,7 @@ start time (a reused pid reads differently), and proctree.alive(pid) on Windows.
 POSIX: kill is os.killpg, so the child's whole session goes; pstart is ps. Windows has no process group a signal
 reaches (and os.kill(pid, 0) there sends Ctrl+C, os.getuid and ps do not exist), so kill runs taskkill /T /F, which stops
 the child and every process it started, and alive and pstart ask the process itself. Either kill is quiet when gone.
+Also here, so each skill holds one identical copy: alive_since, tmp_for and rm_tmp (lane.py), FLOW, TEMPLATE and flow_set (goal.py).
 """
 import json
 import os
