@@ -5,6 +5,8 @@ import os
 import re
 import sys
 
+from actions_summary import SUMMARY_JOB
+
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
@@ -305,61 +307,11 @@ jobs:
           path: ${{ runner.temp }}/regression-results.tsv
           if-no-files-found: ignore
           retention-days: 30
-  summary:
-    needs: regression
-    if: always()
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Download every shard's results
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          pattern: results-*
-          path: ${{ runner.temp }}/shards
-      - name: Write one run summary, one table per feature
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SHARDS: "@SHARDS@"
-        run: |
-          here=$(mktemp -d)
-          cat > "$here/tests.py" <<'TESTS_PY_EOF'
-@TESTS@
-          TESTS_PY_EOF
-          all="$here/results.tsv"; : > "$all"
-          reported=0
-          for f in "$RUNNER_TEMP"/shards/*/regression-results.tsv; do
-            [ -f "$f" ] || continue
-            reported=$(( reported + 1 )); cat "$f" >> "$all"
-          done
-          started=$(sed -n 's/^# started //p' "$all" | sort -n | head -n 1 || true)
-          case "$started" in ''|*[!0-9]*) started=$(date +%s) ;; esac  # never an expression
-          unrun=$(grep -c '^# unrun ' "$all" || true)
-          timeout 120 python3 -I "$here/tests.py" issues --write >/dev/null || true
-          took=$(( $(date +%s) - started ))
-          {
-            GH_TOKEN= python3 -I "$here/tests.py" summary --results "$all" --took "$took" || {
-              printf '## Regression\n\nThe grouped summary could not be written; see this step'"'"'s log.\n\n| Test | Result |\n|---|---|\n'
-              grep -v '^#' "$all" | awk -F'\t' '{print "| " $1 " | " $2 " |"}'
-            }
-            printf '\nSHARDS %s of %s reported. UNRUN %s (rows skipped for out of job time).\n' "$reported" "$SHARDS" "$unrun"
-          } >> "$GITHUB_STEP_SUMMARY"
-"""
+@SUMMARY@"""
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@MATRIX@", "@SHARDS@", "TESTS_PY_EOF")
+UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@MATRIX@", "@SHARDS@", "@SUMMARY@", "TESTS_PY_EOF")
 
 
 def render(cron, levels="nightly"):
@@ -371,7 +323,7 @@ def render(cron, levels="nightly"):
         sys.exit("REFUSED: tests.py contains %s, which the workflow can't carry. Fix: reword that line" % bad[0])
     body = "\n".join(("          " + line).rstrip() for line in source.rstrip("\n").split("\n"))
     schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron
-    return WORKFLOW.replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
+    return WORKFLOW.replace("@SUMMARY@", SUMMARY_JOB).replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
         .replace("@BUDGET@", str(BUDGET_MINUTES)).replace("@SHARDS@", str(SHARDS)).replace("@MATRIX@", str(list(range(SHARDS)))) \
         .replace("@TESTS@", body)
 
