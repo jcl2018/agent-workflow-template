@@ -62,7 +62,9 @@ Run it again until it stops printing `RUNNING`: a step can take many minutes. Th
 
 - `RECORDED`: the step is done, or skipped with a reason (a test step with no browser, say). Go on to what `NEXT` says.
 - `WAITING`: the step left a decision only the owner can make. Stop. It shows under Waiting on you. After the answer,
-  run `goal.py answer <slug>`, then run the step again with `--note "<the owner's answer>"`.
+  run `goal.py answer <slug>`, then run the step again with `--note "<the owner's answer>"`. If the decision is a review
+  or un-review and `.git/loop/owner-words.tsv` holds a record for it, written only by the operation session, that record
+  is the owner's words: use `criteria.py ... --user --owner-record ID` and don't ask for them again.
 - `TRY n OF 3 FAILED`: fix the cause, then run the step again.
 - `REFUSED (no try used)`: a format slip (no DEPTH or STEP line, say). Fix the reply as `NEXT` says and record again.
 

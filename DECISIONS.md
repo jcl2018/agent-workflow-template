@@ -45,3 +45,10 @@ The owner un-reviewed these requirements and approved the wording below; it is n
 - MON-4 (decision 2): title "Live board layout"; keep its bullets, and change the last to "Check-ins don't print this board; MON-5 owns the check-in reply."
 - MON-5 (decision 2): replace "and prints the full board every time" with "and each check-in prints only its reply layout, never the board"; the title and the layout list stay.
 - Monitoring Non-goals (decision 10): "It never merges unless auto_merge is on (MON-7, MON-15); the delivery loop merges and releases."
+
+## Waiting on owner un-review
+
+Drafted by the owner-relay goal, 2026-11-13. These change reviewed requirements, so they wait for the owner's own typed words: un-review DOC-2 and MON-11, approve or change the wording, then the pages are edited and reviewed again. Until then `criteria.py ... --owner-record` exists but DOC-2 still says only the owner, in their own words.
+
+- DOC-2 (the PRD is mine): replace "only I can do that." with "only I can do that, in my own words: typed by me, or recorded verbatim by the operation session from my own message." and add the bullet "A recorded message counts only for the requirement IDs or pages it lists, once for a review and once for an un-review, and every use is logged with its words."
+- MON-11 (full auto mode): replace its first bullet with "A setting, on by default. When it is on, the operation session applies each routine recommendation without asking, logs the question, the answer and why, and lists them in the next check-in; only the decisions in the next bullet and those that need my own words wait under Needs you." and add the bullet "When a decision needs my words, I answer in the operation session, which records my message verbatim with the IDs it covers (sessions.py owner-words) for the workers to use."
