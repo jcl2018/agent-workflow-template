@@ -3,7 +3,7 @@
 # reads: skills/workflow-monitoring/scripts/operate.py skills/workflow-monitoring/scripts/checkin.py skills/workflow-monitoring/scripts/board.py
 # reads: skills/workflow-monitoring/scripts/board_lines.py skills/workflow-monitoring/scripts/graph.py skills/workflow-monitoring/scripts/live_board.py
 # reads: skills/workflow-monitoring/scripts/reply_hook.py skills/workflow-monitoring/scripts/govern_hook.py docs/wiki/Monitoring.md
-# reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/watch.py skills/workflow-monitoring/scripts/session_bind.py
+# reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/watch.py skills/workflow-monitoring/scripts/worker.py
 # reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/auto.py skills/workflow-monitoring/scripts/board_status.py
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-release/scripts/merge.py dev/package.py
 # Pods (MON-13, MON-14, MON-15): two layers per pod with several independent operation sessions, the check-in's per-repo

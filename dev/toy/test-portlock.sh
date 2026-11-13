@@ -1,14 +1,14 @@
 #!/bin/bash
 # reads: skills/
 # reads: skills/workflow-regression/scripts/slots.py skills/workflow-delivery/scripts/lanekit.py
-# reads: skills/workflow-monitoring/scripts/session_bind.py skills/workflow-setup/scripts/update.py
+# reads: skills/workflow-monitoring/scripts/worker.py skills/workflow-setup/scripts/update.py
 # Native Windows has no fcntl: each skill's lock module falls back to msvcrt byte-range locks. This hides fcntl, plants a fake
 # msvcrt and checks the fallback in all four skills: a held lock makes LOCK_NB raise BlockingIOError, a free one is taken,
 # unlock never raises, and the file position is put back. usage: test-portlock.sh
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
 fails=0
-for pair in workflow-regression:slots workflow-delivery:lanekit workflow-monitoring:session_bind workflow-setup:update; do
+for pair in workflow-regression:slots workflow-delivery:lanekit workflow-monitoring:worker workflow-setup:update; do
   skill=${pair%%:*}; mod=${pair##*:}
   out=$(cd "$here/skills/$skill/scripts" && python3 - "$mod" <<'PY' 2>&1
 import importlib, os, sys, tempfile, types

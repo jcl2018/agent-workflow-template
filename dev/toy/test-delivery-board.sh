@@ -2,7 +2,7 @@
 # reads: skills/workflow-delivery/scripts/fit.py skills/workflow-delivery/scripts/goal.py
 # reads: skills/workflow-health/scripts/cost.py skills/workflow-monitoring/scripts/board_lines.py
 # reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/live_board.py
-# reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/session_bind.py
+# reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/worker.py
 # reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/worker.py
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-monitoring/scripts/
 # Proves the delivery-prd monitoring half on a made-up repo: the live board's budget line (DEL-8: minutes and tokens,
@@ -165,7 +165,7 @@ fi
 
 if [ -z "$only" ]; then
   echo "== sizes"
-  for f in board_lines.py live_board.py mend.py session_bind.py sessions.py; do
+  for f in board_lines.py live_board.py mend.py worker.py sessions.py; do
     check "$f stays under 20,480 bytes" '[ "$(wc -c < "$S/$f")" -lt 20480 ]'
   done
   check "this test stays under 20,480 bytes" '[ "$(wc -c < "$here/dev/toy/test-delivery-board.sh")" -lt 20480 ]'
