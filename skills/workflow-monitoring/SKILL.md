@@ -44,7 +44,7 @@ prompt says to stop at the pull request and never merge. A batch answers `leave`
 `release: ask` waits for the user.
 
 A goal waits only on goals it `depends-on`, never because it shares files: before its pull request a goal merges the
-latest base, and only a real conflict costs it a try. A failed goal never
+latest base; a conflict with it is not a counted try (it has its own cap, `max_moved`). A failed goal never
 stops the others.
 
 ### Mending and usage limits

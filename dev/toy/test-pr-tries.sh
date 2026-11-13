@@ -45,12 +45,12 @@ out=$($goal pr m1 2>&1); echo "$out" | sed 's/^/  /'
 check "main appended rows to the regression file: pr mends the merge, says so, opens the PR, spends no try" 'grep -q "^MENDED .loop/regression.tsv" <<<"$out" && grep -q "^PR " <<<"$out" && [ "$(field m1 tries)" = 0 ]'
 check "both sides rows survive, nothing duplicated, no conflict markers" '[ "$(grep -c "^m1-row" .loop/regression.tsv)" = 1 ] && [ "$(grep -c "^main-row" .loop/regression.tsv)" = 1 ] && [ "$(grep -c "^base-row" .loop/regression.tsv)" = 1 ] && ! grep -q "^[<>=]\{7\}" .loop/regression.tsv && [ ! -e "$(git rev-parse --git-dir)/MERGE_HEAD" ]'
 
-echo "== a real conflict still costs a try"
+echo "== a real conflict is a try lost to main moving: not counted, with its own cap (#3877)"
 git switch -q main; $goal new m2 --here --goal "M2" --done "m2" >/dev/null; printf '# from m2\n' >> calc.py; row m2-row >> .loop/regression.tsv; git commit -qam m2; flowall m2; git switch -q main
 mainmoves bash -c "printf '# from main\n' >> calc.py; $(declare -f row); row main-row2 >> .loop/regression.tsv"
 git switch -q loop/m2
 out=$($goal pr m2 2>&1); echo "$out" | sed 's/^/  /'
-check "a code file in the conflict is a real conflict: it costs a try, names the files, leaves the tree clean" 'grep -q "^TRY 1 OF 3 FAILED: merging main conflicts in: .*calc.py" <<<"$out" && [ "$(field m2 tries)" = 1 ] && [ ! -e "$(git rev-parse --git-dir)/MERGE_HEAD" ] && [ -z "$(git status --porcelain --untracked-files=no)" ]'
+check "a code file in the conflict is a real conflict: it is reported and not counted against max_tries, and the tree stays clean" 'grep -q "^TRY NOT COUNTED (main moved: 1 of 5; .*calc.py" <<<"$out" && [ "$(field m2 tries)" = 0 ] && [ "$(field m2 moved)" = 1 ] && [ ! -e "$(git rev-parse --git-dir)/MERGE_HEAD" ] && [ -z "$(git status --porcelain --untracked-files=no)" ]'
 git switch -q main
 
 echo "== the mend itself, on a merge in progress"
