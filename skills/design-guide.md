@@ -16,7 +16,7 @@ its skills without losing its data (`loop-files.md` lists every file).
 | Setup and update | `workflow-setup` | `setup` surveys and adopts a repo on a branch; `update` refreshes the skills only |
 | The loop | `workflow-delivery`, `workflow-release` | A goal: freeze the done lines, then idea, plan, build, checks, review, qa, ship, pull request, release step |
 | Operation and workers | `workflow-monitoring` | One governing session assigns and watches; each worker is a background agent in its own worktree and never merges |
-| Documentation | `workflow-docs` | Feature pages as short PRDs: Problem, Usage, Requirements, Non-goals, Success metrics, Tests. A Reviewed requirement's wording is locked by a hash |
+| Documentation | `workflow-docs` | Feature pages as short PRDs: Problem, Requirements, Non-goals, Success metrics, Tests. A Reviewed requirement's wording is locked by a hash |
 | Regression | `workflow-regression` | Rows in `.loop/regression.tsv`, the scheduled GitHub workflow (every 4 hours by default), an issue per failing row |
 | Health | `workflow-health` | Fixed rules, same answer every time, one `HEALTH:` verdict; `preview` shows the issues, `file --group` files only the named groups as tagged issues (group and feature tags; milestones are optional and free form); `automation.py` writes the scheduled health workflow and posts the digest, `mail.py` emails it |
 

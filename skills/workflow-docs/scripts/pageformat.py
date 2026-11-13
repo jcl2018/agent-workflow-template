@@ -20,7 +20,6 @@ RULE = re.compile(r"^\|(\s*:?-+:?\s*\|)+$")
 PATH = re.compile(r"(?<![\w/])/[\w.-]+/")
 EXT = re.compile(r"\.(py|sh|json|tsv|md)\b")
 ME = re.compile(r"\b(I|[Mm]y|[Mm]e)\b")
-ENTRY = re.compile(r"^- `([^`]+)` — (\S.*)$")
 
 
 def is_guide(text):
@@ -181,42 +180,6 @@ def frontdoor(readme, features):
             if "`" in said or not re.match(r'^"[^"]+"(\s*/\s*"[^"]+")*$', said) or re.match(r'^"?\s*(/|python|bash)', said):
                 out.append(bad("README", at, name, 5, "You say is a quoted phrase, not a command", short(said),
                                "write what the owner says, in quotes, with no backticks"))
-    return out
-
-
-def known(syntax, maps, own):
-    """Whether a Usage heading's command is in a Command map: a '/skill verb' in that skill's, else its first word
-    (or the routine after python3/bash) in one of the page's skills' maps (either column)."""
-    ask = re.match(r"/([\w-]+)\s+([\w-]+)", syntax)
-    if ask:
-        return bool(re.search(r"`/%s %s[ `]" % (re.escape(ask.group(1)), re.escape(ask.group(2))), maps.get(ask.group(1), "")))
-    tokens = syntax.split()
-    if not tokens:  # backticks holding only spaces name no command
-        return False
-    word = tokens[1] if tokens[0] in ("python3", "python", "bash", "sh") and len(tokens) > 1 else tokens[0]
-    word = word.rsplit("/", 1)[-1]
-    texts = [maps[k] for k in own if k in maps] or list(maps.values())
-    return any(re.search(r"(?<![\w.-])%s(?![\w.-])" % re.escape(word), text) for text in texts)
-
-
-def usage(page, name, lines, maps, own):
-    """DOC-6: one '- `syntax` — what it does' bullet per command, nothing else but blank lines. Each names what it
-    prints (a backticked output after the dash, or 'prints'/'ends with'), and its command is in its skill's Command map."""
-    out = []
-    for number, line in lines:
-        if not line.strip():
-            continue
-        head = ENTRY.match(line)
-        if not head:
-            out.append(bad(page, number, name, 6, "only '- `syntax` — what it does' entries, one per command", short(line),
-                           "write it as one entry, or remove it"))
-            continue
-        if not known(head.group(1), maps, own):
-            out.append(bad(page, number, name, 6, "the command is in its skill's Command map", short(head.group(1)),
-                           "use a command from the skill's ## Command map"))
-        if "`" not in head.group(2) and not re.search(r"\b(prints|ends with)\b", head.group(2), re.I):
-            out.append(bad(page, number, name, 6, "each entry says what it prints", short(head.group(1)),
-                           "add what it prints on success, in backticks"))
     return out
 
 

@@ -32,7 +32,7 @@ unchanged repo print the same lines.
 | | `row-requirement` | a row guards an id no page defines and isn't a done line `slug:N` (FAIL) |
 | Consistency (do the pages agree?) | `ids-unique` | a requirement id is defined on two pages (FAIL) |
 | | `refs` | a page names an id of a known prefix that no page defines (FAIL) |
-| | `usage-readme` | the README names a `/workflow-x verb` no page's Usage names (WARN) |
+| | `usage-readme` | the README names a `/workflow-x verb` no skill's Command map names (WARN) |
 | Docs (does each page match the template and the code?) | `docs-check` | `docs.py check`: a stale page WARNs, any other gap FAILs (its requirement count belongs to Size); no check reads a milestone |
 | Freshness (is anything out of date?) | `nightly` | the newest nightly run is older than a day (WARN) |
 | | `unreleased` | commits after the newest `v*` tag, the oldest over 3 days old (WARN) |

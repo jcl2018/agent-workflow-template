@@ -8,7 +8,6 @@ them refuse.
 sections: Problem, Requirements, Non-goals, Success metrics, Tests
 problem_lines: 3
 metrics_lines: 3
-usage_section: Usage
 runbook_section: Runbook
 runbook_fields: Serves, Schedule, Steps, Full run, Output, Never, Check
 deployments_section: Deployments
@@ -27,22 +26,18 @@ format: home, frontdoor, usage, bullets, problem, tests, deployments, runbook
 
 The first line is `<!-- workflow-docs -->`, then `# <Feature>`, then an optional free-form `Milestone: <url>` line (a
 milestone is never required), then the PRD review line, then the sections in the order of `sections`, and nothing else. The
-optional `usage_section` and `runbook_section` go between Problem and Requirements (Usage first), and the optional `deployments_section` between Success
+optional `runbook_section` goes between Problem and Requirements, and the optional `deployments_section` between Success
 metrics and Tests. `format` lists which shape checks (DOC-4..DOC-9 and DOC-14) run,
 default all; each refusal reads `FORMAT <Page>:<line>: <Section>: DOC-n <what> (got <value>). Fix: <how>`.
 
 - **Review line**: `Review: **Unreviewed**`, or `Review: **Reviewed YYYY-MM-DD** <!-- prd P=… R=… N=… M=… U=… -->`
   written by `criteria.py review PAGE --user`: one 8-hex fingerprint each for Problem, Requirements, Non-goals, Success
-  metrics and Usage. Only the owner reviews a PRD. While it is Reviewed, a change to Problem, Requirements, Non-goals
-  or Success metrics fails the check (`LOCKED`), and a change to Usage alone (edited, added or removed) shows as
-  `CHANGED` until the owner reviews the PRD again. Requirement stamps are not part of the fingerprints; sub-bullets are.
+  metrics (Usage was dropped on 2026-11-13; a trailing `U=` is still read, never reported). Only the owner reviews a PRD. While it is Reviewed, a change to Problem, Requirements, Non-goals
+  or Success metrics fails the check (`LOCKED`). Requirement stamps are not part of the fingerprints; sub-bullets are.
 - **Problem** (`problem`, DOC-8): 1 to `problem_lines` bullets (`- `), the user's problem in their words, at least one
   in the first person (I, my, me). No backticks, no path (`/x/`), no file extension (`.py`, `.sh`, `.json`, `.tsv`,
   `.md`) and no word from `problem_banned` (whole word, any case).
-- **Usage** (optional, `usage`, DOC-6): an API reference. One entry per command, each a single bullet
-  ``- `<syntax>` — <what it does>``: the exact syntax, what it prints on success (a backticked output, or "prints"/
-  "ends with"), and each refusal with its message and exit code, and nothing else but blank lines. The command's first word (or a `/skill verb`, or the routine after python3) must be in that skill's
-  `## Command map`, either column. Left out when nothing applies; never empty.
+- **Usage** is gone (the owner, 2026-11-13): a page with a `## Usage` section fails with `USAGE`. A feature has no API, so the commands are in each skill's `## Command map` and `references/commands.md`, and the README's "How to use" table is the front door.
 - **Runbook** (optional, `runbook`, DOC-16): for a feature that owns a scheduled or on-demand routine, what an agent
   given only "run routine X" must read first. One `### <routine>` subsection per routine (lowercase letters, digits and
   hyphens), each holding every field of `runbook_fields` as ``- **Field:** text`` (indented lines continue it), each
@@ -112,10 +107,6 @@ Review: **Unreviewed**
 ## Problem
 
 - I run paid repos, and I can't charge every card once a month without doing it by hand.
-
-## Usage
-
-- `/billing charge` — Charges every card that is due. Prints one `CHARGED <card>` line per card. Refuses nothing.
 
 ## Requirements
 

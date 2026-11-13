@@ -305,7 +305,7 @@ def cmd_publish(args):
     if config(root).get("criteria"):
         import render
         render.refresh(root)  # the Settings and Automation blocks are written fresh, so the wiki gets them
-    found = problems(root, None) + [c for c in contract(root) if c[0] != "CHANGED"]  # Usage drift waits on the owner
+    found = problems(root, None) + [c for c in contract(root) if c[0] != "CHANGED"]  # kept for older pages; Usage is gone
     found += [c for c in counts(root) if c[1].startswith(wiki_dir(root) + "/")]
     if found:
         for kind, page, detail in found:

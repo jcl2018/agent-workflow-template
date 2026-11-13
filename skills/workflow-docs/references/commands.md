@@ -59,7 +59,7 @@ no later commit to the page has it in its history. Merge commits don't count, so
 after a merge. Only a commit that changes the page clears `STALE`.
 
 With `"criteria": true` in the config, every feature page is a short PRD (`references/template.md` holds the rules and
-an example page): the Review line, then Problem, an optional Usage, Requirements, Non-goals, Success metrics, an
+an example page): the Review line, then Problem, Requirements, Non-goals, Success metrics, an
 optional Deployments (DOC-14: a Page table and/or a Delivery table for what the feature ships) and Tests, in that order
 and nothing else. Requirements are the owner's lines (`- DEL-1: **Unreviewed** text`, up to
 `criteria_max`, default 10); tests are for the machine: a regression row linked to one requirement by its goal column,
@@ -72,7 +72,7 @@ described as one `Given ..., when ..., then ...` scenario, rendered under its re
 | Unreviewed | `Review: **Unreviewed**` | 0 | clean | goes ahead | publishes | the owner reviews the PRD when ready |
 | Reviewed | the owner ran `review PAGE --user` | 0 | lists requirements with no passing test as `UNTESTED` (not a failure) | goes ahead | publishes | the loop writes the tests |
 | `LOCKED` | Problem, Requirements, Non-goals or Success metrics changed after the review | 1 | fails | blocked | refused | an agent restores the text (`git log -p`), or the owner un-reviews |
-| `CHANGED` | Usage edited, added or removed after the review | 1 (board lists it) | ignored | goes ahead | publishes | only the owner: `review PAGE --user` again |
+| `USAGE` | a page still has a `## Usage` section (dropped 2026-11-13) | 1 | fails | fails | fails | remove the section; the commands are in the skill's Command map and `references/commands.md` |
 | `UNWRITTEN` | a placeholder line is still on the page | 1 | fails | blocked | refused | an agent writes the drafts |
 | `SCENARIO` | a row on the page is not Given/When/Then | 0 | fails | blocked | publishes | an agent rewrites the row's description |
 
@@ -243,7 +243,7 @@ Detail the skill's SKILL.md points to, kept word for word so no instruction is l
 
 1. the title, an optional free-form `Milestone:` line, then `Review: **Unreviewed**` (or the owner's Reviewed line);
 2. `## Problem`: who it's for and what it solves, at most `problem_lines` lines;
-3. `## Usage` (optional): the commands, as `/skill verb` asks or plain requests;
+3. (no Usage section: the commands are in the skill's Command map and `references/commands.md`);
 4. `## Requirements`: up to `criteria_max` (default 10) lines `- DEL-3: **Unreviewed** what must hold`, short and plain,
    no script names; ids are stable: take the next free id (`criteria PAGE` prints it), never reuse or renumber one;
 5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
@@ -255,17 +255,15 @@ Lines: `SECTIONS` (wrong, extra or out-of-order sections, or text before the fir
 `NONGOALS`, `METRICS`, `CRITERION`, `CAP`, `SCRIPT`, `USAGE`, `TESTS` (run `render`), `LOCKED`, `CHANGED`.
 
 Since the docs format (DOC-4..DOC-10), the shapes in `references/template.md` win over items 2, 3, 4 and 6 above: Problem
-is 1 to `problem_lines` first-person bullets, Usage is `` ### `syntax` `` entries with Prints and Refuses bullets,
+is 1 to `problem_lines` first-person bullets,
 Requirements sit under `### Functional` and `### Non-functional` with `  - ` sub-bullets, and Tests is one table
 linking the generated Tests page. Their refusals are `FORMAT <Page>:<line>: <Section>: DOC-n ...` lines, and a
 generated Tests page behind a fresh render is `STALE Tests`.
 
 ### Review locks
 
-`review PAGE` stamps the Review line with a fingerprint each of Problem, Requirements, Non-goals, Success metrics and
-Usage. After it, a change to any of the first four is `LOCKED` (check, audit and release fail); a change to Usage alone
-is `CHANGED`: check exits 1 and the board lists it, the audit, release and publish ignore it, and only the owner's next
-`review PAGE` clears it. A reviewed requirement line is locked on its own as well. To edit a reviewed requirement the
+`review PAGE` stamps the Review line with a fingerprint each of Problem, Requirements, Non-goals, Success metrics (and
+the retired Usage print, still written and never reported). After it, a change to any of them is `LOCKED` (check, audit and release fail). A reviewed requirement line is locked on its own as well. To edit a reviewed requirement the
 owner un-reviews that requirement and the PRD, then reviews both again.
 
 ### Tests follow on their own

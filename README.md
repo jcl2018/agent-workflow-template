@@ -246,11 +246,10 @@ To write the first pages, ask the agent to set up the docs: it follows the skill
 undoes the last publish.
 
 With `"criteria": true` in the config, `check` also holds the wiki to a contract: Home is free-form and each feature page
-is a short PRD: Problem, an optional Usage, up to 6 requirements (`criteria_max`) marked Unreviewed or Reviewed with a
+is a short PRD: Problem, up to 6 requirements (`criteria_max`) marked Unreviewed or Reviewed with a
 date, Non-goals, Success metrics, and Tests: each requirement's regression rows as Given/When/Then scenarios with their
 last result. Only the owner reviews a PRD (`/workflow-docs review PAGE`); after that Problem, Requirements, Non-goals and
-Success metrics are locked until the owner un-reviews it, and a Usage change shows as changed until the owner reviews it
-again. `/workflow-docs prd NAME "<idea>" --paths A,B` drafts a new feature's PRD.
+Success metrics are locked until the owner un-reviews it. `/workflow-docs prd NAME "<idea>" --paths A,B` drafts a new feature's PRD.
 
 Upgrading a repo whose pages still have Summary and Criteria:
 
