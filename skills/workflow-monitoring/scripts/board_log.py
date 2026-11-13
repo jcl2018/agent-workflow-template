@@ -91,24 +91,33 @@ def holding(entry, paused):
     return False if text.split(" ", 1)[0].rstrip(":") in FLOW or UNHOLD.match(text) else paused
 
 
+# An entry that says the goal waits on someone else: the pr queue (goal.py pr), an owner question (a step that waits for or
+# is pending on the owner, a refusal that asks, a waiting entry). The gap after it is held time (#3878).
+WAIT = re.compile(r"waiting\b|[a-z]+ waits for the owner|[a-z]+ pending: |refused \(no try used\)")
+
+
+def waiting(entry):
+    return bool(WAIT.match((str(entry).split(" ", 1) + [""])[1]))
+
+
 def flow_seconds(run, at, held=None):
     """Time per step with one rule for past and live runs: a gap before an entry naming a step counts toward that step;
     any other gap counts toward the step in force (the last one named, or the next after a finished one). A gap after a
-    stopped, failed or waiting entry is a pause and counts nothing, and so is every gap while a hold or free pause is in
+    stopped or failed entry, or one that waits (see waiting), is a pause and counts nothing, and so is every gap while a hold or free pause is in
     force (see holding). The time since the last entry counts while running, unless the goal is held: held is True or
     False when the session pool says so, and None when it is unknown, when a pause in force at the last entry stops it."""
     found, force, paused, log = {}, None, False, run.get("log") or []
     for before, entry in zip(log, log[1:]):
         a, b, word = stamp(before), stamp(entry), named(entry)
         paused = holding(before, paused)
-        pause = paused or (str(before).split(" ", 2) + ["", ""])[1].rstrip(":") in ("stopped", "failed", "waiting")
+        pause = paused or waiting(before) or (str(before).split(" ", 2) + ["", ""])[1].rstrip(":") in ("stopped", "failed")
         step = word if word in STEPS and not re.search(r"\bstep [a-z]+, running", str(entry)) else force
         if a and b and step in STEPS and not pause:
             found[step] = found.get(step, 0) + max(0, (b - a).total_seconds())
         force = after(entry) or force
     last = stamp(log[-1]) if log else None
     step = run.get("step") if run.get("step") in STEPS else force
-    idle = held if held is not None else bool(log) and holding(log[-1], paused)
+    idle = bool(log) and waiting(log[-1]) or (held if held is not None else bool(log) and holding(log[-1], paused))
     if run.get("status") == "running" and step in STEPS and last and not idle:
         found[step] = found.get(step, 0) + max(0, (at - last).total_seconds())
     return found
