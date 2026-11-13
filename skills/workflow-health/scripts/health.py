@@ -252,7 +252,7 @@ def mine_rows(root):
 
 def cost_rows(root):
     cost = sibling_module("cost")
-    return (cost.cost_rows(root, HERE) + cost.timing_rows(root)) if cost else \
+    return (cost.cost_rows(root, HERE) + cost.limit_rows(root) + cost.timing_rows(root)) if cost else \
         [row("UNREAD", "cost", "cost.py", "cost", "cost.py is missing")]  # timing_rows: REG-7
 
 

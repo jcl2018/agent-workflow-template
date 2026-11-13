@@ -124,6 +124,48 @@ def cost_rows(root, here):
     return rows
 
 
+def number(config, key, default):
+    value = config.get(key, default)
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else default
+
+
+def limit_rows(root):
+    """GRD-2: WARN rows for the live goals past max_merge_rounds, for more live goals than max_active_goals, and for weekly plan
+    usage (pool.py usage N, kept in the git common dir) above plan_pause_percent. Each limit that is 0 is off."""
+    try:
+        with open(os.path.join(root, ".loop", "config.json")) as handle:
+            config = json.load(handle)
+        done = subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=root, capture_output=True, text=True)
+        loop = os.path.join(os.path.abspath(os.path.join(root, done.stdout.strip() or ".git")), "loop")
+    except (OSError, ValueError):
+        return []
+    rows, live, rounds = [], 0, number(config, "max_merge_rounds", 3)
+    for path in glob.glob(os.path.join(loop, "runs", "*.json")):
+        try:
+            with open(path) as handle:
+                state = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(state, dict) or state.get("status") in ("done", "merged", "retired", "failed", "stopped"):
+            continue
+        live += 1
+        if rounds and "MERGE_ROUNDS" in str((state.get("waiting") or {}).get("ask", "")):
+            rows.append(row("WARN", state.get("slug") or os.path.basename(path)[:-5], "rounds", "waits after more than %d merge-main-and-rerun rounds" % rounds,
+                            "land it when main is quiet, or raise max_merge_rounds, then goal.py answer"))
+    active = number(config, "max_active_goals", 20)
+    if active and live > active:
+        rows.append(row("WARN", "goals", "active", "%d goals live, over max_active_goals %d" % (live, active), "finish or stop goals, or raise max_active_goals"))
+    try:
+        with open(os.path.join(loop, "plan-usage.json")) as handle:
+            used = float(json.load(handle)["percent"])
+        pause = number(config, "plan_pause_percent", 80)
+        if pause and used > pause:
+            rows.append(row("WARN", "plan", "usage", "weekly plan usage %g%%, over plan_pause_percent %d%%; no new goal starts" % (used, pause), "wait for the plan to reset, or raise plan_pause_percent"))
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    return rows
+
+
 def timing_row(state, subject, detail, fix=""):
     return {"state": state, "family": "cost", "subject": subject, "rule": "time", "detail": detail, "fix": fix}
 

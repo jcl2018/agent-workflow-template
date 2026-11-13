@@ -135,6 +135,63 @@ def tokens_text(run):
     return "%s tokens" % format(spent_tokens(run), ",") if any(isinstance(n, int) and n for n in value.values()) else "tokens unread"
 
 
+TEMPLATE = """# {goal}
+
+- Slug: {slug}
+- Touches: {touches}
+
+## Done lines
+
+Frozen. A wrong done line needs a new goal.
+
+{done}
+
+## Verify by hand
+
+<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+"""
+
+
+def budget_stop(slug, state, runs, cfg):
+    """GRD-2: a goal past its time or token budget starts no new step; only the operation's goal.py set raises it."""
+    import datetime
+    held, source = budget(view(state, runs), cfg)
+    try:
+        began = datetime.datetime.strptime(state["log"][0].split()[0], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+        minutes = int((datetime.datetime.now(datetime.timezone.utc) - began).total_seconds() // 60)
+    except (KeyError, IndexError, ValueError, AttributeError):
+        minutes = 0
+    for name, spent in (("minutes", minutes), ("tokens", spent_tokens(state))):
+        if held[name] and spent >= held[name]:
+            sys.exit("REFUSED: %d %s spent, at the %s budget of %d (%s); no new step starts. Fix: goal.py set %s --budget-%s N "
+                     "--why ... from the operation session (BUDGET_%s)" % (spent, name, name[:-1] if name == "minutes" else name,
+                                                                         held[name], source, slug, name, name.upper()))
+
+
+def add_tokens(state, step, given):
+    """A session worker's token count for a step; 'unknown' or none adds nothing, so the board keeps saying tokens unread."""
+    if str(given).isdigit():
+        held = state.get("tokens") if isinstance(state.get("tokens"), dict) else {}
+        old = held.get(step) if isinstance(held.get(step), int) else 0
+        state["tokens"] = dict(held, **{step: int(given) + old})
+
+
+def round_stop(g, state, what):
+    """Count a merge-main-and-rerun round (a merge or a conflict); one past max_merge_rounds (default 3) puts the goal under Needs you."""
+    if what not in ("merged", "conflict"):
+        return
+    limit, count = g.config().get("max_merge_rounds"), state.get("merge_rounds", 0) + 1
+    limit = limit if isinstance(limit, int) and not isinstance(limit, bool) and limit > 0 else 3
+    state["merge_rounds"] = 0 if count > limit else count
+    if count > limit:
+        ask = ("merge round %d would pass max_merge_rounds (%d); main keeps moving. Fix: land it when main is quiet or raise "
+               "max_merge_rounds, then goal.py answer %s (MERGE_ROUNDS)" % (count, limit, state["slug"]))
+        state["status"], state["waiting"] = "waiting", {"ask": ask, "words": ["go on " + state["slug"], "stop " + state["slug"]]}
+    g.save(state, ask if count > limit else None)
+    if count > limit:
+        g.no(ask)
+
+
 def recorded(state, step):
     return str((state.get("flow") or {}).get(step, "")).startswith(("done", "skipped"))
 

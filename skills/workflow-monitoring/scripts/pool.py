@@ -9,6 +9,7 @@ usage: pool.py <command> [options]
                       low (fewer free sessions than ready goals), then K = pool_size - total (every missing session)
   add ID [ID ...]     register sessions the operation session just created with the app, as free (POOLED)
   decline             the owner said "no pool": hide the ask until K grows past today's K (cleared once K is 0)
+  usage PERCENT       record the account's weekly plan usage (the operation session reads it from the app); above plan_pause_percent no goal starts
   return SLUG         a goal ended: its sessions go back to the pool, or are marked archive when the total is above
                       pool_size (the check-in tells the operation session to archive them with the app); a merged
                       goal's worktree and loop/SLUG branch are removed (a dirty worktree is kept and named)
@@ -20,10 +21,12 @@ Attempt identity (issue 114): each bind raises the run's `attempt`; a report tha
 not applied (attempt_ok). A freed session keeps who it was freed from in `history`, so a reuse never loses it.
 """
 import argparse
+import datetime
 import json
 import os
 import subprocess
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
@@ -55,6 +58,34 @@ def counts(found):
 def status_line(found, cfg):
     free, busy, total = counts(found)
     return "pool: %d free, %d busy, %d total (target %d)" % (free, busy, total, size_of(cfg))
+
+
+def number(cfg, key, default):
+    """A whole number setting; unset gives the default, 0 turns the limit off, anything unreadable gives the default."""
+    value = cfg.get(key, default)
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else default
+
+
+def active_limit(cfg):
+    """Goals live at once: the smaller of `parallel` and `max_active_goals` (default 20); 0 means no limit."""
+    caps = [n for n in (graph.parallel_of(cfg), number(cfg, "max_active_goals", 20)) if n]
+    return min(caps) if caps else 0
+
+
+def plan_usage():
+    """The account's weekly plan usage in percent, as the operation session recorded it (`pool.py usage N`) in the last 12 hours, else None."""
+    try:
+        held = se.read(os.path.join(se.base(), "plan-usage.json"), {})
+        age = time.time() - graph.parse_at(held["at"]).timestamp()
+        return float(held["percent"]) if 0 <= age < 43200 else None
+    except (KeyError, TypeError, ValueError, AttributeError, OSError):
+        return None
+
+
+def plan_pause(cfg):
+    """Why no new goal starts, or '': weekly plan usage above plan_pause_percent (default 80, 0 turns it off). Unread usage never pauses."""
+    limit, used = number(cfg, "plan_pause_percent", 80), plan_usage()
+    return "plan usage %g%% is above plan_pause_percent %d%%; no new goal starts until it falls (PLAN_PAUSE)" % (used, limit) if limit and used is not None and used > limit else ""
 
 
 def board_line(found, root):
@@ -233,6 +264,12 @@ def cmd_return(args):
     return 0
 
 
+def cmd_usage(args):
+    se.write(os.path.join(se.base(), "plan-usage.json"), {"percent": args.percent, "at": graph.iso(datetime.datetime.now(datetime.timezone.utc))})
+    print("PLAN USAGE %g%% recorded: %s" % (args.percent, plan_pause(config()) or "no pause"))
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -244,9 +281,11 @@ def main():
     item.add_argument("ids", nargs="+")
     item = sub.add_parser("return")
     item.add_argument("slug")
+    item = sub.add_parser("usage")
+    item.add_argument("percent", type=float)
     args = parser.parse_args()
     try:
-        return {"status": cmd_status, "need": cmd_need, "add": cmd_add, "decline": cmd_decline, "return": cmd_return}[args.cmd](args)
+        return {"status": cmd_status, "need": cmd_need, "add": cmd_add, "decline": cmd_decline, "return": cmd_return, "usage": cmd_usage}[args.cmd](args)
     except se.PoolUnreadable as error:
         sys.exit("REFUSED: " + graph.pool_fix(error))
 

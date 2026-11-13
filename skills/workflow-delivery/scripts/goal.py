@@ -6,7 +6,7 @@ usage: goal.py <command> <slug> [options]
   new SLUG --here --goal TEXT --done LINE [--touches A,B] [--release R]
   queue SLUG --goal TEXT --done LINE [--touches A,B] [--depends-on A,B]
   step SLUG NAME [--note TEXT] [--tokens N]
-  record SLUG STEP --file REPLY [--in-session]
+  record SLUG STEP --file REPLY [--in-session] [--tokens N|unknown]
   pr SLUG  merge the latest base, push, open the PR
 Goal steps (step, record, pr) refuse outside a worker.
   wait SLUG --ask TEXT --words W [--words W]
@@ -55,21 +55,8 @@ NO_FLOW = ("no skill flow is set. Fix: write %s naming your idea, plan, review, 
 
 MAX_TRIES = 3
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,50}$")
-TEMPLATE = """# {goal}
 
-- Slug: {slug}
-- Touches: {touches}
 
-## Done lines
-
-Frozen. A wrong done line needs a new goal.
-
-{done}
-
-## Verify by hand
-
-<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
-"""
 def no(text):
     sys.exit("REFUSED: " + text)
 
@@ -250,7 +237,7 @@ def cmd_new(args):
     fields = fit.frozen_fields(sys.modules[__name__], args, lines, touches)
     path = goal_file(args.slug)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    write(path, TEMPLATE.format(goal=" ".join(args.goal.split()), slug=args.slug,
+    write(path, fit.TEMPLATE.format(goal=" ".join(args.goal.split()), slug=args.slug,
                                 touches=", ".join(touches) or "not declared", done="\n".join(lines)))
     git("add", path)
     git("commit", "-m", "Goal: %s" % args.slug, "--", path)
@@ -280,6 +267,7 @@ def cmd_set(args):
 
 def cmd_step(args):
     state = load(args.slug)
+    fit.budget_stop(args.slug, state, state_dir(), config())
     state["step"] = args.name
     if args.tokens:
         state["tokens"] = dict(state.get("tokens") or {}, **{args.name: args.tokens})
@@ -297,6 +285,7 @@ def cmd_record(args):
     """Apply a flow step's result."""
     state = held(args.slug)
     guards.waiting_gate(sys.modules[__name__], state)
+    fit.add_tokens(state, args.step, args.tokens)
     ran = os.path.join(state_dir(), "%s.%s.ran" % (args.slug, args.step))
     if args.in_session:  # the session ran it
         args.file = role.session_reply(state, args.slug, args.step, args.file, state_dir(), FLOW)
@@ -365,11 +354,15 @@ def cmd_record(args):
 
 def cmd_pr(args):
     state = held(args.slug)
+    fit.budget_stop(args.slug, state, state_dir(), config())
     guards.waiting_gate(sys.modules[__name__], state)
     left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
     if left:
         no("the flow hasn't finished: %s. Fix: run flow.py %s %s." % (", ".join(left), args.slug, left[0]))
     what, detail = role.sync(config()["base"])
+    if what == "merged":
+        state = held(args.slug)
+    fit.round_stop(sys.modules[__name__], state, what)
     if what == "conflict":
         failed_try(state, "merging %s conflicts in: %s" % (config()["base"], detail), "build",
                    "merge %s yourself, resolve the conflicts, commit, then pr" % config()["base"])
@@ -378,7 +371,6 @@ def cmd_pr(args):
         no("the merge was refused: %s. Fix: commit or remove the changes, then run pr again." % detail)
     if what == "merged":
         print("MERGED %s into the branch" % detail)
-        state = held(args.slug)
     guards.sync_touches(goal_file(args.slug), guards.touches_of(state_dir(), state))
     if git("status", "--porcelain", "--", goal_file(args.slug)):
         git("commit", "-m", "Goal: %s touches" % args.slug, "--", goal_file(args.slug))
@@ -469,7 +461,8 @@ def main():
     add("queue", cmd_queue, *goal, ("--depends-on", {"default": ""}))
     add("adopt", cmd_adopt)
     add("step", cmd_step, ("name", {}), ("--note", {"default": ""}), ("--tokens", {"type": int, "default": 0}))
-    add("record", cmd_record, ("step", {"choices": FLOW}), ("--file", {"required": True}), ("--in-session", {"action": "store_true"}))
+    add("record", cmd_record, ("step", {"choices": FLOW}), ("--file", {"required": True}), ("--in-session", {"action": "store_true"}),
+        ("--tokens", {"default": ""}))
     add("wait", cmd_wait, ("--ask", {"required": True}), ("--words", {"action": "append", "required": True}))
     add("finding", cmd_finding, ("text", {}))
     add("resume", cmd_resume, ("--why", {"required": True}), ("--by", {"default": "operation session"}))
