@@ -12,3 +12,8 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Run `python3 dev/toy/test-budget-enforce.py`.
+   Expect: every line starts with PASS and the last line is ALL PASS.
+2. Run `python3 skills/workflow-monitoring/scripts/pool.py usage 90`, then `python3 skills/workflow-monitoring/scripts/checkin.py`.
+   Expect: the first prints `PLAN USAGE 90% recorded: plan usage 90% is above plan_pause_percent 80%`; with a goal ready, the check-in lists that no new goal starts. Run `pool.py usage 10` to clear it.
