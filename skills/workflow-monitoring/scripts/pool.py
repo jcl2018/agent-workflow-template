@@ -30,6 +30,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
 import board_lines as prs  # noqa: E402  (its pull request lookups)
+import prqueue  # noqa: E402
 import sessions as se  # noqa: E402
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")  # no prompt ever blocks
 
@@ -260,7 +261,7 @@ def pr_turn(runs, slug):
             line.append((joined, name))
         except (OSError, ValueError):
             continue
-    return min(line)[1] if line and min(line)[1] != slug else ""
+    return prqueue.first_ahead(runs, line, slug)  # DEL-15: only goals whose touches overlap hold it up
 
 
 def pr_ahead(runs, base):

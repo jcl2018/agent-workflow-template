@@ -201,7 +201,7 @@ def hit(root, row, path, at, cache, memo):
 
 
 def reason(root, row, old, ok, base, cache, memo):
-    """F4 closure rows: why this row runs, or '' (failure rerun, new row, reaches <file>, root runner)."""
+    """Why this row runs, or '' (failure rerun, new row, reaches <file>, root runner)."""
     if ok and old["rows"].get(row["id"], {}).get("status") == "FAIL":
         return "failure rerun"
     if ok and old["rows"].get(row["id"], {}).get("status") == "SKIPPED":
@@ -210,6 +210,9 @@ def reason(root, row, old, ok, base, cache, memo):
     if lanes.table(root, at, "regression.tsv", memo).get(row["id"]) != memo["tsv"].get(row["id"]):
         return "new row"
     found = next((p for p in paths if hit(root, row, p, at, cache, memo)), None)
+    prior = ok and old["rows"].get(row["id"])  # DEL-15: main-only rows are reused
+    if found and prior and ancestor(root, prior["commit"], memo) and not any(hit(root, row, p, base, cache, memo) for p in changed(root, base, memo)):
+        return ""
     if found:
         return "reaches " + found
     if paths and lanes.closure(root, row["command"], cache)[1]:
@@ -218,7 +221,7 @@ def reason(root, row, old, ok, base, cache, memo):
 
 
 def quiet(path, gone):
-    """Paths the unmapped rule ignores: deleted ones (listed apart), the loop's tables and files no row reads."""
+    """Paths the unmapped rule ignores: deleted ones, the loop's tables and files no row reads."""
     return path in gone or path in (lanes.TABLE, KNOWN) or path.startswith(lanes.BOOKKEEPING) or any(
         path == n or (n.endswith("/") and path.startswith(n)) for n in lanes.NO_EFFECT)
 
@@ -285,7 +288,7 @@ def plan(root, picked, record):
 
 
 def summary(picked, todo, why, count, full, old):
-    """The kind line (FULL (<reason>), REUSED or AFFECTED), one SELECTED line per row and the ROWS line (DX-12, DX-20)."""
+    """The kind line (FULL, REUSED or AFFECTED), one SELECTED line per row and the ROWS line."""
     if full[0]:
         print("FULL (%s): %s" % full)
     elif not todo and old:
