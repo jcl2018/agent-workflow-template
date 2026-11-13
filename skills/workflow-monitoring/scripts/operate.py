@@ -98,9 +98,31 @@ def refresh(common, base="main"):
     return "CHECKOUT FAST-FORWARDED %s by %s commits to %s" % (base, behind, fgit(root, "rev-parse", "--short", "HEAD")[1])
 
 
+def behind_ask(common, base="main"):
+    """The main checkout is current with origin/<base> every pass. When it is behind (the operation session's govern hook blocks
+    its own pull), the line asks a free worker to fast-forward it, kept in <loop>/checkout-behind.txt for the check-in; '' when current."""
+    common = os.path.abspath(common)
+    root, mark = os.path.dirname(common), os.path.join(common, "loop", "checkout-behind.txt")
+    behind = fgit(root, "rev-list", "--count", "HEAD..origin/" + base)[1] if os.path.basename(common) == ".git" else "0"
+    if behind in ("", "0") or not behind.isdigit():
+        if os.path.exists(mark):
+            os.remove(mark)
+        return ""
+    free = [item.get("name") or sid for sid, item in sorted((graph.read_pool(os.path.join(common, "loop", "session-pool.json"))[0] or {}).items())
+            if isinstance(item, dict) and item.get("state") == "free"]
+    line = "the main checkout is %s commits behind origin/%s: ask %s to run git -C %s merge --ff-only origin/%s" % (
+        behind, base, free[0] if free else "a free worker (none is free; pool.py add)", root.replace(os.sep, "/"), base)
+    os.makedirs(os.path.dirname(mark), exist_ok=True)
+    with open(mark, "w") as handle:
+        handle.write(line + chr(10))
+    return "CHECKOUT BEHIND: " + line
+
+
 def one_pass(top, common, args):
     moved = refresh(common)  # the main checkout, where the skills and hooks run, follows origin (MON-4)
     moved and print(moved)
+    ask = behind_ask(common)
+    ask and print(ask)
     flags = (["--max", str(args.max)] if args.max else []) + (["--skill-dir", args.skill_dir] if args.skill_dir else [])
     code, said = script("watch.py", "watch", "--once", *flags, cwd=top)
     if code:

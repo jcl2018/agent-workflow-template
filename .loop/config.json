@@ -44,6 +44,7 @@
   "full_auto": true,
   "pool_size": 20,
   "silent_minutes": 30,
+  "min_free_memory_gb": 3.5,
   "govern_hook": true,
   "digest_mail": "cloudflare",
   "test_budget_minutes": 15,

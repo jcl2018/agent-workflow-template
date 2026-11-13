@@ -185,6 +185,7 @@ def collect(name, path, base, at):
         if file.endswith(".json") and isinstance(run, dict) and SLUG.match(str(run.get("slug", ""))):
             records.append(run)
     cfg = read_json(os.path.join(path, ".loop", "config.json")) or {}
+    graph.with_held(records, os.path.join(base, "loop"))
     live = [r for r in records if r.get("status") in ("running", "waiting")]
     taken = graph.assigned(graph.read_pool(os.path.join(base, "loop", "session-pool.json"))[0])
     if prs:  # every pull request asked at once, in parallel, before the rows ask one by one from the cache (MON-9)
