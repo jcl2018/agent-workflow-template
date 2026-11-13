@@ -818,3 +818,6 @@
 | <a id="t-migration-fix-mac-no-yml"></a>migration-fix-mac-no-yml | defect | [#3780](https://github.com/jcl2018/agent-workflow-template/issues/3780) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-stale-net-diff-revert"></a>stale-net-diff-revert | requirement | done line stale-net-diff:1 | not run | - | local | 2026-11-13 |
 | <a id="t-no-usage-section"></a>no-usage-section | requirement | done line drop-usage:1 | not run | - | local | 2026-11-13 |
+| <a id="t-pr-queue-order"></a>pr-queue-order | requirement | done line pr-queue:1 | not run | - | local | 2026-11-13 |
+| <a id="t-pr-moved-uncounted"></a>pr-moved-uncounted | requirement | done line pr-queue:1 | not run | - | local | 2026-11-13 |
+| <a id="t-pr-queue-goal"></a>pr-queue-goal | requirement | done line pr-queue:1 | not run | - | local | 2026-11-13 |
