@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.28.28 - 2026-11-13
+
+- who-merges: a report never runs merge.py; toy and row
+- who-merges: render the Tests tables
+- who-merges: the exit fallback skips a held goal; a report prints NEXT: merge.py; row
+- who-merges: seen red, tables
+- who-merges: report --hold stamps hold_at; the exit fallback honours it; row
+- who-merges: seen red, tables
+- Merge origin/main into who-merges
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.27 - 2026-11-13
 
 - docs check --own: a stale page the goal's diff doesn't touch is a finding, not a failure; rows and toy
