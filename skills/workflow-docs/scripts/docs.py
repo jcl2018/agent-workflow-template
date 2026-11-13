@@ -151,6 +151,13 @@ def cmd_add(args):
     return 0
 
 
+def netless(root, judged, mine):
+    """True when the paths read the same at HEAD as at the newest commit already judged (the page's, the base's or a merged
+    one): commits that add and then revert a change leave nothing to describe, so they stale no page (issue 3771)."""
+    tip = git("rev-list", "--no-walk=sorted", "-n1", *judged, cwd=root, check=False)
+    return bool(tip) and not git("diff", "--name-only", tip, "HEAD", "--", *mine, cwd=root, check=False)
+
+
 def problems(root, base):
     """Each page's trouble, as (kind, page, detail)."""
     found = []
@@ -176,7 +183,7 @@ def problems(root, base):
         mine = paths + [":(exclude).loop/config.json"] * pageformat.is_guide(text)  # a guide isn't about settings values
         changed = counting.real(root, git("log", "--no-merges", "--full-history", "--format=%h %s", "HEAD", *skip, "--", *mine,
                                           cwd=root).splitlines(), mine)  # block-only commits say nothing
-        if changed:
+        if changed and not netless(root, [s for s in seen + [base] + merged if s], mine):
             found.append(("STALE", page, "%d commits since the page: %s" % (len(changed), changed[0][:70])))
     held = os.path.join(root, folder)
     if os.path.isdir(held):
