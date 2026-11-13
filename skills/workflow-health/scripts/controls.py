@@ -153,6 +153,13 @@ def f_worktrees(root):
     git(root, "worktree", "add", "-q", "-b", "loop/gone", os.path.join(root, ".git", "loop", "worktrees", "gone"))
 
 
+def f_prompt_pointer(root):
+    repo(root)
+    write(root, ".loop/config.json", '{"base": "main", "automation": [{"name": "digest", "runs": "claude:t1"}]}')
+    write(root, "tasks/t1/SKILL.md", "---" + "\n" + "name: t1" + "\n" + "---" + "\n" + "Run the digest steps: 1. fetch, 2. mail." + "\n")
+    os.environ["LOOP_SCHEDULED_TASKS_DIR"] = os.path.join(root, "tasks")
+
+
 def f_hooks(root):
     """A repo with no hooks; the environment makes it fire on Actions and never read the real HOME or list."""
     repo(root)
@@ -245,7 +252,7 @@ def one(rule, function, here, keep=False):
     root = os.path.join(folder, "repo")
     os.makedirs(root)
     saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("GIT_")}  # all restored in finally
-    kept = {k: os.environ.get(k) for k in ("LOOP_FLOW", "LOOP_HEALTH_GH_FIXTURE", "LOOP_HEALTH_T0", "CI", "GITHUB_ACTIONS", "LOOP_HEALTH_HOOKS", "HOME", "LOOP_PRIVATE_NAMES")}
+    kept = {k: os.environ.get(k) for k in ("LOOP_FLOW", "LOOP_HEALTH_GH_FIXTURE", "LOOP_HEALTH_T0", "CI", "GITHUB_ACTIONS", "LOOP_HEALTH_HOOKS", "HOME", "LOOP_PRIVATE_NAMES", "LOOP_SCHEDULED_TASKS_DIR")}
     os.environ.pop("LOOP_HEALTH_GH_FIXTURE", None)
     os.environ.pop("LOOP_HEALTH_T0", None)
     clear_cache()
