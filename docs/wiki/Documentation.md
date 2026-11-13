@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=ed4d143e N=81dd3484 M=4599a537 U=03828777 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=9ef7c158 N=81dd3484 M=4599a537 U=03828777 -->
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
@@ -60,12 +60,13 @@ Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=ed4d143e N=81dd3484 M=4599
   - A runbook's Serves field (continuation lines included) must name requirement ids that a page defines, and each routine and field appears once; a page whose sections are out of order is reported for that, not for its ids.
   - The runbook is not locked by the PRD review: an agent corrects it as it learns, and the owner's review of the requirements stays valid.
 
-- DOC-15: **Reviewed 2026-11-13** Home and the README show how the repo is set up and what runs by itself. <!-- reviewed e14143b0 -->
+- DOC-15: **Reviewed 2026-11-13** Home and the README show how the repo is set up and what runs by itself. <!-- reviewed cc5849cc -->
   - Home and the README carry a Settings section: each setting's name, what it means, how to set it, its default and this repo's value, marked overridden only when it differs from the default.
   - Home and the README carry an Automation section: each routine on or off, what it does, its cadence in plain words, where it runs, its last run when known (live, from `docs.py automation`, so the page does not change with every run) and any step still owed by the owner; health and regression are built in and a repo adds a routine with one entry in its config, with no code change.
   - The README names and links the template repo the loop came from, never a local path, and the adoption entry points to all three.
   - The docs check says STALE when a setting, a workflow file or a value changes, and render or publish refreshes them.
   - The code that renders the blocks stays readable and under health's size warning: `counting.py` holds the Automation block code and `render.py` the rest, so the text a config renders is the same wherever the code sits (issue 1402).
+  - Health and the digest email run on the Mac's local schedule, never in GitHub Actions, so the Automation table owes no health workflow; the digest's keys go in the schedule's mail.env on the Mac, outside git.
 
 ### Non-functional
 - DOC-11: **Reviewed 2026-11-10** Safe publish <!-- reviewed f33a3310 -->
@@ -115,6 +116,11 @@ Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=ed4d143e N=81dd3484 M=4599
 | [guide-marker-refused](Tests#t-guide-marker-refused) | requirement | DOC-1 | Given a page with requirement or Review lines, when it carries the guide marker, then the docs check refuses it naming the page. | PASS 2026-11-10 |
 | [spec-decisions-wording](Tests#t-spec-decisions-wording) | requirement | DOC-1 | Given the owner's 2026-11-12 spec decisions, when the pages and SKILL.md files are read, then the loop runs only affected rows, GRD-5 names --live, the feature-label requirements say feature_labels, and the budget setting is test_budget_minutes. | PASS 2026-11-12 |
 | [spec-decisions-log](Tests#t-spec-decisions-log) | requirement | DOC-1 | Given the owner's 2026-11-12 decisions, when DECISIONS.md is read, then it holds ten dated entries and the proposed wording of each locked requirement. | PASS 2026-11-13 |
+| [stale-own-finding](Tests#t-stale-own-finding) | requirement | DOC-1 | Given main has a stale page the goal's diff doesn't map to, when docs.py check --own runs on the goal branch, then it prints the page as a FINDING line and passes. | not run |
+| [stale-own-main-reported](Tests#t-stale-own-main-reported) | requirement | DOC-1 | Given the same stale page on main, when plain docs.py check runs on main (as health and the scheduled run do), then it still prints the STALE line, so --own hides nothing from them. | not run |
+| [stale-own-goal-fails](Tests#t-stale-own-goal-fails) | requirement | DOC-1 | Given a goal whose own diff makes a mapped page stale, when docs.py check --own runs, then it still prints STALE for that page and fails. | not run |
+| [stale-own-main-own-fails](Tests#t-stale-own-main-own-fails) | requirement | DOC-1 | Given a stale page on main, when docs.py check --own runs on main itself (the scheduled run's rows), then it still prints STALE and fails. | not run |
+| [stale-own-block-kept](Tests#t-stale-own-block-kept) | requirement | DOC-1 | Given a Settings, Automation or README block that differs from a fresh render, when docs.py check --own runs, then its STALE line is kept, never moved to a FINDING. | not run |
 | [review-dated](Tests#t-review-dated) | requirement | DOC-2 | Given a criterion, when it is reviewed, then it is marked Reviewed with the date. | PASS 2026-11-12 |
 | [review-owner-only](Tests#t-review-owner-only) | requirement | DOC-2 | Given a criterion, when a review is attempted, then it is reviewed only with the owner's words. | PASS 2026-11-12 |
 | [reviewed-lock](Tests#t-reviewed-lock) | requirement | DOC-2 | Given a reviewed criterion, when it is changed, then the check fails. | PASS 2026-11-12 |

@@ -116,6 +116,16 @@ Drafted 2026-11-13 by the drop-usage goal. Main's recent code changes left three
 
 Applied 2026-11-13 on the owner's three approvals typed in the drop-usage session: AUT-2, GRD-9 and MON-14 and their pages were un-reviewed, given the sub-bullets above, and reviewed again.
 
+## Waiting on owner un-review (Documentation stale)
+
+Drafted 2026-11-13 by the wiki-catchup session (#3875, closed as not a bug). Main's Documentation page is STALE: 081de7bf and d861e9c6 changed what the Automation table says about health, and no page text describes that. A Tests-intro line cannot hold it (Tests is generated, DOC-9), and a net-zero add-then-revert correctly does not clear a page (#3790). Nothing is applied until the owner un-reviews and approves the wording; `docs.py publish` stays refused, and the GitHub wiki stays behind, until then. The wider design question, mapped code changes needing a page edit that has no place to go, is #3867.
+
+- DOC-15, add this sub-bullet after the last one: Health and the digest email run on the Mac's local schedule, never in GitHub Actions, so the Automation table owes no health workflow; the digest's keys go in the schedule's mail.env on the Mac, outside git.
+
+The owner types two sentences in the operation session (it runs `criteria.py unreview` and `review` with those words in `LOOP_OWNER_WORDS`):
+
+1. Un-review: "Un-review the Documentation page and DOC-15 so the local-schedule sub-bullet can be added."
+2. Review, after the goal has added it: "Review the Documentation page and DOC-15 again."
 ## Waiting on owner un-review (machine-local)
 
 The owner decided 2026-11-13: "some tasks in this session should only rely on things on this session, right? This machine. There are other machines proof and other things. They can be added like to do some milestones, but shouldn't be related." Built by the machine-local goal (`regression.py red ID --owed --runner R`, health WARN after 7 days, the check-in's off-machine to-do lines). Guardrails is Reviewed, so the requirement below is not applied until the owner un-reviews Guardrails and approves the wording.
