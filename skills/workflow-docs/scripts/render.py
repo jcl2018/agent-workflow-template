@@ -93,7 +93,7 @@ def render(args):
     if clash:
         sys.exit("REFUSED: two rows would share one Tests anchor: %s. Fix: rename one row id." % "; ".join(clash))
     # blocks first, so a Tests rewrite keeps them
-    stale = ["%s (%s block)" % x for x in (refresh(root, args.check) if config_of(root).get("criteria") else [])]
+    stale = ["%s (%s block)" % x for x in (refresh(root, args.check) if config_of(root).get("criteria") and not getattr(args, "tables", False) else [])]
     out = []
     for rel in criteria.pages(root):
         if os.path.basename(rel)[:-3] in pageformat.GENERATED:

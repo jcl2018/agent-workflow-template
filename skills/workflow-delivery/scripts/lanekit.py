@@ -331,7 +331,7 @@ def prep(top, cfg, log):
             return None, "LANE_DIRTY at start: %s. Fix: commit or remove them; %s." % (", ".join(dirty()[:10]), NOTHING)
     if not os.path.exists(os.path.join(top, ".loop", "docs.tsv")) or not os.path.exists(criteria):
         return "", None
-    done = subprocess.run([sys.executable, criteria, "render"], cwd=top, capture_output=True, text=True, timeout=300)
+    done = subprocess.run([sys.executable, criteria, "render", "--tables"], cwd=top, capture_output=True, text=True, timeout=300)
     if done.returncode:
         first = (done.stderr or done.stdout).strip().splitlines()[-1:] or ["exit %d" % done.returncode]
         return None, "LANE_PREP_FAILED: criteria.py render failed: %s. Fix: run it by hand; %s." % (first[0][:200], NOTHING)
