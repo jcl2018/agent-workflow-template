@@ -78,7 +78,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=ed4d143e N=81dd3484 M=4599
 
 ## Non-goals
 - It never writes or reviews the owner's PRD for them: only the owner marks a PRD or a requirement Reviewed.
-- It keeps docs only in the repo's wiki folder and its GitHub wiki, nowhere else.
+- It keeps docs only in the repo's wiki folder and its GitHub wiki, nowhere else, and never touches a wiki page it did not write.
 
 ## Success metrics
 - The docs check prints DOCS OK on the main branch after every merge.
