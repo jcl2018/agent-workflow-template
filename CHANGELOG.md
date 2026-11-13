@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.27.55 - 2026-11-13
+
+- SET-13 pool and worker-model wording, REG-10 Linux or macOS (review sitting edits)
+- Apply the owner's 2026-11-12 review sitting: nine proposals applied, eight pages reviewed
+- Rows follow the sitting: SET-11 is Reviewed, MON-5 sits in sub-bullets, the decisions log is Applied
+- Lane: re-render the Tests tables
+- Wiki: update pages for review-sitting
+- Merge remote-tracking branch 'origin/main' into loop/review-sitting
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.27.54 - 2026-11-12
+
+- fix: dev/package.py gives Windows the Linux verdict (#1397)
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/win-package
+- Merge origin/main into loop/win-package
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. On Windows, run `PYTHONUTF8=0 python dev/package.py` from a checkout with `core.autocrlf=true`.
+   Expect: no "no SKILL.md" lines, no script reported over 20 KB for its CRLF bytes, no UnicodeDecodeError, and it ends within 2 minutes.
+2. Run `bash dev/toy/test-package-win.sh`.
+   Expect: `PASS: parity`, `PASS: no-stdin`, `ALL PASS`.
+
 ## v0.27.53 - 2026-11-12
 
 - Lanes render the Tests tables only: criteria.py render --tables leaves the Settings, Automation and README blocks alone (#3777)

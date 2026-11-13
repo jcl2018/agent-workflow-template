@@ -32,9 +32,9 @@ One line each, where the roadmap didn't say.
 - Review findings (2026-11-12), Usage is current behaviour: the refactor history is out of the Delivery `record` and `pr` entries and the Setup and Health install entries (rollback internals, lock details, script-size notes, a repeated walk-through).
 - Review findings (2026-11-12), `workflow-delivery` SKILL.md goes under 150 lines by trimming repeated prose, not rules.
 
-## Waiting on owner un-review (proposed 2026-11-12, not applied)
+## Applied 2026-11-12 (owner sitting)
 
-These requirements are Reviewed and locked, so their text is unchanged. Each would read as below once the owner un-reviews it.
+The owner un-reviewed these requirements and approved the wording below; it is now on the pages, and the pages were reviewed again in the same sitting.
 
 - REG-5 (decision 3): "One labeled issue per failing test, updated while it fails and closed when it passes; known failures don't block; it only previews unless `--live` is given, and the scheduled workflows pass `--live`."
 - AUT-5 (decision 3): "Each routine can be turned off or rescheduled in one setting. It writes to GitHub only with `--live` (the scheduled workflows pass it), and without the secrets it needs a routine runs but writes nothing and says what is missing."

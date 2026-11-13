@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
-Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde98a8 U=371393f6 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=f91170ed N=9967b317 M=0fde98a8 U=74036c58 -->
 
 ## Problem
 - I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
@@ -36,14 +36,14 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde
 - MON-2: **Reviewed 2026-11-08** Live communication. Operation and workers talk through session messages: a worker reports each change of step or status as it happens, and its result when it ends (merged, failed or waiting, with the pull request); the operation session sends a worker its answer or a follow-up. Background processes are used only when the app can't start or reach a session, and the board says so. <!-- reviewed 53b98768 -->
   - Operation and workers talk through session messages: a worker reports each change of step or status as it happens, and its result when it ends (merged, failed or waiting, with the pull request); the operation session sends a worker its answer or a follow-up.
   - Background processes are used only when the app can't start or reach a session, and the board says so.
-- MON-3: **Reviewed 2026-11-08** Board view: the board shows everything in one fixed template: what needs me, each running goal's progress bar and current step, what's next, roadmap progress, done lines met. <!-- reviewed bf84c371 -->
-  - the board shows everything in one fixed template: what needs me, each running goal's progress bar and current step, what's next, roadmap progress, done lines met.
-- MON-4: **Reviewed 2026-11-10** Live board <!-- reviewed 8ab44e30 -->
+- MON-3: **Reviewed 2026-11-13** Live board <!-- reviewed 9b9ea4c3 -->
+  - Report, dashboard and the artifact show the live board in the one fixed layout MON-4 lists; this requirement owns the board, and a check-in never prints it.
+- MON-4: **Reviewed 2026-11-13** Live board layout <!-- reviewed bd9028c8 -->
   - `report`, `dashboard` and "Where do things stand?" print the live board in one fixed format: Issues first (only what is open now, each with its fix in plain words); then Running goals with progress bar, time left, step flow with the current step marked and the next step; then Queued goals; then dependency arrows; then one finish time.
   - Merged work, history and totals are left out; a stuck worker stays at the top of Issues until I answer.
-  - Check-ins don't print this board; they follow MON-5.
-- MON-5: **Reviewed 2026-11-09** Cadence and reply format. The operation session updates the board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new, and prints the full board every time. Every check-in reply has the same layout: one headline line; All sessions, one table of every session across my repos with what it is for, its status, progress, time left, tokens left and latest report; Dependencies, a drawn graph marking what is running, holding, queued or stuck; Needs you, each question numbered with its options and a recommended answer, or Nothing needs you; and last, Coming up, the next expected events and what I will need to do. A hook that setup installs blocks a reply that doesn't follow this layout, saying what is missing; it never checks worker sessions or other repos, and one setting turns it off. <!-- reviewed 04ef65d5 -->
-  - The operation session updates the board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new, and prints the full board every time.
+  - Check-ins don't print this board; MON-5 owns the check-in reply.
+- MON-5: **Reviewed 2026-11-13** Cadence and reply format <!-- reviewed eeace5fb -->
+  - The operation session updates the board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new, and each check-in prints only its reply layout, never the board.
   - Every check-in reply has the same layout: one headline line;
   - All sessions, one table of every session across my repos with what it is for, its status, progress, time left, tokens left and latest report;
   - Dependencies, a drawn graph marking what is running, holding, queued or stuck;
@@ -88,7 +88,7 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde
 
 ## Non-goals
 - The operation session never builds; workers do.
-- It does not merge or release; the delivery loop does.
+- It never merges unless auto_merge is on (MON-7, MON-15); the delivery loop merges and releases.
 - Full auto never answers for me on destructive, money, security or owner-contradicting decisions.
 
 ## Success metrics
@@ -186,7 +186,7 @@ Review: **Reviewed 2026-11-12** <!-- prd P=41bfc9ae R=3f4d5227 N=839ce3ce M=0fde
 | [reply-hook-guard](Tests#t-reply-hook-guard) | requirement | MON-5 | Given a reply blocked twice in a row or a broken hook input, when the session stops again, then the hook lets it through and logs it instead of looping. | PASS 2026-11-10 |
 | [reply-hook-install](Tests#t-reply-hook-install) | requirement | MON-5 | Given a repo, when setup --reply-hook runs, then the Stop hook is merged into its machine-local Claude settings, which git ignores, and a second run changes nothing. | PASS 2026-11-10 |
 | [reply-hook-all](Tests#t-reply-hook-all) | requirement | MON-5 | Given the reply hook's toy suite, when it runs, then every check passes. | PASS 2026-11-10 |
-| [reply-hook-mon5-wording](Tests#t-reply-hook-mon5-wording) | requirement | MON-5 | Given the Monitoring PRD, when MON-5 is read, then it carries the check-in reply layout the hook enforces. | PASS 2026-11-10 |
+| [reply-hook-mon5-wording](Tests#t-reply-hook-mon5-wording) | requirement | MON-5 | Given the Monitoring PRD, when MON-5 is read, then it carries the check-in reply layout the hook enforces. | PASS 2026-11-13 |
 | [checkin-passes-hook](Tests#t-checkin-passes-hook) | requirement | MON-5 | Given the check-in operate.py prints, when the reply hook checks it, then it passes the layout. | PASS 2026-11-10 |
 | [mon6-merged-frees](Tests#t-mon6-merged-frees) | requirement | MON-6 | Given a goal whose pull request merged, when its worker reports merged, then its session goes back to the pool (archived above pool_size) and its worktree and branch are removed. | PASS 2026-11-10 |
 | [mon10-replan](Tests#t-mon10-replan) | requirement | MON-10 | Given ready, mergeable and splittable goals, when the operation session re-plans, then each start, merge and split is logged once with its reason, shown in the check-in, and no running goal is stopped. | PASS 2026-11-10 |
