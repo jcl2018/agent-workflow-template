@@ -253,7 +253,7 @@ def read_link(url):
         if os.path.exists(url):
             with open(url, encoding="utf-8") as handle:
                 return handle.read(), None
-        if source.startswith("mcp:") or re.search(r"notion\.(so|site)/", url):
+        if source.startswith("mcp:") or re.search(r"(^|[/.])notion\.(so|site|com)/", url):
             return None, "this source needs its MCP connector: set %s to a command that prints the document" % READER
         if url.startswith(("http://", "https://")):
             with urllib.request.urlopen(url, timeout=20) as page:

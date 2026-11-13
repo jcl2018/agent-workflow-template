@@ -76,6 +76,7 @@ ci-issue-backlog	PASS	2026-11-10
 ci-levels-setting	PASS	2026-11-10	
 ci-summary	PASS	2026-11-12	
 ci-target-input	PASS	2026-11-10	
+config-holds-topics	PASS	2026-11-13	
 cost-time-warn	PASS	2026-11-12	
 cost-unread-tokens	PASS	2026-11-12	
 criteria-max-config	PASS	2026-11-12	
@@ -248,6 +249,7 @@ lanes-wide-parity	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 link-page-passes	PASS	2026-11-13	
 link-unread-never-pass	PASS	2026-11-13	
 list-kind-filter	PASS	2026-11-10	
+list-link-ids	PASS	2026-11-13	
 list-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 list-tsv-raw	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 live-board-arrows	PASS	2026-11-12	
@@ -485,6 +487,7 @@ tiers-no-merge-base	PASS	2026-11-10
 tiers-record-merge-base	PASS	2026-11-10	
 tiers-rows-summary	PASS	2026-11-10	
 tiers-unmapped-qa-pr	PASS	2026-11-10	
+topics-in-reference	PASS	2026-11-13	
 toy-no-leftovers	PASS	2026-11-12	
 two-lanes-toy-435	PASS	2026-11-10	
 unproven-blocks	PASS	2026-11-12	

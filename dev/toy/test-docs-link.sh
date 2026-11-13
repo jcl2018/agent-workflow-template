@@ -154,7 +154,7 @@ cat > $P <<EOF
 <!-- workflow-docs -->
 # Delivery
 
-PRD: https://www.notion.so/toy/Delivery-PRD-1234
+PRD: https://app.notion.com/p/4178261590fd81d59adff26e65faec0a
 
 ## Tests
 
@@ -165,6 +165,8 @@ print(open(sys.argv[1]).read())
 out=$(check); grep -q "^UNREAD Delivery: .*MCP connector" <<<"$out" && ok "a Notion link with no reader is UNREAD naming the connector" || bad "notion: $out"
 LOOP_PRD_READER="$rd" $cri render >/dev/null
 out=$(LOOP_PRD_READER="$rd" check); grep -q "^DOCS OK" <<<"$out" && ok "a Notion link read through the reader passes" || bad "reader: $out"
+$reg add list-ids --level land --command true --goal DEL-1 --describe "Given a link-form page, when the tests are listed, then its ids show." --category criterion >/dev/null
+out=$(LOOP_PRD_READER="$rd" python3 "$here/skills/workflow-regression/scripts/tests.py" list 2>&1); grep -q "DEL-1" <<<"$out" && ok "tests.py list reads a link-form page's ids" || bad "tests list: $out"
 cat >> $P <<'EOF'
 
 ## Problem
