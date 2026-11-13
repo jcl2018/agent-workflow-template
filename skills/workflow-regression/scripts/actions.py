@@ -101,6 +101,7 @@ jobs:
               if not os.path.exists(path):
                   return []
               return [line.rstrip("\n").split("\t") for line in open(path) if line.strip() and not line.startswith("#")]
+@ROWTAIL@
           known = {row[0] for row in rows(".loop/regression-known.tsv")}
           TARGET = os.environ.get("REGRESSION_TARGET") or os.environ.get("REGRESSION_LEVELS") or "nightly"
           if not re.fullmatch(r"land|nightly|[A-Za-z0-9_.-]+", TARGET) or TARGET not in ("land", "nightly") and \
@@ -245,7 +246,7 @@ jobs:
                   mark = "<!-- loop-regression %s placed= -->" % row[0]
                   about = "- Feature: %s\n- Guards: %s\n- Checks: %s\n\n" % (cells[0] or "-", cells[3] or "-", cells[4] or "-")
                   body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "fails", about,
-                                                                 said[-1500:].replace("`" * 3, "'" * 3))
+                                                                 shown(run, row[2], code, said))
                   if not hit:
                       make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect"]
                       made = gh(*make, *(["--label", label] if label else []), body=body)
@@ -319,7 +320,7 @@ jobs:
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@MATRIX@", "@SHARDS@", "TESTS_PY_EOF")
+UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@ROWTAIL@", "@MATRIX@", "@SHARDS@", "TESTS_PY_EOF")
 
 
 def render(cron, levels="nightly"):
@@ -330,10 +331,12 @@ def render(cron, levels="nightly"):
     if bad:
         sys.exit("REFUSED: tests.py contains %s, which the workflow can't carry. Fix: reword that line" % bad[0])
     body = "\n".join(("          " + line).rstrip() for line in source.rstrip("\n").split("\n"))
+    with open(os.path.join(HERE, "rowtail.py")) as handle:
+        tail = "\n".join(("          " + line).rstrip() for line in handle.read().rstrip("\n").split("\n"))
     schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron
     return WORKFLOW.replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
         .replace("@BUDGET@", str(BUDGET_MINUTES)).replace("@SHARDS@", str(SHARDS)).replace("@MATRIX@", str(list(range(SHARDS)))) \
-        .replace("@TESTS@", body)
+        .replace("@TESTS@", body).replace("@ROWTAIL@", tail)
 
 
 def write(root, default):

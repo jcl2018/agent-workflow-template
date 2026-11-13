@@ -1,5 +1,59 @@
 # Changelog
 
+## v0.28.11 - 2026-11-13
+
+- Trim workflow-regression SKILL.md under 150 lines; prove the unbuilt rows red
+- Wiki: update pages for health-fails-main
+- Regression page: known rows in the Check line
+- Merge origin/main into loop/health-fails-main
+- Merge remote-tracking branch 'origin/main' into loop/health-fails-main
+- Merge remote-tracking branch 'origin/main' into loop/health-fails-main
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.10 - 2026-11-13
+
+- Regression: a failing row's issue carries its last 40 output lines (#3789)
+- Regression: rows for the output capture, Tests tables, Runbook line (#3789)
+- Regression: map the CI row to AUT-2 so Automation's Tests table is current (#3789)
+- Merge origin/main into loop/capture-row-output
+- Merge origin/main into loop/capture-row-output
+- Wiki: update pages for capture-row-output
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/capture-row-output
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 dev/toy/test-row-output.py` from the repo root.
+   Expect: every line starts with `PASS:`, including `Mac tick: a silent failing row gives an issue body of its last 40 output lines` and `CI: the issue body holds the last 40 output lines of the row`.
+2. After the next scheduled regression run, open a regression issue for a row that ends in `| grep -q` (for example `skill-says-governs`, if it is still failing).
+   Expect: its output block holds the row's last lines, not an empty block.
+
+## v0.28.9 - 2026-11-13
+
+- Monitoring V1: the operation checkout fast-forwards, the reply hook checks repo blocks, a silent worker is proven under Needs you
+- Tests tables list the three monitoring rows
+- Merge remote-tracking branch 'origin/main' into loop/monitoring-v1
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.8 - 2026-11-13
+
+- goal.py new --here refuses in the main checkout (#3468)
+- Render the Tests tables for the new row
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 dev/toy/test-new-here.py`.
+   Expect: every line starts with PASS and the last line is ALL PASS.
+
 ## v0.28.7 - 2026-11-13
 
 - A resumed goal keeps its release ask with auto_merge on (#812)

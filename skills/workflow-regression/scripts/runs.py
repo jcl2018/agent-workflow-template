@@ -32,6 +32,7 @@ import time
 
 import actions
 import lanes
+import rowtail
 
 # No terminal, no waiting: a prompt from gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -206,7 +207,9 @@ def execute(root, picked, todo, est, limit, timeout, expected, reuse):
             print("KILLED %s: signal %s (pid %d). Note: a signal stopped this row; see the lane log" % (key, signal, pid))
         if state == "FAIL" and reuse:
             print("\n".join("    " + line for line in text.rstrip().splitlines()[-20:]), file=sys.stderr)
-        results.append({"id": key, "state": state, "tail": text[-1500:], "seconds": round(time.time() - began, 1),
+        env = dict(actions.row_env(), TOY_SKIP_FILE=skip)
+        tail = rowtail.shown(lambda c: lanes.run_row(c, root, env, cap)[:2], by[key]["command"], code, text) if state == "FAIL" else text[-1500:]
+        results.append({"id": key, "state": state, "tail": tail, "seconds": round(time.time() - began, 1),
                         "pid": pid, "rc": code, "signal": signal})
     if left:
         print("BUDGET %d min: ran %d of %d rows; LEFT %d to the scheduled full suite: %s" % (
