@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/11
 
-Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=2098028a N=e6bf17f7 M=5109e571 U=03828777 -->
+Review: **Unreviewed**
 
 ## Problem
 
@@ -56,6 +56,10 @@ Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=2098028a N=e6bf17f7 M=5109
 - GRD-10: **Reviewed 2026-11-13** Setup installs the whole set when a repo is adopted, and health judges it <!-- reviewed c53adea9 -->
   - Adopting a repo installs every guardrail on this page with its default setting, and setup lists each one it installed (Setup, SET-1 for installing; listing each one is new).
   - Health judges a freshly adopted repo's guardrails on the same rules as the template's (Setup, SET-1).
+- GRD-11: **Unreviewed** A goal depends only on what its own machine can do
+  - A step only another machine can do (a red proof on another platform, a smoke cell, a Mac-only check) is filed as a to-do issue on the feature's milestone and never blocks the goal, its merge or the release.
+  - A row whose red proof needs another platform is recorded owed (Regression, `red ID --owed --runner R`): it reads PENDING, opens one `other-machine` to-do on its feature milestone, and its goal merges.
+  - Health warns on an owed proof older than 7 days and never fails on it (Health); the check-in lists owed items under Coming up, and the operation session never holds a goal for another pod or machine (Monitoring).
 
 ### Non-functional
 
@@ -108,4 +112,5 @@ None
 | - | requirement | GRD-9 | no passing test | not enforced |
 | [grd10-install-hooks](Tests#t-grd10-install-hooks) | requirement | GRD-10 | Given a repo being adopted, when setup runs by default, then it installs the three private-name hooks after its commit. | not run |
 | - | requirement | GRD-10 | no passing test | not enforced |
+| - | requirement | GRD-11 | no passing test | not enforced |
 | [stop-tree-step-limit](Tests#t-stop-tree-step-limit) | defect | [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) closed (2026-11-12) | Given a step or lane past its time limit, when it is stopped on any platform, then its whole process tree goes with it. | not run |
