@@ -202,7 +202,7 @@ def contract(root, names, seen):
         if have != want:
             hint = ""
             if "Commands" in have:
-                hint = ". Fix: rename Commands to %s and place it between %s and %s" % (rule["usage"], head[0], head[1])
+                hint = ". Fix: remove the Commands section; the commands are in the skill's Command map and references/commands.md"
             elif "Summary" in have or "Criteria" in have:
                 hint = ". Fix: run prd.py convert --write (workflow-docs), then write the Non-goals and Success metrics drafts"
             else:
