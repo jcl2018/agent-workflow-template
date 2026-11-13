@@ -36,10 +36,10 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `regression_runs` | `(empty)` | Where the full regression runs: actions (a public repo) or mac (with each Mac tick: a private repo, or a public one recorded mac); setup records it from the repo's live visibility and keeps a recorded mac; unset means not known (nothing is written for GitHub). |
 | `automation` | `[]` | Routines the Automation table lists: {name, does, cadence, runs: github:FILE, mac:LABEL or claude:TASK}; setup declares the three built-in ones. |
 | `ci_levels` | `nightly` | Target of the scheduled and tag regression runs: nightly (every row) or land. |
-| `time_budget_minutes` | `120` | Minutes a goal may run from its freeze before no new step starts; 0 means no budget. |
-| `max_merge_rounds` | `3` | Times goal.py pr may merge the base and rerun the lane before the goal waits on you. |
-| `max_active_goals` | `20` | Goals live at once (the smaller of this and parallel); no new goal starts past it; 0 means no limit. |
-| `plan_pause_percent` | `80` | Weekly plan usage in percent above which no new goal starts (pool.py usage N); 0 turns it off. |
+| `time_budget_minutes` | `120` | Minutes a goal may run from its freeze before no new step starts; 0 is no budget. |
+| `max_merge_rounds` | `3` | Merge-and-rerun rounds goal.py pr may take before the goal waits on you. |
+| `max_active_goals` | `20` | Goals live at once (the smaller of this and parallel); 0 is no limit. |
+| `plan_pause_percent` | `80` | Weekly plan usage in percent above which no goal starts (pool.py usage N); 0 is off. |
 | `token_budget` | `0` | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
 | `test_budget_minutes` | `15` | Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite. |
 | `prep_budget_minutes` | `15` | Minutes a lane may spend before its first test row (preparing, planning, waiting for a slot), 15 or more; a lane past it stops and says which part ran long. |
@@ -58,7 +58,7 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `full_auto` | `true` | true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait. |
 | `pool_size` | `20` | Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones. |
 | `silent_minutes` | `30` | Minutes a worker may send nothing before it shows under Needs you; LOOP_SESSION_QUIET (seconds) overrides it. |
-| `feature_labels` | `false` | true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label; off by default. |
+| `feature_labels` | `false` | true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label. |
 
 ## Private settings
 

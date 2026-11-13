@@ -153,7 +153,7 @@ Frozen. A wrong done line needs a new goal.
 
 
 def budget_stop(slug, state, runs, cfg):
-    """GRD-2: a goal past its time or token budget starts no new step; only the operation's goal.py set raises it."""
+    """GRD-2: past its time or token budget a goal starts no new step; only goal.py set raises it."""
     import datetime
     held, source = budget(view(state, runs), cfg)
     try:
@@ -169,7 +169,7 @@ def budget_stop(slug, state, runs, cfg):
 
 
 def add_tokens(state, step, given):
-    """A session worker's token count for a step; 'unknown' or none adds nothing, so the board keeps saying tokens unread."""
+    """A session worker's tokens for a step; unknown adds nothing, so the board says tokens unread."""
     if str(given).isdigit():
         held = state.get("tokens") if isinstance(state.get("tokens"), dict) else {}
         old = held.get(step) if isinstance(held.get(step), int) else 0
@@ -177,18 +177,18 @@ def add_tokens(state, step, given):
 
 
 def round_stop(g, state, what):
-    """Count a merge-main-and-rerun round (a merge or a conflict); one past max_merge_rounds (default 3) puts the goal under Needs you."""
-    if what not in ("merged", "conflict"):
-        return
+    """A merge or conflict is one merge-and-rerun round; one past max_merge_rounds (default 3) makes the goal wait."""
     limit, count = g.config().get("max_merge_rounds"), state.get("merge_rounds", 0) + 1
     limit = limit if isinstance(limit, int) and not isinstance(limit, bool) and limit > 0 else 3
-    state["merge_rounds"] = 0 if count > limit else count
-    if count > limit:
-        ask = ("merge round %d would pass max_merge_rounds (%d); main keeps moving. Fix: land it when main is quiet or raise "
-               "max_merge_rounds, then goal.py answer %s (MERGE_ROUNDS)" % (count, limit, state["slug"]))
+    if what not in ("merged", "conflict"):
+        return
+    over = count > limit
+    state["merge_rounds"] = 0 if over else count
+    ask = "merge round %d would pass max_merge_rounds (%d). Fix: land it when main is quiet or raise it, then goal.py answer %s (MERGE_ROUNDS)" % (count, limit, state["slug"])
+    if over:
         state["status"], state["waiting"] = "waiting", {"ask": ask, "words": ["go on " + state["slug"], "stop " + state["slug"]]}
-    g.save(state, ask if count > limit else None)
-    if count > limit:
+    g.save(state, ask if over else None)
+    if over:
         g.no(ask)
 
 
