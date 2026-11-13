@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=ed4d143e N=81dd3484 M=4599a537 U=03828777 -->
+Review: **Unreviewed**
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
@@ -60,12 +60,13 @@ Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=ed4d143e N=81dd3484 M=4599
   - A runbook's Serves field (continuation lines included) must name requirement ids that a page defines, and each routine and field appears once; a page whose sections are out of order is reported for that, not for its ids.
   - The runbook is not locked by the PRD review: an agent corrects it as it learns, and the owner's review of the requirements stays valid.
 
-- DOC-15: **Reviewed 2026-11-13** Home and the README show how the repo is set up and what runs by itself. <!-- reviewed e14143b0 -->
+- DOC-15: **Unreviewed** Home and the README show how the repo is set up and what runs by itself.
   - Home and the README carry a Settings section: each setting's name, what it means, how to set it, its default and this repo's value, marked overridden only when it differs from the default.
   - Home and the README carry an Automation section: each routine on or off, what it does, its cadence in plain words, where it runs, its last run when known (live, from `docs.py automation`, so the page does not change with every run) and any step still owed by the owner; health and regression are built in and a repo adds a routine with one entry in its config, with no code change.
   - The README names and links the template repo the loop came from, never a local path, and the adoption entry points to all three.
   - The docs check says STALE when a setting, a workflow file or a value changes, and render or publish refreshes them.
   - The code that renders the blocks stays readable and under health's size warning: `counting.py` holds the Automation block code and `render.py` the rest, so the text a config renders is the same wherever the code sits (issue 1402).
+  - Health and the digest email run on the Mac's local schedule, never in GitHub Actions, so the Automation table owes no health workflow; the digest's keys go in the schedule's mail.env on the Mac, outside git.
 
 ### Non-functional
 - DOC-11: **Reviewed 2026-11-10** Safe publish <!-- reviewed f33a3310 -->
