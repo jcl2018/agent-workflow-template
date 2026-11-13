@@ -243,7 +243,8 @@ MOVED issue 42 to no milestone
 - `new` creates the milestone TITLE (any text, `backlog` included) and nothing that already exists. Without `--live` it prints
   `WOULD create milestone TITLE (dry run; add --live)` and writes nothing; `--live` with no token refuses
   (`REFUSED: no GitHub token, nothing created. ...`, exit 1).
-- `backlog` makes every missing standing milestone (`EXISTS`, `CREATED` or `WOULD create`; exit 1 if one failed).
+- `backlog` makes every missing standing milestone (`EXISTS`, `CREATED` or `WOULD create`; exit 1 if one failed). An old milestone named
+  `Backlog` is renamed `Backlog: Other` first when that title does not exist (`RENAMED`, `WOULD rename`), keeping its issues.
 - `leftovers FILE [--goal SLUG]` files each `FILE defect|backlog <Feature>: text` line of FILE once (marker `loop-leftover`), at most ten:
   `FILED`, `SAME` (already filed), `WOULD file` (no `--live`) or `NOTE` (a private value, or past ten). A feature that matches no page files on `Backlog: Other`.
 - `move` puts an issue on an existing milestone, or clears it with `none`. A title that doesn't exist refuses

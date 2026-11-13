@@ -6,7 +6,8 @@ usage: milestone.py <command> [options]
 
   new TITLE [--live]            create the milestone unless it exists, so running it again creates nothing
   move ISSUE TITLE|none [--live]   put an issue on an existing milestone, or clear it with none
-  backlog [--live]              create every missing "Backlog: <Feature>" milestone and "Backlog: Other"
+  backlog [--live]              create every missing "Backlog: <Feature>" milestone and "Backlog: Other"; an old milestone named
+                                "Backlog" is renamed "Backlog: Other" first (it already means that), so nothing is lost
   leftovers FILE [--goal SLUG] [--live]   file the FILE lines of a ship reply, once each (DEL-14):
                                 "FILE defect|backlog <Feature>: text" -> an issue labelled defect, or labelled backlog on that
                                 feature's Backlog milestone ("Other" when no page matches); a finding already filed is skipped
@@ -98,6 +99,19 @@ def standing(root):
 def cmd_backlog(args):
     root = top()
     have, bad = held(root), 0
+    if "Backlog" in have and OTHER not in have:  # the old catch-all becomes Backlog: Other, keeping its issues (DOC-10)
+        if not args.live:
+            print("WOULD rename milestone Backlog to %s (dry run; add --live)" % OTHER)
+        elif no_token(root):
+            print("FAILED rename: no GitHub token. Fix: set GH_TOKEN or run gh auth login")
+            bad += 1
+        else:
+            done = run(["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/milestones/%d" % have["Backlog"], "-f", "title=" + OTHER], root)
+            print(("FAILED rename: %s" % done.stderr.strip()[:160]) if done.returncode else "RENAMED Backlog to " + OTHER)
+            bad += bool(done.returncode)
+        if args.live and bad:
+            return 1
+        have[OTHER] = have.pop("Backlog")
     for title in standing(root):
         line, why = make(root, title, have, args.live)
         print(line or "FAILED " + why)

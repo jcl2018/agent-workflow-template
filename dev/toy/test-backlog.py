@@ -130,6 +130,22 @@ with tempfile.TemporaryDirectory() as tmp:
     out, _ = script(os.path.join(health, "milestone.py"), repo, "backlog", "--live")
     check(out.count("EXISTS") == 3 and len(titles_of(d)) == 3, "a second run makes none (%s)" % out.strip()[:100])
 
+    # DOC-10: an old milestone named Backlog becomes Backlog: Other, with its number, and none is made beside it
+    with open(os.path.join(d, "milestones.json")) as f:
+        keep = f.read()
+    with open(os.path.join(d, "milestones.json"), "w") as f:
+        json.dump([{"number": 7, "title": "Backlog", "state": "open"}], f)
+    out, _ = script(os.path.join(health, "milestone.py"), repo, "backlog")
+    check("WOULD rename milestone Backlog to Backlog: Other" in out and "WOULD create milestone Backlog: Other" not in out and titles_of(d) == ["Backlog"],
+          "a dry run says it would rename the old Backlog and writes nothing (%s)" % out.strip()[:160])
+    out, _ = script(os.path.join(health, "milestone.py"), repo, "backlog", "--live")
+    with open(os.path.join(d, "milestones.json")) as f:
+        now = {m["title"]: m["number"] for m in json.load(f)}
+    check("RENAMED" in out and now.get("Backlog: Other") == 7 and "Backlog" not in now and len(now) == 3,
+          "--live renames Backlog to Backlog: Other keeping its number 7 and makes the other two (%s)" % now)
+    with open(os.path.join(d, "milestones.json"), "w") as f:
+        f.write(keep)
+
     # HLT-4: a finding's home. The pure rule first, then a filed backlog item
     sys.path.insert(0, health)
     import file as F
