@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.27.56 - 2026-11-13
+
+- migration-check: a scheduled <repo>-health-regression task counts, and a mac repo is not asked for pull_request (#3780)
+- Setup page: the scheduled task folder and the mac repo's regression.yml
+- Lane: re-render the Tests tables
+- Toy parts per fix, the rows run them the standard way, Health page names the fixes
+- Scheduled tasks live only under ~/.claude/scheduled-tasks (the Mac confirmed); record the Mac red proofs
+- Lane: re-render the Tests tables
+- Health page names the one scheduled-task folder; Tests tables re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/migration-check-fixes
+- Wiki: update pages for migration-check-fixes
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.55 - 2026-11-13
 
 - SET-13 pool and worker-model wording, REG-10 Linux or macOS (review sitting edits)
