@@ -185,6 +185,10 @@ def suite_rows(common_dir, suite_limit, cfg):
                     else "the scheduled health job downloads CI's time; locally, run regression.py run nightly")]
     sha, _, seconds, day = full[-1][:4]
     minutes, source = int(seconds) // 60, "CI artifact" if len(full[-1]) > 4 and full[-1][4] == "ci" else "local run"
+    left = int(full[-1][4]) if len(full[-1]) > 4 and full[-1][4].isdigit() else 0  # the CI line's 5th column: rows left unrun (REG-7)
+    if left:
+        return [timing_row("WARN", "full-suite", "%d rows were left unrun by the full suite (%s on %s, %s)" % (left, source, day, sha[:12]),
+                           "add a shard or move the slowest rows to nightly")]
     text = "%d min (limit %d, the full-suite limit), from %s on %s (%s)" % (minutes, suite_limit, source, day, sha[:12])
     if int(seconds) > suite_limit * 60:
         return [timing_row("WARN", "full-suite", text, "narrow the rows (regression.py reads ROW) or move the slowest to nightly")]
