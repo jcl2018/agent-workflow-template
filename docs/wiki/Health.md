@@ -24,12 +24,12 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=f859c2a6 N=e89b4f3b M=39cf
 ## Requirements
 
 ### Functional
-- HLT-2: **Reviewed 2026-11-13** The rules <!-- reviewed 2e57e2d8 -->
+- HLT-2: **Reviewed 2026-11-13** The rules <!-- reviewed 4c8e3124 -->
   - Health checks exactly these groups, each with the angle its tests take:
   - Requirements (my angle: is every promise I approved proven?): every Reviewed requirement has a test seen failing and passing now; done lines have tests; none stays not enforced over 7 days.
   - Traceability (an auditor's angle: can I follow any work end to end?): requirement to test to last run; issue to feature; pull request to goal to done lines; release to the issues it fixed.
-  - Consistency (a reader's angle: do the pages agree?): IDs unique across pages; no reference to a missing ID; a command named the same in Usage and the README; no two requirements that contradict.
-  - Docs (a newcomer's angle: does each page match the template and the code?): template sections and limits; Usage matches the real commands and output; Home complete.
+  - Consistency (a reader's angle: do the pages agree?): IDs unique across pages; no reference to a missing ID; a command named the same in its skill's command reference and the README; no two requirements that contradict.
+  - Docs (a newcomer's angle: does each page match the template and the code?): template sections and limits; each skill's command reference matches the real commands and output; Home complete.
   - Freshness (my angle when I come back: is anything out of date?): the nightly suite ran in the last 24 hours; no merged work unreleased over 3 days; pages updated after their code changed; no finding older than 30 days.
   - Tests (a skeptic's angle: do the tests prove anything?): every row seen failing once; no flaky rows; no row skipped over 7 days; slowest rows named; no test touches the network.
   - Performance (my clock's and my wallet's angle: is it fast and cheap enough?): goal runs and the full suite within their time limits; goals within their time and token budgets; the health check within its limit.

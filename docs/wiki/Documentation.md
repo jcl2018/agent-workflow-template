@@ -3,23 +3,22 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Reviewed 2026-11-13** <!-- prd P=b211d7e4 R=604591e9 N=81dd3484 M=4599a537 U=c2562f39 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=df8f948f N=81dd3484 M=4599a537 U=03828777 -->
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
 - Pages drift from the code, and each repo writes them its own way, so reviewing them takes too long.
-- I need my approved requirements to stay exactly as I wrote them, while the loop keeps tests and Usage up to date for me.
+- I need my approved requirements to stay exactly as I wrote them, while the loop keeps tests up to date for me.
 
 ## Requirements
 
 ### Functional
-- DOC-1: **Reviewed 2026-11-13** PRD template <!-- reviewed 042552f8 -->
-  - One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Usage (the commands and how to use each, left out when nothing applies); Requirements (up to the repo's limit, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes).
+- DOC-1: **Reviewed 2026-11-13** PRD template <!-- reviewed 422243c4 -->
+  - One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Requirements (up to the repo's limit, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes). A page has no Usage section.
   - Nothing else goes on the page except the generated, optional Deployments (DOC-14) and Runbook (DOC-16) sections.
-- DOC-2: **Reviewed 2026-11-08** The PRD is mine <!-- reviewed caa2882e -->
-  - I review the PRD as a whole (Problem, Usage, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that.
+- DOC-2: **Reviewed 2026-11-13** The PRD is mine <!-- reviewed 39c36f13 -->
+  - I review the PRD as a whole (Problem, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that.
   - After it, nothing in Problem, Requirements, Non-goals or Success metrics changes unless I un-review it.
-  - Usage updates with the commands, and any change to it shows as changed since my review, under Needs you, until I review it again.
 - DOC-3: **Reviewed 2026-11-08** Tests follow on their own <!-- reviewed 2e9e1c3f -->
   - Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes.
   - I never write or manage tests.
@@ -29,9 +28,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b211d7e4 R=604591e9 N=81dd3484 M=4599
 - DOC-5: **Reviewed 2026-11-10** The front door is natural language <!-- reviewed 885694d1 -->
   - Every feature has a README "How to use" table: what I say to the agent, and what happens.
   - The table holds plain phrases, with no command syntax.
-- DOC-6: **Reviewed 2026-11-10** Usage is an API reference <!-- reviewed 0d3ab52b -->
-  - Usage lists only commands, one entry each.
-  - Each entry gives the exact syntax, what it prints on success, and each refusal with its message and exit code.
+- DOC-6: **Reviewed 2026-11-13** Each skill's commands are documented in its command reference <!-- reviewed bb317f4a -->
+  - Each skill's SKILL.md Command map names every command, and its references/commands.md gives each command's exact syntax, what it prints on success, and each refusal with its message and exit code.
 - DOC-7: **Reviewed 2026-11-10** Requirements are bullets <!-- reviewed 7de6dae3 -->
   - Requirements are bullets, grouped under two sub-headings: Functional (what it does) and Non-functional (qualities and limits).
   - IDs never change in the regroup.
