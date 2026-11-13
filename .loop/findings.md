@@ -60,3 +60,5 @@ Open (from the issue-cleanup triage of the open non-regression issues, 2026-11-1
 - health-v1: Failed 4 tries. Last: merging main conflicts in: .loop/regression.tsv, DECISIONS.md, docs/wiki/Health.md, docs/wiki/Tests.md
 - doc-fixes-v1: Failed 3 tries. Last: regression lane failed: capture-row-ci
 - doc-fixes-v1: Failed 4 tries. Last: regression lane failed: capture-row-ci
+- package-under-cap: done line over-scoped by the operation session
+- package-under-cap: done line over-scoped by the operation session
