@@ -5,17 +5,20 @@ import os
 import re
 import sys
 
+from slots import SUMMARY_JOB
+
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 BUDGET_MINUTES = 30  # a scheduled regression job's budget (REG-7, AUT-7)
-SHARDS = 2
+SHARDS = 8  # 4 shards left 189 of 731 rows unrun (REG-4, REG-7)
 
 
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
-            "REGRESSION_RESULTS", "REGRESSION_MAP", "RUNNER_TEMP", "SUITE_TIME_FILE")
+            "REGRESSION_RESULTS", "REGRESSION_MAP", "RUNNER_TEMP", "SUITE_TIME_FILE",
+            "REGRESSION_SHARD", "REGRESSION_LEVELS", "REGRESSION_TARGET", "REGRESSION_CLEANUP")  # a row that runs the runner must not inherit its shard
 
 
 def row_env():
@@ -45,8 +48,8 @@ permissions:
   issues: write
   pull-requests: read
 concurrency:
-  group: regression
-  cancel-in-progress: false
+  group: regression-${{ github.ref }}  # one run per ref
+  cancel-in-progress: true  # GRD-7
 jobs:
   regression:
     runs-on: ubuntu-latest
@@ -125,13 +128,13 @@ jobs:
               return value if value > 0 else default
           ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", (@BUDGET@ - 2) * 60)
           ROW_ENV = {k: v for k, v in os.environ.items() if k not in @ROWDROP@}
-          def run(command):  # own group, output to a file
+          def run(command, limit):  # own group, output to a file; limit: seconds this row may take
               with tempfile.TemporaryFile("w+", errors="replace") as log:
                   child = subprocess.Popen(command, shell=True, stdout=log, stderr=subprocess.STDOUT, env=ROW_ENV,
                                            start_new_session=True)
                   timed_out = False
                   try:
-                      child.wait(timeout=ROW_SECONDS)
+                      child.wait(timeout=limit)
                   except subprocess.TimeoutExpired:
                       timed_out = True
                       try:  # so a hang names itself
@@ -149,7 +152,7 @@ jobs:
                   log.seek(0)
                   out = log.read()
               if timed_out:
-                  return 124, out + "\ntimed out after %d s" % ROW_SECONDS
+                  return 124, out + "\ntimed out after %d s" % limit
               return child.returncode, out
           def result(name, state):
               with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "a") as handle:
@@ -195,7 +198,7 @@ jobs:
           def marked(body):
               match = FOUND.search(body or "")
               return (match.group(1), urllib.parse.unquote(match.group(2) or "")) if match else (None, "")
-          red, start, dupes = [], time.time(), [600 if CLEANUP else 20]
+          red, start, dupes, unrun = [], time.time(), [600 if CLEANUP else 20], [0]
           with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
               handle.write("# started %d\n" % start)
           mine, seen = (os.environ.get("REGRESSION_SHARD") or "0/1").split("/"), 0
@@ -210,10 +213,13 @@ jobs:
                   break
               if CLEANUP:
                   code, said, skipped = 125, "", True
-              elif time.time() - start + ROW_SECONDS > JOB_SECONDS:
+              elif JOB_SECONDS - (time.time() - start) < 30:
                   code, said, skipped = 125, "skipped: out of job time; this row did not run", True
+                  unrun[0] += 1
+                  with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "a") as handle:
+                      handle.write("# unrun %s\n" % row[0])
               else:
-                  (code, said), skipped = run(row[2]), False
+                  (code, said), skipped = run(row[2], int(min(ROW_SECONDS, JOB_SECONDS - (time.time() - start)))), False
               hits = sorted((item for item in issues or [] if marked(item["body"])[0] == row[0]), key=lambda i: i["number"])
               sk = lambda i: (i["body"] or "").split("\n")[1:2] == ["The row `%s` was skipped." % row[0]]
               hit = next((i for i in hits if i["state"] == "OPEN" and not sk(i)), None) or next(
@@ -244,7 +250,7 @@ jobs:
                   mark = "<!-- loop-regression %s placed= -->" % row[0]
                   about = "- Feature: %s\n- Guards: %s\n- Checks: %s\n\n" % (cells[0] or "-", cells[3] or "-", cells[4] or "-")
                   body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "fails", about,
-                                                                 shown(run, row[2], code, said))
+                                                                 shown(lambda c: run(c, ROW_SECONDS), row[2], code, said))
                   if not hit:
                       make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect"]
                       made = gh(*make, *(["--label", label] if label else []), body=body)
@@ -271,7 +277,7 @@ jobs:
           if TARGET == "nightly" and not CLEANUP:
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
-                  handle.write("%s\tfull\t%d\t%s\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime())))
+                  handle.write("%s\tfull\t%d\t%s\t%d\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime()), unrun[0]))
               print("SUITE_TIME %d" % took)
           if CLEANUP:
               ids = {row[0] for row in rows(".loop/regression.tsv") if row}
@@ -294,31 +300,20 @@ jobs:
           path: ${{ runner.temp }}/suite-time.tsv
           if-no-files-found: ignore
           retention-days: 30
-      - name: Write the run summary, one table per feature
+      - name: Keep this shard's results for the summary
         if: always() && steps.routine.outputs.on == 'true'
         continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv
-        run: |
-          here=$(mktemp -d)
-          cat > "$here/tests.py" <<'TESTS_PY_EOF'
-@TESTS@
-          TESTS_PY_EOF
-          started=$(sed -n 's/^# started //p' "$REGRESSION_RESULTS" 2>/dev/null | head -n 1 || true)
-          case "$started" in ''|*[!0-9]*) started=$(date +%s) ;; esac  # never an expression
-          left=$(( started + 89 * 60 - $(date +%s) - 30 ))
-          [ "$left" -ge 10 ] && timeout "$(( left < 60 ? left : 60 ))" python3 -I "$here/tests.py" issues --write >/dev/null || true
-          took=$(( $(date +%s) - started ))
-          GH_TOKEN= python3 -I "$here/tests.py" summary --results "$REGRESSION_RESULTS" --took "$took" >> "$GITHUB_STEP_SUMMARY" || {
-            printf '## Regression\n\nThe grouped summary could not be written; see this step'"'"'s log.\n\n| Test | Result |\n|---|---|\n'
-            grep -v '^#' "$REGRESSION_RESULTS" 2>/dev/null | awk -F'\t' '{print "| " $1 " | " $2 " |"}'
-          } >> "$GITHUB_STEP_SUMMARY"
-"""
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.shard }}
+          path: ${{ runner.temp }}/regression-results.tsv
+          if-no-files-found: ignore
+          retention-days: 30
+@SUMMARY@"""
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@ROWTAIL@", "@MATRIX@", "@SHARDS@", "TESTS_PY_EOF")
+UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@ROWTAIL@", "@MATRIX@", "@SHARDS@", "@SUMMARY@", "TESTS_PY_EOF")
 
 
 def render(cron, levels="nightly"):
@@ -332,7 +327,7 @@ def render(cron, levels="nightly"):
     with open(os.path.join(HERE, "rowtail.py")) as handle:
         tail = "\n".join(("          " + line).rstrip() for line in handle.read().rstrip("\n").split("\n"))
     schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron
-    return WORKFLOW.replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
+    return WORKFLOW.replace("@SUMMARY@", SUMMARY_JOB).replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
         .replace("@BUDGET@", str(BUDGET_MINUTES)).replace("@SHARDS@", str(SHARDS)).replace("@MATRIX@", str(list(range(SHARDS)))) \
         .replace("@TESTS@", body).replace("@ROWTAIL@", tail)
 

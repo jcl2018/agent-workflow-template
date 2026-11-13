@@ -500,7 +500,7 @@ Proof: toy tests (dev/toy/test-live-board.sh, dev/toy/test-board-held.sh).
 
 #### `sessions.py bind`: the worker command and the worktree
 
-`bind SLUG ID [--name N] [--force] [--cwd DIR]` (in `session_bind.py`) also prints two lines for whoever binds to pass
+`bind SLUG ID [--name N] [--force] [--cwd DIR]` (in `worker.py`) also prints two lines for whoever binds to pass
 on (assign's message to a new session already carries both):
 
 ```text

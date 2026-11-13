@@ -1,10 +1,10 @@
 #!/bin/bash
 # reads: skills/workflow-regression/scripts/regression.py skills/workflow-regression/scripts/tiers.py
-# reads: skills/workflow-regression/scripts/actions.py skills/workflow-health/scripts/cost.py
+# reads: skills/workflow-regression/scripts/actions.py skills/workflow-regression/scripts/slots.py skills/workflow-health/scripts/milestone.py
 # reads: skills/workflow-health/scripts/automation.py skills/workflow-health/scripts/workflows.py
 # Proves the full-suite time (REG-7, S14, S25) on a throwaway repo with a fake gh: only the plain `regression.py run
 # nightly` appends `<sha> TAB full TAB <seconds> TAB <date>` to <git common dir>/loop/suite-times.tsv and prints
-# SUITE_TIME, never into the worktree; a row id, land, --reuse, --tier or --kind writes nothing; health's cost.py timing_rows
+# SUITE_TIME, never into the worktree; a row id, land, --reuse, --tier or --kind writes nothing; health's milestone.py timing_rows
 # reads the line; the written regression.yml keeps the CI run's line as artifact suite-time, and health.yml's fetch
 # step (run with a stub gh) adds it with the ci column, or continues when there is no artifact yet. No model.
 # usage: test-suite-time.sh
@@ -42,11 +42,11 @@ for args in "land" "n1" "nightly --kind requirement" "nightly --reuse"; do
   out=$($reg run $args 2>&1)
   [ "$(lines)" = 1 ] && ! grep -q "^SUITE_TIME" <<<"$out" && ok "run $args records no suite time" || bad "run $args wrote: $(cat "$times")"
 done
-# Value: protects=health reads the local line (REG-7); fails_when=cost.py timing_rows can't find or parse it; why_new=no writer
+# Value: protects=health reads the local line (REG-7); fails_when=milestone.py timing_rows can't find or parse it; why_new=no writer
 #   existed; seam=none; no_claim=the limit warning (test-timing.sh)
 python3 - "$here" <<'PY' && ok "health's timing rule reads the local run's suite time" || bad "timing did not read it"
 import sys
-sys.path.insert(0, sys.argv[1] + "/skills/workflow-health/scripts"); import cost
+sys.path.insert(0, sys.argv[1] + "/skills/workflow-health/scripts"); import milestone as cost
 found = [r for r in cost.timing_rows(".") if r["subject"] == "full-suite"]
 assert found and found[0]["state"] == "PASS" and "from local run" in found[0]["detail"], found
 PY
@@ -85,7 +85,7 @@ out=$(STUB_ARTIFACT=1 fetch 2>&1); rc=$?
 [ "$rc" = 0 ] && [ "$(tail -1 "$times")" = "cafe	full	2400	2026-11-09	ci" ] && python3 - "$here" <<'PY' \
   && ok "the newest run's artifact is added with the ci column and health reads it as a CI artifact" || bad "fetch: rc=$rc $out $(cat "$times")"
 import sys
-sys.path.insert(0, sys.argv[1] + "/skills/workflow-health/scripts"); import cost
+sys.path.insert(0, sys.argv[1] + "/skills/workflow-health/scripts"); import milestone as cost
 found = [r for r in cost.timing_rows(".") if r["subject"] == "full-suite"]
 assert found and found[0]["state"] == "WARN" and "from CI artifact on 2026-11-09" in found[0]["detail"], found
 PY
