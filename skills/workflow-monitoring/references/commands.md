@@ -31,8 +31,7 @@ resume SLUG
 
 A queue line may name `depends-on: a, b`. A goal waits only on those goals, until they are merged, and on a free worker
 slot; sharing files is never a reason to wait. Before its pull request the later goal merges the latest base branch, so it
-has the earlier goal's merged changes, and only a real conflict costs it
-a try. A running goal with no `pid` is never marked failed or mended and takes no worker slot. A failed goal never stops
+has the earlier goal's merged changes; a conflict with it is not a counted try (its own cap, `max_moved`). A running goal with no `pid` is never marked failed or mended and takes no worker slot. A failed goal never stops
 the others. A batch goal answers the release
 question with `leave` by itself, never `cut`; `--release ask` makes it wait for you.
 

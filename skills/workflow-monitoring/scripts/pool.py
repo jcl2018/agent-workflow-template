@@ -278,7 +278,7 @@ def pr_moved(runs, g, state, why, fix):
         return True
     state["step"] = "build"
     g.save(state, "main moved, try not counted (%d of %d)" % (state["moved"], most))
-    print("TRY NOT COUNTED (main moved: %d of %d; past %d it counts)\nNEXT: %s" % (state["moved"], most, most, fix))
+    print("TRY NOT COUNTED (main moved: %d of %d; past %d it counts): %s\nNEXT: %s" % (state["moved"], most, most, why, fix))
     return True
 
 
