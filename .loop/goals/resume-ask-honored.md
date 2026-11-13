@@ -12,3 +12,8 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Run `python3 dev/toy/test-resume-ask.py`.
+   Expect: four PASS lines for the prompts and the worker step, then two more PASS lines, and exit 0.
+2. With auto_merge on, read `mend.release_text({"slug": "g", "release": "ask"})`.
+   Expect: the text asks "Cut a release or leave it unreleased?" and never names merge.py.
