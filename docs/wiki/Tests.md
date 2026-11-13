@@ -681,7 +681,7 @@
 | <a id="t-defect-wording"></a>defect-wording | requirement | - | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
 | <a id="t-stale-groups-defect"></a>stale-groups-defect | defect | [#89](https://github.com/jcl2018/agent-workflow-template/issues/89) closed (2026-11-09) | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-09 |
 | <a id="t-board-estimates-overrun"></a>board-estimates-overrun | defect | [#93](https://github.com/jcl2018/agent-workflow-template/issues/93) closed (2026-11-11) | PASS | 2026-11-10 | [60def83](https://github.com/jcl2018/agent-workflow-template/commit/60def83dfbc8727d0307a13b77f5aad43479da6a) | 2026-11-09 |
-| <a id="t-ls-plist"></a>ls-plist | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
+| <a id="t-ls-plist"></a>ls-plist | requirement | done line local-schedule:1 | FAIL | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-12 |
 | <a id="t-ls-registry"></a>ls-registry | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
 | <a id="t-ls-no-health-workflow"></a>ls-no-health-workflow | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
 | <a id="t-ls-digest-parity"></a>ls-digest-parity | requirement | done line local-schedule:1 | not run | - | local | 2026-11-12 |
