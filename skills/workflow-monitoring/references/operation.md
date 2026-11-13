@@ -49,7 +49,7 @@ the goal, its worktree and the report rules, and records `worker: session` and t
 session runs every flow step inside itself (`flow.py` prints `IN SESSION` and starts no agent) and sends this session a
 message at each change of step or status and at the end. For each such message, run
 `sessions.py report SLUG --step S`, or at the end `--status merged|failed|waiting --pr URL` (merged is checked with gh; an
-open pull request stays `done` and reports waiting, and where `auto_merge` is on the release step runs for it). A question
+open pull request stays `done` and reports waiting, and a report never merges: the goal's PR merges only through its own `merge.py` or the operation's go, #3868). A question
 for the owner is `--status waiting --ask Q --words W`, and `operate.py send` carries the answer to the session itself. A
 goal that ended frees its session, and the next ready goal gets it, renamed again. A session goal holds a `parallel`
 slot, and one silent for `silent_minutes` (default 30) is named under Needs you (MON-8). A session you start yourself with the app's tools is recorded with

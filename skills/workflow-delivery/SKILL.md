@@ -91,7 +91,7 @@ their own eyes, not what the tests already prove. A release refuses without at l
 
 ### 4. Pull request
 
-Run `goal.py pr <slug>`. It first merges the latest base branch, and only a real conflict costs a try (it aborts the
+Run `goal.py pr <slug>`. Goals at pr take turns per repo (one at a time, in order: a later goal prints `WAITING pr queue` and merges nothing; run `pr` again). It first merges the latest base branch; a conflict, or a lane that fails while the base moved, is a try lost to main moving: it is not counted against `max_tries` but against `max_moved` (default 5, then it counts). On a conflict it aborts the
 merge: merge the base yourself, commit, and run `pr` again; a conflict only in Tests.md or the regression tsv files is
 mended and merged, `MENDED`, and a lane that ends with no exit status, LANE_DIED, reruns free up to 3 times). It refuses until every flow step is done or skipped, and
 while the issue or finding the goal fixes ("fixes #N", "fixes finding:SLUG") has no defect test: a regression row of

@@ -4,11 +4,13 @@ settings (the sidecar `<runs>/<slug>.extra.json`, merged over the run record by 
 `github:` touch, at most one code area (a path's first two components; docs/, .loop/, dev/toy/, tests and root files are none).
 Also here, to keep the package under its file cap: the operation's `set` and `queue`, what `new`, `record` and `pr` keep, the
 pull request body, and the defect-test check (`fit.py owed SLUG`: refs a goal fixes that lack a defect row seen failing, E-10)."""
+import importlib.util
 import json
 import os
 import re
 import subprocess
 import sys
+import time
 
 # No terminal, no waiting: a prompt from git must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -254,6 +256,23 @@ def frozen_fields(g, args, lines, touches):
     return {"size": size_of(lines, touches, g.root()), "budget": budget_of(g.config())}
 
 
+def pr_open(g, state, base, info, body):
+    """Push the branch, then the open pull request's url (created when none is open)."""
+    for wait in (2, 5, 0):
+        pushed = g.run(["git", "push", "-u", "origin", state["branch"]])
+        if not pushed.returncode:
+            break
+        time.sleep(wait)
+    if pushed.returncode:
+        g.no("push failed:\n" + pushed.stderr)
+    if info.get("state") == "OPEN":
+        return info["url"]
+    path = g.state_path(state["slug"]) + ".body"
+    g.write(path, body)
+    done = g.run(["gh", "pr", "create", "--base", base, "--head", state["branch"], "--title", state["goal"][:70], "--body-file", path], check=True)
+    return done.stdout.strip().splitlines()[-1]
+
+
 def pr_text(g, state):
     import guards, private, role  # noqa: E401 - lazily: they import fit
     base, cfg = g.base_ref(state), g.config()
@@ -320,7 +339,6 @@ def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
     return body
 
 
-VERB = r"\b(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+"
 def off_rows(text):
     bad, un = re.findall(r"^FAIL (\S+)", text, re.M), re.findall(r"^UNPROVEN ([^\s:]+)", text, re.M)
     return un if un and not bad and set(un) <= set(re.findall(r"^SKIPPED (\S+)", text, re.M)) else []
@@ -355,46 +373,14 @@ def main_here(g, args):
              "%s origin/main, then run goal.py new there" % (args.slug, os.path.join(common, "loop", "worktrees", args.slug).replace(os.sep, "/")))
 
 
-SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date
-FIXES = re.compile(VERB + r"(?:issue\s+)?#(\d+)|" + VERB + r"finding:([a-z0-9][a-z0-9-]*)", re.I)
-
-
-def rows(root):
+def owed(root, text):  # the defect-test check lives in workflow-monitoring's pool.py (size budget); no check without it
     try:
-        with open(os.path.join(root, ".loop", "regression.tsv")) as handle:
-            cells = [line.rstrip("\n").split("\t") + [""] * 8 for line in handle if line.strip() and line[0] != "#"]
-    except OSError:
+        spec = importlib.util.spec_from_file_location("pool_owed", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-monitoring", "scripts", "pool.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+    except Exception:
         return []
-    return [(c[0], c[2], c[4], c[7]) for c in cells if c[6] == "defect"]
-
-
-def has(link, ref):
-    return re.search(r"(?:issues/|#)%s\b" % re.escape(ref), link) if ref.isdigit() else re.search(r"finding:%s(?![\w-])" % re.escape(ref), link)
-
-
-def before(root):
-    try:
-        with open(os.path.join(root, ".loop", "config.json")) as handle:
-            base = json.load(handle).get("base") or "main"
-    except (OSError, ValueError):
-        base = "main"
-    git = lambda *a: subprocess.run(("git",) + a, cwd=root, capture_output=True, text=True, env=dict(os.environ, LC_ALL="C"))
-    found = next((x for x in (git("merge-base", "HEAD", ref).stdout.strip() for ref in ("origin/" + base, base)) if x), "")
-    shown = git("show", found + ":.loop/regression.tsv") if found else None
-    if not shown or shown.returncode and "exists on disk" not in shown.stderr and "does not exist" not in shown.stderr:
-        return None
-    return {c[0]: (c + [""] * 5)[4] for c in (line.split("\t") for line in shown.stdout.splitlines()) if c[0][:1] not in ("", "#")}
-
-
-def owed(root, text):
-    owe, old = [], before(root)
-    for number, finding in FIXES.findall(text):
-        ref = number or finding.lower()
-        if not any(SEEN.match(seen) and has(link, ref) and (old is None or old.get(name) != seen)
-                   and subprocess.run(command, shell=True, cwd=root, capture_output=True).returncode == 0
-                   for name, command, seen, link in rows(root)):
-            owe.append(("#" if number else "finding ") + ref)
-    return owe
+    return mod.pr_owed(None, root, text)
 
 
 if __name__ == "__main__":
