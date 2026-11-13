@@ -1,5 +1,127 @@
 # Changelog
 
+## v0.28.29 - 2026-11-13
+
+- pr queue per repo, and a try lost to main moving has its own cap (#3877)
+- Design and plan for the pr queue
+- pr queue: an unreadable own ticket is not a crash; docs and toys follow the new conflict rule
+- Lane: re-render the Tests tables
+- Wiki: update pages for pr-queue
+- Wiki: update pages for pr-queue
+- Wiki: update pages for pr-queue
+- Wiki: update pages for pr-queue
+- pr-queue: regression runs
+- pr-body-by-file reads fit.py now
+- pr-queue: the defect-test check moves from fit.py to pool.py, so fit.py is under 19,000 bytes
+- pr-queue: link the moved-try row to DEL-1
+- Merge origin/main into loop/pr-queue
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.28 - 2026-11-13
+
+- who-merges: a report never runs merge.py; toy and row
+- who-merges: render the Tests tables
+- who-merges: the exit fallback skips a held goal; a report prints NEXT: merge.py; row
+- who-merges: seen red, tables
+- who-merges: report --hold stamps hold_at; the exit fallback honours it; row
+- who-merges: seen red, tables
+- Merge origin/main into who-merges
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.27 - 2026-11-13
+
+- docs check --own: a stale page the goal's diff doesn't touch is a finding, not a failure; rows and toy
+- stale-own rows guard DOC-15's STALE requirement; regenerate Tests tables
+- Fold own.py into audit.py (package headroom: 98 files)
+- stale-own control row: say that health and the scheduled run keep the STALE line
+- stale-own rows guard DOC-1 (a page behind the code is reported stale), the requirement the docs check judges
+- check --own: keep every STALE on the base branch itself and for block staleness; two rows
+- Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/stale-blocks-all
+- Merge remote-tracking branch 'origin/main' into loop/stale-blocks-all
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.26 - 2026-11-13
+
+- DECISIONS: sub-bullet and owner sentences for the stale Documentation page
+- DOC-15: health and the digest run on the Mac's local schedule (owner un-reviewed Documentation and DOC-15)
+- Home: the Documentation row names health's local schedule
+- Documentation and DOC-15 reviewed again by the owner
+- Merge remote-tracking branch 'origin/main' into loop/doc15-local-schedule
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.25 - 2026-11-13
+
+- Toys read the delivery governance line as it now reads; Tests list checks match the table
+- Merge remote-tracking branch 'origin/main' into loop/skill-governs-line
+- Wiki: update pages for skill-governs-line
+- Restore Documentation.md: DOC-15 is owner-reviewed, don't edit it
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.24 - 2026-11-13
+
+- Automation table: health and the digest run on the Mac's local schedule, no health workflow owed (#3857)
+- Lane: re-render the Tests tables
+- Render the Automation block: health on the Mac's local schedule
+- Digest keys owed in mail.env; Documentation names health's local schedule
+- Documentation Usage: docs.py automation names the local schedule
+- Drop the Documentation Usage edit; docs.py automation's local schedule goes in commands.md
+- Merge origin/main into automation-table-health
+- Merge origin/main into automation-table-health (runbook links kept with the local schedule)
+- Documentation: the Automation table shows health on the local schedule
+- Wiki: update pages for automation-table-health
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.23 - 2026-11-13
+
+- DECISIONS: drop-usage requirement wording, waiting on owner un-review
+- drop-usage: no Usage section on any feature page; docs check flags one; START.md and health read the skills' command maps
+- drop-usage: a Python toy and its regression row
+- drop-usage: test-criteria expects USAGE for any Usage section; Commands hint
+- drop-usage: re-rendered pages
+- drop-usage: the owner's approved wording on DOC-1, DOC-2, DOC-6, HLT-2 and the Documentation Problem; reviewed
+- drop-usage: the nine bash toys and their rows follow the no-Usage pages; command reference holds the moved entries
+- drop-usage: a Runbook Output may name a Deployments row, and the Automation block links each routine to its Runbook
+- Lane: re-render the Tests tables
+- drop-usage: the regression workflow entry moves to the regression command reference; review-findings-wording follows it
+- drop-usage: Health PRD un-reviewed and reviewed again by the owner, HLT-2 as now worded
+- Merge origin/main into loop/drop-usage
+- Merge remote-tracking branch 'origin/main' into loop/drop-usage
+- Merge origin/main into loop/drop-usage (Automation Usage edits moved to the command references)
+- Health command reference: the digest and mail entries moved from the Automation page's retired Usage section
+- Monitoring command reference: LF line endings throughout
+- Merge origin/main into loop/drop-usage (95 commits; Usage edits from main moved to the command references; Documentation and Health PRDs re-stamped with the owner's words)
+- DECISIONS: wording for the three stale pages (#3848, #3860, #3861), waiting on owner un-review
+- Automation, Guardrails, Monitoring: owner-approved updates for the stale pages (#3848, #3860, #3861)
+- Home, DECISIONS: record the applied wording for #3848, #3860, #3861
+- Merge origin/main into loop/drop-usage (Usage edits from main moved to the command references; design-guide.md went to loop-files.md on main)
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.22 - 2026-11-13
 
 - Fold and trim for package headroom

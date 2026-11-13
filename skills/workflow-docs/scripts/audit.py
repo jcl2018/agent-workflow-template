@@ -109,7 +109,7 @@ def audit(root, base, dry):
     for line in would:
         print("%s %s" % ("WOULD FIX" if dry else "FIXED", line))
     found += docs.problems(root, base) + docs.contract(root) + docs.counts(root) + release_trouble(root)
-    found = [item for item in found if item[0] != "CHANGED"]  # Usage drift waits on the owner, not on a goal
+    found = [item for item in found if item[0] != "CHANGED"]  # kept for older pages; Usage is gone
     found += scenarios(root) if config_criteria(root) else []
     if dry:
         found = [item for item in found if item[0] != "TESTS" and item[:2] != ("STALE", "Tests")]  # render fixes these
@@ -128,3 +128,39 @@ def audit(root, base, dry):
 
 def config_criteria(root):
     return bool(docs.config(root).get("criteria"))
+
+
+# check --own: a stale page the goal's own diff doesn't touch is a FINDING, not a failure.
+import subprocess
+
+
+def own_git(root, *args):
+    out = subprocess.run(["git"] + list(args), cwd=root, capture_output=True, text=True)
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def own_base(root, name):
+    for ref in ("origin/" + name, name):
+        if own_git(root, "rev-parse", "--verify", "-q", ref + "^{commit}"):
+            return ref
+    return None
+
+
+def own_touched(root, ref, paths):
+    """True when the goal's diff (merge-base of ref and HEAD, to HEAD) touches any of the page's mapped paths."""
+    out = own_git(root, "diff", "--name-only", ref + "...HEAD", "--", *paths)
+    return out is None or bool(out)  # no diff answer: judge the page as the goal's own
+
+
+def own_split(root, found, notes, rows, name="main"):
+    """(found, notes) with each STALE line of an untouched mapped page moved to notes as FINDING."""
+    ref = own_base(root, name)
+    if not ref or own_git(root, "merge-base", "--is-ancestor", "HEAD", ref) is not None:
+        return found, notes  # no base, or on the base branch itself (main's own run keeps every STALE)
+    keep, moved = [], []
+    for item in found:
+        if item[0] == "STALE" and item[1] in rows and item[2][:1].isdigit() and not own_touched(root, ref, rows[item[1]]):
+            moved.append(("FINDING", "STALE " + item[1], item[2] + " (not touched by this goal; main's own, left for health)"))
+        else:
+            keep.append(item)
+    return keep, notes + moved

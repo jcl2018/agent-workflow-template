@@ -254,12 +254,6 @@ def deterministic(root, name, text, paths):
                 and not re.search(r"\b[A-Z]{2,5}-\d+\b", body):
             out.append(finding(name, "gap", "an auditor's angle", "open issue #%d names no requirement" % issue["number"],
                                "#%d" % issue["number"], "tie it to a requirement, or add one", "rule"))
-    skills = {p.split("/")[1] for p in paths if p.startswith("skills/workflow-")}
-    for skill, verb in sorted(set(COMMAND.findall(T.section(text, "Usage")))):
-        doc = os.path.join(root, "skills", skill, "SKILL.md")
-        if skill in skills and os.path.exists(doc) and verb not in open(doc, errors="replace").read():
-            out.append(finding(name, "drift", "a newcomer's angle", "Usage names /%s %s, which the skill doesn't name" % (skill, verb),
-                               "docs/wiki/%s.md" % name, "fix the Usage line or the skill", "rule"))
     return out
 
 

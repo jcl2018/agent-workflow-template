@@ -97,3 +97,39 @@ The check-in dependency map (checkin.py) showed a flat list of goal ids with no 
 
 - MON-14 (new sub-bullet): "Each goal shows its expected time left from past runs, each repo block ends with its expected finish, and each wait is drawn as an arrow."
 - MON-14 (new sub-bullet): "The map lists only live goals: a record with no goal or status, a stopped goal and a goal left with release: leave are not drawn, and a worker held at pr reads holding, not stuck."
+
+## Waiting on owner un-review (drop-usage)
+
+The owner decided 2026-11-13: "remove the usage section, because you cannot say each feature has an API; we already have the README and How to use, and natural language will find the right way to run it." Feature pages lose Usage. Exact replacement text below; none is applied until the owner un-reviews each requirement and approves the wording. The wording sits alongside backlog-milestones' changes to DOC-10 and HLT-4 and touches neither.
+
+- DOC-1, bullet 1, replace with: One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Requirements (up to the repo's limit, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes). A page has no Usage section.
+- DOC-1, bullet 2: unchanged.
+- DOC-2, bullet 1, replace with: I review the PRD as a whole (Problem, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that.
+- DOC-2, bullet 3, delete (the Usage clause). Bullet 2 is unchanged.
+- DOC-6, rename "Usage is an API reference" to "Each skill's commands are documented in its command reference", replace both bullets with: Each skill's SKILL.md Command map names every command, and its references/commands.md gives each command's exact syntax, what it prints on success, and each refusal with its message and exit code. Reason: the owner dropped Usage because a feature has no API, but the exact syntax, output and refusals are still promises the repo makes and tests prove (the usage-* rows move to the command reference); deleting the requirement would leave them with no owner.
+- DOC-5: unchanged. The README's "How to use" tables stay the front door.
+- DOC-10 and DOC-15: do not mention Usage; unchanged.
+- Documentation Problem, last bullet, replace with: I need my approved requirements to stay exactly as I wrote them, while the loop keeps tests up to date for me. (It names Usage; Problem is locked, so this needs the same un-review.)
+- HLT-2, Consistency bullet, replace "a command named the same in Usage and the README" with: a command named the same in its skill's command reference and the README.
+- HLT-2, Docs bullet, replace "Usage matches the real commands and output" with: each skill's command reference matches the real commands and output.
+
+## Waiting on owner un-review (stale pages: #3848, #3860, #3861)
+
+Drafted 2026-11-13 by the drop-usage goal. Main's recent code changes left three Reviewed pages stale, and Usage edits no longer touch pages. One real, accurate sub-bullet each, none applied until the owner un-reviews the named requirement and page and approves the wording; the code and tests it describes are already on main.
+
+- Automation (#3848, suite-shard), AUT-2, add this sub-bullet after the last one: The CI suite runs in eight shards with one combined summary: each row is given the time left, the suite-time line counts the rows skipped for time (the unrun rows), and a newer run on the same ref cancels the older.
+- Guardrails (#3860, backlog-milestones' `criteria_max` 16 to 17), GRD-9, add this sub-bullet after the last one: A page's requirement cap, `criteria_max` (17 in this repo), is read by health's Size group, so a page too large to review shows as a finding.
+- Monitoring (#3861, the reply hook and the check-in dependency code), MON-14, add this sub-bullet after the last one: The reply hook flags a check-in whose Dependencies section leaves out a goal on the board.
+
+Applied 2026-11-13 on the owner's three approvals typed in the drop-usage session: AUT-2, GRD-9 and MON-14 and their pages were un-reviewed, given the sub-bullets above, and reviewed again.
+
+## Waiting on owner un-review (Documentation stale)
+
+Drafted 2026-11-13 by the wiki-catchup session (#3875, closed as not a bug). Main's Documentation page is STALE: 081de7bf and d861e9c6 changed what the Automation table says about health, and no page text describes that. A Tests-intro line cannot hold it (Tests is generated, DOC-9), and a net-zero add-then-revert correctly does not clear a page (#3790). Nothing is applied until the owner un-reviews and approves the wording; `docs.py publish` stays refused, and the GitHub wiki stays behind, until then. The wider design question, mapped code changes needing a page edit that has no place to go, is #3867.
+
+- DOC-15, add this sub-bullet after the last one: Health and the digest email run on the Mac's local schedule, never in GitHub Actions, so the Automation table owes no health workflow; the digest's keys go in the schedule's mail.env on the Mac, outside git.
+
+The owner types two sentences in the operation session (it runs `criteria.py unreview` and `review` with those words in `LOOP_OWNER_WORDS`):
+
+1. Un-review: "Un-review the Documentation page and DOC-15 so the local-schedule sub-bullet can be added."
+2. Review, after the goal has added it: "Review the Documentation page and DOC-15 again."
