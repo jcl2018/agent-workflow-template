@@ -12,3 +12,8 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Run `python3 dev/toy/test-package-gate.py`.
+   Expect: four control PASS lines and `PASS: head: this checkout's package passes ...`, exit 0.
+2. Append 21,000 bytes of comment to any tracked script under skills/ and run it again.
+   Expect: a `FAIL: head: Scripts: <file> is ... bytes` line and exit 1.
