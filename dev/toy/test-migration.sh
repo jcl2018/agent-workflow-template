@@ -425,6 +425,8 @@ fi
 # exits 1; with every feature present it exits 0, and what only the owner can do prints as OWNER STEP with its instruction (never a gap).
 if want v1; then fresh
   r=$(cleanrepo v1)
+  unset LOOP_TEMPLATE_HAS; mig "$r" --offline
+  check "the real installed template (no override) carries none of the new features yet, so a clean toy gets no new gap" '[ $rc = 0 ] && ! grep -qE "^GAP MIG_(USAGE|RULES|ROUTINES|HOOKS)" <<<"$out"'
   export LOOP_TEMPLATE_HAS=usage-kept; mig "$r" --offline
   check "a clean toy whose template carries no new feature exits 0 and prints no new gap" '[ $rc = 0 ] && ! grep -qE "^GAP MIG_(USAGE|RULES|ROUTINES|HOOKS)" <<<"$out"'
   check "the clean toy still lists what only the owner can do, as OWNER STEP lines with their instruction" 'grep -q "^OWNER STEP hook reply_hook.py: run .*--reply-hook" <<<"$out" && grep -q "^CHECKLIST: " <<<"$out"'
