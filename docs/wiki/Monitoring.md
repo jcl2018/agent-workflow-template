@@ -75,7 +75,6 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde
 ## Non-goals
 - The operation session never builds; workers do.
 - It never merges unless auto_merge is on (MON-7, MON-15); the delivery loop merges and releases.
-- It does not hold merge.lock for a pr lane: goals at pr take turns per repo through the pr queue, and a try lost to main moving counts against max_moved, not max_tries.
 - Full auto never answers for me on destructive, money, security or owner-contradicting decisions.
 
 ## Success metrics
