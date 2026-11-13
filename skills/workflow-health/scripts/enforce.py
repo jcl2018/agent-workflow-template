@@ -203,7 +203,7 @@ def carries(name, skill, text, *places):
         return name in os.environ["LOOP_TEMPLATE_HAS"].split(",")
     for place in places or ("scripts/*.py", "references/*.md"):
         for path in glob.glob(os.path.join(SKILLS, skill, place)):
-            if text in read(path):
+            if os.path.basename(path) != "enforce.py" and text in read(path):  # this file names the features it asks about
                 return True
     return False
 
