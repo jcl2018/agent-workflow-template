@@ -1,5 +1,41 @@
 # Changelog
 
+## v0.28.4 - 2026-11-13
+
+- Design: tokens-unread
+- Lane: re-render the Tests tables
+- Wiki: tokens unread in the Delivery and Monitoring usage lines
+- Re-render the Tests table
+- Record the two docs rows green; re-render Tests
+- Merge remote-tracking branch 'origin/main' into loop/tokens-unread
+- Merge origin/main into loop/tokens-unread
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.3 - 2026-11-13
+
+- pr waits on owed off-platform proof without a failed try (#2865)
+- Delivery page and Tests tables follow the pr gate
+- Merge origin/main
+- Wiki: update pages for lane-gate-owed
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.2 - 2026-11-13
+
+- Setup recognizes its own hook on a Windows path, so each hook installs once (#2880)
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.1 - 2026-11-13
 
 - Docs stale check: a page is stale only when its mapped paths differ in net (#3771)
