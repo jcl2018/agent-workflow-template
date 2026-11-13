@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Reviewed 2026-11-13** <!-- prd P=b211d7e4 R=604591e9 N=81dd3484 M=4599a537 U=0cf4e5a6 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=b211d7e4 R=604591e9 N=81dd3484 M=4599a537 U=c2562f39 -->
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
@@ -179,7 +179,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b211d7e4 R=604591e9 N=81dd3484 M=4599
 | - | requirement | DOC-16 | no passing test | not enforced |
 | [settings-overridden](Tests#t-settings-overridden) | requirement | DOC-15 | Given a toy repo with one overridden setting, when render runs, then Home's Settings table marks exactly that one overridden with its value. | PASS 2026-11-12 |
 | [settings-stale](Tests#t-settings-stale) | requirement | DOC-15 | Given a setting changed after render, when docs check runs, then it says STALE Settings. | PASS 2026-11-12 |
-| [automation-cron-words](Tests#t-automation-cron-words) | requirement | DOC-15 | Given a daily cron, a workflow file and a routine added as one config entry, when render runs, then Automation reads the cadence in words, where it runs and the added routine. | PASS 2026-11-12 |
+| [automation-cron-words](Tests#t-automation-cron-words) | requirement | DOC-15 | Given a daily cron, a workflow file and a routine added as one config entry, when render runs, then the Automation page reads the cadence in words, where it runs and the added routine. | PASS 2026-11-12 |
 | [blocks-no-insert](Tests#t-blocks-no-insert) | requirement | DOC-15 | Given a repo adopted before the Settings and Automation blocks (no markers), when a lane renders, then README and Home stay byte-identical and docs check calls nothing STALE. | not run |
 | [blocks-format](Tests#t-blocks-format) | requirement | DOC-15 | Given setup inserts the blocks into README and a DOC-4 Home, including a README that opens with How to use, when docs check runs, then no FORMAT line refuses them. | not run |
 | [blocks-no-cascade](Tests#t-blocks-no-cascade) | requirement | DOC-15 | Given a page mapped to README, when a commit only refreshes the generated blocks, then the page stays fresh, and a real README edit still stales it. | not run |
