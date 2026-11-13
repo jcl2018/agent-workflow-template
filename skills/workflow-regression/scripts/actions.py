@@ -197,7 +197,7 @@ jobs:
           def marked(body):
               match = FOUND.search(body or "")
               return (match.group(1), urllib.parse.unquote(match.group(2) or "")) if match else (None, "")
-          red, start, dupes = [], time.time(), [600 if CLEANUP else 20]
+          red, start, dupes, unrun = [], time.time(), [600 if CLEANUP else 20], [0]
           with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "w") as handle:
               handle.write("# started %d\n" % start)
           mine, seen = (os.environ.get("REGRESSION_SHARD") or "0/1").split("/"), 0
@@ -214,6 +214,7 @@ jobs:
                   code, said, skipped = 125, "", True
               elif JOB_SECONDS - (time.time() - start) < 30:  # a row gets the time that is left, up to ROW_SECONDS
                   code, said, skipped = 125, "skipped: out of job time; this row did not run", True
+                  unrun[0] += 1
                   with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "a") as handle:
                       handle.write("# unrun %s\n" % row[0])
               else:
@@ -275,7 +276,7 @@ jobs:
           if TARGET == "nightly" and not CLEANUP:
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
-                  handle.write("%s\tfull\t%d\t%s\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime())))
+                  handle.write("%s\tfull\t%d\t%s\t%d\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime()), unrun[0]))  # 5th: rows skipped for time
               print("SUITE_TIME %d" % took)
           if CLEANUP:
               ids = {row[0] for row in rows(".loop/regression.tsv") if row}
