@@ -323,6 +323,8 @@ pr-body-no-checks	PASS	2026-11-12
 pr-commit-scope	PASS	2026-11-11	
 pr-in-milestone	PASS	2026-11-12	
 pr-needs-flow	PASS	2026-11-09	
+pr-real-fail-costs-try	PASS	2026-11-13	
+pr-waits-owed	PASS	2026-11-13	
 prd-audit-ignores-changed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-convert	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-lock-four	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a

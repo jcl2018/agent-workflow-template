@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.28.3 - 2026-11-13
+
+- pr waits on owed off-platform proof without a failed try (#2865)
+- Delivery page and Tests tables follow the pr gate
+- Merge origin/main
+- Wiki: update pages for lane-gate-owed
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.2 - 2026-11-13
 
 - Setup recognizes its own hook on a Windows path, so each hook installs once (#2880)
