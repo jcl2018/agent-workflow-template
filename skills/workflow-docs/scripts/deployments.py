@@ -187,9 +187,10 @@ def link_of(text, listed=""):
     """Where a link-form page's PRD lives, else None: the docs.tsv source (`url:<link>` or `mcp:<server>:<resource>`; `page`
     or empty means the PRD is on the page) or, with no entry there, the page's own 'PRD: <source>' line before its first
     section. A bare link on that line is a url."""
+    import prd
     if listed and listed != "page":
         return listed
-    found = next((m.group(1) for m in (LINK.match(x.strip()) for x in __import__("prd").head(text)) if m), None)
+    found = next((m.group(1) for m in (LINK.match(x.strip()) for x in prd.head(text)) if m), None)
     return found if found is None or found.startswith(("url:", "mcp:")) else "url:" + found
 
 

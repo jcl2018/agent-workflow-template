@@ -66,7 +66,8 @@ def linked_prd(root, page, text):
     try:
         import importlib.util
         spec = importlib.util.spec_from_file_location("prd_reader", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-docs", "scripts", "deployments.py"))
-        sys.path.insert(0, os.path.dirname(spec.origin))
+        if os.path.dirname(spec.origin) not in sys.path:
+            sys.path.insert(0, os.path.dirname(spec.origin))
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         import counting
