@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.27.58 - 2026-11-13
+
+- V1 format: owner re-review of Delivery, Documentation, Setup and Health, and the Tests page refreshed
+- V1 format: review-findings resolved the 13 findings of the health review of v0.27.34
+- V1 format: spec-decisions applied the owner's spec decisions to the PRDs
+- V1 format: v1-roadmap added the V1 section to the roadmap and pointed the README at it
+- V1 format: migration-check checks the migration of a repo and its fixes landed in v0.27.56
+- V1 format: health-docs-size brought the docs and skill size back under their rules
+- V1 format: settings-render-windows fixed the Settings render on Windows
+- V1 format: review-sitting applied the owner's review sitting, so every requirement reads Reviewed
+- Merge remote-tracking branch 'origin/main' into loop/v1-format
+- Tests: two row descriptions follow the paged issue read; Automation and Documentation are current again
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Open the v0.28.0 release page.
+   Expect: the release is published and lists review-findings, spec-decisions, v1-roadmap, migration-check, health-docs-size, settings-render-windows and review-sitting.
+2. Run `python3 skills/workflow-docs/scripts/docs.py check` on a fresh checkout of main.
+   Expect: it prints DOCS OK and no CHANGED, STALE or Unreviewed line.
+
 ## v0.27.57 - 2026-11-13
 
 - Regression issues: read the whole list, skip opens no issue
