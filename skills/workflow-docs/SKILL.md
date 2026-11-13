@@ -139,4 +139,4 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-docs entry` | `python3 scripts/entry.py write` (`check`, `render`, `block`, `lag [--new SLUG]` the version line) |
 | `/workflow-docs publish` | `python3 scripts/docs.py publish` |
 | `/workflow-docs restore` | `python3 scripts/docs.py restore` |
-| `/workflow-docs milestone new TITLE \| move ISSUE TITLE` | `python3 scripts/milestone.py new TITLE` or `move ISSUE TITLE` (optional, free form) |
+| `/workflow-docs milestone new TITLE \| move ISSUE TITLE \| backlog` | `python3 scripts/milestone.py new TITLE`, `move ISSUE TITLE` (free form) or `backlog` (the standing Backlog milestones) |
