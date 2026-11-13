@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.28.15 - 2026-11-13
+
+- publish-tables: re-render generated tables in the publish tree, toy and rows
+- publish-tables: regression runs, Tests render
+- Wiki: update pages for publish-tables
+- publish-tables: describe the rows, link DOC-11
+- Wiki: update pages for publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.14 - 2026-11-13
 
 - backlog-milestones: Backlog milestones, defect/backlog filing by kind, ship-time FILE lines, Adoption milestones rule; wording proposed in DECISIONS.md
