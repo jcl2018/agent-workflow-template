@@ -129,6 +129,12 @@ def spent_tokens(run):
     return total if isinstance(total, int) else 0
 
 
+def tokens_text(run):
+    """'1,234 tokens', or 'tokens unread' when no count was recorded (never 0)."""
+    value = run.get("tokens") if isinstance(run.get("tokens"), dict) else {}
+    return "%s tokens" % format(spent_tokens(run), ",") if any(isinstance(n, int) and n for n in value.values()) else "tokens unread"
+
+
 def recorded(state, step):
     return str((state.get("flow") or {}).get(step, "")).startswith(("done", "skipped"))
 
@@ -345,8 +351,7 @@ def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
     body = goal_text + "\n## Result\n\nSkill flow:" + "".join(step_line(step, seen) for step in STEPS) + "\n"
     body += seen.get("pr_lane", "")  # the lane's results (lanekit.record)
     body += "\nReview depth: %s (%s).\n" % (depth, why)
-    body += "Budget: %s (%s); spent %s tokens.\n" % (", ".join(p for p in parts if p) or "none set", source,
-                                                     format(spent_tokens(seen), ","))
+    body += "Budget: %s (%s); spent: %s.\n" % (", ".join(p for p in parts if p) or "none set", source, tokens_text(seen))
     body += scan_note + "\n"
     surfaces = [t for t in (seen.get("touches") or []) if t.startswith("github:")]
     if surfaces:
