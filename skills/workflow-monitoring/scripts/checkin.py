@@ -79,7 +79,7 @@ def grouped(blocks):
 
 def expected(root=None, at=None):
     """[(repo name, slug)] of every goal the Dependencies section must draw: each live goal and each queued line of the
-    pod, read from the run records and queue files. The reply hook (reply_deps.py) checks a reply against it."""
+    pod, read from the run records and queue files. The reply hook (missing, below) checks a reply against it."""
     root = bs.git("rev-parse", "--show-toplevel", cwd=root or None) or root
     at = at or datetime.datetime.now(datetime.timezone.utc)
     pod, here = [gather(root, at)], os.getcwd()
@@ -203,6 +203,46 @@ def render(root=None, at=None, stamp=None):
     paused = board_lines.paused(live)
     out.append("- " + (paused or "next check-in in %s minutes" % (cfg.get("cadence") or 30)))
     return lb.fit(out, 100)
+
+
+HEAD = re.compile(r"^[\s>#*_`-]*([A-Za-z ]+?)[\s:*_`]*(?:\(\d+\))?\s*$")
+NEXT = ("needs you", "coming up")
+
+
+def body(text):
+    """The text of the Dependencies section, fences included, or None when the reply has none."""
+    lines, start = str(text or "").splitlines(), None
+    for i, line in enumerate(lines):
+        name = (HEAD.match(line) or [None, ""])[1].strip().lower()
+        if start is None and name == "dependencies":
+            start = i + 1
+        elif start is not None and name in NEXT:
+            return "\n".join(lines[start:i])
+    return None if start is None else "\n".join(lines[start:])
+
+
+def blocks(section):
+    """{repo name: its text} for each `== name ==` block; the whole section under '' when it has none."""
+    found, name = {"": []}, ""
+    for line in section.splitlines():
+        head = re.match(r"^\s*==\s*(.+?)\s*==\s*$", line)
+        name = head.group(1) if head else name
+        found.setdefault(name, []).append("" if head else line)
+    return {key: re.sub(r"-\s*\n\s*", "-", "\n".join(rows)) for key, rows in found.items()}  # a long name wraps at a hyphen
+
+
+def missing(text, cwd=None):
+    """['repo/slug', ...] of the goals the Dependencies section leaves out; [] when whole or when it cannot be told."""
+    section = body(text)
+    if section is None:
+        return []  # the missing section is reported by the layout check
+    parts = blocks(section)
+    found = []
+    for repo, slug in expected(cwd or None):
+        where = parts.get(repo if len(repo) <= 54 else repo[:51] + "...", parts.get("") if len(parts) == 1 else "")
+        if not re.search(r"(?<![\w-])%s(?![\w-])" % re.escape(slug), where or ""):
+            found.append("%s/%s" % (repo, slug))
+    return found
 
 
 def main():

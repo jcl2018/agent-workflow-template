@@ -1,6 +1,6 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/scripts/fit.py skills/workflow-delivery/scripts/goal.py
-# reads: skills/workflow-health/scripts/cost.py skills/workflow-monitoring/scripts/board_lines.py
+# reads: skills/workflow-health/scripts/milestone.py skills/workflow-monitoring/scripts/board_lines.py
 # reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/live_board.py
 # reads: skills/workflow-monitoring/scripts/mend.py skills/workflow-monitoring/scripts/worker.py
 # reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/worker.py
@@ -82,7 +82,7 @@ if want budget; then
   python3 - "$here" "$(block b6)" > "$d/agree" <<'PY'
 import re, sys, os
 sys.path.insert(0, os.path.join(sys.argv[1], "skills", "workflow-health", "scripts"))
-import cost
+import milestone as cost
 rows = {r["rule"]: r["detail"] for r in cost.cost_rows(os.getcwd(), os.path.join(sys.argv[1], "skills", "workflow-health", "scripts")) if r["subject"] == "b6"}
 minutes, tokens = int(rows["time"].split(" min")[0]), int(rows["tokens"].split(" tokens")[0])
 seen = re.search(r"budget: (\d+)m of \d+m, ([\d.]+M) of", sys.argv[2])
