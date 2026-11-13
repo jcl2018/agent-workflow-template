@@ -78,6 +78,10 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=f91170ed N=9967b317 M=0fde
   - `merge.py` takes `<git common dir>/loop/merge.lock` for the whole merge step; a dead holder or one older than 30 minutes is replaced.
   - A pod's watch, auto-answers and mending skip other pods' goals, and its check-in lists their questions as read-only.
 
+- MON-16: **Unreviewed** Govern hook edits only inside followed repos
+  - The hook refuses the operation session's Edit, Write and NotebookEdit when the path is inside a followed repo (this checkout, its worktrees, or one listed in `~/.workflow-loop/repos`); a path outside every followed repo, such as the session's own memory notes, passes (issue 2850).
+  - An edit with no readable path is refused; commits, pushes and merges stay refused everywhere (MON-7).
+
 ### Non-functional
 - MON-7: **Reviewed 2026-11-10** Govern only <!-- reviewed da6f1852 -->
   - A check-in never edits code, commits or pushes from the operation session; only merges and the post-merge steps change the repo.
@@ -196,6 +200,9 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=f91170ed N=9967b317 M=0fde
 | [mon14-repo-blocks](Tests#t-mon14-repo-blocks) | requirement | MON-14 | Given a cross-repo dependency, when the check-in prints, then it is listed between headed repo blocks. | PASS 2026-11-12 |
 | [mon15-pod-owner](Tests#t-mon15-pod-owner) | requirement | MON-15 | Given another pod's goal, when a pod acts on it, then it is refused naming the owner and shown owned by that pod. | PASS 2026-11-12 |
 | [mon15-merge-lock](Tests#t-mon15-merge-lock) | requirement | MON-15 | Given two pods merging into one main, when they run together, then the lock serializes them. | PASS 2026-11-12 |
+| [mon16-notes-pass](Tests#t-mon16-notes-pass) | requirement | MON-16 | Given the operation session, when it writes a file outside every followed repo, then the govern hook lets it through. | not run |
+| [mon16-edit-inside-refused](Tests#t-mon16-edit-inside-refused) | requirement | MON-16 | Given the operation session, when it edits a file inside a followed repo, then the govern hook refuses it. | not run |
+| - | requirement | MON-16 | no passing test | not enforced |
 | [mon7-govern-blocks](Tests#t-mon7-govern-blocks) | requirement | MON-7 | Given the operation session, when it tries an edit, a commit or a push, then the govern hook refuses it with the fix, while workers, other sessions and the off switch pass. | PASS 2026-11-10 |
 | [mon8-silent-30](Tests#t-mon8-silent-30) | requirement | MON-8 | Given a worker with no report for 31 minutes, when the operation session checks in, then it shows under Needs you; at 29 minutes it does not. | PASS 2026-11-10 |
 | [mon9-board-fast](Tests#t-mon9-board-fast) | requirement | MON-9 | Given 12 goals with pull requests and a slow GitHub, when the board is built, then it takes under 10 seconds. | PASS 2026-11-10 |
