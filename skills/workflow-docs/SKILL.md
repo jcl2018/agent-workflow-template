@@ -46,7 +46,7 @@ python3 scripts/docs.py check [--base <ref>]
 | `MISSING` | A mapped page has no file | Write it, or remove its row |
 | `UNWRITTEN` | The page still has its placeholder, or almost no text | Write it |
 | `UNMAPPED` | A page has no row in `.loop/docs.tsv` (the generated `Tests` page never needs one) | Run `add` |
-| `FORMAT` | With `"criteria": true`, a page breaks a shape rule of `references/template.md` (DOC-4 Home, DOC-5 README front door, DOC-6 Usage, DOC-7 Requirements, DOC-8 Problem, DOC-9 Tests), printed as `FORMAT <Page>:<line>: <Section>: DOC-n <what> (got <value>). Fix: <how>`; the sheet's `format` key picks the rules | Do what the Fix says |
+| `FORMAT` | With `"criteria": true`, a page breaks a shape rule of `references/template.md` (DOC-4 Home, DOC-5 README front door, DOC-6 command reference, DOC-7 Requirements, DOC-8 Problem, DOC-9 Tests), printed as `FORMAT <Page>:<line>: <Section>: DOC-n <what> (got <value>). Fix: <how>`; the sheet's `format` key picks the rules | Do what the Fix says |
 | `STALE Tests` | The generated `docs/wiki/Tests.md` differs from a fresh render; the line names the first difference | Run `/workflow-docs render` |
 | `STALE Settings`, `STALE Automation`, `STALE README line` | With `"criteria": true`, the generated Settings and Automation blocks (on Home and in the README, between `<!-- settings:begin -->` markers) or the README's template-repo line differ from a fresh render of `settings.py reference`, `.loop/config.json` and the workflow files; the setting is marked overridden only when its value differs from the default | Run `/workflow-docs render`; `publish` refreshes them too. A block with no markers is left alone until setup inserts it (`python3 scripts/render.py blocks`) |
 | `COUNT` | The README, a wiki page or a top-level doc in `skills/` states a count of skills, feature pages, or a feature page's criteria or tests that the repo doesn't match; all but skills need `"criteria": true`. A feature page's tests count includes its defect tests. One word may sit between number and noun only if it means all of them ("eight workflow-ready skills"); "N defect tests" is checked against the defect tests. Skipped: the word "one", a limit ("up to 6"), a part or label ("two delivery skills"), fenced and indented code and comments as Markdown renders them, a line naming one of the page's own criteria, the criteria and tests counts on a line naming another page's criterion, and a line marked `<!-- not-a-count -->`; a code fence that never closes is itself a `COUNT` line. Wrapped lines are read as one paragraph. `publish` refuses only on wiki pages | Correct the number |
@@ -69,7 +69,7 @@ With `"criteria": true` in `.loop/config.json`, every feature page (each page in
 free-form, and a guide: a how-to page with the line `<!-- workflow-docs guide -->` under the marker, kept fresh but
 with no PRD, Home row or README section, and not stale on a `.loop/config.json` change) is a short PRD and `check` enforces it, from the rules block of `references/template.md`:
 
-the title, `Milestone:` and `Review:` lines, then `## Problem`, `## Usage` (optional), `## Requirements` (up to
+the title, `Milestone:` and `Review:` lines, then `## Problem`, `## Requirements` (up to
 `criteria_max` lines like `- DEL-3: **Unreviewed** what must hold`; take the next free id from `criteria PAGE`, never
 reuse or renumber one), `## Non-goals`, `## Success metrics` and `## Tests`, which only `criteria.py render` writes.
 The full list, and the lines `check` prints: `references/commands.md` (The PRD page).
@@ -123,7 +123,7 @@ registry fills the Automation block: both in `references/commands.md`.
 
 ## Command map
 
-Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. The README's How to use tables and the exact syntax in `references/commands.md` start from these asks.
 
 | Ask | Runs |
 |---|---|
@@ -136,7 +136,8 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-docs convert` | `python3 scripts/prd.py convert --write` |
 | `/workflow-docs render` | `python3 scripts/criteria.py render` |
 | `/workflow-docs automation` | `python3 scripts/docs.py automation` |
+| `/workflow-docs prompts` | `python3 scripts/docs.py prompts` |
 | `/workflow-docs entry` | `python3 scripts/entry.py write` (`check`, `render`, `block`, `lag [--new SLUG]` the version line) |
 | `/workflow-docs publish` | `python3 scripts/docs.py publish` |
 | `/workflow-docs restore` | `python3 scripts/docs.py restore` |
-| `/workflow-docs milestone new TITLE \| move ISSUE TITLE` | `python3 scripts/milestone.py new TITLE` or `move ISSUE TITLE` (optional, free form) |
+| `/workflow-docs milestone new TITLE \| move ISSUE TITLE \| backlog` | `python3 scripts/milestone.py new TITLE`, `move ISSUE TITLE` (free form) or `backlog` (the standing Backlog milestones) |

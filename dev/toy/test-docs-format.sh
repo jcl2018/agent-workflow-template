@@ -76,10 +76,6 @@ Review: **Unreviewed**
 
 - I want the median of my numbers without working it out by hand.
 
-## Usage
-
-- `/toy median LIST` — Works out the median and prints it (`MEDIAN 2`). Refuses an empty list (exit 1, `REFUSED: no numbers`).
-
 ## Requirements
 
 ### Functional
@@ -137,14 +133,13 @@ edit README.md "Say these to the agent:" "Say these to the agent:
 And a second intro line."; has "^FORMAT README:[0-9]*: How to use: DOC-5 only one intro line per section" && ok "DOC-5 a second intro line fails" || bad "front intro"; reset
 check | grep -q "^FORMAT README" && bad "good README" || ok "DOC-5 a front door of quoted phrases passes"
 
-echo "== DOC-6 Usage"
-edit $P " and prints it (\`MEDIAN 2\`). Refuses an empty list (exit 1, \`REFUSED: no numbers\`)." "."; has "^FORMAT Delivery:[0-9]*: Usage: DOC-6 each entry says what it prints" && ok "DOC-6 a Usage entry that says nothing printed fails naming the page, Usage and DOC-6" || bad "usage prints"; reset
-edit $P "Refuses an empty list" "Refuses an empty list
-It works out the median"; has "^FORMAT Delivery:[0-9]*: Usage: DOC-6 only .- .syntax. — what it does. entries" && ok "DOC-6 a prose line in Usage fails" || bad "usage prose"; reset
-edit $P '- `/toy median LIST`' '- `/toy mode LIST`'; has "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map (got '/toy mode LIST')" && ok "DOC-6 a command missing from the Command map fails" || bad "usage map"; reset
-edit $P '- `/toy median LIST`' '- `calc.py median LIST`'; check | grep -q "^FORMAT Delivery:[0-9]*: Usage" && bad "usage routine" || ok "DOC-6 a routine named in the Command map passes"; reset
-check | grep -q "^FORMAT Delivery:[0-9]*: Usage" && bad "good usage" || ok "DOC-6 Usage of API entries passes"
-edit $P '- `/toy median LIST`' '- `   `'; out=$(check); grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map" <<<"$out" && ! grep -q Traceback <<<"$out" && ok "DOC-6 a Usage entry whose backticks hold only spaces fails without a crash" || bad "usage blank: $out"; reset
+echo "== DOC-6 each skill's commands are in its command reference; a Usage section is gone"
+edit $P "## Requirements" "## Usage
+
+- \`/toy median LIST\` — Prints \`MEDIAN 2\`.
+
+## Requirements"; check | grep -q "^USAGE Delivery: has a Usage section" && ok "DOC-6 a Usage section fails with USAGE" || bad "usage section"; reset
+check | grep -q "^USAGE" && bad "good page has no Usage" || ok "DOC-6 a page with no Usage section passes"
 
 echo "== DOC-7 Requirements: sub-bullets"
 edit $P "  - The median of the numbers given is printed.

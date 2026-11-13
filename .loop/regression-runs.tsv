@@ -68,6 +68,7 @@ board-sections	PASS	2026-11-09
 breaking-asks	PASS	2026-11-09	
 builtin-flow	PASS	2026-11-12	
 cap-default-10	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+capture-row-ci	FAIL	2026-11-13	
 check-writes-nothing	PASS	2026-11-12	
 checkin-passes-hook	PASS	2026-11-10	
 ci-bad-target	PASS	2026-11-10	
@@ -134,7 +135,7 @@ done-line-rows-128	PASS	2026-11-12
 done-lines-warning-143	PASS	2026-11-12	
 entry-stale	PASS	2026-11-12	
 estimates-shown	PASS	2026-11-12	
-every-row-described	FAIL	2026-11-12	
+every-row-described	PASS	2026-11-13	
 failed-waits-mender	PASS	2026-11-09	
 file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 fixed-closes	PASS	2026-11-12	
@@ -255,6 +256,8 @@ live-board-leftouts	PASS	2026-11-12
 live-board-no-oneline	PASS	2026-11-12	
 local-row-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lock-in-report	PASS	2026-11-12	
+ls-plist	FAIL	2026-11-13	
+mac-rows-skip-77	PASS	2026-11-13	
 merge-base-undiffable	PASS	2026-11-11	
 merge-base-unrecorded	PASS	2026-11-11	
 merge-guard-base-head	PASS	2026-11-11	
@@ -323,6 +326,8 @@ pr-body-no-checks	PASS	2026-11-12
 pr-commit-scope	PASS	2026-11-11	
 pr-in-milestone	PASS	2026-11-12	
 pr-needs-flow	PASS	2026-11-09	
+pr-real-fail-costs-try	PASS	2026-11-13	
+pr-waits-owed	PASS	2026-11-13	
 prd-audit-ignores-changed	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-convert	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 prd-lock-four	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -343,6 +348,8 @@ ptb-mend	PASS	2026-11-12
 ptb-plain-paths	PASS	2026-11-12	
 publish-refused-stale	PASS	2026-11-12	
 publish-restore	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+publish-tables-handwritten	PASS	2026-11-13	
+publish-tables-regen	PASS	2026-11-13	
 pull-ff-only-passes	PASS	2026-11-12	
 pull-plain-blocked	PASS	2026-11-12	
 record-in-session	PASS	2026-11-12	
@@ -375,6 +382,7 @@ report-held-111	PASS	2026-11-10
 report-sub-bullets	PASS	2026-11-12	
 retired-leaves-waiting	PASS	2026-11-09	
 review-dated	PASS	2026-11-12	
+review-findings-skill-lines	PASS	2026-11-13	
 review-owner-only	PASS	2026-11-12	
 reviewed-lock	PASS	2026-11-12	
 row-timeout-holds	PASS	2026-11-11	
@@ -412,7 +420,7 @@ settings-publish-refresh	PASS	2026-11-12
 settings-read-fresh	PASS	2026-11-12	
 settings-reference	PASS	2026-11-12	
 settings-refresh	PASS	2026-11-12	
-settings-render-fresh	FAIL	2026-11-12	
+settings-render-fresh	FAIL	2026-11-13	
 settings-stale	PASS	2026-11-12	
 settings-template-line	PASS	2026-11-12	
 setup-both-halves	PASS	2026-11-12	

@@ -71,12 +71,12 @@ python3 scripts/health.py file --review review.json --feature Health
 
 `preview` lists each issue that would be opened, updated, closed, reopened or linked, with its tags, and
 writes nothing. `file` is the only writer, for the named groups (or a saved review) only:
-- One issue per finding, tagged with its group and placed on no milestone (`issues.py`).
+- One issue per finding, tagged with its group: a defect (a FAIL except a performance one, a review conflict) labelled `defect` on no milestone, else a backlog item labelled `backlog` on `Backlog: <Feature>` (`Backlog: Other` when none fits).
 - Labels: `health` plus `health:<group>`, or `health:review-<kind>` for a review finding; `feature:<Page>` too when `feature_labels` is on.
 - A repeat updates the issue, a fix closes it (only when its own rule ran), and a return reopens it.
 - An open issue that already names the finding's subject gets one link comment instead of a duplicate.
 - An issue closed in triage stays closed while its evidence is unchanged.
-- No milestone is made or set; one you put an issue on stays.
+- A missing Backlog milestone is made first; one you moved an issue to stays.
 
 It never edits a page. It refuses with no `--group` or `--review` (`REFUSED[file]`),
 and stops before any write when gh can't list the issues (`REFUSED[gh]`). Show the preview to the owner and file only what
@@ -96,7 +96,7 @@ refused (`REFUSED[cap]`), and no `--why` is refused (`REFUSED[why]`).
 ## Milestones and automation: `scripts/milestone.py`, `scripts/automation.py` and `scripts/mail.py`
 
 `milestone.py` (`new TITLE`, `move <issue> <TITLE|none>`) is the owner's, for free-form milestones such as v1.0; nothing
-requires one. It prints `WOULD` lines unless given `--live`. Details: `references/commands.md` (Milestones).
+requires one. `backlog` makes the standing `Backlog: <Feature>` and `Backlog: Other` milestones, `leftovers FILE` files a ship reply's `FILE` lines. It prints `WOULD` lines unless given `--live`. Details: `references/commands.md` (Milestones).
 
 ```bash
 python3 scripts/automation.py local install|uninstall|status|plist|tick
@@ -124,7 +124,7 @@ fixed mail. Every outcome is one line ending in a code. None of them pushes. Det
 
 ## Command map
 
-Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. The README's How to use tables start from these asks.
 
 | Ask | Runs |
 |---|---|

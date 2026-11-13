@@ -151,6 +151,13 @@ def cmd_add(args):
     return 0
 
 
+def netless(root, judged, mine):
+    """True when the paths read the same at HEAD as at the newest commit already judged (the page's, the base's or a merged
+    one): commits that add and then revert a change leave nothing to describe, so they stale no page (issue 3771)."""
+    tip = git("rev-list", "--no-walk=sorted", "-n1", *judged, cwd=root, check=False)
+    return bool(tip) and not git("diff", "--name-only", tip, "HEAD", "--", *mine, cwd=root, check=False)
+
+
 def problems(root, base):
     """Each page's trouble, as (kind, page, detail)."""
     found = []
@@ -176,7 +183,7 @@ def problems(root, base):
         mine = paths + [":(exclude).loop/config.json"] * pageformat.is_guide(text)  # a guide isn't about settings values
         changed = counting.real(root, git("log", "--no-merges", "--full-history", "--format=%h %s", "HEAD", *skip, "--", *mine,
                                           cwd=root).splitlines(), mine)  # block-only commits say nothing
-        if changed:
+        if changed and not netless(root, [s for s in seen + [base] + merged if s], mine):
             found.append(("STALE", page, "%d commits since the page: %s" % (len(changed), changed[0][:70])))
     held = os.path.join(root, folder)
     if os.path.isdir(held):
@@ -298,7 +305,7 @@ def cmd_publish(args):
     if config(root).get("criteria"):
         import render
         render.refresh(root)  # the Settings and Automation blocks are written fresh, so the wiki gets them
-    found = problems(root, None) + [c for c in contract(root) if c[0] != "CHANGED"]  # Usage drift waits on the owner
+    found = problems(root, None) + [c for c in contract(root) if c[0] != "CHANGED"]  # kept for older pages; Usage is gone
     found += [c for c in counts(root) if c[1].startswith(wiki_dir(root) + "/")]
     if found:
         for kind, page, detail in found:
@@ -354,6 +361,19 @@ def cmd_automation(_args):
     return counting.live(top())
 
 
+def cmd_prompts(_args):
+    """One line per routine: the whole prompt its scheduler holds, a pointer to its Runbook on the repo's page."""
+    import deployments
+    root = top()
+    parts = re.sub(r"(\.git)?/*$", "", git("remote", "get-url", "origin", cwd=root, check=False)).replace(":", "/").split("/")
+    repo = "/".join(parts[-2:]) if len(parts) > 1 else os.path.basename(root)
+    lines = deployments.prompts(root, repo, wiki_dir(root))
+    for routine, text in lines:
+        print("PROMPT %s: %s" % (routine, text))
+    print("PROMPTS: %d routine(s)" % len(lines))
+    return 0
+
+
 def cmd_restore(_args):
     try:
         with open(state_file()) as handle:
@@ -401,6 +421,7 @@ def main():
     item.set_defaults(func=cmd_publish)
     sub.add_parser("restore").set_defaults(func=cmd_restore)
     sub.add_parser("automation").set_defaults(func=cmd_automation)
+    sub.add_parser("prompts").set_defaults(func=cmd_prompts)
     args = parser.parse_args()
     return args.func(args)
 

@@ -11,8 +11,8 @@ usage: entry.py render|write|check|block|lag [--repo DIR]
            with REFUSED when the majors differ (a migrate- slug passes)
 
 START.md opens with a first-five-minutes list, then one part each for the loop, release, operation and workers, docs,
-regression, health and settings (filled from .loop/config.json through references/start.md), then a Features table
-(every PRD page in the wiki folder: its name, milestone, first sentence of Problem and Usage bullets) and a Settings
+regression, health and settings (filled from .loop/config.json through references/commands.md, Entry point templates), then a Features table
+(every PRD page in the wiki folder: its name, milestone, first sentence of Problem and the asks in its skills' Command maps) and a Settings
 table (each repo setting, its value and its _help line). Private settings are never read. It holds no count, date or
 machine path, so it changes only when a page or a setting does.
 
@@ -29,7 +29,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILLS = os.path.dirname(os.path.dirname(HERE))  # the folder holding the workflow-* skills
-TEMPLATES = os.path.join(os.path.dirname(HERE), "references", "start.md")
+TEMPLATES = os.path.join(os.path.dirname(HERE), "references", "commands.md")
 REFERENCE = os.path.join(SKILLS, "workflow-setup", "references", "settings.md")  # every repo setting, default and line
 ENTRY = os.path.join(".loop", "START.md")
 OPEN, CLOSE = "<!-- workflow-loop -->", "<!-- /workflow-loop -->"
@@ -115,6 +115,21 @@ def purpose(problem):
     return sentence(rest) if re.match(r"^Skills?:", first) and rest else first
 
 
+def owned(root, page):
+    """The skills a page describes, from its .loop/docs.tsv paths."""
+    for line in read(os.path.join(root, ".loop", "docs.tsv")).splitlines():
+        cells = line.split("	")
+        if cells[0] == page and len(cells) > 1:
+            return sorted(set(re.findall(r"(?:^|,)skills/(workflow-[\w-]+)", cells[1])))
+    return []
+
+
+def commands(skill):
+    """'`/skill`: verb / verb' for the asks in the skill's SKILL.md Command map."""
+    asks = re.findall(r"^\| `/%s ([\w-]+)" % re.escape(skill), section(read(os.path.join(SKILLS, skill, "SKILL.md")), "Command map"), re.M)
+    return "`/%s`: %s" % (skill, " / ".join(dict.fromkeys(asks)) or "see its SKILL.md")
+
+
 def features(root, cfg):
     folder = os.path.join(root, cfg.get("wiki_dir") or "docs/wiki")
     rows = []
@@ -127,16 +142,7 @@ def features(root, cfg):
         if first.startswith("- "):  # a Problem written as bullets: the first bullet says what the feature is for
             first = re.split(r"\n(?=- )", first)[0][2:]
         problem = " ".join(first.split())
-        usage, items, code, blank = section(text, "Usage"), [], False, False
-        for line in usage.splitlines():  # an indented block after a blank line is example output, never a sub-bullet
-            code = bool(line.strip()) and re.match(r"^ {4}", line) is not None and (blank or code) or (code and not line.strip())
-            blank = not line.strip()
-            if code:
-                continue
-            if re.match(r"^- ", line):
-                items.append(sentence(line[2:].strip()))
-            elif re.match(r"^\s+- ", line) and items:
-                items[-1] += "; " + sentence(line.strip()[2:])
+        items = [commands(skill) for skill in owned(root, name[:-3])]
         rows.append("| %s | %s | %s | %s |" % (name[:-3], cell(mile.group(1) if mile else "none"), cell(purpose(problem)),
                                               cell(" / ".join(items) or "none")))
     return rows

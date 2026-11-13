@@ -1,28 +1,9 @@
 #!/usr/bin/env python3
-"""What a goal decides at freeze and reads later (DEL-5 to DEL-8). Pure functions with no guards import, so every script reads them.
-
-Size: a goal is small with at most 3 done lines, no `github:` touch and at most one code area. An area is a touched
-path's first two components (`skills/workflow-release`, `src/api`) or a top-level folder; paths under docs/, .loop/,
-dev/toy/, test/ and tests/, files at the repo root (VERSION, CHANGELOG.md) and `github:` surfaces are no area. No
-touches declared counts as large, and so does a record from before sizing existed.
-
-Depth: the owner's per-goal override wins; else review_depth full holds every goal to full; else (condensed) a small
-goal runs condensed and a larger one full.
-
-Owner settings (`goal.py set`) live in the operation sidecar `<runs>/<slug>.extra.json` under its lock, so a worker's
-save of the run record can't erase them; `view` merges them over the run record.
-
-Also here, so the package stays under its file cap: the operation's `set` and `queue` commands and what `new`, `record`
-and `pr` keep (each takes goal.py's module as g, and imports guards, private and role lazily, since they import fit),
-and the pull request body: each step's result, depth, tokens and VERDICT lines (issue 38), the decided depth, the
-budget, the private-name scan, GitHub surfaces and scripts that may write back what the goal deletes (issue 117).
-
-And the defect-test check (was defect.py): `fit.py owed SLUG` prints the issues and findings the goal fixes ("fixes #N",
-closes, resolves, "fixes finding:ID") that still lack a regression row of category defect linked to them, seen failing
-on a date and passing now, and exits 1 if any; the goal's branch must have added that row or set its seen-failing date
-(regression.tsv against the merge-base with origin/<base>, E-10: an old row merely edited does not count). goal.py pr
-calls owed() and refuses on its answer.
-"""
+"""What a goal decides at freeze and reads later (DEL-5 to DEL-8): size, review depth, budget, and the owner's `goal.py set`
+settings (the sidecar `<runs>/<slug>.extra.json`, merged over the run record by `view`). Small: at most 3 done lines, no
+`github:` touch, at most one code area (a path's first two components; docs/, .loop/, dev/toy/, tests and root files are none).
+Also here, to keep the package under its file cap: the operation's `set` and `queue`, what `new`, `record` and `pr` keep, the
+pull request body, and the defect-test check (`fit.py owed SLUG`: refs a goal fixes that lack a defect row seen failing, E-10)."""
 import json
 import os
 import re
@@ -39,7 +20,6 @@ SMALL_DONE = 3
 
 
 def surface(path):
-    """The GitHub surface a `github:` touch names, '' for a repo path, None if bad."""
     if not path.startswith("github:"):
         return ""
     name = path[len("github:"):]
@@ -47,7 +27,6 @@ def surface(path):
 
 
 def area(path, top=None):
-    """The code area a repo path belongs to, or None."""
     clean = path.strip().strip("/")
     if not clean or surface(path) != "" or any((clean + "/").startswith(item) for item in NOT_AREAS):
         return None
@@ -58,7 +37,6 @@ def area(path, top=None):
 
 
 def size_of(done_lines, touches, top=None):
-    """{"small": bool, "why": str} from the done lines and touches."""
     count = len(done_lines)
     if not touches:
         return {"small": False, "why": "large: no touches declared"}
@@ -72,7 +50,6 @@ def size_of(done_lines, touches, top=None):
 
 
 def sidecar(runs, slug):
-    """The owner's settings for a goal ({} when none)."""
     try:
         with open(os.path.join(runs, slug + ".extra.json")) as handle:
             found = json.load(handle)
@@ -83,7 +60,6 @@ def sidecar(runs, slug):
 
 
 def view(state, runs=None):
-    """The run record with the owner's settings merged over it."""
     merged = dict(state or {})
     if runs and merged.get("slug"):
         merged.update(sidecar(runs, merged["slug"]))
@@ -91,7 +67,6 @@ def view(state, runs=None):
 
 
 def depth_for(setting, seen):
-    """(depth, why) for a goal: seen is view(state)."""
     over = seen.get("depth_override")
     if isinstance(over, dict) and over.get("depth") in ("full", "condensed"):
         return over["depth"], "owner override: %s" % (over.get("why") or "set per goal")
@@ -104,7 +79,6 @@ def depth_for(setting, seen):
 
 
 def budget_of(cfg):
-    """The repo's time_budget_minutes and token_budget, 0 meaning none set."""
     def number(key):
         value = (cfg or {}).get(key)
         return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else 0
@@ -112,7 +86,6 @@ def budget_of(cfg):
 
 
 def budget(seen, cfg):
-    """(budget, source): the goal's budget wins, even 0; else the repo's."""
     held = seen.get("budget")
     if isinstance(held, dict):
         return {"minutes": int(held.get("minutes") or 0), "tokens": int(held.get("tokens") or 0)}, "the goal's budget"
@@ -120,7 +93,6 @@ def budget(seen, cfg):
 
 
 def spent_tokens(run):
-    """Tokens a goal has spent: per-step values, else the worker's total."""
     value = run.get("tokens") if isinstance(run.get("tokens"), dict) else {}
     steps = [n for key, n in value.items() if key != "total" and isinstance(n, int) and not isinstance(n, bool)]
     if steps:
@@ -129,12 +101,17 @@ def spent_tokens(run):
     return total if isinstance(total, int) else 0
 
 
+def tokens_text(run):
+    """'1,234 tokens', or 'tokens unread' when no count was recorded (never 0)."""
+    value = run.get("tokens") if isinstance(run.get("tokens"), dict) else {}
+    return "%s tokens" % format(spent_tokens(run), ",") if any(isinstance(n, int) and n for n in value.values()) else "tokens unread"
+
+
 def recorded(state, step):
     return str((state.get("flow") or {}).get(step, "")).startswith(("done", "skipped"))
 
 
 def resume_at(state, moved=None):
-    """The step a stopped goal goes on from: build when no commit landed after the plan record, else review."""
     left = [step for step in STEPS if not recorded(state, step)]
     if not left:
         return "pr"
@@ -150,7 +127,6 @@ def next_command(state, step):
 
 
 def again(state, step):
-    """Clear a step and every later step (result, depth, verdicts) for a rerun; returns the steps cleared."""
     later = list(STEPS[STEPS.index(step):])
     cleared = [s for s in later if s in (state.get("flow") or {})]
     for key in ("flow", "depth", "verdicts"):
@@ -162,12 +138,10 @@ def again(state, step):
 
 
 def says_bump(goal):
-    """minor or major when the goal text names one (never stored)."""
     found = re.search(r"\b(minor|major)\b", goal or "", re.I)
     return found.group(1).lower() if found else ""
 
 
-# ---- operation commands and what goal.py keeps (was guards_ops.py)
 SET_AFTER_RECORD = "SET_AFTER_RECORD"
 
 
@@ -255,16 +229,12 @@ def cmd_adopt(g, args):
 
 
 def keep(g, state, step, text):
-    """What record keeps from a done, skipped or auto-approved reply: its verdicts (issue 38) and, for plan, the HEAD
-    it was recorded at (resume_at tells build from review by commits after it)."""
     state.setdefault("verdicts", {})[step] = verdicts(text)
     if step == "plan":
         state["plan_head"] = g.git("rev-parse", "HEAD")
 
 
 def nag(g, args):
-    """The template-version line `new` prints (entry.py lag): it warns and never blocks, but a differing major refuses with exit 2
-    and creates nothing (a migrate- slug passes)."""
     tool = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-docs", "scripts", "entry.py")
     if not os.path.exists(tool):
         return print("NOTE: entry.py not found beside workflow-delivery, so the template version was not checked. Fix: reinstall the skills from one release", file=sys.stderr)
@@ -275,7 +245,6 @@ def nag(g, args):
 
 
 def frozen_fields(g, args, lines, touches):
-    """The goal's size and budget, recorded beside the done lines."""
     bad = [t for t in touches if surface(t) is None]
     if bad:
         g.no("%s isn't a GitHub surface. Fix: one of github:%s" % (", ".join(bad), ", github:".join(SURFACES)))
@@ -286,8 +255,6 @@ def frozen_fields(g, args, lines, touches):
 
 
 def pr_text(g, state):
-    """The pull request body, after the private-name scan of the branch, the title and the body (DEL-9): a hit or a
-    broken list refuses with no try, before anything is pushed."""
     import guards, private, role  # noqa: E401 - lazily: they import fit
     base, cfg = g.base_ref(state), g.config()
     body = pr_body(g.read(g.goal_file(state["slug"])), view(state, g.state_dir()), cfg, role.setting_of(cfg),
@@ -301,12 +268,10 @@ def pr_text(g, state):
     return body.replace("\n## Result\n", "\n## Result\n\n" + found["note"] + "\n", 1)
 
 
-# ---- the pull request body (was prbody.py)
 VERDICT = re.compile(r"^\W*VERDICT:\s*(.+?)\s*$", re.M)
 
 
 def verdicts(text):
-    """The `VERDICT: <who>: <verdict>` lines of a step reply, at most 12."""
     return [" ".join(item.split())[:200] for item in VERDICT.findall(text or "")][:12]
 
 
@@ -322,7 +287,6 @@ def step_line(step, seen):
 
 
 def regen_warnings(top, base):
-    """For each deleted file, tracked scripts and workflows that name its path."""
     def git(*args):
         done = subprocess.run(["git"] + list(args), cwd=top, capture_output=True, text=True)
         return done.stdout if done.returncode == 0 else ""
@@ -338,15 +302,13 @@ def regen_warnings(top, base):
 
 
 def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
-    """The pull request body; keeps `## Result` and the `Skill flow:` lines."""
     depth, why = depth_for(setting, seen)
     held, source = budget(seen, cfg)
     parts = ["%dm" % held["minutes"] if held["minutes"] else "", "%s tokens" % format(held["tokens"], ",") if held["tokens"] else ""]
     body = goal_text + "\n## Result\n\nSkill flow:" + "".join(step_line(step, seen) for step in STEPS) + "\n"
     body += seen.get("pr_lane", "")  # the lane's results (lanekit.record)
     body += "\nReview depth: %s (%s).\n" % (depth, why)
-    body += "Budget: %s (%s); spent %s tokens.\n" % (", ".join(p for p in parts if p) or "none set", source,
-                                                     format(spent_tokens(seen), ","))
+    body += "Budget: %s (%s); spent: %s.\n" % (", ".join(p for p in parts if p) or "none set", source, tokens_text(seen))
     body += scan_note + "\n"
     surfaces = [t for t in (seen.get("touches") or []) if t.startswith("github:")]
     if surfaces:
@@ -358,10 +320,8 @@ def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
     return body
 
 
-# ---- fixes without a defect test (was defect.py)
 VERB = r"\b(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+"
 def off_rows(text):
-    """REG-10: the UNPROVEN rows a lane failed on when each was also SKIPPED here and nothing else failed, else []."""
     bad, un = re.findall(r"^FAIL (\S+)", text, re.M), re.findall(r"^UNPROVEN ([^\s:]+)", text, re.M)
     return un if un and not bad and set(un) <= set(re.findall(r"^SKIPPED (\S+)", text, re.M)) else []
 
@@ -371,11 +331,28 @@ def off_line(text):
 
 
 def off_reply(lane_line):
-    """A step reply that waits for off-platform red proof (no failed try) when the lane line carries LANE_OWED, else ''."""
     m = re.search(r"^LANE_OWED (.+?):", lane_line, re.M)
     return m and ("%s\nPENDING: waiting for off-platform proof of %s. On a Linux or Mac runner run regression.py red ID --break "
                   "CMD for each, then here regression.py red ID --off-platform --runner NAME --commit SHA; then answer go on\nSTEP: pending\n"
                   % (lane_line, m.group(1))) or ""
+
+
+def pr_fail(g, state, head, line, ids):
+    wait = off_reply(line)
+    if wait:
+        print(re.sub(r"answer go on\s*STEP: pending", "run pr again", wait).strip())
+        return 1
+    g.private.pr_result(g.root(), g.config()["base"], head, state["branch"], False)
+    g.failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
+                 "fix the failing rows, commit, then run pr again")
+    return 1
+
+
+def main_here(g, args):
+    gitdir, common = (os.path.realpath(g.git("rev-parse", flag)) for flag in ("--git-dir", "--git-common-dir"))
+    if gitdir == common and os.path.isdir(os.path.join(common, "loop", "worktrees")):
+        g.no("--here in the repo's main checkout would leave it on a loop branch. Fix: git worktree add -b loop/%s "
+             "%s origin/main, then run goal.py new there" % (args.slug, os.path.join(common, "loop", "worktrees", args.slug).replace(os.sep, "/")))
 
 
 SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date
@@ -383,7 +360,6 @@ FIXES = re.compile(VERB + r"(?:issue\s+)?#(\d+)|" + VERB + r"finding:([a-z0-9][a
 
 
 def rows(root):
-    """Defect rows as (id, command, seen_red, link)."""
     try:
         with open(os.path.join(root, ".loop", "regression.tsv")) as handle:
             cells = [line.rstrip("\n").split("\t") + [""] * 8 for line in handle if line.strip() and line[0] != "#"]
@@ -397,7 +373,6 @@ def has(link, ref):
 
 
 def before(root):
-    """{row id: seen_red} at the merge-base with origin/<base>; None if none."""
     try:
         with open(os.path.join(root, ".loop", "config.json")) as handle:
             base = json.load(handle).get("base") or "main"
@@ -412,7 +387,6 @@ def before(root):
 
 
 def owed(root, text):
-    """The refs the text fixes with no defect row proved on this branch (E-10)."""
     owe, old = [], before(root)
     for number, finding in FIXES.findall(text):
         ref = number or finding.lower()

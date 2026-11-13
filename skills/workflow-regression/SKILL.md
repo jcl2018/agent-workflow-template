@@ -25,8 +25,8 @@ defect test: one for every finding, issue or bug that gets fixed. It shows under
 criterion in `--goal`, never counts as proof of that criterion, and `sync` flags a defect row with no link.
 `--category workflow` makes a workflow test: an end-to-end run of a whole flow on a toy repo, after the requirement tests.
 
-`run` also records each row's last status and date in `.loop/regression-runs.tsv`, which the wiki Tests tables show. The regression
-workflow on GitHub runs every `land` and `nightly` row, so a criterion's rows should be one of those; its run summary lists each row's result, and Actions keeps the run history.
+`run` records each row's last status and date in `.loop/regression-runs.tsv`, which the wiki Tests tables show. The GitHub
+workflow runs every `land` and `nightly` row, so a criterion's rows should be one of those; its run summary lists each result.
 
 ## `sync [--write]`
 
@@ -34,22 +34,19 @@ workflow on GitHub runs every `land` and `nightly` row, so a criterion's rows sh
 python3 scripts/regression.py sync
 ```
 
-Lists each goal's done line with no row (`GAP`), each `DRAFT` row, and each row never seen failing (`UNPROVEN`). It exits
-0 only when there are none. `--write` adds a `draft` row for each gap. Replace each draft with `add`, using a real
-command, or mark it `covered`.
+Lists each done line with no row (`GAP`), each `DRAFT` row and each row never seen failing (`UNPROVEN`); exits
+0 only when there are none. `--write` adds a `draft` row per gap. Replace each with `add` and a real command, or mark it `covered`.
 
 ## `red <id> --break "<command>"`
 
-A test must be seen failing once before it counts. Only a date (`YYYY-MM-DD`) in the row's seen-failing column counts:
-an empty cell, `-` or any other text counts as never seen failing.
+A test must be seen failing once before it counts. Only a date (`YYYY-MM-DD`) in the seen-failing column counts; an empty cell, `-` or other text does not.
 
 ```bash
 python3 scripts/regression.py red check-1 --break "sed -i.bak 's/return a + b/return a - b/' calc.py"
 ```
 
-It copies `HEAD` to a temporary worktree, runs the break command there, runs the test, and records the date if the test
-fails. `STILL GREEN` means the test proves nothing, so fix the test. Commit the row first if the test is new. Your own
-checkout is never touched.
+It copies `HEAD` to a temporary worktree, runs the break there, then the test, and records the date if it fails.
+`STILL GREEN` means the test proves nothing. Commit a new row first. Your own checkout is never touched.
 
 **A row this platform can't run.** On native Windows the bash toy rows exit 77 (`SKIPPED`): a skip never sets seen red, and `red` refuses a break run that exits 77. Prove such a row red on a Linux or Mac runner (Linux CI or a Linux session) with the usual `red ID --break`, then record it where the row lives:
 
@@ -71,11 +68,9 @@ The default is `land`. `--kind` runs only that kind of test (`requirement` is ca
 |---|---|
 | `PASS` | It passed |
 | `FAIL` | It failed, and it blocks |
-| `KNOWN` | It failed, but `.loop/regression-known.tsv` expects that, so it doesn't block |
+| `KNOWN` | It failed, but `.loop/regression-known.tsv` expects that (one line each: id, a tab, the reason), so it doesn't block |
 | `FIXED` | A known failure now passes. Remove it from the known list |
 | `UNPROVEN` | It's never been seen failing, so it blocks until you run `red` |
-
-Known failures take one line each: id, a tab, the reason.
 
 Then it keeps one issue per failing row, labelled `regression`. A new failure opens one, a closed one reopens, a failure
 adds one comment a day, and a pass closes it. With no `GH_TOKEN` or `GITHUB_TOKEN` it prints `WOULD` lines and changes
@@ -103,10 +98,9 @@ the files they name (narrowly under a `# reads:` header, below; else a skill fol
 | `NOT RECORDED: the rows left uncommitted files: <files>; record dropped` | The rows left files behind: the record is deleted, so the next run is full |
 
 A row whose command names no repo path always runs. `RESULT` counts reused rows (`3 passed (2 reused)`); a reused known
-failure counts as known. A reusing run
-writes nothing in the worktree and opens no issue: a failure shows in its exit status and output (the last 20 lines of
-each failing row), and the plain `run` in GitHub Actions keeps the issues. A plain `run` forces every row and rewrites
-the record. Try it on a toy repo: `bash dev/toy/test-lanes.sh "" regression` (in this repo) walks every case. A goal lane adds `--tier goal` (`scripts/tiers.py`; `references/commands.md`, "Goal tier").
+failure counts as known. A reusing run writes nothing in the worktree and opens no issue: a failure shows in its exit
+status and the last 20 lines of each failing row. A plain `run` forces every row, rewrites the record and, in GitHub
+Actions, keeps the issues. `bash dev/toy/test-lanes.sh "" regression` walks every case. A goal lane adds `--tier goal` (`scripts/tiers.py`; `references/commands.md`, "Goal tier").
 
 **Declare what a test script runs** in `# reads:` lines at its top (`skills/` keeps it wide), then run `scripts/lanes_cli.py
 check <script>` and `affected <file>`; `LANES_WIDE=1` forces the wide mapping. Rules: `references/commands.md`, "Narrow rows".
@@ -122,16 +116,13 @@ Writes `.github/workflows/regression.yml`: rows run on `regression_cron` (4-hour
 with a 15-minute limit, and starts only if that full limit still fits the job's time; a row that doesn't fit is
 skipped, reported `SKIPPED`, and fails with an issue. Each row's result is saved as it ends, and a last step that
 always runs writes the run summary: one header with totals and the run time, then one table per feature (`tests.py
-summary`). If that fails, the plain results still reach the summary. Rows run with no GitHub token and none of the
+summary`); if that fails, the plain results still reach the summary. Rows (here too, under `regression.py run`) run with no GitHub token and none of the
 runner's own files (`GITHUB_STEP_SUMMARY`, `GITHUB_ENV`, `GITHUB_OUTPUT`, `GITHUB_PATH`, `GITHUB_STATE`) in their
-environment, so no row inherits the real summary (rows run as the same user, so this stops accidents like a toy test's
-fixture tables, not a hostile row), and the checkout keeps no token in its git config.
-`regression.py run` gives its rows the same environment.
+environment, so no row inherits the real summary (this stops accidents, not a hostile row), and the checkout keeps no token in its git config.
 
 ## Test listing
 
-`scripts/tests.py` prints every test in one fixed format, grouped by feature (`list`, `summary`, `issues`); the
-wiki Tests lines, the health report and the GitHub run summary use it. See `references/commands.md`.
+`scripts/tests.py` (`list`, `summary`, `issues`) prints every test in one format by feature, for the wiki, health and the run summary: `references/commands.md`.
 
 ## Rules
 
@@ -143,7 +134,7 @@ wiki Tests lines, the health report and the GitHub run summary use it. See `refe
 
 ## Command map
 
-Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. The README's How to use tables start from these asks.
 
 | Ask | Runs |
 |---|---|

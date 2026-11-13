@@ -328,7 +328,9 @@ def line(run, cfg, at, runs=None):
     if held["minutes"] > 0:
         halves.append("%dm of %dm" % (minutes, held["minutes"]))
         over += ["OVER time"] if seconds > held["minutes"] * 60 else []
-    if held["tokens"] > 0:
+    if fit.tokens_text(run) == "tokens unread":
+        halves.append("tokens unread")  # no count recorded: never shown as 0
+    elif held["tokens"] > 0:
         halves.append("%s of %s tokens" % (mega(tokens), mega(held["tokens"])))
         over += ["OVER tokens"] if tokens >= held["tokens"] else []
     return "budget: " + (", ".join(halves + over) if halves else "none set")
