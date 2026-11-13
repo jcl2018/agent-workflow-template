@@ -73,23 +73,36 @@ MATRIX_V1 = (("Claude Code on Windows", (("claude-app", "windows"), ("claude-cli
 
 
 def matrix(root):
-    """matrix: cells of agent x machine with no passing smoke in 7 days, from .loop/matrix-runs.tsv (dev/toy/matrix-smoke.py
-    writes it; no file, no rows). An unproven cell is a WARN "not proven"; an unproven V1-required cell is a FAIL."""
+    """matrix: each cell of agent x machine needs a passing smoke in 7 days, from .loop/matrix-runs.tsv (dev/toy/matrix-smoke.py
+    writes it; no file, no rows). A cell that never ran is a WARN "pending: no run recorded". One that ran with no pass in 7
+    days is a WARN "not proven", and a FAIL for a V1-required cell (it ran and failed, or its last run is too old)."""
     from defects import row
     from rules import days_since
     try:
         lines = [l.rstrip("\n").split("\t") for l in open(os.path.join(root, ".loop", "matrix-runs.tsv")) if l.strip() and not l.startswith("#")]
     except OSError:
         return []
-    proven = {(c[1], c[2]) for c in lines if len(c) >= 6 and c[5] == "pass" and (days_since(c[0]) or 0) <= MATRIX_DAYS and days_since(c[0]) is not None}
-    covered = {cell for _, cells in MATRIX_V1 for cell in cells}
-    out = [row("FAIL", "adoption", label, "matrix", "no passing smoke in %d days (V1-required)" % MATRIX_DAYS,
-               "run dev/toy/matrix-smoke.py on that machine, or the matrix job in CI", ".loop/matrix-runs.tsv")
-           for label, cells in MATRIX_V1 if not proven.intersection(cells)]
-    return out + [row("WARN", "adoption", "%s on %s" % cell, "matrix", "not proven: no passing smoke in %d days" % MATRIX_DAYS,
-                      "run dev/toy/matrix-smoke.py --agent %s there" % cell[0], ".loop/matrix-runs.tsv")
-                  for cell in ((a, o) for a in ("claude-app", "claude-cli", "codex") for o in ("windows", "macos", "linux"))
-                  if cell not in proven and cell not in covered]
+    last, proven = {}, set()  # cell -> its newest (date, result); cells with a pass in MATRIX_DAYS days
+    for c in (c for c in lines if len(c) >= 6 and days_since(c[0]) is not None):
+        cell = (c[1], c[2])
+        last[cell] = max(last.get(cell, ("", "")), (c[0], c[5]))
+        if c[5] == "pass" and days_since(c[0]) <= MATRIX_DAYS:
+            proven.add(cell)
+    fix = "run dev/toy/matrix-smoke.py on that machine, or the matrix job in CI"
+    out, covered = [], {cell for _, cells in MATRIX_V1 for cell in cells}
+    for label, cells in MATRIX_V1:
+        ran = sorted(last[c] for c in cells if c in last)
+        if not proven.intersection(cells):
+            out.append(row("FAIL", "adoption", label, "matrix", "V1-required: last run %s %s, no pass in %d days" % (ran[-1][0], ran[-1][1], MATRIX_DAYS), fix, ".loop/matrix-runs.tsv")
+                       if ran else row("WARN", "adoption", label, "matrix", "pending: no run recorded (V1-required)", fix, ".loop/matrix-runs.tsv"))
+    for cell in ((a, o) for a in ("claude-app", "claude-cli", "codex") for o in ("windows", "macos", "linux")):
+        if cell not in proven and cell not in covered:
+            out.append(row("WARN", "adoption", "%s on %s" % cell, "matrix", "not proven: last run %s %s, no pass in %d days" % (*last[cell], MATRIX_DAYS)
+                           if cell in last else "pending: no run recorded", fix.replace("on that machine, or the matrix job in CI", "--agent %s there" % cell[0]), ".loop/matrix-runs.tsv"))
+    return out
+
+
+FUNCTIONS = {"matrix": matrix}  # health.py reads this like the other rule modules
 
 
 def bare_agent(command):
