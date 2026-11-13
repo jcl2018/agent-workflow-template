@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.28.19 - 2026-11-13
+
+- mac-rows-skip: guard test-local-schedule.sh off macOS, toy and row
+- mac-rows-skip: verify by hand, Tests render
+- mac-rows-skip: use toy_skip so a piped row is SKIPPED, fake-uname toy
+- Wiki: update pages for mac-rows-skip
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/mac-rows-skip
+- Tests render
+
+### How to verify
+
+1. Run `bash dev/toy/test-local-schedule.sh` on a Linux or Windows host.
+   Expect: it prints `SKIP: macOS only ...` and exits 77, with no FAIL line.
+2. After release, dispatch the `regression` workflow (Actions tab, or `gh workflow run regression.yml`) and open the Linux run.
+   Expect: the 15 `ls-*` rows and `aut-email-secrets` show SKIPPED (cannot run here) and open no issue.
+
 ## v0.28.18 - 2026-11-13
 
 - Doc fixes: README Automation rows, depth rows link DEL-6, adopt-set-3 runs a skill, short Monitoring titles drafted
