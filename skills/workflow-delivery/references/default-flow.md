@@ -33,4 +33,6 @@ machine doesn't have, end with STEP: skipped and say what was missing.
 ## ship
 Check the branch is ready for a pull request: the version and changelog follow the repo's habit, the docs that
 describe the changed paths are updated, and the tree is clean. Commit what is missing. Don't push and don't open the
-pull request: delivery does that.
+pull request: delivery does that. File what you found and did not fix, one line each, in your reply:
+`FILE defect <Feature>: text` for a break of a Reviewed requirement outside this goal's touches, `FILE backlog <Feature>: text` for an
+improvement, idea or saving (`Other` when no feature fits). A break inside the touches is fixed, not filed. Record files them once.

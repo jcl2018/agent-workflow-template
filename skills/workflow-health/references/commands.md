@@ -90,14 +90,15 @@ module's `FUNCTIONS`, and add a fixture to its `CONTROLS` that makes it fire. He
   subagent answers it, and the rerun takes its saved reply with `--judge-answer FILE`. With no session (the scheduled
   GitHub Actions run) they run `judge_command` (`claude -p`). Each report logs `judge: session` or
   `judge: claude -p (no session)`.
-- `file` tags each finding's issue with its group and places it on no milestone. Its feature is the page whose `.loop/docs.tsv` path is
+- `file` tags each finding's issue with its group and, by kind (HLT-4), labels it `defect` (a FAIL except size or performance, a review
+  conflict; no milestone) or `backlog` (the rest; milestone `Backlog: <Feature>`, or `Backlog: Other`), making the milestone first. Its feature is the page whose `.loop/docs.tsv` path is
   the longest prefix of the finding's path, the page defining its requirement id, the page of its row's requirement, an
   issue's own feature, or a review finding's feature; none when none fits. With the `feature_labels` setting on it also
   tags `feature:<Page>`, made first with `label create --force`; if that label can't be made or set, the issue is filed
   without it and `FAILED label feature:X: ...` says so.
   - Its marker is `<!-- loop-health KEY evidence=H placed= -->`, where H hashes the finding's identity and stable citations,
     never its ages, counts or sizes; `placed=` is always empty, and an older marker that names a milestone still parses.
-    No milestone is read, made or set, and an issue you put on one stays. Markers from before the twelve groups are found
+    A Backlog milestone is made when missing, only at `open`, and an issue you moved to another stays. Markers from before the twelve groups are found
     and moved to the new key.
   - An open non-health issue naming the subject (exact path, id or row id) gets one comment marked
     `<!-- loop-health-link KEY evidence=H -->`, instead of a new issue.
@@ -217,9 +218,9 @@ Codes and fixes are in the Automation wiki page.
 
 ## Milestones: free form, optional, an owner's commands
 
-A milestone is only for planning by version (for example v1.0). Nothing requires a feature page, issue or pull request to
-have one, and no check, rule, `file`, `goal.py pr` or setup step fails, warns or refuses for lacking one. No command here
-runs on its own; they are the owner's.
+A version milestone is only for planning (for example v1.0). Nothing requires an issue or pull request to have one. The standing
+ones are `Backlog: <Feature>` for each feature page and `Backlog: Other` (DOC-10): setup makes them, `file` and ship put backlog
+items on them, and the Adoption group's `milestones` rule warns for a missing one. `new` and `move` are the owner's.
 
 ### Milestone commands
 
@@ -242,6 +243,9 @@ MOVED issue 42 to no milestone
 - `new` creates the milestone TITLE (any text, `backlog` included) and nothing that already exists. Without `--live` it prints
   `WOULD create milestone TITLE (dry run; add --live)` and writes nothing; `--live` with no token refuses
   (`REFUSED: no GitHub token, nothing created. ...`, exit 1).
+- `backlog` makes every missing standing milestone (`EXISTS`, `CREATED` or `WOULD create`; exit 1 if one failed).
+- `leftovers FILE [--goal SLUG]` files each `FILE defect|backlog <Feature>: text` line of FILE once (marker `loop-leftover`), at most ten:
+  `FILED`, `SAME` (already filed), `WOULD file` (no `--live`) or `NOTE` (a private value, or past ten). A feature that matches no page files on `Backlog: Other`.
 - `move` puts an issue on an existing milestone, or clears it with `none`. A title that doesn't exist refuses
   (`REFUSED: no milestone TITLE (issue N unchanged). Fix: milestone.py new TITLE --live`, exit 1), and so does a gh failure
   (`REFUSED: could not move issue N: ... Fix: gh issue view N ...`).

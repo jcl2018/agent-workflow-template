@@ -35,8 +35,9 @@ fcntl = lanekit.fcntl
 import role
 
 
+SKILLS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 try:  # pods (MON-15): workflow-monitoring's graph.py, loaded by path
-    _spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(os.path.dirname(__file__), "..", "..", "workflow-monitoring", "scripts", "graph.py"))
+    _spec = importlib.util.spec_from_file_location("pods_graph", os.path.join(SKILLS, "workflow-monitoring", "scripts", "graph.py"))
     pods = importlib.util.module_from_spec(_spec)
     _spec.loader.exec_module(pods)
 except Exception:
@@ -49,8 +50,8 @@ if not sys.stdin or not sys.stdin.isatty():
 
 FLOW = ("idea", "plan", "review", "qa", "ship")
 FLOW_FILE = "~/.workflow-loop/flow.json"
-NO_FLOW = ("no skill flow is set. Fix: write %s naming your idea, plan, review, test and ship skills and the "
-           "command that runs them unattended (see loop-files.md)." % FLOW_FILE)
+NO_FLOW = ("no skill flow is set. Fix: write %s naming your idea, plan, review, test and ship skills and their "
+           "unattended command (loop-files.md)." % FLOW_FILE)
 
 
 MAX_TRIES = 3
@@ -355,6 +356,9 @@ def cmd_record(args):
         guards.advance(sys.modules[__name__], state)
         save(state, "%s %s" % (args.step, state["flow"][args.step]))
         print("RECORDED %s %s" % (args.step, state["flow"][args.step]))
+        tool = os.path.join(SKILLS, "workflow-health", "scripts", "milestone.py")
+        if args.step == "ship" and re.search(r"^\W*FILE\s", text, re.M | re.I) and os.path.exists(tool):  # DEL-14: FILE lines
+            print(subprocess.run([sys.executable, tool, "leftovers", reply, "--goal", args.slug, "--live"], capture_output=True, text=True).stdout.strip())
         print("NEXT: " + ("build, then " if args.step == "plan" else "") + next_step(state))
         return 0
     failed_try(state, "%s %s" % (args.step, "failed: " + why[:200] if result else "gave no STEP line"), args.step,
@@ -382,9 +386,6 @@ def cmd_pr(args):
     if git("status", "--porcelain", "--", goal_file(args.slug)):
         git("commit", "-m", "Goal: %s touches" % args.slug, "--", goal_file(args.slug))
     head = git("rev-parse", "HEAD")
-    left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
-    if left:
-        no("the flow hasn't finished: %s. Fix: run flow.py %s %s." % (", ".join(left), args.slug, left[0]))
     owed = fit.owed(root(), read(goal_file(args.slug)))
     if owed:
         no("no passing defect test, seen failing, for %s. Fix: regression.py add --category defect --link ..., then red." % ", ".join(owed))

@@ -303,6 +303,8 @@
 | <a id="t-hlt9-evidence-or-nothing"></a>hlt9-evidence-or-nothing | requirement | HLT-9 | PASS | 2026-11-10 | [CI 2026-11-10](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-10) | 2026-11-10 |
 | <a id="t-judge-session-first"></a>judge-session-first | requirement | HLT-5 | not run | - | local | 2026-11-10 |
 | <a id="t-judge-claude-p-fallback"></a>judge-claude-p-fallback | requirement | HLT-5 | not run | - | local | 2026-11-10 |
+| <a id="t-backlog-item-home"></a>backlog-item-home | requirement | HLT-4 | not run | - | local | no |
+| <a id="t-backlog-defect-home"></a>backlog-defect-home | requirement | HLT-4 | not run | - | local | no |
 
 ## Monitoring
 
@@ -782,3 +784,8 @@
 | <a id="t-migration-fix-sched-task"></a>migration-fix-sched-task | defect | [#3780](https://github.com/jcl2018/agent-workflow-template/issues/3780) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-migration-fix-mac-no-yml"></a>migration-fix-mac-no-yml | defect | [#3780](https://github.com/jcl2018/agent-workflow-template/issues/3780) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-stale-net-diff-revert"></a>stale-net-diff-revert | requirement | done line stale-net-diff:1 | not run | - | local | 2026-11-13 |
+| <a id="t-backlog-milestones-made"></a>backlog-milestones-made | requirement | done line backlog-milestones:1 | not run | - | local | no |
+| <a id="t-backlog-setup-makes"></a>backlog-setup-makes | requirement | done line backlog-milestones:1 | not run | - | local | no |
+| <a id="t-backlog-adoption-warns"></a>backlog-adoption-warns | requirement | done line backlog-milestones:1 | not run | - | local | no |
+| <a id="t-backlog-leftovers-filed"></a>backlog-leftovers-filed | requirement | done line backlog-milestones:1 | not run | - | local | no |
+| <a id="t-backlog-leftovers-once"></a>backlog-leftovers-once | requirement | done line backlog-milestones:1 | not run | - | local | no |
