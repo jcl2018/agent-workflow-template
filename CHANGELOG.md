@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.28.6 - 2026-11-13
+
+- Govern hook: edits outside every followed repo pass (#2850, MON-7, MON-16)
+- Link the govern-hook rows to MON-7; no new reviewed-page requirement
+- Merge origin/main
+- Merge origin/main
+- Wiki: update pages for govern-hook-notes
+- Merge origin/main
+- Merge remote-tracking branch 'origin/main' into loop/govern-hook-notes
+
+### How to verify
+
+1. Run `python3 dev/toy/test-govern-notes.py`.
+   Expect: every line starts with PASS and the last line is ALL PASS.
+2. In the operation session, write a note under `~/.claude/projects/.../memory/`.
+   Expect: the Write goes through; an Edit to a file in the repo is still refused with "(MON-7)".
+
 ## v0.28.5 - 2026-11-13
 
 - Health file: a repeat ignores the body's trailing newline; Python toy for repeat-no-second (#3784)
