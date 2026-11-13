@@ -72,6 +72,8 @@ TABLE = [
     ("full_auto", REPO, True, "true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait."),
     ("pool_size", REPO, 20, "Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones."),
     ("silent_minutes", REPO, 30, "Minutes a worker may send nothing before it shows under Needs you; LOOP_SESSION_QUIET (seconds) overrides it."),
+    ("health_script_bytes", REPO, 20480, "Bytes a script may reach before health's Size group fails it (warns at 90%)."),
+    ("health_skill_lines", REPO, 150, "Lines a SKILL.md may reach before health's Size group fails it."),
     ("feature_labels", REPO, False, "true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label; off by default, so issues carry their group or regression label only."),
     ("command", PRIVATE, ["claude", "-p"], "Flow file: the agent command that runs each flow step unattended."),
     ("allowed_tools", PRIVATE, [], "Flow file: tools a step's agent may use, passed as --allowedTools; empty adds nothing."),
@@ -139,6 +141,11 @@ def load(path):
             return json.load(handle)
     except (OSError, ValueError):
         return {}
+
+
+# What setup leaves in .loop/health-rules.json when the repo has none.
+HEALTH_RULES = {"_comment": "rules: [{name, group (a health group or repo), feature, command (words; exit 0 pass, 2 warn, 1 fail), fix, "
+                "break (a command that makes it fail)}]. off: {default rule: reason}.", "rules": [], "off": {}}
 
 
 def repo_defaults():
@@ -263,6 +270,9 @@ def fill_repo(path):
     merged["automation"] = agents.fill_automation(merged, os.path.dirname(os.path.dirname(os.path.abspath(path))))
     if merged != held:
         write_json(path, merged)
+    rules = os.path.join(os.path.dirname(os.path.abspath(path)), "health-rules.json")
+    if not os.path.exists(rules):
+        write_json(rules, HEALTH_RULES)
     return added
 
 

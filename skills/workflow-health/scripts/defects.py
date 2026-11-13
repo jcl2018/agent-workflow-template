@@ -72,6 +72,16 @@ SLUG_N = re.compile(r"^[a-z0-9][a-z0-9-]*:\d+$")
 COMMAND = re.compile(r"/workflow-[a-z]+ [a-z][a-z-]*")
 
 
+def setting(root, key, default):
+    """A positive whole number set in .loop/config.json (a threshold a repo tunes), else the default."""
+    try:
+        with open(os.path.join(root, ".loop", "config.json")) as handle:
+            value = json.load(handle)[key]
+    except (OSError, ValueError, KeyError, TypeError):
+        return default
+    return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else default
+
+
 def row(state, family, subject, rule, detail, fix="", evidence=""):
     return {"state": state, "family": family, "subject": subject, "rule": rule, "detail": detail, "fix": fix,
             "evidence": evidence or subject}
