@@ -8,8 +8,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=4bb528ed N=e89b4f3b M=39cf
 ## Problem
 - My rules, requirements and standards are spread across many pages and sometimes conflict, and I can't see where the repo falls short of its own PRDs.
 - I want a reviewer that reads everything (every PRD page, the README, milestones, open issues, tests and code) and tells me per feature what conflicts, what's missing and what's slow, alongside fixed checks that give the same answer every time.
-- Its findings should land as issues tagged with their group (and their feature when feature_labels is on), previewed first, so I can triage them in one place later.
-- I want what adoption needs from the owner (a hook, a milestone approval, a missing tool) listed as `owner step <name>` INFO rows by the Adoption `migration` rule, and a hook installed twice or a scheduled prompt beyond its Runbook pointer warned, so a new machine is never a guessing game.
+- Its findings should land as issues tagged with their group (and their feature when feature_labels is on), previewed first, so I can triage them in one place later. Adoption also lists what only the owner can do on a new machine, and warns on a hook or scheduled prompt set up twice or wrongly.
 
 ## Runbook
 
