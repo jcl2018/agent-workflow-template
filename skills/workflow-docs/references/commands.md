@@ -288,7 +288,8 @@ Success metrics added); then write the drafts, rewrite row descriptions as scena
 The Automation block lists health and regression (built in, cadence from `health_cron` and `regression_cron`) and each entry
 of `automation` in `.loop/config.json`: `{"name", "does", "cadence", "runs", "enabled", "last_run"}`, where `runs` is
 `github:FILE` (a workflow file), `mac:LABEL` (a launch agent) or `claude:TASK` (a Claude scheduled task) and `cadence` is a
-cron string, words, or `off`. Adding a routine is adding one entry. `python3 scripts/docs.py automation` prints each one's
+cron string, words, or `off`. Health and its digest email are built in as `local:schedule`: they run on the Mac's local
+schedule, never in Actions, so the block owes no health workflow and `docs.py automation` says so. Adding a routine is adding one entry. `python3 scripts/docs.py automation` prints each one's
 live state here; the committed block holds only what files and config show.
 
 A routine of your own adds `"page": "<Page>"` (the feature page that carries its Runbook) and optionally `"routine": "<heading>"`
