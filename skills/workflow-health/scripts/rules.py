@@ -12,6 +12,7 @@
   scheduled         the regression or health workflow is missing, or has no schedule (WARN)
   no-fit            an open [adoption] line in .loop/findings.md, written by setup: one WARN row each (report.py)
   agent-tools       agent_command (or the flow file's command) grants its agent no tools (WARN) (report.py)
+  prompt-pointer    a scheduled-task prompt holds more than the Runbook pointer (WARN)
   milestones        a GitHub repo lacks a standing Backlog milestone, one per feature page and Other (WARN; INFO when gh can't list them)
 Security and privacy, Size, Performance check-time and Hygiene idle-sessions rules (also read-only):
   private                tracked files matching a leak pattern (leak_patterns in the private flow file): FAIL with
@@ -39,7 +40,6 @@ from defects import LINE, behind, pages, row, table
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
-
 
 
 def today():
@@ -187,7 +187,7 @@ def milestones(root):
 
 FUNCTIONS = {"nightly": nightly, "unreleased": unreleased, "finding-age": finding_age, "skipped": skipped,
              "network": network, "config": config, "checks-run-tests": checks_run_tests,
-             "template-version": lambda root: template_version(root) + behind(root), "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools,
+             "template-version": lambda root: template_version(root) + behind(root), "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools, "prompt-pointer": _report.prompt_pointer,
              "milestones": milestones}
 
 
@@ -260,9 +260,8 @@ CONTROLS = {"nightly": ("freshness", "nightly", f_nightly), "unreleased": ("fres
             "network": ("tests", "network", f_network), "config": ("adoption", "config", f_config),
             "checks-run-tests": ("adoption", "checks-run-tests", f_checks_run_tests),
             "template-version": ("adoption", "template-version", f_template_version),
-            "scheduled": ("adoption", "scheduled", f_scheduled), "milestones": ("adoption", "milestones", f_milestones)}
-
-
+            "scheduled": ("adoption", "scheduled", f_scheduled), "milestones": ("adoption", "milestones", f_milestones),
+            "prompt-pointer": ("adoption", "prompt-pointer", lambda root: _c().f_prompt_pointer(root))}
 
 
 SKILL_LINES = 150

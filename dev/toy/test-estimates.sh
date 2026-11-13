@@ -2,7 +2,7 @@
 # reads: skills/workflow-monitoring/scripts/board_status.py skills/workflow-monitoring/scripts/graph.py
 # reads: skills/workflow-monitoring/scripts/live_board.py skills/workflow-monitoring/scripts/board_page.py
 # reads: skills/workflow-monitoring/scripts/board_log.py skills/workflow-monitoring/scripts/board_model.py
-# reads: skills/workflow-monitoring/scripts/board_report.py skills/workflow-health/scripts/cost.py
+# reads: skills/workflow-monitoring/scripts/board_report.py skills/workflow-health/scripts/milestone.py
 # reads: skills/workflow-regression/scripts/lanes_cli.py
 # Goal estimates from size and similar finished goals (issue 96), the backtest that picks the estimate model, held and
 # stalled goals under Issues (issue 37), on a made-up repo of finished runs. No model is called. usage: test-estimates.sh [CHECK]  (no CHECK runs them all)
@@ -601,9 +601,9 @@ def check_module_size():
     need(not [n for n in names if not hasattr(module, n)], "every reader name resolves: %s" % [n for n in names if not hasattr(module, n)])
     need(bs.MODEL is bm.MODEL, "board_status.MODEL is the model's own dict")
     sys.path.insert(0, os.path.join(M, "..", "..", "workflow-health", "scripts"))
-    import cost  # noqa: E402
+    import milestone as cost  # noqa: E402
     found = cost.board_status(os.path.join(M, "..", "..", "workflow-health", "scripts"))
-    need(found is not None and hasattr(found, "seconds_by_step") and hasattr(found, "tokens_by_step"), "cost.py loads board_status.py by path")
+    need(found is not None and hasattr(found, "seconds_by_step") and hasattr(found, "tokens_by_step"), "milestone.py loads board_status.py by path")
     top = os.path.join(M, "..", "..", "..")
     deps = subprocess.run([sys.executable, os.path.join(top, "skills/workflow-regression/scripts/lanes_cli.py"), "deps", "dev/toy/test-estimates.sh"],
                           cwd=top, capture_output=True, text=True).stdout

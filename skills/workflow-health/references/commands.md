@@ -60,6 +60,7 @@ unchanged repo print the same lines.
 | | `scheduled` | the regression or health workflow is missing or has no schedule (WARN) |
 | | `no-fit` | an open `[adoption]` line in `.loop/findings.md` (setup writes one per kind): one WARN row naming its subjects and fix |
 | | `agent-tools` | `agent_command` or the flow file's command grants its agent no tools (WARN), naming each setting to fix |
+| | `prompt-pointer` | an installed scheduled-task prompt (`~/.claude/scheduled-tasks/<task>/SKILL.md`, for a routine whose `runs` is `claude:` or `mac:`) holds a line other than the Runbook pointer `docs.py prompts` prints (WARN) |
 | Controls (can each rule fire?) | `control` per rule | a rule's control stays green: it cannot fire (FAIL); a fixture that can't be built is UNREAD |
 
 - Performance's `test-time` reads the land lane record (`regression.py`'s record of the current branch, else the newest

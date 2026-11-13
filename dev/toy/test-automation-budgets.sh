@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-regression/scripts/actions.py skills/workflow-regression/scripts/actions_summary.py skills/workflow-health/scripts/automation.py .github/workflows/regression.yml docs/wiki/Regression.md docs/wiki/Automation.md
+# reads: skills/workflow-regression/scripts/actions.py skills/workflow-regression/scripts/slots.py skills/workflow-health/scripts/automation.py .github/workflows/regression.yml docs/wiki/Regression.md docs/wiki/Automation.md
 # Test that REG-7, AUT-7 and regression.yml name one regression budget with the suite sharded to fit it, and that the digest never cuts its counts silently.
 # usage: test-automation-budgets.sh [budgets|digest|health]   Exits 0 only when every case in the group passes.
 set -u
