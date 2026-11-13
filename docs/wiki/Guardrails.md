@@ -13,7 +13,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=069a23eb N=e6bf17f7 M=5109
 
 ## Usage
 
-- `/workflow-health check [--group NAME] [--skip controls] [--json]` — Runs the fixed rules, among them the one per guardrail that proves it is on (GRD-9); the Health page holds the whole entry. Prints one line per finding and last `HEALTH: green|not green (<p> pass, <w> warn, <f> fail, <u> unread)`; exits 1 when not green. Refuses what the Health page lists.
+- `/workflow-health check [--group NAME] [--skip controls] [--json]` — Runs the fixed rules, among them the one per guardrail that proves it is on (GRD-9); the Health page holds the whole entry. Prints one line per finding and last `HEALTH: green|not green (<p> pass, <w> warn, <f> fail, <u> unread)`; exits 1 when not green. Refuses what the Health page lists. The Size group's script and SKILL.md caps are repo settings, `health_script_bytes` and `health_skill_lines`.
 - `/workflow-setup settings` — Shows the settings reference: every setting with its home, default and meaning. Prints the reference as a Markdown table, one `| <setting> | <home> | <default> | <meaning> |` row per setting. Refuses nothing. This repo's `.loop/config.json` holds every setting the reference lists, with `template_version` naming the template it came from.
 
 ## Requirements
