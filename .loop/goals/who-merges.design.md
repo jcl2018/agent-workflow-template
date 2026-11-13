@@ -14,4 +14,4 @@ Two PRs (#3855, #3792) merged with no session running merge.py (#3868).
 Met by dev/toy/test-who-merges.py (two goals at pr, a report merges neither; the release step for one runs merge.py for only it; no other monitoring or delivery script starts merge.py) and its row, seen failing.
 
 ## Open questions
-worker.py's exit fallback still runs merge.py for its own goal when the agent exits done; raised with the operation session.
+worker.py's exit fallback goes through merge.py and skips a goal the operation holds (a hold report with no later step or resume).
