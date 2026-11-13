@@ -35,6 +35,7 @@ good = """Two goals moved; one needs you.
 
 ## Dependencies
 ```
+== toy ==
 [>] alpha
  |
 [ ] beta

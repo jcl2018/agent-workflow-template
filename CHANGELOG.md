@@ -1,5 +1,64 @@
 # Changelog
 
+## v0.28.9 - 2026-11-13
+
+- Monitoring V1: the operation checkout fast-forwards, the reply hook checks repo blocks, a silent worker is proven under Needs you
+- Tests tables list the three monitoring rows
+- Merge remote-tracking branch 'origin/main' into loop/monitoring-v1
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.8 - 2026-11-13
+
+- goal.py new --here refuses in the main checkout (#3468)
+- Render the Tests tables for the new row
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 dev/toy/test-new-here.py`.
+   Expect: every line starts with PASS and the last line is ALL PASS.
+
+## v0.28.7 - 2026-11-13
+
+- A resumed goal keeps its release ask with auto_merge on (#812)
+- Lane: re-render the Tests tables
+- Guard the new rows under DEL-5 and MON-15; Tests re-rendered (#812)
+- Merge remote-tracking branch 'origin/main' into loop/resume-ask-honored
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+- Merge remote-tracking branch 'origin/main' into loop/resume-ask-honored
+- Merge remote-tracking branch 'origin/main' into loop/resume-ask-honored
+- Merge remote-tracking branch 'origin/main' into loop/resume-ask-honored
+- Merge remote-tracking branch 'origin/main' into loop/resume-ask-honored
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 dev/toy/test-resume-ask.py`.
+   Expect: four PASS lines for the prompts and the worker step, then two more PASS lines, and exit 0.
+2. With auto_merge on, read `mend.release_text({"slug": "g", "release": "ask"})`.
+   Expect: the text asks "Cut a release or leave it unreleased?" and never names merge.py.
+
+## v0.28.6 - 2026-11-13
+
+- Govern hook: edits outside every followed repo pass (#2850, MON-7, MON-16)
+- Link the govern-hook rows to MON-7; no new reviewed-page requirement
+- Merge origin/main
+- Merge origin/main
+- Wiki: update pages for govern-hook-notes
+- Merge origin/main
+- Merge remote-tracking branch 'origin/main' into loop/govern-hook-notes
+
+### How to verify
+
+1. Run `python3 dev/toy/test-govern-notes.py`.
+   Expect: every line starts with PASS and the last line is ALL PASS.
+2. In the operation session, write a note under `~/.claude/projects/.../memory/`.
+   Expect: the Write goes through; an Edit to a file in the repo is still refused with "(MON-7)".
+
 ## v0.28.5 - 2026-11-13
 
 - Health file: a repeat ignores the body's trailing newline; Python toy for repeat-no-second (#3784)
