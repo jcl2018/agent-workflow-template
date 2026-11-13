@@ -6,6 +6,8 @@
 Two goals sit at pr in a repo with auto_merge on. A session report for one of them (waiting, or merged for a PR that is
 still open) must not run merge.py for either; merge.py for one goal runs only when asked for that goal."""
 import argparse
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -41,13 +43,16 @@ subprocess.run = run
 worker.merged = sessions.merged = lambda url: False
 
 
-def report(slug, status):
+def report(slug, status, text="PR open; holding before merge.py"):
     args = argparse.Namespace(slug=slug, status=status, step="", pr="https://example.test/pull/" + slug[-1], ask="", words=[],
-                              text="PR open; holding before merge.py", recommend="", kind="", attempt=None)
-    try:
-        sessions.cmd_report(args)
-    except SystemExit as stop:
-        print("(exit: %s)" % stop)
+                              text=text, recommend="", kind="", attempt=None)
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        try:
+            sessions.cmd_report(args)
+        except SystemExit as stop:
+            out.write("(exit: %s)" % stop)
+    return out.getvalue()
 
 
 with tempfile.TemporaryDirectory() as tmp:
@@ -62,7 +67,8 @@ with tempfile.TemporaryDirectory() as tmp:
         with open(os.path.join(runs, slug + ".json"), "w") as handle:
             json.dump({"slug": slug, "status": "running", "step": "pr", "worktree": tmp, "branch": "loop/" + slug,
                        "pr": "https://example.test/pull/" + slug[-1]}, handle)
-    report("goal1", "waiting")
+    said = report("goal1", "waiting")
+    check("NEXT: merge.py goal1" in said, "the report prints NEXT: merge.py for the goal instead of merging it")
     check(not calls, "a waiting report for a goal at pr, with auto_merge on, runs no merge.py")
     report("goal2", "merged")
     check(not calls, "a merged report for a PR that is still open runs no merge.py for either goal")
@@ -70,6 +76,16 @@ with tempfile.TemporaryDirectory() as tmp:
     check(state.get("status") == "done" and state.get("pr"), "the report still records the goal as done with its pull request")
     worker.release_step(dict(state, release=""))
     check(len(calls) == 1 and calls[0][-1] == "goal1", "the release step for one goal runs merge.py for only that goal")
+    # the worker's exit fallback goes through merge.py, and skips a goal the operation holds
+    del calls[:]
+    with open(os.path.join(runs, "goal3.json"), "w") as handle:
+        json.dump({"slug": "goal3", "status": "running", "step": "pr", "worktree": tmp, "branch": "loop/goal3", "pr": "https://example.test/pull/3"}, handle)
+    report("goal3", "waiting", "worker · goal3: PR open; holding before merge.py")
+    held = sessions.load("goal3")
+    check(worker.held_by_operation(held), "a goal whose last report says it is holding before merge.py is held by the operation")
+    worker.release_step(dict(held, release=""))
+    check(not calls, "the worker's exit fallback skips a goal the operation holds")
+    check(not worker.held_by_operation(sessions.load("goal1")), "a goal that only reported its pull request waiting is not held")
     os.chdir(here)
 subprocess.run = real
 # no other monitoring or delivery script starts merge.py or gh pr merge: watch.py and auto.py only advise it in prompts
@@ -84,4 +100,5 @@ for folder in ("workflow-monitoring", "workflow-delivery"):
 check(runs == ["worker.py"], "only worker.py (the worker's own exit) starts merge.py among the monitoring and delivery scripts: %s" % runs)
 if not failed:
     print("PASS: #3868: a report merges neither goal; merge.py runs only for the goal it is asked for")
+    print("PASS: #3868: the worker exit fallback runs merge.py for an unheld goal and skips a held one")
 sys.exit(1 if failed else 0)

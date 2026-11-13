@@ -321,6 +321,8 @@ def cmd_report(args):
             sys.exit("REFUSED: %s with no pull request. Fix: pass --pr URL." % said)
         state["status"] = "done"  # a report records; it never merges: a goal's PR merges through its own merge.py (#3868)
         said = "merged" if merged(pr) else "waiting"
+        if said == "waiting" and config().get("auto_merge") is True and state.get("release") != "ask":
+            print("NEXT: merge.py %s (a report never merges; the goal's own merge.py or the operation's go does)" % args.slug)
     elif said == "running":
         state["status"] = "running"
     who = (state.get("session") or {}).get("name") or args.slug
