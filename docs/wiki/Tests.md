@@ -789,3 +789,4 @@
 | <a id="t-backlog-adoption-warns"></a>backlog-adoption-warns | requirement | done line backlog-milestones:1 | not run | - | local | 2026-11-13 |
 | <a id="t-backlog-leftovers-filed"></a>backlog-leftovers-filed | requirement | done line backlog-milestones:1 | not run | - | local | 2026-11-13 |
 | <a id="t-backlog-leftovers-once"></a>backlog-leftovers-once | requirement | done line backlog-milestones:1 | not run | - | local | 2026-11-13 |
+| <a id="t-backlog-renames-old"></a>backlog-renames-old | requirement | done line backlog-milestones:1 | not run | - | local | 2026-11-13 |
