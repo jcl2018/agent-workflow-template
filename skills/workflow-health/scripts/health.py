@@ -33,7 +33,7 @@ if not sys.stdin or not sys.stdin.isatty():
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    from defects import setting  # noqa: E402
+    from defects import setting
 except ImportError:  # a lone health.py: the built-in numbers
     setting = lambda root, key, default: default
 try:
@@ -76,7 +76,7 @@ def sibling(skill, script):
 
 def size_rows(root):
     rows, good = [], 0
-    limit = setting(root, "health_script_bytes", LIMIT)  # a repo's own cap (config.json); warns at 90% of it
+    limit = setting(root, "health_script_bytes", LIMIT)
     for path in sorted(glob.glob(os.path.join(root, "skills", "*", "scripts", "*.*"))):
         if not path.endswith((".py", ".sh")):
             continue
@@ -247,9 +247,7 @@ def controls_rows(root):
     controls = sibling_module("controls")
     if controls is None:
         return [row("UNREAD", "controls", "controls.py", "control", "controls.py is missing")]
-    rows = controls.run({name: (lambda root, fn=fn: [placed(i) for i in fn(root)]) for name, fn in rule_functions().items()}, HERE)
-    mine = sibling_module("enforce")
-    return rows + [controls.repo_control(root, rule) for rule in (mine.repo_load(root)[0] if mine else [])]
+    return controls.run({name: (lambda root, fn=fn: [placed(i) for i in fn(root)]) for name, fn in rule_functions().items()}, HERE)         + controls.repo_controls(root)
 
 
 def mine_rows(root):
@@ -269,10 +267,7 @@ def gather(root, family, ran_rules=None):
     asked = family or ORDER
     T0[0] = T0[0] or time.time()  # check-time measures every command that gathers (check, judge, preview, file)
     funcs, done, rows = rule_functions(), {}, []
-    repo = sibling_module("enforce")
     for name in asked:
-        if name == "repo":
-            continue  # its rows come with the other groups' (repo_rows below)
         if name == "mine":
             got = mine_rows(root)
             rows += got
@@ -294,12 +289,10 @@ def gather(root, family, ran_rules=None):
                     done[fn] = [row("UNREAD", name, rule, rule, "%s: %s" % (type(error).__name__, str(error)[:100]))]
             if ran_rules is not None and not any(hard_unread(i) for i in done[fn]):  # a shared source unread: none ran
                 ran_rules.add(rule)
-    off = {item["rule"] for item in repo.off_rows(root)} if repo else set()
     for got in done.values():
-        rows += [item for item in got if item["family"] in asked and G.rule_of(item) not in off]  # a rule turned off does not run
-    if repo:
-        rows += [item for item in repo.repo_rows(root) + repo.off_rows(root) if item["family"] in asked]
-    return rows
+        rows += [item for item in got if item["family"] in asked]
+    mine = sibling_module("enforce")
+    return mine.repo_merge(root, rows, asked) if mine else rows
 
 
 def groups_of(text):
@@ -366,14 +359,6 @@ def tests_block(root):
     return ["", "TESTS"] + done.stdout.rstrip("\n").splitlines() + [""]
 
 
-def refuse_repo():
-    mine, top = sibling_module("enforce"), run(["git", "rev-parse", "--show-toplevel"], os.getcwd())
-    problems = mine.repo_load(top.stdout.strip())[2] if mine and not top.returncode else []
-    if problems:
-        print("REFUSED: " + problems[0])
-        sys.exit(2)
-
-
 def main():
     commands = sibling_module("report")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -391,5 +376,5 @@ def main():
 if __name__ == "__main__":
     _controls = sibling_module("controls")
     _controls and _controls.refuse(RULES)  # a new rule must come with its negative control (exit 2)
-    refuse_repo()  # and so must a repo rule: a break command, a known group, a name of its own (exit 2)
+    _controls and _controls.refuse_repo()  # and so must a repo rule: a break command, a known group, a name of its own
     sys.exit(main())

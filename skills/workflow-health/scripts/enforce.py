@@ -126,7 +126,7 @@ def repo_load(root):
     are refusal lines (health.py exits 2); rows are the repo group's own INFO and UNREAD rows."""
     note = lambda state, detail, fix="": [mine_row(state, REPO_FILE, detail, fix, "repo", "repo")]
     if not os.path.exists(os.path.join(root, REPO_FILE)):
-        return [], {}, [], note("INFO", "no repo rules (%s)" % REPO_FILE)
+        return [], {}, [], []
     try:
         with open(os.path.join(root, REPO_FILE)) as handle:
             data = json.load(handle)
@@ -152,7 +152,7 @@ def repo_load(root):
             rows += [mine_row("UNREAD", key, "cannot be turned off: %s" % ("not a default rule" if key not in G.RULES else "it needs a reason"),
                               "name a default rule and give a reason in off", "repo", "repo")]
     off = {k: v.strip() for k, v in off.items() if k in G.RULES and isinstance(v, str) and v.strip()}
-    return good, off, problems, rows or ([] if good or off else note("INFO", "the repo file lists no rules"))
+    return good, off, problems, rows
 
 
 def repo_rows(root):
@@ -160,6 +160,13 @@ def repo_rows(root):
     rules, _, _, rows = repo_load(root)
     return [run_rule(root, rule, rule["name"], rule["group"], rule["name"], feature=str(rule.get("feature") or ""), evidence=rule["name"])
             for rule in rules] + rows
+
+
+def repo_merge(root, rows, asked):
+    """rows without the rules the repo turned off, plus the repo's own rows in the groups asked."""
+    import report as G
+    off = {item["rule"] for item in off_rows(root)}
+    return [item for item in rows if G.rule_of(item) not in off] + [item for item in repo_rows(root) + off_rows(root) if item["family"] in asked]
 
 
 def off_rows(root):

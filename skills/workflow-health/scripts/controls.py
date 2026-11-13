@@ -318,6 +318,22 @@ def repo_control(root, rule):
     return row("FAIL", name, "cannot fire: it passed after its break command", fix)
 
 
+def repo_controls(root):
+    """One Controls row per repo rule (.loop/health-rules.json)."""
+    import enforce
+    return [repo_control(root, rule) for rule in enforce.repo_load(root)[0]]
+
+
+def refuse_repo():
+    """Exit 2 before any report when a repo rule has no break, no known group or no name of its own."""
+    import enforce
+    top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    problems = enforce.repo_load(top.stdout.strip())[2] if not top.returncode else []
+    if problems:
+        print("REFUSED: " + problems[0])
+        sys.exit(2)
+
+
 def missing(names):
     return [name for name in names if name not in CONTROLS]
 

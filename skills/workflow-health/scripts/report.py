@@ -144,10 +144,12 @@ def groups(rows, asked):
     ran, skipped = [], []
     for name in ORDER:
         mine = [item for item in rows if item["family"] == name]
+        if name == "repo" and all(item["state"] == "INFO" for item in mine):
+            continue  # no repo rules: the header and headings read as they did before the repo layer
         if asked and name not in asked:
             skipped.append((name, "not asked"))
-        elif name in ("mine", "repo") and all(item["state"] == "INFO" for item in mine):
-            skipped.append((name, "no private rules set" if name == "mine" else "no repo-group rules set"))
+        elif name == "mine" and mine and all(item["state"] == "INFO" for item in mine):
+            skipped.append((name, "no private rules set"))
         else:
             ran.append(name)
     return ran, skipped
