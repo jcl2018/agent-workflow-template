@@ -68,6 +68,7 @@ board-sections	PASS	2026-11-09
 breaking-asks	PASS	2026-11-09	
 builtin-flow	PASS	2026-11-12	
 cap-default-10	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+capture-row-ci	FAIL	2026-11-13	
 check-writes-nothing	PASS	2026-11-12	
 checkin-passes-hook	PASS	2026-11-10	
 ci-bad-target	PASS	2026-11-10	
@@ -382,7 +383,7 @@ report-held-111	PASS	2026-11-10
 report-sub-bullets	PASS	2026-11-12	
 retired-leaves-waiting	PASS	2026-11-09	
 review-dated	PASS	2026-11-12	
-review-findings-skill-lines	PASS	2026-11-13	
+review-findings-skill-lines	FAIL	2026-11-13	
 review-owner-only	PASS	2026-11-12	
 reviewed-lock	PASS	2026-11-12	
 row-timeout-holds	PASS	2026-11-11	

@@ -95,12 +95,11 @@ locks) has the rules and how the owner edits a reviewed requirement. Never revie
 **New and old pages.** `python3 scripts/prd.py new NAME "<idea>" --paths A,B` drafts a new feature's PRD and
 `prd.py convert --write` turns old Summary/Criteria pages into PRD pages; what each leaves to do: `references/commands.md`.
 
-**Where a PRD lives, and topics.** A feature's PRD source is `page` (the default), `url:<link>` or `mcp:<server>:<resource>`, set
-in the optional third column of `.loop/docs.tsv`; a page whose PRD lives elsewhere holds `PRD: <source>` and its generated
-sections (Runbook, Deployments, Tests) only. Agents read that PRD from the source and never copy its text into the repo; its
-requirement ids drive the Tests tables and health. The check reads it fresh (a reader command in `LOOP_PRD_READER`, given the
-source, reaches an MCP connector such as Notion's) and reports `UNREAD`, never a pass, when it cannot. The `topics` setting
-adds a Topic column to Home and `render` groups the rows by it.
+**Where a PRD lives, and topics.** A feature's PRD source is `page` (the default), `url:<link>` or `mcp:<server>:<resource>`,
+set in the optional third column of `.loop/docs.tsv`; that page holds `PRD: <source>` and its generated sections only. Agents
+read the PRD from the source and never copy it into the repo; its ids drive the Tests tables and health. The check reads it
+fresh (`LOOP_PRD_READER`, given the source, reaches an MCP connector such as Notion's) and reports `UNREAD`, never a pass,
+when it cannot. The `topics` setting adds a Topic column to Home and `render` groups the rows by it.
 
 ## `publish`
 
