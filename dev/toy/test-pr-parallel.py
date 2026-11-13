@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # windows: ok
-# reads: skills/workflow-monitoring/scripts/pool.py skills/workflow-monitoring/scripts/prqueue.py
+# reads: skills/workflow-monitoring/scripts/pool.py
 """DEL-15, parallel by files: goals at pr whose touches share no path take their turn at once; a goal waits only for an earlier
 goal whose touches overlap its own."""
 import json

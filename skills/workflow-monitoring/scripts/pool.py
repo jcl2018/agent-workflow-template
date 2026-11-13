@@ -30,7 +30,6 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
 import board_lines as prs  # noqa: E402  (its pull request lookups)
-import prqueue  # noqa: E402
 import sessions as se  # noqa: E402
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")  # no prompt ever blocks
 
@@ -261,7 +260,13 @@ def pr_turn(runs, slug):
             line.append((joined, name))
         except (OSError, ValueError):
             continue
-    return prqueue.first_ahead(runs, line, slug)  # DEL-15: only goals whose touches overlap hold it up
+    # DEL-15: a goal waits only for an earlier goal whose touches overlap its own (a path equal or nested); no touches overlaps all
+    def paths(n):
+        return [str(t).strip("/") for t in se.read(os.path.join(runs, n + ".json"), {}).get("touches") or []]
+    at, mine = dict((n, j) for j, n in line).get(slug, float("inf")), paths(slug)
+    ahead = [(j, n) for j, n in line if n != slug and j < at and (not mine or not paths(n) or any(
+        x == y or x.startswith(y + "/") or y.startswith(x + "/") for x in mine for y in paths(n)))]
+    return min(ahead)[1] if ahead else ""
 
 
 def pr_ahead(runs, base):
