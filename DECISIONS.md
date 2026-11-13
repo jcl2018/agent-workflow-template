@@ -45,3 +45,13 @@ The owner un-reviewed these requirements and approved the wording below; it is n
 - MON-4 (decision 2): title "Live board layout"; keep its bullets, and change the last to "Check-ins don't print this board; MON-5 owns the check-in reply."
 - MON-5 (decision 2): replace "and prints the full board every time" with "and each check-in prints only its reply layout, never the board"; the title and the layout list stay.
 - Monitoring Non-goals (decision 10): "It never merges unless auto_merge is on (MON-7, MON-15); the delivery loop merges and releases."
+
+## Waiting on owner un-review (2026-11-13)
+
+Titles are locked on Reviewed requirements. #410: MON-1, MON-2, MON-13, MON-14 and MON-15 put a whole sentence in the title, against DOC-7's short-title format. Proposed: each gets a short title, and its sentence moves under it as a sub-bullet word for word. Nothing is applied until the owner un-reviews them.
+
+- MON-1: "Roles, start and planning". Sub-bullet: the current text after the title, from "One command starts the operation session" on.
+- MON-2: "Live communication". Sub-bullet: the current text after the title, from "Operation and workers talk through session messages" on.
+- MON-13: "Two layers per pod". Sub-bullet: "One operation session governs every repo in its pod directly and talks to each worker, with no per-repo operation session; several pods may run concurrently and independently."
+- MON-14: "Dependency map grouped by repo". Sub-bullet: "The check-in dependency map has one block per repo headed by the repo's name, with cross-repo dependencies drawn between blocks."
+- MON-15: "Pods coordinate through shared state". Sub-bullet: the current text after the title, from "every goal records its owning pod" on.
