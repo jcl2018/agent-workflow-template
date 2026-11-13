@@ -129,7 +129,7 @@ python3 - <<'PY' && ok "workflow keys and inline block are valid" || bad "workfl
 import ast, re
 text = open(".github/workflows/regression.yml").read()
 assert "issues: write" in text and "workflow_dispatch" in text and text.startswith("# Written by workflow-regression")
-block = re.search(r"python3 - <<'PY'\n(.*?)\n\s+PY\n", text, re.S).group(1)
+block = re.search(r"python3 - (?:--live )?<<'PY'\n(.*?)\n\s+PY\n", text, re.S).group(1)
 block = "\n".join(line[10:] for line in block.split("\n"))
 ast.parse(block)
 open("ci-block.py", "w").write(block)
@@ -137,7 +137,7 @@ PY
 python3 -c 'import yaml; yaml.safe_load(open(".github/workflows/regression.yml")); print("yaml ok")' 2>/dev/null || echo "NOTE: PyYAML not installed, YAML not parsed"
 : > "$FAKE_GH_DIR/calls.log"
 touch BROKEN; git add -A; git commit -qm "Break it" >/dev/null
-python3 ci-block.py; rc=$?
+python3 ci-block.py --live; rc=$?
 [ $rc = 1 ] && [ "$(calls '^issue create')" = 1 ] && ok "CI block fails and opens an issue" || bad "CI block"
 # Value: protects=a failing row's issue is filed with no milestone read, made or set (done line 2) and, while feature_labels
 #   is off, with no feature label call either; fails_when=the CI block reads milestones, passes --milestone or makes
@@ -151,25 +151,25 @@ grep -q "^issue create .*--label regression --label defect" "$FAKE_GH_DIR/calls.
 cp -p .loop/docs.tsv "$d/docs.bak" 2>/dev/null; printf 'Calc\tcalc.py\n' >> .loop/docs.tsv; printf 'Calc\tflag\t-\tDOC-1\tNo BROKEN file\n' > map.tsv
 python3 -c "import json;c=json.load(open('.loop/config.json'));c['feature_labels']=True;json.dump(c,open('.loop/config.json','w'))"
 rm -f "$FAKE_GH_DIR/issues.json" "$FAKE_GH_DIR/labels.json"; : > "$FAKE_GH_DIR/calls.log"
-REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py >/dev/null 2>&1
+REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py --live >/dev/null 2>&1
 grep -q "^label create feature:Calc --force" "$FAKE_GH_DIR/calls.log" && grep -q -- "--label feature:Calc" "$FAKE_GH_DIR/calls.log" && ! grep -q -- "milestone" "$FAKE_GH_DIR/calls.log" \
   && ok "with feature_labels on the issue is tagged feature:Calc, made first, still with no milestone" || bad "labels on: $(cat "$FAKE_GH_DIR/calls.log")"
 rm -f "$FAKE_GH_DIR/issues.json" "$FAKE_GH_DIR/labels.json"; : > "$FAKE_GH_DIR/calls.log"
-out=$(FAKE_GH_LABEL_FAIL=feature: REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py 2>&1)
+out=$(FAKE_GH_LABEL_FAIL=feature: REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py --live 2>&1)
 grep -q "^FAILED label feature:Calc" <<<"$out" && [ "$(calls '^issue create --title Regression: flag')" = 1 ] && ! grep -q -- "--label feature:" "$FAKE_GH_DIR/calls.log" \
   && ok "a feature label that can't be made still files the issue, without it, with a FAILED label line" || bad "label create fails: $out"
 rm -f "$FAKE_GH_DIR/issues.json" "$FAKE_GH_DIR/labels.json"; : > "$FAKE_GH_DIR/calls.log"
-out=$(FAKE_GH_ISSUE_LABEL_FAIL=feature: REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py 2>&1)
+out=$(FAKE_GH_ISSUE_LABEL_FAIL=feature: REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py --live 2>&1)
 grep -q "^FAILED label feature:Calc" <<<"$out" && [ "$(calls '^issue create --title Regression: flag')" = 2 ] && [ "$(grep -c -- "--label feature:Calc" "$FAKE_GH_DIR/calls.log")" = 1 ] \
   && ok "an issue create that fails on the label is filed again without it" || bad "label on issue fails: $out"
 printf 'Hostile "q" `b` $(touch HOSTILE),x\xc3\xa9\tcalc.py\n' >> .loop/docs.tsv; printf 'Hostile "q" `b` $(touch HOSTILE),x\xc3\xa9\tflag\t-\tDOC-1\tx\n' > map.tsv
 rm -f "$FAKE_GH_DIR/issues.json" "$FAKE_GH_DIR/labels.json"; : > "$FAKE_GH_DIR/calls.log"
-REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py >/dev/null 2>&1
+REGRESSION_MAP="$PWD/map.tsv" python3 ci-block.py --live >/dev/null 2>&1
 [ ! -e HOSTILE ] && grep -q '^label create feature:Hostile "q" `b` $(touch HOSTILE)x' "$FAKE_GH_DIR/calls.log" && ! grep -q "Hostile" .github/workflows/regression.yml \
   && ok "a hostile page name is only data: no command runs, no comma in the label, nothing in the workflow text" || bad "hostile: $(cat "$FAKE_GH_DIR/calls.log" | head -3)"
 python3 -c "import json;c=json.load(open('.loop/config.json'));c.pop('feature_labels');json.dump(c,open('.loop/config.json','w'))"
 if [ -f "$d/docs.bak" ]; then cp -p "$d/docs.bak" .loop/docs.tsv; else rm -f .loop/docs.tsv; fi; : > "$FAKE_GH_DIR/calls.log"
-FAKE_GH_ISSUE_OPEN=1 FAKE_GH_ISSUE_PLACED=1 python3 ci-block.py >/dev/null 2>&1
+FAKE_GH_ISSUE_OPEN=1 FAKE_GH_ISSUE_PLACED=1 python3 ci-block.py --live >/dev/null 2>&1
 grep -q "^issue comment 7 --body Still failing" "$FAKE_GH_DIR/calls.log" && ! grep -q -- "milestone\|^issue edit 7 --body" "$FAKE_GH_DIR/calls.log" && ok "an older marker (placed=Alpha) still finds its issue, and nothing moves it" || bad "old marker: $(cat "$FAKE_GH_DIR/calls.log")"
 [ "$fails" = "$f0" ] && echo "PASS milestone-freeform:regression-issue-no-milestone"
 rm -f "$FAKE_GH_DIR/milestones.json" "$FAKE_GH_DIR/issues.json" map.tsv
@@ -183,7 +183,7 @@ printf 'fence\tland\techo fence-out$(printf "\\140\\140\\140"); exit 1\t-\t2026-
 : > "$FAKE_GH_DIR/calls.log"
 # Generated by /ship coverage audit. Value: protects=rows see neither GH_TOKEN nor GITHUB_TOKEN; fails_when=GITHUB_TOKEN is
 #   dropped from the removed names; why_new=the no-token row ran with only GH_TOKEN set; seam=none; no_claim=other secrets in the job env
-began=$(date +%s); GH_TOKEN=fake-token GITHUB_TOKEN=fake-token-2 REGRESSION_ROW_SECONDS=2 REGRESSION_RESULTS="$d/results.tsv" python3 ci-block.py >/dev/null 2>&1; took=$(( $(date +%s) - began ))
+began=$(date +%s); GH_TOKEN=fake-token GITHUB_TOKEN=fake-token-2 REGRESSION_ROW_SECONDS=2 REGRESSION_RESULTS="$d/results.tsv" python3 ci-block.py --live >/dev/null 2>&1; took=$(( $(date +%s) - began ))
 [ "$took" -lt 25 ] && grep -q "^hang	FAIL$" "$d/results.tsv" && grep -q "timed out after 2 s" "$FAKE_GH_DIR/calls.log" && ok "a row that times out fails alone, and the run goes on" || bad "row timeout (took ${took}s)"
 grep -q "started-hang" "$FAKE_GH_DIR/calls.log" && ok "a row that times out keeps what it printed" || bad "a timed-out row lost its output"
 sleep 0.5; ! pgrep -f "sleep $nap" >/dev/null && ok "a timed-out row leaves no process behind" || { bad "a timed-out row left a process"; pkill -f "sleep $nap"; }
@@ -192,19 +192,19 @@ grep -q "^no-token	PASS$" "$d/results.tsv" && ok "a row cannot see the job's tok
 grep -q "fence-out'''" "$FAKE_GH_DIR/calls.log" && ! grep -q 'fence-out```' "$FAKE_GH_DIR/calls.log" && ok "a row's code fence is escaped in the issue body" || bad "a row's code fence reached the issue body"
 : > "$d/results2.tsv"
 : > "$FAKE_GH_DIR/calls.log"
-FAKE_GH_ISSUE_OPEN=1 REGRESSION_JOB_SECONDS=1 REGRESSION_RESULTS="$d/results2.tsv" python3 ci-block.py >/dev/null 2>&1; rc=$?
+FAKE_GH_ISSUE_OPEN=1 REGRESSION_JOB_SECONDS=1 REGRESSION_RESULTS="$d/results2.tsv" python3 ci-block.py --live >/dev/null 2>&1; rc=$?
 [ $rc = 0 ] && grep -q "^own-124	SKIPPED$" "$d/results2.tsv" && ! grep -q "	PASS$" "$d/results2.tsv" && ok "rows that would pass the job budget are skipped, and the run does not fail for them" || bad "job budget skip (rc $rc)"
 ! grep -q "^issue create\|^issue comment\|^issue reopen\|^issue edit\|^issue close" "$FAKE_GH_DIR/calls.log" && ok "a row skipped for job time opens no issue and touches none" || bad "a skipped row wrote to an issue: $(grep '^issue' "$FAKE_GH_DIR/calls.log" | head -2)"
 # Generated by /ship coverage audit. Value: protects=every open regression issue is read, page after page, so an old row's issue is found and no duplicate opens;
 #   fails_when=the read stops at the first page; why_new=the fake gh listed at most one issue; seam=fake gh; no_claim=gh's own paging
 : > "$FAKE_GH_DIR/calls.log"
-FAKE_GH_ISSUE_OPEN=1 FAKE_GH_ISSUE_COUNT=250 python3 ci-block.py >/dev/null 2>&1
+FAKE_GH_ISSUE_OPEN=1 FAKE_GH_ISSUE_COUNT=250 python3 ci-block.py --live >/dev/null 2>&1
 grep -q "^issue comment 7 --body Still failing" "$FAKE_GH_DIR/calls.log" && ! grep -q "^issue create --title Regression: flag" "$FAKE_GH_DIR/calls.log" && echo "PASS regression-issue-paging:reads-all" && ok "with 250 open issues listed over several pages, a row's issue is found and no duplicate is opened" || bad "more than a page of issues: $(grep '^issue' "$FAKE_GH_DIR/calls.log" | head -3)"
 : > "$FAKE_GH_DIR/calls.log"
-cut_out=$(FAKE_GH_ISSUE_OPEN=1 FAKE_GH_PAGE_FAIL=1 python3 ci-block.py 2>&1)
+cut_out=$(FAKE_GH_ISSUE_OPEN=1 FAKE_GH_PAGE_FAIL=1 python3 ci-block.py --live 2>&1)
 grep -q "can't read issues" <<<"$cut_out" && ! grep -q "^issue create\|^issue comment\|^issue close" "$FAKE_GH_DIR/calls.log" && echo "PASS regression-issue-paging:cut-off-refused" && ok "a page that fails to read changes no issue" || bad "failed page: $(grep '^issue' "$FAKE_GH_DIR/calls.log" | head -3)"
 grep -A2 "actions/checkout@v4" .github/workflows/regression.yml | grep -q "persist-credentials: false" && ok "the checkout leaves no token in git config" || bad "the checkout keeps the token where a row can read it"
-REGRESSION_ROW_SECONDS=zero REGRESSION_JOB_SECONDS=-5 REGRESSION_RESULTS="$d/results3.tsv" timeout 120 python3 -c "exec(open('ci-block.py').read().replace('run(row[2])', '(0, \"\")'))" >/dev/null 2>&1
+REGRESSION_ROW_SECONDS=zero REGRESSION_JOB_SECONDS=-5 REGRESSION_RESULTS="$d/results3.tsv" timeout 120 python3 -c "exec(open('ci-block.py').read().replace('run(row[2])', '(0, \"\")'))" --live >/dev/null 2>&1
 grep -q "^own-124	PASS$" "$d/results3.tsv" && ok "a bad time setting falls back to the default" || bad "bad time setting"
 sed -i.bak '/^hang	/d; /^own-124	/d; /^no-token	/d; /^fence	/d' .loop/regression.tsv; rm -f .loop/regression.tsv.bak
 rm -f BROKEN ci-block.py
@@ -240,13 +240,13 @@ $reg workflow >/dev/null
 python3 - <<'PY'
 import re
 text = open(".github/workflows/regression.yml").read()
-block = re.search(r"python3 - <<'PY'\n(.*?)\n\s+PY\n", text, re.S).group(1)
+block = re.search(r"python3 - (?:--live )?<<'PY'\n(.*?)\n\s+PY\n", text, re.S).group(1)
 open("ci-block.py", "w").write("\n".join(line[10:] for line in block.split("\n")))
 PY
 agree() { # agree NAME: the local run and the workflow's block end the same way and open the same issues
   : > .loop/regression-known.tsv; printf 'known-row\tbroken on purpose\n' >> .loop/regression-known.tsv
-  rm -f "$FAKE_GH_DIR/calls.log"; GH_TOKEN=x $reg run nightly >/dev/null; local_rc=$?; local_new=$(calls '^issue create')
-  rm -f "$FAKE_GH_DIR/calls.log"; GH_TOKEN=x GITHUB_STEP_SUMMARY=/dev/null python3 ci-block.py >/dev/null; ci_rc=$?; ci_new=$(calls '^issue create')
+  rm -f "$FAKE_GH_DIR/calls.log"; GH_TOKEN=x $reg run nightly --live >/dev/null; local_rc=$?; local_new=$(calls '^issue create')
+  rm -f "$FAKE_GH_DIR/calls.log"; GH_TOKEN=x GITHUB_STEP_SUMMARY=/dev/null python3 ci-block.py --live >/dev/null; ci_rc=$?; ci_new=$(calls '^issue create')
   [ "$local_rc" = "$ci_rc" ] && [ "${local_new:-0}" = "${ci_new:-0}" ] && ok "$1: same exit ($ci_rc) and same issues opened ($ci_new)" || bad "$1: local $local_rc/$local_new, workflow $ci_rc/$ci_new"
 }
 row() { printf '%s\t%s\t%s\t-\t2026-01-01\tx\tcriterion\t\n' "$1" nightly "$2" >> .loop/regression.tsv; }

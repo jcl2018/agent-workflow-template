@@ -16,7 +16,7 @@ block() {  # the workflow's inline run block, as the regression run would execut
   python3 - <<'PY'
 import re
 text = open(".github/workflows/regression.yml").read()
-block = re.search(r"python3 - <<'PY'\n(.*?)\n\s+PY\n", text, re.S).group(1)
+block = re.search(r"python3 - (?:--live )?<<'PY'\n(.*?)\n\s+PY\n", text, re.S).group(1)
 open("ci-block.py", "w").write("\n".join(line[10:] for line in block.split("\n")))
 PY
 }
@@ -30,7 +30,7 @@ printf 'known-row\tland\tfalse\t-\t2026-01-01\tA failure the repo expects.\tcrit
 printf 'known-row\texpected\n' > .loop/regression-known.tsv
 $reg workflow >/dev/null && block
 : > summary.md; : > env.txt; : > out.txt
-GITHUB_STEP_SUMMARY="$r/summary.md" GITHUB_ENV="$r/env.txt" GITHUB_OUTPUT="$r/out.txt" REGRESSION_RESULTS="$r/results.tsv" python3 ci-block.py >/dev/null 2>&1
+GITHUB_STEP_SUMMARY="$r/summary.md" GITHUB_ENV="$r/env.txt" GITHUB_OUTPUT="$r/out.txt" REGRESSION_RESULTS="$r/results.tsv" python3 ci-block.py --live >/dev/null 2>&1
 grep -q "^real	PASS$" results.tsv && grep -q "^leak	PASS$" results.tsv && ! grep -q FIXTURE-LEAK summary.md env.txt out.txt results.tsv \
   && ok "a row cannot write into the run summary, env or outputs" || bad "a row wrote into the run summary, env or outputs"
 grep -q "^known-row	KNOWN$" results.tsv && ok "a known failure is recorded KNOWN" || bad "known row state"

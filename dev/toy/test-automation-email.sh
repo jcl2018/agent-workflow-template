@@ -747,8 +747,8 @@ SH
  {"number": 9, "state": "OPEN", "body": "<!-- loop-regression red placed= -->\\nThe row `red` fails.\\n", "labels": [{"name": "defect"}]},
  {"number": 7, "state": "OPEN", "body": "<!-- loop-regression blue placed= -->\\nThe row `blue` fails.\\n\\n```\\nThe row `blue` was skipped.\\n```\\n", "labels": [{"name": "defect"}]}]\n' > "$G/regression.json"
   out=$(rows)
-  grep -q "^issue close 5 --comment Duplicate of #9" "$G/calls.log" && grep -q "^issue comment 9 " "$G/calls.log" && ! grep -q "^issue close 9" "$G/calls.log" \
-    && ok "a row's failure issue is kept over its skipped-only one, which closes as the duplicate" || bad "keeper: $(cat "$G/calls.log")"
+  grep -q "^issue close 9 --comment Duplicate of #5" "$G/calls.log" && grep -q "^issue comment 5 " "$G/calls.log" && grep -q "^issue edit 5 --body" "$G/calls.log" && ! grep -q "^issue close 5" "$G/calls.log" \
+    && ok "the oldest issue is kept even when skipped-only (rewritten as the failure); the newer one closes as its duplicate" || bad "keeper: $(cat "$G/calls.log")"
   out=$(REGRESSION_JOB_SECONDS=1 REGRESSION_ROW_SECONDS=5 rows)
   ! grep -q "^issue close 7" "$G/calls.log" && ok "a failure whose output quotes 'was skipped' is not closed as skipped-only" || bad "quoted: $(cat "$G/calls.log")"
   printf '[{"number": 5, "state": "OPEN", "body": "<!-- loop-regression red placed= -->\\nThe row `red` was skipped.\\n", "labels": [{"name": "defect"}]}]\n' > "$G/regression.json"

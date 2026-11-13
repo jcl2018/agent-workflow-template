@@ -78,8 +78,8 @@ The default is `land`. `--kind` runs only that kind of test (`requirement` is ca
 Known failures take one line each: id, a tab, the reason.
 
 Then it keeps one issue per failing row, labelled `regression`. A new failure opens one, a closed one reopens, a failure
-adds one comment a day, and a pass closes it. With no `GH_TOKEN` or `GITHUB_TOKEN` it prints `WOULD` lines and changes
-nothing. `--live` uses your `gh` login.
+adds one comment a day, and a pass closes it. A row keeps exactly one open issue, the oldest; newer open copies close as
+duplicates. Without `--live` it prints `WOULD` lines and changes nothing, token or not. `--live` uses your `gh` login.
 
 ## `run [land|nightly|<id>] --reuse`
 

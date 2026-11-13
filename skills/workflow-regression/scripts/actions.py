@@ -95,7 +95,7 @@ jobs:
           TESTS_PY_EOF
           python3 -I "$here/tests.py" list --tsv > "$here/map.tsv" 2>/dev/null || true
           export REGRESSION_MAP="$here/map.tsv"
-          python3 - <<'PY'
+          python3 - --live <<'PY'
           import json, os, re, subprocess, sys, tempfile, time, urllib.parse
           def rows(path):
               if not os.path.exists(path):
@@ -111,6 +111,9 @@ jobs:
           def wanted(row):
               return row[0] == TARGET if TARGET not in ("land", "nightly") else row[1] in ("land", TARGET)
           def gh(*args, body=None):  # a text goes in a file, not the command line (Windows caps it)
+              if args[0] != "api" and "--live" not in sys.argv[1:]:  # a token alone writes nothing (GRD-5)
+                  print("WOULD gh " + " ".join(args)[:70])
+                  return subprocess.CompletedProcess(args, 0, "", "")
               with tempfile.TemporaryDirectory() as tmp:
                   if body is not None:
                       open(tmp + "/b", "wb").write(body.encode())
@@ -215,8 +218,7 @@ jobs:
                   (code, said), skipped = run(row[2]), False
               hits = sorted((item for item in issues or [] if marked(item["body"])[0] == row[0]), key=lambda i: i["number"])
               sk = lambda i: (i["body"] or "").split("\n")[1:2] == ["The row `%s` was skipped." % row[0]]
-              hit = next((i for i in hits if i["state"] == "OPEN" and not sk(i)), None) or next(
-                  (i for i in hits if i["state"] == "OPEN"), hits[0] if hits else None)
+              hit = hits[0] if hits else None  # the oldest open issue is the row's one
               for item in [i for i in hits if i["state"] == "OPEN" and i is not hit]:
                   if dupes[0] > 0:
                       dupes[0] -= 1

@@ -110,12 +110,17 @@ def sync_issues(results, live, day):
             return
     for item in results:
         mark = MARK % item["id"]
-        hits = [issue for issue in issues if re.search(r"<!-- loop-regression %s(?: placed=\S*)? -->" % re.escape(item["id"]), issue.get("body", ""))]
-        hit = next((issue for issue in hits if issue.get("state") == "OPEN"), hits[0] if hits else None)
+        hits = sorted((issue for issue in issues if re.search(r"<!-- loop-regression %s(?: placed=\S*)? -->" % re.escape(item["id"]), issue.get("body", ""))),
+                      key=lambda issue: issue["number"])
+        opened = [issue for issue in hits if issue.get("state") == "OPEN"]
+        hit = opened[0] if opened else hits[-1] if hits else None  # the oldest open issue is the row's one, else the newest closed
         number = str(hit["number"]) if hit else ""
         if item["state"] == "FAIL":
             line = "Failing on %s." % day
             body = "%s\nThe row `%s` fails.\n\n```\n%s\n```\n" % (mark, item["id"], item["tail"])
+            for extra in opened[1:] if live else []:  # a newer open copy closes as a duplicate of the oldest
+                gh("issue", "close", str(extra["number"]), "--comment", "Duplicate of #%s, kept for row %s." % (hit["number"], item["id"]))
+                print("CLOSED duplicate issue %s" % extra["number"])
             if not live:
                 print("WOULD open or update the issue for " + item["id"])
             elif not hit:
