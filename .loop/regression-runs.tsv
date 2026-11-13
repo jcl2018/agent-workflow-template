@@ -478,6 +478,7 @@ summary-unknown-row	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 template-sheet	PASS	2026-11-12	
 tests-last-run	PASS	2026-11-12	
 tests-not-enforced	PASS	2026-11-12	
+tests-own-folder	PASS	2026-11-13	
 tests-page-run-link	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-page-stale	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-py-missing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
