@@ -152,7 +152,8 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
         if closed:
             out.append(dict(act, kind="reopen", unclose="health:closed" in names))
         old = re.sub(r" placed=\S* -->", " placed= -->", issue.get("body") or "", count=1)  # a marker from before: not a change
-        if old != act["body"] or act["tag"] not in names or act["stale"] or (act["feature"] and act["feature"] not in names):
+        # trailing whitespace is no change: gh and a shell's $(cat) both drop the body's last newline
+        if old.rstrip() != act["body"].rstrip() or act["tag"] not in names or act["stale"] or (act["feature"] and act["feature"] not in names):
             out.append(dict(act, kind="update"))
         elif not closed:
             out.append(dict(act, kind="same"))
