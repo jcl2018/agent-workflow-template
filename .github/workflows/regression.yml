@@ -22,8 +22,8 @@ permissions:
   issues: write
   pull-requests: read
 concurrency:
-  group: regression-${{ github.ref }}  # one run per ref: a branch run no longer waits behind a release tag run
-  cancel-in-progress: true  # a newer run on the same ref cancels the one it supersedes (GRD-7)
+  group: regression-${{ github.ref }}  # one run per ref
+  cancel-in-progress: true  # GRD-7
 jobs:
   regression:
     runs-on: ubuntu-latest
@@ -500,7 +500,7 @@ jobs:
                   break
               if CLEANUP:
                   code, said, skipped = 125, "", True
-              elif JOB_SECONDS - (time.time() - start) < 30:  # a row gets the time that is left, up to ROW_SECONDS
+              elif JOB_SECONDS - (time.time() - start) < 30:
                   code, said, skipped = 125, "skipped: out of job time; this row did not run", True
                   unrun[0] += 1
                   with open(os.environ.get("REGRESSION_RESULTS") or os.devnull, "a") as handle:
@@ -564,7 +564,7 @@ jobs:
           if TARGET == "nightly" and not CLEANUP:
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
-                  handle.write("%s\tfull\t%d\t%s\t%d\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime()), unrun[0]))  # 5th: rows skipped for time
+                  handle.write("%s\tfull\t%d\t%s\t%d\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime()), unrun[0]))
               print("SUITE_TIME %d" % took)
           if CLEANUP:
               ids = {row[0] for row in rows(".loop/regression.tsv") if row}
