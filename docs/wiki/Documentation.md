@@ -31,8 +31,9 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b211d7e4 R=4f4568d3 N=81dd3484 M=4599
 - DOC-1: **Reviewed 2026-11-13** PRD template <!-- reviewed 042552f8 -->
   - One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Usage (the commands and how to use each, left out when nothing applies); Requirements (up to the repo's limit, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes).
   - Nothing else goes on the page except the generated, optional Deployments (DOC-14) and Runbook (DOC-16) sections.
-- DOC-2: **Reviewed 2026-11-08** The PRD is mine <!-- reviewed caa2882e -->
-  - I review the PRD as a whole (Problem, Usage, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that.
+- DOC-2: **Reviewed 2026-11-13** The PRD is mine <!-- reviewed e1872227 -->
+  - I review the PRD as a whole (Problem, Usage, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that, in my own words: typed by me, or recorded verbatim by the operation session from my own message.
+  - A recorded message counts only for the requirement IDs or pages it lists, once for a review and once for an un-review, and every use is logged with its words.
   - After it, nothing in Problem, Requirements, Non-goals or Success metrics changes unless I un-review it.
   - Usage updates with the commands, and any change to it shows as changed since my review, under Needs you, until I review it again.
 - DOC-3: **Reviewed 2026-11-08** Tests follow on their own <!-- reviewed 2e9e1c3f -->
