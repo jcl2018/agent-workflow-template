@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.28.13 - 2026-11-13
+
+- A regression row no longer inherits the runner's shard, levels or cleanup (#3133)
+- Regression page: a row does not see the runner's shard (#3133)
+- Merge remote-tracking branch 'origin/main' into loop/reg3-same-as-run
+- Merge remote-tracking branch 'origin/main' into loop/reg3-same-as-run
+- Merge remote-tracking branch 'origin/main' into loop/reg3-same-as-run
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+- suite-shard: four shards, a row gets the time left, one combined summary job
+- suite-shard: move the summary job text to actions_summary.py (actions.py was over 20 KB)
+- suite-shard: the CI suite-time line carries the count of rows skipped for time
+- suite-shard: eight shards; the summary step tests follow the combined summary job
+- suite-shard: one concurrency group per ref, a newer run on a ref cancels the older
+- Wiki: the regression workflow's shards and combined summary
+- Merge origin/main into loop/suite-shard
+- suite-shard: shorter comments (actions.py under 20 KB)
+- Wiki: update pages for suite-shard
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.12 - 2026-11-13
 
 - Reply hook: a Dependencies section must name every goal on the board
