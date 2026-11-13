@@ -91,21 +91,15 @@ if want entry; then
   check "entry check passes right after setup" "$E check >/dev/null"
   printf -- '- a new way to use it\n' > /dev/null
   python3 - <<'EOF'
-import re
 p = "docs/wiki/Engine.md"; t = open(p).read()
-t = re.sub(r"(## Usage\n\n)", r"\1- `engine run` runs the engine. It is new.\n", t, count=1) if "## Usage" in t else t.replace("## Requirements", "## Usage\n\n- `engine run` runs the engine. It is new.\n\n## Requirements", 1)
-open(p, "w").write(t)
+open(p, "w").write(t.replace("## Problem\n\n- ", "## Problem\n\n- A new reason to run the engine. ", 1))
 EOF
-  git commit -qam "Usage changed"
+  git commit -qam "Problem changed"
   out=$($E check); code=$?
-  check "a Usage change makes entry check fail STALE (ENTRY_STALE)" "[ $code = 1 ] && grep -q '^STALE .loop/START.md: .*ENTRY_STALE' <<<\"\$out\""
+  check "a Problem change makes entry check fail STALE (ENTRY_STALE)" "[ $code = 1 ] && grep -q '^STALE .loop/START.md: .*ENTRY_STALE' <<<\"\$out\""
   check "docs.py check fails with it" "! python3 $DO/scripts/docs.py check >/dev/null 2>&1 && python3 $DO/scripts/docs.py check 2>&1 | grep -q '^STALE .loop/START.md'"
   python3 $DO/scripts/docs.py audit >/dev/null 2>&1
-  check "docs.py audit regenerates it mechanically, and the check passes again" "$E check >/dev/null && grep -q 'engine run' .loop/START.md"
-  # Regression: ISSUE-002 — an indented example output's "- " line was read as a Usage sub-bullet (found by /qa on 2026-11-10)
-  python3 -c "p='docs/wiki/Engine.md';t=open(p).read();open(p,'w').write(t.replace('It is new.\n', 'It is new.\n\n      OUTPUT:\n      - an example line.\n', 1))"
-  $E write >/dev/null
-  check "an indented example block under a Usage bullet stays out of the Features table" "grep -q 'engine run' .loop/START.md && ! grep -q 'an example line' .loop/START.md"
+  check "docs.py audit regenerates it mechanically, and the check passes again" "$E check >/dev/null && grep -q 'A new reason to run the engine' .loop/START.md"
   rm .loop/START.md
   check "a repo set up before the entry point existed (no template_version) is not failed for lacking one" "$E check >/dev/null"
   python3 -c "import json;p='.loop/config.json';d=json.load(open(p));d['template_version']='0.0.1';json.dump(d,open(p,'w'),indent=2)"

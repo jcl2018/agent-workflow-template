@@ -51,14 +51,6 @@ case_section() {
   reset; place "$GOOD_PAGE
 
 $GOOD_DELIVERY"; check "a page with both tables passes" '[ "$(out | tail -1)" = "DOCS OK: $n pages" ]'
-  reset; place "$GOOD_PAGE"; python3 - "$P" <<'PY'
-import sys
-p = sys.argv[1]; s = open(p).read()
-if "\n## Usage\n" not in s:
-    s = s.replace("\n## Requirements\n", "\n## Usage\n\n- `/workflow-setup settings` — prints the settings table.\n\n## Requirements\n", 1)
-open(p, "w").write(s)
-PY
-  check "a page with both Usage and Deployments passes the order check" '! out | grep -q "^SECTIONS Setup"'
   reset; place "$GOOD_PAGE" early; check "Deployments before Success metrics is refused as out of order" 'out | grep -q "^SECTIONS Setup: .*want .*Success metrics, Deployments, Tests"'
 }
 
@@ -160,17 +152,17 @@ case_pull() {
 }
 
 case_readme() {
-  # every command the README shows in a text block appears in a wiki page's Usage, or the README stops naming it
+  # every command the README shows in a text block appears in a skill's Command map, or the README stops naming it
   missing=$(python3 - <<'PY'
 import glob, re
 text = open("README.md").read()
 want = {m.group(1) for block in re.findall(r"```text\n(.*?)```", text, re.S) for line in block.splitlines()
         for m in [re.match(r"^(/workflow-[a-z]+(?: [a-z-]+)?)", line.strip())] if m}
-usage = "".join(open(f).read().partition("## Usage")[2].partition("\n## ")[0] for f in glob.glob("docs/wiki/*.md"))
+usage = "".join(open(f).read().partition("## Command map")[2].partition("\n## ")[0] for f in glob.glob("skills/workflow-*/SKILL.md"))
 print(" ".join(sorted(c for c in want if "`" + c not in usage)))
 PY
 )
-  check "every command the README names appears in a page's Usage (missing: ${missing:-none})" '[ -z "$missing" ]'
+  check "every command the README names appears in a skill's Command map (missing: ${missing:-none})" '[ -z "$missing" ]'
 }
 
 for c in "${cases[@]}"; do "case_$c"; done

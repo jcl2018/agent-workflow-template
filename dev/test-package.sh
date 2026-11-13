@@ -35,6 +35,6 @@ expect "undisclosed host" Disclosure "echo 'see https://evil.test/x' >> skills/w
 copy; python3 "$here/dev/package.py" --root "$T/t" --out "$T/pack.zip" >/dev/null
 unzip -l "$T/pack.zip" | grep -q ' shared/loop-files.md$' && ! unzip -l "$T/pack.zip" | grep -q ' skills/loop-files.md$' && { echo "ok   shared contract is in shared/"; ok=$((ok+1)); } || { echo "BAD  shared contract"; bad=$((bad+1)); }
 unzip -l "$T/pack.zip" | grep -q ' PACKAGE.json$' && unzip -p "$T/pack.zip" PACKAGE.json | grep -q "\"version\": \"$(cat "$here/VERSION")\"" && { echo "ok   the ZIP is stamped with the version"; ok=$((ok+1)); } || { echo "BAD  no version stamp"; bad=$((bad+1)); }
-unzip -l "$T/pack.zip" | grep -q ' shared/design-guide.md$' && unzip -l "$T/pack.zip" | grep -q 'workflow-setup/scripts/update.py' && { echo "ok   the ZIP holds the design guide and every skill"; ok=$((ok+1)); } || { echo "BAD  guide or skill missing"; bad=$((bad+1)); }
+unzip -l "$T/pack.zip" | grep -q ' shared/loop-files.md$' && unzip -l "$T/pack.zip" | grep -q 'workflow-setup/scripts/update.py' && { echo "ok   the ZIP holds the shared guide and every skill"; ok=$((ok+1)); } || { echo "BAD  guide or skill missing"; bad=$((bad+1)); }
 unzip -l "$T/pack.zip" | grep -q ' LICENSE$' && { echo "ok   the ZIP holds LICENSE"; } || { echo "BAD  LICENSE not in the ZIP"; bad=$((bad+1)); }
 echo "$ok refused, $bad wrong"; [ $bad -eq 0 ]

@@ -8,7 +8,7 @@ It also holds the Traceability and Consistency rules (report.py) and the page re
   row-requirement  a regression row whose goal names no requirement on any page and is not a done line slug:N (FAIL)
   ids-unique       a requirement id defined on two pages (FAIL)
   refs             a page naming an id of a known prefix (HLT-12 when HLT ids exist) that no page defines (FAIL)
-  usage-readme     a /workflow-<skill> <verb> in the README that no page's Usage names (WARN)
+  usage-readme     a /workflow-<skill> <verb> in the README that no skill's Command map names (WARN)
   migration        the migration-check engine (migration_gaps, below) as WARN rows: setup.py migration-check prints the same gaps
 Each rule's negative control is in CONTROLS (controls.py runs it). Rows carry an evidence field of stable citations.
 """
@@ -155,10 +155,13 @@ def usage_readme(root):
             readme = handle.read()
     except OSError:
         return []
-    usage = "\n".join(section(text, "Usage") for text in pages(root).values())
-    return [row("WARN", "consistency", command, "usage-readme", "the README names %s and no page's Usage does" % command,
-                "add it to its page's Usage, or drop it from the README", command)
-            for command in sorted(set(COMMAND.findall(readme))) if command not in usage]
+    held = ""  # the commands each skill's Command map names (Usage sections are gone)
+    for doc in glob.glob(os.path.join(root, "skills", "workflow-*", "SKILL.md")):
+        with open(doc, errors="replace") as handle:
+            held += section(handle.read(), "Command map") + "\n"
+    return [row("WARN", "consistency", command, "usage-readme", "the README names %s and no skill's Command map does" % command,
+                "add it to the skill's Command map, or drop it from the README", command)
+            for command in sorted(set(COMMAND.findall(readme))) if held.strip() and command not in held]
 
 
 # --- migration-check: one engine for `setup.py migration-check` (main) and health's migration rule. It writes nothing.
@@ -391,7 +394,7 @@ def f_refs(root):
 def f_usage_readme(root):
     c = _c(); c.repo(root)
     c.write(root, "README.md", "Run /workflow-toy frob to frob.\n")
-    c.write(root, "docs/wiki/One.md", "# One\n\n## Usage\n\n- nothing here\n")
+    c.write(root, "skills/workflow-toy/SKILL.md", "# Toy\n\n## Command map\n\n| Ask | Runs |\n|---|---|\n| `/workflow-toy other` | `python3 scripts/x.py` |\n")
 
 
 def f_migration(root):

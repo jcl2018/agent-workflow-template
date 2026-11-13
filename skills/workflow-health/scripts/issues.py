@@ -294,7 +294,7 @@ def listing(root, only=None):
     return 0
 
 
-def close(root, kind, why, only=None, older=0, yes=False, most=CAP):
+def close(root, kind, why, only=None, older=0, yes=False, most=CAP, numbers=()):
     if not (why or "").strip():
         print("REFUSED[why]: close needs --why with the owner's words. Nothing was closed.")
         return 2
@@ -302,8 +302,13 @@ def close(root, kind, why, only=None, older=0, yes=False, most=CAP):
     if found is None:
         print("REFUSED[gh]: can't list the issues (%s). Nothing was closed." % reason)
         return 2
-    match = [i for i in found if kind_of(i) == kind and age(i) >= older]
+    match = [i for i in found if (i["number"] in numbers if numbers else kind_of(i) == kind and age(i) >= older)]
+    for gone in sorted(set(numbers) - {i["number"] for i in match}):
+        print("NOT OPEN #%d: not an open health finding, left alone" % gone)
     if not match:
+        if numbers:
+            print("NOTHING TO CLOSE: none of the --issue numbers is an open finding")
+            return 0
         print("NOTHING TO CLOSE: no open %s findings%s%s" % (kind, " on " + only if only else "", " %d days or older" % older if older else ""))
         return 0
     pages = features(root)
