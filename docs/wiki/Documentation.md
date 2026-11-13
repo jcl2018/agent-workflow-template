@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-13** <!-- prd P=b211d7e4 R=604591e9 N=81dd3484 M=4599a537 U=0cf4e5a6 -->
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
@@ -28,9 +28,9 @@ Review: **Unreviewed**
 ## Requirements
 
 ### Functional
-- DOC-1: **Reviewed 2026-11-08** PRD template <!-- reviewed 6cbab853 -->
+- DOC-1: **Reviewed 2026-11-13** PRD template <!-- reviewed 042552f8 -->
   - One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Usage (the commands and how to use each, left out when nothing applies); Requirements (up to the repo's limit, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes).
-  - Nothing else goes on the page.
+  - Nothing else goes on the page except the generated, optional Deployments (DOC-14) and Runbook (DOC-16) sections.
 - DOC-2: **Reviewed 2026-11-08** The PRD is mine <!-- reviewed caa2882e -->
   - I review the PRD as a whole (Problem, Usage, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that.
   - After it, nothing in Problem, Requirements, Non-goals or Success metrics changes unless I un-review it.
@@ -38,7 +38,7 @@ Review: **Unreviewed**
 - DOC-3: **Reviewed 2026-11-08** Tests follow on their own <!-- reviewed 2e9e1c3f -->
   - Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes.
   - I never write or manage tests.
-- DOC-4: **Unreviewed** Home is one table
+- DOC-4: **Reviewed 2026-11-13** Home is one table <!-- reviewed b837a911 -->
   - Home holds one table with four columns: Feature, What it does, How to use (a link to the README section), Milestone (optional: empty, or a link to the free-form milestone the feature is planned on).
   - Below the table Home carries only the generated Settings and Automation sections (DOC-15); nothing else is on Home.
 - DOC-5: **Reviewed 2026-11-10** The front door is natural language <!-- reviewed 885694d1 -->
@@ -59,7 +59,7 @@ Review: **Unreviewed**
   - Tests is a table: Test, Kind, Guards, Checks, Last result.
   - Each test name links to its entry on the full Tests page.
   - Every requirement and every defect has at least one row.
-- DOC-10: **Unreviewed** One Tests page, every release noted, milestones optional
+- DOC-10: **Reviewed 2026-11-13** One Tests page, every release noted, milestones optional <!-- reviewed 15ae635d -->
   - One full Tests page is generated, listing every test with its latest result.
   - Every release has a release note.
   - A milestone is optional and free form, used to plan by version (for example v1.0); nothing requires a feature page, issue or pull request to have one, and no check fails or warns for lacking one.
@@ -70,13 +70,13 @@ Review: **Unreviewed**
   - Deliveries: one row each, with its channel, recipients as a group (never an email address), what is sent and its status.
   - The docs check refuses a malformed Deployments table, naming the table and the column.
   - A listed public link that doesn't answer, or a live build that isn't the promoted one, fails the deploying repo's own check for now; the template takes that check over later.
-- DOC-16: **Unreviewed** A feature page carries a runbook for each routine it owns
+- DOC-16: **Reviewed 2026-11-13** A feature page carries a runbook for each routine it owns <!-- reviewed afaba23b -->
   - A page that owns a scheduled or on-demand routine has an optional Runbook section, one subsection per routine, saying what an agent given only "run routine X" must read first: the requirement ids it serves, the schedule, the exact steps or command, what a full run is (live sources and real output, never a dry run or a fixture on a scheduled run), the one output and where it goes, the forbidden shortcuts, and how to tell the run was real.
   - The docs check fails a routine listed in the routine registry whose page has no runbook for it, and a runbook missing any of those fields, naming the page, the routine and the field.
   - A runbook's Serves field (continuation lines included) must name requirement ids that a page defines, and each routine and field appears once; a page whose sections are out of order is reported for that, not for its ids.
   - The runbook is not locked by the PRD review: an agent corrects it as it learns, and the owner's review of the requirements stays valid.
 
-- DOC-15: **Unreviewed** Home and the README show how the repo is set up and what runs by itself.
+- DOC-15: **Reviewed 2026-11-13** Home and the README show how the repo is set up and what runs by itself. <!-- reviewed e14143b0 -->
   - Home and the README carry a Settings section: each setting's name, what it means, how to set it, its default and this repo's value, marked overridden only when it differs from the default.
   - Home and the README carry an Automation section: each routine on or off, what it does, its cadence in plain words, where it runs, its last run when known (live, from `docs.py automation`, so the page does not change with every run) and any step still owed by the owner; health and regression are built in and a repo adds a routine with one entry in its config, with no code change.
   - The README names and links the template repo the loop came from, never a local path, and the adoption entry points to all three.

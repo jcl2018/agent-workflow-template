@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/7
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-13** <!-- prd P=14b68802 R=9a8691a0 N=f86bd012 M=d4d1a48b U=86b4bcbd -->
 
 ## Problem
 - I can't trust a requirement or a fix unless a test proves it, and every fix I've ever shipped should stay fixed without me re-checking it.
@@ -49,15 +49,15 @@ Review: **Unreviewed**
   - Before a pull request merges, the affected rows run again on the merged result.
   - The full suite (every requirement, workflow and defect test) runs in GitHub Actions on the Automation schedule (every few hours by default) and on every release, never on every goal.
   - I can run the full suite or any part of it at any time.
-- REG-5: **Reviewed 2026-11-10** Failures go to GitHub <!-- reviewed b2d968db -->
-  - One labeled issue per failing test, updated while it fails and closed when it passes; known failures don't block; with no token it only previews.
+- REG-5: **Reviewed 2026-11-13** Failures go to GitHub <!-- reviewed 1e395838 -->
+  - One labeled issue per failing test, updated while it fails and closed when it passes; known failures don't block; it only previews unless `--live` is given, and the scheduled workflows pass `--live`.
 - REG-6: **Reviewed 2026-11-10** Every fixed issue leaves a test <!-- reviewed 9f5b8594 -->
   - A goal that fixes an issue adds that issue's defect test, seen failing on the old code and passing on the fix, before the issue closes.
   - Each release note lists the issues it fixed, each with its defect test, so every version carries the regressions for what it fixed.
   - A reopened issue's test is marked failing until it passes again.
 
 ### Non-functional
-- REG-7: **Unreviewed** Fast in the loop
+- REG-7: **Reviewed 2026-11-13** Fast in the loop <!-- reviewed 4841a292 -->
   - Every in-loop test run (qa, ship and the pull-request lane) stays within a time budget, a setting that defaults to 15 minutes and can't be set lower. A run that would go past it, including changes the row picker can't map such as a deleted file, runs the affected tier that fits and leaves the rest to the scheduled full suite, saying what it left; the loop never runs the full suite. The scheduled full suite finishes in under 30 minutes: the GitHub job's time limit is that same 30 minutes and the suite is sharded over several jobs so each fits it, and health flags a suite that doesn't.
   - The work before a lane's first test row (preparing, planning and waiting for a slot) has its own budget, a setting that defaults to 15 minutes and can't be set lower; a lane whose preparation reaches it stops, says which part ran long, and the goal can rerun it instead of starting over.
   - Planning computes each row's closure once per lane, not once per row, and keeps it per branch, keyed by HEAD, the row file, the planner code, `LANES_WIDE` and the loop's uncommitted bookkeeping files; a dirty tree never uses it, a plan that read an ignored file, or one outside the repo through a symlink, is not saved (a file created or ignored later is outside the key: remove the plans folder or set `LANES_NO_CACHE=1`), and `LANES_NO_CACHE=1` turns it off.
@@ -68,7 +68,7 @@ Review: **Unreviewed**
 - REG-9: **Reviewed 2026-11-10** Honest results <!-- reviewed 194b357d -->
   - Every test has been seen failing once, or shows as unproven.
   - A test that fails then passes on the same commit is marked flaky, never silently retried.
-- REG-10: **Unreviewed** Red proof for rows a platform can't run
+- REG-10: **Reviewed 2026-11-13** Red proof for rows a platform can't run <!-- reviewed a64ea265 -->
   - A row the local platform can't run (the bash toy rows on native Windows exit 77) is skipped with its reason and is never counted as seen failing: a skip, on any platform, never sets the seen-failing date.
   - Its red proof runs on a capable runner (Linux or macOS, in CI or a session), and the result is written back to the row with the runner and the commit it ran on; a Windows runner can't be named.
   - A pull request that adds such a row lists the exact red commands still owed, so the proof is run and written back before the row counts as proven.
