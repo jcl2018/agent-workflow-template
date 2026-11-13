@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.28.5 - 2026-11-13
+
+- Health file: a repeat ignores the body's trailing newline; Python toy for repeat-no-second (#3784)
+- Lane: re-render the Tests tables
+- Health page: a trailing-newline-only difference is the same issue
+- Merge remote-tracking branch 'origin/main' into loop/hlt4-repeat-row
+- Merge remote-tracking branch 'origin/main' into loop/hlt4-repeat-row
+- Merge remote-tracking branch 'origin/main' into loop/hlt4-repeat-row
+- Lane: re-render the Tests tables
+- Wiki: update pages for hlt4-repeat-row
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.4 - 2026-11-13
 
 - Design: tokens-unread

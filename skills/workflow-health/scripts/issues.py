@@ -170,7 +170,7 @@ def features(root):
 
 
 def by_path(path, pages):
-    path = path.split(":")[0].strip()
+    path = path.split(":")[0].strip().replace("\\", "/")  # a Windows subject names its path with backslashes
     if path.startswith("/workflow-"):  # a command: /workflow-docs init is about skills/workflow-docs
         path = "skills/" + path.split()[0].lstrip("/")
     path = path[2:] if path.startswith("./") else path.lstrip("/")
