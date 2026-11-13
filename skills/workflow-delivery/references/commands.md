@@ -362,7 +362,7 @@ python3 scripts/goal.py set my-goal --budget-minutes 180 --budget-tokens 5000000
 
 | Flag | Repo setting it overrides for one goal |
 |---|---|
-| `--budget-minutes` | `time_budget_minutes` |
+| `--budget-minutes` | `time_budget_minutes` (active step time only: time held in the pr queue, on a hold, on an owner answer or after a stop counts nothing) |
 | `--budget-tokens` | `token_budget` |
 
 ### Release bump (DEL-5)

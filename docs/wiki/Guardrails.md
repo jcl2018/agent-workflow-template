@@ -23,7 +23,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=a0f1201a N=e6bf17f7 M=5109
   - Review and ship step time limit: DEL-8.
   - In-loop test run time limit: REG-7.
   - The work before a lane's first test row (preparing, planning and waiting for a slot) stops at `prep_budget_minutes` (default 15, never under 15; this repo sets 25); the lane says which part ran long and the goal can rerun it (Delivery, Regression).
-  - A goal past `time_budget_minutes` starts no new step, and the setting is in the settings reference with its default (Delivery, new).
+  - A goal past `time_budget_minutes` of active step time starts no new step; time held in the pr queue, on a hold, on an owner answer or after a stop counts nothing, by the board's held-time rule (MON-4, #3878); the setting is in the settings reference with its default (Delivery, new).
   - A goal past `token_budget` starts no new step, whether its steps run in a session or headless (Delivery, DEL-8 for showing it on the board; new for steps run in a session: today only headless goals are refused).
   - A goal with no token count records "unknown" and the board shows "tokens unread", never 0, so an unread count is never mistaken for an unspent budget (Delivery, new).
 - GRD-3: **Reviewed 2026-11-13** Nothing private is committed, and no commit skips the hooks that check it <!-- reviewed 61ef99d4 -->
