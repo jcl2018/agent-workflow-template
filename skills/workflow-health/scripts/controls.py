@@ -245,7 +245,7 @@ def one(rule, function, here, keep=False):
     root = os.path.join(folder, "repo")
     os.makedirs(root)
     saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("GIT_")}  # all restored in finally
-    kept = {k: os.environ.get(k) for k in ("LOOP_FLOW", "LOOP_HEALTH_GH_FIXTURE", "LOOP_HEALTH_T0", "CI", "GITHUB_ACTIONS", "LOOP_HEALTH_HOOKS", "HOME", "LOOP_PRIVATE_NAMES")}
+    kept = {k: os.environ.get(k) for k in ("LOOP_FLOW", "LOOP_HEALTH_GH_FIXTURE", "LOOP_HEALTH_T0", "CI", "GITHUB_ACTIONS", "LOOP_HEALTH_HOOKS", "HOME", "LOOP_PRIVATE_NAMES", "LOOP_SCHEDULED_TASKS_DIR")}
     os.environ.pop("LOOP_HEALTH_GH_FIXTURE", None)
     os.environ.pop("LOOP_HEALTH_T0", None)
     clear_cache()
