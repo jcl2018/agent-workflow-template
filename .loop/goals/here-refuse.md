@@ -12,3 +12,6 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Run `python3 dev/toy/test-new-here.py`.
+   Expect: every line starts with PASS and the last line is ALL PASS.
