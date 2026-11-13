@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # windows: ok
-# reads: skills/workflow-release/scripts/mergebatch.py
+# reads: skills/workflow-release/scripts/wiki.py
 """DEL-15, batch merge: ready goals with disjoint touches group into batches of 3 or 4; a failing batch splits to name the culprit."""
 import json
 import os
@@ -9,9 +9,9 @@ import sys
 import tempfile
 
 here = os.path.dirname(os.path.abspath(__file__))
-script = os.path.join(here, "..", "..", "skills", "workflow-release", "scripts", "mergebatch.py")
+script = os.path.join(here, "..", "..", "skills", "workflow-release", "scripts", "wiki.py")
 sys.path.insert(0, os.path.dirname(script))
-import mergebatch  # noqa: E402
+import wiki as mergebatch  # noqa: E402
 
 failed = []
 
@@ -41,7 +41,7 @@ with tempfile.TemporaryDirectory() as tmp:
                                  ("g5", ["skills/a/x"], {}), ("g6", ["skills/e"], {"status": "running"})):
         with open(os.path.join(runs, slug + ".json"), "w") as handle:
             json.dump(dict({"slug": slug, "status": "done", "pr": "https://example.test/pull/1", "touches": touches}, **extra), handle)
-    out = subprocess.run([sys.executable, script, "plan"], cwd=tmp, capture_output=True, text=True).stdout.splitlines()
+    out = subprocess.run([sys.executable, script, "batch", "plan"], cwd=tmp, capture_output=True, text=True).stdout.splitlines()
     check(out == ["BATCH 1: g1, g2, g3", "BATCH 2: g5"], "plan lists the ready, unheld goals in batches and leaves held and running goals out: %s" % out)
     os.chdir(here)
 if not failed:

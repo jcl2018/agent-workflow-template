@@ -2,6 +2,7 @@
 """The release step's wiki half: bring the goal's pages up to date before the merge, publish them after it.
 
 usage: wiki.py <command> SLUG
+       wiki.py batch plan|run [--size N] [--merge]   verify 3-4 ready pull requests with disjoint touches together (DEL-15)
 
   prepare SLUG [--commit]   list every wiki page docs.py check calls stale or missing, mapped to a touched path or not (exit 1);
                             with --commit, first commit edited pages in the wiki folder on the goal's branch, and when
@@ -21,6 +22,8 @@ autorelease.py. A missing tests.py gives "Fixes: unknown (workflow-regression no
 "Fixes: not listed (<first line>). Note: ...": a report never fails a release. workflow-regression/references/commands.md.
 """
 import argparse
+import glob
+import json
 import os
 import shutil
 import subprocess
@@ -192,6 +195,113 @@ def fixes_lines(top, start=None):
     return [line for line in done.stdout.splitlines() if line.startswith("Fixes #")]
 
 
+# Batch merge (DEL-15): ready goals with disjoint touches are verified together on one tree and merged in one go.
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def loop_dir():
+    done = subprocess.run(["git", "rev-parse", "--git-common-dir"], capture_output=True, text=True)
+    return os.path.join(os.path.abspath(done.stdout.strip() or ".git"), "loop")
+
+
+def ready(runs):
+    """[(slug, touches)] of the goals ready to merge, oldest record first."""
+    found = []
+    for path in sorted(glob.glob(os.path.join(runs, "*.json"))):
+        try:
+            with open(path) as handle:
+                state = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        if isinstance(state, dict) and state.get("status") == "done" and state.get("pr") and not state.get("merged") \
+                and not (state.get("hold_at") or state.get("held_at")) and state.get("release") != "ask":
+            found.append((state.get("slug") or os.path.basename(path)[:-5], [str(t).strip("/") for t in state.get("touches") or []]))
+    return found
+
+
+def overlap(mine, theirs):
+    """Same rule as the pr queue: any two paths equal or nested; no touches overlaps everything."""
+    return not mine or not theirs or any(a == b or a.startswith(b + "/") or b.startswith(a + "/") for a in mine for b in theirs)
+
+
+def group(goals, size=3):
+    """Batches of at most `size` (at most 4) goals whose touches overlap none of their batch-mates', in order."""
+    size, batches = max(1, min(int(size), 4)), []
+    for slug, touches in goals:
+        for batch in batches:
+            if len(batch) < size and not any(overlap(touches, t) for _, t in batch):
+                batch.append((slug, touches))
+                break
+        else:
+            batches.append([(slug, touches)])
+    return batches
+
+
+def culprits(slugs, passes):
+    """The goals that make `passes(list of slugs)` fail: [] when the batch passes; one slug when a single goal fails alone;
+    a pair of halves that each pass but fail together is named as 'a+b'. Halves are checked alone, so a batch of n costs
+    about 2*log2(n) more checks."""
+    if passes(slugs):
+        return []
+    if len(slugs) == 1:
+        return list(slugs)
+    mid = len(slugs) // 2
+    found = culprits(slugs[:mid], passes) + culprits(slugs[mid:], passes)
+    return found or ["+".join(slugs)]  # each half passes alone: the failure is between them
+
+
+def check_tree(base, slugs, command, states):
+    """Merge the goals' branches into a temporary tree from origin/<base> and run the check there; True when it passes."""
+    temp = tempfile.mkdtemp(prefix="batch-")
+    tree = os.path.join(temp, "tree")
+    try:
+        if subprocess.run(["git", "worktree", "add", "-q", "--detach", tree, "origin/" + base], capture_output=True).returncode:
+            return False
+        for slug in slugs:
+            branch = states[slug].get("branch") or "loop/" + slug
+            merged = subprocess.run(["git", "-C", tree, "-c", "user.name=batch", "-c", "user.email=batch@localhost", "merge", "--no-edit",
+                                     "origin/" + branch], capture_output=True)
+            if merged.returncode:
+                return False
+        return subprocess.run(command, cwd=tree, shell=isinstance(command, str)).returncode == 0
+    finally:
+        subprocess.run(["git", "worktree", "remove", "--force", tree], capture_output=True)
+
+
+def cmd_batch(args):
+    runs = os.path.join(loop_dir(), "runs")
+    goals = ready(runs)
+    batches = group(goals, args.size)
+    if not batches:
+        print("NO BATCH: no goal is ready to merge")
+        return 0
+    for number, batch in enumerate(batches, 1):
+        print("BATCH %d: %s" % (number, ", ".join(slug for slug, _ in batch)))
+    if args.action == "plan":
+        return 0
+    states = {}
+    for slug, _ in goals:
+        with open(os.path.join(runs, slug + ".json")) as handle:
+            states[slug] = json.load(handle)
+    top = run(["git", "rev-parse", "--show-toplevel"]).stdout.strip()
+    cfg = read_config(top)
+    base = cfg.get("base", "main")
+    command = cfg.get("batch_check") or [sys.executable, os.path.join(HERE, "..", "..", "workflow-regression", "scripts", "regression.py"), "run"]
+    code = 0
+    for number, batch in enumerate(batches, 1):
+        slugs = [slug for slug, _ in batch]
+        bad = culprits(slugs, lambda part: check_tree(base, part, command, states))
+        for name in bad:
+            print("CULPRIT %s: batch %d fails with it" % (name, number))
+            code = 1
+        good = [slug for slug in slugs if slug not in "+".join(bad).split("+")]
+        print("BATCH %d %s: %s" % (number, "PASSES" if not bad else "SPLIT", ", ".join(good) or "nothing passes"))
+        for slug in good if args.merge else []:
+            done = subprocess.run([sys.executable, os.path.join(HERE, "merge.py"), slug])
+            code = code or done.returncode
+    return code
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -202,8 +312,13 @@ def main():
     item = sub.add_parser("publish")
     item.add_argument("slug")
     item.set_defaults(func=cmd_publish)
+    item = sub.add_parser("batch")
+    item.add_argument("action", choices=["plan", "run"])
+    item.add_argument("--size", type=int, default=3)
+    item.add_argument("--merge", action="store_true")
+    item.set_defaults(func=cmd_batch, slug="")
     args = parser.parse_args()
-    release.state_path(args.slug)
+    args.slug and release.state_path(args.slug)
     return args.func(args)
 
 
