@@ -39,16 +39,17 @@ SUMMARY_JOB = r"""  summary:
             [ -f "$f" ] || continue
             reported=$(( reported + 1 )); cat "$f" >> "$all"
           done
-          started=$(sed -n 's/^# started //p' "$all" | sort -n | head -n 1 || true)
+          [ "$reported" -gt 0 ] || rm -f "$all"  # no shard left results: the plain fallback says so
+          started=$(sed -n 's/^# started //p' "$all" 2>/dev/null | sort -n | head -n 1 || true)
           case "$started" in ''|*[!0-9]*) started=$(date +%s) ;; esac  # never an expression
-          unrun=$(grep -c '^# unrun ' "$all" || true)
+          unrun=$(grep -c '^# unrun ' "$all" 2>/dev/null || true); unrun=${unrun:-0}
           timeout 120 python3 -I "$here/tests.py" issues --write >/dev/null || true
           took=$(( $(date +%s) - started ))
           {
             GH_TOKEN= python3 -I "$here/tests.py" summary --results "$all" --took "$took" || {
               printf '## Regression\n\nThe grouped summary could not be written; see this step'"'"'s log.\n\n| Test | Result |\n|---|---|\n'
-              grep -v '^#' "$all" | awk -F'\t' '{print "| " $1 " | " $2 " |"}'
+              grep -v '^#' "$all" 2>/dev/null | awk -F'\t' '{print "| " $1 " | " $2 " |"}'
             }
             printf '\nSHARDS %s of %s reported. UNRUN %s (rows skipped for out of job time).\n' "$reported" "$SHARDS" "$unrun"
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"  # the run's log shows the counts too
 """

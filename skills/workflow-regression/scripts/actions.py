@@ -13,7 +13,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 BUDGET_MINUTES = 30  # a scheduled regression job's budget (REG-7, AUT-7)
-SHARDS = 4  # the full suite is about 90 minutes of rows; four jobs of the 30-minute budget cover it (REG-4, REG-7)
+SHARDS = 8  # the full suite is about 150 minutes of rows (a 4-shard run left 189 of 731 unrun); eight jobs of the 30-minute budget cover it (REG-4, REG-7)
 
 
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
