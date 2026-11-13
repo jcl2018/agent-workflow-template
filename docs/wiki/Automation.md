@@ -52,12 +52,12 @@ Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=ff34edf0 N=e081872e M=4670
   - A round finishes within 45 minutes (the 30-minute regression budget of Regression REG-7 plus 15 for health and the digest, health starting when regression has finished, not at a fixed offset), and each report shows the round's wall time and its pass and fail counts, plus its Actions minutes when it ran in GitHub Actions, so I can slow the schedule if it costs too much.
 
 ## Non-goals
-- The scheduled routines never push, merge or release; they only write issues, labels, comments, run reports (an Actions run summary or a local report on my Mac) and the digest email, and the scheduled regression workflow writes issues only because it passes `--live`.
+- The scheduled routines never push, merge or release; they only write issues, labels, comments, run reports (an Actions run summary or a local report on my Mac) and the digest email.
 - No chat or webhook notifications; email and GitHub only.
 
 ## Success metrics
 - After each scheduled round, one digest email arrives and every failing test or finding has exactly one open issue tagged with its feature.
-- With a routine set to off, its runs write no issue, label, comment or email.
+- With a routine set to off, its runs write no issue, label, comment or email; the scheduled regression workflow writes issues only because it passes `--live`.
 
 ## Tests
 

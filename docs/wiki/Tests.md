@@ -251,6 +251,8 @@
 | <a id="t-grd10-install-hooks"></a>grd10-install-hooks | requirement | GRD-10 | not run | - | local | 2026-11-12 |
 | <a id="t-stop-tree-step-limit"></a>stop-tree-step-limit | defect | [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) closed (2026-11-12) | not run | - | local | 2026-11-12 |
 | <a id="t-tokens-unread-shown"></a>tokens-unread-shown | requirement | GRD-2 | not run | - | local | 2026-11-13 |
+| <a id="t-issues-live-only-ci"></a>issues-live-only-ci | requirement | GRD-5 | not run | - | local | 2026-11-13 |
+| <a id="t-issues-live-only-local"></a>issues-live-only-local | requirement | GRD-5 | not run | - | local | 2026-11-13 |
 
 ## Health
 
@@ -573,6 +575,8 @@
 | <a id="t-reg10-real-fail-costs-try"></a>reg10-real-fail-costs-try | requirement | REG-10 | not run | - | local | 2026-11-12 |
 | <a id="t-pr-waits-owed"></a>pr-waits-owed | requirement | REG-10 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
 | <a id="t-pr-real-fail-costs-try"></a>pr-real-fail-costs-try | requirement | REG-10 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
+| <a id="t-issues-one-open-ci"></a>issues-one-open-ci | requirement | REG-5 | not run | - | local | 2026-11-13 |
+| <a id="t-issues-one-open-local"></a>issues-one-open-local | requirement | REG-5 | not run | - | local | 2026-11-13 |
 
 ## Setup
 
