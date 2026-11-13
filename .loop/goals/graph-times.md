@@ -12,3 +12,5 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. Run `python3 skills/workflow-monitoring/scripts/checkin.py` and read Dependencies.
+   Expect: each repo block lists only live goals, a `slug ~Xm left` line per goal, an `a -> b` line per wait, and ends with `expected finish HH:MM`; a goal held at pr shows [=].
