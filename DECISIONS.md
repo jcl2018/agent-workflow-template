@@ -124,4 +124,8 @@ The owner decided 2026-11-13: "some tasks in this session should only rely on th
   - A row whose red proof needs another platform is recorded owed (Regression, `red ID --owed --runner R`): it reads PENDING, opens one to-do issue labelled `other-machine` on the row's feature milestone, and its goal merges.
   - Health warns on an owed proof older than 7 days and never fails on it (Health, Tests).
   - The check-in lists owed off-machine items under Coming up, and the operation session never holds a goal for another pod or machine (Monitoring).
+- Regression, REG-10, add this sub-bullet: A row whose red proof needs another machine can be recorded owed (`red ID --owed --runner R`): it reads PENDING instead of UNPROVEN, one to-do issue labelled `other-machine` opens on the row's feature milestone, and neither the goal's pr lane nor the release waits for it. A real red proof clears it.
+- Health, Tests group rule on seen-red, add this sub-bullet: an owed proof (`.loop/regression-owed.tsv`) is not a seen-red failure; it warns once it is older than 7 days and never fails.
+- Monitoring, MON-5 (check-in), add this sub-bullet: The check-in lists owed off-machine to-dos under Coming up, and the operation session never holds a goal for another pod or machine.
+- Pages stale from this goal's code until the owner re-stamps them: Regression, Health, Monitoring (and Home, Documentation from the DECISIONS edit).
 
