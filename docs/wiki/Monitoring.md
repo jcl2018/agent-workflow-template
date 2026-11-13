@@ -3,27 +3,12 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
-Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=f91170ed N=9967b317 M=0fde98a8 U=74036c58 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde98a8 U=03828777 -->
 
 ## Problem
 - I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
 - I want one session that only governs: it starts every ready goal in its own worker session, passes my answers along, and never builds anything itself.
 - I want the work to finish as fast as it safely can and run unattended: re-plan the graph from real progress, run as much as possible in parallel, answer workers' routine questions with the recommended option, and only ask me for what's truly mine.
-
-## Usage
-
-- `/workflow-monitoring operate` — Runs the operation session's loop. Each pass starts and mends goals, re-plans (start, merge and split proposals with their reasons), answers routine worker decisions with their recommended option where `full_auto` is on, then prints the check-in (headline, All sessions, Dependencies, Needs you, Coming up), never the live board (`--board` adds it; its Issues also name each followed repo on an older or unknown template version), until nothing is left. Prints `NOTHING LEFT TO OPERATE: no goal is queued, running or waiting. Nothing was merged.` or `CADENCE OFF: the owner turned the loop off. Stop.` Refuses nothing. They also run on native Windows Python. It also queues one `migrate-<repo>` goal, through `goal.py queue`, in each followed repo that is behind the template (read from `origin/<base>` first), once, and only into a checkout on its base branch.
-- `/workflow-monitoring send SLUG "text"` — Sends a worker an answer or follow-up, which its agent sees the next time it runs. Prints `SENT to <slug>: <text>`. Refuses exit 1 `REFUSED: no run named <slug>.`
-- `/workflow-monitoring go "goal" --done "line"` — Queues a goal with its frozen done lines and starts it in its own worker session if a slot is free. Prints `STARTED <slug> in <worktree>. Run watch.` or `QUEUED <slug>: <why>. Run watch.` Refuses exit 1 `REFUSED: no readable .loop/config.json. Fix: run workflow-setup.`, `REFUSED: give at least one --done, and no | in any text.`, `REFUSED: no skill flow is set. ...`, `REFUSED: bad slug (lowercase letters, digits, dashes).`, `REFUSED: <slug> already exists. Pick a new --slug.` and `REFUSED: depends-on <slugs> is not a goal in the queue or the runs.`
-- `/workflow-monitoring watch` — Keeps goals moving: starts queued goals, mends failures if the config allows, and says what waits on you. Prints `<slug> <status> step=<step> pr=<pr>`, `WAITS ON YOU <slug>: <ask> Type: <words>`, `STILL QUEUED <slug>: <why>`, `NEEDS YOU <slug>: <finding>` and `NOTHING LEFT TO RUN. Nothing was merged.` Refuses exit 1 `REFUSED: no readable .loop/config.json. Fix: run workflow-setup.`
-- `/workflow-monitoring resume SLUG` — Restarts a failed or stopped goal on its branch with a fresh agent. Prints `<time> <slug>: resumed (was <status>)`, after `RECREATED worktree <path>` if the worktree had to be rebuilt. Refuses exit 1 `REFUSED: no run named <slug>.`, `REFUSED: <slug> is <status>; resume takes a failed or stopped goal.`, `REFUSED: no agent_command in .loop/config.json.` and `REFUSED: <slug> not restarted: the session pool can't be read (...)`.
-- `/workflow-monitoring report` — Prints the state of every run as a table, then what waits on you, findings, changed criteria and queued goals: `SLUG  KIND  STATUS  STEP  TRIES  PR`, then `WAITING ON YOU`, `FINDINGS`, `REVIEWED CRITERIA CHANGED`, `HELD OR FREEZING` and `QUEUED, NOT STARTED`, after the live board; an empty list prints `(no runs yet)`, `(nothing)` or `(none)`. Refuses exit 1 `REFUSED: git <args>: <error>`. The live board's estimate line names the model chosen by a time-ordered backtest (each goal predicted only from goals that finished before it started) and its typical whole-goal error. A goal with no recorded token count shows `tokens unread` in its budget line, never 0.
-- `/workflow-monitoring dashboard` — Writes the HTML dashboard of runs, waits, findings and queued goals. Prints the dashboard's path, `<git common dir>/loop/dashboard.html`. Refuses exit 1 `REFUSED: git <args>: <error>`.
-- `/workflow-monitoring fill-pool ID...` — Registers sessions the operation session just created with the app (after you say "fill pool" when the check-in reports the pool low) as free sessions in the pool. Prints `POOLED <n> session(s); pool: <free> free, <busy> busy, <total> total (target <pool_size>)`. Refuses exit 1 `REFUSED: session <id> is busy with <goal>; nothing was added.` and `REFUSED: the session pool can't be read (...)`.
-- `/workflow-monitoring met SLUG N` — Marks done line N as met in the goal's run record. Prints `<time> <slug>: done lines met: <N, ...>`. Refuses exit 1 `REFUSED: no run named <slug>.`
-- `/workflow-monitoring cleanup` — Deletes local `loop/` branches already merged into the base branch. Prints `DELETED <branch>`, `KEPT <branch>: git would not delete it` and `<n> merged loop branch(es) deleted`. Refuses nothing. `sessions.py bind` and the session tool live in `worker.py`.
-- `/workflow-monitoring reply-check FILE` — Checks a check-in reply against the required layout. Prints one line per problem, such as `missing section <name>`, and exits 1; a clean reply prints nothing and exits 0. Refuses exit 2 `REFUSED: cannot read <file> (<reason>). Fix: name a readable file, or - for stdin.` The Dependencies check (MON-14) is `checkin.missing`.
-- `/workflow-monitoring reply-status` — Says whether the reply hook is installed and on in this repo. Prints `REPLY HOOK: <installed|not installed>, setting <on|off>, script <found|missing|->, let-throughs logged <n>` or `REPLY HOOK: off here (no repo with .loop/config.json)`. Refuses nothing.
 
 ## Requirements
 
@@ -71,8 +56,9 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=f91170ed N=9967b317 M=0fde
 - MON-13: **Reviewed 2026-11-12** Two layers per pod: one operation session governs every repo in its pod directly and talks to each worker, with no per-repo operation session; several pods may run concurrently and independently <!-- reviewed 7dca4de6 -->
   - A claim adds the session to every repo the pod follows and keeps the other sessions already claimed; nothing refuses or warns when a second operation session runs.
 
-- MON-14: **Reviewed 2026-11-12** The check-in dependency map is grouped by repo first: one block per repo headed by the repo's name, cross-repo dependencies drawn between blocks <!-- reviewed b94f70f7 -->
+- MON-14: **Reviewed 2026-11-13** The check-in dependency map is grouped by repo first: one block per repo headed by the repo's name, cross-repo dependencies drawn between blocks <!-- reviewed eeac7ce2 -->
   - Each repo prints as `== name ==` within 60 characters, then a `Between repos` list for `repo/slug` dependencies, then the legend once.
+  - The reply hook flags a check-in whose Dependencies section leaves out a goal on the board.
 
 - MON-15: **Reviewed 2026-11-12** Pods coordinate through shared state, not messages: every goal records its owning pod and only that pod starts, answers, merges or resumes it; other pods show it read-only as owned by that pod; merges into one repo's main are serialized across pods by a short lock <!-- reviewed 9f4be548 -->
   - The pod id is `LOOP_POD_ID`, else the operation session's own id; a goal with no recorded pod belongs to no one. Another pod's attempt prints one `REFUSED: goal <slug> is owned by pod <id>. Fix: ...` line, exit 2, and changes nothing.

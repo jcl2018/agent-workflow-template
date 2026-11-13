@@ -136,6 +136,18 @@ def suite_rows(root):
                 "move the slowest rows to nightly in .loop/regression.tsv, or split them")]
 
 
+def unrun_rows(root):
+    """A WARN when the newest full line of suite-times.tsv (sha, kind, seconds, date, unrun) left rows unrun (REG-7)."""
+    try:
+        with open(os.path.join(common(root), "loop", "suite-times.tsv")) as handle:
+            full = [line.rstrip("\n").split("\t") for line in handle if "\tfull\t" in line]
+    except OSError:
+        return []
+    left = int(full[-1][4]) if full and len(full[-1]) > 4 and full[-1][4].isdigit() else 0
+    return [row("WARN", "lane", "unrun-rows", "the full suite left %d rows unrun" % left,
+                "add a shard or move the slowest rows to nightly")] if left else []
+
+
 def hit_rows(root):
     """One INFO row per step or test run that hit its budget, with what it left."""
     found = []
@@ -151,7 +163,7 @@ def hit_rows(root):
 
 
 def test_rows(root):
-    return lane_rows(root) + suite_rows(root) + hit_rows(root)
+    return lane_rows(root) + suite_rows(root) + unrun_rows(root) + hit_rows(root)
 
 
 def lane_rows(root):
