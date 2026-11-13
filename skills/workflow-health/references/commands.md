@@ -76,6 +76,16 @@ Mine runs the owner's own rules from `~/.workflow-loop/health.json` (or `LOOP_HE
 anything else UNREAD. It runs the owner's commands, so it is outside the read-only and same-answer promises, and it is
 filed only when named.
 
+The repo layer is `.loop/health-rules.json`, committed (setup and update write it empty): `{"rules": [{name, group, feature,
+command, fix, break}], "off": {"<default rule>": "<reason>"}}`. `group` is one of the twelve or `repo` (a heading of its own,
+before Mine); `command` and `break` are word lists. A command exits 0 PASS, 2 WARN, 1 FAIL, anything else UNREAD, as Mine's
+does, and its row carries its `feature` so filing treats FAIL as a defect and WARN as backlog on that feature. The Controls
+group runs `break` on a private copy of the repo's files and the rule must then exit 1 or 2 (else it is reported as unable
+to fire); a rule with no `break`, a repeated or default rule's name, or an unknown group makes health refuse (exit 2). A rule
+in `off` does not run and its group prints `INFO <rule>: turned off: <reason>`; an empty reason leaves it on and UNREAD. The
+commands are the repo's own and run for whoever runs the check. The numbers `health_script_bytes` (20480) and
+`health_skill_lines` (150) in `.loop/config.json` set the Size group's script and SKILL.md caps for that repo.
+
 Adding a rule: write `fn(root) -> rows` in a rule module, add its name to its group in `report.py`, list it in the
 module's `FUNCTIONS`, and add a fixture to its `CONTROLS` that makes it fire. Health refuses to load until the control exists.
 

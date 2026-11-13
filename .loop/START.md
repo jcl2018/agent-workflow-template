@@ -73,6 +73,8 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `goal_levels` | land | Row levels a goal lane plans from: land, or nightly for land and nightly rows. |
 | `govern_hook` | true | false turns off the govern-only hook (setup.py --govern-hook installs it): edits, commits and pushes refused in the operation session. |
 | `health_cron` | 47 */4 * * * | Five cron fields (every N hours, or fixed hours): when health with the judge and its digest run on the Mac; off turns it off. |
+| `health_script_bytes` | 20480 | Bytes a script may reach before health's Size group fails it (warns at 90%). |
+| `health_skill_lines` | 150 | Lines a SKILL.md may reach before health's Size group fails it. |
 | `judge_command` | ["claude", "-p", "--tools", ""] |  |
 | `judge_env` | ANTHROPIC_API_KEY | No longer read: the judge runs on the Mac with your own claude login. Kept so old configs stay valid. |
 | `judge_setup` | none | No longer read: kept so old configs stay valid. |
