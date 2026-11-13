@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.28.25 - 2026-11-13
+
+- Toys read the delivery governance line as it now reads; Tests list checks match the table
+- Merge remote-tracking branch 'origin/main' into loop/skill-governs-line
+- Wiki: update pages for skill-governs-line
+- Restore Documentation.md: DOC-15 is owner-reviewed, don't edit it
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.24 - 2026-11-13
 
 - Automation table: health and the digest run on the Mac's local schedule, no health workflow owed (#3857)
