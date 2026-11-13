@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # windows: ok
-# reads: skills/workflow-monitoring/scripts/fresh.py skills/workflow-monitoring/scripts/operate.py
+# reads: skills/workflow-monitoring/scripts/operate.py
 """checkout: the operation loop moves a main checkout that is behind origin with --ff-only, says so in one line, and
 never makes a merge commit or touches uncommitted work; it says so when it cannot."""
 import os
@@ -10,7 +10,7 @@ import tempfile
 
 here = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(here, "..", "..", "skills", "workflow-monitoring", "scripts"))
-import fresh  # noqa: E402
+import operate as fresh  # noqa: E402
 
 failed = []
 

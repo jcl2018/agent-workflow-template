@@ -12,7 +12,7 @@ first.
 Delivery is a wrapper around your own skill suite: you bring the skills that shape an idea, plan it, review it, test it
 and ship it. A private file outside the repo, `~/.workflow-loop/flow.json`, names them, the command that runs them, the
 environment that puts them in their own unattended mode, and a probe that proves it. Setup fills it with `built-in`
-steps (`references/default-flow.md`), so it runs standalone; with no flow file, every command refuses. `loop-files.md`.
+steps (`references/commands.md` (The built-in flow)), so it runs standalone; with no flow file, every command refuses. `loop-files.md`.
 
 ## `go "<goal>" --done "<line>" ... [--touches "<file,file>"]`
 
