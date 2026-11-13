@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.28.21 - 2026-11-13
+
+- health-v1: Runbook for the Mac round, triage --issue, evidence-or-drop, review recheck, drafted wording
+- Rows for triage --issue and review evidence; Tests tables
+- DECISIONS: HLT-9 tightened, HLT-10 repo rules, HLT-2 cap wording
+- Traceability exempts closed health and backlog findings from the defect-test rule
+- Merge origin/main
+- Health WARNs when the full suite left rows unrun (REG-7)
+- Merge origin/main
+- Merge remote-tracking branch 'origin/main' into loop/health-v1
+- Health page: triage --issue and the unrun-rows WARN
+- Merge origin/main
+- Merge origin/main; unrun WARN moves into milestone.py with cost.py
+- Home: the Health row says triage closes one finding by number and review findings need a citation
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.20 - 2026-11-13
 
 - Package gate: toy and rows run package.py's checks on the head (DEL-5, SET-3)
