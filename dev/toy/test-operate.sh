@@ -188,10 +188,10 @@ out=$($goal pr s1 2>&1); echo "$out" | sed 's/^/  /'
 check "a clean merge goes on, costing no try" 'grep -q "^MERGED origin/main into the branch" <<<"$out" && grep -q "^PR " <<<"$out" && [ "$(field s1 tries)" = 0 ] && [ -e n1.txt ]'
 git switch -q loop/s2
 out=$($goal pr s2 2>&1); echo "$out" | sed 's/^/  /'
-check "a real conflict costs a try, names the files and leaves the tree clean" 'grep -q "^TRY 1 OF 3 FAILED: merging main conflicts in: calc.py" <<<"$out" && [ "$(field s2 tries)" = 1 ] && [ ! -e "$(git rev-parse --git-dir)/MERGE_HEAD" ] && [ -z "$(git status --porcelain --untracked-files=no)" ]'
+check "a real conflict is a try lost to main moving: not counted, and the tree stays clean" 'grep -q "^TRY NOT COUNTED (main moved: 1 of 5; .*calc.py" <<<"$out" && [ "$(field s2 tries)" = 0 ] && [ ! -e "$(git rev-parse --git-dir)/MERGE_HEAD" ] && [ -z "$(git status --porcelain --untracked-files=no)" ]'
 git merge -q -X theirs --no-edit origin/main >/dev/null 2>&1; $goal check s2 >/dev/null
 out=$($goal pr s2 2>&1)
-check "once the conflict is merged by hand it goes on without another try" 'grep -q "^PR " <<<"$out" && [ "$(field s2 tries)" = 1 ]'
+check "once the conflict is merged by hand it goes on, with no try counted" 'grep -q "^PR " <<<"$out" && [ "$(field s2 tries)" = 0 ]'
 git switch -q main
 
 echo "== sizes"
