@@ -93,7 +93,6 @@ def budget(seen, cfg):
 
 
 def spent_tokens(run):
-    """Tokens a goal has spent: per-step values, else the worker's total."""
     value = run.get("tokens") if isinstance(run.get("tokens"), dict) else {}
     steps = [n for key, n in value.items() if key != "total" and isinstance(n, int) and not isinstance(n, bool)]
     if steps:
@@ -113,7 +112,6 @@ def recorded(state, step):
 
 
 def resume_at(state, moved=None):
-    """The step a stopped goal goes on from: build when no commit landed after the plan record, else review."""
     left = [step for step in STEPS if not recorded(state, step)]
     if not left:
         return "pr"
@@ -129,7 +127,6 @@ def next_command(state, step):
 
 
 def again(state, step):
-    """Clear a step and every later step (result, depth, verdicts) for a rerun; returns the steps cleared."""
     later = list(STEPS[STEPS.index(step):])
     cleared = [s for s in later if s in (state.get("flow") or {})]
     for key in ("flow", "depth", "verdicts"):
@@ -232,14 +229,12 @@ def cmd_adopt(g, args):
 
 
 def keep(g, state, step, text):
-    """Keep a reply's verdicts and, for plan, the HEAD it was recorded at (resume_at)."""
     state.setdefault("verdicts", {})[step] = verdicts(text)
     if step == "plan":
         state["plan_head"] = g.git("rev-parse", "HEAD")
 
 
 def nag(g, args):
-    """The template-version line `new` prints: warns, never blocks; a differing major refuses (exit 2)."""
     tool = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-docs", "scripts", "entry.py")
     if not os.path.exists(tool):
         return print("NOTE: entry.py not found beside workflow-delivery, so the template version was not checked. Fix: reinstall the skills from one release", file=sys.stderr)
@@ -260,7 +255,6 @@ def frozen_fields(g, args, lines, touches):
 
 
 def pr_text(g, state):
-    """The pull request body after the private-name scan (DEL-9); a hit or broken list refuses with no try."""
     import guards, private, role  # noqa: E401 - lazily: they import fit
     base, cfg = g.base_ref(state), g.config()
     body = pr_body(g.read(g.goal_file(state["slug"])), view(state, g.state_dir()), cfg, role.setting_of(cfg),
@@ -328,7 +322,6 @@ def pr_body(goal_text, seen, cfg, setting, scan_note, warnings, base_note=""):
 
 VERB = r"\b(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+"
 def off_rows(text):
-    """REG-10: the UNPROVEN rows a lane failed on when each was also SKIPPED here and nothing else failed, else []."""
     bad, un = re.findall(r"^FAIL (\S+)", text, re.M), re.findall(r"^UNPROVEN ([^\s:]+)", text, re.M)
     return un if un and not bad and set(un) <= set(re.findall(r"^SKIPPED (\S+)", text, re.M)) else []
 
@@ -338,7 +331,6 @@ def off_line(text):
 
 
 def off_reply(lane_line):
-    """A step reply that waits for off-platform red proof (no failed try) when the lane line carries LANE_OWED, else ''."""
     m = re.search(r"^LANE_OWED (.+?):", lane_line, re.M)
     return m and ("%s\nPENDING: waiting for off-platform proof of %s. On a Linux or Mac runner run regression.py red ID --break "
                   "CMD for each, then here regression.py red ID --off-platform --runner NAME --commit SHA; then answer go on\nSTEP: pending\n"
@@ -346,7 +338,6 @@ def off_reply(lane_line):
 
 
 def pr_fail(g, state, head, line, ids):
-    """goal.py pr's red lane: owed off-platform proof (REG-10) waits and spends no try; anything else fails one."""
     wait = off_reply(line)
     if wait:
         print(re.sub(r"answer go on\s*STEP: pending", "run pr again", wait).strip())
@@ -355,6 +346,13 @@ def pr_fail(g, state, head, line, ids):
     g.failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
                  "fix the failing rows, commit, then run pr again")
     return 1
+
+
+def main_here(g, args):
+    gitdir, common = (os.path.realpath(g.git("rev-parse", flag)) for flag in ("--git-dir", "--git-common-dir"))
+    if gitdir == common and os.path.isdir(os.path.join(common, "loop", "worktrees")):
+        g.no("--here in the repo's main checkout would leave it on a loop branch. Fix: git worktree add -b loop/%s "
+             "%s origin/main, then run goal.py new there" % (args.slug, os.path.join(common, "loop", "worktrees", args.slug).replace(os.sep, "/")))
 
 
 SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date
