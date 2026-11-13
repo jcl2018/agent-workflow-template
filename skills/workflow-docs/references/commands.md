@@ -29,6 +29,8 @@ init                            the step list above; an agent follows it
 survey                          show the wiki's pages and this repo's page map
 add PAGE --paths A,B            add a page and the paths it describes
 check [--base REF]              list page problems, and PRD contract problems when criteria is on; exit 1 if any
+                                a page whose PRD is at a link or MCP source (`PRD: <source>`, or the third column of .loop/docs.tsv)
+                                is read from there and prints UNREAD, never a pass, when it cannot be; `topics` adds Home's Topic column
 audit [--base REF] [--dry-run]  check all required docs against the template, fix the mechanical, list wording to rewrite
 criteria PAGE                   print the requirement format and the next free id for a page
 review PAGE|ID [...] --user [--date D]   the owner marks a PRD, or a requirement, Reviewed
