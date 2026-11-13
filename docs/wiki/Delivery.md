@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/1
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=319fd1aa N=9f4c33da M=f8cd4612 U=03828777 -->
 
 ## Problem
 - I have more changes to make than time to babysit them: I want to hand over one sentence and walk away.
@@ -52,7 +52,7 @@ Review: **Unreviewed**
   - Where a review hold is set, the release step merges only after the operation session records that it has read the diff, and the board shows a merge waiting on review.
 - DEL-14: **Reviewed 2026-11-13** Leftover findings are filed by kind at ship <!-- reviewed a02600dc -->
   - When a goal ships, each finding it did not fix is filed once. A break of a Reviewed requirement inside the goal's touches is fixed in place; outside them it is an open issue labelled `defect`. An improvement, idea or saving is an issue labelled `backlog` on its feature's milestone "Backlog: <Feature>" ("Backlog: Other" when it fits no feature). Filing writes to GitHub only with `--live`, which the goal passes after ship is recorded, and a finding already filed is not filed again.
-- DEL-15: **Unreviewed** Fast merge queue. PRs merge one after another, but each waits only as long as needed.
+- DEL-15: **Reviewed 2026-11-13** Fast merge queue. PRs merge one after another, but each waits only as long as needed. <!-- reviewed 565f503b -->
   - A pr lane that runs again after main moved reruns only the rows both the goal's diff and main's new commits reach; a row only main's new commits reach keeps its earlier result.
   - Goals at pr queue behind each other only when their touches overlap; goals with disjoint touches run their lanes at once.
   - Three or four ready pull requests with disjoint touches are verified together and merged in one go, and a failing batch splits to name the culprit.
