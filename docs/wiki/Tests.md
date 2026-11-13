@@ -236,6 +236,7 @@
 | <a id="t-publish-tables-handwritten"></a>publish-tables-handwritten | requirement | DOC-11 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
 | <a id="t-backlog-renames-old"></a>backlog-renames-old | requirement | DOC-10 | not run | - | local | 2026-11-13 |
 | <a id="t-aut-routine-runbook-owed"></a>aut-routine-runbook-owed | requirement | DOC-16 | not run | - | local | 2026-11-13 |
+| <a id="t-docs-edit-revert-merged"></a>docs-edit-revert-merged | defect | [#3875](https://github.com/jcl2018/agent-workflow-template/issues/3875) state unknown | not run | - | local | 2026-11-13 |
 
 ## Guardrails
 
