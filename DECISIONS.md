@@ -129,3 +129,8 @@ The owner decided 2026-11-13: "some tasks in this session should only rely on th
 - Monitoring, MON-5 (check-in), add this sub-bullet: The check-in lists owed off-machine to-dos under Coming up, and the operation session never holds a goal for another pod or machine.
 - Pages stale from this goal's code until the owner re-stamps them: Regression, Health, Monitoring (and Home, Documentation from the DECISIONS edit).
 
+The owner types two sentences in the operation session:
+
+1. Un-review: "Un-review the Guardrails, Regression, Health and Monitoring pages and GRD-10's neighbour GRD-11 (new), REG-10, HLT-2 and MON-5 so the machine-local wording can be added."
+2. Review, after the goal has added it: "Review the Guardrails, Regression, Health and Monitoring pages, GRD-11, REG-10, HLT-2 and MON-5 again."
+
