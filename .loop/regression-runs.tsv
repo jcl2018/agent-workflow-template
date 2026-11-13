@@ -192,6 +192,7 @@ hlt6-worktrees	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt7-fast-check	PASS	2026-11-12	
 hlt8-triage	PASS	2026-11-10	
 hlt9-evidence-or-nothing	PASS	2026-11-10	
+home-topic-column	PASS	2026-11-13	
 issue-129-docs-published	PASS	2026-11-12	
 issue-129-wiki-first-page	PASS	2026-11-12	
 issue-134-protected-release	PASS	2026-11-12	
@@ -243,6 +244,8 @@ lanes-trace	FAIL	2026-11-10
 lanes-trace-check	PASS	2026-11-10	
 lanes-trace-hook-173	PASS	2026-11-10	
 lanes-wide-parity	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+link-page-passes	PASS	2026-11-13	
+link-unread-never-pass	PASS	2026-11-13	
 list-kind-filter	PASS	2026-11-10	
 list-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 list-tsv-raw	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
