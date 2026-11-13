@@ -124,6 +124,8 @@
 | <a id="t-adopt-record-qa"></a>adopt-record-qa | requirement | DEL-10 | not run | - | local | 2026-11-12 |
 | <a id="t-adopt-refuses-unpushed"></a>adopt-refuses-unpushed | requirement | DEL-11 | not run | - | local | 2026-11-12 |
 | <a id="t-adopt-replaces-stale"></a>adopt-replaces-stale | requirement | DEL-10 | not run | - | local | 2026-11-12 |
+| <a id="t-del5-docs-bump-minor"></a>del5-docs-bump-minor | requirement | DEL-5 | not run | - | local | no |
+| <a id="t-del5-docs-patch-default"></a>del5-docs-patch-default | requirement | DEL-5 | not run | - | local | no |
 
 ## Documentation
 
