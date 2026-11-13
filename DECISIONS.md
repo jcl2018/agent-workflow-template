@@ -45,3 +45,18 @@ The owner un-reviewed these requirements and approved the wording below; it is n
 - MON-4 (decision 2): title "Live board layout"; keep its bullets, and change the last to "Check-ins don't print this board; MON-5 owns the check-in reply."
 - MON-5 (decision 2): replace "and prints the full board every time" with "and each check-in prints only its reply layout, never the board"; the title and the layout list stay.
 - Monitoring Non-goals (decision 10): "It never merges unless auto_merge is on (MON-7, MON-15); the delivery loop merges and releases."
+
+## Waiting on owner un-review (drop-usage)
+
+The owner decided 2026-11-13: "remove the usage section, because you cannot say each feature has an API; we already have the README and How to use, and natural language will find the right way to run it." Feature pages lose Usage. Exact replacement text below; none is applied until the owner un-reviews each requirement and approves the wording. The wording sits alongside backlog-milestones' changes to DOC-10 and HLT-4 and touches neither.
+
+- DOC-1, bullet 1, replace with: One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Requirements (up to the repo's limit, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes). A page has no Usage section.
+- DOC-1, bullet 2: unchanged.
+- DOC-2, bullet 1, replace with: I review the PRD as a whole (Problem, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that.
+- DOC-2, bullet 3, delete (the Usage clause). Bullet 2 is unchanged.
+- DOC-6, rename "Usage is an API reference" to "Each skill's commands are documented in its command reference", replace both bullets with: Each skill's SKILL.md Command map names every command, and its references/commands.md gives each command's exact syntax, what it prints on success, and each refusal with its message and exit code. Reason: the owner dropped Usage because a feature has no API, but the exact syntax, output and refusals are still promises the repo makes and tests prove (the usage-* rows move to the command reference); deleting the requirement would leave them with no owner.
+- DOC-5: unchanged. The README's "How to use" tables stay the front door.
+- DOC-10 and DOC-15: do not mention Usage; unchanged.
+- Documentation Problem, last bullet, replace with: I need my approved requirements to stay exactly as I wrote them, while the loop keeps tests up to date for me. (It names Usage; Problem is locked, so this needs the same un-review.)
+- HLT-2, Consistency bullet, replace "a command named the same in Usage and the README" with: a command named the same in its skill's command reference and the README.
+- HLT-2, Docs bullet, replace "Usage matches the real commands and output" with: each skill's command reference matches the real commands and output.
