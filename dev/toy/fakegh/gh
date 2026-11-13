@@ -4,6 +4,17 @@ d=${FAKE_GH_DIR:?}; mkdir -p "$d"
 args=(); while [ $# -gt 0 ]; do if [ "$1" = --body-file ]; then args+=(--body "$(cat "$2")"); shift 2; else args+=("$1"); shift; fi; done; set -- "${args[@]}"  # a text in a file reads as --body TEXT
 echo "$*" >> "$d/calls.log"
 here=$(cd "$(dirname "$0")" && pwd)
+if [ "$1" = api ] && [[ "$*" == *labels=regression* ]]; then  # the open regression issues, one JSON object a line, as gh api --paginate --jq gives them
+  [ -z "${FAKE_GH_PAGE_FAIL:-}" ] || { echo "HTTP 502: a page failed" >&2; exit 1; }
+  FAKE_GH_ARGS="$*" python3 -c '
+import json, os
+mark = "<!-- loop-regression flag placed=Alpha -->" if os.environ.get("FAKE_GH_ISSUE_PLACED") else "<!-- loop-regression flag -->"
+rows = [{"number": 100 + i, "state": "OPEN", "body": "<!-- loop-regression pad-%d -->" % i, "labels": []} for i in range(int(os.environ.get("FAKE_GH_ISSUE_COUNT") or 0))]
+rows += [{"number": 7, "state": "OPEN", "body": mark, "labels": []}] if os.environ.get("FAKE_GH_ISSUE_OPEN") else []
+print("\n".join(json.dumps(r) for r in rows[:None if "--paginate" in os.environ["FAKE_GH_ARGS"].split() else 100]))  # one page unless asked for all
+'
+  exit 0
+fi
 case "$1 $2" in
   "api "*) exec python3 "$here/fake.py" "$@";;
   "repo view") exec python3 "$here/fake.py" "$@";;
@@ -41,13 +52,17 @@ case "$1 $2" in
      [ -f "${FAKE_GH_ARCHIVE:-}" ] || { echo "release not found" >&2; exit 1; }; cp "$FAKE_GH_ARCHIVE" "$dir/";;
   "auth token") [ -n "${FAKE_GH_NO_AUTH:-}" ] && { echo "not logged in" >&2; exit 1; }; echo "fake-token";;
   "pr list") echo "[]";;
-  "issue list") python3 -c '
+  "issue list") FAKE_GH_LIMIT=$(grep -o -- '--limit [0-9]*' <<<"$*" | cut -d' ' -f2) python3 -c '
 import datetime, json, os
 state = "OPEN" if os.environ.get("FAKE_GH_ISSUE_OPEN") else "CLOSED" if os.environ.get("FAKE_GH_ISSUE_CLOSED") else ""
 day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
 notes = [{"body": "Failing on %s." % day}] if os.environ.get("FAKE_GH_ISSUE_COMMENTED") else []
 mark = "<!-- loop-regression flag placed=Alpha -->" if os.environ.get("FAKE_GH_ISSUE_PLACED") else "<!-- loop-regression flag -->"
-print(json.dumps([{"number": 7, "state": state, "body": mark, "comments": notes}] if state else []))
+rows = [{"number": 7, "state": state, "body": mark, "comments": notes}] if state else []
+pad = int(os.environ.get("FAKE_GH_ISSUE_COUNT") or 0)  # unrelated marked issues listed first (newer), the real one last (oldest)
+rows = [{"number": 100 + i, "state": "OPEN", "body": "<!-- loop-regression pad-%d -->" % i, "comments": []} for i in range(pad)] + rows
+limit = int(os.environ.get("FAKE_GH_LIMIT") or len(rows))
+print(json.dumps(rows[:limit]))  # newest first, so a long list loses its oldest
 ';;
   "issue create") echo "https://example.test/issues/7";;
   *) exit 0;;

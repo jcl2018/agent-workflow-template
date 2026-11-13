@@ -3,6 +3,9 @@ reg10-windows-refused	2026-11-12	Mac	88c964ed
 reg10-commit-checked	2026-11-12	Mac	88c964ed
 reg10-off-platform-red	2026-11-12	Mac	88c964ed
 reg10-provenance	2026-11-12	Mac	88c964ed
+issue-list-reads-all	2026-11-13	Mac	96b5b856
+issue-list-cut-off-refused	2026-11-13	Mac	96b5b856
+job-skip-opens-no-issue	2026-11-13	Mac	96b5b856
 grd5-regression-dry	2026-11-12	Mac	9815fc8b
 grd6-head-moved	2026-11-12	Mac	9815fc8b
 grd4-resume	2026-11-12	Mac	9815fc8b

@@ -549,6 +549,9 @@
 | <a id="t-lane-tmpdir-per-goal"></a>lane-tmpdir-per-goal | requirement | REG-8 | not run | - | local | 2026-11-11 |
 | <a id="t-port-base-windows"></a>port-base-windows | defect | [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) closed (2026-11-12) | not run | - | local | 2026-11-12 |
 | <a id="t-tree-once-lock"></a>tree-once-lock | requirement | REG-7 | not run | - | local | 2026-11-12 |
+| <a id="t-issue-list-reads-all"></a>issue-list-reads-all | requirement | REG-5 | not run | - | local | 2026-11-13 |
+| <a id="t-issue-list-cut-off-refused"></a>issue-list-cut-off-refused | requirement | REG-5 | not run | - | local | 2026-11-13 |
+| <a id="t-job-skip-opens-no-issue"></a>job-skip-opens-no-issue | requirement | REG-5 | not run | - | local | 2026-11-13 |
 | <a id="t-lanes-abs-not-walked"></a>lanes-abs-not-walked | requirement | REG-4 | not run | - | local | 2026-11-12 |
 | <a id="t-lanes-abs-same-reach"></a>lanes-abs-same-reach | requirement | REG-4 | not run | - | local | 2026-11-12 |
 | <a id="t-lanes-dotdot-not-walked"></a>lanes-dotdot-not-walked | requirement | REG-4 | not run | - | local | 2026-11-12 |
