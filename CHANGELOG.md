@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.28.1 - 2026-11-13
+
+- Docs stale check: a page is stale only when its mapped paths differ in net (#3771)
+- Docs: the stale check reads net change; Tests re-rendered
+
+### How to verify
+
+1. Run `python3 dev/stale_net_check.py`. Expect: `OK: an add and its revert leave the page current; a real change reads STALE`.
+
 ## v0.28.0 - 2026-11-13
 
 - V1 format: owner bump honoured on docs-only goals (#3787)
