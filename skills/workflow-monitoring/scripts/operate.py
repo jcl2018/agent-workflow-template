@@ -4,7 +4,8 @@
 usage: operate.py <command> [options]
 
   run [--once] [--poll S] [--max N] [--skill-dir DIR] [--board]
-      Each pass: watch.py watch --once (starts every queued goal and batch line whose dependencies are merged, up to
+      Each pass first fast-forwards the main checkout to origin/<base> (fresh.py, --ff-only, never a merge commit, uncommitted work
+      left alone) and prints one line when it moved or could not. Then: watch.py watch --once (starts every queued goal and batch line whose dependencies are merged, up to
       parallel; mends and resumes if the config allows), board.py board, board_page.py. It prints the check-in every pass, even when nothing changed
       (--board adds the live board and its changes). Then it waits the gap from `board.py cadence`,
       or less: a worker that reports (a run record changes) or a goal added to the queue starts the next pass at once.
@@ -63,6 +64,8 @@ def signature(top, common):
 
 
 def one_pass(top, common, args):
+    moved = script("fresh.py", cwd=top)[1].strip()  # the main checkout, where the skills and hooks run, follows origin (MON-4)
+    moved and print(moved)
     flags = (["--max", str(args.max)] if args.max else []) + (["--skill-dir", args.skill_dir] if args.skill_dir else [])
     code, said = script("watch.py", "watch", "--once", *flags, cwd=top)
     if code:
