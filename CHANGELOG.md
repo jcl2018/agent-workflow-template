@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.28.2 - 2026-11-13
+
+- Setup recognizes its own hook on a Windows path, so each hook installs once (#2880)
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.1 - 2026-11-13
 
 - Docs stale check: a page is stale only when its mapped paths differ in net (#3771)
