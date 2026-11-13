@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.28.9 - 2026-11-13
+
+- Monitoring V1: the operation checkout fast-forwards, the reply hook checks repo blocks, a silent worker is proven under Needs you
+- Tests tables list the three monitoring rows
+- Merge remote-tracking branch 'origin/main' into loop/monitoring-v1
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.8 - 2026-11-13
 
 - goal.py new --here refuses in the main checkout (#3468)
