@@ -2,8 +2,8 @@
 
 plan() works out what each finding does: open, update, reopen, close, link or same. preview prints the plan and has no
 write path; file carries it out for the named groups (and --feature) only.
-- Each issue is labelled health and health:<group> (review findings: health:review-<kind>), and is a defect (a FAIL except a size
-  or performance one, a review conflict) or a backlog item (the rest, HLT-4): labelled defect on no milestone, or labelled backlog on
+- Each issue is labelled health and health:<group> (review findings: health:review-<kind>), and is a defect (a FAIL except a performance
+  one, a review conflict) or a backlog item (the rest, HLT-4): labelled defect on no milestone, or labelled backlog on
   its feature's milestone "Backlog: <Feature>" ("Backlog: Other" when it fits none), made first when missing. An issue the owner
   moved stays where it is. When the feature_labels setting is on (default
   off) it is also tagged feature:<Page> for the feature the finding is about (issues.feature_label), the label made
@@ -55,7 +55,7 @@ def tag_of(group, item=None):
 
 def home(item, page):
     """(label, milestone) of a new issue: a defect has no milestone, a backlog item sits on its feature's Backlog milestone."""
-    if (item["state"] == "FAIL" and item["family"] not in ("size", "performance")) or (item["family"] == "review" and item["rule"] == "conflict"):
+    if (item["state"] == "FAIL" and item["family"] != "performance") or (item["family"] == "review" and item["rule"] == "conflict"):
         return "defect", ""
     return "backlog", "Backlog: " + page if page else MS.OTHER
 

@@ -90,7 +90,7 @@ module's `FUNCTIONS`, and add a fixture to its `CONTROLS` that makes it fire. He
   subagent answers it, and the rerun takes its saved reply with `--judge-answer FILE`. With no session (the scheduled
   GitHub Actions run) they run `judge_command` (`claude -p`). Each report logs `judge: session` or
   `judge: claude -p (no session)`.
-- `file` tags each finding's issue with its group and, by kind (HLT-4), labels it `defect` (a FAIL except size or performance, a review
+- `file` tags each finding's issue with its group and, by kind (HLT-4), labels it `defect` (a FAIL except a performance one, a review
   conflict; no milestone) or `backlog` (the rest; milestone `Backlog: <Feature>`, or `Backlog: Other`), making the milestone first. Its feature is the page whose `.loop/docs.tsv` path is
   the longest prefix of the finding's path, the page defining its requirement id, the page of its row's requirement, an
   issue's own feature, or a review finding's feature; none when none fits. With the `feature_labels` setting on it also

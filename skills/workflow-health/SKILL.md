@@ -71,7 +71,7 @@ python3 scripts/health.py file --review review.json --feature Health
 
 `preview` lists each issue that would be opened, updated, closed, reopened or linked, with its tags, and
 writes nothing. `file` is the only writer, for the named groups (or a saved review) only:
-- One issue per finding, tagged with its group: a defect (a FAIL except size or performance, a review conflict) labelled `defect` on no milestone, else a backlog item labelled `backlog` on `Backlog: <Feature>` (`Backlog: Other` when none fits).
+- One issue per finding, tagged with its group: a defect (a FAIL except a performance one, a review conflict) labelled `defect` on no milestone, else a backlog item labelled `backlog` on `Backlog: <Feature>` (`Backlog: Other` when none fits).
 - Labels: `health` plus `health:<group>`, or `health:review-<kind>` for a review finding; `feature:<Page>` too when `feature_labels` is on.
 - A repeat updates the issue, a fix closes it (only when its own rule ran), and a return reopens it.
 - An open issue that already names the finding's subject gets one link comment instead of a duplicate.

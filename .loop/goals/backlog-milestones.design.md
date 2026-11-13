@@ -8,7 +8,7 @@ Findings from delivery and health have no single home: health issues sit on no m
 2. Put the logic in `workflow-health/scripts/milestone.py` (4.5 KB, the only script with room) and call it: `file.py` imports it for health findings; setup calls its `backlog` command; `goal.py record ship` calls its `leftovers` command. Cost: a small, tight edit in goal.py (a duplicate flow check removed to make room), survey.py and setup.py. Risk: the wiring crosses skills by path, as goal.py already does for graph.py and criteria.py.
 
 ## Chosen: 2
-- Kind: a FAIL (except size or performance) and a review conflict is a defect; everything else is backlog. Health's rules do not know which requirements are Reviewed, so a plain FAIL stands in for "broken against a Reviewed requirement".
+- Kind: a FAIL (except a performance one) and a review conflict is a defect; everything else is backlog. Health's rules do not know which requirements are Reviewed, so a plain FAIL stands in for "broken against a Reviewed requirement".
 - Home: defect = label `defect`, no milestone. Backlog = label `backlog`, milestone "Backlog: <Feature>" or "Backlog: Other". An issue the owner moved stays (the milestone is set only when the issue is opened).
 - Setup: `setup.py` always calls the issue-filing step, which first runs `milestone.py backlog --live`; `--no-issues` skips both.
 - Health: the Adoption group's `milestones` rule warns for each missing milestone, only on a repo with a GitHub origin; INFO when gh cannot list them. Triage prints `N defects, M backlog` per feature and treats "Backlog: <Page>" as that feature.

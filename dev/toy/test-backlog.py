@@ -153,7 +153,9 @@ with tempfile.TemporaryDirectory() as tmp:
         F.home = lambda item, page: ("backlog", "Backlog: " + page if page else "Backlog: Other")
     row = lambda state, family, rule: {"state": state, "family": family, "rule": rule, "subject": "x", "detail": "d", "fix": "f", "evidence": "x"}
     check(F.home(row("FAIL", "traceability", "rows"), "Calc") == ("defect", ""), "a FAIL is a defect on no milestone")
-    check(F.home(row("FAIL", "size", "scripts"), "Calc") == ("backlog", "Backlog: Calc"), "a size FAIL is a backlog item on its feature's milestone")
+    check(F.home(row("FAIL", "size", "scripts"), "Calc") == ("defect", ""), "a size FAIL is a defect")
+    check(F.home(row("WARN", "size", "scripts"), "Calc") == ("backlog", "Backlog: Calc"), "a size WARN is a backlog item on its feature's milestone")
+    check(F.home(row("FAIL", "performance", "cost"), "Calc") == ("backlog", "Backlog: Calc"), "a performance FAIL is a backlog item")
     check(F.home(row("WARN", "docs", "docs-check"), None) == ("backlog", "Backlog: Other"), "a WARN that fits no feature is a backlog item on Backlog: Other")
     check(F.home(row("WARN", "review", "conflict"), "Zed") == ("defect", ""), "a review conflict is a defect")
     check(F.home(row("WARN", "review", "gap"), "Zed") == ("backlog", "Backlog: Zed"), "a review gap is a backlog item")
