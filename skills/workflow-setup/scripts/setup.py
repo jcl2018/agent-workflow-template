@@ -279,7 +279,7 @@ def adopt(args, repo):
     if not (args.bare or args.no_git_hooks or os.environ.get("LOOP_NO_GIT_HOOKS") == "1"):
         update.step("git hooks", "python3 setup.py --git-hooks", lambda: seed.git_hooks(repo, adopting=True), failed)
     update.step("private settings", "python3 settings.py fill-private", fill_private, failed)
-    if post and (kinds or bare) and not args.bare:
+    if post and not args.bare:  # even with nothing to file: it makes the Backlog milestones (SET-17)
         update.step("issue filing", "workflow-health file --group adoption --open-only", lambda: survey.file_issues(repo, args.no_issues, len(kinds) + bool(bare)), failed)
     if post:
         print("WROTE the adoption on branch %s at %s" % (args.branch, post))
