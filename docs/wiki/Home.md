@@ -79,5 +79,5 @@ Health and regression, then each `automation` entry in `.loop/config.json`; to a
 |---|---|---|---|---|---|---|
 | health | Checks the repo and files each finding. | on | every 4 hours | this Mac's local schedule | docs.py automation | none |
 | regression | Runs every regression row, files each failure. | on | every 4 hours | GitHub Actions (regression.yml) | docs.py automation | none |
-| digest email | Mails one digest per health round. | on | cron `with each health round` | this Mac's local schedule | docs.py automation | set the digest address and keys as Actions secrets (yours, outside git) |
+| digest email | Mails one digest per health round. | on | cron `with each health round` | this Mac's local schedule | docs.py automation | set the digest address and keys in the schedule's mail.env on the Mac (yours, outside git) |
 <!-- automation:end -->

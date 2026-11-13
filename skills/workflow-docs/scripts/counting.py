@@ -291,7 +291,7 @@ def automation_block(root):
         else:
             where, state, owed = "not set", "off", 'add "runs": github:FILE, mac:LABEL or claude:TASK'
         if e["name"] == "digest email" and on and str(e.get("cadence")) != "off":
-            owed = "set the digest address and keys as Actions secrets (yours, outside git)" if owed == "none" else owed
+            owed = "set the digest address and keys in the schedule's mail.env on the Mac (yours, outside git)" if owed == "none" else owed
         rows.append([str(e["name"]), str(e.get("does", "")), state, cadence(str(e.get("cadence", ""))), where, last, owed])
     head = ["Routine", "What it does", "State", "Cadence", "Runs on", "Last run", "Owed by you"]
     return "\n".join(["<!-- automation:begin -->", "## Automation", "",
