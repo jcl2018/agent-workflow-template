@@ -359,6 +359,8 @@ def stale_blocks(root):
 
 
 if __name__ == "__main__":
-    sys.argv[1:] == ["blocks"] or sys.exit("usage: render.py blocks")
+    sys.argv[1:] in (["blocks"], ["--help"]) or sys.exit("usage: render.py blocks")
+    if sys.argv[1:] == ["--help"]:
+        sys.exit(print("usage: render.py blocks"))
     top = criteria.git("rev-parse", "--show-toplevel")
     print("\n".join("WROTE %s (%s block)" % x for x in (refresh(top, insert=True) if config_of(top).get("criteria") else [])) or "BLOCKS OK")

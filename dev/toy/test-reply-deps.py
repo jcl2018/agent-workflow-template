@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # windows: ok
-# reads: skills/workflow-monitoring/scripts/reply_deps.py skills/workflow-monitoring/scripts/reply_hook.py
+# reads: skills/workflow-monitoring/scripts/checkin.py skills/workflow-monitoring/scripts/reply_hook.py
 # reads: skills/workflow-monitoring/scripts/checkin.py
 """MON-14: the reply hook flags a Dependencies section that leaves out a running, holding or queued goal, naming each
 one; the expected set comes from the run records and the queue file."""
@@ -13,7 +13,7 @@ import tempfile
 
 here = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(here, "..", "..", "skills", "workflow-monitoring", "scripts"))
-import reply_deps  # noqa: E402
+import checkin as reply_deps  # noqa: E402
 import reply_hook  # noqa: E402
 
 failed = []
