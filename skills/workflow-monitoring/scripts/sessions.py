@@ -15,7 +15,7 @@ usage: sessions.py <command> [options]
                             one); without it the pull request waits. merged is checked with gh. An ended goal's session
                             goes back to the pool (pool.py). Done is final (KEPT), but merged still frees the session.
   send SLUG TEXT            send a worker session the owner's answer or a follow-up (operate.py send does this)
-  owner-words TEXT --ids A,B  record the owner's exact message for the IDs it covers (ownerwords.py); not in a worker
+  owner-words TEXT --ids A,B  record the owner's exact message for the IDs it covers (auto.py); not in a worker
   list                      the sessions this repo knows, with their goals
 
 A session tool does the talking: the command in `session_command` (.loop/config.json) or $LOOP_SESSION_TOOL, called as
@@ -253,8 +253,8 @@ def cmd_assign(args):
 
 
 def cmd_owner_words(args):
-    import ownerwords
-    return ownerwords.add(args.text, args.ids)
+    import auto
+    return auto.owner_words_add(args.text, args.ids)
 
 
 def cmd_bind(args):

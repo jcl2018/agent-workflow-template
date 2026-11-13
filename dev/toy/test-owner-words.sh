@@ -2,8 +2,8 @@
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
 # windows: ok
-# reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/ownerwords.py
-# reads: skills/workflow-docs/scripts/criteria.py skills/workflow-docs/scripts/ownerrec.py
+# reads: skills/workflow-monitoring/scripts/sessions.py skills/workflow-monitoring/scripts/auto.py
+# reads: skills/workflow-docs/scripts/criteria.py skills/workflow-docs/scripts/deployments.py
 # DOC-2 with a relay: the operation session records the owner's exact message for the requirement IDs it covers; a worker
 # reviews or un-reviews with --owner-record for those IDs only, once per command; a worker cannot write a record.
 # Value: protects=only the owner's recorded words change a review, for the IDs they name (DOC-2); fails_when=a worker

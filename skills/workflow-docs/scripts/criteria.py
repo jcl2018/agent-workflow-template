@@ -10,7 +10,7 @@ usage: criteria.py <command> [options]
                                mark them Unreviewed again, so their wording may change. With no terminal, both need
                                LOOP_OWNER_WORDS, the owner's own words that said to; each change is logged with them
                                in reviews.tsv in the repo's .git/loop folder
-  review|unreview ... --user --owner-record ID   the words come from owner-words.tsv record ID (ownerrec.py)
+  review|unreview ... --user --owner-record ID   the words come from owner-words.tsv record ID (deployments.py)
   render [--check] [--tables]  rewrite each feature page's Tests from the regression rows and their last runs;
                                --check only says which pages are stale; --tables leaves the Settings, Automation and
                                README blocks alone (a lane uses it: it must never rewrite a page it only measures)
@@ -26,7 +26,6 @@ Tests page (render.py), each to a temp file renamed into place, printing WROTE p
 It runs git and nothing else.
 """
 import argparse
-import ownerrec
 import datetime
 import hashlib
 import json
@@ -47,7 +46,7 @@ GOAL = re.compile(r"^[a-z0-9][a-z0-9-]*:\d+$")  # slug:N, a goal's done line
 SCENARIO = re.compile(r"^Given .+, when .+, then .+", re.I)
 DAY = re.compile(r"^\d{4}-\d\d-\d\d$")
 SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
-from deployments import CRITERIA_MAX_DEFAULT, SHEET, criteria_max, rules  # noqa: E402,F401
+from deployments import CRITERIA_MAX_DEFAULT, SHEET, criteria_max, owner_words, rules  # noqa: E402,F401
 
 
 def git(*args, check=True):
@@ -296,7 +295,7 @@ def mark_all(args, make, page_change):
         sys.exit("REFUSED: only the owner changes a review. Fix: pass --user when their own words said to.")
     words = " ".join(os.environ.get("LOOP_OWNER_WORDS", "").split())
     if args.owner_record:
-        words = ownerrec.words(args, git)
+        words = owner_words(args, git)
     if not words and not os.isatty(0):
         sys.exit("REFUSED: --user with no terminal needs the owner's words. Nothing was changed. Fix: set LOOP_OWNER_WORDS "
                  "to the owner's own message that said to, quoted exactly; never words of your own.")
