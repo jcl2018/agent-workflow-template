@@ -116,8 +116,8 @@ Say these to the agent:
 
 | You say | What happens |
 |---|---|
-| "Set up the scheduled routines" | Regression and health workflows are written to run every 4 hours in GitHub Actions, for you to merge. |
-| "Run health every 12 hours instead" | The schedule setting changes and the health workflow is written again to match. |
+| "Set up the scheduled routines" | The regression workflow is written to run every 4 hours in GitHub Actions (public repo), for you to merge; health runs every 4 hours on your Mac, never in Actions. |
+| "Run health every 12 hours instead" | `health_cron` changes in `.loop/config.json` and your Mac's next round follows it; no workflow is written. |
 | "Turn off the scheduled health run" | Scheduled health runs write nothing and say the routine is off; you can still start one by hand. |
 | "Post the automation digest" | One comment on the pinned digest issue lists what ran, the new, still-open and fixed issues, and a request per open issue. |
 | "Write the scheduled regression run again" | The regression workflow is rewritten from the current config, so its schedule matches. |
@@ -169,9 +169,9 @@ ship skill, then the pull request and the release. Review is the only gate; each
 anything only you can decide under Waiting on you. Nothing is approved for you. The ship skill never pushes in that
 mode, so delivery opens the pull request itself, with each step's result in its body.
 
-Regression and health also run on a schedule in GitHub Actions (every 4 hours by default, `off` per routine in
-`.loop/config.json`), filing failing tests as `defect` issues and health findings as tagged issues, and posting one digest comment per round on a pinned `Automation digest` issue, which is also emailed to you
-once per round when the mail secrets are set (Cloudflare Email Service or SMTP). These runs use Actions minutes, and
+Regression also runs on a schedule in GitHub Actions for a public repo (every 4 hours by default, `off` per routine in
+`.loop/config.json`); health never runs in Actions, it runs on your Mac on its own schedule. They file failing tests as `defect` issues and health findings as tagged issues, and post one digest comment per round on a pinned `Automation digest` issue, which is also emailed to you
+once per round when the mail secrets are set (Cloudflare Email Service or SMTP). Regression runs use Actions minutes, and
 each round's cost is shown and flagged over 45 minutes.
 
 See where things stand, or pick up a failed goal:

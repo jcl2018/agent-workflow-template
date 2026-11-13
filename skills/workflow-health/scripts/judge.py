@@ -19,7 +19,7 @@ import subprocess
 import sys
 import tempfile
 
-import cost
+import milestone as cost
 import issues as IS
 import defects as T
 

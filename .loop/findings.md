@@ -58,3 +58,5 @@ Open (from the issue-cleanup triage of the open non-regression issues, 2026-11-1
 - capture-row-output: Failed 4 tries. Last: merging main conflicts in: .loop/regression-issues.tsv
 - health-v1: Failed 3 tries. Last: merging main conflicts in: .loop/regression.tsv, DECISIONS.md, docs/wiki/Health.md, docs/wiki/Tests.md
 - health-v1: Failed 4 tries. Last: merging main conflicts in: .loop/regression.tsv, DECISIONS.md, docs/wiki/Health.md, docs/wiki/Tests.md
+- doc-fixes-v1: Failed 3 tries. Last: regression lane failed: capture-row-ci
+- doc-fixes-v1: Failed 4 tries. Last: regression lane failed: capture-row-ci

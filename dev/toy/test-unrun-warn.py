@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # windows: ok
-# reads: skills/workflow-health/scripts/cost.py skills/workflow-health/scripts/lean.py
+# reads: skills/workflow-health/scripts/milestone.py skills/workflow-health/scripts/lean.py
 """REG-7: a full-suite record whose 5th column (rows left unrun) is above 0 WARNs in cost.py and lean.py.
 
 Writes suite-times.tsv in a throwaway git repo and calls both rule functions."""
@@ -12,7 +12,7 @@ import tempfile
 root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.join(root, "skills", "workflow-health", "scripts"))
-import cost  # noqa: E402
+import milestone as cost  # noqa: E402
 import lean  # noqa: E402
 
 repo = tempfile.mkdtemp()
