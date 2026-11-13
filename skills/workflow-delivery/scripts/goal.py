@@ -396,10 +396,7 @@ def cmd_pr(args):
     if gate == "running":
         return 0
     if gate == "fail":
-        private.pr_result(root(), config()["base"], head, state["branch"], False)
-        failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
-                   "fix the failing rows, commit, then run pr again")
-        return 1
+        return fit.pr_fail(sys.modules[__name__], state, head, line, ids)
     role.record(state, config()["base"])
     known = run(["gh", "pr", "view", state["branch"], "--json", "url,state"])
     info = json.loads(known.stdout) if known.returncode == 0 else {}

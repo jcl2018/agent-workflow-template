@@ -378,6 +378,18 @@ def off_reply(lane_line):
                   % (lane_line, m.group(1))) or ""
 
 
+def pr_fail(g, state, head, line, ids):
+    """goal.py pr's red lane: owed off-platform proof (REG-10) waits and spends no try; anything else fails one."""
+    wait = off_reply(line)
+    if wait:
+        print(re.sub(r"answer go on\s*STEP: pending", "run pr again", wait).strip())
+        return 1
+    g.private.pr_result(g.root(), g.config()["base"], head, state["branch"], False)
+    g.failed_try(state, "regression lane failed: " + (", ".join(ids) or line.splitlines()[-1][:200]), "build",
+                 "fix the failing rows, commit, then run pr again")
+    return 1
+
+
 SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date
 FIXES = re.compile(VERB + r"(?:issue\s+)?#(\d+)|" + VERB + r"finding:([a-z0-9][a-z0-9-]*)", re.I)
 
