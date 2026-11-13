@@ -55,3 +55,4 @@ Open (from the issue-cleanup triage of the open non-regression issues, 2026-11-1
 - spec-decisions: Failed 3 tries. Last: merging main conflicts in: docs/wiki/Documentation.md, docs/wiki/Regression.md
 - settings-render-windows: Failed 3 tries. Last: regression lane failed: LANE_DIRTY at start: .loop/regression-issues.tsv. Fix: commit or remove them; the lane committed and pushed nothing.
 - govern-hook-notes: Failed 3 tries. Last: merging main conflicts in: .loop/regression-runs.tsv, docs/wiki/Tests.md
+- delivery-usage-here: Abandoned by the owner's scope change: PRD Usage sections are being dropped (goal drop-usage); the D8 refusal moves to goal here-refuse.
