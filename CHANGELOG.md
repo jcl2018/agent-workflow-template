@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.28.31 - 2026-11-13
+
+- fix: monitor.py skips a loop/runs file that is not a run record (#3862)
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/monitor-report-crash
+- Merge remote-tracking branch 'origin/main' into loop/monitor-report-crash
+- Lane: re-render the Tests tables
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.30 - 2026-11-13
+
+- machine-local: owed off-machine proofs become to-do issues, not blocks
+- DECISIONS: GRD-11 wording for machine-local, waiting on owner un-review
+- machine-local: Tests table, DECISIONS sub-bullets
+- machine-local: Tests tables
+- Home: the Regression row names owed proofs
+- DECISIONS: owner sentences for machine-local
+- DECISIONS: tidy the un-review sentence
+- machine-local: un-reviewed on the owner's words; GRD-11 and the REG-10, HLT-2, MON-5 wording added; Home, DECISIONS
+- machine-local: row for GRD-11
+- machine-local: Tests table
+- machine-local: reviewed again on the owner's words; DECISIONS, Home
+- Merge origin/main into loop/machine-local
+- Merge origin/main into loop/machine-local
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.29 - 2026-11-13
 
 - pr queue per repo, and a try lost to main moving has its own cap (#3877)
