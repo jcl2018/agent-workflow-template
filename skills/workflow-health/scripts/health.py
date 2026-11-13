@@ -5,7 +5,7 @@ usage: health.py check [--json] [--group NAME[,NAME]] [--skip NAME[,NAME]]
        health.py review [--feature NAME] [--json]          (judge.py; judge and suggest are aliases)
        health.py preview [--group NAME[,NAME]] [--feature NAME] [--review FILE]
        health.py file --group NAME[,NAME] [--feature NAME] [--review FILE]
-       health.py triage [--feature NAME] [--close --kind K --why WORDS [--older DAYS] [--yes] [--max N]]
+       health.py triage [--feature NAME] [--close (--kind K | --issue N ...) --why WORDS [--older DAYS] [--yes] [--max N]]
 
 check prints the formal report (report.py): the twelve groups of report.py, each under a heading with its angle, every
 rule marked pass, warn, fail or unread with its fix, then one verdict, HEALTH: green or not green. Only FAIL and UNREAD
@@ -145,8 +145,16 @@ def defect_rows(root):
     defects = sibling_module("defects")
     if not defects:
         return [row("UNREAD", "traceability", "defects", "defect-tests", "defects.py is not installed beside health.py")]
+    gone = exempt(root, [ref for ref, _ in defects.missing(root)])  # a health or backlog finding that went away isn't a fixed bug
     return [row("FAIL", "traceability", ref, "defect-tests", "closed by %s with no defect test" % source,
-                "regression.py add --category defect --link ...") for ref, source in defects.missing(root)]
+                "regression.py add --category defect --link ...") for ref, source in defects.missing(root) if ref not in gone]
+
+
+def exempt(root, refs):
+    """The #N refs among `refs` that are issues labelled health or backlog (none when the issues can't be read)."""
+    tracker = sibling_module("issues") if any(r[0] == "#" for r in refs) else None
+    found = tracker.fetch(root, "held")[0] if tracker else None
+    return {"#%d" % i["number"] for i in found or [] if {"health", "backlog"} & set(i.get("labels") or [])} & set(refs)
 
 
 def hours_old(stamp):
@@ -251,9 +259,9 @@ def mine_rows(root):
 
 
 def cost_rows(root):
-    cost = sibling_module("cost")
+    cost = sibling_module("milestone")
     return (cost.cost_rows(root, HERE) + cost.timing_rows(root)) if cost else \
-        [row("UNREAD", "cost", "cost.py", "cost", "cost.py is missing")]  # timing_rows: REG-7
+        [row("UNREAD", "cost", "milestone.py", "cost", "milestone.py is missing")]  # timing_rows: REG-7
 
 
 def gather(root, family, ran_rules=None):

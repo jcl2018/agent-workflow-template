@@ -31,8 +31,7 @@ resume SLUG
 
 A queue line may name `depends-on: a, b`. A goal waits only on those goals, until they are merged, and on a free worker
 slot; sharing files is never a reason to wait. Before its pull request the later goal merges the latest base branch, so it
-has the earlier goal's merged changes, and only a real conflict costs it
-a try. A running goal with no `pid` is never marked failed or mended and takes no worker slot. A failed goal never stops
+has the earlier goal's merged changes; a conflict with it is not a counted try (its own cap, `max_moved`). A running goal with no `pid` is never marked failed or mended and takes no worker slot. A failed goal never stops
 the others. A batch goal answers the release
 question with `leave` by itself, never `cut`; `--release ask` makes it wait for you.
 
@@ -143,7 +142,7 @@ The board reads the run records and the session pool (`<git common dir>/loop/ses
 | held, worktree gone | Held, and its worktree folder is missing | `git worktree add <common>/loop/worktrees/<slug> loop/<slug>`, then bind (`watch.py resume` takes only failed or stopped goals) | it shows as running |
 | held, holds a slot | A held session goal still counts toward `parallel` | bind it, or once its old session has stopped, `sessions.py free <slug>` | the slot is free |
 | pool unreadable | The pool file can't be trusted: nothing is called held or freezing, and `watch` starts nothing | `python3 -m json.tool <path>`, then repair it (moving it aside forgets which goals sessions hold: free or bind each again first) | the next pass reads it |
-| done | The pull request is open; a later session report is only recorded (issue 108) | the release step merges it | it leaves the board |
+| done | The pull request is open; a later session report is only recorded (issue 108) | its own merge.py merges it (a report never does) | it leaves the board |
 | tries used up | A stopped goal was brought back by a bind or mend | look at its finding | the next try counts from there |
 
 Handing a goal over before it is frozen (for a session the operation session started with the app's own tools; a goal
@@ -500,7 +499,7 @@ Proof: toy tests (dev/toy/test-live-board.sh, dev/toy/test-board-held.sh).
 
 #### `sessions.py bind`: the worker command and the worktree
 
-`bind SLUG ID [--name N] [--force] [--cwd DIR]` (in `session_bind.py`) also prints two lines for whoever binds to pass
+`bind SLUG ID [--name N] [--force] [--cwd DIR]` (in `worker.py`) also prints two lines for whoever binds to pass
 on (assign's message to a new session already carries both):
 
 ```text
@@ -525,3 +524,19 @@ otherwise) for the NOTE that follows.
 Status: built and proven: bind prints WORKER and WORKTREE; refuses an outside folder; resume reserves under the pool lock. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests (dev/toy/test-guards.sh).
+
+## Exact command entries (moved from the retired Usage section on the Monitoring page)
+
+- `/workflow-monitoring fill-pool ID...` — Registers sessions the operation session just created with the app (after you say "fill pool" when the check-in reports the pool low) as free sessions in the pool. Prints `POOLED <n> session(s); pool: <free> free, <busy> busy, <total> total (target <pool_size>)`. Refuses exit 1 `REFUSED: session <id> is busy with <goal>; nothing was added.` and `REFUSED: the session pool can't be read (...)`.
+
+- `/workflow-monitoring reply-check FILE` — Checks a check-in reply against the required layout. Prints one line per problem, such as `missing section <name>`, and exits 1; a clean reply prints nothing and exits 0. Refuses exit 2 `REFUSED: cannot read <file> (<reason>). Fix: name a readable file, or - for stdin.`
+
+- `/workflow-monitoring reply-status` — Says whether the reply hook is installed and on in this repo. Prints `REPLY HOOK: <installed|not installed>, setting <on|off>, script <found|missing|->, let-throughs logged <n>` or `REPLY HOOK: off here (no repo with .loop/config.json)`. Refuses nothing.
+
+## Exact command entries (as of main, 2026-11-13, when the Usage section was retired)
+
+- Every skill holds the same `proctree.py` copy.
+
+- `/workflow-monitoring cleanup` — Deletes local `loop/` branches already merged into the base branch. Prints `DELETED <branch>`, `KEPT <branch>: git would not delete it` and `<n> merged loop branch(es) deleted`. Refuses nothing. `sessions.py bind` and the session tool live in `worker.py`.
+
+- `/workflow-monitoring reply-check FILE` — Checks a check-in reply against the required layout. Prints one line per problem, such as `missing section <name>`, and exits 1; a clean reply prints nothing and exits 0. Refuses exit 2 `REFUSED: cannot read <file> (<reason>). Fix: name a readable file, or - for stdin.` The Dependencies check (MON-14) is `checkin.missing`.

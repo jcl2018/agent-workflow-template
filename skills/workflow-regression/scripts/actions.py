@@ -5,24 +5,22 @@ import os
 import re
 import sys
 
-from actions_summary import SUMMARY_JOB
+from slots import ROUTINE_STEP, SUMMARY_JOB
 
-# No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
-BUDGET_MINUTES = 30  # a scheduled regression job's budget (REG-7, AUT-7)
-SHARDS = 8  # 4 shards left 189 of 731 rows unrun (REG-4, REG-7)
+BUDGET_MINUTES = 30  # REG-7, AUT-7
+SHARDS = 8  # REG-4, REG-7
 
 
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
             "REGRESSION_RESULTS", "REGRESSION_MAP", "RUNNER_TEMP", "SUITE_TIME_FILE",
-            "REGRESSION_SHARD", "REGRESSION_LEVELS", "REGRESSION_TARGET", "REGRESSION_CLEANUP")  # a row that runs the runner must not inherit its shard
+            "REGRESSION_SHARD", "REGRESSION_LEVELS", "REGRESSION_TARGET", "REGRESSION_CLEANUP")
 
 
 def row_env():
-    """A row's environment: no GitHub token and no runner file a row could write into."""
     return {k: v for k, v in os.environ.items() if k not in ROW_DROP}
 
 
@@ -65,23 +63,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Check the routine
-        id: routine
-        env:
-          EVENT: ${{ github.event_name }}
-        run: |
-          cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("regression_cron") or "")' 2>/dev/null || true)
-          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then
-            echo "on=false" >> "$GITHUB_OUTPUT"
-            echo "OFF: regression is off in .loop/config.json (regression_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          echo "on=true" >> "$GITHUB_OUTPUT"
-          if [ -n "$cron" ] && [ "$cron" != "@CRON@" ]; then
-            said="SCHEDULE: this workflow runs on '@CRON@' but .loop/config.json says '$cron'. Fix: python3 skills/workflow-regression/scripts/regression.py workflow"
-            echo "::warning::$said"; echo "$said" >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - name: Run the rows, and keep one issue per failing row
+@ROUTINE@      - name: Run the rows, and keep one issue per failing row
         if: steps.routine.outputs.on == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -252,7 +234,7 @@ jobs:
                   mark = "<!-- loop-regression %s placed= -->" % row[0]
                   about = "- Feature: %s\n- Guards: %s\n- Checks: %s\n\n" % (cells[0] or "-", cells[3] or "-", cells[4] or "-")
                   body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "fails", about,
-                                                                 shown(run, row[2], code, said))
+                                                                 shown(lambda c: run(c, ROW_SECONDS), row[2], code, said))
                   if not hit:
                       make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect"]
                       made = gh(*make, *(["--label", label] if label else []), body=body)
@@ -315,11 +297,10 @@ jobs:
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@ROWTAIL@", "@MATRIX@", "@SHARDS@", "@SUMMARY@", "TESTS_PY_EOF")
+UNSAFE = ("${{", "@CRON@", "@ROWDROP@", "@TESTS@", "@SCHEDULE@", "@LEVELS@", "@BUDGET@", "@ROWTAIL@", "@MATRIX@", "@SHARDS@", "@SUMMARY@", "@ROUTINE@", "TESTS_PY_EOF")
 
 
 def render(cron, levels="nightly"):
-    """The workflow text for this cron and ci_levels."""
     with open(os.path.join(HERE, "tests.py")) as handle:
         source = handle.read()
     bad = [token for token in UNSAFE if token in source]
@@ -329,7 +310,7 @@ def render(cron, levels="nightly"):
     with open(os.path.join(HERE, "rowtail.py")) as handle:
         tail = "\n".join(("          " + line).rstrip() for line in handle.read().rstrip("\n").split("\n"))
     schedule = "" if cron == "off" else '  schedule:\n    - cron: "%s"\n' % cron
-    return WORKFLOW.replace("@SUMMARY@", SUMMARY_JOB).replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
+    return WORKFLOW.replace("@ROUTINE@", ROUTINE_STEP).replace("@SUMMARY@", SUMMARY_JOB).replace("@SCHEDULE@", schedule).replace("@CRON@", cron).replace("@LEVELS@", levels).replace("@ROWDROP@", repr(ROW_DROP)) \
         .replace("@BUDGET@", str(BUDGET_MINUTES)).replace("@SHARDS@", str(SHARDS)).replace("@MATRIX@", str(list(range(SHARDS)))) \
         .replace("@TESTS@", body).replace("@ROWTAIL@", tail)
 

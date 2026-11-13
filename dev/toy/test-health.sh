@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/workflow-health/scripts/cost.py skills/workflow-health/scripts/health.py
+# reads: skills/workflow-health/scripts/milestone.py skills/workflow-health/scripts/health.py
 # reads: skills/workflow-health/scripts/enforce.py skills/workflow-setup/scripts/setup.py skills/workflow-health/scripts/
 # Test workflow-health on a throwaway toy repo. usage: test-health.sh [DIR]
 set -u
@@ -108,7 +108,7 @@ grep -q "^missing: feature Empty has no requirement" <<<"$a" && ok "a feature wi
 grep -q "^next 1: FAIL " <<<"$a" && ok "next steps are ranked, failures first" || bad "ranked"
 [ "$a" = "$b" ] && ok "hints repeat exactly" || bad "hints differ"
 c=$($health check); e=$($health check); [ "$c" = "$e" ] && ! grep -q "JUDGE" <<<"$c" && ok "check stays apart from the judge and repeats" || bad "check same"
-grep -rn "claude\|anthropic\|urllib\|http" "$here"/skills/workflow-health/scripts/cost.py "$here"/skills/workflow-health/scripts/enforce.py >/dev/null && bad "model or network in a rule module" || ok "no model or network call in the rule modules"
+grep -rn "claude\|anthropic\|urllib\|http" "$here"/skills/workflow-health/scripts/milestone.py "$here"/skills/workflow-health/scripts/enforce.py >/dev/null && bad "model or network in a rule module" || ok "no model or network call in the rule modules"
 
 echo "== a rule that cannot read says UNREAD, never green"
 lone=$(mktemp -d); cp "$here/skills/workflow-health/scripts/health.py" "$lone/"

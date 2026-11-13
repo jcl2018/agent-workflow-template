@@ -3,18 +3,13 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/11
 
-Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=069a23eb N=e6bf17f7 M=5109e571 U=598ea907 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=2098028a N=e6bf17f7 M=5109e571 U=03828777 -->
 
 ## Problem
 
 - My guardrails are scattered across six features, some are promised but not built, and I can't see in one place what protects me, where it is enforced and whether it is on.
 - Runs can quietly cost too much: CI minutes on superseded or no-code runs, a step spending far more tokens than usual, a run going far longer than usual.
 - I want one set of guardrails that the health checks prove are on and that every adopted repo gets, each one showing what it protects against, where it lives and the setting that controls it.
-
-## Usage
-
-- `/workflow-health check [--group NAME] [--skip controls] [--json]` — Runs the fixed rules, among them the one per guardrail that proves it is on (GRD-9); the Health page holds the whole entry. Prints one line per finding and last `HEALTH: green|not green (<p> pass, <w> warn, <f> fail, <u> unread)`; exits 1 when not green. Refuses what the Health page lists.
-- `/workflow-setup settings` — Shows the settings reference: every setting with its home, default and meaning. Prints the reference as a Markdown table, one `| <setting> | <home> | <default> | <meaning> |` row per setting. Refuses nothing. This repo's `.loop/config.json` holds every setting the reference lists, with `template_version` naming the template it came from; it overrides `criteria_max` to 17 (the default is 10), because the Setup page holds 17 requirements.
 
 ## Requirements
 
@@ -53,10 +48,11 @@ Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=069a23eb N=e6bf17f7 M=5109
   - A step whose tokens pass a set multiple of that step's usual is flagged on the board and in the check-in (Monitoring, new).
   - A step past three times its estimate is shown as stalled under Issues on the board (Monitoring, MON-4, which keeps a stuck worker at the top of Issues), and a worker silent past `silent_minutes` shows under Needs you: MON-8.
   - A goal's test lane past `goal_lane_minutes` (default 10) says so in its LANE line (Regression, REG-8).
-- GRD-9: **Reviewed 2026-11-13** Health proves every guardrail is present and working, each rule with a negative control <!-- reviewed cc0ebe01 -->
+- GRD-9: **Reviewed 2026-11-13** Health proves every guardrail is present and working, each rule with a negative control <!-- reviewed 97e6018b -->
   - Each guardrail has a health rule that reads whether it is present and working, in an existing group (Performance, Security and privacy, Hygiene or Adoption), within the cap of 12 groups (Health, HLT-2).
   - Each such rule has a negative control run against a deliberately broken copy, so it is known to fire (Health, HLT-2, Controls).
   - A guardrail its rule can't read shows as unread, never as passing (Health, HLT-3).
+  - A page's requirement cap, `criteria_max` (17 in this repo), is read by health's Size group, so a page too large to review shows as a finding.
 - GRD-10: **Reviewed 2026-11-13** Setup installs the whole set when a repo is adopted, and health judges it <!-- reviewed c53adea9 -->
   - Adopting a repo installs every guardrail on this page with its default setting, and setup lists each one it installed (Setup, SET-1 for installing; listing each one is new).
   - Health judges a freshly adopted repo's guardrails on the same rules as the template's (Setup, SET-1).

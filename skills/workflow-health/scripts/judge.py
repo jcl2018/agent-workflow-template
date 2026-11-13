@@ -19,7 +19,7 @@ import subprocess
 import sys
 import tempfile
 
-import cost
+import milestone as cost
 import issues as IS
 import defects as T
 
@@ -232,8 +232,8 @@ conflict (two requirements that contradict, or a page breaking a reviewed rule),
 promise, an open issue that fits no requirement), drift (code or Usage doing what its page doesn't say), weak-test (a test
 that doesn't prove what it claims), savings (time or tokens to cut, ranked by size). Answer only lines of the form
 FINDING|<feature>|<kind>|<angle>|<what is wrong>|<evidence>|<fix>
-where evidence is comma-separated citations: a requirement id (HLT-2), a file or file:line, a regression row id, or #N.
-A finding with no checkable evidence will be dropped.
+where evidence is comma-separated citations, at least one a file:line or a regression row id (a requirement id (HLT-2) or #N may be added).
+A finding with no file:line or row citation will be dropped.
 """
 
 
@@ -254,12 +254,6 @@ def deterministic(root, name, text, paths):
                 and not re.search(r"\b[A-Z]{2,5}-\d+\b", body):
             out.append(finding(name, "gap", "an auditor's angle", "open issue #%d names no requirement" % issue["number"],
                                "#%d" % issue["number"], "tie it to a requirement, or add one", "rule"))
-    skills = {p.split("/")[1] for p in paths if p.startswith("skills/workflow-")}
-    for skill, verb in sorted(set(COMMAND.findall(T.section(text, "Usage")))):
-        doc = os.path.join(root, "skills", skill, "SKILL.md")
-        if skill in skills and os.path.exists(doc) and verb not in open(doc, errors="replace").read():
-            out.append(finding(name, "drift", "a newcomer's angle", "Usage names /%s %s, which the skill doesn't name" % (skill, verb),
-                               "docs/wiki/%s.md" % name, "fix the Usage line or the skill", "rule"))
     return out
 
 
@@ -274,6 +268,11 @@ def verified(root, cite, known, rows, issues):
     if not full.startswith(os.path.realpath(root) + os.sep) or not os.path.isfile(full):
         return False
     return not line or (line.split("-")[0].isdigit() and int(line.split("-")[0]) <= sum(1 for _ in open(full, errors="replace")))
+
+
+def located(cite, rows):
+    """A citation that points at a place: a regression row id, or path:line."""
+    return cite in rows or bool(re.match(r"^[^:#\s]+:\d+(-\d+)?$", cite))
 
 
 def judged(root, wanted, every):
@@ -297,7 +296,7 @@ def judged(root, wanted, every):
         if len(parts) != 7 or parts[0] != "FINDING" or parts[2] not in KINDS or parts[1] not in wanted:
             continue
         cites = [c for c in parts[5].split(",") if c.strip() and verified(root, c, known, rows, issues)]
-        if not cites:
+        if not any(located(c.strip(), rows) for c in cites):  # HLT-9: a file and line, or a test row, or the finding is dropped
             dropped += 1
             continue
         out.append(finding(parts[1], parts[2], parts[3], parts[4], ", ".join(c.strip() for c in cites), parts[6], "judge"))
@@ -339,6 +338,14 @@ def render_review(findings, dropped, why):
         out.append("next steps: " + "; ".join("%d. %s" % (n, step) for n, step in enumerate(steps, 1)))
     out.append("REVIEW: %d findings, %d dropped for no evidence" % (len(findings), dropped))
     return out
+
+
+def answered(path):
+    """True when a saved review --json came from a judge that answered (an unanswered judge found nothing, not nothing wrong)."""
+    try:
+        return json.load(open(path)).get("judge") == "answered"
+    except (OSError, ValueError, AttributeError):
+        return False
 
 
 def load(path):

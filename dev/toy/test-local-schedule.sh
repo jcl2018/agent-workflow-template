@@ -13,6 +13,9 @@ set -u
 unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID LOOP_SESSION_TOOL LOOP_OPERATION_SESSION ANTHROPIC_API_KEY CLAUDECODE
 here=$(cd "$(dirname "$0")/../.." && pwd); only=${1:-}
 . "$here/dev/toy/reap.sh"
+# macOS only: automation.py local install refuses off macOS (SCHEDULE_PLATFORM), so on any other host every part would FAIL. A row this
+# host can't run is SKIPPED with its reason (exit 77, REG-10) and writes the skip file a row's `| grep -q` can't hide, never a FAIL.
+[ "$(uname -s)" = Darwin ] || toy_skip "macOS only (launchd, SCHEDULE_PLATFORM); this host is $(uname -s)"
 S="$here/skills/workflow-health/scripts"; A="$S/automation.py"
 fails=0
 ok() { echo "PASS: $1"; }
@@ -280,12 +283,12 @@ if want setting; then fresh
   export FAKE_GH_PRIVATE=true; r=$(toyrepo dr3 "$(cfgj actions)"); install "$r" >/dev/null; out=$(tick "$r" 2>&1)
   check "the tick prints DRIFT when a private repo is recorded actions" 'grep -q "DRIFT: regression_runs says actions but the repo is private" <<<"$out"'
 fi
-if want usage; then H="$here/docs/wiki/Health.md"
-  check "the Health page Usage names install, the launchctl bootstrap and bootout lines, uninstall and tick" 'grep -q "local install" "$H" && grep -q "launchctl bootstrap gui/" "$H" && grep -q "launchctl bootout gui/" "$H" && grep -q "local uninstall" "$H" && grep -q "local tick" "$H" && grep -q "claude. must be logged in once" "$H"'
+if want usage; then H="$here/skills/workflow-health/references/commands.md"
+  check "the Health command reference names install, the launchctl bootstrap and bootout lines, uninstall and tick" 'grep -q "local install" "$H" && grep -q "launchctl bootstrap gui/" "$H" && grep -q "launchctl bootout gui/" "$H" && grep -q "local uninstall" "$H" && grep -q "local tick" "$H" && grep -q "claude. must be logged in once" "$H"'
   out=$(python3 "$A" --help 2>&1; python3 "$A" local --help 2>&1); missing=""
   for c in $(grep -o "workflow-health local [a-z]*" "$H" | sort -u | awk '{print $3}'); do grep -q "$c" <<<"$out" || missing="$missing $c"; done
-  check "every local command the page names exists in automation.py --help" '[ -z "$missing" ]'
-  check "the Usage states the trust model once and that no API key secret exists" 'grep -q "the Mac is the CI" "$H" && grep -q "no API key secret" "$H"'
+  check "every local command the reference names exists in automation.py --help" '[ -z "$missing" ]'
+  check "the command reference states the trust model once and that no API key secret exists" 'grep -q "the Mac is the CI" "$H" && grep -q "no API key secret" "$H"'
 fi
 if want messages; then H="$here/docs/wiki/Health.md"; miss=""
   for code in SCHEDULE_CRON SCHEDULE_PROGRAM_PATH SCHEDULE_DUPLICATE_ORIGIN SCHEDULE_NO_ORIGIN SCHEDULE_PLATFORM SCHEDULE_REMOVED_WORKFLOW SCHEDULE_AUTH SCHEDULE_OFFLINE REGISTRY_UNREADABLE MAIL_ENV_MODE TICK_CRASH STATUS_FAILED STATUSES_UNREADABLE BLOCKS DRIFT JUDGE_SKIPPED PROGRAM_MISSING ORIGIN_CHANGED PATH_MISSING; do

@@ -375,3 +375,77 @@ def rows_line(text, ran, log):
     count, parts, reused, loose = found.groups()
     return "; rows: %s selected %s, %s reused, %d unfinished; unmapped: %s; log: %s" % (
         count, parts, reused, max(int(count) - ran, 0), loose, log)
+
+
+# The summary job of the regression workflow: one combined summary after every shard (REG-4, REG-7); actions.py embeds it.
+SUMMARY_JOB = r"""  summary:
+    needs: regression
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download every shard's results
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: results-*
+          path: ${{ runner.temp }}/shards
+      - name: Write one run summary, one table per feature
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHARDS: "@SHARDS@"
+        run: |
+          here=$(mktemp -d)
+          cat > "$here/tests.py" <<'TESTS_PY_EOF'
+@TESTS@
+          TESTS_PY_EOF
+          all="$here/results.tsv"; : > "$all"
+          reported=0
+          for f in "$RUNNER_TEMP"/shards/*/regression-results.tsv; do
+            [ -f "$f" ] || continue
+            reported=$(( reported + 1 )); cat "$f" >> "$all"
+          done
+          [ "$reported" -gt 0 ] || rm -f "$all"  # no shard left results: the plain fallback says so
+          started=$(sed -n 's/^# started //p' "$all" 2>/dev/null | sort -n | head -n 1 || true)
+          case "$started" in ''|*[!0-9]*) started=$(date +%s) ;; esac  # never an expression
+          unrun=$(grep -c '^# unrun ' "$all" 2>/dev/null || true); unrun=${unrun:-0}
+          timeout 120 python3 -I "$here/tests.py" issues --write >/dev/null || true
+          took=$(( $(date +%s) - started ))
+          {
+            GH_TOKEN= python3 -I "$here/tests.py" summary --results "$all" --took "$took" || {
+              printf '## Regression\n\nThe grouped summary could not be written; see this step'"'"'s log.\n\n| Test | Result |\n|---|---|\n'
+              grep -v '^#' "$all" 2>/dev/null | awk -F'\t' '{print "| " $1 " | " $2 " |"}'
+            }
+            printf '\nSHARDS %s of %s reported. UNRUN %s (rows skipped for out of job time).\n' "$reported" "$SHARDS" "$unrun"
+          } | tee -a "$GITHUB_STEP_SUMMARY"  # the run's log shows the counts too
+"""
+
+
+ROUTINE_STEP = r"""      - name: Check the routine
+        id: routine
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("regression_cron") or "")' 2>/dev/null || true)
+          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then
+            echo "on=false" >> "$GITHUB_OUTPUT"
+            echo "OFF: regression is off in .loop/config.json (regression_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "on=true" >> "$GITHUB_OUTPUT"
+          if [ -n "$cron" ] && [ "$cron" != "@CRON@" ]; then
+            said="SCHEDULE: this workflow runs on '@CRON@' but .loop/config.json says '$cron'. Fix: python3 skills/workflow-regression/scripts/regression.py workflow"
+            echo "::warning::$said"; echo "$said" >> "$GITHUB_STEP_SUMMARY"
+          fi
+"""

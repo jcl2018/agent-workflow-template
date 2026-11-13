@@ -1,5 +1,5 @@
 #!/bin/bash
-# reads: skills/design-guide.md skills/loop-files.md
+# reads: skills/loop-files.md
 # Defect test for issue 89: a removed feature group name must not come back. No model is called.
 # The groups are the page names in .loop/docs.tsv (minus Home); Release and Milestones are gone, and the
 # docs feature is "Documentation", not "Criteria and tests". usage: test-stale-groups.sh [ROOT]
@@ -25,13 +25,13 @@ for f in docs/wiki/*.md; do
 done
 
 # the old name of the Documentation group, in the places that list groups
-grep -nE "^\| Criteria and tests \|" skills/design-guide.md && no "design-guide.md calls Documentation 'Criteria and tests'"
-grep -rnE "Criteria and tests" README.md skills/loop-files.md skills/design-guide.md docs/ROADMAP.md && no "the old name 'Criteria and tests' came back"
+grep -nE "^\| Criteria and tests \|" skills/loop-files.md && no "loop-files.md calls Documentation 'Criteria and tests'"
+grep -rnE "Criteria and tests" README.md skills/loop-files.md docs/ROADMAP.md && no "the old name 'Criteria and tests' came back"
 
 # a page list that names the groups must not name a removed one
 for g in $removed; do
-  grep -nE "pages \(.*\b$g\b" README.md docs/ROADMAP.md skills/design-guide.md skills/loop-files.md && no "a page list names $g"
-  grep -nE "^\| $g \|" skills/design-guide.md && no "design-guide.md parts table has $g"
+  grep -nE "pages \(.*\b$g\b" README.md docs/ROADMAP.md skills/loop-files.md && no "a page list names $g"
+  grep -nE "^\| $g \|" skills/loop-files.md && no "loop-files.md parts table has $g"
 done
 
 # the step word and its skill stay: they are not a group
