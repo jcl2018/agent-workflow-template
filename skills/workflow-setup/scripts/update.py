@@ -51,7 +51,7 @@ except ImportError:  # native Windows: msvcrt byte-range locks under flock's nam
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
 STAMP, KEPT = "workflow-package.json", ".workflow-kept"
-SHARED = ("loop-files.md", "design-guide.md")
+SHARED = ("loop-files.md",)
 CAP = 20 * 1024 * 1024
 
 

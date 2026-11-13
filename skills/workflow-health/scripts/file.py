@@ -129,7 +129,7 @@ def held_all(root):
     return out, found, ""
 
 
-def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None, everything=(), only=None):
+def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None, everything=(), only=None, reviewed=False):
     """Actions for the named groups (and feature `only`): kind open, update, reopen, close, link or same."""
     found = [item for item in list(rows) + list(extra)
              if item["state"] in BAD and item["family"] in groups and item["rule"] not in REPORT_ONLY]
@@ -180,7 +180,7 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
         whole = {"criteria": {"requirements", "traceability", "tests"}, "cost": {"performance"}}.get(key.partition(":")[0])
         if whole and not whole <= set(groups):  # an old key could mean a rule in a group not run now: leave it
             continue
-        if (savings and judged) or (not savings and ran_rules is not None and rule in ran_rules):  # its own rule passed
+        if (savings and judged) or (not savings and ran_rules is not None and rule in ran_rules) or (reviewed and family == "review"):  # its own rule passed, or an answered review no longer holds it
             out.append({"kind": "close", "group": family, "key": key, "number": str(issue["number"]), "title": "", "body": "",
                         "tag": tag_of(family), "feature": ""})
     return out

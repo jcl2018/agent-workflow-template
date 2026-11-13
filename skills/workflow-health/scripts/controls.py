@@ -204,6 +204,105 @@ def f_agent_tools(root):
     os.environ["LOOP_FLOW"] = os.path.join(root, "no-flow.json")
 
 
+def f_nightly(root):
+    repo(root)
+    write(root, ".loop/regression.tsv", "# id\tlevel\tcommand\nn1\tnightly\ttrue\n")
+    write(root, ".loop/regression-runs.tsv", "# id\tstatus\tdate\nn1\tPASS\t2000-01-01\n")
+
+
+def f_unreleased(root):
+    repo(root)
+    git(root, "tag", "v0.1.0")
+    write(root, "x.txt", "later\n")
+    commit(root, "later", date="2000-01-02T00:00:00+0000")
+
+
+def f_finding_age(root):
+    repo(root)
+    write(root, ".gh.json", json.dumps([{"number": 3, "title": "old", "state": "open", "labels": ["health"],
+                                          "milestone": "Health", "created_at": "2000-01-01T00:00:00Z"}]))
+    os.environ["LOOP_HEALTH_GH_FIXTURE"] = os.path.join(root, ".gh.json")
+    clear_cache()
+
+
+def f_skipped(root):
+    repo(root)
+    write(root, ".loop/regression-runs.tsv", "# id\tstatus\tdate\nr1\tSKIPPED\t2000-01-01\n")
+
+
+def f_network(root):
+    repo(root)
+    write(root, ".loop/regression.tsv", "# id\tlevel\tcommand\nr1\tland\tcurl https://example.test\n")
+
+
+def f_config(root):
+    repo(root)
+    write(root, ".loop/config.json", "{not json")
+
+
+def f_checks_run_tests(root):
+    repo(root)
+    write(root, ".github/workflows/regression.yml", "on:\n  schedule: []\n")
+
+
+def f_template_version(root):
+    repo(root)
+    write(root, "VERSION", "1.0.1\n")
+    write(root, "CHANGELOG.md", "# Changelog\n\n## v1.0.0 - 2000-01-01\n")
+
+
+def f_scheduled(root):
+    repo(root)
+    write(root, ".github/workflows/health.yml", "name: health\n")
+
+
+def f_milestones(root):
+    repo(root)
+    write(root, ".loop/docs.tsv", "A\tsrc\n")
+    git(root, "remote", "add", "origin", "https://github.com/o/r.git")
+    os.environ["LOOP_BACKLOG_MILESTONES"] = "[]"
+
+
+def f_private(root):
+    repo(root)
+    write(root, "flow.json", json.dumps({"leak_patterns": ["PLANTED-SECRET-[0-9]+"]}))
+    os.environ["LOOP_FLOW"] = os.path.join(root, "flow.json")
+    write(root, "notes.txt", "see PLANTED-SECRET-42\n")
+    commit(root, "plant")
+
+
+def f_scan_hook(root):
+    repo(root)
+    os.environ.pop("CI", None); os.environ.pop("GITHUB_ACTIONS", None)
+
+
+def f_workflow_permissions(root):
+    repo(root)
+    write(root, ".github/workflows/x.yml", "on: push\njobs: {}\n")
+
+
+def f_skill_lines(root):
+    repo(root)
+    write(root, "skills/x/SKILL.md", "line\n" * 150)
+
+
+def f_requirements_per_page(root):
+    repo(root, {"criteria_max": 1})
+    write(root, "docs/wiki/One.md", "# One\n\n## Requirements\n\n- AB-1: **Unreviewed** a.\n- AB-2: **Unreviewed** b.\n")
+
+
+def f_check_time(root):
+    repo(root)
+    os.environ["LOOP_HEALTH_T0"] = "1"
+
+
+def f_idle_sessions(root):
+    repo(root)
+    run_record(root, "gone", {"status": "done"})
+    with open(os.path.join(root, ".git", "loop", "session-pool.json"), "w") as handle:
+        json.dump({"s1": {"name": "worker · gone", "slug": "gone", "state": "busy"}}, handle)
+
+
 # rule name in groups.RULES -> (group, the rule groups.rule_of gives its rows, fixture); the rule modules add theirs
 CONTROLS = {
     "scripts": ("size", "scripts", f_size),
@@ -224,8 +323,21 @@ CONTROLS = {
     "no-fit": ("adoption", "no-fit", f_no_fit),
     "agent-tools": ("adoption", "agent-tools", f_agent_tools),
     "matrix": ("adoption", "matrix", f_matrix),
+    "nightly": ("freshness", "nightly", f_nightly), "unreleased": ("freshness", "unreleased", f_unreleased),
+    "finding-age": ("freshness", "finding-age", f_finding_age), "skipped": ("tests", "skipped", f_skipped),
+    "network": ("tests", "network", f_network), "config": ("adoption", "config", f_config),
+    "checks-run-tests": ("adoption", "checks-run-tests", f_checks_run_tests),
+    "template-version": ("adoption", "template-version", f_template_version),
+    "scheduled": ("adoption", "scheduled", f_scheduled), "milestones": ("adoption", "milestones", f_milestones),
+    "prompt-pointer": ("adoption", "prompt-pointer", f_prompt_pointer),
+    "private": ("security", "private", f_private), "scan-hook": ("security", "scan-hook", f_scan_hook),
+    "workflow-permissions": ("security", "workflow-permissions", f_workflow_permissions),
+    "skill-lines": ("size", "skill-lines", f_skill_lines),
+    "requirements-per-page": ("size", "requirements-per-page", f_requirements_per_page),
+    "check-time": ("performance", "check-time", f_check_time),
+    "idle-sessions": ("hygiene", "idle-sessions", f_idle_sessions),
 }
-for _module in ("defects", "rules"):
+for _module in ("defects",):
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     try:
         CONTROLS.update(importlib.import_module(_module).CONTROLS)

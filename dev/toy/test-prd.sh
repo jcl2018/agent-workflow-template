@@ -6,7 +6,7 @@
 # reads: skills/workflow-health/scripts/judge.py
 # reads: skills/workflow-monitoring/scripts/board_page.py skills/workflow-regression/scripts/regression.py
 # reads: skills/workflow-release/scripts/release.py skills/workflow-setup/scripts/setup.py
-# Test the PRD page format: section order, the owner's PRD review lock, Usage drift, Given/When/Then scenarios, the prd
+# Test the PRD page format: section order, the owner's PRD review lock, Given/When/Then scenarios, the prd
 # command, convert, the requirement readers, and that this repo stays green. usage: test-prd.sh [DIR]
 set -u
 unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID  # run cells and rendered Tests never depend on the runner
@@ -36,7 +36,7 @@ repo=$PWD; fails=0; day=$(date -u +%F)
 ok() { echo "PASS: $1"; }
 bad() { echo "FAIL: $1"; fails=$((fails + 1)); }
 P=docs/wiki/Delivery.md
-USAGE='- `/toy median 1 2 3` — Prints the median (`2`). Refuses nothing.'
+USAGE=''  # Usage is gone (drop-usage): page "$USAGE" writes a page with no Usage section
 REQS='### Functional
 
 - DEL-1: **Unreviewed** The calculator prints a median.
@@ -98,14 +98,14 @@ MS="Milestone: https://example.test/milestone/1"; page "$USAGE"; git add -A; git
 
 echo "== 1. the sections, in order, and nothing else"
 check | grep -q "DOCS OK" && ok "a PRD page passes" || bad "PRD page: $(check)"
-edit "## Non-goals" "## Scope"; check | grep -q "^SECTIONS Delivery: have Problem, Usage, Requirements, Scope" && ok "an unknown section fails" || bad "unknown section"
+edit "## Non-goals" "## Scope"; check | grep -q "^SECTIONS Delivery: have Problem, Requirements, Scope" && ok "an unknown section fails" || bad "unknown section"
 page "$USAGE"; python3 - "$P" <<'PY'
 import sys
 p = sys.argv[1]; t = open(p).read()
 a, b = t.index("## Non-goals"), t.index("## Success metrics"); c = t.index("## Tests")
 open(p, "w").write(t[:a] + t[b:c] + t[a:b] + t[c:])
 PY
-check | grep -q "^SECTIONS Delivery: .*want Problem, Usage, Requirements, Non-goals, Success metrics, Tests" && ok "swapped sections fail" || bad "swapped"
+check | grep -q "^SECTIONS Delivery: .*want Problem, Requirements, Non-goals, Success metrics, Tests" && ok "swapped sections fail" || bad "swapped"
 page "$USAGE"; edit "## Problem" "A stray line.
 
 ## Problem"; check | grep -q "^SECTIONS Delivery: has text between the Review line and the first section: A stray line.*Fix:" && ok "stray text before the first section fails" || bad "stray text"
@@ -182,38 +182,23 @@ $cri unreview Home --user 2>&1 | grep -q "REFUSED: Home is not a feature page" &
 ! $cri review DEL-1 delivery --user >/dev/null 2>&1 && cmp -s $P "$d/before.md" && ok "a page name must match the page's own case; nothing changes" || bad "page case"
 ! $cri unreview ../../README --user >/dev/null 2>&1 && ok "a page name outside the wiki is refused" || bad "page path"
 
-echo "== 4. a Usage change after the review is CHANGED: the check fails, the board lists it, audit and publish ignore it"
-edit "Prints the median (\`2\`)." "Prints the median of the numbers (\`2\`)."
-out=$(check); rc=$?
-grep -q "^CHANGED Delivery: Usage edited since the owner's review on 2026-11-08 (reviewed U=[0-9a-f]*, now U=[0-9a-f]*). Fix: the owner runs /workflow-docs review Delivery --user; an agent cannot clear this" <<<"$out" && ! grep -q LOCKED <<<"$out" && [ "$rc" = 1 ] && ok "an edited Usage is CHANGED, not LOCKED, and the check exits 1" || bad "usage edited: $out"
-(cd "$here/skills/workflow-monitoring/scripts" && python3 -c "import board_status; print(board_status.wiki_check('$repo'))") | grep -q "('CHANGED', 'Delivery')" && ok "the board's wiki check lists the CHANGED page" || bad "board"
-out=$($docs audit --dry-run); rc=$?
-! grep -q CHANGED <<<"$out" && grep -q "^UNTESTED DEL-1" <<<"$out" && [ "$rc" = 0 ] && ok "audit --dry-run with only CHANGED and UNTESTED lines prints no CHANGED and exits 0" || bad "audit: $rc $out"
-out=$($docs publish --dry-run --adopt Home 2>&1)
-! grep -q "fix the pages above" <<<"$out" && ! grep -q "^CHANGED" <<<"$out" && grep -q "WOULD WRITE Delivery" <<<"$out" && ok "publish's pre-check passes with only a CHANGED line" || bad "publish: $out"
-git checkout -q -- $P; edit "Refuses nothing." "Refuses nothing.
-- \`/toy mean 1 2 3\` — Prints the mean (\`2\`). Refuses nothing."
-check | grep -q "^CHANGED Delivery: Usage edited" && ok "a new Usage line is CHANGED" || bad "usage line added"
-git checkout -q -- $P; python3 - "$P" <<'PY'
-import re, sys
-p = sys.argv[1]; t = open(p).read()
-open(p, "w").write(re.sub(r"## Usage\n\n.*?\n\n(?=## Requirements)", "", t, flags=re.S))
-PY
-check | grep -q "^CHANGED Delivery: Usage removed since" && ok "a removed Usage is CHANGED" || bad "usage removed: $(check)"
-$cri unreview Delivery --user >/dev/null; $cri review Delivery --user >/dev/null; git commit -qam "No usage, reviewed" >/dev/null
+echo "== 4. Usage is gone: a Usage section is USAGE, never CHANGED, and the review lock ignores it"
 edit "## Requirements" "## Usage
 
-$USAGE
+- \`/toy median 1 2 3\` — Prints the median (\`2\`). Refuses nothing.
 
-## Requirements"; check | grep -q "^CHANGED Delivery: Usage added since" && ok "an added Usage is CHANGED" || bad "usage added: $(check)"
+## Requirements"
+out=$(check); rc=$?
+grep -q "^USAGE Delivery: has a Usage section" <<<"$out" && ! grep -q "^CHANGED\|^LOCKED" <<<"$out" && [ "$rc" = 1 ] && ok "a Usage section added after the review is USAGE, not CHANGED or LOCKED, and the check exits 1" || bad "usage added: $out"
+out=$($docs audit --dry-run 2>&1); grep -q "^USAGE Delivery" <<<"$out" && ok "audit names the USAGE page" || bad "audit usage: $out"
 git checkout -q -- $P
 
-echo "== 5. a PRD review makes every requirement with no passing test UNTESTED, and fixes never touch Usage"
+echo "== 5. a PRD review makes every requirement with no passing test UNTESTED, and fixes never touch the page"
 $docs audit --dry-run | grep -q "^UNTESTED DEL-2: no test" && ok "a PRD review with Unreviewed requirements lists UNTESTED for one with no row" || bad "untested via PRD review"
-page "$USAGE"; $cri review Delivery --user >/dev/null; git commit -qam "Usage back" >/dev/null
-sed -n '/^## Usage/,/^## Requirements/p' $P > "$d/usage.before"; echo "# change" >> calc.py; git commit -qam "Code" >/dev/null
+page "$USAGE"; $cri review Delivery --user >/dev/null; git commit -qam "Reviewed again" >/dev/null
+cp $P "$d/page.before"; echo "# change" >> calc.py; git commit -qam "Code" >/dev/null
 (cd "$here/skills/workflow-release/scripts" && python3 -c "import release; release.docs_trouble('$repo', 'main', True)") >/dev/null 2>&1
-sed -n '/^## Usage/,/^## Requirements/p' $P | cmp -s - "$d/usage.before" && ! check | grep -q "^CHANGED\|^LOCKED" && ok "the release step's mechanical fixes never change Usage" || bad "fixes touched usage"
+cmp -s $P "$d/page.before" && ! check | grep -q "^CHANGED\|^LOCKED" && ok "the release step's mechanical fixes never change a reviewed page" || bad "fixes touched the page"
 git checkout -q -- .; git reset -q --hard HEAD~1  # drop the code commit, so the page is not stale
 
 echo "== 6. Tests are Given/When/Then scenarios with the test, its result and date"
@@ -286,7 +271,7 @@ $prd new Qq "x" --paths calc.py --prefix DEL 2>&1 | grep -q "REFUSED: --prefix D
 git checkout -q -- .; rm -f docs/wiki/Delight.md
 
 echo "== 10. convert turns old pages into PRD pages"
-printf '<!-- workflow-docs -->\n# Delivery\n\nMilestone: https://example.test/m/2\n\n## Summary\n\nThe toy calculator, an old page.\n\n## Usage\n\n%s\n\n## Criteria\n\n%s\n\n## Tests\n\n' "$USAGE" "$REQS" > $P
+printf '<!-- workflow-docs -->\n# Delivery\n\nMilestone: https://example.test/m/2\n\n## Summary\n\nThe toy calculator, an old page.\n\n## Criteria\n\n%s\n\n## Tests\n\n' "$REQS" > $P
 cp $P "$d/old.md"; out=$($prd convert); grep -q "^Delivery converted (dry run)" <<<"$out" && cmp -s $P "$d/old.md" && ok "convert without --write changes nothing" || bad "dry convert"
 $prd convert --write | grep -q "^Delivery converted$" && ok "convert --write converts an old page" || bad "convert"
 grep -v '^$' $P | sed -n '3,5p' | tr '\n' '~' | grep -q "^Milestone: https://example.test/m/2~Review: \*\*Unreviewed\*\*~## Problem~$" && grep -q "^- DEL-1: \*\*Unreviewed\*\* The calculator prints a median.$" $P && ok "Summary becomes Problem, Criteria Requirements, lines and stamps kept, Review under Milestone" || bad "converted shape"
