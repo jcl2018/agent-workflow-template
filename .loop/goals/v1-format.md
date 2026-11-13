@@ -12,3 +12,8 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Open the v0.28.0 release page.
+   Expect: the release is published and lists review-findings, spec-decisions, v1-roadmap, migration-check, health-docs-size, settings-render-windows and review-sitting.
+2. Run `python3 skills/workflow-docs/scripts/docs.py check` on a fresh checkout of main.
+   Expect: it prints DOCS OK and no CHANGED, STALE or Unreviewed line.
