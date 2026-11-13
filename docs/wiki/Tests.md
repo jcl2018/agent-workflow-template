@@ -773,3 +773,6 @@
 | <a id="t-migration-fix-sched-task"></a>migration-fix-sched-task | defect | [#3780](https://github.com/jcl2018/agent-workflow-template/issues/3780) open (2026-11-12) | not run | - | local | 2026-11-13 |
 | <a id="t-migration-fix-mac-no-yml"></a>migration-fix-mac-no-yml | defect | [#3780](https://github.com/jcl2018/agent-workflow-template/issues/3780) open (2026-11-12) | not run | - | local | 2026-11-13 |
 | <a id="t-stale-net-diff-revert"></a>stale-net-diff-revert | requirement | done line stale-net-diff:1 | not run | - | local | 2026-11-13 |
+| <a id="t-resume-ask-prompt"></a>resume-ask-prompt | requirement | done line resume-ask-honored:1 | not run | - | local | 2026-11-13 |
+| <a id="t-resume-ask-worker-step"></a>resume-ask-worker-step | requirement | done line resume-ask-honored:1 | not run | - | local | 2026-11-13 |
+| <a id="t-resume-unasked-merges"></a>resume-unasked-merges | requirement | done line resume-ask-honored:1 | not run | - | local | 2026-11-13 |
