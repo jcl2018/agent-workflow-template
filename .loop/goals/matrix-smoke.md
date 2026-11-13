@@ -11,4 +11,7 @@ Frozen. A wrong done line needs a new goal.
 
 ## Verify by hand
 
-<!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+1. Run `python3 dev/toy/matrix-smoke.py --agent claude-cli`.
+   Expect: seven PASS lines (package, adopt, freeze, qa, health, runbook, relay), then `SMOKE ... pass` and `RECORDED .loop/matrix-runs.tsv`, whose new line holds today's date, your agent, OS, machine and commit.
+2. Run `python3 skills/workflow-health/scripts/health.py check --group adoption`.
+   Expect: with `.loop/matrix-runs.tsv` present, a FAIL for each V1 cell with no pass in 7 days (Claude Code on macOS, CI on Linux) and a WARN "not proven" for each other cell; none for Claude Code on Windows.
