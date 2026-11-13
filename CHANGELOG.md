@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.28.18 - 2026-11-13
+
+- Doc fixes: README Automation rows, depth rows link DEL-6, adopt-set-3 runs a skill, short Monitoring titles drafted
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/doc-fixes-v1
+- Home: README Automation rows follow Automation
+- Merge remote-tracking branch 'origin/main' into loop/doc-fixes-v1
+- Merge origin/main into loop/doc-fixes-v1
+- Merge remote-tracking branch 'origin/main' into loop/doc-fixes-v1
+- Merge origin/main into loop/doc-fixes-v1
+- Merge origin/main into loop/doc-fixes-v1
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.17 - 2026-11-13
 
 - Package passes: 99 files, scripts under 20,480 bytes, every script standalone
