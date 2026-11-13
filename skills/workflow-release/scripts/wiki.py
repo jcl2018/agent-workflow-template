@@ -33,6 +33,8 @@ from release import base_of, git, load, read_config, run, save
 
 os.environ.setdefault("GIT_TERMINAL_PROMPT", "0")  # release.py sets the rest on import
 DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-docs", "scripts", "docs.py")
+CRITERIA = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-docs", "scripts",
+                                         "criteria.py"))
 TESTS = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-regression",
                                       "scripts", "tests.py"))
 
@@ -87,6 +89,26 @@ def cmd_prepare(args):
     return 0
 
 
+def rerender(tree, cfg):
+    """Re-render the generated Tests tables in the publish tree and commit them there (DOC-11), so staleness that is only
+    generated never blocks the publish. Returns the pages it changed. Hand-written pages are not touched, and a failed
+    render is printed, not fatal: docs.py publish then names what is still stale."""
+    done = run([sys.executable, CRITERIA, "render", "--tables"], cwd=tree)
+    if done.returncode:
+        print("RENDER FAILED: " + ((done.stderr or done.stdout).strip().splitlines() or ["exit %d" % done.returncode])[0][:200])
+        return []
+    folder = cfg.get("wiki_dir") or "docs/wiki"
+    changed = [l[3:].strip().replace("\\", "/") for l in run(["git", "status", "--porcelain", "--", folder], cwd=tree).stdout.splitlines()]
+    if not changed:
+        return []
+    git("add", "--", folder, cwd=tree)
+    git("-c", "user.name=workflow-loop", "-c", "user.email=loop@localhost", "commit", "-m", "Wiki: re-render generated tables",
+        "--", folder, cwd=tree)
+    pages = [os.path.basename(path)[:-3] for path in changed if path.endswith(".md")]
+    print("RERENDERED " + ", ".join(pages))
+    return pages
+
+
 def publish(top, cfg, slug):
     """Publish from origin/<base>. Returns the error text, or '' when the wiki is current or published."""
     base = cfg.get("base", "main")
@@ -97,6 +119,7 @@ def publish(top, cfg, slug):
     try:
         if run(["git", "worktree", "add", "-q", "--detach", tree, "origin/" + base], cwd=top).returncode:
             return "could not check out origin/%s" % base
+        rerender(tree, cfg)
         folder = os.path.join(tree, cfg.get("wiki_dir") or "docs/wiki")
         texts = {}
         for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:

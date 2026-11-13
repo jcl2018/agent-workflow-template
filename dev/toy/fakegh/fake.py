@@ -91,6 +91,12 @@ elif args[:2] == ["label", "list"]:
 elif args[:2] == ["issue", "view"]:
     print(json.dumps(next(({"comments": i.get("comments") or [], "state": i["state"]} for i in issues
                            if str(i["number"]) == args[2]), {"comments": []})))
+elif args[0] == "api" and "PATCH" in args:  # rename: gh api -X PATCH .../milestones/N -f title=T
+    number = int(next(a for a in args if "/milestones/" in a).rsplit("/", 1)[1])
+    for m in miles:
+        if m["number"] == number:
+            m["title"] = next(a[6:] for a in args if a.startswith("title="))
+    save("milestones.json", miles)
 elif args[0] == "api":
     if "-f" in args:
         title = next(a[6:] for a in args if a.startswith("title="))

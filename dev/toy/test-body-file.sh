@@ -2,7 +2,7 @@
 here=$(cd "$(dirname "$0")/../.." && pwd)
 . "$here/dev/toy/reap.sh"
 # windows: ok
-# reads: skills/workflow-release/scripts/autorelease.py skills/workflow-health/scripts/rounds.py skills/workflow-health/scripts/file.py skills/workflow-regression/scripts/runs.py skills/workflow-regression/scripts/actions.py
+# reads: skills/workflow-release/scripts/autorelease.py skills/workflow-health/scripts/rounds.py skills/workflow-health/scripts/file.py skills/workflow-regression/scripts/runs.py skills/workflow-regression/scripts/actions.py skills/workflow-regression/scripts/slots.py
 # Issue 2879: a long gh text (a pull request body, an issue body or comment, release notes) goes in a temp file and
 # --body-file or --notes-file, never on the command line, which native Windows caps near 32,767 characters
 # (goal.py pr crashed with WinError 206). Python only, so it runs the same on Linux, macOS and Windows.
