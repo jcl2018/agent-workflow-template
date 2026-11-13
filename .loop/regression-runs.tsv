@@ -134,7 +134,7 @@ done-line-rows-128	PASS	2026-11-12
 done-lines-warning-143	PASS	2026-11-12	
 entry-stale	PASS	2026-11-12	
 estimates-shown	PASS	2026-11-12	
-every-row-described	FAIL	2026-11-12	
+every-row-described	PASS	2026-11-13	
 failed-waits-mender	PASS	2026-11-09	
 file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 fixed-closes	PASS	2026-11-12	
@@ -348,6 +348,8 @@ ptb-mend	PASS	2026-11-12
 ptb-plain-paths	PASS	2026-11-12	
 publish-refused-stale	PASS	2026-11-12	
 publish-restore	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+publish-tables-handwritten	PASS	2026-11-13	
+publish-tables-regen	PASS	2026-11-13	
 pull-ff-only-passes	PASS	2026-11-12	
 pull-plain-blocked	PASS	2026-11-12	
 record-in-session	PASS	2026-11-12	
