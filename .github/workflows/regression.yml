@@ -880,3 +880,25 @@ jobs:
             printf '## Regression\n\nThe grouped summary could not be written; see this step'"'"'s log.\n\n| Test | Result |\n|---|---|\n'
             grep -v '^#' "$REGRESSION_RESULTS" 2>/dev/null | awk -F'\t' '{print "| " $1 " | " $2 " |"}'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  matrix-smoke:
+    if: github.event_name != 'workflow_dispatch' || inputs.target == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Smoke set on Linux
+        run: |
+          if [ -f dev/toy/matrix-smoke.py ]; then python3 dev/toy/matrix-smoke.py --agent ci; else echo "no dev/toy/matrix-smoke.py in this repo; nothing to prove"; fi
+      - name: Keep the matrix record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-runs
+          path: .loop/matrix-runs.tsv
+          if-no-files-found: ignore

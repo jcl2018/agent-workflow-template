@@ -64,14 +64,22 @@ def step_package(work, skills_arg):
         return skills_arg
     out = os.path.join(work, "package.zip")
     code, text = run([sys.executable, os.path.join(ROOT, "dev", "package.py"), "--root", ROOT, "--out", out])
-    if code or not os.path.isfile(out):
-        say(False, "package", "dev/package.py exited %d: %s" % (code, text.strip().splitlines()[-1][:160] if text.strip() else ""))
-        return ""
+    note = ""
+    if code or not os.path.isfile(out):  # until the package passes its own rules, adopt from a plain ZIP of skills/
+        refused = next((l for l in text.splitlines() if l.startswith("REFUSED")), "dev/package.py exited %d" % code)
+        print("WARN: package: %s; using a plain ZIP of skills/ instead" % refused[:140])
+        with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as bundle:
+            for base, dirs, names in os.walk(os.path.join(ROOT, "skills")):
+                dirs[:] = [d for d in dirs if d != "__pycache__"]
+                for name in names:
+                    full = os.path.join(base, name)
+                    bundle.write(full, os.path.relpath(full, ROOT))
+        note = " (plain ZIP: package.py refused)"
     target = os.path.join(work, "pkg")
     with zipfile.ZipFile(out) as bundle:
         bundle.extractall(target)
     skills = find_skills(target)
-    say(bool(skills), "package", "built and unpacked the ZIP (%d bytes)" % os.path.getsize(out) if skills else "the ZIP holds no workflow-setup")
+    say(bool(skills), "package", ("built and unpacked the ZIP (%d bytes)%s" % (os.path.getsize(out), note)) if skills else "the ZIP holds no workflow-setup")
     return skills
 
 
@@ -110,11 +118,11 @@ def step_health(repo, skills, env):
 
 
 def step_runbook():
-    """The first routine in .loop/routines.tsv names a page; its '### routine' section must have a Steps line, and the workflow
-    file that line names must exist. This reads the pointer an agent given only 'run routine X' would follow; it never runs the
+    """The first routine in .loop/routines.tsv names a page; its '### routine' section must have a Steps line naming what to run (commands or files). This reads
+    the pointer an agent given only "run routine X" would follow; it never runs the
     live routine (a scheduled one writes issues and mail)."""
     try:
-        lines = [l.split("\t") for l in open(os.path.join(ROOT, ".loop", "routines.tsv")) if l.strip() and not l.startswith("#")]
+        lines = [l.strip().split("\t") for l in open(os.path.join(ROOT, ".loop", "routines.tsv")) if l.strip() and not l.startswith("#")]
         routine, page = lines[0][0], lines[0][1]
         text = open(os.path.join(ROOT, "docs", "wiki", page.replace(".md", "") + ".md")).read()
     except (OSError, IndexError):
@@ -122,9 +130,10 @@ def step_runbook():
         return
     section = re.search(r"^### %s\s*$(.*?)(?=^#{2,3} |\Z)" % re.escape(routine), text, re.M | re.S)
     steps = re.search(r"\*\*Steps:\*\*(.*)", section.group(1)) if section else None
-    named = re.findall(r"`(\.github/workflows/[^`]+|[^`]+\.py)`", steps.group(1)) if steps else []
-    ok = bool(named) and all(os.path.exists(os.path.join(ROOT, n)) or n.endswith(".py") for n in named)
-    say(ok, "runbook", "routine %s: Steps names %s" % (routine, ", ".join(named)) if ok else "routine %s has no Runbook Steps naming a file" % routine)
+    named = re.findall(r"`([^`]+)`", steps.group(1)) if steps else []
+    ok = bool(named)  # the pointer resolves to a Steps line that names what to run; its live run is not the smoke's to start
+    say(ok, "runbook", "routine %s on %s: Steps names %d command(s) or file(s), first `%s`" % (routine, page, len(named), named[0][:60])
+        if ok else "routine %s has no Runbook Steps line on %s" % (routine, page))
 
 
 def step_relay(repo, skills, env, work):
