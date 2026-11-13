@@ -22,3 +22,5 @@ grd5-health-close	2026-11-12	Linux cloud session	0a15090f
 grd8-silent-worker	2026-11-12	Linux cloud session	0a15090f
 grd9-controls	2026-11-12	Linux cloud session	0a15090f
 grd10-install-hooks	2026-11-12	Linux cloud session	0a15090f
+migration-fix-sched-task	2026-11-13	Mac	aa841ed2
+migration-fix-mac-no-yml	2026-11-13	Mac	aa841ed2

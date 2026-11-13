@@ -399,4 +399,26 @@ if want queue; then fresh
   check "the lag text for the board is unchanged: a stamped-old repo prints its two Issues lines" 'out=$(cd "$d/qq/app" && python3 "$S/workflow-monitoring/scripts/board_page.py" lag); grep -q "^- app runs template v0.0.1, older than v$want_v" <<<"$out" && grep -q "^    fix: ask for workflow-setup update in that repo" <<<"$out"'
 fi
 
+# fix-sched-task (#3780): a Mac's per-repo scheduled task <repo>-health-regression counts as the local task
+if want fix-sched-task; then fresh
+  r=$(cleanrepo fx); label=$(python3 -c "import sys;sys.path.insert(0,'$HEALTH');import workflows;print(workflows.task_name('$r'))")
+  ( cd "$r" && python3 "$HEALTH/automation.py" local uninstall ) >/dev/null 2>&1; mig "$r" --offline
+  check "with no registered task and no scheduled task folder the task gap stays" '[ $rc = 1 ] && grep -q "^GAP MIG_TASK" <<<"$out"'
+  mkdir -p "$HOME/tasks/$label"; export LOOP_SCHEDULED_TASKS_DIR="$HOME/tasks"; mig "$r" --offline
+  check "a scheduled task folder named <repo>-health-regression is no MIG_TASK gap" '! grep -q "^GAP MIG_TASK" <<<"$out"'
+  unset LOOP_SCHEDULED_TASKS_DIR
+fi
+
+# fix-mac-no-yml (#3780): a regression_runs mac repo is not asked for pull_request in regression.yml
+if want fix-mac-no-yml; then fresh
+  r=$(cleanrepo fy)
+  ( cd "$r" && mkdir -p .github/workflows && printf 'name: regression
+on:
+  schedule: []
+' > .github/workflows/regression.yml ); mig "$r" --offline
+  check "a regression_runs mac repo whose regression.yml has no pull_request is asked nothing" '! grep -q "^GAP MIG_CHECKS" <<<"$out"'
+  cfgset "$r" "d['regression_runs']='actions'"; mig "$r" --offline
+  check "a regression_runs actions repo is still asked for pull_request" '[ $rc = 1 ] && grep -q "^GAP MIG_CHECKS .*pull_request" <<<"$out"'
+fi
+
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
