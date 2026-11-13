@@ -20,14 +20,14 @@ on:
 permissions:
   contents: read
   issues: write
-  pull-requests: read  # the defect tests' pull request states
+  pull-requests: read
 concurrency:
   group: regression
   cancel-in-progress: false
 jobs:
   regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # the regression budget (REG-7)
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false  # no token left in .git/config for a row to read
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -45,7 +45,7 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("regression_cron") or "")' 2>/dev/null || true)
-          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then  # off stops the schedule only
+          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then
             echo "on=false" >> "$GITHUB_OUTPUT"
             echo "OFF: regression is off in .loop/config.json (regression_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -395,7 +395,7 @@ jobs:
                   return default
               return value if value > 0 else default
           ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", (30 - 2) * 60)
-          ROW_ENV = {k: v for k, v in os.environ.items() if k not in ('GH_TOKEN', 'GITHUB_TOKEN', 'GITHUB_STEP_SUMMARY', 'GITHUB_ENV', 'GITHUB_OUTPUT', 'GITHUB_PATH', 'GITHUB_STATE', 'REGRESSION_RESULTS', 'REGRESSION_MAP', 'RUNNER_TEMP', 'SUITE_TIME_FILE')}  # no token, no runner file
+          ROW_ENV = {k: v for k, v in os.environ.items() if k not in ('GH_TOKEN', 'GITHUB_TOKEN', 'GITHUB_STEP_SUMMARY', 'GITHUB_ENV', 'GITHUB_OUTPUT', 'GITHUB_PATH', 'GITHUB_STATE', 'REGRESSION_RESULTS', 'REGRESSION_MAP', 'RUNNER_TEMP', 'SUITE_TIME_FILE')}
           def run(command):  # own group, output to a file
               with tempfile.TemporaryFile("w+", errors="replace") as log:
                   child = subprocess.Popen(command, shell=True, stdout=log, stderr=subprocess.STDOUT, env=ROW_ENV,
@@ -462,7 +462,7 @@ jobs:
                   print("FAILED label %s: %s" % (label, made.stderr.strip()[:160]))
                   return ""
               return label
-          FOUND = re.compile(r"<!-- loop-regression (\S+?)(?: placed=(\S*))? -->")  # older markers parse
+          FOUND = re.compile(r"<!-- loop-regression (\S+?)(?: placed=(\S*))? -->")
           def marked(body):
               match = FOUND.search(body or "")
               return (match.group(1), urllib.parse.unquote(match.group(2) or "")) if match else (None, "")
@@ -475,7 +475,7 @@ jobs:
               if len(row) < 3 or not wanted(row):
                   continue
               seen += 1
-              if (seen - 1) % shards != mine:  # another shard's row
+              if (seen - 1) % shards != mine:
                   continue
               if CLEANUP and time.time() - start > JOB_SECONDS - 120:
                   break
@@ -539,7 +539,7 @@ jobs:
                       if label and label not in names:
                           write("feature label #" + n, "issue", "edit", n, "--add-label", label)
                       write("comment #" + n, "issue", "comment", n, body="Still failing.")
-          if TARGET == "nightly" and not CLEANUP:  # the full suite's time, for health's REG-7 check
+          if TARGET == "nightly" and not CLEANUP:
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
                   handle.write("%s\tfull\t%d\t%s\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime())))
@@ -572,7 +572,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv
         run: |
-          here=$(mktemp -d)  # a fresh folder: nothing a row left is importable
+          here=$(mktemp -d)
           cat > "$here/tests.py" <<'TESTS_PY_EOF'
           #!/usr/bin/env python3
           """List every regression test in one fixed format, grouped by feature.
@@ -873,7 +873,7 @@ jobs:
           TESTS_PY_EOF
           started=$(sed -n 's/^# started //p' "$REGRESSION_RESULTS" 2>/dev/null | head -n 1 || true)
           case "$started" in ''|*[!0-9]*) started=$(date +%s) ;; esac  # never an expression
-          left=$(( started + 89 * 60 - $(date +%s) - 30 ))  # rows end by minute 88; 30 s for the summary
+          left=$(( started + 89 * 60 - $(date +%s) - 30 ))
           [ "$left" -ge 10 ] && timeout "$(( left < 60 ? left : 60 ))" python3 -I "$here/tests.py" issues --write >/dev/null || true
           took=$(( $(date +%s) - started ))
           GH_TOKEN= python3 -I "$here/tests.py" summary --results "$REGRESSION_RESULTS" --took "$took" >> "$GITHUB_STEP_SUMMARY" || {

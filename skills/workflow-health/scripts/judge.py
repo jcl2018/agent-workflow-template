@@ -246,7 +246,7 @@ def deterministic(root, name, text, paths):
     if T.LINE.search(text) and not re.search(r"^#+\s*Non-functional", text, re.M | re.I):
         out.append(finding(name, "gap", "a reader's angle", "the page has no non-functional requirement (performance, safety, privacy)",
                            "docs/wiki/%s.md" % name, "add one under Non-functional, or say none applies", "rule"))
-    found, _ = IS.fetch(root)
+    found, _ = IS.fetch(root, "open")
     pages = IS.features(root)
     for issue in found or []:
         body = "%s %s" % (issue.get("title") or "", issue.get("body") or "")
@@ -283,7 +283,7 @@ def judged(root, wanted, every):
         data.append("## README\n" + open(os.path.join(root, "README.md"), errors="replace").read()[:4000])
     except OSError:
         pass
-    issues, _ = IS.fetch(root)
+    issues, _ = IS.fetch(root, "open")
     data.append("## open issues\n" + "\n".join("#%d [%s] %s" % (i["number"], i.get("milestone"), i.get("title"))
                                                 for i in issues or [] if i.get("state") == "open"))
     data.append("## rows\n" + "\n".join("%s %s %s" % (r["id"], r["goal"], r["description"][:100]) for r in T.table(root)))

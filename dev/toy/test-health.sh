@@ -125,7 +125,7 @@ after="$(git status --porcelain --ignored)|$(git rev-parse HEAD)|$(git branch | 
 [ "$before" = "$after" ] && ok "check writes no file and makes no commit" || bad "check changed the repo"
 mkdir -p "$d/bin"; printf '#!/bin/bash\necho "$*" >> "%s/gh-calls"\nexit 1\n' "$d" > "$d/bin/gh"; chmod +x "$d/bin/gh"
 PATH="$d/bin:$PATH" $health check >/dev/null
-[ "$(cat "$d/gh-calls" 2>/dev/null)" = 'api --paginate --slurp repos/{owner}/{repo}/issues?state=all&per_page=100' ] && ok "check reads gh once, read-only" || bad "check gh calls: $(cat "$d/gh-calls" 2>/dev/null)"
+[ "$(cat "$d/gh-calls" 2>/dev/null)" = 'api repos/{owner}/{repo}/issues?state=open&labels=health&per_page=100&page=1' ] && ok "check reads one filtered page of gh, read-only" || bad "check gh calls: $(cat "$d/gh-calls" 2>/dev/null)"
 for f in health enforce judge cost; do [ "$(wc -c < "$here/skills/workflow-health/scripts/$f.py")" -lt 20480 ] || bad "size of $f.py"; done; ok "health scripts under 20 KB"
 
 echo "repo: $d/repo"

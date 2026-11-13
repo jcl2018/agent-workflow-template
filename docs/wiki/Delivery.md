@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/1
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=a5b21434 N=9f4c33da M=f8cd4612 U=2375344b -->
 
 ## Problem
 - I have more changes to make than time to babysit them: I want to hand over one sentence and walk away.
@@ -15,7 +15,7 @@ Review: **Unreviewed**
 - `flow.py SLUG STEP` — Runs one step (idea, plan, review, qa, ship); a review or ship step stops at `step_budget_minutes` (default 30, never under 15), is recorded done with what it left and the goal goes on. In a worker session prints `IN SESSION` and the skill to run. Prints `RUNNING` until it ends.
 - `goal.py record SLUG STEP --in-session` — Records a finished step. Refuses a reply with no `DEPTH:` line, and a qa step with no passing lane on HEAD (`LANE_MISSING`). A `PENDING:` line that says none, nothing, n/a or nothing at all asks nothing and never makes the goal wait; a real item still waits for the owner, including one written on the line under a bare `PENDING:` heading. Goal steps (`step`, `record`, `pr`) refuse outside a worker session.
 - `goal.py adopt SLUG` — Run in the goal's worktree on its pushed branch `loop/SLUG`: creates this machine's run record at step qa from the frozen goal file and the open pull request, with idea, plan and review `done on another machine`; qa, ship and pr still run here. Prints `ADOPTED SLUG at qa ...`; refuses (exit 2) a branch not on origin, a worktree missing its commits, no done line, no open pull request, or a run record here that has a pid, a recorded step or a finished status (a stale never-started one is replaced and logged).
-- `goal.py pr SLUG` — Merges the latest main, reruns the affected tests within `test_budget_minutes` (default 15, never under 15; rows past it are left to the scheduled full suite, which the loop never runs, and listed), pushes and opens the pull request, in no milestone. Prints the PR link. Never merges. The same private-name scan runs in git's pre-commit, commit-msg and pre-push hooks (`private.py hook staged | message FILE | push`, installed by workflow-setup's `git-hooks`): a hit prints `REFUSED: a private name would be committed|pushed: <place> matches list line <n> ... (PRIVATE_NAME)`, never the text; exit codes in `skills/workflow-delivery/references/commands.md`, "Private-name hooks". The same pre-push hook also stops a worker session in a goal worktree from pushing anything but its own `loop/<slug>` branch (`REFUSED: a worker session for goal <slug> may push only loop/<slug> ... (WORKER_PUSH)`); `private.py where` says whether a folder is a goal worktree. It is a mistake guard, not enforcement: GitHub branch protection on main is the backstop. A stop signals a process only while its start time matches the one stored with its pid, logs every signal in `runs/kills.log`, and `LANE_DIED` names the signal that ended a lane. For a private repo it then posts the lane's real result as commit statuses named after every required check (see the Health page); it exits 5 when a status failed to post (`STATUS_FAILED`), so a pull request that cannot merge yet is never read as clean. Lane owner checks and stops work on native Windows. A qa or ship lane that fails only on rows both skipped on this platform and unproven (`LANE_OWED`) is not a failed try: the step replies `PENDING` with the rows and the red commands, and the goal waits for off-platform red proof (`regression.py red ID --off-platform`); a real `FAIL` still costs a try, and this pr gate is not covered.
+- `goal.py pr SLUG` — Merges the latest main, reruns the affected tests within `test_budget_minutes` (default 15, never under 15; rows past it are left to the scheduled full suite, which the loop never runs, and listed), pushes and opens the pull request, in no milestone. Prints the PR link. Never merges. The same private-name scan runs in git's pre-commit, commit-msg and pre-push hooks (`private.py hook staged | message FILE | push`, installed by workflow-setup's `git-hooks`): a hit prints `REFUSED: a private name would be committed|pushed: <place> matches list line <n> ... (PRIVATE_NAME)`, never the text; exit codes in `skills/workflow-delivery/references/commands.md`, "Private-name hooks". The same pre-push hook also stops a worker session in a goal worktree from pushing anything but its own `loop/<slug>` branch (`REFUSED: a worker session for goal <slug> may push only loop/<slug> ... (WORKER_PUSH)`); `private.py where` says whether a folder is a goal worktree. It is a mistake guard, not enforcement: GitHub branch protection on main is the backstop. A stop signals a process only while its start time matches the one stored with its pid, logs every signal in `runs/kills.log`, and `LANE_DIED` names the signal that ended a lane. For a private repo it then posts the lane's real result as commit statuses named after every required check (see the Health page); it exits 5 when a status failed to post (`STATUS_FAILED`), so a pull request that cannot merge yet is never read as clean. Lane owner checks and stops work on native Windows. A qa or ship lane that fails only on rows both skipped on this platform and unproven (`LANE_OWED`) is not a failed try: the step replies `PENDING` with the rows and the red commands, and the goal waits for off-platform red proof (`regression.py red ID --off-platform`); a real `FAIL` still costs a try, and this pr gate is not covered. A lane renders only the Tests tables (`criteria.py render --tables`), so it never rewrites the Settings, Automation or README blocks.
 - `merge.py SLUG` — The release step: docs check, merge (where auto_merge is on), version bump, changelog, GitHub release, wiki publish. Prints `MERGED <pr> into main`, `RELEASED vX.Y.Z <release link> (<bump> bump)` and `PUBLISHED <wiki link>`. Refuses while a page is stale. Takes a per-repo merge lock so two pods never merge into one main at once, and refuses another pod's goal with one line naming the owner. The pod is `LOOP_POD_ID`, else the operation session's own id: a restarted operation session keeps its goals by setting `LOOP_POD_ID` to its old pod id.
 - `/workflow-release cut SLUG` — Releases a goal whose pull request is finished: moves the version, writes the changelog and creates a draft GitHub release for you to publish. Prints `CUT SLUG OLD -> NEW on BRANCH (N changelog lines)` then `DRAFT <url>`. Refuses (exit 1, `REFUSED: SLUG is ... with no finished pull request. Fix: finish it with workflow-delivery.`) when the goal has no finished pull request.
 - `/workflow-release leave SLUG` — Leaves a finished goal unreleased and changes nothing versioned. Prints `LEFT SLUG unreleased (answered by <who>). Nothing versioned changed.` Refuses the same way as `cut` for a goal with no finished pull request.
@@ -35,36 +35,30 @@ Review: **Unreviewed**
   - A decision for me waits under Needs you, or, where the repo allows, is auto-approved and logged.
 - DEL-4: **Reviewed 2026-11-08** The pull request <!-- reviewed 7cc0d031 -->
   - Carries the done lines, the plan, how to verify by hand, and each step's result.
-- DEL-5: **Reviewed 2026-11-10** Release <!-- reviewed 17f0ff96 -->
-  - Every goal ends with release, fully automatic, with no draft step.
-  - It bumps the version, writes the release note, and refuses to merge while a page is stale.
-  - The bump is patch by default; minor or major only when the goal says so.
-  - It runs my routines, merges where allowed and publishes the wiki.
-  - Any failure shows under Needs you.
-- DEL-6: **Reviewed 2026-11-10** Review depth fits the goal <!-- reviewed e7ac89a1 -->
-  - Small goals (up to 3 done lines, one skill) run a condensed plan and review.
-  - Larger goals run full depth; I can override it per goal.
-  - Tests never shrink: every goal runs its full test lane.
-- DEL-10: **Unreviewed** A goal started on another machine can be adopted
+- DEL-5: **Reviewed 2026-11-13** Release <!-- reviewed 6d02eda3 -->
+  - Every goal ends with release. With auto_merge on it is fully automatic: it bumps the version, writes the release note, refuses to merge while a page is stale, runs my routines, merges, publishes the release and the wiki. With auto_merge off it makes a draft release for me to publish and merges nothing. Any failure shows under Needs you.
+- DEL-6: **Reviewed 2026-11-13** Review depth fits the goal <!-- reviewed cb62ccd5 -->
+  - Plan and review run at full depth by default (`review_depth: full`); a condensed plan and review happens only when `review_depth: condensed`, and I can override it per goal. Tests never shrink: every goal runs its test lane, the affected rows within the test budget (REG-7).
+- DEL-10: **Reviewed 2026-11-13** A goal started on another machine can be adopted <!-- reviewed 6e9abcdb -->
   - `goal.py adopt SLUG`, run in the goal's worktree on branch `loop/SLUG`, creates this machine's run record at step qa from the pushed branch, its frozen goal file and its open pull request; idea, plan and review are recorded `done on another machine`.
   - qa, ship and the pull request are never recorded from another machine's evidence: they run again here before release.
   - A record here that is running with no pid and no recorded step (a stale, never-started one) is replaced and the replacement logged; a record with a pid, a recorded step or a finished status makes adopt refuse.
-- DEL-11: **Unreviewed** Adopt never trusts an unpushed branch
+- DEL-11: **Reviewed 2026-11-13** Adopt never trusts an unpushed branch <!-- reviewed 30558ba2 -->
   - A branch that is not on origin, a worktree missing its commits, a goal with no done line or no open pull request is refused with one line, and no run record is written.
 
 ### Non-functional
 - DEL-7: **Reviewed 2026-11-10** Resumable <!-- reviewed 0f9f447b -->
   - A stopped or crashed goal resumes from its last recorded step, never from the start.
-- DEL-8: **Unreviewed** Budgeted
+- DEL-8: **Reviewed 2026-11-13** Budgeted <!-- reviewed 16c92402 -->
   - Each goal has a time and token budget, and going over shows on the board.
   - Each review and ship step has a time limit, a setting no lower than 15 minutes; a step that reaches it finishes with what it has done, records what it left, and the goal goes on instead of restarting.
   - A lane that stops at its preparation budget is recorded on the goal with the part that ran long, and the board and health list it beside the step and test budget hits.
 - DEL-9: **Reviewed 2026-11-10** Nothing private ships <!-- reviewed ad7ed0f0 -->
   - Every commit and pull request passes the private-name scan before it is pushed.
-- DEL-12: **Unreviewed** Windows-safe on merge
+- DEL-12: **Reviewed 2026-11-13** Windows-safe on merge <!-- reviewed b8e35707 -->
   - A pull request that adds a POSIX-only call without its guard (fcntl, os.getuid, os.killpg, signal.SIGHUP, os.kill(pid, 0)) fails its lane, so main cannot break native Windows unseen.
   - A long pull request body, issue text or release notes goes to gh in a file (`--body-file`, `--notes-file`), never on the command line, so a pull request with a body over 32,000 characters opens on native Windows.
-- DEL-13: **Unreviewed** A review hold before auto merge
+- DEL-13: **Reviewed 2026-11-13** A review hold before auto merge <!-- reviewed afd8d5c9 -->
   - Where a review hold is set, the release step merges only after the operation session records that it has read the diff, and the board shows a merge waiting on review.
 
 ## Non-goals

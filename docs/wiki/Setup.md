@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/9
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-13** <!-- prd P=7f1b1066 R=e39e29d4 N=9c385754 M=471a58c6 U=27b1d68d -->
 
 ## Problem
 - I want this toolset to be a workspace I can drop into any repo, for any agent: one install gives Claude Code, Codex or any agent that reads skills the same loop, docs, monitoring and settings, in the right format for each.
@@ -27,7 +27,7 @@ Review: **Unreviewed**
 ## Requirements
 
 ### Functional
-- SET-1: **Unreviewed** One command adopts a repo
+- SET-1: **Reviewed 2026-11-13** One command adopts a repo <!-- reviewed 8cd2a972 -->
   - One command sets up a new or existing repo: the loop config, PRD feature pages in the docs format, the Home table and README How to use, the nightly regression in GitHub Actions, the health groups, and every setting with its default.
   - It shows what it found and would change first, then applies it on a branch through the loop, adapting what is there instead of overwriting.
   - It never blocks: what doesn't fit is listed and filed as issues tagged with the right feature, and the rest is adopted.
@@ -48,35 +48,36 @@ Review: **Unreviewed**
   - Setup can take an adopted repo as its model: it borrows that repo's settings shape, flow, milestone layout and private rules (never private values) and adapts them to the new repo.
 - SET-10: **Reviewed 2026-11-10** The right format for every agent <!-- reviewed 06345b05 -->
   - The same skills are wired into each agent's own entry files (for example CLAUDE.md and AGENTS.md), so Claude Code, Codex and other SKILL.md agents run the same loop the same way.
-- SET-11: **Unreviewed** Prerequisites first, then a strict replay of the first adoption
+- SET-11: **Reviewed 2026-11-13** Prerequisites first, then a strict replay of the first adoption <!-- reviewed 3d61b462 -->
   - Before it writes anything, setup prints one checklist of what this machine needs: git, python3, gh installed and signed in as me, real symlinks, and a supported platform (no crash on a missing POSIX call, and the qa lane runs on this platform instead of hanging). Each line that fails carries its exact fix, for example the install command, or `gh auth login` run with a device code I can enter from my phone instead of a prompt waiting at the PC.
   - Adoption then replays the first run step by step against its golden result (`dev/toy/adoption-golden.tsv`, eight steps from prerequisites to the first check-in). It stops at the first mismatch, says what differs and asks me to do the exact step that fixes it; it never accepts a looser equivalent.
   - Comes from [#1408](https://github.com/jcl2018/agent-workflow-template/issues/1408), with the Windows crashes in [#1395](https://github.com/jcl2018/agent-workflow-template/issues/1395), [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) and [#1397](https://github.com/jcl2018/agent-workflow-template/issues/1397).
-- SET-12: **Unreviewed** Adopt all my repos in one pass
+- SET-12: **Reviewed 2026-11-13** Adopt all my repos in one pass <!-- reviewed e8a784e2 -->
   - From the operation session, one flow lists my GitHub repos by last push, private ones included, lets me choose which to follow, clones them into one folder, registers each with the board and updates each to the current template version.
   - It ends with the board showing exactly the repos I chose and none of them on an unknown or older template version.
   - Comes from [#1409](https://github.com/jcl2018/agent-workflow-template/issues/1409).
-- SET-13: **Unreviewed** Workers are app sessions I can see
+- SET-13: **Reviewed 2026-11-13** Workers are app sessions I can see <!-- reviewed ea44c41d -->
   - When I've chosen app sessions, a goal never falls back to a background worker: it waits for a free session and says so, including when the app refuses to start one because my message came over Remote Control.
-  - The pool asks for sessions only when free ones run short of ready goals, never a fixed number up front.
+  - The pool is kept at `pool_size` sessions (MON-12): it asks me to fill it only when it runs low, and never starts more than that.
+  - Worker and pool sessions start on the model one setting names, and the operation session sets it on every session it starts or reuses.
   - The reply and govern hooks are installed exactly once each, however many times setup or either hook command runs.
   - Comes from [#1404](https://github.com/jcl2018/agent-workflow-template/issues/1404).
-- SET-14: **Unreviewed** The connectors each repo needs are checked
+- SET-14: **Reviewed 2026-11-13** The connectors each repo needs are checked <!-- reviewed c52f6df9 -->
   - For each followed repo, setup reads which connectors its PRDs need (mail accounts, a calendar, a file store, a notification channel) and probes each with a read-only call.
   - It prints each as connected, needs sign-in or missing, with the fix, and names the owner-written files a repo needs that don't exist yet. It never attaches or enables a connector itself: I do, with the narrowest access.
   - Comes from [#1410](https://github.com/jcl2018/agent-workflow-template/issues/1410).
-- SET-16: **Unreviewed** A repo is judged fully migrated by one command
+- SET-16: **Reviewed 2026-11-13** A repo is judged fully migrated by one command <!-- reviewed 66eb89ce -->
   - One read-only command lists every gap between a repo and the current template, each with a one-line fix, and exits 0 only when none remain; it writes nothing, and health's Adoption group runs the same check.
   - A repo carries `template_version` (set by update) and one with none counts as behind; a session that starts in a repo behind the installed template is told so in one line and never blocked, except that a new goal is refused when the major version differs.
 
 ### Non-functional
-- SET-3: **Unreviewed** Shipped as a versioned package.
+- SET-3: **Reviewed 2026-11-13** Shipped as a versioned package. <!-- reviewed 4ddb26bd -->
   - The template ships as one versioned package of separate skills in the Agensi format, every script self-contained and under 20 KB. It works out of the box with a built-in default flow, and is proven to run in both Claude Code and Codex on a clean test repo with no private settings.
 - SET-7: **Reviewed 2026-11-10** Safe and repeatable <!-- reviewed fb39932b -->
   - A dry run lists everything before any write; running setup twice changes nothing the second time; nothing existing is overwritten.
 - SET-8: **Reviewed 2026-11-10** Private stays private <!-- reviewed 22a16ae7 -->
   - Local settings and private values are never written into the repo, and setup refuses to commit a file that holds one.
-- SET-15: **Unreviewed** One private-name list that fits every repo
+- SET-15: **Reviewed 2026-11-13** One private-name list that fits every repo <!-- reviewed 3f8e2427 -->
   - When setup seeds the private-name list, it explains that the list covers every repo on this machine, so a private repo's own name, or a contact it cites on purpose, would block that repo's own commits.
   - A pattern can be scoped, for example to public repos only or to named repos, so a private repo can hold what a public one must never show.
   - Comes from [#1411](https://github.com/jcl2018/agent-workflow-template/issues/1411).
@@ -131,8 +132,7 @@ Review: **Unreviewed**
 | [set9-from-no-values](Tests#t-set9-from-no-values) | requirement | SET-9 | Given a model value holding a home path or an email, when setup runs with --from, then the value is skipped and appears in no output and no written file. | not run |
 | - | requirement | SET-9 | no passing test | not enforced |
 | [agents-wire](Tests#t-agents-wire) | requirement | SET-10 | Given a repo, when setup or agents.py wire runs, then CLAUDE.md and AGENTS.md hold the same workflow-loop block, text outside it is kept, and a second run changes nothing. | PASS 2026-11-12 |
-| [adoption-golden](Tests#t-adoption-golden) | requirement | SET-11 | Given the golden first adoption, when its fixture and SET-11 are read, then the fixture holds steps 1 to 8 in order, each with a check, golden result and fix, no machine path or account, and SET-11 names it and its first-mismatch stop. | not run |
-| - | requirement | SET-11 | no passing test | not enforced |
+| [adoption-golden](Tests#t-adoption-golden) | requirement | SET-11 | Given the golden first adoption, when its fixture and SET-11 are read, then the fixture holds steps 1 to 8 in order, each with a check, golden result and fix, no machine path or account, and SET-11 names it and its first-mismatch stop. | PASS 2026-11-13 |
 | - | requirement | SET-12 | no passing test | not enforced |
 | - | requirement | SET-13 | no passing test | not enforced |
 | - | requirement | SET-14 | no passing test | not enforced |

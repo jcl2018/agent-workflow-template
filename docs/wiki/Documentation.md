@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-13** <!-- prd P=b211d7e4 R=604591e9 N=81dd3484 M=4599a537 U=0cf4e5a6 -->
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
@@ -17,7 +17,7 @@ Review: **Unreviewed**
 - `/workflow-docs review PAGE|ID [--date D]` — Only on the owner's own words. Marks the whole PRD, or one requirement, Reviewed with a date. Prints `REVIEWED PAGE Delivery` or `REVIEWED DEL-1`. Refuses, changing nothing (exit 1): without the owner's words (`REFUSED: only the owner changes a review. Fix: pass --user when their own words said to.`), a future or malformed date, an unknown ID (`REFUSED: no requirement X ... Nothing was changed.`), or a name that isn't a feature page.
 - `/workflow-docs unreview PAGE|ID` — Lifts the owner's review lock. Prints `UNREVIEWED PAGE Delivery` or `UNREVIEWED DEL-1`. Same refusals as review.
 - `/workflow-docs automation` — Prints each routine's live state on this machine: a workflow's newest run, a launch agent loaded or not, or that a Claude scheduled task is checked in the Claude app. Prints one `<routine>: <state>` line each. The registry's fields, and `restore`, are described in the skill's `references/commands.md`.
-- `/workflow-docs render` — Rewrites each page's Tests from the regression rows, and, with `"criteria": true`, the generated Settings and Automation blocks on Home and in the README plus the README's template-repo line (`WROTE <file> (<name> block)`), only where their markers already are: setup inserts them (Home gets new ones only as the features page), so a repo adopted before them is left alone. Prints `RENDERED <page>` per page changed, or `TABLES OK`.
+- `/workflow-docs render` — Rewrites each page's Tests from the regression rows, and, with `"criteria": true`, the generated Settings and Automation blocks on Home and in the README plus the README's template-repo line (`WROTE <file> (<name> block)`), only where their markers already are: setup inserts them (Home gets new ones only as the features page), so a repo adopted before them is left alone. Prints `RENDERED <page>` per page changed, or `TABLES OK`. `--tables` rewrites only the Tests tables and leaves those blocks as they are: a lane renders with it, so a lane run from older scripts never rewrites Home or the README; `audit` and a plain render still refresh them.
 - `/workflow-docs entry` — Writes the entry point, `.loop/START.md`, from the PRD pages (each feature's first Problem bullet and its Usage entries) and the loop config, and refreshes the workflow-loop block in each agent file that holds one. Prints `FIXED .loop/START.md` and `FIXED <file>` per file it rewrote, or `NO CHANGE .loop/START.md` (exit 0). `entry check` prints `STALE <path>: ... (ENTRY_STALE)` or `MISSING <path>: ... (ENTRY_MISSING)` (exit 1), `LAG <path>: this repo is at v<v>, the template is at v<v>, run the migrate goal (ENTRY_LAG)` (exit 0), or `ENTRY OK` (exit 0). `entry lag [--new SLUG]` prints that one line (with the slug `migrate-<repo>`) for a repo behind the installed template and nothing when current (exit 0); with `--new SLUG` it exits 3 and prints `REFUSED: this repo is at v<v> and the template at v<v> (different major). Fix: start it as a migrate-<repo> goal` when both majors are known and differ, except for a `migrate-` slug.
 - `/workflow-docs prd NAME "IDEA" --paths A,B` — Drafts a new feature's PRD, Unreviewed, and maps it. Prints `DRAFTED <page>: Review **Unreviewed**, requirement XX-1`, then `NEXT` lines for what is left. Refuses (exit 1) with no --paths, no idea, a bad name, a page that already exists, or no free ID prefix.
 - `/workflow-docs convert` — Turns old Summary/Criteria pages into PRD pages, keeping IDs and Reviewed stamps. A preview prints `DRY RUN: nothing written.` Refuses a page without the needed sections (`REFUSED N page(s). ...`).
@@ -28,9 +28,9 @@ Review: **Unreviewed**
 ## Requirements
 
 ### Functional
-- DOC-1: **Reviewed 2026-11-08** PRD template <!-- reviewed 6cbab853 -->
+- DOC-1: **Reviewed 2026-11-13** PRD template <!-- reviewed 042552f8 -->
   - One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Usage (the commands and how to use each, left out when nothing applies); Requirements (up to the repo's limit, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes).
-  - Nothing else goes on the page.
+  - Nothing else goes on the page except the generated, optional Deployments (DOC-14) and Runbook (DOC-16) sections.
 - DOC-2: **Reviewed 2026-11-08** The PRD is mine <!-- reviewed caa2882e -->
   - I review the PRD as a whole (Problem, Usage, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that.
   - After it, nothing in Problem, Requirements, Non-goals or Success metrics changes unless I un-review it.
@@ -38,7 +38,7 @@ Review: **Unreviewed**
 - DOC-3: **Reviewed 2026-11-08** Tests follow on their own <!-- reviewed 2e9e1c3f -->
   - Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes.
   - I never write or manage tests.
-- DOC-4: **Unreviewed** Home is one table
+- DOC-4: **Reviewed 2026-11-13** Home is one table <!-- reviewed b837a911 -->
   - Home holds one table with four columns: Feature, What it does, How to use (a link to the README section), Milestone (optional: empty, or a link to the free-form milestone the feature is planned on).
   - Below the table Home carries only the generated Settings and Automation sections (DOC-15); nothing else is on Home.
 - DOC-5: **Reviewed 2026-11-10** The front door is natural language <!-- reviewed 885694d1 -->
@@ -59,7 +59,7 @@ Review: **Unreviewed**
   - Tests is a table: Test, Kind, Guards, Checks, Last result.
   - Each test name links to its entry on the full Tests page.
   - Every requirement and every defect has at least one row.
-- DOC-10: **Unreviewed** One Tests page, every release noted, milestones optional
+- DOC-10: **Reviewed 2026-11-13** One Tests page, every release noted, milestones optional <!-- reviewed 15ae635d -->
   - One full Tests page is generated, listing every test with its latest result.
   - Every release has a release note.
   - A milestone is optional and free form, used to plan by version (for example v1.0); nothing requires a feature page, issue or pull request to have one, and no check fails or warns for lacking one.
@@ -71,17 +71,18 @@ Review: **Unreviewed**
   - Deliveries: one row each, with its channel, recipients as a group (never an email address), what is sent and its status.
   - The docs check refuses a malformed Deployments table, naming the table and the column.
   - A listed public link that doesn't answer, or a live build that isn't the promoted one, fails the deploying repo's own check for now; the template takes that check over later.
-- DOC-16: **Unreviewed** A feature page carries a runbook for each routine it owns
+- DOC-16: **Reviewed 2026-11-13** A feature page carries a runbook for each routine it owns <!-- reviewed afaba23b -->
   - A page that owns a scheduled or on-demand routine has an optional Runbook section, one subsection per routine, saying what an agent given only "run routine X" must read first: the requirement ids it serves, the schedule, the exact steps or command, what a full run is (live sources and real output, never a dry run or a fixture on a scheduled run), the one output and where it goes, the forbidden shortcuts, and how to tell the run was real.
   - The docs check fails a routine listed in the routine registry whose page has no runbook for it, and a runbook missing any of those fields, naming the page, the routine and the field.
   - A runbook's Serves field (continuation lines included) must name requirement ids that a page defines, and each routine and field appears once; a page whose sections are out of order is reported for that, not for its ids.
   - The runbook is not locked by the PRD review: an agent corrects it as it learns, and the owner's review of the requirements stays valid.
 
-- DOC-15: **Unreviewed** Home and the README show how the repo is set up and what runs by itself.
+- DOC-15: **Reviewed 2026-11-13** Home and the README show how the repo is set up and what runs by itself. <!-- reviewed e14143b0 -->
   - Home and the README carry a Settings section: each setting's name, what it means, how to set it, its default and this repo's value, marked overridden only when it differs from the default.
   - Home and the README carry an Automation section: each routine on or off, what it does, its cadence in plain words, where it runs, its last run when known (live, from `docs.py automation`, so the page does not change with every run) and any step still owed by the owner; health and regression are built in and a repo adds a routine with one entry in its config, with no code change.
   - The README names and links the template repo the loop came from, never a local path, and the adoption entry points to all three.
   - The docs check says STALE when a setting, a workflow file or a value changes, and render or publish refreshes them.
+  - The code that renders the blocks stays readable and under health's size warning: `counting.py` holds the Automation block code and `render.py` the rest, so the text a config renders is the same wherever the code sits (issue 1402).
 
 ### Non-functional
 - DOC-11: **Reviewed 2026-11-10** Safe publish <!-- reviewed f33a3310 -->
@@ -130,7 +131,7 @@ Review: **Unreviewed**
 | [format-key](Tests#t-format-key) | requirement | DOC-1 | Given a template rules block whose format key leaves out problem, when the docs check runs, then the Problem check is off. | PASS 2026-11-10 |
 | [guide-marker-refused](Tests#t-guide-marker-refused) | requirement | DOC-1 | Given a page with requirement or Review lines, when it carries the guide marker, then the docs check refuses it naming the page. | PASS 2026-11-10 |
 | [spec-decisions-wording](Tests#t-spec-decisions-wording) | requirement | DOC-1 | Given the owner's 2026-11-12 spec decisions, when the pages and SKILL.md files are read, then the loop runs only affected rows, GRD-5 names --live, the feature-label requirements say feature_labels, and the budget setting is test_budget_minutes. | PASS 2026-11-12 |
-| [spec-decisions-log](Tests#t-spec-decisions-log) | requirement | DOC-1 | Given the owner's 2026-11-12 decisions, when DECISIONS.md is read, then it holds ten dated entries and the proposed wording of each locked requirement. | not run |
+| [spec-decisions-log](Tests#t-spec-decisions-log) | requirement | DOC-1 | Given the owner's 2026-11-12 decisions, when DECISIONS.md is read, then it holds ten dated entries and the proposed wording of each locked requirement. | PASS 2026-11-13 |
 | [review-dated](Tests#t-review-dated) | requirement | DOC-2 | Given a criterion, when it is reviewed, then it is marked Reviewed with the date. | PASS 2026-11-12 |
 | [review-owner-only](Tests#t-review-owner-only) | requirement | DOC-2 | Given a criterion, when a review is attempted, then it is reviewed only with the owner's words. | PASS 2026-11-12 |
 | [reviewed-lock](Tests#t-reviewed-lock) | requirement | DOC-2 | Given a reviewed criterion, when it is changed, then the check fails. | PASS 2026-11-12 |

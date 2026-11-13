@@ -35,36 +35,71 @@ def slim(item):
     return out
 
 
-def fetch(root):
-    """(issues or None, why). Pull requests are left out."""
-    if root in CACHE:
-        return CACHE[root]
+SCOPES = {"health": ["state=open&labels=health"], "open": ["state=open"], "held": ["state=all&labels=health", "state=open"]}
+PAGE, MOST_PAGES, PAGE_SECONDS = 100, 200, 60
+
+
+def in_scope(issue, scope):
+    """health: open findings; open: open issues; held: every health issue, any state, and the open issues."""
+    opened, health = issue.get("state") == "open", is_health(issue)
+    return (opened and health) if scope == "health" else opened if scope == "open" else (opened or health)
+
+
+def pages_of(root, query):
+    """(issues, why): one filtered query read a page of 100 at a time, each page with its own time limit."""
+    out = []
+    for page in range(1, MOST_PAGES + 1):
+        try:
+            done = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues?%s&per_page=%d&page=%d" % (query, PAGE, page)],
+                                  cwd=root, capture_output=True, text=True, timeout=PAGE_SECONDS)
+        except (OSError, subprocess.SubprocessError) as error:
+            return None, "gh not available here (page %d of %s: %s)" % (page, query, str(error)[:80])
+        if done.returncode:
+            return None, "gh not available here (page %d of %s: %s)" % (
+                page, query, (done.stderr.strip().splitlines() or ["exit %d" % done.returncode])[0][:100])
+        try:
+            got = json.loads(done.stdout or "[]")
+            got = got if isinstance(got, list) else [got]
+        except ValueError as error:
+            return None, "gh gave unreadable output (page %d of %s: %s)" % (page, query, str(error)[:80])
+        out += got
+        if len(got) < PAGE:
+            return out, ""
+    return None, "more than %d issues match %s: narrow it" % (PAGE * MOST_PAGES, query)
+
+
+def fetch(root, scope="open"):
+    """(issues or None, why), only the slice a command needs (SCOPES), read in pages. Pull requests are left out."""
+    key = (root, scope)
+    if key in CACHE:
+        return CACHE[key]
     fixture = os.environ.get("LOOP_HEALTH_GH_FIXTURE")
+    found, why = [], ""
     if fixture:
         try:
             with open(fixture) as handle:
-                found = [slim(item) for item in json.load(handle)]
-            CACHE[root] = ([i for i in found if not i.get("pull_request")], "")
+                found = json.load(handle)
         except (OSError, ValueError, AttributeError) as error:
-            CACHE[root] = (None, "the issue fixture can't be read: %s" % error)
-        return CACHE[root]
-    try:
-        done = subprocess.run(["gh", "api", "--paginate", "--slurp", "repos/{owner}/{repo}/issues?state=all&per_page=100"],
-                              cwd=root, capture_output=True, text=True, timeout=20)
-    except (OSError, subprocess.SubprocessError) as error:
-        CACHE[root] = (None, "gh not available here (%s)" % str(error)[:80])
-        return CACHE[root]
-    if done.returncode:
-        CACHE[root] = (None, "gh not available here (%s)" % ((done.stderr.strip().splitlines() or ["exit %d" % done.returncode])[0][:100]))
-        return CACHE[root]
-    try:
-        pages = json.loads(done.stdout or "[]")
-        found = [slim(item) for page in pages for item in (page if isinstance(page, list) else [page])]
-    except (ValueError, AttributeError) as error:
-        CACHE[root] = (None, "gh gave unreadable output (%s)" % str(error)[:80])
-        return CACHE[root]
-    CACHE[root] = ([i for i in found if not i.get("pull_request")], "")
-    return CACHE[root]
+            found, why = None, "the issue fixture can't be read: %s" % error
+    else:
+        for query in SCOPES[scope]:
+            got, why = pages_of(root, query)
+            if got is None:
+                found = None
+                break
+            found += got
+    if found is not None:
+        try:
+            seen = {}
+            for item in found:
+                one = slim(item)
+                if not one.get("pull_request") and in_scope(one, scope):
+                    seen[one["number"]] = one
+            found = list(seen.values())
+        except (AttributeError, TypeError) as error:
+            found, why = None, "gh gave unreadable output (%s)" % str(error)[:80]
+    CACHE[key] = (found, why)
+    return CACHE[key]
 
 
 def is_health(issue):
@@ -195,7 +230,7 @@ def feature_of(root, item, cache=None):
             page = known[rows[text]["goal"]][0]
             return page if page in pages else None
         if text.startswith("#") and text[1:].isdigit():
-            found, _ = fetch(root)
+            found, _ = fetch(root, "open")
             page = next((feature_group(i, pages) for i in found or [] if str(i["number"]) == text[1:]), NO_FEATURE)
             if page != NO_FEATURE:
                 return page
@@ -227,7 +262,7 @@ def kind_of(issue):
 
 
 def open_findings(root, only=None):
-    found, why = fetch(root)
+    found, why = fetch(root, "health")
     if found is None:
         return None, why
     pages = features(root)

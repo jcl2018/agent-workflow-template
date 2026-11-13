@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/4
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=f859c2a6 N=e89b4f3b M=39cf9800 U=db0773af -->
 
 ## Problem
 - My rules, requirements and standards are spread across many pages and sometimes conflict, and I can't see where the repo falls short of its own PRDs.
@@ -39,7 +39,7 @@ Review: **Unreviewed**
 ## Requirements
 
 ### Functional
-- HLT-2: **Unreviewed** The rules
+- HLT-2: **Reviewed 2026-11-13** The rules <!-- reviewed 2e57e2d8 -->
   - Health checks exactly these groups, each with the angle its tests take:
   - Requirements (my angle: is every promise I approved proven?): every Reviewed requirement has a test seen failing and passing now; done lines have tests; none stays not enforced over 7 days.
   - Traceability (an auditor's angle: can I follow any work end to end?): requirement to test to last run; issue to feature; pull request to goal to done lines; release to the issues it fixed.
@@ -57,11 +57,12 @@ Review: **Unreviewed**
   - At most 12 groups plus Mine; adding one means retiring one or raising the cap on purpose.
 - HLT-3: **Reviewed 2026-11-10** Formal report <!-- reviewed a5cc0046 -->
   - A header listing every group it ran (and any skipped), then each group with every rule marked pass, warn, fail or unread with its fix, then one verdict. A rule that can't read its data is never shown as passing.
-- HLT-4: **Unreviewed** Findings become issues tagged with their group, and their feature when feature_labels is on
+- HLT-4: **Reviewed 2026-11-13** Findings become issues tagged with their group, and their feature when feature_labels is on <!-- reviewed 259b7f1e -->
   - Each finding, from a rule or from the review, is one GitHub issue tagged with its group or kind and, when feature_labels is on (it is off by default), the feature it is about; it sits on a milestone only when I put it there.
   - A preview lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups or features to file, behind an explicit `--live`.
   - A repeat updates its issue, a fix closes it, a return reopens it, and an existing open issue that already covers a finding is linked, not duplicated.
   - A finding's issue body and comment are passed to gh in a file (`--body-file`), never on the command line.
+  - Health reads only the issues a command needs, a page of 100 at a time: triage the open health issues, `file` the health issues and the open ones. A repo with thousands of issues lists within the time limit, and a page that fails, or a listing past 20,000 issues, refuses with one line naming it.
 - HLT-5: **Reviewed 2026-11-10** Repo review <!-- reviewed 28f88bd6 -->
   - A reviewer, separate from the rules and never part of the verdict, reads every PRD page, the README, milestones, open issues, tests and code, feature by feature, and reports:
   - Conflicts: two requirements that contradict each other, or a page that breaks a reviewed rule (for example DOC-1's Problem length).
