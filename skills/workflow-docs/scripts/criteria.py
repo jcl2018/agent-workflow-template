@@ -14,7 +14,7 @@ usage: criteria.py <command> [options]
                                --check only says which pages are stale; --tables leaves the Settings, Automation and
                                README blocks alone (a lane uses it: it must never rewrite a page it only measures)
 
-A feature page is a short PRD (references/template.md): a Review line, then Problem, an optional Usage, Requirements,
+A feature page is a short PRD (references/template.md): a Review line, then Problem, Requirements,
 Non-goals, Success metrics and Tests. Requirements hold up to criteria_max lines (default CRITERIA_MAX_DEFAULT,
 .loop/config.json). A requirement is '- ID: **Unreviewed** text' or '- ID: **Reviewed DATE** text', with '  - '
 sub-bullets under it that are not requirements; a Reviewed line ends with <!-- reviewed HASH -->, seal_of its text and
@@ -192,6 +192,10 @@ def contract(root, names, seen):
             text = handle.read()
         parts = sections(text)
         have = [name for name, _ in parts]
+        if rule["usage"] in have:  # the owner dropped Usage (2026-11-13): commands live in each skill's command reference
+            found.append(("USAGE", page, "has a %s section. Fix: remove it; the commands are in the skill's Command map and "
+                          "references/commands.md, and the README's How to use table" % rule["usage"]))
+            have = [name for name in have if name != rule["usage"]]
         numbered = {name: (start, lines) for name, start, lines in pf.parts(text)}
         link = link_of(text, counting.sources(root).get(page, ""))
         if link:  # DOC-1: a link-form page holds the PRD line and the generated sections; the linked document is the PRD
@@ -200,13 +204,13 @@ def contract(root, names, seen):
             unread, found = unread or any(x[0] == "UNREAD" for x in got), found + got
             continue
         books[page] = numbered.get(rule["runbook"], (0, []))[1]  # read before the order check, so a misordered page is not also "no runbook"
-        want = head[:1] + [x for x in (rule["usage"], rule["runbook"]) if x in have] + head[1:]
+        want = head[:1] + [x for x in (rule["runbook"],) if x in have] + head[1:]
         if rule["deploy"] in have:  # optional, after Success metrics (before Tests)
             want = want[:-1] + [rule["deploy"]] + want[-1:]
         if have != want:
             hint = ""
             if "Commands" in have:
-                hint = ". Fix: rename Commands to %s and place it between %s and %s" % (rule["usage"], head[0], head[1])
+                hint = ". Fix: remove the Commands section; the commands are in the skill's Command map and references/commands.md"
             elif "Summary" in have or "Criteria" in have:
                 hint = ". Fix: run prd.py convert --write (workflow-docs), then write the Non-goals and Success metrics drafts"
             else:
@@ -215,9 +219,6 @@ def contract(root, names, seen):
             continue
         body, ids = dict(parts), []
         found += prd.trouble(root, page, text, parts, rule)
-        if rule["usage"] in body:
-            if not [x for x in body[rule["usage"]] if x.strip()]:
-                found.append(("USAGE", page, "has an empty %s section. Fix: list its commands, or remove the section" % rule["usage"]))
         for line, match, below in blocks(body[head[1]]):
             if not match:
                 found.append(("CRITERION", page, "not one line '- ID: **Unreviewed** text' under %s: %s" % (head[1], line.strip()[:60])))
@@ -241,12 +242,11 @@ def contract(root, names, seen):
             found.append(("PROBLEM", page, "is over %d lines. Fix: say who it is for and what it solves in %d lines or fewer"
                           % (rule["problem_lines"], rule["problem_lines"])))
         found += pf.bullets(page, head[1], numbered[head[1]][1], LINE, "bullets" in on, rule["groups"])
-        if "usage" in on and rule["usage"] in numbered:
-            found += pf.usage(page, rule["usage"], numbered[rule["usage"]][1], held, owns.get(page, []))
         if "deployments" in on and rule["deploy"] in numbered:
             found += deployments.deployments(page, rule["deploy"], numbered[rule["deploy"]][1], rule["page_cols"], rule["delivery_cols"], rule["access"])
         if "runbook" in on and rule["runbook"] in numbered:
             found += pf.runbook(page, rule["runbook"], books[page], rule["fields"])
+            found += pf.linked(page, rule["runbook"], books[page], numbered.get(rule["deploy"], (0, []))[1])
         if "problem" in on:
             found += pf.problem(page, head[0], numbered[head[0]][1], rule["problem_lines"], rule["banned"])
         if "tests" in on:

@@ -1,5 +1,169 @@
 # Changelog
 
+## v0.28.27 - 2026-11-13
+
+- docs check --own: a stale page the goal's diff doesn't touch is a finding, not a failure; rows and toy
+- stale-own rows guard DOC-15's STALE requirement; regenerate Tests tables
+- Fold own.py into audit.py (package headroom: 98 files)
+- stale-own control row: say that health and the scheduled run keep the STALE line
+- stale-own rows guard DOC-1 (a page behind the code is reported stale), the requirement the docs check judges
+- check --own: keep every STALE on the base branch itself and for block staleness; two rows
+- Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/stale-blocks-all
+- Merge remote-tracking branch 'origin/main' into loop/stale-blocks-all
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.26 - 2026-11-13
+
+- DECISIONS: sub-bullet and owner sentences for the stale Documentation page
+- DOC-15: health and the digest run on the Mac's local schedule (owner un-reviewed Documentation and DOC-15)
+- Home: the Documentation row names health's local schedule
+- Documentation and DOC-15 reviewed again by the owner
+- Merge remote-tracking branch 'origin/main' into loop/doc15-local-schedule
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.25 - 2026-11-13
+
+- Toys read the delivery governance line as it now reads; Tests list checks match the table
+- Merge remote-tracking branch 'origin/main' into loop/skill-governs-line
+- Wiki: update pages for skill-governs-line
+- Restore Documentation.md: DOC-15 is owner-reviewed, don't edit it
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.24 - 2026-11-13
+
+- Automation table: health and the digest run on the Mac's local schedule, no health workflow owed (#3857)
+- Lane: re-render the Tests tables
+- Render the Automation block: health on the Mac's local schedule
+- Digest keys owed in mail.env; Documentation names health's local schedule
+- Documentation Usage: docs.py automation names the local schedule
+- Drop the Documentation Usage edit; docs.py automation's local schedule goes in commands.md
+- Merge origin/main into automation-table-health
+- Merge origin/main into automation-table-health (runbook links kept with the local schedule)
+- Documentation: the Automation table shows health on the local schedule
+- Wiki: update pages for automation-table-health
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.23 - 2026-11-13
+
+- DECISIONS: drop-usage requirement wording, waiting on owner un-review
+- drop-usage: no Usage section on any feature page; docs check flags one; START.md and health read the skills' command maps
+- drop-usage: a Python toy and its regression row
+- drop-usage: test-criteria expects USAGE for any Usage section; Commands hint
+- drop-usage: re-rendered pages
+- drop-usage: the owner's approved wording on DOC-1, DOC-2, DOC-6, HLT-2 and the Documentation Problem; reviewed
+- drop-usage: the nine bash toys and their rows follow the no-Usage pages; command reference holds the moved entries
+- drop-usage: a Runbook Output may name a Deployments row, and the Automation block links each routine to its Runbook
+- Lane: re-render the Tests tables
+- drop-usage: the regression workflow entry moves to the regression command reference; review-findings-wording follows it
+- drop-usage: Health PRD un-reviewed and reviewed again by the owner, HLT-2 as now worded
+- Merge origin/main into loop/drop-usage
+- Merge remote-tracking branch 'origin/main' into loop/drop-usage
+- Merge origin/main into loop/drop-usage (Automation Usage edits moved to the command references)
+- Health command reference: the digest and mail entries moved from the Automation page's retired Usage section
+- Monitoring command reference: LF line endings throughout
+- Merge origin/main into loop/drop-usage (95 commits; Usage edits from main moved to the command references; Documentation and Health PRDs re-stamped with the owner's words)
+- DECISIONS: wording for the three stale pages (#3848, #3860, #3861), waiting on owner un-review
+- Automation, Guardrails, Monitoring: owner-approved updates for the stale pages (#3848, #3860, #3861)
+- Home, DECISIONS: record the applied wording for #3848, #3860, #3861
+- Merge origin/main into loop/drop-usage (Usage edits from main moved to the command references; design-guide.md went to loop-files.md on main)
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.22 - 2026-11-13
+
+- Fold and trim for package headroom
+- Keep the three proctree.py copies identical
+- Wiki: Setup usage note, Tests tables
+- Wiki usage notes
+- Merge origin/main into loop/package-headroom
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.21 - 2026-11-13
+
+- health-v1: Runbook for the Mac round, triage --issue, evidence-or-drop, review recheck, drafted wording
+- Rows for triage --issue and review evidence; Tests tables
+- DECISIONS: HLT-9 tightened, HLT-10 repo rules, HLT-2 cap wording
+- Traceability exempts closed health and backlog findings from the defect-test rule
+- Merge origin/main
+- Health WARNs when the full suite left rows unrun (REG-7)
+- Merge origin/main
+- Merge remote-tracking branch 'origin/main' into loop/health-v1
+- Health page: triage --issue and the unrun-rows WARN
+- Merge origin/main
+- Merge origin/main; unrun WARN moves into milestone.py with cost.py
+- Home: the Health row says triage closes one finding by number and review findings need a citation
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.20 - 2026-11-13
+
+- Package gate: toy and rows run package.py's checks on the head (DEL-5, SET-3)
+- Merge origin/main into loop/package-gate
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 dev/toy/test-package-gate.py`.
+   Expect: four control PASS lines and `PASS: head: this checkout's package passes ...`, exit 0.
+2. Append 21,000 bytes of comment to any tracked script under skills/ and run it again.
+   Expect: a `FAIL: head: Scripts: <file> is ... bytes` line and exit 1.
+
+## v0.28.19 - 2026-11-13
+
+- mac-rows-skip: guard test-local-schedule.sh off macOS, toy and row
+- mac-rows-skip: verify by hand, Tests render
+- mac-rows-skip: use toy_skip so a piped row is SKIPPED, fake-uname toy
+- Wiki: update pages for mac-rows-skip
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/mac-rows-skip
+- Tests render
+
+### How to verify
+
+1. Run `bash dev/toy/test-local-schedule.sh` on a Linux or Windows host.
+   Expect: it prints `SKIP: macOS only ...` and exits 77, with no FAIL line.
+2. After release, dispatch the `regression` workflow (Actions tab, or `gh workflow run regression.yml`) and open the Linux run.
+   Expect: the 15 `ls-*` rows and `aut-email-secrets` show SKIPPED (cannot run here) and open no issue.
+
+## v0.28.18 - 2026-11-13
+
+- Doc fixes: README Automation rows, depth rows link DEL-6, adopt-set-3 runs a skill, short Monitoring titles drafted
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/doc-fixes-v1
+- Home: README Automation rows follow Automation
+- Merge remote-tracking branch 'origin/main' into loop/doc-fixes-v1
+- Merge origin/main into loop/doc-fixes-v1
+- Merge remote-tracking branch 'origin/main' into loop/doc-fixes-v1
+- Merge origin/main into loop/doc-fixes-v1
+- Merge origin/main into loop/doc-fixes-v1
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.17 - 2026-11-13
 
 - Package passes: 99 files, scripts under 20,480 bytes, every script standalone

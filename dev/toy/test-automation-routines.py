@@ -19,7 +19,8 @@ health = os.path.join(root, "skills", "workflow-health", "scripts")
 sys.path[:0] = [docs, health]
 import counting  # noqa: E402
 import deployments  # noqa: E402
-import report  # noqa: E402
+import report  # noqa: E402,F401
+import rules  # noqa: E402
 
 failed = []
 ENTRY = {"name": "site-deploy", "does": "Deploys the site.", "cadence": "0 6 * * *", "runs": "claude:t1", "page": "Health"}
@@ -63,12 +64,12 @@ with tempfile.TemporaryDirectory() as tmp:
     tasks = os.path.join(tmp, "tasks")
     os.environ["LOOP_SCHEDULED_TASKS_DIR"] = tasks
     write(os.path.join(tasks, "t1", "SKILL.md"), "---\nname: t1\ndescription: site\n---\n" + POINTER + "\n")
-    check(report.prompt_pointer(tmp) == [], "health is quiet when the installed prompt is only the pointer")
+    check(rules.prompt_pointer(tmp) == [], "health is quiet when the installed prompt is only the pointer")
     write(os.path.join(tasks, "t1", "SKILL.md"), "---\nname: t1\n---\n" + POINTER + "\n1. Run the deploy script.\n2. Mail the result.\n")
-    warn = report.prompt_pointer(tmp)
+    warn = rules.prompt_pointer(tmp)
     check(len(warn) == 1 and warn[0]["state"] == "WARN" and warn[0]["rule"] == "prompt-pointer" and "2 line(s)" in warn[0]["detail"],
           "health warns on an installed prompt that holds steps beyond the pointer")
     os.remove(os.path.join(tasks, "t1", "SKILL.md"))
-    check(report.prompt_pointer(tmp) == [], "health says nothing when the task is not installed on this machine")
+    check(rules.prompt_pointer(tmp) == [], "health says nothing when the task is not installed on this machine")
 
 sys.exit(1 if failed else 0)

@@ -59,7 +59,7 @@ $docs add Extras --paths calc.py >/dev/null; page Extras "- EXT-1: **Unreviewed*
 $docs check | grep -q "^PAGE Extras" && bad "a page in docs.tsv was refused" || ok "a page in docs.tsv outside the old set passes"
 $docs criteria Extras | grep -q "NEXT EXT-2" && ok "criteria numbers a listed page by its own prefix" || bad "extra page prefix"
 rm docs/wiki/Extras.md; grep -v '^Extras' .loop/docs.tsv > .loop/t && mv .loop/t .loop/docs.tsv
-good; sub 's/^## Tests/## Usage/'
+good; sub 's/^## Tests/## Extra/'
 $docs check | grep -q "^SECTIONS Delivery" && ok "wrong sections fail" || bad "sections"
 good; sub 's/^## Problem/## Commands/'
 $docs check | grep -q "^SECTIONS Delivery" && ok "a Commands section fails" || bad "commands section"
@@ -282,21 +282,13 @@ $docs check 2>&1 | grep -q "REFUSED: criteria_max is True" && ok "a true criteri
 setmax unset; good
 mkdir -p skills/toy; printf '## Command map\n\n| Ask | Runs |\n|---|---|\n| `/toy median` | `python3 scripts/calc.py median` |\n' > skills/toy/SKILL.md
 usage_page '- `/toy median 1 2 3` — Prints the median of the numbers given (`2`). Refuses nothing.'
-$docs check | grep -q "DOCS OK" && ok "a Usage of API entries passes" || bad "usage passes: $($docs check)"
-usage_page '- `calc.py median LIST` — Prints the median (`2`). Refuses an empty list (exit 1).'
-$docs check | grep -q "DOCS OK" && ok "a Usage entry naming a routine from the Command map passes" || bad "usage routine"
-usage_page '- `/toy median 1 2 3` — Works it out.'
-$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 each entry says what it prints" && ok "a Usage entry that says nothing printed fails" || bad "usage prints"
+$docs check | grep -q "^USAGE Delivery: has a Usage section" && ok "a page with a Usage section fails with USAGE, API entries or not" || bad "usage fails"
 usage_page 'It prints the median.'
-$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 only .- .syntax. — what it does. entries" && ok "a prose Usage line fails" || bad "usage prose"
-usage_page '- `other.py run` — Prints `x`.'
-$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map (got 'other.py run')" && ok "a routine missing from the Command map fails" || bad "usage routine missing"
-usage_page '- `/toy nosuch` — Prints `x`.'
-$docs check | grep -q "^FORMAT Delivery:[0-9]*: Usage: DOC-6 the command is in its skill's Command map (got '/toy nosuch')" && ok "a verb missing from the Command map fails" || bad "usage verb"
+$docs check | grep -q "^USAGE Delivery: has a Usage section" && ok "a prose Usage section fails with USAGE" || bad "usage prose"
 usage_page ''
-$docs check | grep -q "^USAGE Delivery: has an empty Usage" && ok "an empty Usage section fails" || bad "empty usage"
+$docs check | grep -q "^USAGE Delivery: has a Usage section" && ok "an empty Usage section fails with USAGE" || bad "empty usage"
 good; sed -i.bak 's/^## Problem/## Commands/' docs/wiki/Delivery.md; rm docs/wiki/Delivery.md.bak
-$docs check | grep -q "rename Commands to Usage and place it between Problem and Requirements" && ok "a Commands section fails with the fix" || bad "commands fails"
+$docs check | grep -q "^SECTIONS Delivery.*Commands" && ok "a Commands section fails as a wrong section" || bad "commands fails"
 good; rm -rf skills/toy
 
 

@@ -23,7 +23,7 @@ mapped step for the mode it will run in and refuses with the whole list before a
 | `FLOW_UNRUNNABLE` | a mapped step can't run in this mode: a named skill with no probe, or a headless step with no command | add `probe` and `command` to the flow file, or map those steps to `built-in` |
 | `FLOW_SECTION_MISSING` | `references/commands.md` has no section for a built-in step | reinstall workflow-delivery |
 
-A goal whose change makes `.loop/START.md` or a marked agent block stale (a PRD page's Usage, a setting) runs
+A goal whose change makes `.loop/START.md` or a marked agent block stale (a PRD page's Problem, a setting) runs
 `docs.py audit` (or `entry.py write`) in build and commits the result. A merge conflict in `.loop/START.md` or in a
 marked block is resolved by taking either side, running `entry.py write`, and committing.
 
@@ -550,3 +550,11 @@ describe the changed paths are updated, and the tree is clean. Commit what is mi
 pull request: delivery does that. File what you found and did not fix, one line each, in your reply:
 `FILE defect <Feature>: text` for a break of a Reviewed requirement outside this goal's touches, `FILE backlog <Feature>: text` for an
 improvement, idea or saving (`Other` when no feature fits). A break inside the touches is fixed, not filed. Record files them once.
+
+## Exact command entries (as of main, 2026-11-13, when the Usage section was retired)
+
+- Every skill holds the same `proctree.py` copy, which also holds the lane and goal helpers.
+
+- `flow.py SLUG STEP` — Runs one step (idea, plan, review, qa, ship); a review or ship step stops at `step_budget_minutes` (default 30, never under 15), is recorded done with what it left and the goal goes on. In a worker session prints `IN SESSION` and the skill to run. Prints `RUNNING` until it ends. A step mapped to `built-in` takes its routine from `references/commands.md`, under The built-in flow.
+
+- `goal.py record SLUG STEP --in-session` — Records a finished step. Refuses a reply with no `DEPTH:` line, and a qa step with no passing lane on HEAD (`LANE_MISSING`). A `PENDING:` line that says none, nothing, n/a or nothing at all asks nothing and never makes the goal wait; a real item still waits for the owner, including one written on the line under a bare `PENDING:` heading. Goal steps (`step`, `record`, `pr`) refuse outside a worker session. A recorded ship reply's `FILE defect|backlog <Feature>: text` lines are filed once each as issues, a defect on no milestone and a backlog item on `Backlog: <Feature>` (`Backlog: Other` when no page matches), and printed as `FILED`, `SAME` or `NOTE`; an email address or the home folder in a line skips it.

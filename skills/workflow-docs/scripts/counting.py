@@ -173,7 +173,7 @@ def read_map(root):
             for line in handle:
                 if line.strip() and not line.startswith("#"):
                     page, _, paths = line.rstrip("\n").partition("\t")
-                    paths = paths.partition("\t")[0]  # an optional third column is the PRD source (sources())
+                    paths = paths.partition("\t")[0]
                     rows[page] = [item.strip() for item in paths.split(",") if item.strip()]
     except OSError:
         pass
@@ -181,18 +181,12 @@ def read_map(root):
 
 
 def sources(root):
-    """{page: PRD source} from the optional third column of .loop/docs.tsv: `page` (the wiki page itself, the default),
-    `url:<link>` or `mcp:<server>:<resource>`; a page with no entry has its PRD on the page."""
-    out = {}
+    """The optional third column of docs.tsv: a page's PRD source (`url:<link>`, `mcp:<server>:<resource>`, or `page`)."""
     try:
-        with open(map_path(root)) as handle:
-            for line in handle:
-                cols = line.rstrip("\n").split("\t")
-                if line.strip() and not line.startswith("#") and len(cols) > 2 and cols[2].strip():
-                    out[cols[0]] = cols[2].strip()
+        rows = [x.rstrip("\n").split("\t") for x in open(map_path(root)) if x.strip() and x[0] != "#"]
     except OSError:
-        pass
-    return out
+        return {}
+    return {r[0]: r[2].strip() for r in rows if len(r) > 2 and r[2].strip()}
 
 
 def write_map(root, rows):
@@ -239,6 +233,8 @@ def live(root):
         elif kind == "mac":
             done = subprocess.run(["launchctl", "list", target], capture_output=True, text=True)
             said = "loaded" if done.returncode == 0 else "not loaded"
+        elif kind == "local":
+            said = "runs on this Mac's local schedule, not in GitHub Actions"
         else:
             said = "a Claude scheduled task is checked in the Claude app"
         print("%s: %s" % (e["name"], said))
@@ -268,9 +264,9 @@ def config_of(root):
         return {}
 
 
-BUILT_IN = (("health", "Checks the repo and files each finding.", "health_cron", "47 */4 * * *", "health.yml"),
-            ("regression", "Runs every regression row, files each failure.", "regression_cron", "17 */4 * * *", "regression.yml"),
-            ("digest email", "Mails one digest per health round.", None, "", "health.yml"))
+BUILT_IN = (("health", "Checks the repo and files each finding.", "health_cron", "47 */4 * * *", "local:schedule"),
+            ("regression", "Runs every regression row, files each failure.", "regression_cron", "17 */4 * * *", "github:regression.yml"),
+            ("digest email", "Mails one digest per health round.", None, "", "local:schedule"))
 
 
 def entries(root):
@@ -280,7 +276,7 @@ def entries(root):
     for name, does, key, default, flow in BUILT_IN:
         mail = str(cfg.get("digest_mail", "cloudflare"))
         cron = "with each health round" if key is None else str(cfg.get(key, default))
-        out.append({"name": name, "does": does, "cadence": cron, "runs": "github:" + flow,
+        out.append({"name": name, "does": does, "cadence": cron, "runs": flow,
                     "enabled": mail != "off" if key is None else cron != "off"})
     for item in cfg.get("automation") or []:
         if isinstance(item, dict) and item.get("name"):
@@ -288,13 +284,33 @@ def entries(root):
     return out
 
 
+def runbook_link(root, entry, wiki):
+    """The wiki link to the Runbook of an entry's routine: its `runbook` key, else the .loop/routines.tsv routine named like it
+    (health -> health-round); '' when there is none or the repo has no GitHub origin."""
+    try:
+        with open(os.path.join(root, ".loop", "routines.tsv"), encoding="utf-8") as handle:
+            held = [line.split("\t")[:2] for line in handle if line.strip() and line[0] != "#" and "\t" in line]
+    except OSError:
+        return ""
+    name = str(entry.get("runbook") or entry["name"])
+    for routine, page in held:
+        if wiki and (routine == name or routine.startswith(name + "-")):
+            return "[%s](%s/%s#%s)" % (entry["name"], wiki, page.strip(), routine)
+    return ""
+
+
 def automation_block(root):
     rows, flows = [], os.path.join(root, ".github", "workflows")
+    origin = subprocess.run(["git", "-C", root, "remote", "get-url", "origin"], capture_output=True, text=True)
+    slug = pageformat.owner_repo(origin.stdout) if origin.returncode == 0 else ""
+    wiki = "https://github.com/%s/wiki" % slug if slug else ""
     for e in entries(root):
         kind, _, target = str(e.get("runs", "")).partition(":")
         on = e.get("enabled", True) is not False and str(e.get("cadence")) != "off"
         last, owed = str(e.get("last_run") or "docs.py automation"), "none"  # a live time in the page would change on every run
-        if kind == "github":
+        if kind == "local":
+            where, state = "this Mac's local schedule", "on" if on else "off"  # health never runs in Actions: no workflow is owed
+        elif kind == "github":
             there = os.path.exists(os.path.join(flows, target))
             where, state = ("GitHub Actions (%s)" % target) if there else "not deployed", "on" if on and there else "off"
             owed = "run workflow-setup to write .github/workflows/" + target if on and not there else owed
@@ -304,8 +320,8 @@ def automation_block(root):
         else:
             where, state, owed = "not set", "off", 'add "runs": github:FILE, mac:LABEL or claude:TASK'
         if e["name"] == "digest email" and on and str(e.get("cadence")) != "off":
-            owed = "set the digest address and keys as Actions secrets (yours, outside git)" if owed == "none" else owed
-        rows.append([str(e["name"]), str(e.get("does", "")), state, cadence(str(e.get("cadence", ""))), where, last, owed])
+            owed = "set the digest address and keys in the schedule's mail.env on the Mac (yours, outside git)" if owed == "none" else owed
+        rows.append([runbook_link(root, e, wiki) or str(e["name"]), str(e.get("does", "")), state, cadence(str(e.get("cadence", ""))), where, last, owed])
     head = ["Routine", "What it does", "State", "Cadence", "Runs on", "Last run", "Owed by you"]
     return "\n".join(["<!-- automation:begin -->", "## Automation", "",
                        "Health and regression, then each `automation` entry in `.loop/config.json`; to add one, add an entry.", ""] + pageformat.table(head, rows) + ["<!-- automation:end -->", ""])

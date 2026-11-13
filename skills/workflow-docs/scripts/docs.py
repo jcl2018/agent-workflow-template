@@ -5,8 +5,9 @@ usage: docs.py <command> [options]
 
   survey                       show the wiki's pages and this repo's page map
   add PAGE --paths A,B         add a page and the paths it describes
-  check [--base REF]           list missing, stale, unmapped and unwritten pages, counts the repo doesn't match, and
-                               broken criteria; exit 1 if any
+  check [--base REF] [--own]   list missing, stale, unmapped and unwritten pages, counts the repo doesn't match, and
+                               broken criteria; exit 1 if any. --own: a stale page this branch's diff doesn't touch is
+                               a FINDING line, not a failure (the pr lane's rows use it)
   audit [--base REF] [--dry-run]
                                the one command: check every required doc, fix what is mechanical, list wording to rewrite
   criteria PAGE                print the requirement format and the next free id for a page
@@ -285,6 +286,9 @@ def cmd_check(args):
     point = entry.problems(root)
     notes = [item for item in point if item[0] in ("LAG", "SKIPPED")]  # said, never a failure
     found = problems(root, args.base) + contract(root) + counts(root) + [i for i in point if i not in notes]
+    if args.own:
+        import audit
+        found, notes = audit.own_split(root, found, notes, read_map(root), config(root).get("base") or "main")
     for kind, page, detail in found + notes:
         print("%s %s: %s" % (kind, page, detail))
     if found:
@@ -306,7 +310,7 @@ def cmd_publish(args):
     if config(root).get("criteria"):
         import render
         render.refresh(root)  # the Settings and Automation blocks are written fresh, so the wiki gets them
-    found = problems(root, None) + [c for c in contract(root) if c[0] != "CHANGED"]  # Usage drift waits on the owner
+    found = problems(root, None) + [c for c in contract(root) if c[0] != "CHANGED"]  # kept for older pages; Usage is gone
     found += [c for c in counts(root) if c[1].startswith(wiki_dir(root) + "/")]
     if found:
         for kind, page, detail in found:
@@ -408,6 +412,7 @@ def main():
     item.set_defaults(func=cmd_add)
     item = sub.add_parser("check")
     item.add_argument("--base", default="")
+    item.add_argument("--own", action="store_true")
     item.set_defaults(func=cmd_check)
     item = sub.add_parser("audit")
     item.add_argument("--base", default="")
