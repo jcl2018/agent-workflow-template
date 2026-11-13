@@ -155,11 +155,11 @@ def own_touched(root, ref, paths):
 def own_split(root, found, notes, rows, name="main"):
     """(found, notes) with each STALE line of an untouched mapped page moved to notes as FINDING."""
     ref = own_base(root, name)
-    if not ref:
-        return found, notes
+    if not ref or own_git(root, "merge-base", "--is-ancestor", "HEAD", ref) is not None:
+        return found, notes  # no base, or on the base branch itself (main's own run keeps every STALE)
     keep, moved = [], []
     for item in found:
-        if item[0] == "STALE" and item[1] in rows and not own_touched(root, ref, rows[item[1]]):
+        if item[0] == "STALE" and item[1] in rows and item[2][:1].isdigit() and not own_touched(root, ref, rows[item[1]]):
             moved.append(("FINDING", "STALE " + item[1], item[2] + " (not touched by this goal; main's own, left for health)"))
         else:
             keep.append(item)

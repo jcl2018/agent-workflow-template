@@ -57,7 +57,10 @@ write("docs/wiki/B.md", PAGE % ("B", "b"))
 commit("pages")
 write("b.txt", "two\n")
 commit("main changes b.txt, so B is stale on main")
+git("update-ref", "refs/remotes/origin/main", "main")  # the lane diffs against origin/main
 git("checkout", "-q", "-b", "goal")
+write("c.txt", "goal work" + chr(10))  # the goal has a commit of its own, touching no mapped page
+commit("the goal adds c.txt")
 
 code, stale, found = run()
 check("plain check on a goal branch still prints main's STALE B", code == 1 and any("STALE B" in l for l in stale))
@@ -68,10 +71,19 @@ git("checkout", "-q", "main")
 code, stale, found = run()
 check("plain check on main itself still prints its STALE B (health and the scheduled run keep seeing it)",
       code == 1 and any("STALE B" in l for l in stale))
+code, stale, found = run("--own")
+check("--own on main itself still fails on its STALE B (the scheduled run's rows keep catching it)",
+      code == 1 and any("STALE B" in l for l in stale) and not found)
 git("checkout", "-q", "goal")
 write("a.txt", "two\n")
 commit("the goal changes a.txt, so A goes stale")
 code, stale, found = run("--own")
 check("--own: a page the goal's own diff made stale still fails", code == 1 and any("STALE A" in l for l in stale))
 check("--own: main's stale B stays a FINDING beside it", any("STALE B" in l for l in found) and not any("STALE B" in l for l in stale))
+sys.path.insert(0, os.path.dirname(docs))
+import audit  # noqa: E402
+
+line = ("STALE", "B", "README block differs from a fresh render. Fix: /workflow-docs render")
+kept, moved = audit.own_split(repo, [line], [], {"B": ["b.txt"]})
+check("--own never moves a block-staleness line, only 'N commits since the page' ones", kept == [line] and not moved)
 sys.exit(1 if fails else 0)

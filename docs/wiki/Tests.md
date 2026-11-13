@@ -239,6 +239,8 @@
 | <a id="t-stale-own-finding"></a>stale-own-finding | requirement | DOC-1 | not run | - | local | 2026-11-13 |
 | <a id="t-stale-own-main-reported"></a>stale-own-main-reported | requirement | DOC-1 | not run | - | local | 2026-11-13 |
 | <a id="t-stale-own-goal-fails"></a>stale-own-goal-fails | requirement | DOC-1 | not run | - | local | 2026-11-13 |
+| <a id="t-stale-own-main-own-fails"></a>stale-own-main-own-fails | requirement | DOC-1 | not run | - | local | no |
+| <a id="t-stale-own-block-kept"></a>stale-own-block-kept | requirement | DOC-1 | not run | - | local | no |
 
 ## Guardrails
 
