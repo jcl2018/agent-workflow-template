@@ -221,8 +221,8 @@
 | <a id="t-spec-decisions-wording"></a>spec-decisions-wording | requirement | DOC-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-spec-decisions-log"></a>spec-decisions-log | requirement | DOC-1 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-12 |
 | <a id="t-command-reference-complete"></a>command-reference-complete | requirement | DOC-6 | not run | - | local | 2026-11-13 |
-| <a id="t-runbook-output-names-row"></a>runbook-output-names-row | requirement | DOC-16 | not run | - | local | no |
-| <a id="t-automation-links-runbook"></a>automation-links-runbook | requirement | DOC-15 | not run | - | local | no |
+| <a id="t-runbook-output-names-row"></a>runbook-output-names-row | requirement | DOC-16 | not run | - | local | 2026-11-13 |
+| <a id="t-automation-links-runbook"></a>automation-links-runbook | requirement | DOC-15 | not run | - | local | 2026-11-13 |
 
 ## Guardrails
 
