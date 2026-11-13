@@ -24,6 +24,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import graph  # noqa: E402
@@ -231,6 +232,54 @@ def cmd_return(args):
     for line in return_session(args.slug, merged) or ["NOTHING TO RETURN for %s" % args.slug]:
         print(line)
     return 0
+
+
+# The pr queue (#3877): goal.py pr asks here. Goals at pr take turns per repo, so main can't move under a running pr lane, and a try
+# lost to main moving has its own cap. graph.pr_queue(op, ...) forwards here (graph.py is at its size budget).
+def pr_turn(runs, slug):
+    """Join the repo's queue (one file per goal in <loop>/pr-queue holding its joining time; asking again keeps the place and
+    refreshes the file). Returns "" when it is slug's turn, else the goal ahead. A goal whose run is no longer running or waiting,
+    or no longer at the pr step (it failed a try or opened its PR), or whose file is older than LOOP_MERGE_LOCK_SECONDS (1800), loses its place."""
+    folder = os.path.join(os.path.dirname(runs), "pr-queue")
+    os.makedirs(folder, exist_ok=True)
+    mine = os.path.join(folder, slug)
+    if not os.path.exists(mine):
+        with open(mine, "w") as handle:
+            handle.write(str(time.time_ns()))
+    os.utime(mine)
+    line = []
+    for name in os.listdir(folder):
+        path = os.path.join(folder, name)
+        try:
+            joined, age = int(open(path).read()), time.time() - os.path.getmtime(path)
+            if name != slug and (age > int(os.environ.get("LOOP_MERGE_LOCK_SECONDS") or 1800) or
+                                 (run := se.read(os.path.join(runs, name + ".json"), {})).get("status") not in graph.LIVE or run.get("step") not in ("checks", "pr")):
+                os.unlink(path)
+                continue
+            line.append((joined, name))
+        except (OSError, ValueError):
+            continue
+    return min(line)[1] if min(line)[1] != slug else ""
+
+
+def pr_ahead(runs, base):
+    """True when origin/<base> holds commits this branch lacks: main moved since the last merge of it."""
+    subprocess.run(["git", "fetch", "origin", base], capture_output=True)
+    return subprocess.run(["git", "merge-base", "--is-ancestor", "origin/" + base, "HEAD"], capture_output=True).returncode != 0
+
+
+def pr_moved(runs, g, state, why, fix):
+    """A try lost to main moving (a conflict with it, or a lane that failed while it moved) is not the goal's fault: it counts
+    in state["moved"], capped by max_moved (default 5), and leaves tries and max_tries alone. Past the cap it counts as a try."""
+    state["moved"] = state.get("moved", 0) + 1
+    most = int(g.config().get("max_moved") or 5)
+    if state["moved"] > most:
+        g.failed_try(state, why, "build", fix)
+        return True
+    state["step"] = "build"
+    g.save(state, "main moved, try not counted (%d of %d)" % (state["moved"], most))
+    print("TRY NOT COUNTED (main moved: %d of %d; past %d it counts)\nNEXT: %s" % (state["moved"], most, most, fix))
+    return True
 
 
 def main():

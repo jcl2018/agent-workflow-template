@@ -335,17 +335,23 @@ def cmd_record(args):
     return 1
 
 
+def queue(op, *args):  # #3877: pool.py
+    return pods.pr_queue(op, state_dir(), *args) if pods else ""
+
+
 def cmd_pr(args):
     state, base = held(args.slug), config()["base"]
     guards.waiting_gate(ME, state)
     left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
     if left:
         no("the flow hasn't finished: %s. Fix: run flow.py %s %s." % (", ".join(left), args.slug, left[0]))
+    if ahead := queue("turn", args.slug):
+        print("WAITING pr queue: %s first; run pr again" % ahead)
+        return 0
     what, detail = role.sync(base)
     if what == "conflict":
-        failed_try(state, "merging %s conflicts in: %s" % (base, detail), "build",
-                   "merge %s yourself, resolve the conflicts, commit, then pr" % base)
-        return 1
+        why, fix = "merging %s conflicts in: %s" % (base, detail), "merge %s yourself, resolve the conflicts, commit, then pr" % base
+        return queue("moved", ME, state, why, fix) or failed_try(state, why, "build", fix) or 1
     if what == "dirty":
         no("the merge was refused: %s. Fix: commit or remove the changes, then run pr again." % detail)
     if what == "merged":
@@ -366,6 +372,8 @@ def cmd_pr(args):
     if gate == "running":
         return 0
     if gate == "fail":
+        if queue("ahead", base):
+            return queue("moved", ME, state, "lane failed while %s moved" % base, "run pr")
         return fit.pr_fail(ME, state, head, line, ids)
     role.record(state, base)
     known = run(["gh", "pr", "view", state["branch"], "--json", "url,state"])
