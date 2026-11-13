@@ -128,6 +128,7 @@
 | <a id="t-del5-docs-patch-default"></a>del5-docs-patch-default | requirement | DEL-5 | not run | - | local | 2026-11-13 |
 | <a id="t-resume-ask-worker-step"></a>resume-ask-worker-step | requirement | DEL-5 | not run | - | local | 2026-11-13 |
 | <a id="t-resume-unasked-merges"></a>resume-unasked-merges | requirement | DEL-5 | not run | - | local | 2026-11-13 |
+| <a id="t-del1-new-here-main-refused"></a>del1-new-here-main-refused | defect | 3468 | not run | - | local | 2026-11-13 |
 
 ## Documentation
 
