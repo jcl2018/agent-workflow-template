@@ -12,3 +12,8 @@ Frozen. A wrong done line needs a new goal.
 ## Verify by hand
 
 <!-- Numbered steps for a person, each with an Expect: line. A release needs this. -->
+
+1. Run `python3 dev/toy/test-govern-notes.py`.
+   Expect: every line starts with PASS and the last line is ALL PASS.
+2. In the operation session, write a note under `~/.claude/projects/.../memory/`.
+   Expect: the Write goes through; an Edit to a file in the repo is still refused with "(MON-7)".
