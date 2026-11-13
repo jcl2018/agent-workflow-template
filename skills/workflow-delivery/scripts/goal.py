@@ -43,8 +43,7 @@ try:  # pods (MON-15): workflow-monitoring's graph.py, loaded by path
 except Exception:
     pods = None
 
-# A git or gh prompt must fail, not block.
-os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
+# role.py sets the git and gh no-prompt variables.
 if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
