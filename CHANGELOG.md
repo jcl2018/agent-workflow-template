@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.28.27 - 2026-11-13
+
+- docs check --own: a stale page the goal's diff doesn't touch is a finding, not a failure; rows and toy
+- stale-own rows guard DOC-15's STALE requirement; regenerate Tests tables
+- Fold own.py into audit.py (package headroom: 98 files)
+- stale-own control row: say that health and the scheduled run keep the STALE line
+- stale-own rows guard DOC-1 (a page behind the code is reported stale), the requirement the docs check judges
+- check --own: keep every STALE on the base branch itself and for block staleness; two rows
+- Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/stale-blocks-all
+- Merge remote-tracking branch 'origin/main' into loop/stale-blocks-all
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.26 - 2026-11-13
 
 - DECISIONS: sub-bullet and owner sentences for the stale Documentation page
