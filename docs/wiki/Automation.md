@@ -7,7 +7,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=ff34edf0 N=e081872e M=4670
 
 ## Problem
 - Things break between my sessions, and I only find out when I next open one; the important checks should run on their own.
-- Every few hours I want the full regression suite and the health check to run, and every problem they find to become an issue tagged with its group, and with its feature when feature_labels is on, written to GitHub only because the scheduled run passes `--live`.
+- Every few hours I want the full regression suite and the health check to run, and every problem they find to become an issue tagged with its group, and with its feature when feature_labels is on.
 - I want one email to my address after each round that tells me what ran, what broke, what got fixed and what to ask the agent, without opening GitHub.
 
 ## Usage
