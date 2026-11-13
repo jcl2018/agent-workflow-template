@@ -684,7 +684,7 @@
 | <a id="t-backlog-setup-makes"></a>backlog-setup-makes | requirement | SET-17 | not run | - | local | 2026-11-13 |
 | <a id="t-backlog-adoption-warns"></a>backlog-adoption-warns | requirement | SET-17 | not run | - | local | 2026-11-13 |
 | <a id="t-package-caps-held"></a>package-caps-held | requirement | SET-3 | not run | - | local | 2026-11-13 |
-| <a id="t-package-headroom-held"></a>package-headroom-held | requirement | SET-3 | not run | - | local | 2026-11-13 |
+| <a id="t-package-headroom-held"></a>package-headroom-held | requirement | SET-3 | FAIL | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
 
 ## Other
 

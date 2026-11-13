@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # windows: ok
-# reads: skills/workflow-docs/scripts/docs.py skills/workflow-docs/scripts/own.py
+# reads: skills/workflow-docs/scripts/docs.py skills/workflow-docs/scripts/audit.py
 """stale-blocks-all: docs.py check --own turns a stale page the goal's diff doesn't touch into a FINDING line, a page the goal made
 stale still fails, and plain check (health, the scheduled run, main itself) still prints main's STALE line.
 

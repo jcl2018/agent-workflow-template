@@ -286,8 +286,8 @@ def cmd_check(args):
     notes = [item for item in point if item[0] in ("LAG", "SKIPPED")]  # said, never a failure
     found = problems(root, args.base) + contract(root) + counts(root) + [i for i in point if i not in notes]
     if args.own:
-        import own
-        found, notes = own.split(root, found, notes, read_map(root), config(root).get("base") or "main")
+        import audit
+        found, notes = audit.own_split(root, found, notes, read_map(root), config(root).get("base") or "main")
     for kind, page, detail in found + notes:
         print("%s %s: %s" % (kind, page, detail))
     if found:
