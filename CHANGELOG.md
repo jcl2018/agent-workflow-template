@@ -1,5 +1,97 @@
 # Changelog
 
+## v0.28.14 - 2026-11-13
+
+- backlog-milestones: Backlog milestones, defect/backlog filing by kind, ship-time FILE lines, Adoption milestones rule; wording proposed in DECISIONS.md
+- backlog-milestones: older health toys expect defect and backlog homes
+- Lane: re-render the Tests tables
+- backlog-milestones: Home says where health files findings
+- backlog-milestones: backlog renames the old Backlog milestone to Backlog: Other
+- backlog-milestones: docs follow the rename
+- backlog-milestones: a size FAIL is a defect (owner's change)
+- backlog-milestones: the owner's wording on DOC-10, HLT-4, DEL-14, SET-17, reviewed; criteria_max 17 for SET-17
+- backlog-milestones: pages re-reviewed by the owner; Guardrails notes criteria_max 17
+- backlog-milestones: Guardrails wording
+- Merge origin/main (v0.28.12) into loop/backlog-milestones: rows unioned, Tests re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/backlog-milestones
+
+### How to verify
+
+1. Run `python3 skills/workflow-health/scripts/milestone.py backlog` in the template repo.
+   Expect: nine lines, `EXISTS Backlog: <Feature>` for the eight feature pages and `EXISTS Backlog: Other`, and nothing created.
+2. Run `python3 skills/workflow-health/scripts/health.py check --group adoption`.
+   Expect: a `PASS adoption milestones` line; delete one Backlog milestone on GitHub and it becomes a `WARN` naming that milestone.
+3. Run `python3 dev/toy/test-backlog.py`.
+   Expect: every line `PASS:` and the last `PASS: every filing has one home`.
+4. Write a ship reply with the line `FILE backlog Health: an idea` and run `python3 skills/workflow-health/scripts/milestone.py leftovers THAT_FILE` (no `--live`).
+   Expect: `WOULD file backlog on milestone Backlog: Health: an idea (dry run; add --live)` and no issue created.
+
+## v0.28.13 - 2026-11-13
+
+- A regression row no longer inherits the runner's shard, levels or cleanup (#3133)
+- Regression page: a row does not see the runner's shard (#3133)
+- Merge remote-tracking branch 'origin/main' into loop/reg3-same-as-run
+- Merge remote-tracking branch 'origin/main' into loop/reg3-same-as-run
+- Merge remote-tracking branch 'origin/main' into loop/reg3-same-as-run
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+- suite-shard: four shards, a row gets the time left, one combined summary job
+- suite-shard: move the summary job text to actions_summary.py (actions.py was over 20 KB)
+- suite-shard: the CI suite-time line carries the count of rows skipped for time
+- suite-shard: eight shards; the summary step tests follow the combined summary job
+- suite-shard: one concurrency group per ref, a newer run on a ref cancels the older
+- Wiki: the regression workflow's shards and combined summary
+- Merge origin/main into loop/suite-shard
+- suite-shard: shorter comments (actions.py under 20 KB)
+- Wiki: update pages for suite-shard
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.12 - 2026-11-13
+
+- Reply hook: a Dependencies section must name every goal on the board
+- Tests tables list the dependencies row
+- Merge remote-tracking branch 'origin/main' into loop/reply-deps-complete
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.11 - 2026-11-13
+
+- Trim workflow-regression SKILL.md under 150 lines; prove the unbuilt rows red
+- Wiki: update pages for health-fails-main
+- Regression page: known rows in the Check line
+- Merge origin/main into loop/health-fails-main
+- Merge remote-tracking branch 'origin/main' into loop/health-fails-main
+- Merge remote-tracking branch 'origin/main' into loop/health-fails-main
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.10 - 2026-11-13
+
+- Regression: a failing row's issue carries its last 40 output lines (#3789)
+- Regression: rows for the output capture, Tests tables, Runbook line (#3789)
+- Regression: map the CI row to AUT-2 so Automation's Tests table is current (#3789)
+- Merge origin/main into loop/capture-row-output
+- Merge origin/main into loop/capture-row-output
+- Wiki: update pages for capture-row-output
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/capture-row-output
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 dev/toy/test-row-output.py` from the repo root.
+   Expect: every line starts with `PASS:`, including `Mac tick: a silent failing row gives an issue body of its last 40 output lines` and `CI: the issue body holds the last 40 output lines of the row`.
+2. After the next scheduled regression run, open a regression issue for a row that ends in `| grep -q` (for example `skill-says-governs`, if it is still failing).
+   Expect: its output block holds the row's last lines, not an empty block.
+
 ## v0.28.9 - 2026-11-13
 
 - Monitoring V1: the operation checkout fast-forwards, the reply hook checks repo blocks, a silent worker is proven under Needs you
