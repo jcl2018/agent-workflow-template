@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.28.23 - 2026-11-13
+
+- DECISIONS: drop-usage requirement wording, waiting on owner un-review
+- drop-usage: no Usage section on any feature page; docs check flags one; START.md and health read the skills' command maps
+- drop-usage: a Python toy and its regression row
+- drop-usage: test-criteria expects USAGE for any Usage section; Commands hint
+- drop-usage: re-rendered pages
+- drop-usage: the owner's approved wording on DOC-1, DOC-2, DOC-6, HLT-2 and the Documentation Problem; reviewed
+- drop-usage: the nine bash toys and their rows follow the no-Usage pages; command reference holds the moved entries
+- drop-usage: a Runbook Output may name a Deployments row, and the Automation block links each routine to its Runbook
+- Lane: re-render the Tests tables
+- drop-usage: the regression workflow entry moves to the regression command reference; review-findings-wording follows it
+- drop-usage: Health PRD un-reviewed and reviewed again by the owner, HLT-2 as now worded
+- Merge origin/main into loop/drop-usage
+- Merge remote-tracking branch 'origin/main' into loop/drop-usage
+- Merge origin/main into loop/drop-usage (Automation Usage edits moved to the command references)
+- Health command reference: the digest and mail entries moved from the Automation page's retired Usage section
+- Monitoring command reference: LF line endings throughout
+- Merge origin/main into loop/drop-usage (95 commits; Usage edits from main moved to the command references; Documentation and Health PRDs re-stamped with the owner's words)
+- DECISIONS: wording for the three stale pages (#3848, #3860, #3861), waiting on owner un-review
+- Automation, Guardrails, Monitoring: owner-approved updates for the stale pages (#3848, #3860, #3861)
+- Home, DECISIONS: record the applied wording for #3848, #3860, #3861
+- Merge origin/main into loop/drop-usage (Usage edits from main moved to the command references; design-guide.md went to loop-files.md on main)
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.22 - 2026-11-13
 
 - Fold and trim for package headroom

@@ -136,7 +136,7 @@ Then stop. In a monitored run, `report` shows it. After the answer, run `goal.py
 
 ## Command map
 
-Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. The README's How to use tables start from these asks.
 
 | Ask | Runs |
 |---|---|

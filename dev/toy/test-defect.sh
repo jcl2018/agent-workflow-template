@@ -224,7 +224,7 @@ workflow-docs|2. `## Problem`: who it's for and what it solves, at most `problem
 workflow-docs|5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
 workflow-docs|   when no row passes; then the workflow tests, then the defect tests, in the same table.
 workflow-docs|`NONGOALS`, `METRICS`, `CRITERION`, `CAP`, `SCRIPT`, `USAGE`, `TESTS` (run `render`), `LOCKED`, `CHANGED`.
-workflow-docs|Usage. After it, a change to any of the first four is `LOCKED` (check, audit and release fail); a change to Usage alone
+workflow-docs|the retired Usage print, still written and never reported). After it, a change to any of them is `LOCKED` (check, audit and release fail).
 workflow-docs|owner un-reviews that requirement and the PRD, then reviews both again.
 workflow-docs|`Given <context>, when <action>, then <outcome>.`; `audit` lists any other as `SCENARIO` and the release step blocks on
 workflow-docs|`regression.py sync` reports an id with no row, and `release.py cut` refuses while any of its rows is missing, a draft

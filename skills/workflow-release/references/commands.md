@@ -192,3 +192,6 @@ Status: built and proven: Print the release field, version and draft link. Built
 Stops for the owner: none.
 Proof: toy tests.
 
+## Exact command entries (as of main, 2026-11-13, when the Usage section was retired)
+
+- `merge.py SLUG` — The release step: docs check, merge (where auto_merge is on), version bump, changelog, GitHub release, wiki publish. Prints `MERGED <pr> into main`, `RELEASED vX.Y.Z <release link> (<bump> bump)` and `PUBLISHED <wiki link>`. Refuses while a page is stale. Before the wiki publish it re-renders the generated Tests tables on the merged head (`RERENDERED Tests`), so staleness in only those tables never blocks the wiki; a stale hand-written page still refuses. Takes a per-repo merge lock so two pods never merge into one main at once, and refuses another pod's goal with one line naming the owner. The pod is `LOOP_POD_ID`, else the operation session's own id: a restarted operation session keeps its goals by setting `LOOP_POD_ID` to its old pod id.
