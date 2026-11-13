@@ -12,6 +12,8 @@
   scheduled         the regression or health workflow is missing, or has no schedule (WARN)
   no-fit            an open [adoption] line in .loop/findings.md, written by setup: one WARN row each (report.py)
   agent-tools       agent_command (or the flow file's command) grants its agent no tools (WARN) (report.py)
+  prompt-pointer    a scheduled-task prompt holds more than the Runbook pointer (WARN)
+  milestones        a GitHub repo lacks a standing Backlog milestone, one per feature page and Other (WARN; INFO when gh can't list them)
 Security and privacy, Size, Performance check-time and Hygiene idle-sessions rules (also read-only):
   private                tracked files matching a leak pattern (leak_patterns in the private flow file): FAIL with
                          file:line and the pattern's number only, never the matched text; INFO with no pattern set
@@ -38,7 +40,6 @@ from defects import LINE, behind, pages, row, setting, table
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
-
 
 
 def today():
@@ -169,74 +170,60 @@ def scheduled(root):
     return out
 
 
+def no_fit(root):
+    """no-fit: each open `- [adoption] <kind>: <subjects>. Fix: <fix>` line of .loop/findings.md (setup writes them) is one WARN row."""
+    try:
+        text = open(os.path.join(root, ".loop", "findings.md")).read()
+    except OSError:
+        return []
+    found = [(re.match(r"^- \[adoption\] ([\w-]+): (.+?)\. Fix: (.+?)\s*$", l), l) for l in text.splitlines()]
+    return [row("WARN", "adoption", m.group(1), "no-fit", "did not fit when adopted: " + m.group(2), m.group(3), m.group(2))
+            for m, line in found if m and not line.rstrip().endswith("[closed]")]
+
+
+POINTER = re.compile(r"^In \S+, fast-forward to origin/main, then read \S+'s Runbook section \S+ and follow it exactly\.$")  # docs.py prompts
+
+
+def prompt_pointer(root):
+    """prompt-pointer: WARN for each installed scheduled-task prompt (a routine's runs: claude:TASK or mac:LABEL) holding a line other than the Runbook pointer."""
+    try:
+        items = json.load(open(os.path.join(root, ".loop", "config.json"))).get("automation") or []
+    except (OSError, ValueError, AttributeError):
+        return []
+    base, out = os.environ.get("LOOP_SCHEDULED_TASKS_DIR") or os.path.expanduser("~/.claude/scheduled-tasks"), []
+    tasks = {str(e.get("runs")).partition(":")[2] for e in items if isinstance(e, dict) and str(e.get("runs")).partition(":")[0] in ("claude", "mac")}
+    for task in sorted(tasks - {""}):
+        try:
+            text = open(os.path.join(base, task, "SKILL.md"), encoding="utf-8").read()
+        except OSError:
+            continue
+        body = re.sub(r"\A---\n.*?\n---\n", "", text.replace("\r\n", "\n"), flags=re.S)
+        extra = [x for x in (line.strip() for line in body.splitlines()) if x and not POINTER.match(x)]
+        if extra:
+            out.append(row("WARN", "adoption", task, "prompt-pointer", "the scheduled prompt holds %d line(s) beyond the Runbook pointer, the first: %s" % (len(extra), extra[0][:60]),
+                           "replace its prompt with the lines docs.py prompts prints; the steps live in the Runbook", task))
+    return out
+
+
+def milestones(root):
+    """milestones: a WARN for each standing "Backlog: <Feature>" milestone, and "Backlog: Other", a GitHub repo lacks (DOC-10, SET-17).
+    A repo with no GitHub origin has nothing to check; a list gh can't give is one INFO row. LOOP_BACKLOG_MILESTONES (a JSON list of
+    titles) stands in for gh in the control."""
+    if "github.com" not in (git_raw(root, "remote", "get-url", "origin") or ""):
+        return []
+    import milestone
+    try:
+        have = set(json.loads(os.environ["LOOP_BACKLOG_MILESTONES"])) if "LOOP_BACKLOG_MILESTONES" in os.environ else set(milestone.held(root))
+    except (SystemExit, ValueError, TypeError) as error:
+        return [row("INFO", "adoption", "milestones", "milestones", "not checked: %s" % str(error)[:90], "gh auth login")]
+    return [row("WARN", "adoption", title, "milestones", "this standing milestone is missing", "milestone.py backlog --live (setup makes them)", title)
+            for title in milestone.standing(root) if title not in have]
+
+
 FUNCTIONS = {"nightly": nightly, "unreleased": unreleased, "finding-age": finding_age, "skipped": skipped,
              "network": network, "config": config, "checks-run-tests": checks_run_tests,
-             "template-version": lambda root: template_version(root) + behind(root), "scheduled": scheduled, "no-fit": _report.no_fit, "agent-tools": _report.agent_tools}
-
-
-def _c():
-    import controls
-    return controls
-
-
-def f_nightly(root):
-    c = _c(); c.repo(root)
-    c.write(root, ".loop/regression.tsv", "# id\tlevel\tcommand\nn1\tnightly\ttrue\n")
-    c.write(root, ".loop/regression-runs.tsv", "# id\tstatus\tdate\nn1\tPASS\t2000-01-01\n")
-
-
-def f_unreleased(root):
-    c = _c(); c.repo(root)
-    c.git(root, "tag", "v0.1.0")
-    c.write(root, "x.txt", "later\n")
-    c.commit(root, "later", date="2000-01-02T00:00:00+0000")
-
-
-def f_finding_age(root):
-    c = _c(); c.repo(root)
-    c.write(root, ".gh.json", json.dumps([{"number": 3, "title": "old", "state": "open", "labels": ["health"],
-                                          "milestone": "Health", "created_at": "2000-01-01T00:00:00Z"}]))
-    os.environ["LOOP_HEALTH_GH_FIXTURE"] = os.path.join(root, ".gh.json")
-    IS.CACHE.clear()
-
-
-def f_skipped(root):
-    c = _c(); c.repo(root)
-    c.write(root, ".loop/regression-runs.tsv", "# id\tstatus\tdate\nr1\tSKIPPED\t2000-01-01\n")
-
-
-def f_network(root):
-    c = _c(); c.repo(root)
-    c.write(root, ".loop/regression.tsv", "# id\tlevel\tcommand\nr1\tland\tcurl https://example.test\n")
-
-
-def f_config(root):
-    c = _c(); c.repo(root)
-    c.write(root, ".loop/config.json", "{not json")
-
-
-def f_checks_run_tests(root):
-    c = _c(); c.repo(root)
-    c.write(root, ".github/workflows/regression.yml", "on:\n  schedule: []\n")
-
-
-def f_template_version(root):
-    c = _c(); c.repo(root)
-    c.write(root, "VERSION", "1.0.1\n")
-    c.write(root, "CHANGELOG.md", "# Changelog\n\n## v1.0.0 - 2000-01-01\n")
-
-
-def f_scheduled(root):
-    c = _c(); c.repo(root)
-    c.write(root, ".github/workflows/health.yml", "name: health\n")
-
-
-CONTROLS = {"nightly": ("freshness", "nightly", f_nightly), "unreleased": ("freshness", "unreleased", f_unreleased),
-            "finding-age": ("freshness", "finding-age", f_finding_age), "skipped": ("tests", "skipped", f_skipped),
-            "network": ("tests", "network", f_network), "config": ("adoption", "config", f_config),
-            "checks-run-tests": ("adoption", "checks-run-tests", f_checks_run_tests),
-            "template-version": ("adoption", "template-version", f_template_version),
-            "scheduled": ("adoption", "scheduled", f_scheduled)}
+             "template-version": lambda root: template_version(root) + behind(root), "scheduled": scheduled, "no-fit": no_fit, "agent-tools": _report.agent_tools, "prompt-pointer": prompt_pointer,
+             "milestones": milestones}
 
 
 
@@ -364,51 +351,4 @@ GUARD_FUNCTIONS = {"private": private, "scan-hook": scan_hook, "workflow-permiss
              "idle-sessions": idle_sessions}
 
 
-def f_private(root):
-    c = _c(); c.repo(root)
-    c.write(root, "flow.json", json.dumps({"leak_patterns": ["PLANTED-SECRET-[0-9]+"]}))
-    os.environ["LOOP_FLOW"] = os.path.join(root, "flow.json")
-    c.write(root, "notes.txt", "see PLANTED-SECRET-42\n")
-    c.commit(root, "plant")
-
-
-def f_scan_hook(root):
-    c = _c(); c.repo(root)
-    os.environ.pop("CI", None); os.environ.pop("GITHUB_ACTIONS", None)
-
-
-def f_workflow_permissions(root):
-    c = _c(); c.repo(root)
-    c.write(root, ".github/workflows/x.yml", "on: push\njobs: {}\n")
-
-
-def f_skill_lines(root):
-    c = _c(); c.repo(root)
-    c.write(root, "skills/x/SKILL.md", "line\n" * SKILL_LINES)
-
-
-def f_requirements_per_page(root):
-    c = _c(); c.repo(root, {"criteria_max": 1})
-    c.write(root, "docs/wiki/One.md", "# One\n\n## Requirements\n\n- AB-1: **Unreviewed** a.\n- AB-2: **Unreviewed** b.\n")
-
-
-def f_check_time(root):
-    c = _c(); c.repo(root)
-    os.environ["LOOP_HEALTH_T0"] = "1"
-
-
-def f_idle_sessions(root):
-    c = _c(); c.repo(root)
-    c.run_record(root, "gone", {"status": "done"})
-    with open(os.path.join(root, ".git", "loop", "session-pool.json"), "w") as handle:
-        json.dump({"s1": {"name": "worker · gone", "slug": "gone", "state": "busy"}}, handle)
-
-
-GUARD_CONTROLS = {"private": ("security", "private", f_private), "scan-hook": ("security", "scan-hook", f_scan_hook),
-            "workflow-permissions": ("security", "workflow-permissions", f_workflow_permissions),
-            "skill-lines": ("size", "skill-lines", f_skill_lines),
-            "requirements-per-page": ("size", "requirements-per-page", f_requirements_per_page),
-            "check-time": ("performance", "check-time", f_check_time),
-            "idle-sessions": ("hygiene", "idle-sessions", f_idle_sessions)}
 FUNCTIONS.update(GUARD_FUNCTIONS)
-CONTROLS.update(GUARD_CONTROLS)

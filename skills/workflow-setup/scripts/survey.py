@@ -356,10 +356,12 @@ def file_issues(repo, no_issues, count=0):
     py = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-health", "scripts", "health.py")
     if no_issues or os.environ.get("LOOP_NO_ISSUES") == "1" or not (found and os.path.exists(py) and shutil.which("gh") and
                                                                           subprocess.run(["gh", "auth", "status"], capture_output=True).returncode == 0):
-        return print("NOTE: %d items left in .loop/findings.md; file them with workflow-health file --group adoption (SETUP_NOT_FILED)" % count) or 0
+        return print("NOTE: %d items left in .loop/findings.md; file them with workflow-health file --group adoption (SETUP_NOT_FILED)" % count) or 0 if count else 0
     print("FILING to %s: labels health, health:adoption" % found.group(1))
-    done = subprocess.run([sys.executable, py, "file", "--group", "adoption", "--open-only"], cwd=repo, capture_output=True, text=True,
-                          env=dict(os.environ, GH_REPO=found.group(1)))
+    env = dict(os.environ, GH_REPO=found.group(1))
+    made = subprocess.run([sys.executable, os.path.join(os.path.dirname(py), "milestone.py"), "backlog", "--live"], cwd=repo, capture_output=True, text=True, env=env)
+    print("\n".join(made.stdout.splitlines()[:12]))  # SET-17: the Backlog milestones
+    done = subprocess.run([sys.executable, py, "file", "--group", "adoption", "--open-only"], cwd=repo, capture_output=True, text=True, env=env)
     lines = ["[line withheld: holds a private value]" if settings.private_value(l) else l for l in done.stdout.splitlines()]
     print("\n".join(lines))
     ok = [l for l in lines if l.startswith("DONE") or l.startswith("SAME")]

@@ -115,7 +115,7 @@ out4=$($health judge); grep -q "^JUDGE UNAVAILABLE: no judge_command" <<<"$out4"
 $health suggest | grep -q "^JUDGE UNAVAILABLE" && ok "suggest is kept as an alias of judge" || bad "alias"
 
 echo "== no model in the rules"
-grep -qn "claude\|anthropic\|urllib\|http" "$here/skills/workflow-health/scripts/cost.py" && bad "model or network in cost.py" || ok "cost.py calls no model"
+grep -qn "claude\|anthropic\|urllib\|http" "$here/skills/workflow-health/scripts/milestone.py" && bad "model or network in milestone.py" || ok "cost.py calls no model"
 echo "== size"
 for f in "$here"/skills/workflow-health/scripts/*.py; do [ "$(wc -c < "$f")" -lt 20480 ] || bad "size of $f"; done; ok "every health script is under 20 KB"
 echo "repo: $d/repo"

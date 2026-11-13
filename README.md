@@ -116,8 +116,8 @@ Say these to the agent:
 
 | You say | What happens |
 |---|---|
-| "Set up the scheduled routines" | Regression and health workflows are written to run every 4 hours in GitHub Actions, for you to merge. |
-| "Run health every 12 hours instead" | The schedule setting changes and the health workflow is written again to match. |
+| "Set up the scheduled routines" | The regression workflow is written to run every 4 hours in GitHub Actions (public repo), for you to merge; health runs every 4 hours on your Mac, never in Actions. |
+| "Run health every 12 hours instead" | `health_cron` changes in `.loop/config.json` and your Mac's next round follows it; no workflow is written. |
 | "Turn off the scheduled health run" | Scheduled health runs write nothing and say the routine is off; you can still start one by hand. |
 | "Post the automation digest" | One comment on the pinned digest issue lists what ran, the new, still-open and fixed issues, and a request per open issue. |
 | "Write the scheduled regression run again" | The regression workflow is rewritten from the current config, so its schedule matches. |
@@ -169,9 +169,9 @@ ship skill, then the pull request and the release. Review is the only gate; each
 anything only you can decide under Waiting on you. Nothing is approved for you. The ship skill never pushes in that
 mode, so delivery opens the pull request itself, with each step's result in its body.
 
-Regression and health also run on a schedule in GitHub Actions (every 4 hours by default, `off` per routine in
-`.loop/config.json`), filing failing tests as `defect` issues and health findings as tagged issues, and posting one digest comment per round on a pinned `Automation digest` issue, which is also emailed to you
-once per round when the mail secrets are set (Cloudflare Email Service or SMTP). These runs use Actions minutes, and
+Regression also runs on a schedule in GitHub Actions for a public repo (every 4 hours by default, `off` per routine in
+`.loop/config.json`); health never runs in Actions, it runs on your Mac on its own schedule. They file failing tests as `defect` issues and health findings as tagged issues, and post one digest comment per round on a pinned `Automation digest` issue, which is also emailed to you
+once per round when the mail secrets are set (Cloudflare Email Service or SMTP). Regression runs use Actions minutes, and
 each round's cost is shown and flagged over 45 minutes.
 
 See where things stand, or pick up a failed goal:
@@ -246,11 +246,10 @@ To write the first pages, ask the agent to set up the docs: it follows the skill
 undoes the last publish.
 
 With `"criteria": true` in the config, `check` also holds the wiki to a contract: Home is free-form and each feature page
-is a short PRD: Problem, an optional Usage, up to 6 requirements (`criteria_max`) marked Unreviewed or Reviewed with a
+is a short PRD: Problem, up to 6 requirements (`criteria_max`) marked Unreviewed or Reviewed with a
 date, Non-goals, Success metrics, and Tests: each requirement's regression rows as Given/When/Then scenarios with their
 last result. Only the owner reviews a PRD (`/workflow-docs review PAGE`); after that Problem, Requirements, Non-goals and
-Success metrics are locked until the owner un-reviews it, and a Usage change shows as changed until the owner reviews it
-again. `/workflow-docs prd NAME "<idea>" --paths A,B` drafts a new feature's PRD.
+Success metrics are locked until the owner un-reviews it. `/workflow-docs prd NAME "<idea>" --paths A,B` drafts a new feature's PRD.
 
 Upgrading a repo whose pages still have Summary and Criteria:
 
@@ -431,7 +430,7 @@ Every repo setting from the template's settings reference, with this repo's valu
 | `smtp_port` | 465 (TLS) or 587 (STARTTLS) for digest_mail smtp. | set "smtp_port" in .loop/config.json | `465` | default |
 | `review_depth` | full runs the plan and review skills' whole pipeline and refuses a condensed one; condensed allows a shorter run. | set "review_depth" in .loop/config.json | `full` | default |
 | `criteria` | true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests). | set "criteria" in .loop/config.json | `true` | default |
-| `criteria_max` | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. | set "criteria_max" in .loop/config.json | `10` | **overridden:** `16` |
+| `criteria_max` | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. | set "criteria_max" in .loop/config.json | `10` | **overridden:** `17` |
 | `wiki_dir` | The folder of wiki pages. | set "wiki_dir" in .loop/config.json | `docs/wiki` | default |
 | `risky_paths` | Regexes for paths whose goals need extra care. | set "risky_paths" in .loop/config.json | `["^\\.github/", "(^|/)auth", "(^|/)migrations?/", "(^|/)(schema|data)\\b"]` | default |
 | `step_limit` | Seconds one flow step may run when the flow file sets no limit; 0 means the built-in limit. | set "step_limit" in .loop/config.json | `0` | default |
@@ -470,7 +469,7 @@ Health and regression, then each `automation` entry in `.loop/config.json`; to a
 
 | Routine | What it does | State | Cadence | Runs on | Last run | Owed by you |
 |---|---|---|---|---|---|---|
-| health | Checks the repo and files each finding. | off | every 4 hours | not deployed | docs.py automation | run workflow-setup to write .github/workflows/health.yml |
-| regression | Runs every regression row, files each failure. | on | every 4 hours | GitHub Actions (regression.yml) | docs.py automation | none |
-| digest email | Mails one digest per health round. | off | cron `with each health round` | not deployed | docs.py automation | run workflow-setup to write .github/workflows/health.yml |
+| [health](https://github.com/jcl2018/agent-workflow-template/wiki/Health#health-round) | Checks the repo and files each finding. | on | every 4 hours | this Mac's local schedule | docs.py automation | none |
+| [regression](https://github.com/jcl2018/agent-workflow-template/wiki/Regression#regression-round) | Runs every regression row, files each failure. | on | every 4 hours | GitHub Actions (regression.yml) | docs.py automation | none |
+| digest email | Mails one digest per health round. | on | cron `with each health round` | this Mac's local schedule | docs.py automation | set the digest address and keys in the schedule's mail.env on the Mac (yours, outside git) |
 <!-- automation:end -->

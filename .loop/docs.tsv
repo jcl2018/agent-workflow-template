@@ -1,10 +1,10 @@
 # page<TAB>paths it describes, comma separated
 Automation	skills/workflow-health/scripts/automation.py,skills/workflow-health/scripts/rounds.py,skills/workflow-health/scripts/mail.py,skills/workflow-health/scripts/workflows.py,.github/workflows
-Delivery	skills/workflow-delivery,skills/workflow-release
-Documentation	skills/workflow-docs,skills/workflow-health/scripts/milestone.py,dev/toy/fakegh
+Delivery	skills/workflow-delivery,skills/workflow-release,:(exclude)skills/workflow-delivery/SKILL.md,:(exclude)skills/workflow-delivery/references/commands.md,:(exclude)skills/workflow-release/SKILL.md,:(exclude)skills/workflow-release/references/commands.md
+Documentation	skills/workflow-docs,skills/workflow-health/scripts/milestone.py,dev/toy/fakegh,:(exclude)skills/workflow-docs/SKILL.md,:(exclude)skills/workflow-docs/references/commands.md
 Guardrails	.loop/config.json
-Health	skills/workflow-health
+Health	skills/workflow-health,:(exclude)skills/workflow-health/SKILL.md,:(exclude)skills/workflow-health/references/commands.md
 Home	README.md,FINDINGS.md,DECISIONS.md
-Monitoring	skills/workflow-monitoring
-Regression	skills/workflow-regression
-Setup	skills/workflow-setup,dev/install-local.sh
+Monitoring	skills/workflow-monitoring,:(exclude)skills/workflow-monitoring/SKILL.md,:(exclude)skills/workflow-monitoring/references/commands.md,:(exclude)skills/workflow-monitoring/scripts/proctree.py
+Regression	skills/workflow-regression,:(exclude)skills/workflow-regression/SKILL.md,:(exclude)skills/workflow-regression/references/commands.md,:(exclude)skills/workflow-regression/scripts/proctree.py
+Setup	skills/workflow-setup,dev/install-local.sh,:(exclude)skills/workflow-setup/SKILL.md,:(exclude)skills/workflow-setup/references/commands.md

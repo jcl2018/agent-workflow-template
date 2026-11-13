@@ -200,13 +200,14 @@ def feature_labels_on(root):
 
 def feature_group(issue, pages):
     """The feature (page name) an issue is about: the page whose feature_label it carries (two pages with one label give
-    No feature), else its milestone's title when that is a page's name (an old feature milestone), else No feature. A
-    free-form milestone such as v1.0 never makes a feature."""
+    No feature), else its milestone's title when that is a page's name (an old feature milestone) or "Backlog: <page>", else
+    No feature. A free-form milestone such as v1.0 never makes a feature."""
     names = {str(n).lower() for n in issue.get("labels") or []}
     tagged = [p for p in pages if feature_label(p).lower() in names]
     if tagged:
         return tagged[0] if len(tagged) == 1 else NO_FEATURE
     stone = title_of(issue.get("milestone"))
+    stone = stone[len("Backlog: "):] if stone.startswith("Backlog: ") else stone
     return stone if stone in pages else NO_FEATURE
 
 
@@ -278,18 +279,22 @@ def listing(root, only=None):
     if not found:
         print("TRIAGE: no open findings%s" % (" on " + only if only else ""))
         return 0
-    table, pages = {}, features(root)
+    table, pages, mix = {}, features(root), {}
     for issue in found:
         table.setdefault(feature_group(issue, pages), {}).setdefault(kind_of(issue), []).append(age(issue))
+        for label in ("defect", "backlog"):
+            mix.setdefault(feature_group(issue, pages), {}).setdefault(label, 0)
+            mix[feature_group(issue, pages)][label] += label in (issue.get("labels") or [])
     print("TRIAGE: %d open findings on %d features" % (len(found), len(table)))
     for stone in sorted(table, key=lambda s: (-sum(len(v) for v in table[s].values()), s)):
         print("== %s: %d ==" % (stone, sum(len(v) for v in table[stone].values())))
+        print("  %d defects, %d backlog" % (mix[stone]["defect"], mix[stone]["backlog"]))
         for kind, ages in sorted(table[stone].items(), key=lambda kv: (-len(kv[1]), kv[0])):
             print("  %-22s %3d open, oldest %d days, newest %d days" % (kind, len(ages), max(ages), min(ages)))
     return 0
 
 
-def close(root, kind, why, only=None, older=0, yes=False, most=CAP):
+def close(root, kind, why, only=None, older=0, yes=False, most=CAP, numbers=()):
     if not (why or "").strip():
         print("REFUSED[why]: close needs --why with the owner's words. Nothing was closed.")
         return 2
@@ -297,8 +302,13 @@ def close(root, kind, why, only=None, older=0, yes=False, most=CAP):
     if found is None:
         print("REFUSED[gh]: can't list the issues (%s). Nothing was closed." % reason)
         return 2
-    match = [i for i in found if kind_of(i) == kind and age(i) >= older]
+    match = [i for i in found if (i["number"] in numbers if numbers else kind_of(i) == kind and age(i) >= older)]
+    for gone in sorted(set(numbers) - {i["number"] for i in match}):
+        print("NOT OPEN #%d: not an open health finding, left alone" % gone)
     if not match:
+        if numbers:
+            print("NOTHING TO CLOSE: none of the --issue numbers is an open finding")
+            return 0
         print("NOTHING TO CLOSE: no open %s findings%s%s" % (kind, " on " + only if only else "", " %d days or older" % older if older else ""))
         return 0
     pages = features(root)

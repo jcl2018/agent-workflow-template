@@ -3,18 +3,13 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/11
 
-Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=069a23eb N=e6bf17f7 M=5109e571 U=598ea907 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=2098028a N=e6bf17f7 M=5109e571 U=03828777 -->
 
 ## Problem
 
 - My guardrails are scattered across six features, some are promised but not built, and I can't see in one place what protects me, where it is enforced and whether it is on.
 - Runs can quietly cost too much: CI minutes on superseded or no-code runs, a step spending far more tokens than usual, a run going far longer than usual.
 - I want one set of guardrails that the health checks prove are on and that every adopted repo gets, each one showing what it protects against, where it lives and the setting that controls it.
-
-## Usage
-
-- `/workflow-health check [--group NAME] [--skip controls] [--json]` — Runs the fixed rules, among them the one per guardrail that proves it is on (GRD-9); the Health page holds the whole entry. Prints one line per finding and last `HEALTH: green|not green (<p> pass, <w> warn, <f> fail, <u> unread)`; exits 1 when not green. Refuses what the Health page lists.
-- `/workflow-setup settings` — Shows the settings reference: every setting with its home, default and meaning. Prints the reference as a Markdown table, one `| <setting> | <home> | <default> | <meaning> |` row per setting. Refuses nothing. This repo's `.loop/config.json` holds every setting the reference lists, with `template_version` naming the template it came from.
 
 ## Requirements
 
@@ -53,10 +48,11 @@ Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=069a23eb N=e6bf17f7 M=5109
   - A step whose tokens pass a set multiple of that step's usual is flagged on the board and in the check-in (Monitoring, new).
   - A step past three times its estimate is shown as stalled under Issues on the board (Monitoring, MON-4, which keeps a stuck worker at the top of Issues), and a worker silent past `silent_minutes` shows under Needs you: MON-8.
   - A goal's test lane past `goal_lane_minutes` (default 10) says so in its LANE line (Regression, REG-8).
-- GRD-9: **Reviewed 2026-11-13** Health proves every guardrail is present and working, each rule with a negative control <!-- reviewed cc0ebe01 -->
+- GRD-9: **Reviewed 2026-11-13** Health proves every guardrail is present and working, each rule with a negative control <!-- reviewed 97e6018b -->
   - Each guardrail has a health rule that reads whether it is present and working, in an existing group (Performance, Security and privacy, Hygiene or Adoption), within the cap of 12 groups (Health, HLT-2).
   - Each such rule has a negative control run against a deliberately broken copy, so it is known to fire (Health, HLT-2, Controls).
   - A guardrail its rule can't read shows as unread, never as passing (Health, HLT-3).
+  - A page's requirement cap, `criteria_max` (17 in this repo), is read by health's Size group, so a page too large to review shows as a finding.
 - GRD-10: **Reviewed 2026-11-13** Setup installs the whole set when a repo is adopted, and health judges it <!-- reviewed c53adea9 -->
   - Adopting a repo installs every guardrail on this page with its default setting, and setup lists each one it installed (Setup, SET-1 for installing; listing each one is new).
   - Health judges a freshly adopted repo's guardrails on the same rules as the template's (Setup, SET-1).
@@ -80,6 +76,7 @@ None
 
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
+| [grd1-guardrail-list](Tests#t-grd1-guardrail-list) | requirement | GRD-1 | Given the Guardrails page, when it is read, then it lists every guardrail with its protection, owner, setting and health check (not built: the page is a definition only). | not run |
 | - | requirement | GRD-1 | no passing test | not enforced |
 | [reg7-budget-leaves](Tests#t-reg7-budget-leaves) | requirement | GRD-2 | Given rows that would run past the test budget, when a loop test run happens, then it runs the rows that fit, stops at the budget and lists every row it left. | not run |
 | [del8-step-stops](Tests#t-del8-step-stops) | requirement | GRD-2 | Given a review or ship step that reaches its limit, when it is stopped, then it is recorded done with what it left and the goal goes on without a failed try. | not run |
@@ -92,6 +89,7 @@ None
 | [del9-hooks](Tests#t-del9-hooks) | requirement | GRD-3 | Given the pre-push hook and a branch whose commit holds a private line, when it is pushed, then the hook refuses naming file and line, and nothing reaches the remote. | PASS 2026-11-12 |
 | [grd3-private-commit](Tests#t-grd3-private-commit) | requirement | GRD-3 | Given a staged line holding a private name, when git commit runs with the installed hook, then it is refused naming the file and line and the commit does not happen. | not run |
 | [grd3-hooks-health](Tests#t-grd3-hooks-health) | requirement | GRD-3 | Given a repo with the private-name hooks installed, when health runs, then it passes the hooks rule. | not run |
+| [grd3-hook-bypass](Tests#t-grd3-hook-bypass) | requirement | GRD-3 | Given a commit or push that skips hooks (no-verify, empty hooks path), when a loop command runs it, then it is refused and health flags it (not built). | not run |
 | [grd4-touches](Tests#t-grd4-touches) | requirement | GRD-4 | Given a worker session, when it tries to widen its goal's touches, then the command refuses. | not run |
 | [grd4-resume](Tests#t-grd4-resume) | requirement | GRD-4 | Given a stopped goal, when its own worker tries to resume it, then the command refuses with WORKER_SELF_REPAIR. | not run |
 | [grd4-budget](Tests#t-grd4-budget) | requirement | GRD-4 | Given a worker session, when it tries to set its own goal's budget, then the command refuses. | not run |

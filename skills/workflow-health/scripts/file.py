@@ -2,8 +2,10 @@
 
 plan() works out what each finding does: open, update, reopen, close, link or same. preview prints the plan and has no
 write path; file carries it out for the named groups (and --feature) only.
-- Each issue is labelled health and health:<group> (review findings: health:review-<kind>). It is placed on no milestone
-  and none is made: a milestone is the owner's, optional and free form. When the feature_labels setting is on (default
+- Each issue is labelled health and health:<group> (review findings: health:review-<kind>), and is a defect (a FAIL except a performance
+  one, a review conflict) or a backlog item (the rest, HLT-4): labelled defect on no milestone, or labelled backlog on
+  its feature's milestone "Backlog: <Feature>" ("Backlog: Other" when it fits none), made first when missing. An issue the owner
+  moved stays where it is. When the feature_labels setting is on (default
   off) it is also tagged feature:<Page> for the feature the finding is about (issues.feature_label), the label made
   beforehand with label create --force; if that label can't be made or set, the issue is filed without it and a
   FAILED label line says so.
@@ -26,6 +28,7 @@ import tempfile
 
 import report as G
 import issues as IS
+import milestone as MS
 from issues import covering, evidence_of, key_of, legacy
 
 # No terminal, no waiting: a prompt from gh or the judge must fail, not block.
@@ -48,6 +51,13 @@ def tag_of(group, item=None):
     if group == "review" and item:
         return "health:review-" + item["rule"]
     return "health:" + group
+
+
+def home(item, page):
+    """(label, milestone) of a new issue: a defect has no milestone, a backlog item sits on its feature's Backlog milestone."""
+    if (item["state"] == "FAIL" and item["family"] != "performance") or (item["family"] == "review" and item["rule"] == "conflict"):
+        return "defect", ""
+    return "backlog", "Backlog: " + page if page else MS.OTHER
 
 
 def line_of(item):
@@ -119,7 +129,7 @@ def held_all(root):
     return out, found, ""
 
 
-def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None, everything=(), only=None):
+def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None, everything=(), only=None, reviewed=False):
     """Actions for the named groups (and feature `only`): kind open, update, reopen, close, link or same."""
     found = [item for item in list(rows) + list(extra)
              if item["state"] in BAD and item["family"] in groups and item["rule"] not in REPORT_ONLY]
@@ -135,8 +145,9 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
         current.add(key)
         issue = issues.get(key) or next((issues[k] for k in legacy(item) if k in issues), None)
         current.update(k for k in legacy(item) if k in issues)  # a migrated issue is updated, never closed
+        label, stone = home(item, page)
         act = {"group": group, "key": key, "body": body_of(item), "evidence": mark, "tag": tag_of(group, item),
-               "feature": IS.feature_label(page) if page and tagging else "",
+               "label": label, "stone": stone, "feature": IS.feature_label(page) if page and tagging else "",
                "title": "health: %s %s %s" % (group, item["subject"], item["rule"])}
         if not issue:
             cover = covering(item, everything)
@@ -169,7 +180,7 @@ def plan(rows, issues, groups, extra=(), judged=False, root=".", ran_rules=None,
         whole = {"criteria": {"requirements", "traceability", "tests"}, "cost": {"performance"}}.get(key.partition(":")[0])
         if whole and not whole <= set(groups):  # an old key could mean a rule in a group not run now: leave it
             continue
-        if (savings and judged) or (not savings and ran_rules is not None and rule in ran_rules):  # its own rule passed
+        if (savings and judged) or (not savings and ran_rules is not None and rule in ran_rules) or (reviewed and family == "review"):  # its own rule passed, or an answered review no longer holds it
             out.append({"kind": "close", "group": family, "key": key, "number": str(issue["number"]), "title": "", "body": "",
                         "tag": tag_of(family), "feature": ""})
     return out
@@ -179,7 +190,7 @@ def words(act):
     kind = act["kind"]
     tags = act["tag"] + (", " + act["feature"] if act.get("feature") else "")
     if kind == "open":
-        return "open issue %r [%s]" % (act["title"], tags)
+        return "open issue %r [%s] as %s%s" % (act["title"], tags, act["label"], " on " + act["stone"] if act["stone"] else "")
     if kind == "link":
         return "link #%s (already covers %s) [%s]" % (act["number"], act["key"], act["tag"])
     return "%s #%s %s [%s]" % (kind, act["number"], act["key"], tags) + (", no longer found" if kind == "close" else "")
@@ -187,9 +198,9 @@ def words(act):
 
 def args_of(act):
     n = act.get("number")
-    return {"open": ["issue", "create", "--title", act["title"], "--label", "health", "--label", act["tag"]]
-            + (["--label", act["feature"]] if act.get("feature") else []),
-            "update": ["issue", "edit", n, "--add-label", act["tag"]]
+    return {"open": ["issue", "create", "--title", act["title"], "--label", "health", "--label", act["tag"], "--label", act["label"]]
+            + (["--label", act["feature"]] if act.get("feature") else []) + (["--milestone", act["stone"]] if act["stone"] else []),
+            "update": ["issue", "edit", n, "--add-label", act["tag"]] + (["--add-label", act["label"]] if act.get("label") else [])
             + (["--add-label", act["feature"]] if act.get("feature") else [])
             + [part for t in act.get("stale") or [] for part in ("--remove-label", t)],
             "reopen": ["issue", "reopen", n],
@@ -238,6 +249,18 @@ def apply(acts, root, groups):
     that can't be made or set is dropped, the issue still filed, with a FAILED label line."""
     for tag in sorted({act["tag"] for act in acts} | {"health"}):
         run(["label", "create", tag, "--description", "Filed by health.py file", "--force"], root)
+    for kind in sorted({act["label"] for act in acts if act.get("label")}):
+        run(["label", "create", kind, "--description", "Filed by health.py file"], root)  # not --force: defect keeps its own words
+    gone, have = set(), None
+    for stone in sorted({act["stone"] for act in acts if act.get("stone") and act["kind"] == "open"}):
+        try:
+            have = MS.held(root) if have is None else have
+            _, why = MS.make(root, stone, have, True)
+        except SystemExit as error:
+            why = str(error)
+        if why:
+            print("FAILED milestone %s: %s" % (stone, why[:160]))
+            gone.add(stone)
     lost = set()
     for label in sorted({act["feature"] for act in acts if act.get("feature")}):
         made = run(["label", "create", label, "--description", "Filed by health.py file", "--force"], root)
@@ -248,8 +271,8 @@ def apply(acts, root, groups):
         if act["kind"] == "same":
             print("SAME #%s %s" % (act["number"], act["key"]))
             continue
-        if act.get("feature") in lost:
-            act = dict(act, feature="")
+        if act.get("feature") in lost or act.get("stone") in gone:
+            act = dict(act, feature="" if act.get("feature") in lost else act.get("feature"), stone="" if act.get("stone") in gone else act.get("stone"))
         if act["kind"] == "link":
             if linked(root, act["number"], act):
                 print("SAME #%s %s (already linked)" % (act["number"], act["key"]))

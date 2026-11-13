@@ -32,7 +32,7 @@ GOOD='### setup-nightly
 - **Output:** one report comment on the pinned issue.
 - **Never:** never post a sample in place of the report.
 - **Check:** the comment names this run and its time.'
-# put the text as a ## Runbook section before ## Requirements (after Usage when the page has one)
+# put the text as a ## Runbook section before ## Requirements (after Problem)
 place() { python3 - "$P" "$1" <<'PY'
 import sys
 p, body = sys.argv[1], sys.argv[2]
@@ -48,15 +48,15 @@ without() { printf '%s\n' "$GOOD" | grep -v "^- \*\*$1:\*\*"; }
 case_good() {
   reset; check "a page with no Runbook passes" '[ "$(out | sort)" = "$BASE" ]'
   reset; place "$GOOD"; check "a page with a good Runbook passes" '[ "$(out | sort)" = "$BASE" ]'
-  reset; place "$GOOD"; check "the Runbook sits in order after Usage and before Requirements" '! out | grep -q "^SECTIONS Setup"'
+  reset; place "$GOOD"; check "the Runbook sits in order after Problem and before Requirements" '! out | grep -q "^SECTIONS Setup"'
   reset; python3 - "$P" "$GOOD" <<'PY'
 import sys
 p, body = sys.argv[1], sys.argv[2]
 s = open(p).read()
-i = s.index("\n## Usage")
+i = s.index("\n## Problem")
 open(p, "w").write(s[:i] + "\n## Runbook\n\n" + body + "\n" + s[i:])
 PY
-  check "a Runbook before Usage is refused as out of order" 'out | grep -q "^SECTIONS Setup"'
+  check "a Runbook before Problem is refused as out of order" 'out | grep -q "^SECTIONS Setup"'
 }
 
 refuse() {  # refuse NAME BODY GREP: the body is refused with a DOC-16 line matching GREP
