@@ -146,3 +146,16 @@ The owner types two sentences in the operation session:
 
 Progress 2026-11-13: the owner typed sentence 1 in the machine-local session; the pages and REG-10, HLT-2, MON-5 were un-reviewed, GRD-11 was added (Unreviewed) and the sub-bullets above were written into the pages. Applied: the owner typed sentence 2 and the pages and requirements were reviewed again.
 
+## Waiting on owner un-review (machine-status)
+
+The owner approved the machine-status goal 2026-11-13: each check-in shows this machine's status, goals start only above a memory floor, a stale main checkout is fixed by a worker, a queued goal is not silent, and a check-in lists only this machine's goals (one line for another pod). Built by the machine-status goal. Guardrails and Monitoring are Reviewed, so nothing below is applied until the owner un-reviews them and approves the wording.
+
+- Guardrails, add after GRD-11: **GRD-12: The machine's status is read every round, and no goal starts under the memory floor.** Each check-in reads free RAM, free commit memory, CPU and the number of claude and node processes (Monitoring, MON-16). A goal starts only while free commit memory is at or above `min_free_memory_gb` (default 3.5, in `.loop/config.json`; 0 turns the floor off). The pool creates no session and the board holds every ready goal as "memory low" until memory frees up. A figure that can't be read never blocks a start.
+- Monitoring, add after MON-15: **MON-16: Fill every free slot at once; speed comes before tokens, within the guardrails.** When goals are ready and slots, sessions and memory are free, every one starts in the same pass; token and time budgets (Guardrails) still hold. The check-in's Machine line says how many goal starts memory allows. Each pass checks that the main checkout is current with origin/main; when it is behind, the check-in asks a free worker to fast-forward it, because the operation session's govern hook blocks the pull itself. A goal waiting in the pr queue with a fresh queue file reads alive, never silent.
+- Monitoring, add after MON-16: **MON-17: A check-in lists only this machine's goals.** Goals of another pod are not listed; each other pod gets one line, "<pod>: N goals, last activity HH:MM" (the owner's decision), and never a question for this pod.
+
+The owner types two sentences in the operation session:
+
+1. Un-review: "Un-review the Guardrails and Monitoring pages so GRD-12, MON-16 and MON-17 can be added."
+2. Review, after the goal has added them: "Review the Guardrails and Monitoring pages, GRD-12, MON-16 and MON-17 again."
+

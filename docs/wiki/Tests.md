@@ -834,3 +834,8 @@
 | <a id="t-stale-net-diff-revert"></a>stale-net-diff-revert | requirement | done line stale-net-diff:1 | not run | - | local | 2026-11-13 |
 | <a id="t-no-usage-section"></a>no-usage-section | requirement | done line drop-usage:1 | not run | - | local | 2026-11-13 |
 | <a id="t-pr-queue-goal"></a>pr-queue-goal | requirement | done line pr-queue:1 | not run | - | local | 2026-11-13 |
+| <a id="t-machine-status-line"></a>machine-status-line | requirement | done line machine-status:1 | not run | - | local | 2026-11-13 |
+| <a id="t-machine-status-floor"></a>machine-status-floor | requirement | done line machine-status:1 | not run | - | local | 2026-11-13 |
+| <a id="t-machine-status-checkout"></a>machine-status-checkout | requirement | done line machine-status:1 | not run | - | local | 2026-11-13 |
+| <a id="t-machine-status-alive"></a>machine-status-alive | requirement | done line machine-status:1 | not run | - | local | 2026-11-13 |
+| <a id="t-machine-status-pod"></a>machine-status-pod | requirement | done line machine-status:1 | not run | - | local | 2026-11-13 |

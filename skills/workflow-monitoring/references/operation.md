@@ -79,7 +79,7 @@ gap between check-ins, or an hour when nothing runs or waits:
 4. If you have an Artifact tool, publish `board-artifact.html` as it is, with no hand edits (it has no doctype, html, head
    or body tags): the same artifact URL each time, never a new one. Both pages follow the viewer's light or dark setting,
    and a manual `data-theme` of `dark` or `light` on the root wins. Otherwise give the owner the `board.html` path.
-5. Reply to the owner in one layout, every time (issue 123): one headline line; **All sessions**, one table of every
+5. Reply to the owner in one layout, every time (issue 123): one headline line (a `Machine:` line with free RAM, free commit memory, CPU, the claude and node counts and the goal starts memory allows, and at most one `<pod>: N goals, last activity HH:MM` line for each other pod, may follow it; goals start only while free commit memory is at or above `min_free_memory_gb`, default 3.5; only this machine's goals are listed); **All sessions**, one table of every
    running, paused, holding and queued goal's session across the repos it governs (session, repo, what it is for, status,
    progress, time left, tokens left, latest); **Dependencies**, the drawn top-to-bottom graph, marking each goal `[>]`
    running, `[=]` holding or paused, `[ ]` queued or `[!]` stuck; **Needs you**, each open question numbered with what it is
