@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.28.4 - 2026-11-13
+
+- Design: tokens-unread
+- Lane: re-render the Tests tables
+- Wiki: tokens unread in the Delivery and Monitoring usage lines
+- Re-render the Tests table
+- Record the two docs rows green; re-render Tests
+- Merge remote-tracking branch 'origin/main' into loop/tokens-unread
+- Merge origin/main into loop/tokens-unread
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.3 - 2026-11-13
 
 - pr waits on owed off-platform proof without a failed try (#2865)
