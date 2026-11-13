@@ -1,9 +1,9 @@
 #!/bin/bash
 # reads: skills/workflow-delivery/scripts/goal.py skills/workflow-delivery/scripts/flow.py
-# reads: skills/workflow-delivery/references/default-flow.md
+# reads: skills/workflow-delivery/references/commands.md
 # reads: skills/workflow-setup/scripts/setup.py skills/workflow-setup/scripts/settings.py skills/workflow-setup/scripts/agents.py
 # reads: skills/workflow-setup/references/settings.md skills/workflow-docs/scripts/entry.py skills/workflow-docs/scripts/docs.py
-# reads: skills/workflow-docs/scripts/audit.py skills/workflow-docs/references/start.md skills/workflow-docs/SKILL.md
+# reads: skills/workflow-docs/scripts/audit.py skills/workflow-docs/references/commands.md skills/workflow-docs/SKILL.md
 # reads: skills/workflow-delivery/SKILL.md skills/workflow-health/SKILL.md skills/workflow-monitoring/SKILL.md
 # reads: skills/workflow-regression/SKILL.md skills/workflow-release/SKILL.md skills/workflow-setup/SKILL.md
 # reads: dev/toy/make.sh dev/toy/reap.sh
@@ -56,10 +56,10 @@ if want builtin; then
     LOOP_ROLE=worker $G record bf $step --file "$(cd "$(git rev-parse --git-common-dir)" && pwd)/loop/runs/bf.$step.txt" >/dev/null 2>&1
   done
   heads=0; for step in idea plan review qa ship; do
-    sec=$(awk -v s="## $step" '$0==s{f=1;next} /^## /{f=0} f&&NF{print;exit}' "$DL/references/default-flow.md")
+    sec=$(awk -v s="## $step" '$0==s{f=1;next} /^## /{f=0} f&&NF{print;exit}' "$DL/references/commands.md")
     grep -qF "$sec" "$B/prompt.$step" 2>/dev/null && grep -q "built-in routine for the $step step" "$B/prompt.$step" && heads=$((heads + 1))
   done
-  check "each headless built-in step's prompt carries its routine from default-flow.md in place of a skill name" "[ $heads = 5 ]"
+  check "each headless built-in step's prompt carries its routine from commands.md in place of a skill name" "[ $heads = 5 ]"
   R="$(cd "$(git rev-parse --git-common-dir)" && pwd)/loop/runs/bf.json"
   check "an all-built-in goal records every flow step done" \
     "python3 -c \"import json;f=json.load(open('$R'))['flow'];assert all(str(f.get(s,'')).startswith('done') for s in ('idea','plan','review','qa','ship')),f\""
@@ -112,10 +112,10 @@ EOF
   check "a stamped repo with no entry point fails the check (ENTRY_MISSING)" "$E check | grep -q '^MISSING .loop/START.md'"
   $E write >/dev/null
   mkdir -p "$T/inst/workflow-docs/scripts" "$T/inst/workflow-docs/references" "$T/inst/workflow-setup/references"
-  cp "$DO/scripts/entry.py" "$T/inst/workflow-docs/scripts/"; cp "$DO/references/start.md" "$T/inst/workflow-docs/references/"
+  cp "$DO/scripts/entry.py" "$T/inst/workflow-docs/scripts/"; cp "$DO/references/commands.md" "$T/inst/workflow-docs/references/"
   cp "$DO/SKILL.md" "$T/inst/workflow-docs/"; cp "$SU/references/settings.md" "$T/inst/workflow-setup/references/"
   echo '{"version": "9.9.9", "files": {}}' > "$T/inst/workflow-package.json"
-  sed -i.bak 's/One session governs and the others build:/One session governs; the others build:/' "$T/inst/workflow-docs/references/start.md"
+  sed -i.bak 's/One session governs and the others build:/One session governs; the others build:/' "$T/inst/workflow-docs/references/commands.md"
   out=$(python3 "$T/inst/workflow-docs/scripts/entry.py" check); code=$?
   check "skills newer than the repo's template_version: a narrative difference is LAG and does not fail (ENTRY_LAG)" "[ $code = 0 ] && grep -q '^LAG .loop/START.md: this repo is at v0.0.1, the template is at v9.9.9' <<<\"\$out\""
   sed -i.bak 's/runs the engine/starts the engine/' docs/wiki/Engine.md
