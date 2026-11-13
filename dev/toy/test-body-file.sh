@@ -56,7 +56,7 @@ try:
     indent = len(text[start]) - len(text[start].lstrip())
     end = next(i for i in range(start + 1, len(text)) if text[i].strip() and len(text[i]) - len(text[i].lstrip()) <= indent)
     block = "\n".join(line[indent:] for line in text[start:end])
-    space = {"subprocess": subprocess, "os": os, "tempfile": tempfile}
+    space = {"subprocess": subprocess, "os": os, "tempfile": tempfile, "sys": type("Argv", (), {"argv": ["-", "--live"]})}  # the step runs with --live
     exec(block, space)
     space["gh"]("issue", "create", "--title", "t", body=BODY)
 finally:
