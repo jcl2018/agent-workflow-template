@@ -308,6 +308,7 @@ one-way-to-run	PASS	2026-11-12
 operate-10-under-load	PASS	2026-11-11	
 operate-all	PASS	2026-11-09	
 operate-wakes-on-report	PASS	2026-11-09	
+package-caps-held	PASS	2026-11-13		a57143d4c3bb
 package-hang-bound	PASS	2026-11-12	
 package-hang-no-skills-file	PASS	2026-11-12	
 package-hang-slot	PASS	2026-11-12	
@@ -328,6 +329,7 @@ pods-independent	PASS	2026-11-12
 pods-lock	PASS	2026-11-12	
 pods-owner	PASS	2026-11-12	
 pool-edges-122	PASS	2026-11-10	
+pr-body-by-file	PASS	2026-11-13	
 pr-body-criterion	PASS	2026-11-12	
 pr-body-no-checks	PASS	2026-11-12	
 pr-commit-scope	PASS	2026-11-11	
@@ -389,7 +391,7 @@ report-held-111	PASS	2026-11-10
 report-sub-bullets	PASS	2026-11-12	
 retired-leaves-waiting	PASS	2026-11-09	
 review-dated	PASS	2026-11-12	
-review-findings-skill-lines	PASS	2026-11-13	
+review-findings-skill-lines	FAIL	2026-11-13	
 review-owner-only	PASS	2026-11-12	
 reviewed-lock	PASS	2026-11-12	
 row-timeout-holds	PASS	2026-11-11	
