@@ -430,3 +430,22 @@ SUMMARY_JOB = r"""  summary:
             printf '\nSHARDS %s of %s reported. UNRUN %s (rows skipped for out of job time).\n' "$reported" "$SHARDS" "$unrun"
           } | tee -a "$GITHUB_STEP_SUMMARY"  # the run's log shows the counts too
 """
+
+
+ROUTINE_STEP = r"""      - name: Check the routine
+        id: routine
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("regression_cron") or "")' 2>/dev/null || true)
+          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then
+            echo "on=false" >> "$GITHUB_OUTPUT"
+            echo "OFF: regression is off in .loop/config.json (regression_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "on=true" >> "$GITHUB_OUTPUT"
+          if [ -n "$cron" ] && [ "$cron" != "@CRON@" ]; then
+            said="SCHEDULE: this workflow runs on '@CRON@' but .loop/config.json says '$cron'. Fix: python3 skills/workflow-regression/scripts/regression.py workflow"
+            echo "::warning::$said"; echo "$said" >> "$GITHUB_STEP_SUMMARY"
+          fi
+"""

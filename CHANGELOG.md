@@ -1,5 +1,50 @@
 # Changelog
 
+## v0.28.22 - 2026-11-13
+
+- Fold and trim for package headroom
+- Keep the three proctree.py copies identical
+- Wiki: Setup usage note, Tests tables
+- Wiki usage notes
+- Merge origin/main into loop/package-headroom
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.21 - 2026-11-13
+
+- health-v1: Runbook for the Mac round, triage --issue, evidence-or-drop, review recheck, drafted wording
+- Rows for triage --issue and review evidence; Tests tables
+- DECISIONS: HLT-9 tightened, HLT-10 repo rules, HLT-2 cap wording
+- Traceability exempts closed health and backlog findings from the defect-test rule
+- Merge origin/main
+- Health WARNs when the full suite left rows unrun (REG-7)
+- Merge origin/main
+- Merge remote-tracking branch 'origin/main' into loop/health-v1
+- Health page: triage --issue and the unrun-rows WARN
+- Merge origin/main
+- Merge origin/main; unrun WARN moves into milestone.py with cost.py
+- Home: the Health row says triage closes one finding by number and review findings need a citation
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.20 - 2026-11-13
+
+- Package gate: toy and rows run package.py's checks on the head (DEL-5, SET-3)
+- Merge origin/main into loop/package-gate
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 dev/toy/test-package-gate.py`.
+   Expect: four control PASS lines and `PASS: head: this checkout's package passes ...`, exit 0.
+2. Append 21,000 bytes of comment to any tracked script under skills/ and run it again.
+   Expect: a `FAIL: head: Scripts: <file> is ... bytes` line and exit 1.
+
 ## v0.28.19 - 2026-11-13
 
 - mac-rows-skip: guard test-local-schedule.sh off macOS, toy and row
