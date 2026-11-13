@@ -299,6 +299,7 @@ no-prompts	PASS	2026-11-12
 no-row-fail	PASS	2026-11-12	
 no-token-dry-run	PASS	2026-11-12	
 no-token-would	PASS	2026-11-12	
+notion-app-link-unread	PASS	2026-11-13	
 one-failure	PASS	2026-11-09	
 one-format-everywhere	PASS	2026-11-10	
 one-issue	PASS	2026-11-12	
