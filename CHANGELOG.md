@@ -1,5 +1,82 @@
 # Changelog
 
+## v0.28.24 - 2026-11-13
+
+- Automation table: health and the digest run on the Mac's local schedule, no health workflow owed (#3857)
+- Lane: re-render the Tests tables
+- Render the Automation block: health on the Mac's local schedule
+- Digest keys owed in mail.env; Documentation names health's local schedule
+- Documentation Usage: docs.py automation names the local schedule
+- Drop the Documentation Usage edit; docs.py automation's local schedule goes in commands.md
+- Merge origin/main into automation-table-health
+- Merge origin/main into automation-table-health (runbook links kept with the local schedule)
+- Documentation: the Automation table shows health on the local schedule
+- Wiki: update pages for automation-table-health
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.23 - 2026-11-13
+
+- DECISIONS: drop-usage requirement wording, waiting on owner un-review
+- drop-usage: no Usage section on any feature page; docs check flags one; START.md and health read the skills' command maps
+- drop-usage: a Python toy and its regression row
+- drop-usage: test-criteria expects USAGE for any Usage section; Commands hint
+- drop-usage: re-rendered pages
+- drop-usage: the owner's approved wording on DOC-1, DOC-2, DOC-6, HLT-2 and the Documentation Problem; reviewed
+- drop-usage: the nine bash toys and their rows follow the no-Usage pages; command reference holds the moved entries
+- drop-usage: a Runbook Output may name a Deployments row, and the Automation block links each routine to its Runbook
+- Lane: re-render the Tests tables
+- drop-usage: the regression workflow entry moves to the regression command reference; review-findings-wording follows it
+- drop-usage: Health PRD un-reviewed and reviewed again by the owner, HLT-2 as now worded
+- Merge origin/main into loop/drop-usage
+- Merge remote-tracking branch 'origin/main' into loop/drop-usage
+- Merge origin/main into loop/drop-usage (Automation Usage edits moved to the command references)
+- Health command reference: the digest and mail entries moved from the Automation page's retired Usage section
+- Monitoring command reference: LF line endings throughout
+- Merge origin/main into loop/drop-usage (95 commits; Usage edits from main moved to the command references; Documentation and Health PRDs re-stamped with the owner's words)
+- DECISIONS: wording for the three stale pages (#3848, #3860, #3861), waiting on owner un-review
+- Automation, Guardrails, Monitoring: owner-approved updates for the stale pages (#3848, #3860, #3861)
+- Home, DECISIONS: record the applied wording for #3848, #3860, #3861
+- Merge origin/main into loop/drop-usage (Usage edits from main moved to the command references; design-guide.md went to loop-files.md on main)
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.22 - 2026-11-13
+
+- Fold and trim for package headroom
+- Keep the three proctree.py copies identical
+- Wiki: Setup usage note, Tests tables
+- Wiki usage notes
+- Merge origin/main into loop/package-headroom
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.21 - 2026-11-13
+
+- health-v1: Runbook for the Mac round, triage --issue, evidence-or-drop, review recheck, drafted wording
+- Rows for triage --issue and review evidence; Tests tables
+- DECISIONS: HLT-9 tightened, HLT-10 repo rules, HLT-2 cap wording
+- Traceability exempts closed health and backlog findings from the defect-test rule
+- Merge origin/main
+- Health WARNs when the full suite left rows unrun (REG-7)
+- Merge origin/main
+- Merge remote-tracking branch 'origin/main' into loop/health-v1
+- Health page: triage --issue and the unrun-rows WARN
+- Merge origin/main
+- Merge origin/main; unrun WARN moves into milestone.py with cost.py
+- Home: the Health row says triage closes one finding by number and review findings need a citation
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.20 - 2026-11-13
 
 - Package gate: toy and rows run package.py's checks on the head (DEL-5, SET-3)

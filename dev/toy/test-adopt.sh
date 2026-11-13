@@ -59,7 +59,7 @@ fi
 if want SET-3; then
   unzip -p "$d/v1.zip" PACKAGE.json | grep -q '"version": "1.0.0"' || no "no version in the package"
   for skill in "$here"/skills/workflow-*; do unzip -l "$d/v1.zip" | grep -q "skills/$(basename $skill)/SKILL.md" || no "$(basename $skill) missing"; done
-  unzip -l "$d/v1.zip" | grep -q "shared/design-guide.md" || no "no design guide"
+  unzip -l "$d/v1.zip" | grep -q "shared/loop-files.md" || no "no design guide"
   big=$(find "$here/skills" -name '*.py' -size +20479c); [ -z "$big" ] || no "script over 20 KB: $big"
   # installed by copying, then a skill runs from the copy: every skill's scripts compile, and setup plans a dry run
   mkdir -p "$d/x3" "$d/agent3"; unzip -q "$d/v1.zip" -d "$d/x3"; cp -R "$d/x3/skills/." "$d/agent3/"
@@ -76,7 +76,7 @@ if want SET-4 || want SET-5; then
   mkdir -p "$d/agent/skills" "$d/x1"; unzip -q "$d/v1.zip" -d "$d/x1"
   cp -R "$d/x1/skills/." "$d/agent/skills/"; cp -R "$d/x1/shared/." "$d/agent/skills/"
   if want SET-5; then
-    [ -f "$d/agent/skills/design-guide.md" ] && grep -q "Operation and workers" "$d/agent/skills/design-guide.md" || no "the guide is missing or empty"
+    [ -f "$d/agent/skills/loop-files.md" ] && grep -q "Operation and workers" "$d/agent/skills/loop-files.md" || no "the guide is missing or empty"
     [ -f .loop/START.md ] && grep -q "^## First five minutes" .loop/START.md || no "setup wrote no START.md with its opener"
     for h in Loop Release "Operation and workers" Docs Regression Health Settings Features; do grep -qx "## $h" .loop/START.md || no "START.md has no $h part"; done
     echo "PASS SET-5: guide installed, START.md with the opener and every part"

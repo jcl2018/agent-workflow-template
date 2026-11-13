@@ -246,11 +246,10 @@ To write the first pages, ask the agent to set up the docs: it follows the skill
 undoes the last publish.
 
 With `"criteria": true` in the config, `check` also holds the wiki to a contract: Home is free-form and each feature page
-is a short PRD: Problem, an optional Usage, up to 6 requirements (`criteria_max`) marked Unreviewed or Reviewed with a
+is a short PRD: Problem, up to 6 requirements (`criteria_max`) marked Unreviewed or Reviewed with a
 date, Non-goals, Success metrics, and Tests: each requirement's regression rows as Given/When/Then scenarios with their
 last result. Only the owner reviews a PRD (`/workflow-docs review PAGE`); after that Problem, Requirements, Non-goals and
-Success metrics are locked until the owner un-reviews it, and a Usage change shows as changed until the owner reviews it
-again. `/workflow-docs prd NAME "<idea>" --paths A,B` drafts a new feature's PRD.
+Success metrics are locked until the owner un-reviews it. `/workflow-docs prd NAME "<idea>" --paths A,B` drafts a new feature's PRD.
 
 Upgrading a repo whose pages still have Summary and Criteria:
 
@@ -468,7 +467,7 @@ Health and regression, then each `automation` entry in `.loop/config.json`; to a
 
 | Routine | What it does | State | Cadence | Runs on | Last run | Owed by you |
 |---|---|---|---|---|---|---|
-| health | Checks the repo and files each finding. | off | every 4 hours | not deployed | docs.py automation | run workflow-setup to write .github/workflows/health.yml |
-| regression | Runs every regression row, files each failure. | on | every 4 hours | GitHub Actions (regression.yml) | docs.py automation | none |
-| digest email | Mails one digest per health round. | off | cron `with each health round` | not deployed | docs.py automation | run workflow-setup to write .github/workflows/health.yml |
+| [health](https://github.com/jcl2018/agent-workflow-template/wiki/Health#health-round) | Checks the repo and files each finding. | on | every 4 hours | this Mac's local schedule | docs.py automation | none |
+| [regression](https://github.com/jcl2018/agent-workflow-template/wiki/Regression#regression-round) | Runs every regression row, files each failure. | on | every 4 hours | GitHub Actions (regression.yml) | docs.py automation | none |
+| digest email | Mails one digest per health round. | on | cron `with each health round` | this Mac's local schedule | docs.py automation | set the digest address and keys in the schedule's mail.env on the Mac (yours, outside git) |
 <!-- automation:end -->

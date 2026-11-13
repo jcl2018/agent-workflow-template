@@ -109,7 +109,7 @@ def audit(root, base, dry):
     for line in would:
         print("%s %s" % ("WOULD FIX" if dry else "FIXED", line))
     found += docs.problems(root, base) + docs.contract(root) + docs.counts(root) + release_trouble(root)
-    found = [item for item in found if item[0] != "CHANGED"]  # Usage drift waits on the owner, not on a goal
+    found = [item for item in found if item[0] != "CHANGED"]  # kept for older pages; Usage is gone
     found += scenarios(root) if config_criteria(root) else []
     if dry:
         found = [item for item in found if item[0] != "TESTS" and item[:2] != ("STALE", "Tests")]  # render fixes these

@@ -525,3 +525,19 @@ otherwise) for the NOTE that follows.
 Status: built and proven: bind prints WORKER and WORKTREE; refuses an outside folder; resume reserves under the pool lock. Built only: none. Planned: none.
 Stops for the owner: none.
 Proof: toy tests (dev/toy/test-guards.sh).
+
+## Exact command entries (moved from the retired Usage section on the Monitoring page)
+
+- `/workflow-monitoring fill-pool ID...` — Registers sessions the operation session just created with the app (after you say "fill pool" when the check-in reports the pool low) as free sessions in the pool. Prints `POOLED <n> session(s); pool: <free> free, <busy> busy, <total> total (target <pool_size>)`. Refuses exit 1 `REFUSED: session <id> is busy with <goal>; nothing was added.` and `REFUSED: the session pool can't be read (...)`.
+
+- `/workflow-monitoring reply-check FILE` — Checks a check-in reply against the required layout. Prints one line per problem, such as `missing section <name>`, and exits 1; a clean reply prints nothing and exits 0. Refuses exit 2 `REFUSED: cannot read <file> (<reason>). Fix: name a readable file, or - for stdin.`
+
+- `/workflow-monitoring reply-status` — Says whether the reply hook is installed and on in this repo. Prints `REPLY HOOK: <installed|not installed>, setting <on|off>, script <found|missing|->, let-throughs logged <n>` or `REPLY HOOK: off here (no repo with .loop/config.json)`. Refuses nothing.
+
+## Exact command entries (as of main, 2026-11-13, when the Usage section was retired)
+
+- Every skill holds the same `proctree.py` copy.
+
+- `/workflow-monitoring cleanup` — Deletes local `loop/` branches already merged into the base branch. Prints `DELETED <branch>`, `KEPT <branch>: git would not delete it` and `<n> merged loop branch(es) deleted`. Refuses nothing. `sessions.py bind` and the session tool live in `worker.py`.
+
+- `/workflow-monitoring reply-check FILE` — Checks a check-in reply against the required layout. Prints one line per problem, such as `missing section <name>`, and exits 1; a clean reply prints nothing and exits 0. Refuses exit 2 `REFUSED: cannot read <file> (<reason>). Fix: name a readable file, or - for stdin.` The Dependencies check (MON-14) is `checkin.missing`.

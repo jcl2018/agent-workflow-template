@@ -14,8 +14,8 @@ The review line sits under the title (or the Milestone line): 'Review: **Unrevie
 'Review: **Reviewed DATE** <!-- prd P=.. R=.. N=.. M=.. U=.. -->', one 8-hex fingerprint each for Problem,
 Requirements, Non-goals, Success metrics and Usage, written by criteria.py review PAGE --user. Each fingerprint covers the
 section's name and its paragraphs, with whitespace collapsed and requirement stamps removed. While the PRD is Reviewed,
-a change to any of the first four is LOCKED (the check fails); a change to Usage alone is CHANGED (the check fails, the
-audit and publish ignore it) until the owner reviews the PRD again.
+a change to any of the first four is LOCKED (the check fails); Usage was dropped on 2026-11-13: its fingerprint U is
+still written, but a change to it is never reported.
 
 convert recognizes these partial pages and completes them: Summary+Criteria (old), Problem+Criteria,
 Summary+Requirements, a missing Review line, a missing Non-goals and/or Success metrics section. A page already in
@@ -130,12 +130,6 @@ def trouble(root, page, text, parts, rule):
                           ", ".join(dict(zip(KEYS, names(rule)))[key] for key in moved),
                           " ".join("%s=%s" % (key, was[key]) for key in moved),
                           " ".join("%s=%s" % (key, now[key]) for key in moved), rel, page)))
-    elif was["U"] != now["U"]:
-        empty = criteria.seal(norm(rule["usage"], []))
-        how = "added" if was["U"] == empty else "removed" if now["U"] == empty else "edited"
-        found.append(("CHANGED", page, "%s %s since the owner's review on %s (reviewed U=%s, now U=%s). Fix: the owner "
-                      "runs /workflow-docs review %s --user; an agent cannot clear this" % (
-                          rule["usage"], how, match.group(2), was["U"], now["U"], page)))
     return found
 
 
