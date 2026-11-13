@@ -224,6 +224,8 @@
 | <a id="t-blocks-setup-clean"></a>blocks-setup-clean | requirement | DOC-15 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-spec-decisions-wording"></a>spec-decisions-wording | requirement | DOC-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-12 |
 | <a id="t-spec-decisions-log"></a>spec-decisions-log | requirement | DOC-1 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-12 |
+| <a id="t-publish-tables-regen"></a>publish-tables-regen | requirement | DOC-11 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
+| <a id="t-publish-tables-handwritten"></a>publish-tables-handwritten | requirement | DOC-11 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
 
 ## Guardrails
 
@@ -455,7 +457,7 @@
 | <a id="t-tests-row-shape"></a>tests-row-shape | requirement | REG-2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
 | <a id="t-describe-needed"></a>describe-needed | requirement | REG-2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
 | <a id="t-keeps-seen-red"></a>keeps-seen-red | requirement | REG-2 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
-| <a id="t-every-row-described"></a>every-row-described | requirement | REG-2 | FAIL | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-10 |
+| <a id="t-every-row-described"></a>every-row-described | requirement | REG-2 | FAIL | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-10 |
 | <a id="t-defect-categories"></a>defect-categories | requirement | REG-2 | FAIL | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
 | <a id="t-defect-owed"></a>defect-owed | requirement | REG-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
 | <a id="t-defect-known"></a>defect-known | requirement | REG-1 | PASS | 2026-11-12 | [CI 2026-11-12](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-12) | 2026-11-08 |
@@ -782,5 +784,3 @@
 | <a id="t-migration-fix-sched-task"></a>migration-fix-sched-task | defect | [#3780](https://github.com/jcl2018/agent-workflow-template/issues/3780) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-migration-fix-mac-no-yml"></a>migration-fix-mac-no-yml | defect | [#3780](https://github.com/jcl2018/agent-workflow-template/issues/3780) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-stale-net-diff-revert"></a>stale-net-diff-revert | requirement | done line stale-net-diff:1 | not run | - | local | 2026-11-13 |
-| <a id="t-publish-tables-regen"></a>publish-tables-regen | requirement | done line publish-tables:1 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
-| <a id="t-publish-tables-handwritten"></a>publish-tables-handwritten | requirement | done line publish-tables:1 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |

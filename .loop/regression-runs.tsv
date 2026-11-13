@@ -134,7 +134,7 @@ done-line-rows-128	PASS	2026-11-12
 done-lines-warning-143	PASS	2026-11-12	
 entry-stale	PASS	2026-11-12	
 estimates-shown	PASS	2026-11-12	
-every-row-described	FAIL	2026-11-12	
+every-row-described	PASS	2026-11-13	
 failed-waits-mender	PASS	2026-11-09	
 file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 fixed-closes	PASS	2026-11-12	
