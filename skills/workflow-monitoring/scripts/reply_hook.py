@@ -5,18 +5,17 @@ usage: reply_hook.py              the Stop hook: reads the hook's JSON on stdin
        reply_hook.py check FILE|-  print what a reply is missing (exit 0 clean, 1 with problems, 2 unreadable)
        reply_hook.py status        say whether the hook is installed and on in this repo, and its recent let-throughs
 
-A check-in reply passes when it has this layout (issue 123): one headline line; then the sections All sessions (a table of
-every session across repos), Dependencies (a drawn graph), Needs you (numbered questions with options and a recommended
-answer, or "Nothing needs you") and, last, Coming up (the next expected events and what the owner will need to do), each
-heading on its own line (Markdown marks and a trailing colon are fine) with something under it.
+A check-in reply passes with one headline line, then the sections All sessions (a table), Dependencies (a graph with a
+`== repo ==` block per repo naming every goal on the board, MON-14), Needs you (numbered questions with options and a
+recommended answer, or "Nothing needs you") and, last, Coming up, each heading on its own line with something under it.
 
-The hook checks only the operation session: one named in <git common dir>/loop/operation.id, or whose transcript ran 'operate.py run|claim' without a refusal, as its
-latest signal. A worker is never checked: a session that ran a flow step ('flow.py', 'goal.py step|record|pr') after that,
-or whose cwd is in <git common dir>/loop/worktrees/ before any signal. A session in another repo, or in a repo with no
-.loop/config.json, is never checked. Each stop reads only the transcript bytes added since the last one.
+The hook checks only the operation session: one named in <git common dir>/loop/operation.id, or whose transcript ran
+'operate.py run|claim' without a refusal, as its latest signal. A worker is never checked: a session that ran a flow step
+('flow.py', 'goal.py step|record|pr') after that, or whose cwd is in <git common dir>/loop/worktrees/ before any signal.
+A session in another repo, or in a repo with no .loop/config.json, is never checked. Each stop reads only the new bytes.
 "reply_hook": false in .loop/config.json, or LOOP_REPLY_HOOK=0, turns it off. A failing reply is blocked with a reason
 naming what is missing; the third block in a row is let through and logged in <git common dir>/loop/reply-hook/log.
-Any error lets the reply through (fail open) and logs one line. setup.py --reply-hook installs it. It runs git only.
+Any error lets the reply through and logs one line. setup.py --reply-hook installs it.
 """
 import json
 import os
@@ -43,6 +42,7 @@ SESSION = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 FENCE = re.compile(r"^\s*(```|~~~)")
 FENCE_ALONE = re.compile(r"^\s*(```|~~~)[\w+.-]*\s*$")  # a line that opens or closes a fence, not a one-line fence
 NUMBERED = re.compile(r"^\s*(?:[-*+]\s+)?\**(?:q\d+[.):]|\d+[.)])(?!\d)", re.I)
+REPO = re.compile(r"^\s*==\s*\S.*\S\s*==\s*$")  # a repo block heading of the dependency map (MON-14)
 COUNT = re.compile(r"\s*\(\s*\d+\s*\)$")
 MARKS = re.compile(r"[*#`_]")
 TEMPLATE = ("Write the check-in reply in this layout: one headline line; All sessions (one table: session, repo, what it "
@@ -319,7 +319,19 @@ def problems(text):
             found.append("section %s is empty" % name)
         elif name == "Needs you" and not any(NUMBERED.match(l) or NOTHING.lower() in l.lower() for l in body):
             found.append("Needs you has no numbered question and does not say '%s'" % NOTHING)
+        elif name == "Dependencies" and not any(REPO.match(l) for l in body):
+            found.append("Dependencies has no '== repo ==' block; the map is grouped by repo (MON-14)")
     return found
+
+
+def left_out(text, cwd):
+    """The goals Dependencies leaves out, by name (reply_deps.py); fails open."""
+    try:
+        import reply_deps
+        gone = reply_deps.missing(text, cwd)
+    except Exception:
+        return []
+    return ["Dependencies leaves out %s (MON-14)" % ", ".join(gone)] * bool(gone)
 
 
 def hook(payload):
@@ -377,7 +389,7 @@ def decide(payload, session, common):
         return None
     found = None if isinstance(payload.get("last_assistant_message"), str) else entries(path, TAIL)[0] if path else []
     text = final_reply(payload, found or [])
-    wrong = problems(text) if text is not None else []
+    wrong = problems(text) + left_out(text, payload.get("cwd")) if text is not None else []
     count = 0
     if payload.get("stop_hook_active") and os.path.exists(base + ".count") and time.time() - os.path.getmtime(base + ".count") < 900:
         try:
@@ -427,7 +439,7 @@ def main(argv):
         except OSError as error:
             print("REFUSED: cannot read %s (%s). Fix: name a readable file, or - for stdin." % (argv[1], error.strerror))
             return 2
-        wrong = problems(text)
+        wrong = problems(text) + left_out(text, os.getcwd())
         for line in wrong:
             print(line)
         return 1 if wrong else 0

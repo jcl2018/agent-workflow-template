@@ -235,6 +235,7 @@ def cmd_new(args):
     if not args.here:
         no("one session governs. Fix: use workflow-monitoring go, or --here if no agent can run it.")
     valid(args)
+    fit.main_here(sys.modules[__name__], args)
     if os.path.exists(state_path(args.slug)):
         no("%s already exists. Fix: pick a new slug." % args.slug)
     cfg = config()
