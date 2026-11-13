@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.28.0 - 2026-11-13
+
+- V1 format: owner bump honoured on docs-only goals (#3787)
+- V1 format: Phase 1 pieces in this version are review-findings, spec-decisions, v1-roadmap, migration-check, health-docs-size, settings-render-windows and review-sitting
+- Tests: the Delivery table lists the two docs-only bump rows
+- Rows prove the docs-only bump with a test that runs on Windows too
+- Tests tables follow the rows
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.27.58 - 2026-11-13
 
 - V1 format: owner re-review of Delivery, Documentation, Setup and Health, and the Tests page refreshed
