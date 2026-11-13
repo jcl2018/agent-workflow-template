@@ -221,8 +221,8 @@ def format_gaps(root, cfg, g, steps):
 
 def hook_gaps(root, g, steps):
     """Each hook once in .claude/settings.local.json (twice: a gap; none: an owner step)."""
-    if carries("prompt-pointer", "workflow-health", "def prompt_pointer", "scripts/report.py"):  # a scheduled prompt beyond the Runbook pointer
-        for r in mod("workflow-health", "report").prompt_pointer(root):
+    if carries("prompt-pointer", "workflow-health", "def prompt_pointer", "scripts/rules.py", "scripts/report.py"):  # a scheduled prompt beyond the Runbook pointer
+        for r in mod("workflow-health", "rules").prompt_pointer(root):
             g("MIG_ROUTINES", clean(r["subject"]), clean(r["detail"]), clean(r["fix"]))
     text = read(os.path.join(root, ".claude", "settings.local.json"))
     for name in ("reply_hook.py", "govern_hook.py"):
