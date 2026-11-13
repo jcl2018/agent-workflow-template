@@ -87,6 +87,13 @@ None
 | [grd2-test-budget](Tests#t-grd2-test-budget) | requirement | GRD-2 | Given an in-loop test run that reaches test_budget_minutes, when it stops, then it runs rows in order until the budget and lists the rest for the scheduled full suite. | not run |
 | [grd2-goal-over](Tests#t-grd2-goal-over) | requirement | GRD-2 | Given a goal past its time and token budget, when the live board prints, then it flags OVER time and OVER tokens. | not run |
 | [tokens-unread-shown](Tests#t-tokens-unread-shown) | requirement | GRD-2 | Given a goal with no token count, when the board or the pull request shows its spend, then it says tokens unread, never 0, and a goal with a count shows the number. | not run |
+| [grd2-time-stop](Tests#t-grd2-time-stop) | requirement | GRD-2 | Given a goal past time_budget_minutes, when a step or goal.py pr is asked for, then it is refused with one line naming goal.py set. | not run |
+| [grd2-token-stop](Tests#t-grd2-token-stop) | requirement | GRD-2 | Given a goal past token_budget, when a step is asked for, then it is refused with one line naming goal.py set. | not run |
+| [grd2-tokens-unknown](Tests#t-grd2-tokens-unknown) | requirement | GRD-2 | Given a session worker that passes unknown tokens, when the step is recorded, then the goal reads tokens unread, never 0. | not run |
+| [grd2-merge-rounds](Tests#t-grd2-merge-rounds) | requirement | GRD-2 | Given a goal that merged the base three times, when goal.py pr would merge a 4th round, then it is refused and the goal waits for the owner. | not run |
+| [grd2-active-goals](Tests#t-grd2-active-goals) | requirement | GRD-2 | Given max_active_goals live goals, when watch plans, then no new goal starts. | not run |
+| [grd2-plan-pause](Tests#t-grd2-plan-pause) | requirement | GRD-2 | Given weekly plan usage above plan_pause_percent, when the operation plans, then no new goal starts and it says why. | not run |
+| [grd2-limits-in-settings](Tests#t-grd2-limits-in-settings) | requirement | GRD-2 | Given the settings table, when it is read, then it lists the four limits with their defaults. | not run |
 | - | requirement | GRD-2 | no passing test | not enforced |
 | [del9-pr-refuses](Tests#t-del9-pr-refuses) | requirement | GRD-3 | Given a branch that adds a private name from the list, when goal.py pr runs, then nothing is pushed and the refusal names the place, never the text. | not run |
 | [del9-hooks](Tests#t-del9-hooks) | requirement | GRD-3 | Given the pre-push hook and a branch whose commit holds a private line, when it is pushed, then the hook refuses naming file and line, and nothing reaches the remote. | PASS 2026-11-12 |

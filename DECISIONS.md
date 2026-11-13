@@ -32,6 +32,21 @@ One line each, where the roadmap didn't say.
 - Review findings (2026-11-12), Usage is current behaviour: the refactor history is out of the Delivery `record` and `pr` entries and the Setup and Health install entries (rollback internals, lock details, script-size notes, a repeated walk-through).
 - Review findings (2026-11-12), `workflow-delivery` SKILL.md goes under 150 lines by trimming repeated prose, not rules.
 
+## Waiting on owner un-review
+
+Proposed wording for the budget-enforce goal (limits in `.loop/config.json` stop new work). DEL-8 and GRD-2 are Reviewed, so the owner un-reviews them to apply this; nothing on the pages changed.
+
+- DEL-8, first bullet: "Each goal has a time and token budget (`time_budget_minutes`, `token_budget`; only the operation's `goal.py set` raises one), going over shows on the board, and a goal over either starts no new step."
+- GRD-2, replace the three "new" bullets (time budget, token budget, unknown tokens) with:
+  - "A goal past `time_budget_minutes`, counted from its freeze, starts no new step: `goal.py step`, `goal.py pr` and `flow.py` refuse with one line naming `goal.py set --budget-minutes N --why ...`, which only the operation session runs (Delivery)."
+  - "A goal past `token_budget` starts no new step, whether its steps run in a session or headless. A session worker passes its tokens to `goal.py record --tokens N`; a count it cannot read is `unknown`, which records nothing, so the board shows \"tokens unread\", never 0 (Delivery)."
+  - "`goal.py pr` merges the base and reruns the lane at most `max_merge_rounds` times (default 3). A further round is refused and the goal waits under Needs you; `goal.py answer` starts the count again (Delivery)."
+  - "The operation starts no new goal while `max_active_goals` goals are live (default 20; `parallel` still applies, the smaller wins) or while weekly plan usage is above `plan_pause_percent` (default 80; the operation records it with `pool.py usage N`, a reading older than 12 hours or never recorded pauses nothing). The check-in says which limit holds (Monitoring)."
+  - "Health's Performance group warns for each limit exceeded: a goal waiting on merge rounds, live goals over `max_active_goals`, plan usage over `plan_pause_percent`, and the existing time and token budgets."
+- Settings (SET-2), new rows in the settings table: `time_budget_minutes` (default 120 for new repos), `max_merge_rounds` (3), `max_active_goals` (20), `plan_pause_percent` (80); this repo's `.loop/config.json` carries the last three.
+
+What the code does not do: `merge.py` is unchanged (it sends a moved base back to `goal.py pr`, which refuses the 4th round); the time budget counts wall time from the freeze, waiting for the owner included; plan usage reaches the scripts only through `pool.py usage N` because the app's usage is not readable from a script.
+
 ## Applied 2026-11-12 (owner sitting)
 
 The owner un-reviewed these requirements and approved the wording below; it is now on the pages, and the pages were reviewed again in the same sitting.

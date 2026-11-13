@@ -252,6 +252,13 @@
 | <a id="t-grd10-install-hooks"></a>grd10-install-hooks | requirement | GRD-10 | not run | - | local | 2026-11-12 |
 | <a id="t-stop-tree-step-limit"></a>stop-tree-step-limit | defect | [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) closed (2026-11-12) | not run | - | local | 2026-11-12 |
 | <a id="t-tokens-unread-shown"></a>tokens-unread-shown | requirement | GRD-2 | not run | - | local | 2026-11-13 |
+| <a id="t-grd2-time-stop"></a>grd2-time-stop | requirement | GRD-2 | not run | - | local | 2026-11-13 |
+| <a id="t-grd2-token-stop"></a>grd2-token-stop | requirement | GRD-2 | not run | - | local | 2026-11-13 |
+| <a id="t-grd2-tokens-unknown"></a>grd2-tokens-unknown | requirement | GRD-2 | not run | - | local | 2026-11-13 |
+| <a id="t-grd2-merge-rounds"></a>grd2-merge-rounds | requirement | GRD-2 | not run | - | local | 2026-11-13 |
+| <a id="t-grd2-active-goals"></a>grd2-active-goals | requirement | GRD-2 | not run | - | local | 2026-11-13 |
+| <a id="t-grd2-plan-pause"></a>grd2-plan-pause | requirement | GRD-2 | not run | - | local | 2026-11-13 |
+| <a id="t-grd2-limits-in-settings"></a>grd2-limits-in-settings | requirement | GRD-2 | not run | - | local | 2026-11-13 |
 
 ## Health
 
