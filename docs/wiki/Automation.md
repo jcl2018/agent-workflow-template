@@ -57,7 +57,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=ff34edf0 N=e081872e M=4670
 
 ## Success metrics
 - After each scheduled round, one digest email arrives and every failing test or finding has exactly one open issue tagged with its feature.
-- With a routine set to off, its runs write no issue, label, comment or email; the scheduled regression workflow writes issues only because it passes `--live`.
+- With a routine set to off, its runs write no issue, label, comment or email.
 
 ## Tests
 
