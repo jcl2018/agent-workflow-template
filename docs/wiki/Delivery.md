@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/1
 
-Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=9cbdaa2a N=9f4c33da M=f8cd4612 U=db89d57b -->
+Review: **Unreviewed**
 
 ## Problem
 - I have more changes to make than time to babysit them: I want to hand over one sentence and walk away.
@@ -52,6 +52,10 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=9cbdaa2a N=9f4c33da M=f8cd
   - Where a review hold is set, the release step merges only after the operation session records that it has read the diff, and the board shows a merge waiting on review.
 - DEL-14: **Reviewed 2026-11-13** Leftover findings are filed by kind at ship <!-- reviewed a02600dc -->
   - When a goal ships, each finding it did not fix is filed once. A break of a Reviewed requirement inside the goal's touches is fixed in place; outside them it is an open issue labelled `defect`. An improvement, idea or saving is an issue labelled `backlog` on its feature's milestone "Backlog: <Feature>" ("Backlog: Other" when it fits no feature). Filing writes to GitHub only with `--live`, which the goal passes after ship is recorded, and a finding already filed is not filed again.
+- DEL-15: **Unreviewed** Fast merge queue. PRs merge one after another, but each waits only as long as needed.
+  - A pr lane that runs again after main moved reruns only the rows both the goal's diff and main's new commits reach; a row only main's new commits reach keeps its earlier result.
+  - Goals at pr queue behind each other only when their touches overlap; goals with disjoint touches run their lanes at once.
+  - Three or four ready pull requests with disjoint touches are verified together and merged in one go, and a failing batch splits to name the culprit.
 
 ## Non-goals
 - It doesn't decide what to build.
@@ -138,6 +142,10 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=9cbdaa2a N=9f4c33da M=f8cd
 | [backlog-leftovers-filed](Tests#t-backlog-leftovers-filed) | requirement | DEL-14 | Given a ship reply with FILE defect and FILE backlog lines, when the goal records ship with --live, then a defect is filed on no milestone, backlog items on Backlog: <Feature> or Backlog: Other, and a line holding an email is skipped. | not run |
 | [backlog-leftovers-once](Tests#t-backlog-leftovers-once) | requirement | DEL-14 | Given leftovers already filed, when ship is recorded again, then nothing is filed twice. | not run |
 | - | requirement | DEL-14 | no passing test | not enforced |
+| [rerun-both-touched](Tests#t-rerun-both-touched) | requirement | DEL-15 | Given a goal rerun after main moved, when the lane plans, then it runs only the rows touched by both the goal's diff and main's new commits. | not run |
+| [pr-parallel-disjoint](Tests#t-pr-parallel-disjoint) | requirement | DEL-15 | Given goals at pr, when their touches share no path, then their lanes run at once, and a goal waits only for an earlier goal whose touches overlap. | not run |
+| [merge-batch-split](Tests#t-merge-batch-split) | requirement | DEL-15 | Given 3 ready pull requests with disjoint touches, when they are batched, then they verify and merge together, and a failing batch splits to name the culprit. | not run |
+| - | requirement | DEL-15 | no passing test | not enforced |
 | [scripts-no-hang](Tests#t-scripts-no-hang) | defect | [#35](https://github.com/jcl2018/agent-workflow-template/issues/35) closed (2026-11-09) | Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. | PASS 2026-11-12 |
 | [guards-rule-start](Tests#t-guards-rule-start) | defect | [#147](https://github.com/jcl2018/agent-workflow-template/issues/147) closed (2026-11-11) | Given a reply-format rule added after a step started, when that step is recorded, then the rule doesn't bind it, and a step started after it is refused naming the rule and the release that added it. | PASS 2026-11-10 |
 | [guards-no-try](Tests#t-guards-no-try) | defect | [#148](https://github.com/jcl2018/agent-workflow-template/issues/148) closed (2026-11-11) | Given a record refused for format (no DEPTH or STEP line) or a wrong HEAD, when it is refused, then no try is used, the goal keeps running and the fix is printed. | PASS 2026-11-12 |
