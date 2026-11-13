@@ -11,7 +11,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 BUDGET_MINUTES = 30  # a scheduled regression job's budget (REG-7, AUT-7)
-SHARDS = 2  # the suite is split over this many jobs so each fits the budget
+SHARDS = 2
 
 
 ROW_DROP = ("GH_TOKEN", "GITHUB_TOKEN", "GITHUB_STEP_SUMMARY", "GITHUB_ENV", "GITHUB_OUTPUT", "GITHUB_PATH", "GITHUB_STATE",
@@ -43,14 +43,14 @@ on:
 permissions:
   contents: read
   issues: write
-  pull-requests: read  # the defect tests' pull request states
+  pull-requests: read
 concurrency:
   group: regression
   cancel-in-progress: false
 jobs:
   regression:
     runs-on: ubuntu-latest
-    timeout-minutes: @BUDGET@  # the regression budget (REG-7)
+    timeout-minutes: @BUDGET@
     strategy:
       fail-fast: false
       matrix:
@@ -58,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false  # no token left in .git/config for a row to read
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -68,7 +68,7 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           cron=$(python3 -c 'import json; print(json.load(open(".loop/config.json")).get("regression_cron") or "")' 2>/dev/null || true)
-          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then  # off stops the schedule only
+          if [ "$cron" = off ] && [ "$EVENT" = schedule ]; then
             echo "on=false" >> "$GITHUB_OUTPUT"
             echo "OFF: regression is off in .loop/config.json (regression_cron), so this run writes nothing." | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -83,7 +83,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv  # the runner's own file, in no row's environment
-          SUITE_TIME_FILE: ${{ runner.temp }}/suite-time.tsv  # a full run's time, artifact suite-time for health
+          SUITE_TIME_FILE: ${{ runner.temp }}/suite-time.tsv  # for health
           REGRESSION_TARGET: ${{ inputs.target }}  # by hand; checked below, never in a shell line
           REGRESSION_CLEANUP: ${{ inputs.cleanup }}
           REGRESSION_LEVELS: "@LEVELS@"  # the schedule and v* tags run ci_levels
@@ -123,7 +123,7 @@ jobs:
                   return default
               return value if value > 0 else default
           ROW_SECONDS, JOB_SECONDS = seconds("REGRESSION_ROW_SECONDS", 900), seconds("REGRESSION_JOB_SECONDS", (@BUDGET@ - 2) * 60)
-          ROW_ENV = {k: v for k, v in os.environ.items() if k not in @ROWDROP@}  # no token, no runner file
+          ROW_ENV = {k: v for k, v in os.environ.items() if k not in @ROWDROP@}
           def run(command):  # own group, output to a file
               with tempfile.TemporaryFile("w+", errors="replace") as log:
                   child = subprocess.Popen(command, shell=True, stdout=log, stderr=subprocess.STDOUT, env=ROW_ENV,
@@ -156,17 +156,18 @@ jobs:
           gh("label", "create", "regression", "--force", "--description", "A regression row is failing")
           gh("label", "create", "defect", "--description", "A test that guards it is failing")
           guards = {cells[1]: cells for cells in rows(os.environ.get("REGRESSION_MAP") or os.devnull) if len(cells) > 4}
-          out = gh("issue", "list", "--label", "regression", "--state", "all", "--limit", "5000", "--json", "number,state,body,labels")
-          issues = json.loads(out.stdout or "[]") if out.returncode == 0 else None
+          out = gh("api", "--paginate", "repos/{owner}/{repo}/issues?state=open&labels=regression&per_page=100", "--jq",
+                   '.[] | select(.pull_request == null) | {number, state: "OPEN", body, labels}')  # gh issue list stops at 1000
+          issues = [json.loads(line) for line in out.stdout.splitlines() if line] if out.returncode == 0 else None
           if issues is None:
               print("NOTE: can't read issues, so none changed: " + out.stderr.strip()[:200])
-          FEATURES = {row[0] for row in rows(".loop/docs.tsv") if row and row[0] and row[0] != "Home"}  # the pages
+          FEATURES = {row[0] for row in rows(".loop/docs.tsv") if row and row[0] and row[0] != "Home"}
           try:
               LABELS_ON = json.load(open(".loop/config.json")).get("feature_labels") is True
           except (OSError, ValueError, AttributeError):
               LABELS_ON = False
           failed, filed = [], [0]
-          CLEANUP, halt = os.environ.get("REGRESSION_CLEANUP") == "true", []  # paced: 2 writes a close
+          CLEANUP, halt = os.environ.get("REGRESSION_CLEANUP") == "true", []
           def write(what, *args, body=None):
               if halt or CLEANUP and time.time() - start > JOB_SECONDS - 120:
                   return halt and failed.append(what)
@@ -175,7 +176,7 @@ jobs:
               done = gh(*args, body=body)
               if done.returncode:
                   failed.append(what)
-                  halt += ["rate limit"] * ("rate limit" in done.stderr.lower())
+                  halt.extend(["rate limit"] * ("rate limit" in done.stderr.lower()))
                   print("FAILED %s: %s (FILE_FAILED)" % (what, done.stderr.strip()[:160]))
               else:
                   filed[0] += 1
@@ -183,13 +184,13 @@ jobs:
           def label_for(page):  # the page's label, made first, or ""
               if not LABELS_ON or page not in FEATURES:
                   return ""
-              label = "feature:" + "".join(c for c in page if c != "," and c.isprintable())[:42]  # issues.feature_label
+              label = "feature:" + "".join(c for c in page if c != "," and c.isprintable())[:42]
               made = gh("label", "create", label, "--force", "--description", "Issues about one feature")
               if made.returncode:
                   print("FAILED label %s: %s" % (label, made.stderr.strip()[:160]))
                   return ""
               return label
-          FOUND = re.compile(r"<!-- loop-regression (\S+?)(?: placed=(\S*))? -->")  # older markers parse
+          FOUND = re.compile(r"<!-- loop-regression (\S+?)(?: placed=(\S*))? -->")
           def marked(body):
               match = FOUND.search(body or "")
               return (match.group(1), urllib.parse.unquote(match.group(2) or "")) if match else (None, "")
@@ -202,7 +203,7 @@ jobs:
               if len(row) < 3 or not wanted(row):
                   continue
               seen += 1
-              if (seen - 1) % shards != mine:  # another shard's row
+              if (seen - 1) % shards != mine:
                   continue
               if CLEANUP and time.time() - start > JOB_SECONDS - 120:
                   break
@@ -246,7 +247,7 @@ jobs:
                   if not hit:
                       make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect"]
                       made = gh(*make, *(["--label", label] if label else []), body=body)
-                      if made.returncode and label and "label" in made.stderr.lower():  # a refused label never loses the report
+                      if made.returncode and label and "label" in made.stderr.lower():
                           print("FAILED label %s: %s" % (label, made.stderr.strip()[:160]))
                           made = gh(*make, body=body)
                       if made.returncode:
@@ -266,7 +267,7 @@ jobs:
                       if label and label not in names:
                           write("feature label #" + n, "issue", "edit", n, "--add-label", label)
                       write("comment #" + n, "issue", "comment", n, body="Still failing.")
-          if TARGET == "nightly" and not CLEANUP:  # the full suite's time, for health's REG-7 check
+          if TARGET == "nightly" and not CLEANUP:
               took, sha = int(time.time() - start), subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
               with open(os.environ.get("SUITE_TIME_FILE") or os.devnull, "w") as handle:
                   handle.write("%s\tfull\t%d\t%s\n" % (sha, took, time.strftime("%Y-%m-%d", time.gmtime())))
@@ -299,13 +300,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REGRESSION_RESULTS: ${{ runner.temp }}/regression-results.tsv
         run: |
-          here=$(mktemp -d)  # a fresh folder: nothing a row left is importable
+          here=$(mktemp -d)
           cat > "$here/tests.py" <<'TESTS_PY_EOF'
 @TESTS@
           TESTS_PY_EOF
           started=$(sed -n 's/^# started //p' "$REGRESSION_RESULTS" 2>/dev/null | head -n 1 || true)
           case "$started" in ''|*[!0-9]*) started=$(date +%s) ;; esac  # never an expression
-          left=$(( started + 89 * 60 - $(date +%s) - 30 ))  # rows end by minute 88; 30 s for the summary
+          left=$(( started + 89 * 60 - $(date +%s) - 30 ))
           [ "$left" -ge 10 ] && timeout "$(( left < 60 ? left : 60 ))" python3 -I "$here/tests.py" issues --write >/dev/null || true
           took=$(( $(date +%s) - started ))
           GH_TOKEN= python3 -I "$here/tests.py" summary --results "$REGRESSION_RESULTS" --took "$took" >> "$GITHUB_STEP_SUMMARY" || {
