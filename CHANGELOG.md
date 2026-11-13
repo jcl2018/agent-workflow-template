@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.28.24 - 2026-11-13
+
+- Automation table: health and the digest run on the Mac's local schedule, no health workflow owed (#3857)
+- Lane: re-render the Tests tables
+- Render the Automation block: health on the Mac's local schedule
+- Digest keys owed in mail.env; Documentation names health's local schedule
+- Documentation Usage: docs.py automation names the local schedule
+- Drop the Documentation Usage edit; docs.py automation's local schedule goes in commands.md
+- Merge origin/main into automation-table-health
+- Merge origin/main into automation-table-health (runbook links kept with the local schedule)
+- Documentation: the Automation table shows health on the local schedule
+- Wiki: update pages for automation-table-health
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.23 - 2026-11-13
 
 - DECISIONS: drop-usage requirement wording, waiting on owner un-review
