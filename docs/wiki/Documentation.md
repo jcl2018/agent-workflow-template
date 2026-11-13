@@ -59,10 +59,11 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b211d7e4 R=604591e9 N=81dd3484 M=4599
   - Tests is a table: Test, Kind, Guards, Checks, Last result.
   - Each test name links to its entry on the full Tests page.
   - Every requirement and every defect has at least one row.
-- DOC-10: **Reviewed 2026-11-13** One Tests page, every release noted, milestones optional <!-- reviewed 15ae635d -->
+- DOC-10: **Reviewed 2026-11-13** One Tests page, every release noted, a backlog milestone per feature <!-- reviewed 8b00915e -->
   - One full Tests page is generated, listing every test with its latest result.
   - Every release has a release note.
-  - A milestone is optional and free form, used to plan by version (for example v1.0); nothing requires a feature page, issue or pull request to have one, and no check fails or warns for lacking one.
+  - Every feature page has one standing milestone, "Backlog: <Feature>", and "Backlog: Other" holds what fits no feature; a version milestone such as v1.0 stays optional and free form. Nothing requires an issue or a pull request to have a milestone, and a backlog item never blocks a release.
+  - An existing milestone named "Backlog" is renamed "Backlog: Other", and the feature milestones that hold goals and pull requests (Delivery, Documentation and the rest) are kept as they are.
   - Release notes are passed to gh in a file (`--notes-file`), never on the command line.
 - DOC-14: **Reviewed 2026-11-10** A feature page lists what it ships: the pages people open and the deliveries people receive <!-- reviewed 6920f546 -->
   - A feature page that ships something people can open, or a delivery people receive (for example a scheduled email), has a Deployments section; it is optional otherwise.
@@ -168,6 +169,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b211d7e4 R=604591e9 N=81dd3484 M=4599
 | [runs-upgrade](Tests#t-runs-upgrade) | requirement | DOC-10 | Given an old 3-column runs file, when a row runs, then every row has 4 columns and old rows have an empty run. | PASS 2026-11-10 |
 | [runs-keep](Tests#t-runs-keep) | requirement | DOC-10 | Given a recorded row, when only another row runs, then its run cell is unchanged. | PASS 2026-11-10 |
 | [runs-same-day](Tests#t-runs-same-day) | requirement | DOC-10 | Given two branches running the same rows on one day, when each records its run, then the run files are identical. | PASS 2026-11-10 |
+| [backlog-renames-old](Tests#t-backlog-renames-old) | requirement | DOC-10 | Given an old milestone named Backlog, when the Backlog milestones are made with --live, then it is renamed Backlog: Other with its number kept, none is made beside it, and a dry run only says it would. | not run |
 | [deploy-section-optional](Tests#t-deploy-section-optional) | requirement | DOC-14 | Given a feature page with no Deployments section, a good Page table, a good Delivery table or both, when the docs check runs, then it passes, and a Deployments section before Success metrics is refused as out of order. | PASS 2026-11-12 |
 | [deploy-table-refused](Tests#t-deploy-table-refused) | requirement | DOC-14 | Given a Deployments section with prose, no table, a wrong header, two tables of a kind, no row, a wrong cell count, an empty cell, a bad link, access, build or an email address, when the docs check runs, then it refuses it naming the table and column, and never prints the address. | PASS 2026-11-12 |
 | [deploy-not-locked](Tests#t-deploy-not-locked) | requirement | DOC-14 | Given a Reviewed page that gains a Deployments section, when the docs check, the owner's review and render run, then the page is neither locked nor changed, the review works and render keeps the section byte for byte. | PASS 2026-11-12 |

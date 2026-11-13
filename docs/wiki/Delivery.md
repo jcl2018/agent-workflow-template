@@ -60,6 +60,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=a5b21434 N=9f4c33da M=f8cd
   - A long pull request body, issue text or release notes goes to gh in a file (`--body-file`, `--notes-file`), never on the command line, so a pull request with a body over 32,000 characters opens on native Windows.
 - DEL-13: **Reviewed 2026-11-13** A review hold before auto merge <!-- reviewed afd8d5c9 -->
   - Where a review hold is set, the release step merges only after the operation session records that it has read the diff, and the board shows a merge waiting on review.
+- DEL-14: **Reviewed 2026-11-13** Leftover findings are filed by kind at ship <!-- reviewed a02600dc -->
+  - When a goal ships, each finding it did not fix is filed once. A break of a Reviewed requirement inside the goal's touches is fixed in place; outside them it is an open issue labelled `defect`. An improvement, idea or saving is an issue labelled `backlog` on its feature's milestone "Backlog: <Feature>" ("Backlog: Other" when it fits no feature). Filing writes to GitHub only with `--live`, which the goal passes after ship is recorded, and a finding already filed is not filed again.
 
 ## Non-goals
 - It doesn't decide what to build.
@@ -141,6 +143,9 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=a5b21434 N=9f4c33da M=f8cd
 | [del9-lane-part-no-path](Tests#t-del9-lane-part-no-path) | requirement | DEL-9 | Given a lane record whose LANE line ends with a local log path, when the pull request body's lane part is built, then it keeps the LANE line, the before-rows parts and the rows and drops the log path, so the private-name scan does not refuse every pull request from a machine whose home folder is on the list. | not run |
 | - | requirement | DEL-12 | no passing test | not enforced |
 | - | requirement | DEL-13 | no passing test | not enforced |
+| [backlog-leftovers-filed](Tests#t-backlog-leftovers-filed) | requirement | DEL-14 | Given a ship reply with FILE defect and FILE backlog lines, when the goal records ship with --live, then a defect is filed on no milestone, backlog items on Backlog: <Feature> or Backlog: Other, and a line holding an email is skipped. | not run |
+| [backlog-leftovers-once](Tests#t-backlog-leftovers-once) | requirement | DEL-14 | Given leftovers already filed, when ship is recorded again, then nothing is filed twice. | not run |
+| - | requirement | DEL-14 | no passing test | not enforced |
 | [scripts-no-hang](Tests#t-scripts-no-hang) | defect | [#35](https://github.com/jcl2018/agent-workflow-template/issues/35) closed (2026-11-09) | Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. | PASS 2026-11-12 |
 | [guards-rule-start](Tests#t-guards-rule-start) | defect | [#147](https://github.com/jcl2018/agent-workflow-template/issues/147) closed (2026-11-11) | Given a reply-format rule added after a step started, when that step is recorded, then the rule doesn't bind it, and a step started after it is refused naming the rule and the release that added it. | PASS 2026-11-10 |
 | [guards-no-try](Tests#t-guards-no-try) | defect | [#148](https://github.com/jcl2018/agent-workflow-template/issues/148) closed (2026-11-11) | Given a record refused for format (no DEPTH or STEP line) or a wrong HEAD, when it is refused, then no try is used, the goal keeps running and the fix is printed. | PASS 2026-11-12 |

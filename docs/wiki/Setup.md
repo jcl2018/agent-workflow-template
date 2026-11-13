@@ -81,6 +81,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7f1b1066 R=e39e29d4 N=9c385754 M=471a
   - When setup seeds the private-name list, it explains that the list covers every repo on this machine, so a private repo's own name, or a contact it cites on purpose, would block that repo's own commits.
   - A pattern can be scoped, for example to public repos only or to named repos, so a private repo can hold what a public one must never show.
   - Comes from [#1411](https://github.com/jcl2018/agent-workflow-template/issues/1411).
+- SET-17: **Reviewed 2026-11-13** The Backlog milestones exist after adoption <!-- reviewed e4d6023c -->
+  - Adoption creates one milestone "Backlog: <Feature>" for each feature page and "Backlog: Other", and creates none that already exists. Health's Adoption group warns for each one that is missing.
 
 ## Non-goals
 - It never commits private settings or values.
@@ -165,6 +167,10 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7f1b1066 R=e39e29d4 N=9c385754 M=471a
 | [set8-private-value-refused](Tests#t-set8-private-value-refused) | requirement | SET-8 | Given a home path or a local setting value on a line the adoption adds, when setup runs, then it refuses naming file and line and never the value, while text the repo already had, a short value and a template default pass. | not run |
 | [set8-health](Tests#t-set8-health) | requirement | SET-8 | Given a repo with the private-name hooks installed or removed, when health runs its hooks rule, then the row appears in the Security and privacy group with its PASS or WARN text, and a wrong group, which prints no hooks row, fails the row. | PASS 2026-11-12 |
 | - | requirement | SET-15 | no passing test | not enforced |
+| [backlog-milestones-made](Tests#t-backlog-milestones-made) | requirement | SET-17 | Given a repo with feature pages Calc and Zed, when the Backlog milestones are made with --live, then Backlog: Calc, Backlog: Zed and Backlog: Other exist, a dry run writes none and a second run makes none. | not run |
+| [backlog-setup-makes](Tests#t-backlog-setup-makes) | requirement | SET-17 | Given setup's issue filing, when it runs on a GitHub repo, then it makes the Backlog milestones with --live before it files health issues, and --no-issues makes none. | not run |
+| [backlog-adoption-warns](Tests#t-backlog-adoption-warns) | requirement | SET-17 | Given a GitHub repo missing one standing Backlog milestone, when health checks the Adoption group, then it warns for that one and for none in a repo with no GitHub origin. | not run |
+| - | requirement | SET-17 | no passing test | not enforced |
 | [setup-zero-tests-119](Tests#t-setup-zero-tests-119) | defect | [#119](https://github.com/jcl2018/agent-workflow-template/issues/119) open (2026-11-12) | Given a repo whose tests are named *_test.py, when setup picks its check, then the command finds at least one test, and with no proof it is no fit with a finding. | not run |
 | [setup-refusal-writes-120](Tests#t-setup-refusal-writes-120) | defect | [#120](https://github.com/jcl2018/agent-workflow-template/issues/120) open (2026-11-12) | Given any refusal, signal or kill during an adoption, when setup stops, then the tree, branches, index and home folder are as they were, and a killed run is recovered by the next. | not run |
 | [setup-tsv-guard-127](Tests#t-setup-tsv-guard-127) | defect | [#127](https://github.com/jcl2018/agent-workflow-template/issues/127) open (2026-11-12) | Given a .gitignore blocking *.tsv and a hook that rejects tracked .tsv files, when setup runs, then the ignore is exempted by a written line and the hook is named with its exemption and never edited. | not run |

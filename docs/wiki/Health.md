@@ -57,8 +57,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=f859c2a6 N=e89b4f3b M=39cf
   - At most 12 groups plus Mine; adding one means retiring one or raising the cap on purpose.
 - HLT-3: **Reviewed 2026-11-10** Formal report <!-- reviewed a5cc0046 -->
   - A header listing every group it ran (and any skipped), then each group with every rule marked pass, warn, fail or unread with its fix, then one verdict. A rule that can't read its data is never shown as passing.
-- HLT-4: **Reviewed 2026-11-13** Findings become issues tagged with their group, and their feature when feature_labels is on <!-- reviewed 259b7f1e -->
-  - Each finding, from a rule or from the review, is one GitHub issue tagged with its group or kind and, when feature_labels is on (it is off by default), the feature it is about; it sits on a milestone only when I put it there.
+- HLT-4: **Reviewed 2026-11-13** Findings become issues tagged with their group, and their feature when feature_labels is on <!-- reviewed 283dffa7 -->
+  - Each finding, from a rule or from the review, is one GitHub issue tagged with its group or kind and, when feature_labels is on (it is off by default), the feature it is about. A FAIL (except a performance one) and a review conflict is a defect, labelled `defect`, on no milestone; every other finding (a WARN, a performance FAIL, a drift, weak-test or saving finding, a review gap, an unread rule) is a backlog item, labelled `backlog`, on its feature's milestone "Backlog: <Feature>", or on "Backlog: Other" when it fits no feature. An issue I move to another milestone stays there.
   - A preview lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups or features to file, behind an explicit `--live`.
   - A repeat updates its issue, a fix closes it, a return reopens it, and an existing open issue that already covers a finding is linked, not duplicated.
   - A finding's issue body and comment are passed to gh in a file (`--body-file`), never on the command line.
