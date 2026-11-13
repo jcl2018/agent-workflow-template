@@ -60,6 +60,16 @@ The owner un-reviewed these requirements and approved the wording below; it is n
 - 2026-11-13, migration-v1, proposed wording for SET-16 (Reviewed, waiting on owner un-review): add "The check also judges the format changes the template carries, and prints each thing only the owner can do as OWNER STEP with its exact instruction; it exits 0 only when every item is installed, adapted or an owner step." SET-11 (Unreviewed): add "the adoption checklist is the same list migration-check prints."
 - 2026-11-13, migration-v1, reconciled with the landed format goals: the Backlog check is an owner step (`milestone.py backlog --live`) printed on every run, because whether the milestones exist is a GitHub read the offline check does not make; routine prompts reuse health's `prompt-pointer` rule (`MIG_ROUTINES`, a state code); `health-rules.json` and Usage stay gated on the template carrying them, because those goals have not landed. The smoke cell is a regression row named `smoke-<platform>`. Connector checks (SET-14) are not in this goal.
 
+## Waiting on owner un-review (2026-11-13)
+
+Titles are locked on Reviewed requirements. #410: MON-1, MON-2, MON-13, MON-14 and MON-15 put a whole sentence in the title, against DOC-7's short-title format. Proposed: each gets a short title, and its sentence moves under it as a sub-bullet word for word. Nothing is applied until the owner un-reviews them.
+
+- MON-1: "Roles, start and planning". Sub-bullet: the current text after the title, from "One command starts the operation session" on.
+- MON-2: "Live communication". Sub-bullet: the current text after the title, from "Operation and workers talk through session messages" on.
+- MON-13: "Two layers per pod". Sub-bullet: "One operation session governs every repo in its pod directly and talks to each worker, with no per-repo operation session; several pods may run concurrently and independently."
+- MON-14: "Dependency map grouped by repo". Sub-bullet: "The check-in dependency map has one block per repo headed by the repo's name, with cross-repo dependencies drawn between blocks."
+- MON-15: "Pods coordinate through shared state". Sub-bullet: the current text after the title, from "every goal records its owning pod" on.
+
 ## Waiting on owner un-review
 
 Proposed wording for the backlog-milestones goal (2026-11-13, the owner approved the design in the operation session). Each Reviewed requirement below stays as it is until the owner un-reviews it and types the approval sentence. DEL-14 and SET-17 are new requirements: adding one to a Reviewed page changes its review lock (LOCKED, and Setup would pass criteria_max), so they go onto the Delivery and Setup pages in the same sitting, and until then their rows guard the goal's done line (`backlog-milestones:1`). The code in this goal already behaves as the wording below says, so it merges after the owner approves it.
