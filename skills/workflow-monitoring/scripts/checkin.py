@@ -77,6 +77,26 @@ def grouped(blocks):
     return [row for line in out for row in (textwrap.wrap(line, board_lines.WIDTH, subsequent_indent="    ") or [""])]
 
 
+def expected(root=None, at=None):
+    """[(repo name, slug)] of every goal the Dependencies section must draw: each live goal and each queued line of the
+    pod, read from the run records and queue files. The reply hook (reply_deps.py) checks a reply against it."""
+    root = bs.git("rev-parse", "--show-toplevel", cwd=root or None) or root
+    at = at or datetime.datetime.now(datetime.timezone.utc)
+    pod, here = [gather(root, at)], os.getcwd()
+    os.chdir(root)  # bd.followed() starts from the working directory
+    try:
+        followed = bd.followed()
+    finally:
+        os.chdir(here)
+    for name, path, _ in followed:
+        if os.path.realpath(path) != os.path.realpath(root):
+            try:
+                pod.append(gather(path, at))
+            except Exception:  # one unreadable repo never hides the others
+                continue
+    return [(g["name"], item["slug"]) for g in pod for item in g["live"] + g["queue"]]
+
+
 def render(root=None, at=None, stamp=None):
     root = root or bs.git("rev-parse", "--show-toplevel")
     at = at or datetime.datetime.now(datetime.timezone.utc)
