@@ -48,8 +48,8 @@ permissions:
   issues: write
   pull-requests: read
 concurrency:
-  group: regression
-  cancel-in-progress: false
+  group: regression-${{ github.ref }}  # one run per ref: a branch run no longer waits behind a release tag run
+  cancel-in-progress: true  # a newer run on the same ref cancels the one it supersedes (GRD-7)
 jobs:
   regression:
     runs-on: ubuntu-latest
