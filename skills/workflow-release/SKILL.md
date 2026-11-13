@@ -139,7 +139,7 @@ Each refusal says `REFUSED:` and a fix. Common ones:
 
 ## Command map
 
-Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. Wiki Usage lines use the left column.
+Asking the agent for one of these runs exactly the routine beside it, from the skill's folder. The README's How to use tables start from these asks.
 
 | Ask | Runs |
 |---|---|

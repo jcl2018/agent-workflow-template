@@ -25,7 +25,7 @@ mkrepo() {  # a repo with one feature (Calc, skills/calc) and a near-limit scrip
   echo '{"base": "main", "wiki_dir": "docs/wiki"}' > .loop/config.json
   printf '# id\tlevel\tcommand\tgoal\tseen_red\tdescription\tcategory\tlink\n' > .loop/regression.tsv
   printf 'Calc\tskills/calc\n' > .loop/docs.tsv
-  printf '# Calc\n\n## Usage\n\n- /workflow-calc add adds.\n\n## Requirements\n\n### Functional\n- CAL-1: **Reviewed 2026-11-10** Calc adds.\n\n### Non-functional\n- CAL-2: **Reviewed 2026-11-10** Calc is fast.\n' > docs/wiki/Calc.md
+  printf '# Calc\n\n## Requirements\n\n### Functional\n- CAL-1: **Reviewed 2026-11-10** Calc adds.\n\n### Non-functional\n- CAL-2: **Reviewed 2026-11-10** Calc is fast.\n' > docs/wiki/Calc.md
   printf '# pad\n%.0s' $(seq 1 3400) > skills/calc/scripts/near.py
   echo 'Run /workflow-zzz frob.' > README.md
   git add -A; git commit -qm toy; echo '[]' > "$FAKE_GH_DIR/issues.json"; echo '[{"number": 1, "title": "Backlog", "state": "open"}, {"number": 2, "title": "Calc", "state": "open"}]' > "$FAKE_GH_DIR/milestones.json"
@@ -99,7 +99,7 @@ echo "== HLT-5 and HLT-9: review per feature, every finding with evidence, unver
 # Value: protects=HLT-5, HLT-9; fails_when=a finding without checkable evidence is kept, review writes a file, or a failing
 # judge hides its cause; why_new=no review existed; seam=stand-in judges; no_claim=a real model's judgment
 mkrepo; fl_on
-printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|conflict|a reader.s angle|CAL-1 and CAL-2 pull apart|CAL-1,docs/wiki/Calc.md:3|merge them"\necho "FINDING|Calc|weak-test|a skeptic.s angle|no test|nowhere/x.py:9|drop"\necho "FINDING|Ghost|gap|x|z|CAL-1|y"\n' > "$d/judge.sh"; chmod +x "$d/judge.sh"
+printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|conflict|a reader.s angle|CAL-1 and CAL-2 pull apart|CAL-1,docs/wiki/Calc.md:3|merge them"\necho "FINDING|Calc|weak-test|a skeptic.s angle|no test|nowhere/x.py:9|drop"\necho "FINDING|Ghost|gap|x|z|CAL-1,docs/wiki/Calc.md:3|y"\n' > "$d/judge.sh"; chmod +x "$d/judge.sh"
 python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command']=['$d/judge.sh'];json.dump(c,open('.loop/config.json','w'))"
 git commit -qam judge; before=$(git status --porcelain)
 out=$($H review 2>&1)
@@ -108,12 +108,12 @@ check "a finding whose evidence doesn't exist is dropped and counted" '! grep -q
 check "a finding for an unknown feature is never shown" '! grep -q "Ghost" <<<"$out"'
 check "review writes nothing" '[ "$(git status --porcelain)" = "$before" ]'
 $H review --json > "$d/r.json"
-printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|gap|a|first gap|CAL-1|x"\necho "FINDING|Calc|gap|a|second gap|CAL-2|y"\n' > "$d/two.sh"; chmod +x "$d/two.sh"
+printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|gap|a|first gap|CAL-1,docs/wiki/Calc.md:3|x"\necho "FINDING|Calc|gap|a|second gap|CAL-2,docs/wiki/Calc.md:3|y"\n' > "$d/two.sh"; chmod +x "$d/two.sh"
 python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command']=['$d/two.sh'];json.dump(c,open('.loop/config.json','w'))"
 $H review --json > "$d/two.json"; $H file --review "$d/two.json" >/dev/null 2>&1
 check "two findings of one kind on one feature are two issues, and file --review files only review findings" '[ "$(python3 -c "import json;print(sum(1 for i in json.load(open(\"$FAKE_GH_DIR/issues.json\")) if \"review-gap\" in str(i[\"labels\"]) and \"gap\" in i[\"title\"]))")" = 2 ] && ! grep -q "health:size\|health:docs" "$FAKE_GH_DIR/issues.json"'
 check "review --json is versioned, and file --review files it as health:review-<kind> on its feature" 'grep -q "\"version\": 1" "$d/r.json" && $H preview --review "$d/r.json" 2>&1 | grep -q "\[health:review-conflict, feature:Calc\]"'
-printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|gap|a|one|CAL-1|same fix"\necho "FINDING|Calc|gap|a|two|CAL-2|same fix"\n' > "$d/same.sh"; chmod +x "$d/same.sh"
+printf '#!/bin/bash\ncat >/dev/null\necho "FINDING|Calc|gap|a|one|CAL-1,docs/wiki/Calc.md:3|same fix"\necho "FINDING|Calc|gap|a|two|CAL-2,docs/wiki/Calc.md:3|same fix"\n' > "$d/same.sh"; chmod +x "$d/same.sh"
 python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command']=['$d/same.sh'];json.dump(c,open('.loop/config.json','w'))"
 check "next steps name each distinct fix once" '$H review 2>&1 | grep -qx "next steps: 1. same fix"'
 fi
@@ -149,12 +149,12 @@ echo "== judge order (owner's rule): the session first, claude -p only with no s
 #   run with no session (GitHub Actions) has no judge; why_new=the judge only ran judge_command; seam=stand-in judge;
 #   no_claim=a real subagent's answer
 mkrepo
-printf '#!/bin/bash\ntouch "%s/ran"\ncat >/dev/null\necho "FINDING|Calc|conflict|a reader.s angle|from claude -p|CAL-1|merge"\n' "$d" > "$d/cp.sh"; chmod +x "$d/cp.sh"
+printf '#!/bin/bash\ntouch "%s/ran"\ncat >/dev/null\necho "FINDING|Calc|conflict|a reader.s angle|from claude -p|CAL-1,docs/wiki/Calc.md:3|merge"\n' "$d" > "$d/cp.sh"; chmod +x "$d/cp.sh"
 python3 -c "import json;c=json.load(open('.loop/config.json'));c['judge_command']=['$d/cp.sh'];json.dump(c,open('.loop/config.json','w'))"
 git commit -qam judge; rm -f "$d/ran"
 out=$(CLAUDECODE=1 $H review 2>&1); p=$(grep -o "prompt in [^ ]* to an in-session" <<<"$out" | awk '{print $3}')
 check "in a session the judge is the session: the report says so, claude -p never runs, the prompt is handed over" 'grep -qx "judge: session" <<<"$out" && [ ! -e "$d/ran" ] && [ -n "$p" ] && grep -q "<<<DATA" "$p"'
-printf 'FINDING|Calc|gap|an auditor.s angle|from the session|CAL-1|tie it\n' > "$d/reply.txt"
+printf 'FINDING|Calc|gap|an auditor.s angle|from the session|CAL-1,docs/wiki/Calc.md:3|tie it\n' > "$d/reply.txt"
 out=$(CLAUDECODE=1 $H review --judge-answer "$d/reply.txt" 2>&1)
 check "the session's saved reply is used, and claude -p still never runs" 'grep -qx "judge: session" <<<"$out" && grep -q "^FINDING gap (an auditor.s angle): from the session" <<<"$out" && [ ! -e "$d/ran" ]'
 out=$($H review 2>&1)

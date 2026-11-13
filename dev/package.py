@@ -42,7 +42,7 @@ AGENT_AIMED = [r"(?i)ignore (all |any )?(previous|prior|above) instructions", r"
                r"(?i)disregard (your|the) (system|safety)", r"(?i)you must (secretly|silently) "]
 DANGEROUS = [r"\bos\.system\(", r"chmod\s+777", r"\brm\s+-rf\s+/(\s|$)", r"\b(curl|wget)\b[^\n|]*\|\s*(ba)?sh\b"]
 INJECTION = [r"(?i)ignore previous instructions", r"(?i)do not tell the user", r"(?i)\bsecretly\b"]
-SHARED = {"skills/loop-files.md": "shared/loop-files.md", "skills/design-guide.md": "shared/design-guide.md"}  # in a pack, only shared/ reaches every skill
+SHARED = {"skills/loop-files.md": "shared/loop-files.md"}  # in a pack, only shared/ reaches every skill
 LIMITS = {"tags": 10, "keywords": 10, "use_cases": 8}
 try:
     CHILD_SECONDS = max(1, int(os.environ.get("PACKAGE_CHILD_SECONDS") or 30))

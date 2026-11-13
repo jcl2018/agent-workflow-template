@@ -72,11 +72,11 @@ check "batch.py alone says how to start goal lines" 'grep -q "NEXT: run watch.py
 
 echo "== text and sizes"
 for f in skills/workflow-monitoring/references/operation.md skills/workflow-monitoring/SKILL.md skills/workflow-delivery/SKILL.md; do
-  check "$f says the operation session governs only" 'grep -qi "governance only" "$here/$f" && grep -qiE "runs neither|never runs" "$here/$f"'
+  check "$f says the operation session governs only" 'grep -qiE "governance only|one session governs" "$here/$f" && grep -qiE "runs neither|never runs" "$here/$f"'
 done
 check "the test runs as a regression row" 'grep -q "test-batch.sh" "$here/.loop/regression.tsv"'
 page="$here/docs/wiki/Monitoring.md"
 for id in no-line-in-governor skill-says-governs; do
-  check "$id is a test named in the Tests" 'sed -n "/^## Tests/,\$p" "$page" | grep -q " — \[$id\]("'
+  check "$id is a test named in the Tests" 'sed -n "/^## Tests/,\$p" "$page" | grep -qF "| [$id](Tests#t-$id) |"'
 done
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

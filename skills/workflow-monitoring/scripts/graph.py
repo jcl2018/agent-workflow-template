@@ -185,20 +185,17 @@ def flow(nodes):
     return ["flow (arrow = must finish before):"] + ["%s --> %s" % (label(dep), ", ".join(label(s) for s in waiting[dep])) for dep in sorted(waiting)]
 
 
-# One goal's state, decided once for every reader (issue 113): the live board, the board digest, report, watch and
-# handoff all ask here, so held, freezing, silent and slot-holding mean the same everywhere. Imported, not run.
-#
-#   classify(run, taken, at, cfg)  one of: running, waiting, failed, stopped, held, silent, done, merged, retired, queued
-#   holds_slot(run, taken)         a live goal uses a worker slot: a pid, or a busy pool entry; with the pool known, a
-#                                  session goal whose session was freed holds none (issue 112)
+# One goal's state, decided once for every reader (issue 113), so held, freezing, silent and slot-holding mean the same
+# everywhere. Imported, not run.
+#   classify(run, taken, at, cfg)  running, waiting, failed, stopped, held, silent, done, merged, retired or queued
+#   holds_slot(run, taken)         a live goal uses a worker slot: a pid, or a busy pool entry (issue 112)
 #   held(run, taken)               running with no worker: the pool is known, no busy session names it, no pid
 #   freezing(taken, on_disk)       pool entries handed a goal that has no run record yet
-#   silent_for(run, at)            seconds since the worker last spoke (latest report, bind or change), or None
-#   stamp_held(runs, taken, at, folder)  record when each goal first read held in <loop>/held.json (replan.py, each pass)
-#   with_held(runs, folder)        fill held_at from that file
-#
-# The pool is the busy map from graph.assigned (None when the pool can't be read: then nothing is called held).
+#   silent_for(run, at)            seconds since the worker last spoke, or None
+#   stamp_held(runs, taken, at, folder) / with_held(runs, folder)  when each goal first read held, in <loop>/held.json
+# The pool is the busy map from graph.assigned (None when unreadable: then nothing is called held).
 # `silent_minutes` in .loop/config.json (default 30) is MON-8's limit; LOOP_SESSION_QUIET (seconds) overrides it.
+
 def parse_at(text):
     """A recorded time as an aware UTC datetime (naive counts as UTC), or None."""
     try:
@@ -329,7 +326,8 @@ def load_run(slug):
 #   stamp(state)    record the caller's pod on a goal that has none; a goal with no pod belongs to no one
 #   foreign(state)  the owning pod's id when it is not the caller's (a worker never counts), else ""
 #   refuse(state)   print the one REFUSED line naming the owner to stderr and exit 2 (no try is used)
-#   merge_lock(common)  one merge per repo at a time, across pods; released at exit; a dead or old holder is replaced
+#   merge_lock(common)  one merge per repo at a time; a dead or old holder is replaced
+#   pr_queue(op, ...)   pr turns and main-moved tries (pool.py)
 def pod_id():
     if os.environ.get("LOOP_ROLE") == "worker":
         return ""
@@ -352,6 +350,12 @@ def refuse(state):
         sys.stderr.write("REFUSED: goal %s is owned by pod %s. Fix: act from that pod (set LOOP_POD_ID=%s), not from here.\n" % (
             state.get("slug"), owner, owner))
         sys.exit(2)
+
+
+def pr_queue(op, *args):  # pr turns and main-moved tries (#3877) live in pool.py, loaded here
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    import pool
+    return getattr(pool, "pr_" + op)(*args)
 
 
 def merge_lock(common):

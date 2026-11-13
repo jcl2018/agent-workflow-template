@@ -224,7 +224,7 @@ workflow-docs|2. `## Problem`: who it's for and what it solves, at most `problem
 workflow-docs|5. `## Non-goals`: at least one line; `## Success metrics`: one to `metrics_lines` measurable lines;
 workflow-docs|   when no row passes; then the workflow tests, then the defect tests, in the same table.
 workflow-docs|`NONGOALS`, `METRICS`, `CRITERION`, `CAP`, `SCRIPT`, `USAGE`, `TESTS` (run `render`), `LOCKED`, `CHANGED`.
-workflow-docs|Usage. After it, a change to any of the first four is `LOCKED` (check, audit and release fail); a change to Usage alone
+workflow-docs|the retired Usage print, still written and never reported). After it, a change to any of them is `LOCKED` (check, audit and release fail).
 workflow-docs|owner un-reviews that requirement and the PRD, then reviews both again.
 workflow-docs|`Given <context>, when <action>, then <outcome>.`; `audit` lists any other as `SCENARIO` and the release step blocks on
 workflow-docs|`regression.py sync` reports an id with no row, and `release.py cut` refuses while any of its rows is missing, a draft
@@ -235,7 +235,7 @@ KEPT
       grep -q "references/commands.md" "$here/skills/$skill/SKILL.md" || no "$skill/SKILL.md does not point to its references"
       grep -q "^## Command map" "$here/skills/$skill/SKILL.md" || no "$skill/SKILL.md lost its Command map"
     done
-    grep -q "governance only" "$here/skills/workflow-delivery/SKILL.md" || no "workflow-delivery/SKILL.md lost its governance line"
+    grep -qiE "governance only|one session governs" "$here/skills/workflow-delivery/SKILL.md" || no "workflow-delivery/SKILL.md lost its governance line"
     grep -q "Never review or unreview on a goal's own initiative" "$here/skills/workflow-docs/SKILL.md" || no "workflow-docs/SKILL.md lost its review rule"
     exit 0;;
   size-139) # issue 139: criteria.py's page rules moved unchanged into deployments.py; it stays under health's size warning
