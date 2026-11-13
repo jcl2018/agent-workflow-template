@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.28.16 - 2026-11-13
+
+- Automation: a repo's own routines get a Runbook, a pointer prompt and a health check
+- Automation: registry docs, prompt-pointer rule line, Tests tables
+- DECISIONS: draft AUT-1, 2, 3, 4, 8 wording under Waiting on owner un-review
+- Merge origin/main into loop/automation-routines
+- Home: the Automation row says routines point to their Runbook
+- Merge origin/main into loop/automation-routines
+- Merge remote-tracking branch 'origin/main' into loop/automation-routines
+
+### How to verify
+
+1. Run `python3 dev/toy/test-automation-routines.py` from the repo root.
+   Expect: every line starts with `PASS:`.
+2. Run `python3 skills/workflow-docs/scripts/docs.py prompts`.
+   Expect: one `PROMPT <routine>: In <repo>, fast-forward to origin/main, then read docs/wiki/<Page>.md's Runbook section <routine> and follow it exactly.` line for health-round and regression-round.
+3. Add an entry such as `{"name": "site-deploy", "cadence": "0 6 * * *", "runs": "claude:site-deploy", "page": "Health"}` to `automation` in `.loop/config.json`, then run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: a finding says Health needs a `### site-deploy` Runbook; add it and the finding goes; `docs.py prompts` now prints a line for site-deploy.
+
 ## v0.28.15 - 2026-11-13
 
 - publish-tables: re-render generated tables in the publish tree, toy and rows
