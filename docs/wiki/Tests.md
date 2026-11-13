@@ -48,6 +48,8 @@
 | <a id="t-digest-not-cut"></a>digest-not-cut | requirement | AUT-7 | not run | - | local | 2026-11-12 |
 | <a id="t-health-follows-regression"></a>health-follows-regression | requirement | AUT-7 | not run | - | local | 2026-11-12 |
 | <a id="t-capture-row-ci"></a>capture-row-ci | defect | [#3789](https://github.com/jcl2018/agent-workflow-template/issues/3789) closed (2026-11-13) | not run | - | local | 2026-11-13 |
+| <a id="t-aut-routine-block"></a>aut-routine-block | requirement | AUT-8 | not run | - | local | 2026-11-13 |
+| <a id="t-aut-routine-prompt"></a>aut-routine-prompt | requirement | AUT-8 | not run | - | local | 2026-11-13 |
 
 ## Delivery
 
@@ -232,6 +234,7 @@
 | <a id="t-publish-tables-regen"></a>publish-tables-regen | requirement | DOC-11 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
 | <a id="t-publish-tables-handwritten"></a>publish-tables-handwritten | requirement | DOC-11 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
 | <a id="t-backlog-renames-old"></a>backlog-renames-old | requirement | DOC-10 | not run | - | local | 2026-11-13 |
+| <a id="t-aut-routine-runbook-owed"></a>aut-routine-runbook-owed | requirement | DOC-16 | not run | - | local | 2026-11-13 |
 
 ## Guardrails
 
@@ -319,6 +322,7 @@
 | <a id="t-hlt9-located-evidence"></a>hlt9-located-evidence | requirement | HLT-9 | not run | - | local | 2026-11-13 |
 | <a id="t-hlt9-review-recheck"></a>hlt9-review-recheck | requirement | HLT-9 | not run | - | local | 2026-11-13 |
 | <a id="t-hlt2-defect-exempt-health"></a>hlt2-defect-exempt-health | requirement | HLT-2 | not run | - | local | 2026-11-13 |
+| <a id="t-aut-prompt-warns"></a>aut-prompt-warns | requirement | HLT-2 | not run | - | local | 2026-11-13 |
 
 ## Monitoring
 
