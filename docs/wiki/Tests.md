@@ -307,6 +307,7 @@
 | <a id="t-hlt8-triage-one-issue"></a>hlt8-triage-one-issue | requirement | HLT-8 | not run | - | local | 2026-11-13 |
 | <a id="t-hlt9-located-evidence"></a>hlt9-located-evidence | requirement | HLT-9 | not run | - | local | 2026-11-13 |
 | <a id="t-hlt9-review-recheck"></a>hlt9-review-recheck | requirement | HLT-9 | not run | - | local | 2026-11-13 |
+| <a id="t-hlt2-defect-exempt-health"></a>hlt2-defect-exempt-health | requirement | HLT-2 | not run | - | local | 2026-11-13 |
 
 ## Monitoring
 

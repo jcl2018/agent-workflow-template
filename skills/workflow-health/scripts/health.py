@@ -145,8 +145,16 @@ def defect_rows(root):
     defects = sibling_module("defects")
     if not defects:
         return [row("UNREAD", "traceability", "defects", "defect-tests", "defects.py is not installed beside health.py")]
+    gone = exempt(root, [ref for ref, _ in defects.missing(root)])  # a health or backlog finding that went away isn't a fixed bug
     return [row("FAIL", "traceability", ref, "defect-tests", "closed by %s with no defect test" % source,
-                "regression.py add --category defect --link ...") for ref, source in defects.missing(root)]
+                "regression.py add --category defect --link ...") for ref, source in defects.missing(root) if ref not in gone]
+
+
+def exempt(root, refs):
+    """The #N refs among `refs` that are issues labelled health or backlog (none when the issues can't be read)."""
+    tracker = sibling_module("issues") if any(r[0] == "#" for r in refs) else None
+    found = tracker.fetch(root, "held")[0] if tracker else None
+    return {"#%d" % i["number"] for i in found or [] if {"health", "backlog"} & set(i.get("labels") or [])} & set(refs)
 
 
 def hours_old(stamp):
