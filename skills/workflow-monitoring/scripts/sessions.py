@@ -287,11 +287,6 @@ def merged(url):
         return False
 
 
-def release_step(state):
-    """Where auto_merge is on, a goal that ended with its pull request open gets merge.py, as worker.py does."""
-    worker.release_step(state)
-
-
 def cmd_report(args):
     state = held(args.slug)
     said = args.status
@@ -324,10 +319,7 @@ def cmd_report(args):
     elif said in ("merged", "waiting"):  # the goal ended with a pull request: done, merged or waiting for review
         if not pr:
             sys.exit("REFUSED: %s with no pull request. Fix: pass --pr URL." % said)
-        state["status"] = "done"
-        if config().get("auto_merge") is True and not merged(pr):
-            release_step(state)
-            state = load(args.slug) or state
+        state["status"] = "done"  # a report records; it never merges: a goal's PR merges through its own merge.py (#3868)
         said = "merged" if merged(pr) else "waiting"
     elif said == "running":
         state["status"] = "running"
