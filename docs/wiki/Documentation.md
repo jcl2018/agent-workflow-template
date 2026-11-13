@@ -87,6 +87,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=ed4d143e N=81dd3484 M=4599
 
 ## Tests
 
+The generated Automation table shows health on the Mac's local schedule and owes no `health.yml`.
+
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
 | [stale-found](Tests#t-stale-found) | requirement | DOC-1 | Given a wiki page behind the code it covers, when the docs check runs, then the page is reported as stale. | PASS 2026-11-12 |
