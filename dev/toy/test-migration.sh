@@ -421,4 +421,30 @@ on:
   check "a regression_runs actions repo is still asked for pull_request" '[ $rc = 1 ] && grep -q "^GAP MIG_CHECKS .*pull_request" <<<"$out"'
 fi
 
+# v1: the format changes and the owner steps (migration-v1). A repo missing a feature the template carries is named with its code and fix and
+# exits 1; with every feature present it exits 0, and what only the owner can do prints as OWNER STEP with its instruction (never a gap).
+if want v1; then fresh
+  r=$(cleanrepo v1)
+  export LOOP_TEMPLATE_HAS=usage-kept; mig "$r" --offline
+  check "a clean toy whose template carries no new feature exits 0 and prints no new gap" '[ $rc = 0 ] && ! grep -qE "^GAP MIG_(USAGE|RULES|ROUTINES|HOOKS)" <<<"$out"'
+  check "the clean toy still lists what only the owner can do, as OWNER STEP lines with their instruction" 'grep -q "^OWNER STEP hook reply_hook.py: run .*--reply-hook" <<<"$out" && grep -q "^CHECKLIST: " <<<"$out"'
+  export LOOP_TEMPLATE_HAS=usage-kept,health-rules; mig "$r" --offline
+  check "a template that carries .loop/health-rules.json: its absence is a gap with its fix, exit 1" '[ $rc = 1 ] && grep -q "^GAP MIG_RULES .loop/health-rules.json: missing. Fix: run workflow-setup" <<<"$out"'
+  echo "{}" > "$r/.loop/health-rules.json"; mig "$r" --offline
+  check "with .loop/health-rules.json present the gap is gone and the check exits 0" '[ $rc = 0 ] && ! grep -q "MIG_RULES" <<<"$out"'
+  export LOOP_TEMPLATE_HAS=""; page="$r/docs/wiki/Calc.md"
+  { echo "# Calc"; echo; echo "## Usage"; echo; echo "- a command"; } > "$page"; mig "$r" --offline
+  check "a template that dropped Usage: a feature page still holding a Usage section is a gap naming the page, exit 1" '[ $rc = 1 ] && grep -q "^GAP MIG_USAGE $(basename "$page"): still has a Usage section" <<<"$out"'
+  export LOOP_TEMPLATE_HAS=usage-kept,runbook-pointer; reset "$r" HEAD
+  cfgset "$r" "d['automation']=[{'name':'health','runs':'x','prompt':'do a long thing'+chr(10)+'over two lines'}]"; mig "$r" --offline
+  check "a template with Runbook-pointer prompts: a two-line routine prompt is a MIG_ROUTINES gap, exit 1" '[ $rc = 1 ] && grep -q "^GAP MIG_ROUTINES health: its prompt is not a one-line Runbook pointer" <<<"$out"'
+  reset "$r" HEAD; export LOOP_TEMPLATE_HAS=usage-kept,backlog; mig "$r" --offline
+  check "a template with the Backlog milestones: the approval is an OWNER STEP that does not fail the check" '[ $rc = 0 ] && grep -q "^OWNER STEP milestones Backlog: approve the Backlog milestones" <<<"$out"'
+  export LOOP_TEMPLATE_HAS=usage-kept; mkdir -p "$r/.claude"; printf '{"hooks":{"Stop":[{"command":"reply_hook.py"},{"command":"reply_hook.py"}]}}' > "$r/.claude/settings.local.json"; mig "$r" --offline
+  check "a hook installed twice is a MIG_HOOKS gap with its fix, exit 1; govern_hook.py not installed is an OWNER STEP" '[ $rc = 1 ] && grep -q "^GAP MIG_HOOKS reply_hook.py: is installed 2 times" <<<"$out" && grep -q "^OWNER STEP hook govern_hook.py" <<<"$out"'
+  mig "$r" --offline --pr
+  check "--pr (the gaps a pull request can close) prints no hook gap or owner step" '! grep -qE "MIG_HOOKS|^OWNER STEP" <<<"$out"'
+  unset LOOP_TEMPLATE_HAS
+fi
+
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }
