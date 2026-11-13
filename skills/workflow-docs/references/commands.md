@@ -41,7 +41,7 @@ restore                         revert the last publish, if nothing came after i
 ```
 
 `entry.py write|check|render|block` builds `.loop/START.md`, the entry point every new session reads first, and the
-workflow-loop block for the agent files, from the PRD pages, `.loop/config.json` and `references/start.md`. `check`
+workflow-loop block for the agent files, from the PRD pages, `.loop/config.json` and `## Entry point templates` in this file. `check`
 (also run by `docs.py check`) prints `STALE` when either differs from a fresh render and `MISSING` when a stamped repo
 (it holds `template_version`, or is the template's own checkout) has none; both fail. While the installed skills are
 newer than the repo's `template_version`, a difference only in the parts built from the skills prints `LAG` and does
@@ -291,6 +291,14 @@ of `automation` in `.loop/config.json`: `{"name", "does", "cadence", "runs", "en
 cron string, words, or `off`. Adding a routine is adding one entry. `python3 scripts/docs.py automation` prints each one's
 live state here; the committed block holds only what files and config show.
 
+A routine of your own adds `"page": "<Page>"` (the feature page that carries its Runbook) and optionally `"routine": "<heading>"`
+(the `### ` heading, default its name) to its entry. The docs check then requires that Runbook exactly as it does for a
+`.loop/routines.tsv` routine (DOC-16), and `python3 scripts/docs.py prompts` prints one line per routine, built-in or yours:
+`PROMPT <routine>: In <repo>, fast-forward to origin/main, then read <wiki_dir>/<Page>.md's Runbook section <routine> and follow
+it exactly.` That line is the whole prompt a scheduler holds (a Claude scheduled task, a launch agent or an Actions job); the
+steps live only in the Runbook, so any agent on any machine runs the same round. Health's `prompt-pointer` rule warns on an
+installed scheduled-task prompt that holds anything else.
+
 ### `restore`
 
 This reverts the last publish. It refuses if the wiki has changed since.
@@ -303,3 +311,51 @@ optional and free form, never required). It fixes the mechanical (`FIXED`: Tests
 test, or whose tests no longer match, as `UNTESTED` (also saved to `untested.tsv` under `.git/loop`, for the loop to
 queue goals from). Exit 0 only when nothing is left; `UNTESTED` and a `SKIP` for no `gh` answer don't fail it. The
 release step runs it on every goal. It never deletes a page or edits a criterion.
+
+## Entry point templates
+
+`entry.py` builds `.loop/START.md` from these paragraphs, filling each `{name}` from `.loop/config.json` only (a
+missing setting reads as its default). Nothing private, no count, date or machine path goes in.
+
+## Loop
+A goal is one sentence with frozen done lines. A worker takes it through idea, plan, build, review, qa, ship, pull
+request and release, on branch `loop/<slug>` cut from `{base}`. Each step's skill is chosen in the private flow file,
+`~/.workflow-loop/flow.json` (`built-in` runs delivery's own routine). Review is the only gate. Plan and review run at
+`{review_depth}` depth; auto-approval is `{auto_approve}`; a goal stops after {max_tries} failed tries; its token
+budget is {token_budget} (0 means none).
+
+## Release
+Release is a goal's last step: it brings the docs up to date, bumps `{version_file}` and writes the release note.
+Auto-merge is `{auto_merge}`; a pull request bumps the version itself: `{pr_bumps_version}`. Your own routines after a
+release: {routines}.
+
+## Operation and workers
+One session governs and the others build: the operation session assigns goals, watches them and answers what waits on
+you, and never builds. Up to {parallel} workers run at once (0 means no limit). It checks in every {cadence} minutes;
+mending a failed goal is `{mend}`, resuming after a usage limit is `{resume_on_limit}`, and watch looks again every
+{watch_interval} seconds.
+
+## Docs
+Feature pages live in `{wiki_dir}`, one PRD page per feature with numbered requirements, at most {criteria_max} each.
+The criteria contract is `{criteria}`. The docs command finds stale pages, and the release step rewrites them.
+
+## Regression
+Every requirement and every fixed defect has a regression row in `.loop/regression.tsv`, seen failing before its fix.
+The land lane runs once per goal, in qa, within {test_budget_minutes} minutes (the budget; rows past it are left to the scheduled run), after at most {prep_budget_minutes} minutes of preparing, planning and waiting for a slot before its first row; the scheduled run is `{regression_cron}`.
+
+## Health
+Health checks the repo with fixed rules that give the same answer every time, on the schedule `{health_cron}`; a
+branch or worktree older than {stale_branch_days} days is stale. The judge runs on the Mac with your own claude login.
+
+## Settings
+Every repo setting, its value and its one-line explanation is in the Settings table below; add any missing one with
+`/workflow-setup fill-repo`. Private settings live in `~/.workflow-loop/` and never appear here.
+The wiki Home page also carries a Settings section (each setting's meaning, how to set it, its default and this repo's value, marked overridden) and an Automation section (each routine on or off, its cadence, where it runs, its last run and any step you still owe); the README repeats both and names the template repo it came from. `/workflow-docs render` refreshes them.
+
+## Exact command entries (as of main, 2026-11-13, when the Usage section was retired)
+
+- `/workflow-docs audit [--base REF] [--dry-run]` — Checks every page against the template, fixes the mechanical (the Tests tables) and lists wording to rewrite; on a Reviewed page it lists each requirement with no passing test as `UNTESTED ID: <why>`. Ends with `DOCS OK: N pages`, or `DOCS: N to do` and exit 1 while any is left. The full text of `audit` and of the `automation` registry is in `references/commands.md`. The README's settings reference is regenerated from the settings table, so a changed setting description reaches it on the next render.  The audit code is `audit.py`; the entry point's narrative stays in `references/commands.md`.
+
+- `/workflow-docs entry` — Writes the entry point, `.loop/START.md`, from the PRD pages (each feature's first Problem bullet and its Usage entries) and the loop config, and refreshes the workflow-loop block in each agent file that holds one. Prints `FIXED .loop/START.md` and `FIXED <file>` per file it rewrote, or `NO CHANGE .loop/START.md` (exit 0). `entry check` prints `STALE <path>: ... (ENTRY_STALE)` or `MISSING <path>: ... (ENTRY_MISSING)` (exit 1), `LAG <path>: this repo is at v<v>, the template is at v<v>, run the migrate goal (ENTRY_LAG)` (exit 0), or `ENTRY OK` (exit 0). `entry lag [--new SLUG]` prints that one line (with the slug `migrate-<repo>`) for a repo behind the installed template and nothing when current (exit 0); with `--new SLUG` it exits 3 and prints `REFUSED: this repo is at v<v> and the template at v<v> (different major). Fix: start it as a migrate-<repo> goal` when both majors are known and differ, except for a `migrate-` slug. The entry point's narrative paragraphs are in `references/commands.md`, under Entry point templates.
+
+- `/workflow-docs milestone new TITLE | move ISSUE TITLE` — Optional, for planning by version: `new` makes a free-form milestone such as v1.0 and `move` puts an issue on an existing one (or `none` clears it; a title that doesn't exist is refused). Prints `CREATED <title>`, `EXISTS <title>` or `WOULD create milestone <title> (dry run; add --live)`; running it again creates nothing. Refuses (exit 1) `REFUSED: no milestone <title> (issue <n> unchanged). Fix: milestone.py new <title> --live` and `REFUSED: no GitHub token, nothing created. ...`. `milestone backlog` makes every missing `Backlog: <Feature>` milestone (one per feature page) and `Backlog: Other`, renaming an old `Backlog` milestone to `Backlog: Other` first. Setup runs it on adoption, and `milestone leftovers FILE` files the `FILE` lines of a ship reply. No check ever runs `new` or `move`.

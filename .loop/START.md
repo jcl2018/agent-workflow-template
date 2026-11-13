@@ -24,7 +24,7 @@ One session governs and the others build: the operation session assigns goals, w
 
 ## Docs
 
-Feature pages live in `docs/wiki`, one PRD page per feature with numbered requirements, at most 16 each. The criteria contract is `true`. The docs command finds stale pages, and the release step rewrites them.
+Feature pages live in `docs/wiki`, one PRD page per feature with numbered requirements, at most 17 each. The criteria contract is `true`. The docs command finds stale pages, and the release step rewrites them.
 
 ## Regression
 
@@ -44,7 +44,7 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 |---|---|---|---|
 | Automation | https://github.com/jcl2018/agent-workflow-template/milestone/10 | Things break between my sessions, and I only find out when I next open one; the important checks should run on their own. | `/workflow-health`: check / review / judge / preview / file / triage / local / workflow / digest / mail |
 | Delivery | https://github.com/jcl2018/agent-workflow-template/milestone/1 | I have more changes to make than time to babysit them: I want to hand over one sentence and walk away. | `/workflow-delivery`: go / step / record / pr / `/workflow-release`: merge / ask / cut / leave |
-| Documentation | https://github.com/jcl2018/agent-workflow-template/milestone/3 | I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested. | `/workflow-docs`: audit / check / criteria / review / unreview / prd / convert / render / automation / entry / publish / restore / milestone / `/workflow-health`: check / review / judge / preview / file / triage / local / workflow / digest / mail |
+| Documentation | https://github.com/jcl2018/agent-workflow-template/milestone/3 | I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested. | `/workflow-docs`: audit / check / criteria / review / unreview / prd / convert / render / automation / prompts / entry / publish / restore / milestone / `/workflow-health`: check / review / judge / preview / file / triage / local / workflow / digest / mail |
 | Guardrails | https://github.com/jcl2018/agent-workflow-template/milestone/11 | My guardrails are scattered across six features, some are promised but not built, and I can't see in one place what protects me, where it is enforced and whether it is on. | none |
 | Health | https://github.com/jcl2018/agent-workflow-template/milestone/4 | My rules, requirements and standards are spread across many pages and sometimes conflict, and I can't see where the repo falls short of its own PRDs. | `/workflow-health`: check / review / judge / preview / file / triage / local / workflow / digest / mail |
 | Monitoring | https://github.com/jcl2018/agent-workflow-template/milestone/6 | I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours. | `/workflow-monitoring`: operate / send / go / watch / resume / report / dashboard / met / cleanup / reply-check / reply-status / fill-pool |
@@ -64,7 +64,7 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `cadence` | 30 | Minutes between check-ins of the operation session, 1 to 60, or off. |
 | `ci_levels` | nightly | Target of the scheduled and tag regression runs: nightly (every row) or land. |
 | `criteria` | true | true makes docs check enforce the PRD page contract (Problem, Requirements, Non-goals, Success metrics, Tests). |
-| `criteria_max` | 16 | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. |
+| `criteria_max` | 17 | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. |
 | `digest_mail` | cloudflare | How the round's digest is mailed: cloudflare (Email Service), smtp, or off; the address and keys live only in Actions secrets. |
 | `digest_owner` | none | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). |
 | `feature_labels` | false | true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label; off by default, so issues carry their group or regression label only. |

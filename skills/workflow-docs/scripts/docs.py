@@ -361,6 +361,19 @@ def cmd_automation(_args):
     return counting.live(top())
 
 
+def cmd_prompts(_args):
+    """One line per routine: the whole prompt its scheduler holds, a pointer to its Runbook on the repo's page."""
+    import deployments
+    root = top()
+    parts = re.sub(r"(\.git)?/*$", "", git("remote", "get-url", "origin", cwd=root, check=False)).replace(":", "/").split("/")
+    repo = "/".join(parts[-2:]) if len(parts) > 1 else os.path.basename(root)
+    lines = deployments.prompts(root, repo, wiki_dir(root))
+    for routine, text in lines:
+        print("PROMPT %s: %s" % (routine, text))
+    print("PROMPTS: %d routine(s)" % len(lines))
+    return 0
+
+
 def cmd_restore(_args):
     try:
         with open(state_file()) as handle:
@@ -408,6 +421,7 @@ def main():
     item.set_defaults(func=cmd_publish)
     sub.add_parser("restore").set_defaults(func=cmd_restore)
     sub.add_parser("automation").set_defaults(func=cmd_automation)
+    sub.add_parser("prompts").set_defaults(func=cmd_prompts)
     args = parser.parse_args()
     return args.func(args)
 

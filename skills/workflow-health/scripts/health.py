@@ -251,9 +251,9 @@ def mine_rows(root):
 
 
 def cost_rows(root):
-    cost = sibling_module("cost")
+    cost = sibling_module("milestone")
     return (cost.cost_rows(root, HERE) + cost.timing_rows(root)) if cost else \
-        [row("UNREAD", "cost", "cost.py", "cost", "cost.py is missing")]  # timing_rows: REG-7
+        [row("UNREAD", "cost", "milestone.py", "cost", "milestone.py is missing")]  # timing_rows: REG-7
 
 
 def gather(root, family, ran_rules=None):

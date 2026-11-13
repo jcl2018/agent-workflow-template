@@ -325,10 +325,10 @@ def problems(text):
 
 
 def left_out(text, cwd):
-    """The goals Dependencies leaves out, by name (reply_deps.py); fails open."""
+    """The goals Dependencies leaves out, by name (checkin.missing); fails open."""
     try:
-        import reply_deps
-        gone = reply_deps.missing(text, cwd)
+        import checkin
+        gone = checkin.missing(text, cwd)
     except Exception:
         return []
     return ["Dependencies leaves out %s (MON-14)" % ", ".join(gone)] * bool(gone)

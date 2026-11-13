@@ -36,8 +36,8 @@ STEPS = ("idea", "plan", "build", "review", "qa", "ship", "pr", "release")
 BUDGETED = ("review", "ship")  # the steps held to step_budget_minutes
 NEEDED = ("idea", "plan", "review", "qa", "ship")  # the others may stay unmapped: delivery runs them itself
 FLOW_FILE = "~/.workflow-loop/flow.json"
-BUILTIN = "built-in"  # a step mapped to this runs delivery's own routine (references/default-flow.md): no skill suite needed
-ROUTINES = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "references", "default-flow.md")
+BUILTIN = "built-in"  # a step mapped to this runs delivery's own routine (references/commands.md, The built-in flow): no skill suite needed
+ROUTINES = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "references", "commands.md")
 LANE = ("The regression lane (label regression, command `{lane}`) already passed on this content: reuse that run "
         "through your own check of recorded test runs instead of running the suite again; if your own test step runs "
         "that exact command, it reuses the record and returns at once.")
@@ -117,7 +117,7 @@ def runnable(spec, headless):
 
 
 def routine(step):
-    """This step's section of references/default-flow.md."""
+    """This step's section of references/commands.md."""
     try:
         text = read(ROUTINES)
     except OSError:

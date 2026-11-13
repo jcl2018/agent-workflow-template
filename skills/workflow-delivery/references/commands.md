@@ -12,7 +12,7 @@ Moved from the wiki page, which is now only a summary, criteria and tests.
 Freeze, then idea, plan, build, review, qa, ship, pull request and release. Review is the only gate. Each step can be mapped to a skill in the private flow file, under `suite` (the default) or `steps` (an override for one step). The chart
 under `go` shows it.
 
-A step mapped to `built-in` runs delivery's own routine, from `references/default-flow.md`, instead of a skill, so the
+A step mapped to `built-in` runs delivery's own routine, from the section in this file, `## The built-in flow`, instead of a skill, so the
 package runs with no suite of your own; setup fills a never-configured suite with `built-in` (the private flow file is
 machine-wide, so one setup run makes goals runnable in every repo on that machine). A named skill needs the flow's
 probe; a headless step needs its `command`; an in-session step needs neither. The first `flow.py` call checks every
@@ -21,7 +21,7 @@ mapped step for the mode it will run in and refuses with the whole list before a
 | Code | Means | Fix |
 |---|---|---|
 | `FLOW_UNRUNNABLE` | a mapped step can't run in this mode: a named skill with no probe, or a headless step with no command | add `probe` and `command` to the flow file, or map those steps to `built-in` |
-| `FLOW_SECTION_MISSING` | `references/default-flow.md` has no section for a built-in step | reinstall workflow-delivery |
+| `FLOW_SECTION_MISSING` | `references/commands.md` has no section for a built-in step | reinstall workflow-delivery |
 
 A goal whose change makes `.loop/START.md` or a marked agent block stale (a PRD page's Problem, a setting) runs
 `docs.py audit` (or `entry.py write`) in build and commits the result. A merge conflict in `.loop/START.md` or in a
@@ -511,3 +511,48 @@ Two keys in `.loop/config.json` remove gates, and each is off unless the owner t
 
 - `"auto_approve": true`: `record` approves what a step leaves for the owner, logs it as auto-approved, and goes on.
 - `"auto_merge": true`: after `pr`, the release step runs the `routines` from `.loop/config.json`, merges the pull request, bumps the version once and publishes a GitHub release with a CHANGELOG entry.
+
+## The built-in flow
+
+A step mapped to `built-in` in the flow file runs the routine below instead of a skill from your own suite, so the
+package works with no suite at all. `flow.py` puts the step's section into the step's prompt. Setup fills an empty
+suite with `built-in` for idea, plan, review, qa and ship; build, pr and release are run by delivery itself, as always.
+Name your own skill for any step in the flow file, and it replaces that step's routine.
+
+Every routine runs unattended: take the recommended answer at every question, approve nothing, merge nothing and push
+nothing. A built-in step needs no probe: delivery's own build and pr steps already run under the same command and
+prompt rules, and the command's allowed tools set the real limit.
+
+## idea
+Read `.loop/goals/<slug>.md`: its done lines are frozen. Read the code and pages the goal touches. Write
+`.loop/goals/<slug>.design.md`: the problem in two or three sentences, two approaches with their cost and risk, the one
+you chose and why, what each done line needs, and the open questions. Commit it.
+
+## plan
+Read the design. Check each claim against the code: name the files and functions to change and confirm they exist.
+Write `.loop/goals/<slug>.plan.md`: the ordered build steps, the test for each done line (a regression row seen
+failing before the change and passing after), what could break, and what is out of scope. Commit it. List anything only
+the owner can decide as a PENDING line.
+
+## review
+Read `git diff <base>...HEAD`. For each change, check it does what the plan says, handles errors and empty input,
+keeps every script under 20 KB, adds no private value, name or machine path, and has a test. Fix what is clearly wrong
+and commit; list the rest as findings, one line each, in your reply.
+
+## qa
+The regression lane has already run on this commit. Run the repo's check commands from `.loop/config.json` and try
+each done line the way a person would, from the goal's Verify by hand steps. If a step needs a browser or a tool this
+machine doesn't have, end with STEP: skipped and say what was missing.
+
+## ship
+Check the branch is ready for a pull request: the version and changelog follow the repo's habit, the docs that
+describe the changed paths are updated, and the tree is clean. Commit what is missing. Don't push and don't open the
+pull request: delivery does that. File what you found and did not fix, one line each, in your reply:
+`FILE defect <Feature>: text` for a break of a Reviewed requirement outside this goal's touches, `FILE backlog <Feature>: text` for an
+improvement, idea or saving (`Other` when no feature fits). A break inside the touches is fixed, not filed. Record files them once.
+
+## Exact command entries (as of main, 2026-11-13, when the Usage section was retired)
+
+- `flow.py SLUG STEP` — Runs one step (idea, plan, review, qa, ship); a review or ship step stops at `step_budget_minutes` (default 30, never under 15), is recorded done with what it left and the goal goes on. In a worker session prints `IN SESSION` and the skill to run. Prints `RUNNING` until it ends. A step mapped to `built-in` takes its routine from `references/commands.md`, under The built-in flow.
+
+- `goal.py record SLUG STEP --in-session` — Records a finished step. Refuses a reply with no `DEPTH:` line, and a qa step with no passing lane on HEAD (`LANE_MISSING`). A `PENDING:` line that says none, nothing, n/a or nothing at all asks nothing and never makes the goal wait; a real item still waits for the owner, including one written on the line under a bare `PENDING:` heading. Goal steps (`step`, `record`, `pr`) refuse outside a worker session. A recorded ship reply's `FILE defect|backlog <Feature>: text` lines are filed once each as issues, a defect on no milestone and a backlog item on `Backlog: <Feature>` (`Backlog: Other` when no page matches), and printed as `FILED`, `SAME` or `NOTE`; an email address or the home folder in a line skips it.

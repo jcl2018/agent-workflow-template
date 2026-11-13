@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/9
 
-Review: **Reviewed 2026-11-13** <!-- prd P=7f1b1066 R=e39e29d4 N=9c385754 M=471a58c6 U=7e397a55 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=7f1b1066 R=003227cb N=9c385754 M=471a58c6 U=c8d71f6f -->
 
 ## Problem
 - I want this toolset to be a workspace I can drop into any repo, for any agent: one install gives Claude Code, Codex or any agent that reads skills the same loop, docs, monitoring and settings, in the right format for each.
@@ -67,6 +67,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7f1b1066 R=e39e29d4 N=9c385754 M=471a
   - When setup seeds the private-name list, it explains that the list covers every repo on this machine, so a private repo's own name, or a contact it cites on purpose, would block that repo's own commits.
   - A pattern can be scoped, for example to public repos only or to named repos, so a private repo can hold what a public one must never show.
   - Comes from [#1411](https://github.com/jcl2018/agent-workflow-template/issues/1411).
+- SET-17: **Reviewed 2026-11-13** The Backlog milestones exist after adoption <!-- reviewed e4d6023c -->
+  - Adoption creates one milestone "Backlog: <Feature>" for each feature page and "Backlog: Other", and creates none that already exists. Health's Adoption group warns for each one that is missing.
 
 ## Non-goals
 - It never commits private settings or values.
@@ -142,6 +144,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7f1b1066 R=e39e29d4 N=9c385754 M=471a
 | [codex-pods-collide](Tests#t-codex-pods-collide) | requirement | SET-3 | Given a Codex pod and a Claude Code pod that know nothing of each other, when they queue goals, bind workers and run lanes in the same toy repos at once, then no goal or binding is lost, a repeated slug is refused, the lanes share one slot pool and take turns, and their private flow files stay apart. | not run |
 | [codex-skip-77](Tests#t-codex-skip-77) | requirement | SET-3 | Given a regression row that cannot run on this machine, when it exits 77, then the run records it as SKIPPED, never PASS, opens no issue, and a later lane runs it again. | not run |
 | [codex-harness](Tests#t-codex-harness) | requirement | SET-3 | Given a stand-in for codex that runs the prompt's commands, when the Codex harness runs them on a clean toy repo with no private settings, then setup adopts, go freezes the goal, the live board lists it, health check prints its verdict and regression run prints its result. | not run |
+| [package-caps-held](Tests#t-package-caps-held) | requirement | SET-3 | Given the shipped package, when a script reaches 20,480 bytes or a 100th file is added, then dev/package.py fails, and the real tree stays at 99 files and under the byte cap. | not run |
 | [set7-dry-run-lists-all](Tests#t-set7-dry-run-lists-all) | requirement | SET-7 | Given a repo, when setup runs dry and then for real, then the dry run writes nothing anywhere and lists every file the real commit holds. | not run |
 | [set7-second-run-nothing](Tests#t-set7-second-run-nothing) | requirement | SET-7 | Given an adopted repo with a working config nobody committed, when setup runs again, then it prints NO CHANGE, adds no commit, leaves a clean tree and keeps the config's own values. | not run |
 | - | requirement | SET-7 | no passing test | not enforced |
@@ -151,6 +154,10 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7f1b1066 R=e39e29d4 N=9c385754 M=471a
 | [set8-private-value-refused](Tests#t-set8-private-value-refused) | requirement | SET-8 | Given a home path or a local setting value on a line the adoption adds, when setup runs, then it refuses naming file and line and never the value, while text the repo already had, a short value and a template default pass. | not run |
 | [set8-health](Tests#t-set8-health) | requirement | SET-8 | Given a repo with the private-name hooks installed or removed, when health runs its hooks rule, then the row appears in the Security and privacy group with its PASS or WARN text, and a wrong group, which prints no hooks row, fails the row. | PASS 2026-11-12 |
 | - | requirement | SET-15 | no passing test | not enforced |
+| [backlog-milestones-made](Tests#t-backlog-milestones-made) | requirement | SET-17 | Given a repo with feature pages Calc and Zed, when the Backlog milestones are made with --live, then Backlog: Calc, Backlog: Zed and Backlog: Other exist, a dry run writes none and a second run makes none. | not run |
+| [backlog-setup-makes](Tests#t-backlog-setup-makes) | requirement | SET-17 | Given setup's issue filing, when it runs on a GitHub repo, then it makes the Backlog milestones with --live before it files health issues, and --no-issues makes none. | not run |
+| [backlog-adoption-warns](Tests#t-backlog-adoption-warns) | requirement | SET-17 | Given a GitHub repo missing one standing Backlog milestone, when health checks the Adoption group, then it warns for that one and for none in a repo with no GitHub origin. | not run |
+| - | requirement | SET-17 | no passing test | not enforced |
 | [setup-zero-tests-119](Tests#t-setup-zero-tests-119) | defect | [#119](https://github.com/jcl2018/agent-workflow-template/issues/119) closed (2026-11-13) | Given a repo whose tests are named *_test.py, when setup picks its check, then the command finds at least one test, and with no proof it is no fit with a finding. | not run |
 | [setup-refusal-writes-120](Tests#t-setup-refusal-writes-120) | defect | [#120](https://github.com/jcl2018/agent-workflow-template/issues/120) closed (2026-11-13) | Given any refusal, signal or kill during an adoption, when setup stops, then the tree, branches, index and home folder are as they were, and a killed run is recovered by the next. | not run |
 | [setup-tsv-guard-127](Tests#t-setup-tsv-guard-127) | defect | [#127](https://github.com/jcl2018/agent-workflow-template/issues/127) closed (2026-11-13) | Given a .gitignore blocking *.tsv and a hook that rejects tracked .tsv files, when setup runs, then the ignore is exempted by a written line and the hook is named with its exemption and never edited. | not run |

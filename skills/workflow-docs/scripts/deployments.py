@@ -84,14 +84,14 @@ SHEET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "referenc
 
 
 def owed(root, books, name):
-    """DOC-16: every routine in .loop/routines.tsv (`routine<TAB>page`, # lines are comments) has its '### routine' runbook on
+    """DOC-16: every routine in .loop/routines.tsv (`routine<TAB>page`, # lines are comments) and each own routine of the config's `automation` list (custom) has its '### routine' runbook on
     its page. `books` maps every page to the lines of its Runbook section ([] when none). No file means no registry."""
     out, path = [], os.path.join(root, ".loop", "routines.tsv")
     try:
         with open(path, encoding="utf-8-sig") as handle:
             rows = [(n, line.rstrip("\n").split("\t")) for n, line in enumerate(handle, 1) if line.strip() and not line.lstrip().startswith("#")]
     except FileNotFoundError:
-        return out
+        rows = []  # no routines.tsv: the config's own routines still owe their Runbooks
     except (OSError, ValueError) as error:
         return [bad("routines.tsv", 1, "Runbook", 16, "a readable routine registry", short(getattr(error, "strerror", None) or "not UTF-8 text"), "fix .loop/routines.tsv")]
     seen = set()
@@ -105,7 +105,51 @@ def owed(root, books, name):
         elif not any(line.rstrip() == "### " + routine for _, line in books[page]):
             out.append(bad(page, 1, name, 16, "a '### %s' runbook, the routine .loop/routines.tsv gives this page" % routine, "none",
                            "add the Runbook section with '### %s' and its fields" % routine))
+    return out + custom_owed(root, books, name, seen)
+
+
+BUILT_IN = ("health", "regression", "digest email")  # their Runbooks are health-round and regression-round in routines.tsv
+POINTER = "In %s, fast-forward to origin/main, then read %s's Runbook section %s and follow it exactly."
+
+
+def custom(root):
+    """(routine, page, runs) for each `automation` entry of .loop/config.json that is not built in: "page" owns its Runbook,
+    "routine" names the '### ' heading (default its name)."""
+    try:
+        with open(os.path.join(root, ".loop", "config.json")) as handle:
+            items = json.load(handle).get("automation")
+    except (OSError, ValueError, AttributeError):
+        return []
+    return [(str(e.get("routine") or e["name"]), str(e.get("page") or ""), str(e.get("runs") or "")) for e in items or []
+            if isinstance(e, dict) and e.get("name") and e["name"] not in BUILT_IN]
+
+
+def custom_owed(root, books, name, seen):
+    """DOC-16 for the config's own routines: each names a page and has its '### routine' runbook there."""
+    out = []
+    for routine, page, _ in custom(root):
+        if routine in seen:
+            out.append(bad("config.json", 1, "Runbook", 16, "each routine once", short(routine), "remove or rename the duplicate automation entry"))
+        seen.add(routine)
+        if page not in books:
+            out.append(bad("config.json", 1, "Runbook", 16, "a feature page for the routine", short(routine),
+                           'add "page": "<Page>" (a page from .loop/docs.tsv) to its automation entry'))
+        elif not any(line.rstrip() == "### " + routine for _, line in books[page]):
+            out.append(bad(page, 1, name, 16, "a '### %s' runbook, the routine the config's automation entry gives this page" % routine, "none",
+                           "add the Runbook section with '### %s' and its fields" % routine))
     return out
+
+
+def prompts(root, repo, wiki_dir="docs/wiki"):
+    """(routine, line) for every routine, routines.tsv first then the config's own: the one-line prompt a scheduler holds."""
+    pairs = []
+    try:
+        with open(os.path.join(root, ".loop", "routines.tsv"), encoding="utf-8-sig") as handle:
+            pairs = [tuple((line.rstrip("\n").split("\t") + [""])[:2]) for line in handle if line.strip() and not line.lstrip().startswith("#")]
+    except (OSError, ValueError):
+        pass
+    pairs += [(r, p) for r, p, _ in custom(root)]
+    return [(r, POINTER % (repo, "%s/%s.md" % (wiki_dir, p), r)) for r, p in pairs if p]
 
 
 def unserved(books, seen, name):

@@ -11,7 +11,7 @@ usage: entry.py render|write|check|block|lag [--repo DIR]
            with REFUSED when the majors differ (a migrate- slug passes)
 
 START.md opens with a first-five-minutes list, then one part each for the loop, release, operation and workers, docs,
-regression, health and settings (filled from .loop/config.json through references/start.md), then a Features table
+regression, health and settings (filled from .loop/config.json through references/commands.md, Entry point templates), then a Features table
 (every PRD page in the wiki folder: its name, milestone, first sentence of Problem and the asks in its skills' Command maps) and a Settings
 table (each repo setting, its value and its _help line). Private settings are never read. It holds no count, date or
 machine path, so it changes only when a page or a setting does.
@@ -29,7 +29,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILLS = os.path.dirname(os.path.dirname(HERE))  # the folder holding the workflow-* skills
-TEMPLATES = os.path.join(os.path.dirname(HERE), "references", "start.md")
+TEMPLATES = os.path.join(os.path.dirname(HERE), "references", "commands.md")
 REFERENCE = os.path.join(SKILLS, "workflow-setup", "references", "settings.md")  # every repo setting, default and line
 ENTRY = os.path.join(".loop", "START.md")
 OPEN, CLOSE = "<!-- workflow-loop -->", "<!-- /workflow-loop -->"

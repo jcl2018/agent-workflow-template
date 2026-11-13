@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """A goal's regression lane: start or poll it, wait for it, and check it before a step is recorded.
 
-Imported by role.py. Run as `role.py lane SLUG qa|ship|pr` (start or poll), `role.py lane-wait SLUG qa|ship|pr
-[--timeout S]` and `lane.py lane-exec ...` (a lane's child). A lane tests committed HEAD and never pushes; it may first
-commit the re-rendered Tests tables. One lane per goal runs at a time; a lane on an older HEAD is stopped first. Result:
-<runs>/<slug>.<name>-lane.last. Messages: lanekit.py, workflow-regression/references/commands.md. Its TMPDIR is under
-the system temp, never in a git checkout, removed when it ends. A signal goes only to a process whose stored start time matches.
+Imported by role.py: `role.py lane SLUG qa|ship|pr`, `role.py lane-wait SLUG STEP [--timeout S]`, `lane.py lane-exec ...`
+(a lane's child). A lane tests committed HEAD, never pushes, and may commit the re-rendered Tests tables. One lane per goal
+runs at a time; a lane on an older HEAD is stopped first. Result: <runs>/<slug>.<name>-lane.last. Messages: lanekit.py.
+Its TMPDIR is under the system temp, outside every checkout. A signal goes only to a process whose start time matches.
 """
 import json
 import os
@@ -35,7 +34,7 @@ GRACE = 60  # seconds a claimed rc belongs to its finisher
 
 
 def tmp_for(top, slug, name):
-    """REG-8: the prefix of the lane's own temp folder, outside every git checkout; "" when the system temp is in one."""
+    """REG-8: prefix of the lane's temp folder, outside every checkout; "" when the system temp is in one."""
     root = here = os.path.realpath(tempfile.gettempdir())
     while not os.path.lexists(here + "/.git") and os.path.dirname(here) != here:
         here = os.path.dirname(here)

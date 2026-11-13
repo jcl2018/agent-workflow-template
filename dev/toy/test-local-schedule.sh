@@ -13,6 +13,9 @@ set -u
 unset GITHUB_SERVER_URL GITHUB_REPOSITORY GITHUB_RUN_ID LOOP_SESSION_TOOL LOOP_OPERATION_SESSION ANTHROPIC_API_KEY CLAUDECODE
 here=$(cd "$(dirname "$0")/../.." && pwd); only=${1:-}
 . "$here/dev/toy/reap.sh"
+# macOS only: automation.py local install refuses off macOS (SCHEDULE_PLATFORM), so on any other host every part would FAIL. A row this
+# host can't run is SKIPPED with its reason (exit 77, REG-10) and writes the skip file a row's `| grep -q` can't hide, never a FAIL.
+[ "$(uname -s)" = Darwin ] || toy_skip "macOS only (launchd, SCHEDULE_PLATFORM); this host is $(uname -s)"
 S="$here/skills/workflow-health/scripts"; A="$S/automation.py"
 fails=0
 ok() { echo "PASS: $1"; }

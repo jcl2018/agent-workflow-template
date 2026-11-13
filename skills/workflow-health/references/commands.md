@@ -60,6 +60,7 @@ unchanged repo print the same lines.
 | | `scheduled` | the regression or health workflow is missing or has no schedule (WARN) |
 | | `no-fit` | an open `[adoption]` line in `.loop/findings.md` (setup writes one per kind): one WARN row naming its subjects and fix |
 | | `agent-tools` | `agent_command` or the flow file's command grants its agent no tools (WARN), naming each setting to fix |
+| | `prompt-pointer` | an installed scheduled-task prompt (`~/.claude/scheduled-tasks/<task>/SKILL.md`, for a routine whose `runs` is `claude:` or `mac:`) holds a line other than the Runbook pointer `docs.py prompts` prints (WARN) |
 | Controls (can each rule fire?) | `control` per rule | a rule's control stays green: it cannot fire (FAIL); a fixture that can't be built is UNREAD |
 
 - Performance's `test-time` reads the land lane record (`regression.py`'s record of the current branch, else the newest
@@ -90,14 +91,15 @@ module's `FUNCTIONS`, and add a fixture to its `CONTROLS` that makes it fire. He
   subagent answers it, and the rerun takes its saved reply with `--judge-answer FILE`. With no session (the scheduled
   GitHub Actions run) they run `judge_command` (`claude -p`). Each report logs `judge: session` or
   `judge: claude -p (no session)`.
-- `file` tags each finding's issue with its group and places it on no milestone. Its feature is the page whose `.loop/docs.tsv` path is
+- `file` tags each finding's issue with its group and, by kind (HLT-4), labels it `defect` (a FAIL except a performance one, a review
+  conflict; no milestone) or `backlog` (the rest; milestone `Backlog: <Feature>`, or `Backlog: Other`), making the milestone first. Its feature is the page whose `.loop/docs.tsv` path is
   the longest prefix of the finding's path, the page defining its requirement id, the page of its row's requirement, an
   issue's own feature, or a review finding's feature; none when none fits. With the `feature_labels` setting on it also
   tags `feature:<Page>`, made first with `label create --force`; if that label can't be made or set, the issue is filed
   without it and `FAILED label feature:X: ...` says so.
   - Its marker is `<!-- loop-health KEY evidence=H placed= -->`, where H hashes the finding's identity and stable citations,
     never its ages, counts or sizes; `placed=` is always empty, and an older marker that names a milestone still parses.
-    No milestone is read, made or set, and an issue you put on one stays. Markers from before the twelve groups are found
+    A Backlog milestone is made when missing, only at `open`, and an issue you moved to another stays. Markers from before the twelve groups are found
     and moved to the new key.
   - An open non-health issue naming the subject (exact path, id or row id) gets one comment marked
     `<!-- loop-health-link KEY evidence=H -->`, instead of a new issue.
@@ -217,9 +219,9 @@ Codes and fixes are in the Automation wiki page.
 
 ## Milestones: free form, optional, an owner's commands
 
-A milestone is only for planning by version (for example v1.0). Nothing requires a feature page, issue or pull request to
-have one, and no check, rule, `file`, `goal.py pr` or setup step fails, warns or refuses for lacking one. No command here
-runs on its own; they are the owner's.
+A version milestone is only for planning (for example v1.0). Nothing requires an issue or pull request to have one. The standing
+ones are `Backlog: <Feature>` for each feature page and `Backlog: Other` (DOC-10): setup makes them, `file` and ship put backlog
+items on them, and the Adoption group's `milestones` rule warns for a missing one. `new` and `move` are the owner's.
 
 ### Milestone commands
 
@@ -242,6 +244,10 @@ MOVED issue 42 to no milestone
 - `new` creates the milestone TITLE (any text, `backlog` included) and nothing that already exists. Without `--live` it prints
   `WOULD create milestone TITLE (dry run; add --live)` and writes nothing; `--live` with no token refuses
   (`REFUSED: no GitHub token, nothing created. ...`, exit 1).
+- `backlog` makes every missing standing milestone (`EXISTS`, `CREATED` or `WOULD create`; exit 1 if one failed). An old milestone named
+  `Backlog` is renamed `Backlog: Other` first when that title does not exist (`RENAMED`, `WOULD rename`), keeping its issues.
+- `leftovers FILE [--goal SLUG]` files each `FILE defect|backlog <Feature>: text` line of FILE once (marker `loop-leftover`), at most ten:
+  `FILED`, `SAME` (already filed), `WOULD file` (no `--live`) or `NOTE` (a private value, or past ten). A feature that matches no page files on `Backlog: Other`.
 - `move` puts an issue on an existing milestone, or clears it with `none`. A title that doesn't exist refuses
   (`REFUSED: no milestone TITLE (issue N unchanged). Fix: milestone.py new TITLE --live`, exit 1), and so does a gh failure
   (`REFUSED: could not move issue N: ... Fix: gh issue view N ...`).
@@ -315,3 +321,9 @@ Syntax, what each prints, and each refusal with its message and exit code.
 - `/workflow-health mail send` — Runs as the last step of the Mac tick: mails this run's digest comment once, through `digest_mail` (`cloudflare`, the default; `smtp`, with `smtp_host` and `smtp_port` 465 or 587; or `off`), to the address `DIGEST_TO`, from `DIGEST_FROM`, with `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_EMAIL_TOKEN` or `DIGEST_SMTP_USER` and `DIGEST_SMTP_PASSWORD`, all read from the schedule's `~/.workflow-loop/schedule/mail.env` (mode 0600). Prints one `MAIL: <what happened> (<code>)` line, also in the tick log: `MAIL_SENT`; exit 0 also for `MAIL_ALREADY` (sent before), `MAIL_STALE` (a later round posted), `MAIL_OFF` and `MAIL_NOT_SET_UP` (no mail secret, nothing written). Refuses (exit 1) `MAIL_SECRETS` (names each missing secret, or one with a space, line break or non-ASCII), `MAIL_SETTING` (a bad setting), `MAIL_TEST_URL` (a non-local test override), `MAIL_NO_COMMENT`, `MAIL_GH`, `MAIL_MARK` (nothing sent; rerun), `MAIL_REFUSED` (the provider refused; nothing sent), `MAIL_CLEAR_FAILED`, `MAIL_UNKNOWN` (it may have been sent: check the inbox, and if nothing came, delete the word mailing from the comment's last line and rerun), `MAIL_MARKED_LATE` and `MAIL_FAILED` (one line with its file and line, never a traceback). No line holds a secret, the address or its local part, in any form.
 
 - `/workflow-health mail test` — Sends one fixed test mail through the same sender and variables, touching no issue; run it by hand with the `mail.env` variables set in the environment. Prints `MAIL: test sent (MAIL_SENT)`. Refuses (exit 1) `MAIL_OFF`, `MAIL_SECRETS`, `MAIL_SETTING`, `MAIL_TEST_URL`, `MAIL_REFUSED` and `MAIL_FAILED`, each with its fix.
+
+## Exact command entries (as of main, 2026-11-13, when the Usage section was retired)
+
+- `/workflow-health check [--group NAME] [--skip controls] [--json]` — Runs the fixed rules and prints one line per finding, then the verdict. Prints `HEALTH REPORT`, then `<STATE> <group> <subject> <rule>: <detail>` per row, and last `HEALTH: green|not green (<p> pass, <w> warn, <f> fail, <u> unread)` (with `--json`, one object with green, counts, rows and verdict); exits 1 when not green. Refuses (exit 1) `REFUSED: unknown group <names>. Groups: ...` and `REFUSED: not inside a git repo.`; (exit 2) `REFUSED: --skip leaves no group to check` and `REFUSED: rule <name> has no negative control. ...` Its Security and privacy group (`--group security`) includes a `hooks` rule: it warns when a private-name hook (pre-commit, commit-msg or pre-push, installed by workflow-setup) is missing, is not ours or calls a script that is gone, or when the private-name list is broken. The owner's private rules (`--group mine`) run from `enforce.py`, folded in beside the not-enforced check to keep the package under 100 files. The Adoption group's `migration` rule runs setup's migration check (the same gaps as `setup.py migration-check`) as one WARN row per gap, with the published-wiki rows grouped by code: it reads the wiki only when `LOOP_MIGRATION_ONLINE=1` (the 4-hourly local run sets it; file its issues only through that run or with the variable set, since an offline `file` would close the wiki issues and the next run reopen them), prints `[offline]` or `[online]` in each row, and shows an unreadable wiki or registry as an INFO row, never a crash; the wiki clone it makes is stopped after 30 s on Windows too, where there is no `os.killpg`. The `template-version` rule also warns, as `MIG_VERSION`, for a repo whose `template_version` is missing or older than the installed template (fix: run the migrate goal); the 4-hourly run files it as an issue. size rules count a file's committed (LF) bytes and lines, so a Windows CRLF checkout gets the same size and skill-lines findings as Linux. Its task check also accepts a scheduled task folder named `<repo>-health-regression` under `~/.claude/scheduled-tasks` on the Mac, and never asks a `regression_runs: mac` repo for `pull_request` in `regression.yml`. The cost rule's code (budgets, REG-7 timing rows) is in `milestone.py`.
+
+- `/workflow-health file --group NAME[,NAME] [--open-only]` — Files the named groups' findings as GitHub issues, each tagged with its group and, when the `feature_labels` setting is on (off by default), with the feature whose path holds it; a FAIL (except a performance one) and a review conflict is a defect labelled `defect` on no milestone, and everything else is a backlog item labelled `backlog` on its feature's milestone `Backlog: <Feature>` (`Backlog: Other` when it fits none), made first when missing (an old `Backlog` milestone is renamed `Backlog: Other` once); an issue you put on another milestone stays where you put it. `--open-only` only opens or links issues and never closes, reopens or updates one (setup files an adoption's findings this way, and an issue that would hold the home folder or an email is skipped with `NOTE: skipped <key> (holds a private value)`); the Adoption group's `no-fit` rule turns each open `[adoption]` line of `.loop/findings.md` into one finding `agent-tools` names an agent command that grants no tools, and `milestones` warns for each standing Backlog milestone a GitHub repo lacks. Prints `DONE <open|update|reopen|close> ...`, `FAILED <action>: <error>` or `SAME #<n> <key>` per issue. Refuses (exit 1) `REFUSED: file needs --group NAME[,NAME], one of ... Run preview first.`, `REFUSED: unknown group <names>. ...`, `REFUSED: not inside a git repo.`, `REFUSED: file.py is not installed beside health.py` and `REFUSED: could not read the health issues: <why>`; (exit 2) `REFUSED: rule <name> has no negative control. ...`

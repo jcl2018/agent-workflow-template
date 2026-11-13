@@ -500,7 +500,7 @@ Proof: toy tests (dev/toy/test-live-board.sh, dev/toy/test-board-held.sh).
 
 #### `sessions.py bind`: the worker command and the worktree
 
-`bind SLUG ID [--name N] [--force] [--cwd DIR]` (in `session_bind.py`) also prints two lines for whoever binds to pass
+`bind SLUG ID [--name N] [--force] [--cwd DIR]` (in `worker.py`) also prints two lines for whoever binds to pass
 on (assign's message to a new session already carries both):
 
 ```text
@@ -533,3 +533,9 @@ Proof: toy tests (dev/toy/test-guards.sh).
 - `/workflow-monitoring reply-check FILE` — Checks a check-in reply against the required layout. Prints one line per problem, such as `missing section <name>`, and exits 1; a clean reply prints nothing and exits 0. Refuses exit 2 `REFUSED: cannot read <file> (<reason>). Fix: name a readable file, or - for stdin.`
 
 - `/workflow-monitoring reply-status` — Says whether the reply hook is installed and on in this repo. Prints `REPLY HOOK: <installed|not installed>, setting <on|off>, script <found|missing|->, let-throughs logged <n>` or `REPLY HOOK: off here (no repo with .loop/config.json)`. Refuses nothing.
+
+## Exact command entries (as of main, 2026-11-13, when the Usage section was retired)
+
+- `/workflow-monitoring cleanup` — Deletes local `loop/` branches already merged into the base branch. Prints `DELETED <branch>`, `KEPT <branch>: git would not delete it` and `<n> merged loop branch(es) deleted`. Refuses nothing. `sessions.py bind` and the session tool live in `worker.py`.
+
+- `/workflow-monitoring reply-check FILE` — Checks a check-in reply against the required layout. Prints one line per problem, such as `missing section <name>`, and exits 1; a clean reply prints nothing and exits 0. Refuses exit 2 `REFUSED: cannot read <file> (<reason>). Fix: name a readable file, or - for stdin.` The Dependencies check (MON-14) is `checkin.missing`.

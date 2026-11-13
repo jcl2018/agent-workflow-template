@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/4
 
-Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=3b23ae59 N=e89b4f3b M=39cf9800 U=03828777 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=4bb528ed N=e89b4f3b M=39cf9800 U=03828777 -->
 
 ## Problem
 - My rules, requirements and standards are spread across many pages and sometimes conflict, and I can't see where the repo falls short of its own PRDs.
@@ -42,8 +42,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=3b23ae59 N=e89b4f3b M=39cf
   - At most 12 groups plus Mine; adding one means retiring one or raising the cap on purpose.
 - HLT-3: **Reviewed 2026-11-10** Formal report <!-- reviewed a5cc0046 -->
   - A header listing every group it ran (and any skipped), then each group with every rule marked pass, warn, fail or unread with its fix, then one verdict. A rule that can't read its data is never shown as passing.
-- HLT-4: **Reviewed 2026-11-13** Findings become issues tagged with their group, and their feature when feature_labels is on <!-- reviewed 259b7f1e -->
-  - Each finding, from a rule or from the review, is one GitHub issue tagged with its group or kind and, when feature_labels is on (it is off by default), the feature it is about; it sits on a milestone only when I put it there.
+- HLT-4: **Reviewed 2026-11-13** Findings become issues tagged with their group, and their feature when feature_labels is on <!-- reviewed 283dffa7 -->
+  - Each finding, from a rule or from the review, is one GitHub issue tagged with its group or kind and, when feature_labels is on (it is off by default), the feature it is about. A FAIL (except a performance one) and a review conflict is a defect, labelled `defect`, on no milestone; every other finding (a WARN, a performance FAIL, a drift, weak-test or saving finding, a review gap, an unread rule) is a backlog item, labelled `backlog`, on its feature's milestone "Backlog: <Feature>", or on "Backlog: Other" when it fits no feature. An issue I move to another milestone stays there.
   - A preview lists exactly what would be opened, updated, closed or reopened, and nothing is written until I confirm or name the groups or features to file, behind an explicit `--live`.
   - A repeat updates its issue, a fix closes it, a return reopens it, and an existing open issue that already covers a finding is linked, not duplicated.
   - A finding's issue body and comment are passed to gh in a file (`--body-file`), never on the command line.
@@ -93,6 +93,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=3b23ae59 N=e89b4f3b M=39cf
 | [hlt2-twelve-groups](Tests#t-hlt2-twelve-groups) | requirement | HLT-2 | Given a repo, when health checks it, then it runs exactly the twelve groups plus Mine, each heading with its angle, and every rule's negative control fires. | not run |
 | [health-not-enforced-warn](Tests#t-health-not-enforced-warn) | requirement | HLT-2 | Given a Reviewed requirement with no test, when health runs within 7 days of its Reviewed date, then it warns as not enforced. | PASS 2026-11-10 |
 | [health-not-enforced-fail](Tests#t-health-not-enforced-fail) | requirement | HLT-2 | Given a Reviewed requirement with no test for 8 days, when health runs, then it fails. | PASS 2026-11-10 |
+| [aut-prompt-warns](Tests#t-aut-prompt-warns) | requirement | HLT-2 | Given an installed scheduled-task prompt that holds steps beyond the Runbook pointer, when health checks the Adoption group, then it warns. | not run |
 | [unread-not-green](Tests#t-unread-not-green) | requirement | HLT-3 | Given a health rule that cannot be read, when health runs, then it is never shown green. | PASS 2026-11-12 |
 | [report-header](Tests#t-report-header) | requirement | HLT-3 | Given a repo with findings in several groups, when health check runs, then the report header names every group it ran and the one it skipped. | PASS 2026-11-10 |
 | [no-token-would](Tests#t-no-token-would) | requirement | HLT-4 | Given no token and no --live flag, when health previews its findings, then it prints only WOULD lines and writes nothing. | PASS 2026-11-12 |
@@ -102,6 +103,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=3b23ae59 N=e89b4f3b M=39cf
 | [preview-writes-nothing](Tests#t-preview-writes-nothing) | requirement | HLT-4 | Given findings in several groups, when health preview runs, then it lists each issue it would open, update, close or reopen with its tag and makes no write call. | PASS 2026-11-10 |
 | [file-one-group](Tests#t-file-one-group) | requirement | HLT-4 | Given open issues in several groups, when health files only the docs group, then only the docs issue is closed and no other group's issue changes. | PASS 2026-11-10 |
 | [hlt4-feature-milestones](Tests#t-hlt4-feature-milestones) | requirement | HLT-4 | Given findings about a feature and about none, when they are previewed and filed, then each is a tagged issue on no milestone, a repeat updates, a fix closes, a return reopens, an old marker moves, and an issue that names the subject is linked once instead of duplicated. | not run |
+| [backlog-item-home](Tests#t-backlog-item-home) | requirement | HLT-4 | Given a size finding about the Calc feature, when health files it, then the issue is labelled backlog on Backlog: Calc, and a repeat opens no second issue and leaves a milestone the owner chose. | not run |
+| [backlog-defect-home](Tests#t-backlog-defect-home) | requirement | HLT-4 | Given a FAIL finding, when health files it, then the issue is labelled defect and sits on no milestone. | not run |
 | [judge-section-format](Tests#t-judge-section-format) | requirement | HLT-5 | Given the judge, when it runs, then it prints its three reviews in a section marked as suggestions. | PASS 2026-11-12 |
 | [judge-verdict-unchanged](Tests#t-judge-verdict-unchanged) | requirement | HLT-5 | Given a failing or garbage judge, when health runs, then the verdict and exit code are unchanged. | PASS 2026-11-12 |
 | [judge-needs-you](Tests#t-judge-needs-you) | requirement | HLT-5 | Given suggested criterion wording, when the board is printed, then it is listed under Needs you for the owner to apply. | PASS 2026-11-12 |
