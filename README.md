@@ -422,8 +422,8 @@ Every repo setting from the template's settings reference, with this repo's valu
 | `version_file` | The file that holds the version; a release bumps it and writes the changelog. | set "version_file" in .loop/config.json | `VERSION` | default |
 | `routines` | Commands the release step runs on the base branch before it merges. | set "routines" in .loop/config.json | `[]` | default |
 | `regression_cron` | Five cron fields: when the full regression runs: in GitHub Actions for a public repo, with each Mac tick for a private one; off turns it off. | set "regression_cron" in .loop/config.json | `17 */4 * * *` | default |
-| `health_cron` | Five cron fields (every N hours, or fixed hours): when health with the judge and its digest run on the Mac; off turns it off. | set "health_cron" in .loop/config.json | `47 */4 * * *` | default |
-| `judge_env` | No longer read: the judge runs on the Mac with your own claude login. Kept so old configs stay valid. | set "judge_env" in .loop/config.json | `ANTHROPIC_API_KEY` | default |
+| `health_cron` | Five cron fields: when health with the judge and its digest run on the Mac; off turns it off. | set "health_cron" in .loop/config.json | `47 */4 * * *` | default |
+| `judge_env` | No longer read; kept so old configs stay valid. | set "judge_env" in .loop/config.json | `ANTHROPIC_API_KEY` | default |
 | `judge_setup` | No longer read: kept so old configs stay valid. | set "judge_setup" in .loop/config.json | `(empty)` | default |
 | `digest_owner` | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). | set "digest_owner" in .loop/config.json | `(empty)` | default |
 | `digest_mail` | How the round's digest is mailed: cloudflare (Email Service), smtp, or off; the address and keys live only in Actions secrets. | set "digest_mail" in .loop/config.json | `cloudflare` | default |
@@ -440,11 +440,12 @@ Every repo setting from the template's settings reference, with this repo's valu
 | `regression_runs` | Where the full regression runs: actions (a public repo) or mac (with each Mac tick: a private repo, or a public one recorded mac); setup records it from the repo's live visibility and keeps a recorded mac; unset means not known (nothing is written for GitHub). | set "regression_runs" in .loop/config.json | `(empty)` | default |
 | `automation` | Routines the Automation table lists: {name, does, cadence, runs: github:FILE, mac:LABEL or claude:TASK}; setup declares the three built-in ones. | set "automation" in .loop/config.json | `[]` | default |
 | `ci_levels` | Target of the scheduled and tag regression runs: nightly (every row) or land. | set "ci_levels" in .loop/config.json | `nightly` | default |
-| `time_budget_minutes` | Minutes a goal may run from its freeze before no new step starts; 0 means no budget. | set "time_budget_minutes" in .loop/config.json | `120` | default |
-| `max_merge_rounds` | Times goal.py pr may merge the base and rerun the lane before the goal waits on you. | set "max_merge_rounds" in .loop/config.json | `3` | default |
-| `max_active_goals` | Goals live at once (the smaller of this and parallel); no new goal starts past it; 0 means no limit. | set "max_active_goals" in .loop/config.json | `20` | default |
-| `plan_pause_percent` | Weekly plan usage in percent above which no new goal starts (pool.py usage N); 0 turns it off. | set "plan_pause_percent" in .loop/config.json | `80` | default |
-| `token_budget` | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. | set "token_budget" in .loop/config.json | `0` | **overridden:** `3000000` |
+| `time_budget_minutes` | Minutes from a goal's freeze before no new step starts; 0 is none. | set "time_budget_minutes" in .loop/config.json | `120` | default |
+| `max_merge_rounds` | Merge-and-rerun rounds goal.py pr may take before the goal waits. | set "max_merge_rounds" in .loop/config.json | `3` | default |
+| `max_active_goals` | Goals live at once (with parallel, the smaller); 0 is no limit. | set "max_active_goals" in .loop/config.json | `20` | default |
+| `plan_pause_percent` | Weekly plan usage % above which no goal starts (pool.py usage N); 0 is off. | set "plan_pause_percent" in .loop/config.json | `80` | default |
+| `min_free_memory_gb` | Free memory in GB (Windows: virtual) below which no lane or new goal starts; 0 is off. | set "min_free_memory_gb" in .loop/config.json | `4` | default |
+| `token_budget` | Tokens a goal may spend before no new step starts; 0 means none. | set "token_budget" in .loop/config.json | `0` | **overridden:** `3000000` |
 | `test_budget_minutes` | Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite. | set "test_budget_minutes" in .loop/config.json | `15` | default |
 | `prep_budget_minutes` | Minutes a lane may spend before its first test row (preparing, planning, waiting for a slot), 15 or more; a lane past it stops and says which part ran long. | set "prep_budget_minutes" in .loop/config.json | `15` | **overridden:** `25` |
 | `step_budget_minutes` | Minutes one review or ship step may take, 15 or more; a step at its limit finishes with what it has done and records what it left. | set "step_budget_minutes" in .loop/config.json | `30` | default |
@@ -462,7 +463,7 @@ Every repo setting from the template's settings reference, with this repo's valu
 | `full_auto` | true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait. | set "full_auto" in .loop/config.json | `true` | default |
 | `pool_size` | Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones. | set "pool_size" in .loop/config.json | `20` | default |
 | `silent_minutes` | Minutes a worker may send nothing before it shows under Needs you; LOOP_SESSION_QUIET (seconds) overrides it. | set "silent_minutes" in .loop/config.json | `30` | default |
-| `feature_labels` | true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label; off by default. | set "feature_labels" in .loop/config.json | `false` | default |
+| `feature_labels` | true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label. | set "feature_labels" in .loop/config.json | `false` | default |
 <!-- settings:end -->
 
 <!-- automation:begin -->

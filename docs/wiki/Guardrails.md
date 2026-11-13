@@ -94,6 +94,9 @@ None
 | [grd2-active-goals](Tests#t-grd2-active-goals) | requirement | GRD-2 | Given max_active_goals live goals, when watch plans, then no new goal starts. | not run |
 | [grd2-plan-pause](Tests#t-grd2-plan-pause) | requirement | GRD-2 | Given weekly plan usage above plan_pause_percent, when the operation plans, then no new goal starts and it says why. | not run |
 | [grd2-limits-in-settings](Tests#t-grd2-limits-in-settings) | requirement | GRD-2 | Given the settings table, when it is read, then it lists the four limits with their defaults. | not run |
+| [grd2-memory-lane-waits](Tests#t-grd2-memory-lane-waits) | requirement | GRD-2 | Given free memory below min_free_memory_gb, when a lane is about to run rows, then it waits and does not start them. | not run |
+| [grd2-memory-new-goal](Tests#t-grd2-memory-new-goal) | requirement | GRD-2 | Given free memory below min_free_memory_gb, when the operation plans, then no new goal starts and the hold names LOW_MEMORY. | not run |
+| [grd2-memory-health](Tests#t-grd2-memory-health) | requirement | GRD-2 | Given lanes that waited for memory, when health runs, then its Performance group warns. | not run |
 | - | requirement | GRD-2 | no passing test | not enforced |
 | [del9-pr-refuses](Tests#t-del9-pr-refuses) | requirement | GRD-3 | Given a branch that adds a private name from the list, when goal.py pr runs, then nothing is pushed and the refusal names the place, never the text. | not run |
 | [del9-hooks](Tests#t-del9-hooks) | requirement | GRD-3 | Given the pre-push hook and a branch whose commit holds a private line, when it is pushed, then the hook refuses naming file and line, and nothing reaches the remote. | PASS 2026-11-12 |

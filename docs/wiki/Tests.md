@@ -259,6 +259,9 @@
 | <a id="t-grd2-active-goals"></a>grd2-active-goals | requirement | GRD-2 | not run | - | local | 2026-11-13 |
 | <a id="t-grd2-plan-pause"></a>grd2-plan-pause | requirement | GRD-2 | not run | - | local | 2026-11-13 |
 | <a id="t-grd2-limits-in-settings"></a>grd2-limits-in-settings | requirement | GRD-2 | not run | - | local | 2026-11-13 |
+| <a id="t-grd2-memory-lane-waits"></a>grd2-memory-lane-waits | requirement | GRD-2 | not run | - | local | 2026-11-13 |
+| <a id="t-grd2-memory-new-goal"></a>grd2-memory-new-goal | requirement | GRD-2 | not run | - | local | 2026-11-13 |
+| <a id="t-grd2-memory-health"></a>grd2-memory-health | requirement | GRD-2 | not run | - | local | 2026-11-13 |
 
 ## Health
 

@@ -67,23 +67,24 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `criteria_max` | 16 | Most criteria a wiki page may hold, 1 to 50, default 10; docs check and health fail a page over it. |
 | `digest_mail` | cloudflare | How the round's digest is mailed: cloudflare (Email Service), smtp, or off; the address and keys live only in Actions secrets. |
 | `digest_owner` | none | Who the digest comment mentions; empty means the repo owner (an organisation notifies no one). |
-| `feature_labels` | false | true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label; off by default. |
+| `feature_labels` | false | true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label. |
 | `full_auto` | true | true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait. |
 | `goal_lane_minutes` | 10 | Minutes a goal's regression lane may take before health warns and its LANE line says over. |
 | `goal_levels` | land | Row levels a goal lane plans from: land, or nightly for land and nightly rows. |
 | `govern_hook` | true | false turns off the govern-only hook (setup.py --govern-hook installs it): edits, commits and pushes refused in the operation session. |
-| `health_cron` | 47 */4 * * * | Five cron fields (every N hours, or fixed hours): when health with the judge and its digest run on the Mac; off turns it off. |
+| `health_cron` | 47 */4 * * * | Five cron fields: when health with the judge and its digest run on the Mac; off turns it off. |
 | `judge_command` | ["claude", "-p", "--tools", ""] |  |
-| `judge_env` | ANTHROPIC_API_KEY | No longer read: the judge runs on the Mac with your own claude login. Kept so old configs stay valid. |
+| `judge_env` | ANTHROPIC_API_KEY | No longer read; kept so old configs stay valid. |
 | `judge_setup` | none | No longer read: kept so old configs stay valid. |
 | `limit_wait` | 1800 | Seconds to wait after a usage limit before resuming. |
-| `max_active_goals` | 20 | Goals live at once (the smaller of this and parallel); no new goal starts past it; 0 means no limit. |
-| `max_merge_rounds` | 3 | Times goal.py pr may merge the base and rerun the lane before the goal waits on you. |
+| `max_active_goals` | 20 | Goals live at once (with parallel, the smaller); 0 is no limit. |
+| `max_merge_rounds` | 3 | Merge-and-rerun rounds goal.py pr may take before the goal waits. |
 | `max_tries` | 3 | Failed tries a goal gets before it stops and files a finding. |
 | `mend` | true | true lets watch start a fresh agent for a failed goal. |
 | `mend_wait` | 120 | Seconds a failed goal waits before a mender starts. |
+| `min_free_memory_gb` | 4 | Free memory in GB (Windows: virtual) below which no lane or new goal starts; 0 is off. |
 | `parallel` | 0 | Workers running at once; 0 means unlimited. |
-| `plan_pause_percent` | 80 | Weekly plan usage in percent above which no new goal starts (pool.py usage N); 0 turns it off. |
+| `plan_pause_percent` | 80 | Weekly plan usage % above which no goal starts (pool.py usage N); 0 is off. |
 | `pool_size` | 20 | Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones. |
 | `pr_bumps_version` | false | true moves the last number of the version file once on a goal's branch. |
 | `prep_budget_minutes` | 25 | Minutes a lane may spend before its first test row (preparing, planning, waiting for a slot), 15 or more; a lane past it stops and says which part ran long. |
@@ -103,8 +104,8 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `template_repo` | none | The template's GitHub repo (owner/name) update reads releases from, when the installed package names none. |
 | `template_version` | 0.27.29 |  |
 | `test_budget_minutes` | 15 | Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite. |
-| `time_budget_minutes` | 120 | Minutes a goal may run from its freeze before no new step starts; 0 means no budget. |
-| `token_budget` | 3000000 | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
+| `time_budget_minutes` | 120 | Minutes from a goal's freeze before no new step starts; 0 is none. |
+| `token_budget` | 3000000 | Tokens a goal may spend before no new step starts; 0 means none. |
 | `version_file` | VERSION | The file that holds the version; a release bumps it and writes the changelog. |
 | `watch_interval` | 20 | Seconds between rounds of watch. |
 | `wiki_dir` | docs/wiki | The folder of wiki pages. |
