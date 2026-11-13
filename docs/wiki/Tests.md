@@ -566,6 +566,8 @@
 | <a id="t-reg10-provenance"></a>reg10-provenance | requirement | REG-10 | not run | - | local | 2026-11-12 |
 | <a id="t-reg10-owed-waits"></a>reg10-owed-waits | requirement | REG-10 | not run | - | local | 2026-11-12 |
 | <a id="t-reg10-real-fail-costs-try"></a>reg10-real-fail-costs-try | requirement | REG-10 | not run | - | local | 2026-11-12 |
+| <a id="t-pr-waits-owed"></a>pr-waits-owed | requirement | REG-10 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
+| <a id="t-pr-real-fail-costs-try"></a>pr-real-fail-costs-try | requirement | REG-10 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
 
 ## Setup
 
