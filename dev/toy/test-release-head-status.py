@@ -11,6 +11,8 @@ import sys
 import tempfile
 import types
 
+sys.dont_write_bytecode = True  # the skills folder stays free of __pycache__ (the package file count)
+
 here = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(here, "..", "..", "skills", "workflow-release", "scripts"))
 import autorelease  # noqa: E402
