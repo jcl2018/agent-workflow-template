@@ -1,5 +1,60 @@
 # Changelog
 
+## v0.28.28 - 2026-11-13
+
+- who-merges: a report never runs merge.py; toy and row
+- who-merges: render the Tests tables
+- who-merges: the exit fallback skips a held goal; a report prints NEXT: merge.py; row
+- who-merges: seen red, tables
+- who-merges: report --hold stamps hold_at; the exit fallback honours it; row
+- who-merges: seen red, tables
+- Merge origin/main into who-merges
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.27 - 2026-11-13
+
+- docs check --own: a stale page the goal's diff doesn't touch is a finding, not a failure; rows and toy
+- stale-own rows guard DOC-15's STALE requirement; regenerate Tests tables
+- Fold own.py into audit.py (package headroom: 98 files)
+- stale-own control row: say that health and the scheduled run keep the STALE line
+- stale-own rows guard DOC-1 (a page behind the code is reported stale), the requirement the docs check judges
+- check --own: keep every STALE on the base branch itself and for block staleness; two rows
+- Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/stale-blocks-all
+- Merge remote-tracking branch 'origin/main' into loop/stale-blocks-all
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.26 - 2026-11-13
+
+- DECISIONS: sub-bullet and owner sentences for the stale Documentation page
+- DOC-15: health and the digest run on the Mac's local schedule (owner un-reviewed Documentation and DOC-15)
+- Home: the Documentation row names health's local schedule
+- Documentation and DOC-15 reviewed again by the owner
+- Merge remote-tracking branch 'origin/main' into loop/doc15-local-schedule
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.25 - 2026-11-13
+
+- Toys read the delivery governance line as it now reads; Tests list checks match the table
+- Merge remote-tracking branch 'origin/main' into loop/skill-governs-line
+- Wiki: update pages for skill-governs-line
+- Restore Documentation.md: DOC-15 is owner-reviewed, don't edit it
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.24 - 2026-11-13
 
 - Automation table: health and the digest run on the Mac's local schedule, no health workflow owed (#3857)

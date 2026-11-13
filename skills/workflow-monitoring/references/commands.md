@@ -142,7 +142,7 @@ The board reads the run records and the session pool (`<git common dir>/loop/ses
 | held, worktree gone | Held, and its worktree folder is missing | `git worktree add <common>/loop/worktrees/<slug> loop/<slug>`, then bind (`watch.py resume` takes only failed or stopped goals) | it shows as running |
 | held, holds a slot | A held session goal still counts toward `parallel` | bind it, or once its old session has stopped, `sessions.py free <slug>` | the slot is free |
 | pool unreadable | The pool file can't be trusted: nothing is called held or freezing, and `watch` starts nothing | `python3 -m json.tool <path>`, then repair it (moving it aside forgets which goals sessions hold: free or bind each again first) | the next pass reads it |
-| done | The pull request is open; a later session report is only recorded (issue 108) | the release step merges it | it leaves the board |
+| done | The pull request is open; a later session report is only recorded (issue 108) | its own merge.py merges it (a report never does) | it leaves the board |
 | tries used up | A stopped goal was brought back by a bind or mend | look at its finding | the next try counts from there |
 
 Handing a goal over before it is frozen (for a session the operation session started with the app's own tools; a goal
