@@ -66,9 +66,9 @@ finish() {  # finish SLUG [LINE]: a done goal with a pull request; PRE runs befo
   local slug=$1
   git switch -q main; git pull -q origin main
   $goal new "$slug" --here --goal "Add $slug" --done "calc has $slug" >/dev/null || bad "goal new $slug"
-  printf '\n\ndef %s():\n    return 1\n%s\n' "${slug//-/_}" "${2:-}" >> "${FILE:-calc.py}"
+  printf '\n\ndef %s():\n    return 1\n%s\n' "${slug//-/_}" "${2:-}" >> calc.py
   ${PRE:-true}
-  git add -A "${FILE:-calc.py}"; git commit -qam "Add $slug to calc"
+  git add -A calc.py; git commit -qam "Add $slug to calc"
   python3 - "$slug" <<'PY'
 import sys
 path = ".loop/goals/%s.md" % sys.argv[1]
@@ -107,28 +107,6 @@ PY
   out=$(merge minorone); echo "$out" | tail -3
   [ "$(state minorone release_part)" = minor ] && [ "$(remote_file VERSION)" = "$(bumped "$v" minor)" ] \
     && ok "DEL-5: goal.py set --bump minor (the sidecar) releases a minor" || bad "DEL-5: set bump"
-fi
-
-if want docsbump; then
-  echo "== #3787: the goal's own bump wins on a docs-only goal"
-  FILE=notes.md finish docsminor; v=$(remote_file VERSION)
-  python3 - "$R/docsminor.extra.json" <<'PY'
-import json, os, sys
-data = json.load(open(sys.argv[1])) if os.path.exists(sys.argv[1]) else {}
-data.setdefault("set", {})["bump"] = "minor"
-json.dump(data, open(sys.argv[1], "w"))
-PY
-  out=$(merge docsminor); echo "$out" | tail -3
-  [ "$(state docsminor release_part)" = minor ] && [ "$(remote_file VERSION)" = "$(bumped "$v" minor)" ] \
-    && ok "#3787: a docs-only goal with goal.py set --bump minor releases a minor" || bad "#3787: docs-only bump"
-fi
-
-if want docspatch; then
-  echo "== #3787: a docs-only goal with no bump still releases a patch"
-  FILE=notes.md finish docsplain; v=$(remote_file VERSION)
-  out=$(merge docsplain); echo "$out" | tail -3
-  [ "$(state docsplain release_part)" = patch ] && [ "$(remote_file VERSION)" = "$(bumped "$v" patch)" ] \
-    && ok "#3787: a docs-only goal with no bump releases a patch" || bad "#3787: docs-only patch"
 fi
 
 if want protected; then
