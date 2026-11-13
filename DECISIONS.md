@@ -90,3 +90,10 @@ Proposed wording for the backlog-milestones goal (2026-11-13, the owner approved
 - DOC-10 (fourth bullet, new): "An existing milestone named "Backlog" is renamed "Backlog: Other", and the feature milestones that hold goals and pull requests (Delivery, Documentation, ...) are kept as they are." (`milestone.py backlog --live` does the rename once, only when "Backlog" exists and "Backlog: Other" does not.)
 - DEL-14 (new, Unreviewed): "Leftover findings are filed by kind at ship". Body: "When a goal ships, each finding it did not fix is filed once. A break of a Reviewed requirement inside the goal's touches is fixed in place; outside them it is an open issue labelled `defect`. An improvement, idea or saving is an issue labelled `backlog` on its feature's milestone "Backlog: <Feature>" ("Backlog: Other" when it fits no feature). Filing writes to GitHub only with `--live`, which the goal passes after ship is recorded, and a finding already filed is not filed again."
 - SET-17 (new, Unreviewed): "The Backlog milestones exist after adoption". Body: "Adoption creates one milestone "Backlog: <Feature>" for each feature page and "Backlog: Other", and creates none that already exists. Health's Adoption group warns for each one that is missing."
+
+## Waiting on owner un-review (graph-times)
+
+The check-in dependency map (checkin.py) showed a flat list of goal ids with no times and no arrows, and listed stray, stopped and left goals. MON-14 is Reviewed, so the added wording is proposed and stays here until the owner un-reviews it.
+
+- MON-14 (new sub-bullet): "Each goal shows its expected time left from past runs, each repo block ends with its expected finish, and each wait is drawn as an arrow."
+- MON-14 (new sub-bullet): "The map lists only live goals: a record with no goal or status, a stopped goal and a goal left with release: leave are not drawn, and a worker held at pr reads holding, not stuck."
