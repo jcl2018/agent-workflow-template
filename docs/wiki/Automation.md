@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/10
 
-Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=ff34edf0 N=e081872e M=4670eeeb U=772c7699 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670eeeb U=03828777 -->
 
 ## Problem
 - Things break between my sessions, and I only find out when I next open one; the important checks should run on their own.
@@ -19,11 +19,12 @@ Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=ff34edf0 N=e081872e M=4670
   - A routine missed while the Mac sleeps runs once at the next wake, and the digest says it was missed.
   - Each run's report says whether it ran on my Mac or in GitHub Actions.
   - A long issue body or comment is passed to gh in a file (`--body-file`), never on the command line, so a routine writes the same on native Windows.
-- AUT-2: **Reviewed 2026-11-13** Regression every few hours <!-- reviewed edabe328 -->
+- AUT-2: **Reviewed 2026-11-13** Regression every few hours <!-- reviewed 42284a82 -->
   - The full regression suite runs on the schedule (every 4 hours by default), in GitHub Actions for a public repo (which also runs it on every release tag) and on my Mac for a private one; the report names every test it skipped and why.
   - A push or pull request runs only the tests its change affects (Regression, REG-4), in the same place as the full suite.
   - No GitHub Actions check this tool writes is needed to merge a private repo; where its ruleset requires named checks, the pull request lane posts them as commit statuses itself, success when the lane passes and failure when it fails, so a failing lane holds that merge and a passing one releases it.
   - A failing test opens or updates one issue labeled defect, tagged with the feature it guards when feature_labels is on, naming the test and the requirement; it closes by itself when the test passes again.
+  - The CI suite runs in eight shards with one combined summary: each row is given the time left, the suite-time line counts the rows skipped for time (the unrun rows), and a newer run on the same ref cancels the older.
 - AUT-3: **Reviewed 2026-11-13** Health every few hours <!-- reviewed e0fc7032 -->
   - Health never runs in GitHub Actions: it runs on my Mac on the schedule (every 4 hours by default), after the latest finished regression run, with all its rule groups; its report names that run with its commit and age, or says none finished, and says when health last ran.
   - The repo review always runs, using my own login on the Mac, with no API key secret; when the login has expired or can't be reached, the report says which and the next round tries again.

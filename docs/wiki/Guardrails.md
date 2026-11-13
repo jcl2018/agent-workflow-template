@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/11
 
-Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=069a23eb N=e6bf17f7 M=5109e571 U=598ea907 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=2098028a N=e6bf17f7 M=5109e571 U=03828777 -->
 
 ## Problem
 
@@ -48,10 +48,11 @@ Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=069a23eb N=e6bf17f7 M=5109
   - A step whose tokens pass a set multiple of that step's usual is flagged on the board and in the check-in (Monitoring, new).
   - A step past three times its estimate is shown as stalled under Issues on the board (Monitoring, MON-4, which keeps a stuck worker at the top of Issues), and a worker silent past `silent_minutes` shows under Needs you: MON-8.
   - A goal's test lane past `goal_lane_minutes` (default 10) says so in its LANE line (Regression, REG-8).
-- GRD-9: **Reviewed 2026-11-13** Health proves every guardrail is present and working, each rule with a negative control <!-- reviewed cc0ebe01 -->
+- GRD-9: **Reviewed 2026-11-13** Health proves every guardrail is present and working, each rule with a negative control <!-- reviewed 97e6018b -->
   - Each guardrail has a health rule that reads whether it is present and working, in an existing group (Performance, Security and privacy, Hygiene or Adoption), within the cap of 12 groups (Health, HLT-2).
   - Each such rule has a negative control run against a deliberately broken copy, so it is known to fire (Health, HLT-2, Controls).
   - A guardrail its rule can't read shows as unread, never as passing (Health, HLT-3).
+  - A page's requirement cap, `criteria_max` (17 in this repo), is read by health's Size group, so a page too large to review shows as a finding.
 - GRD-10: **Reviewed 2026-11-13** Setup installs the whole set when a repo is adopted, and health judges it <!-- reviewed c53adea9 -->
   - Adopting a repo installs every guardrail on this page with its default setting, and setup lists each one it installed (Setup, SET-1 for installing; listing each one is new).
   - Health judges a freshly adopted repo's guardrails on the same rules as the template's (Setup, SET-1).

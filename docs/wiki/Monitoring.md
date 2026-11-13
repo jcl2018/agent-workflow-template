@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
-Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=f91170ed N=9967b317 M=0fde98a8 U=74036c58 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde98a8 U=03828777 -->
 
 ## Problem
 - I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
@@ -55,8 +55,9 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=f91170ed N=9967b317 M=0fde
 - MON-13: **Reviewed 2026-11-12** Two layers per pod: one operation session governs every repo in its pod directly and talks to each worker, with no per-repo operation session; several pods may run concurrently and independently <!-- reviewed 7dca4de6 -->
   - A claim adds the session to every repo the pod follows and keeps the other sessions already claimed; nothing refuses or warns when a second operation session runs.
 
-- MON-14: **Reviewed 2026-11-12** The check-in dependency map is grouped by repo first: one block per repo headed by the repo's name, cross-repo dependencies drawn between blocks <!-- reviewed b94f70f7 -->
+- MON-14: **Reviewed 2026-11-13** The check-in dependency map is grouped by repo first: one block per repo headed by the repo's name, cross-repo dependencies drawn between blocks <!-- reviewed eeac7ce2 -->
   - Each repo prints as `== name ==` within 60 characters, then a `Between repos` list for `repo/slug` dependencies, then the legend once.
+  - The reply hook flags a check-in whose Dependencies section leaves out a goal on the board.
 
 - MON-15: **Reviewed 2026-11-12** Pods coordinate through shared state, not messages: every goal records its owning pod and only that pod starts, answers, merges or resumes it; other pods show it read-only as owned by that pod; merges into one repo's main are serialized across pods by a short lock <!-- reviewed 9f4be548 -->
   - The pod id is `LOOP_POD_ID`, else the operation session's own id; a goal with no recorded pod belongs to no one. Another pod's attempt prints one `REFUSED: goal <slug> is owned by pod <id>. Fix: ...` line, exit 2, and changes nothing.
