@@ -215,17 +215,15 @@ def format_gaps(root, cfg, g, steps):
                 g("MIG_USAGE", os.path.basename(page), "still has a Usage section", "delete the section, then " + tool("workflow-docs", "docs.py", "audit"))
     if carries("health-rules", "workflow-health", "health-rules.json") and not os.path.exists(os.path.join(root, ".loop", "health-rules.json")):
         g("MIG_RULES", ".loop/health-rules.json", "missing", "run workflow-setup (setup.py), which writes it")
-    if carries("runbook-pointer", "workflow-docs", "Runbook pointer"):
-        for item in cfg.get("automation") or []:
-            prompt = item.get("prompt") if isinstance(item, dict) else None
-            if isinstance(prompt, str) and (len(prompt.splitlines()) > 1 or "Runbook" not in prompt):
-                g("MIG_ROUTINES", clean(item.get("name", "?")), "prompt is not a one-line Runbook pointer", "use: Run the <page> Runbook")
     if carries("backlog", "workflow-health", "Backlog", "scripts/milestone.py"):
-        steps.append(("milestones", "Backlog", "approve the Backlog milestones: keep or close each in the milestone list"))
+        steps.append(("milestones", "Backlog", "approve the Backlog milestones, then run " + tool("workflow-health", "milestone.py", "backlog --live")))
 
 
 def hook_gaps(root, g, steps):
     """Each hook once in .claude/settings.local.json (twice: a gap; none: an owner step)."""
+    if carries("prompt-pointer", "workflow-health", "def prompt_pointer", "scripts/report.py"):  # a scheduled prompt beyond the Runbook pointer
+        for r in mod("workflow-health", "report").prompt_pointer(root):
+            g("MIG_ROUTINES", clean(r["subject"]), clean(r["detail"]), clean(r["fix"]))
     text = read(os.path.join(root, ".claude", "settings.local.json"))
     for name in ("reply_hook.py", "govern_hook.py"):
         count = text.count(name)

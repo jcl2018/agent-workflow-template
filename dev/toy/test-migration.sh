@@ -437,9 +437,15 @@ if want v1; then fresh
   export LOOP_TEMPLATE_HAS=""; page="$r/docs/wiki/Calc.md"
   { echo "# Calc"; echo; echo "## Usage"; echo; echo "- a command"; } > "$page"; mig "$r" --offline
   check "a template that dropped Usage: a feature page still holding a Usage section is a gap naming the page, exit 1" '[ $rc = 1 ] && grep -q "^GAP MIG_USAGE $(basename "$page"): still has a Usage section" <<<"$out"'
-  export LOOP_TEMPLATE_HAS=usage-kept,runbook-pointer; reset "$r" HEAD
-  cfgset "$r" "d['automation']=[{'name':'health','runs':'x','prompt':'do a long thing'+chr(10)+'over two lines'}]"; mig "$r" --offline
-  check "a template with Runbook-pointer prompts: a two-line routine prompt is a MIG_ROUTINES gap, exit 1" '[ $rc = 1 ] && grep -q "^GAP MIG_ROUTINES health: prompt is not a one-line Runbook pointer" <<<"$out"'
+  export LOOP_TEMPLATE_HAS=usage-kept,prompt-pointer LOOP_SCHEDULED_TASKS_DIR="$d/tasks"; reset "$r" HEAD; mkdir -p "$d/tasks/pointer-task"
+  printf -- '---
+name: pointer-task
+---
+Do a long thing
+over two lines
+' > "$d/tasks/pointer-task/SKILL.md"
+  cfgset "$r" "d['automation']=[{'name':'health','runs':'mac:pointer-task'}]"; mig "$r" --offline
+  check "a template with Runbook-pointer prompts: an installed scheduled prompt holding more than the pointer is a MIG_ROUTINES gap with its fix, exit 1" '[ $rc = 1 ] && grep -q "^GAP MIG_ROUTINES pointer-task: the scheduled prompt holds 2 line(s) beyond the Runbook pointer.*Fix: replace its prompt" <<<"$out"'
   reset "$r" HEAD; export LOOP_TEMPLATE_HAS=usage-kept,backlog; mig "$r" --offline
   check "a template with the Backlog milestones: the approval is an OWNER STEP that does not fail the check" '[ $rc = 0 ] && grep -q "^OWNER STEP milestones Backlog: approve the Backlog milestones" <<<"$out"'
   export LOOP_TEMPLATE_HAS=usage-kept; mkdir -p "$r/.claude"; printf '{"hooks":{"Stop":[{"command":"reply_hook.py"},{"command":"reply_hook.py"}]}}' > "$r/.claude/settings.local.json"; mig "$r" --offline
@@ -454,7 +460,7 @@ if want v1; then fresh
   mig "$r" --offline --pr
   check "--pr prints no toolchain step" '! grep -q "toolchain" <<<"$out"'
   rm -f "$r/package.json" "$r/pyproject.toml"
-  unset LOOP_TEMPLATE_HAS
+  unset LOOP_TEMPLATE_HAS LOOP_SCHEDULED_TASKS_DIR
 fi
 
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "$fails FAILED"; exit 1; }

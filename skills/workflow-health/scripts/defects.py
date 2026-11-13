@@ -163,7 +163,7 @@ def usage_readme(root):
 
 # --- migration-check: one engine for `setup.py migration-check` (main) and health's migration rule. It writes nothing.
 SKILLS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-STATE = ("MIG_HOOKS", "MIG_TASK", "MIG_WIKI_ORPHAN", "MIG_WIKI_STALE", "MIG_WIKI_UNREADABLE")  # close on the Mac or in the wiki, after the merge
+STATE = ("MIG_HOOKS", "MIG_ROUTINES", "MIG_TASK", "MIG_WIKI_ORPHAN", "MIG_WIKI_STALE", "MIG_WIKI_UNREADABLE")  # close on the Mac or in the wiki, after the merge
 CLASSES = ("MIG_VERSION", "MIG_FILES", "MIG_SETTINGS", "MIG_BLOCKS", "MIG_AUTOMATION", "MIG_RUNBOOK", "MIG_FORMAT", "MIG_CHECKS") + STATE
 PROTOCOLS = "https:ssh:git:file"  # the only transports the wiki clone may use: an ext:: origin runs nothing
 SEMVER = re.compile(r"\d+\.\d+\.\d+")
