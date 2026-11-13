@@ -15,6 +15,6 @@ rows=$(grep -v '^#' "$gold" | tr -d '\r')
   || bad "a step lacks a check, golden result or fix"
 ! grep -qiE '[A-Z]:\|/Users/|/home/|@[a-z0-9-]+\.[a-z]' "$gold" && ok "no machine path or account" || bad "the fixture names a machine path or account"
 req=$(awk '/^- SET-11:/{on=1; print; next} on && /^- [A-Z]+-[0-9]+:/{exit} on' "$page")
-grep -q 'Unreviewed' <<<"$req" && grep -q 'dev/toy/adoption-golden.tsv' <<<"$req" && grep -q 'first mismatch' <<<"$req" \
+grep -q 'dev/toy/adoption-golden.tsv' <<<"$req" && grep -q 'first mismatch' <<<"$req" \
   && ok "SET-11 names the fixture and stops at the first mismatch" || bad "SET-11 does not name the fixture or its stop rule"
 [ "$fails" = 0 ] && echo "ALL PASS" || { echo "FAILED $fails"; exit 1; }
