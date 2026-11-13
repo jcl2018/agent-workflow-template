@@ -176,7 +176,7 @@ def problems(root, base):
             text = handle.read()
         if PLACEHOLDER in text or len(text.replace(MARKER, "").split()) < 10:
             found.append(("UNWRITTEN", page, rel))
-        seen = git("rev-list", "--no-merges", "HEAD", "--", rel, cwd=root, check=False).split()
+        seen = git("rev-list", "--no-merges", "--full-history", "HEAD", "--", rel, cwd=root, check=False).split()
         if not seen:
             continue
         skip = ["^" + sha for sha in seen + [base] + merged if sha]  # merges add nothing
