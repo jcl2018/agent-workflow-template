@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.28.12 - 2026-11-13
+
+- Reply hook: a Dependencies section must name every goal on the board
+- Tests tables list the dependencies row
+- Merge remote-tracking branch 'origin/main' into loop/reply-deps-complete
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.11 - 2026-11-13
 
 - Trim workflow-regression SKILL.md under 150 lines; prove the unbuilt rows red
