@@ -132,8 +132,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7f1b1066 R=e39e29d4 N=9c385754 M=471a
 | [set9-from-no-values](Tests#t-set9-from-no-values) | requirement | SET-9 | Given a model value holding a home path or an email, when setup runs with --from, then the value is skipped and appears in no output and no written file. | not run |
 | - | requirement | SET-9 | no passing test | not enforced |
 | [agents-wire](Tests#t-agents-wire) | requirement | SET-10 | Given a repo, when setup or agents.py wire runs, then CLAUDE.md and AGENTS.md hold the same workflow-loop block, text outside it is kept, and a second run changes nothing. | PASS 2026-11-12 |
-| [adoption-golden](Tests#t-adoption-golden) | requirement | SET-11 | Given the golden first adoption, when its fixture and SET-11 are read, then the fixture holds steps 1 to 8 in order, each with a check, golden result and fix, no machine path or account, and SET-11 names it and its first-mismatch stop. | not run |
-| - | requirement | SET-11 | no passing test | not enforced |
+| [adoption-golden](Tests#t-adoption-golden) | requirement | SET-11 | Given the golden first adoption, when its fixture and SET-11 are read, then the fixture holds steps 1 to 8 in order, each with a check, golden result and fix, no machine path or account, and SET-11 names it and its first-mismatch stop. | PASS 2026-11-13 |
 | - | requirement | SET-12 | no passing test | not enforced |
 | - | requirement | SET-13 | no passing test | not enforced |
 | - | requirement | SET-14 | no passing test | not enforced |

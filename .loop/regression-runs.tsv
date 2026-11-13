@@ -4,6 +4,7 @@ adopt-set-2	FAIL	2026-11-12
 adopt-set-3	FAIL	2026-11-12	
 adopt-set-4	FAIL	2026-11-12	
 adopt-set-5	FAIL	2026-11-12	
+adoption-golden	PASS	2026-11-13	
 affected-quiet-release	PASS	2026-11-11	
 agents-wire	PASS	2026-11-12	
 attempt-114	PASS	2026-11-10	
@@ -363,7 +364,7 @@ reply-hook-blocks	PASS	2026-11-10
 reply-hook-checkin-123	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reply-hook-guard	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reply-hook-install	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
-reply-hook-mon5-wording	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+reply-hook-mon5-wording	PASS	2026-11-13	
 reply-hook-off	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 reply-hook-scope	PASS	2026-11-10	
 repo-full-suite-limit	PASS	2026-11-11	
@@ -423,6 +424,7 @@ skill-kept	PASS	2026-11-12
 skill-says-governs	PASS	2026-11-12	
 skill-size-116	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 slot-pool-112	PASS	2026-11-10	
+spec-decisions-log	PASS	2026-11-13	
 spec-decisions-wording	PASS	2026-11-12	
 stale-found	PASS	2026-11-12	
 stale-groups-defect	PASS	2026-11-12	
