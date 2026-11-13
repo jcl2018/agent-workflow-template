@@ -107,9 +107,20 @@ def merged(url):
         return False
 
 
+def held_by_operation(state):
+    """Whether the operation holds the goal: held_at or hold_at (sessions.py report --hold) is stamped, or its run log's last hold entry (a session report that it
+    is held at or before a step) has no later step, bind or resume (board_log.holding). A held goal merges only on a go."""
+    import board_log
+    paused = False
+    for entry in state.get("log") or []:
+        paused = board_log.holding(entry, paused)
+    return paused or bool(state.get("held_at") or state.get("hold_at"))
+
+
 def release_step(state):
     """The release step is part of the goal: a worker that ended with its pull request waiting, where auto_merge is on,
-    gets merge.py run for it, so the goal is never left half done."""
+    gets merge.py run for it, so the goal is never left half done. It goes through merge.py, so merge.py's own lock and
+    queue cover it, and it skips a goal the operation holds (#3868)."""
     tree = state.get("worktree") or ""
     try:
         with open(os.path.join(tree, ".loop", "config.json")) as handle:
@@ -117,7 +128,7 @@ def release_step(state):
     except (OSError, ValueError):
         return
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-release", "scripts", "merge.py")
-    if auto and state.get("release") != "ask" and state.get("status") == "done" and state.get("pr") and not merged(state["pr"]) and os.path.exists(script):
+    if auto and not held_by_operation(state) and state.get("release") != "ask" and state.get("status") == "done" and state.get("pr") and not merged(state["pr"]) and os.path.exists(script):
         done = subprocess.run([sys.executable, script, state["slug"]], cwd=tree, capture_output=True, text=True)
         print("release step for %s: exit %d %s" % (state["slug"], done.returncode, (done.stdout + done.stderr).strip()[-300:]))
 
