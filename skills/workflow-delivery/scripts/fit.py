@@ -395,6 +395,14 @@ def pr_fail(g, state, head, line, ids):
     return 1
 
 
+def main_here(g, args):
+    """`new --here` in the repo's main checkout (a repo with <common>/loop/worktrees) would leave it on a loop branch (#3468)."""
+    gitdir, common = (os.path.realpath(g.git("rev-parse", flag)) for flag in ("--git-dir", "--git-common-dir"))
+    if gitdir == common and os.path.isdir(os.path.join(common, "loop", "worktrees")):
+        g.no("--here in the repo's main checkout would leave it on a loop branch. Fix: git worktree add -b loop/%s "
+             "%s origin/main, then run goal.py new there" % (args.slug, os.path.join(common, "loop", "worktrees", args.slug).replace(os.sep, "/")))
+
+
 SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date
 FIXES = re.compile(VERB + r"(?:issue\s+)?#(\d+)|" + VERB + r"finding:([a-z0-9][a-z0-9-]*)", re.I)
 

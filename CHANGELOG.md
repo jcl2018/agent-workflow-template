@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.28.8 - 2026-11-13
+
+- goal.py new --here refuses in the main checkout (#3468)
+- Render the Tests tables for the new row
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 dev/toy/test-new-here.py`.
+   Expect: every line starts with PASS and the last line is ALL PASS.
+
 ## v0.28.7 - 2026-11-13
 
 - A resumed goal keeps its release ask with auto_merge on (#812)
