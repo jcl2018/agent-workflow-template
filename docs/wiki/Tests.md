@@ -440,6 +440,9 @@
 | <a id="t-resume-ask-prompt"></a>resume-ask-prompt | requirement | MON-15 | not run | - | local | 2026-11-13 |
 | <a id="t-mon16-notes-pass"></a>mon16-notes-pass | requirement | MON-7 | not run | - | local | 2026-11-13 |
 | <a id="t-mon16-edit-inside-refused"></a>mon16-edit-inside-refused | requirement | MON-7 | not run | - | local | 2026-11-13 |
+| <a id="t-mon14-reply-repo-blocks"></a>mon14-reply-repo-blocks | requirement | MON-14 | not run | - | local | 2026-11-13 |
+| <a id="t-mon8-silent-worker"></a>mon8-silent-worker | requirement | MON-8 | not run | - | local | 2026-11-13 |
+| <a id="t-operation-checkout-ff"></a>operation-checkout-ff | requirement | MON-13 | not run | - | local | 2026-11-13 |
 
 ## Regression
 

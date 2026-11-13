@@ -43,6 +43,7 @@ SESSION = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 FENCE = re.compile(r"^\s*(```|~~~)")
 FENCE_ALONE = re.compile(r"^\s*(```|~~~)[\w+.-]*\s*$")  # a line that opens or closes a fence, not a one-line fence
 NUMBERED = re.compile(r"^\s*(?:[-*+]\s+)?\**(?:q\d+[.):]|\d+[.)])(?!\d)", re.I)
+REPO = re.compile(r"^\s*==\s*\S.*\S\s*==\s*$")  # a repo block heading of the dependency map (MON-14)
 COUNT = re.compile(r"\s*\(\s*\d+\s*\)$")
 MARKS = re.compile(r"[*#`_]")
 TEMPLATE = ("Write the check-in reply in this layout: one headline line; All sessions (one table: session, repo, what it "
@@ -319,6 +320,8 @@ def problems(text):
             found.append("section %s is empty" % name)
         elif name == "Needs you" and not any(NUMBERED.match(l) or NOTHING.lower() in l.lower() for l in body):
             found.append("Needs you has no numbered question and does not say '%s'" % NOTHING)
+        elif name == "Dependencies" and not any(REPO.match(l) for l in body):
+            found.append("Dependencies has no '== repo ==' block; the map is grouped by repo (MON-14)")
     return found
 
 
