@@ -22,6 +22,7 @@ not applied (attempt_ok). A freed session keeps who it was freed from in `histor
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -280,6 +281,50 @@ def pr_moved(runs, g, state, why, fix):
     g.save(state, "main moved, try not counted (%d of %d)" % (state["moved"], most))
     print("TRY NOT COUNTED (main moved: %d of %d; past %d it counts): %s\nNEXT: %s" % (state["moved"], most, most, why, fix))
     return True
+
+
+# The goal's defect-test check (E-10), moved here from fit.py to keep it under its size budget: fit.owed calls pr_owed.
+VERB = r"\b(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+"
+SEEN = re.compile(r"\d{4}-\d{2}-\d{2}$")  # seen_red counts only as a date
+FIXES = re.compile(VERB + r"(?:issue\s+)?#(\d+)|" + VERB + r"finding:([a-z0-9][a-z0-9-]*)", re.I)
+
+
+def _rows(root):
+    try:
+        with open(os.path.join(root, ".loop", "regression.tsv")) as handle:
+            cells = [line.rstrip("\n").split("\t") + [""] * 8 for line in handle if line.strip() and line[0] != "#"]
+    except OSError:
+        return []
+    return [(c[0], c[2], c[4], c[7]) for c in cells if c[6] == "defect"]
+
+
+def _has(link, ref):
+    return re.search(r"(?:issues/|#)%s\b" % re.escape(ref), link) if ref.isdigit() else re.search(r"finding:%s(?![\w-])" % re.escape(ref), link)
+
+
+def _before(root):
+    try:
+        with open(os.path.join(root, ".loop", "config.json")) as handle:
+            base = json.load(handle).get("base") or "main"
+    except (OSError, ValueError):
+        base = "main"
+    git = lambda *a: subprocess.run(("git",) + a, cwd=root, capture_output=True, text=True, env=dict(os.environ, LC_ALL="C"))
+    found = next((x for x in (git("merge-base", "HEAD", ref).stdout.strip() for ref in ("origin/" + base, base)) if x), "")
+    shown = git("show", found + ":.loop/regression.tsv") if found else None
+    if not shown or shown.returncode and "exists on disk" not in shown.stderr and "does not exist" not in shown.stderr:
+        return None
+    return {c[0]: (c + [""] * 5)[4] for c in (line.split("\t") for line in shown.stdout.splitlines()) if c[0][:1] not in ("", "#")}
+
+
+def pr_owed(runs, root, text):
+    owe, old = [], _before(root)
+    for number, finding in FIXES.findall(text):
+        ref = number or finding.lower()
+        if not any(SEEN.match(seen) and _has(link, ref) and (old is None or old.get(name) != seen)
+                   and subprocess.run(command, shell=True, cwd=root, capture_output=True).returncode == 0
+                   for name, command, seen, link in _rows(root)):
+            owe.append(("#" if number else "finding ") + ref)
+    return owe
 
 
 def main():
