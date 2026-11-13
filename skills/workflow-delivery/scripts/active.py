@@ -34,13 +34,12 @@ def wall(state, at):
 
 
 def minutes(state, at=None):
-    """Whole minutes of active step time. A run still counted as running is read as running now."""
+    """Whole minutes of active step time: the gaps between log entries, and the time since the last one while the run is running."""
     at = at or datetime.datetime.now(datetime.timezone.utc)
     module = board_log()
     if module is None:
         return wall(state, at)
-    run = dict(state, status="running") if state.get("status") in ("running", "waiting") and state.get("step") else state
-    return int(sum(module.flow_seconds(run, at).values()) // 60)
+    return int(sum(module.flow_seconds(state, at).values()) // 60)
 
 
 def budget_stop(slug, state, runs, cfg, fit, at=None):
