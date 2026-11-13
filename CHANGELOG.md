@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.28.14 - 2026-11-13
+
+- backlog-milestones: Backlog milestones, defect/backlog filing by kind, ship-time FILE lines, Adoption milestones rule; wording proposed in DECISIONS.md
+- backlog-milestones: older health toys expect defect and backlog homes
+- Lane: re-render the Tests tables
+- backlog-milestones: Home says where health files findings
+- backlog-milestones: backlog renames the old Backlog milestone to Backlog: Other
+- backlog-milestones: docs follow the rename
+- backlog-milestones: a size FAIL is a defect (owner's change)
+- backlog-milestones: the owner's wording on DOC-10, HLT-4, DEL-14, SET-17, reviewed; criteria_max 17 for SET-17
+- backlog-milestones: pages re-reviewed by the owner; Guardrails notes criteria_max 17
+- backlog-milestones: Guardrails wording
+- Merge origin/main (v0.28.12) into loop/backlog-milestones: rows unioned, Tests re-rendered
+- Merge remote-tracking branch 'origin/main' into loop/backlog-milestones
+
+### How to verify
+
+1. Run `python3 skills/workflow-health/scripts/milestone.py backlog` in the template repo.
+   Expect: nine lines, `EXISTS Backlog: <Feature>` for the eight feature pages and `EXISTS Backlog: Other`, and nothing created.
+2. Run `python3 skills/workflow-health/scripts/health.py check --group adoption`.
+   Expect: a `PASS adoption milestones` line; delete one Backlog milestone on GitHub and it becomes a `WARN` naming that milestone.
+3. Run `python3 dev/toy/test-backlog.py`.
+   Expect: every line `PASS:` and the last `PASS: every filing has one home`.
+4. Write a ship reply with the line `FILE backlog Health: an idea` and run `python3 skills/workflow-health/scripts/milestone.py leftovers THAT_FILE` (no `--live`).
+   Expect: `WOULD file backlog on milestone Backlog: Health: an idea (dry run; add --live)` and no issue created.
+
 ## v0.28.13 - 2026-11-13
 
 - A regression row no longer inherits the runner's shard, levels or cleanup (#3133)
