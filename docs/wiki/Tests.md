@@ -468,9 +468,9 @@
 | <a id="t-mon8-silent-worker"></a>mon8-silent-worker | requirement | MON-8 | not run | - | local | 2026-11-13 |
 | <a id="t-operation-checkout-ff"></a>operation-checkout-ff | requirement | MON-13 | not run | - | local | 2026-11-13 |
 | <a id="t-mon14-reply-deps-whole"></a>mon14-reply-deps-whole | requirement | MON-14 | not run | - | local | 2026-11-13 |
-| <a id="t-who-merges-report"></a>who-merges-report | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) state unknown | not run | - | local | 2026-11-13 |
-| <a id="t-who-merges-fallback"></a>who-merges-fallback | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) state unknown | not run | - | local | 2026-11-13 |
-| <a id="t-who-merges-hold-flag"></a>who-merges-hold-flag | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) state unknown | not run | - | local | 2026-11-13 |
+| <a id="t-who-merges-report"></a>who-merges-report | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) open (2026-11-13) | not run | - | local | 2026-11-13 |
+| <a id="t-who-merges-fallback"></a>who-merges-fallback | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) open (2026-11-13) | not run | - | local | 2026-11-13 |
+| <a id="t-who-merges-hold-flag"></a>who-merges-hold-flag | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) open (2026-11-13) | not run | - | local | 2026-11-13 |
 
 ## Regression
 
