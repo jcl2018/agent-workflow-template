@@ -47,9 +47,12 @@ def states(folder):
 def rule():
     check("no matrix-runs.tsv: the rule is off (no rows)", report.matrix(repo(None)) == [])
     got = states(repo([]))
-    check("an empty record fails each V1-required cell", {s for s in got if s[0] == "FAIL"} ==
-          {("FAIL", "Claude Code on Windows"), ("FAIL", "Claude Code on macOS"), ("FAIL", "CI on Linux")})
-    check("an empty record warns not proven for the other cells", ("WARN", "codex on linux") in got and ("WARN", "claude-cli on linux") in got)
+    check("a cell that never ran is WARN pending, never FAIL, even a V1-required one", not [s for s in got if s[0] == "FAIL"] and
+          {("WARN", "Claude Code on Windows"), ("WARN", "Claude Code on macOS"), ("WARN", "CI on Linux"), ("WARN", "codex on linux")} <= got)
+    check("its detail says pending: no run recorded", all("pending: no run recorded" in r["detail"] for r in report.matrix(repo([]))))
+    check("a V1 cell that ran and failed is a FAIL", ("FAIL", "CI on Linux") in states(repo([line(0, "ci", "linux", "fail")])))
+    check("a V1 cell whose last run is too old is a FAIL", ("FAIL", "CI on Linux") in states(repo([line(9, "ci", "linux")])))
+    check("a non-V1 cell that ran and failed stays a WARN not proven", ("WARN", "codex on linux") in states(repo([line(0, "codex", "linux", "fail")])))
     full = [line(1, "claude-cli", "windows"), line(2, "claude-app", "macos"), line(0, "ci", "linux")]
     got = states(repo(full))
     check("a pass in each V1 cell leaves no FAIL", not [s for s in got if s[0] == "FAIL"])
@@ -58,7 +61,7 @@ def rule():
     got = states(repo(full + [line(0, "codex", "windows")]))
     check("a passing codex smoke clears its cell", ("WARN", "codex on windows") not in got)
     got = states(repo([line(8, "claude-cli", "windows")] + full[1:]))
-    check("a pass 8 days old no longer proves the cell", ("FAIL", "Claude Code on Windows") in got)
+    check("a pass 8 days old no longer proves the cell: FAIL, it ran", ("FAIL", "Claude Code on Windows") in got)
     got = states(repo([line(7, "claude-cli", "windows")] + full[1:]))
     check("a pass 7 days old still proves it", ("FAIL", "Claude Code on Windows") not in got)
     got = states(repo([line(0, "claude-cli", "windows", "fail")] + full[1:]))

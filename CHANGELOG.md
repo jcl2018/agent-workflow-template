@@ -1,5 +1,94 @@
 # Changelog
 
+## v0.28.19 - 2026-11-13
+
+- mac-rows-skip: guard test-local-schedule.sh off macOS, toy and row
+- mac-rows-skip: verify by hand, Tests render
+- mac-rows-skip: use toy_skip so a piped row is SKIPPED, fake-uname toy
+- Wiki: update pages for mac-rows-skip
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/mac-rows-skip
+- Tests render
+
+### How to verify
+
+1. Run `bash dev/toy/test-local-schedule.sh` on a Linux or Windows host.
+   Expect: it prints `SKIP: macOS only ...` and exits 77, with no FAIL line.
+2. After release, dispatch the `regression` workflow (Actions tab, or `gh workflow run regression.yml`) and open the Linux run.
+   Expect: the 15 `ls-*` rows and `aut-email-secrets` show SKIPPED (cannot run here) and open no issue.
+
+## v0.28.18 - 2026-11-13
+
+- Doc fixes: README Automation rows, depth rows link DEL-6, adopt-set-3 runs a skill, short Monitoring titles drafted
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/doc-fixes-v1
+- Home: README Automation rows follow Automation
+- Merge remote-tracking branch 'origin/main' into loop/doc-fixes-v1
+- Merge origin/main into loop/doc-fixes-v1
+- Merge remote-tracking branch 'origin/main' into loop/doc-fixes-v1
+- Merge origin/main into loop/doc-fixes-v1
+- Merge origin/main into loop/doc-fixes-v1
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.17 - 2026-11-13
+
+- Package passes: 99 files, scripts under 20,480 bytes, every script standalone
+- Wiki: where the built-in flow, entry templates and bind now live
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Merge origin/main (v0.28.9) into loop/package-pass; fold fresh.py into operate.py; trim fit.py again
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+- Fold reply_deps into checkin, actions_summary into slots, cost into milestone: back to 99 files
+- Wiki: where the cost rule, Dependencies check and summary job now live
+- Merge origin/main (v0.28.14) into loop/package-pass
+- listing.json: disclose the backlog and leftovers commands (the package check needs them)
+- Merge remote-tracking branch 'origin/main' into loop/package-pass
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.16 - 2026-11-13
+
+- Automation: a repo's own routines get a Runbook, a pointer prompt and a health check
+- Automation: registry docs, prompt-pointer rule line, Tests tables
+- DECISIONS: draft AUT-1, 2, 3, 4, 8 wording under Waiting on owner un-review
+- Merge origin/main into loop/automation-routines
+- Home: the Automation row says routines point to their Runbook
+- Merge origin/main into loop/automation-routines
+- Merge remote-tracking branch 'origin/main' into loop/automation-routines
+
+### How to verify
+
+1. Run `python3 dev/toy/test-automation-routines.py` from the repo root.
+   Expect: every line starts with `PASS:`.
+2. Run `python3 skills/workflow-docs/scripts/docs.py prompts`.
+   Expect: one `PROMPT <routine>: In <repo>, fast-forward to origin/main, then read docs/wiki/<Page>.md's Runbook section <routine> and follow it exactly.` line for health-round and regression-round.
+3. Add an entry such as `{"name": "site-deploy", "cadence": "0 6 * * *", "runs": "claude:site-deploy", "page": "Health"}` to `automation` in `.loop/config.json`, then run `python3 skills/workflow-docs/scripts/docs.py check`.
+   Expect: a finding says Health needs a `### site-deploy` Runbook; add it and the finding goes; `docs.py prompts` now prints a line for site-deploy.
+
+## v0.28.15 - 2026-11-13
+
+- publish-tables: re-render generated tables in the publish tree, toy and rows
+- publish-tables: regression runs, Tests render
+- Wiki: update pages for publish-tables
+- publish-tables: describe the rows, link DOC-11
+- Wiki: update pages for publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+- Merge remote-tracking branch 'origin/main' into loop/publish-tables
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.14 - 2026-11-13
 
 - backlog-milestones: Backlog milestones, defect/backlog filing by kind, ship-time FILE lines, Adoption milestones rule; wording proposed in DECISIONS.md

@@ -7,7 +7,7 @@ usage: sessions.py <command> [options]
   bind SLUG ID|self [--name N] [--force] [--cwd DIR]
                             record a session started with the app's own tools; before freezing it records the handoff
                             (ASSIGNED: the board shows it freezing), after goal.py new it binds (BOUND). --force: rebind
-                            a session freed from the goal. Prints the WORKER command and the WORKTREE (session_bind.py)
+                            a session freed from the goal. Prints the WORKER command and the WORKTREE (worker.py)
   free SLUG                 give back a stopped session's goal and slot (FREED, NOTHING TO FREE)
   report SLUG [--step S] [--status running|waiting|merged|failed] [--pr URL] [--ask Q --words W... --recommend W
               --kind K] [--attempt N] [--text T]
@@ -37,8 +37,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.modules.setdefault("sessions", sys.modules[__name__])  # run as a script, pool.py's import finds this same module
 import graph  # noqa: E402
 import proctree  # noqa: E402
-import session_bind  # noqa: E402
-from session_bind import HUNG, LAST_ERROR, call, fcntl, tool  # noqa: E402  (watch.py clears sessions.HUNG)
+import worker  # noqa: E402
+from worker import HUNG, LAST_ERROR, call, fcntl, tool  # noqa: E402  (watch.py clears sessions.HUNG)
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -164,7 +164,7 @@ def assign(state, prompt, cfg):
     found, to = pool(), os.environ.get("LOOP_OPERATION_SESSION", "")
     start = load(slug) or state  # a failed or stopped try's session is replaceable; a running one is a bind
     before = (start.get("session") or {}).get("id") if start.get("status") in ("failed", "stopped", "queued", "", None) else None
-    text = SEND.format(slug=slug, tree=state.get("worktree") or "its worktree", to=" (%s)" % to if to else "") + session_bind.worker_line(slug) + "\n\n" + prompt
+    text = SEND.format(slug=slug, tree=state.get("worktree") or "its worktree", to=" (%s)" % to if to else "") + worker.worker_line(slug) + "\n\n" + prompt
     free = sorted(s for s, item in found.items() if item.get("state") == "free")[:FREE_TRIES]
     sid, reused = None, False
     for sid in free + [None]:  # free ones first, then a new one
@@ -252,7 +252,7 @@ def cmd_assign(args):
 
 
 def cmd_bind(args):
-    return session_bind.cmd_bind(sys.modules[__name__], args)
+    return worker.cmd_bind(sys.modules[__name__], args)
 
 
 def cmd_free(args):
@@ -289,11 +289,6 @@ def merged(url):
 
 def release_step(state):
     """Where auto_merge is on, a goal that ended with its pull request open gets merge.py, as worker.py does."""
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    try:
-        import worker
-    except ImportError:
-        return
     worker.release_step(state)
 
 

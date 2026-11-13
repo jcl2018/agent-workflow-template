@@ -35,7 +35,7 @@ GROUPS = (
     ("hygiene", "Hygiene", "a janitor's angle: is anything left lying around?",
      ("findings", "waiting", "branches", "worktrees", "local-branches", "idle-sessions")),
     ("adoption", "Adoption", "another repo's angle: would this work installed fresh?",
-     ("config", "checks-run-tests", "template-version", "scheduled", "no-fit", "agent-tools", "migration", "milestones", "matrix")),
+     ("config", "checks-run-tests", "template-version", "scheduled", "no-fit", "agent-tools", "prompt-pointer", "migration", "milestones", "matrix")),
     ("controls", "Controls", "the checker's own angle: can each rule fire?", ()),
 )
 MINE = ("mine", "Mine", "my private angle", ())
@@ -73,32 +73,28 @@ MATRIX_V1 = (("Claude Code on Windows", (("claude-app", "windows"), ("claude-cli
 
 
 def matrix(root):
-    """matrix: each cell of agent x machine needs a passing smoke in 7 days, from .loop/matrix-runs.tsv (dev/toy/matrix-smoke.py
-    writes it; no file, no rows). A cell that never ran is a WARN "pending: no run recorded". One that ran with no pass in 7
-    days is a WARN "not proven", and a FAIL for a V1-required cell (it ran and failed, or its last run is too old)."""
+    """matrix: a cell of agent x machine needs a pass in .loop/matrix-runs.tsv (dev/toy/matrix-smoke.py) within 7 days; no file,
+    no rows. Never ran: WARN pending. No pass in time: WARN not proven, FAIL for a V1-required cell."""
     from defects import row
     from rules import days_since
     try:
         lines = [l.rstrip("\n").split("\t") for l in open(os.path.join(root, ".loop", "matrix-runs.tsv")) if l.strip() and not l.startswith("#")]
     except OSError:
         return []
-    last, proven = {}, set()  # cell -> its newest (date, result); cells with a pass in MATRIX_DAYS days
+    last, ok = {}, set()  # cell -> newest (date, result); cells with a pass in time
     for c in (c for c in lines if len(c) >= 6 and days_since(c[0]) is not None):
-        cell = (c[1], c[2])
-        last[cell] = max(last.get(cell, ("", "")), (c[0], c[5]))
+        last[c[1], c[2]] = max(last.get((c[1], c[2]), ("", "")), (c[0], c[5]))
         if c[5] == "pass" and days_since(c[0]) <= MATRIX_DAYS:
-            proven.add(cell)
-    fix = "run dev/toy/matrix-smoke.py on that machine, or the matrix job in CI"
-    out, covered = [], {cell for _, cells in MATRIX_V1 for cell in cells}
-    for label, cells in MATRIX_V1:
-        ran = sorted(last[c] for c in cells if c in last)
-        if not proven.intersection(cells):
-            out.append(row("FAIL", "adoption", label, "matrix", "V1-required: last run %s %s, no pass in %d days" % (ran[-1][0], ran[-1][1], MATRIX_DAYS), fix, ".loop/matrix-runs.tsv")
-                       if ran else row("WARN", "adoption", label, "matrix", "pending: no run recorded (V1-required)", fix, ".loop/matrix-runs.tsv"))
-    for cell in ((a, o) for a in ("claude-app", "claude-cli", "codex") for o in ("windows", "macos", "linux")):
-        if cell not in proven and cell not in covered:
-            out.append(row("WARN", "adoption", "%s on %s" % cell, "matrix", "not proven: last run %s %s, no pass in %d days" % (*last[cell], MATRIX_DAYS)
-                           if cell in last else "pending: no run recorded", fix.replace("on that machine, or the matrix job in CI", "--agent %s there" % cell[0]), ".loop/matrix-runs.tsv"))
+            ok.add((c[1], c[2]))
+    v1 = {c for _, cells in MATRIX_V1 for c in cells}
+    out = []
+    for label, cells, bad in [(l, cs, "FAIL") for l, cs in MATRIX_V1] + [
+            ("%s on %s" % (a, o), ((a, o),), "WARN") for a in ("claude-app", "claude-cli", "codex") for o in ("windows", "macos", "linux") if (a, o) not in v1]:
+        seen = sorted(last[c] for c in cells if c in last)
+        if not ok.intersection(cells):
+            out.append(row(bad if seen else "WARN", "adoption", label, "matrix",
+                           "not proven: last run %s %s, no pass in %d days" % (*seen[-1], MATRIX_DAYS) if seen else "pending: no run recorded",
+                           "run dev/toy/matrix-smoke.py on that machine, or the matrix job in CI", ".loop/matrix-runs.tsv"))
     return out
 
 
@@ -125,6 +121,31 @@ def agent_tools(root):
     return [row("WARN", "adoption", "agent_command", "agent-tools", "%s grants no tools, so a background agent stops at its first permission prompt"
                 % " and ".join(named), 'set "agent_command" in .loop/config.json to add --allowedTools Bash,Read,Write,Edit (claude) or --full-auto (codex); '
                 "the flow file's command and allowed_tools also run agents", "agent_command")] if named else []
+
+
+POINTER = re.compile(r"^In \S+, fast-forward to origin/main, then read \S+'s Runbook section \S+ and follow it exactly\.$")  # docs.py prompts
+
+
+def prompt_pointer(root):
+    """prompt-pointer: WARN for each installed scheduled-task prompt (a routine's runs: claude:TASK or mac:LABEL) holding a line other than the Runbook pointer."""
+    from defects import row
+    try:
+        items = json.load(open(os.path.join(root, ".loop", "config.json"))).get("automation") or []
+    except (OSError, ValueError, AttributeError):
+        return []
+    base, out = os.environ.get("LOOP_SCHEDULED_TASKS_DIR") or os.path.expanduser("~/.claude/scheduled-tasks"), []
+    tasks = {str(e.get("runs")).partition(":")[2] for e in items if isinstance(e, dict) and str(e.get("runs")).partition(":")[0] in ("claude", "mac")}
+    for task in sorted(tasks - {""}):
+        try:
+            text = open(os.path.join(base, task, "SKILL.md"), encoding="utf-8").read()
+        except OSError:
+            continue
+        body = re.sub(r"\A---\n.*?\n---\n", "", text.replace("\r\n", "\n"), flags=re.S)
+        extra = [x for x in (line.strip() for line in body.splitlines()) if x and not POINTER.match(x)]
+        if extra:
+            out.append(row("WARN", "adoption", task, "prompt-pointer", "the scheduled prompt holds %d line(s) beyond the Runbook pointer, the first: %s" % (len(extra), extra[0][:60]),
+                           "replace its prompt with the lines docs.py prompts prints; the steps live in the Runbook", task))
+    return out
 
 
 def heading(slug, skipped=False):
