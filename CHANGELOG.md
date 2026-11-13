@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.28.20 - 2026-11-13
+
+- Package gate: toy and rows run package.py's checks on the head (DEL-5, SET-3)
+- Merge origin/main into loop/package-gate
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 dev/toy/test-package-gate.py`.
+   Expect: four control PASS lines and `PASS: head: this checkout's package passes ...`, exit 0.
+2. Append 21,000 bytes of comment to any tracked script under skills/ and run it again.
+   Expect: a `FAIL: head: Scripts: <file> is ... bytes` line and exit 1.
+
 ## v0.28.19 - 2026-11-13
 
 - mac-rows-skip: guard test-local-schedule.sh off macOS, toy and row
