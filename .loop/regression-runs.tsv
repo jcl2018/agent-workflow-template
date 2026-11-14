@@ -76,7 +76,7 @@ ci-issue-backlog	PASS	2026-11-10
 ci-levels-setting	PASS	2026-11-10	
 ci-summary	PASS	2026-11-12	
 ci-target-input	PASS	2026-11-10	
-config-holds-topics	PASS	2026-11-13	
+config-holds-topics	PASS	2026-11-14	
 cost-time-warn	PASS	2026-11-12	
 cost-unread-tokens	PASS	2026-11-12	
 criteria-max-config	PASS	2026-11-12	
