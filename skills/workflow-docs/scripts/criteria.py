@@ -10,6 +10,7 @@ usage: criteria.py <command> [options]
                                mark them Unreviewed again, so their wording may change. With no terminal, both need
                                LOOP_OWNER_WORDS, the owner's own words that said to; each change is logged with them
                                in reviews.tsv in the repo's .git/loop folder
+  review|unreview ... --user --owner-record ID   the words come from owner-words.tsv record ID (deployments.py)
   render [--check] [--tables]  rewrite each feature page's Tests from the regression rows and their last runs;
                                --check only says which pages are stale; --tables leaves the Settings, Automation and
                                README blocks alone (a lane uses it: it must never rewrite a page it only measures)
@@ -45,7 +46,7 @@ GOAL = re.compile(r"^[a-z0-9][a-z0-9-]*:\d+$")  # slug:N, a goal's done line
 SCENARIO = re.compile(r"^Given .+, when .+, then .+", re.I)
 DAY = re.compile(r"^\d{4}-\d\d-\d\d$")
 SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
-from deployments import CRITERIA_MAX_DEFAULT, SHEET, criteria_max, rules  # noqa: E402,F401
+from deployments import CRITERIA_MAX_DEFAULT, SHEET, criteria_max, owner_words, rules  # noqa: E402,F401
 
 
 def git(*args, check=True):
@@ -293,6 +294,8 @@ def mark_all(args, make, page_change):
     if not args.user:
         sys.exit("REFUSED: only the owner changes a review. Fix: pass --user when their own words said to.")
     words = " ".join(os.environ.get("LOOP_OWNER_WORDS", "").split())
+    if args.owner_record:
+        words = owner_words(args, git)
     if not words and not os.isatty(0):
         sys.exit("REFUSED: --user with no terminal needs the owner's words. Nothing was changed. Fix: set LOOP_OWNER_WORDS "
                  "to the owner's own message that said to, quoted exactly; never words of your own.")
@@ -360,6 +363,7 @@ def main():
         item = sub.add_parser(name)
         item.add_argument("ids", nargs="+")
         item.add_argument("--user", action="store_true", help="the owner's own words said so")
+        item.add_argument("--owner-record", default="", help="an owner-words.tsv record id (sessions.py owner-words)")
         if name == "review":
             item.add_argument("--date", help="YYYY-MM-DD, on or before today; default today (UTC)")
         item.set_defaults(func=func)
