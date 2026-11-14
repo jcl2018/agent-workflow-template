@@ -113,6 +113,7 @@ None
 | [grd9-controls](Tests#t-grd9-controls) | requirement | GRD-9 | Given every health rule, when the controls run on broken copies, then each rule fires. | not run |
 | [repo-rules-control](Tests#t-repo-rules-control) | requirement | GRD-9 | Given a repo rule with a break command, when the Controls group runs, then the rule whose break makes it fail passes its control and one whose break changes nothing is reported as unable to fire. | not run |
 | [repo-rules-refuse](Tests#t-repo-rules-refuse) | requirement | GRD-9 | Given a repo rule with no break command, when health runs, then it refuses with exit 2 naming the rule. | not run |
+| [repo-rules-off](Tests#t-repo-rules-off) | requirement | GRD-9 | Given a default rule turned off in .loop/health-rules.json, when health checks, then its group prints the reason, and a default turned off with no reason stays on and is UNREAD. | not run |
 | - | requirement | GRD-9 | no passing test | not enforced |
 | [grd10-install-hooks](Tests#t-grd10-install-hooks) | requirement | GRD-10 | Given a repo being adopted, when setup runs by default, then it installs the three private-name hooks after its commit. | not run |
 | - | requirement | GRD-10 | no passing test | not enforced |
