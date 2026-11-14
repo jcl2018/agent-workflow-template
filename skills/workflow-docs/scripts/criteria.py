@@ -46,7 +46,7 @@ GOAL = re.compile(r"^[a-z0-9][a-z0-9-]*:\d+$")  # slug:N, a goal's done line
 SCENARIO = re.compile(r"^Given .+, when .+, then .+", re.I)
 DAY = re.compile(r"^\d{4}-\d\d-\d\d$")
 SCRIPT_FILE = re.compile(r"[\w./-]*\w\.(?:py|sh|bash|zsh|js|mjs|cjs|ts|rb|pl|php|ps1|bat)\b", re.I)
-from deployments import CRITERIA_MAX_DEFAULT, SHEET, criteria_max, owner_words, rules  # noqa: E402,F401
+from deployments import CRITERIA_MAX_DEFAULT, SHEET, criteria_max, link_of, link_page, owner_words, rules  # noqa: E402,F401
 
 
 def git(*args, check=True):
@@ -178,12 +178,14 @@ def blocks(lines):
 
 def contract(root, names, seen):
     """Page contract trouble for these feature pages, as (kind, page, detail). `seen` maps ids to their page."""
+    import counting
     import deployments
     import pageformat as pf
     import prd
     import render
-    found, rule = [], rules()
-    limit, on = criteria_max(root), rule["format"]
+    found, rule, unread = [], rules(), False
+    limit, on, held = criteria_max(root), rule["format"], render.maps(root)
+    owns = {row[0]: re.findall(r"(?:^|,)skills/([\w-]+)", row[1]) for row in tsv(root, "docs.tsv")}
     linked, loose = test_rows(root)
     head, books = rule["sections"], {page: [] for page in names}
     for page in names:
@@ -196,6 +198,12 @@ def contract(root, names, seen):
                           "references/commands.md, and the README's How to use table" % rule["usage"]))
             have = [name for name in have if name != rule["usage"]]
         numbered = {name: (start, lines) for name, start, lines in pf.parts(text)}
+        link = link_of(text, counting.sources(root).get(page, ""))
+        if link:  # DOC-1: a link-form page holds the PRD line and the generated sections; the linked document is the PRD
+            books[page] = numbered.get(rule["runbook"], (0, []))[1]
+            got = link_page(root, page, text, link, parts, numbered, rule, seen, linked, set(on))
+            unread, found = unread or any(x[0] == "UNREAD" for x in got), found + got
+            continue
         books[page] = numbered.get(rule["runbook"], (0, []))[1]  # read before the order check, so a misordered page is not also "no runbook"
         want = head[:1] + [x for x in (rule["runbook"],) if x in have] + head[1:]
         if rule["deploy"] in have:  # optional, after Success metrics (before Tests)
@@ -256,7 +264,8 @@ def contract(root, names, seen):
     for key in sorted(set(defect_rows(root)) - set(seen)):
         found.append(("LINK", "regression", "defect tests guard %s, which no page has" % key))
     for key in sorted(set(linked) - set(seen)):
-        found.append(("LINK", "regression", "rows link to %s, which no page has" % key))
+        if not unread:
+            found.append(("LINK", "regression", "rows link to %s, which no page has" % key))
     return found
 
 

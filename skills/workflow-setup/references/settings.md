@@ -79,3 +79,4 @@ Outside the repo, never committed: `~/.workflow-loop/flow.json` (or `$LOOP_FLOW`
 | `lane_limit` | `2` | Flow file: full regression lanes that may run at once on this machine; more wait their turn (0 is unlimited). |
 | `rules` | `[]` | Health file: your own health rules, each {name, command, fix}. |
 | `repos` | `[]` | Followed repos: one path a line in the repos file, shown on the board. |
+| `topics` | `{}` | Home's Topic column: per topic, the pages it groups, e.g. {"Quality": ["Regression"]}; a page no topic lists is under Other. |

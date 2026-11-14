@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.28.41 - 2026-11-14
+
+- docs: a feature's PRD can live at a page, url or mcp source; Home groups features by a Topic column
+- Merge origin/main into loop/prd-link-topics
+- review: import prd properly in link_of, guard the sys.path insert
+- qa: three regression rows for link-form pages and the Topic column, each seen failing
+- Merge origin/main into loop/prd-link-topics: Home and Tests re-rendered
+- Merge origin/main into loop/prd-link-topics: decisions merged, Home and Tests re-rendered
+- docs: Setup, Guardrails and Regression name the topics setting and linked PRD ids; SKILL.md back under 150 lines
+- docs: Documentation names the PRD source and the Topic column
+- Tests re-rendered after the lane rows ran
+- Merge origin/main into loop/prd-link-topics: Documentation Usage merged
+- Drop this goal's Usage edits; the lines live in each skill's references
+- Merge origin/main (v0.28.27) into loop/prd-link-topics
+- Notion app links need the reader; rows that guard topics and link-form ids; toy fixture without Usage
+- Row: an app.notion.com link without a reader is UNREAD
+- Row proven red: an app.notion.com link without a reader is UNREAD
+- Merge remote-tracking branch 'origin/main' into loop/prd-link-topics
+- tests.py reads docs.tsv itself so the regression skill imports nothing outside its folder
+- Row: tests.py keeps to its own folder
+- Merge origin/main (v0.28.39) into loop/prd-link-topics; read_link moves to prd.py to keep deployments.py under the cap
+- Expand step: Home accepts the old header and the Topic header; topics row and column are optional (shown once the repo sets topics)
+- Row: topics shows its default when the repo sets none
+- Merge remote-tracking branch 'origin/main' into loop/prd-link-topics
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.40 - 2026-11-14
 
 - Release head status: carry the goal's pass over a bump-only head, post failure only for rows that failed, name them in the refusal (#3870)
