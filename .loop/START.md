@@ -73,6 +73,8 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `goal_levels` | land | Row levels a goal lane plans from: land, or nightly for land and nightly rows. |
 | `govern_hook` | true | false turns off the govern-only hook (setup.py --govern-hook installs it): edits, commits and pushes refused in the operation session. |
 | `health_cron` | 47 */4 * * * | Five cron fields (every N hours, or fixed hours): when health with the judge and its digest run on the Mac; off turns it off. |
+| `health_script_bytes` | 20480 | Script size health fails, in bytes (warns at 90%). |
+| `health_skill_lines` | 150 | SKILL.md line cap health fails. |
 | `judge_command` | ["claude", "-p", "--tools", ""] |  |
 | `judge_env` | ANTHROPIC_API_KEY | No longer read: the judge runs on the Mac with your own claude login. Kept so old configs stay valid. |
 | `judge_setup` | none | No longer read: kept so old configs stay valid. |
@@ -102,7 +104,7 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `test_budget_minutes` | 15 | Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite. |
 | `time_budget_minutes` | 120 |  |
 | `token_budget` | 3000000 | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
-| `topics` | {"Build loop": ["Delivery", "Monitoring"], "Quality": ["Regression", "Health", "Guardrails"], "Operations": ["Automation", "Setup"], "Docs": ["Documentation"]} |  |
+| `topics` | {"Build loop": ["Delivery", "Monitoring"], "Quality": ["Regression", "Health", "Guardrails"], "Operations": ["Automation", "Setup"], "Docs": ["Documentation"]} | Home's Topic column: {topic: [feature pages]}; rows are grouped by topic in this order, unlisted pages sit under Other, and empty means no Topic column. |
 | `version_file` | VERSION | The file that holds the version; a release bumps it and writes the changelog. |
 | `watch_interval` | 20 | Seconds between rounds of watch. |
 | `wiki_dir` | docs/wiki | The folder of wiki pages. |

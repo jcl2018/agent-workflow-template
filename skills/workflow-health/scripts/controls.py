@@ -15,6 +15,7 @@ import hashlib
 import importlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -414,6 +415,48 @@ def one(rule, function, here, keep=False):
 def run(rules, here):
     """One controls row per rule, in the order of rules (a dict: rule name -> function(root) -> rows)."""
     return [one(rule, function, here)[0] for rule, function in rules.items()]
+
+
+def repo_control(root, rule):
+    """The Controls row for one repo rule (.loop/health-rules.json): its break runs on a private copy of the repo's files,
+    tracked and new, then its command runs there, and it must exit 1 or 2. The real repo is never touched."""
+    name, folder = rule["name"], tempfile.mkdtemp(prefix="health-control-")
+    copy, fix = os.path.join(folder, "repo"), "fix the rule's break in .loop/health-rules.json"
+    try:
+        os.makedirs(copy)
+        for rel in filter(None, git(root, "ls-files", "-z", "--cached", "--others", "--exclude-standard").split("\0")):
+            if os.path.isfile(os.path.join(root, rel)):
+                os.makedirs(os.path.dirname(os.path.join(copy, rel)), exist_ok=True)
+                shutil.copy2(os.path.join(root, rel), os.path.join(copy, rel))
+        broke = subprocess.run(rule["break"], cwd=copy, capture_output=True, text=True, timeout=120)
+        if broke.returncode:
+            return row("UNREAD", name, "its break command exited %d" % broke.returncode, fix)
+        code = subprocess.run(rule["command"], cwd=copy, capture_output=True, text=True, timeout=int(rule.get("timeout") or 120)).returncode
+    except (OSError, ValueError, Unbuilt, subprocess.SubprocessError) as error:
+        return row("UNREAD", name, "the control could not run: %s" % type(error).__name__, fix)
+    finally:
+        shutil.rmtree(folder, ignore_errors=True)
+    if code in (1, 2):
+        return row("PASS", name, "fires on its fixture")
+    if code:
+        return row("UNREAD", name, "its command exited %d after the break, not 1 or 2" % code, fix)
+    return row("FAIL", name, "cannot fire: it passed after its break command", fix)
+
+
+def repo_controls(root):
+    """One Controls row per repo rule (.loop/health-rules.json)."""
+    import enforce
+    return [repo_control(root, rule) for rule in enforce.repo_load(root)[0]]
+
+
+def refuse_repo():
+    """Exit 2 before any report when a repo rule has no break, no known group or no name of its own."""
+    import enforce
+    top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    problems = enforce.repo_load(top.stdout.strip())[2] if not top.returncode else []
+    if problems:
+        print("REFUSED: " + problems[0])
+        sys.exit(2)
 
 
 def missing(names):

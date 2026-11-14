@@ -35,7 +35,7 @@ import time
 
 import issues as IS
 import report as _report
-from defects import LINE, behind, pages, row, table
+from defects import LINE, behind, pages, row, setting, table
 
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
@@ -291,13 +291,13 @@ def workflow_permissions(root):
 
 
 def skill_lines(root):
-    out = []
+    out, cap = [], setting(root, "health_skill_lines", SKILL_LINES)  # a repo's own cap (config.json)
     for path in sorted(glob.glob(os.path.join(root, "skills", "*", "SKILL.md"))):
         with open(path, "rb") as handle:  # LF lines, as git holds them
             count = len(handle.read().replace(b"\r\n", b"\n").splitlines())
-        if count >= SKILL_LINES:
+        if count >= cap:
             name = os.path.relpath(path, root)
-            out.append(row("FAIL", "size", name, "skill-lines", "%d lines, %d or more" % (count, SKILL_LINES),
+            out.append(row("FAIL", "size", name, "skill-lines", "%d lines, %d or more" % (count, cap),
                            "move detail into references/", name))
     return out
 

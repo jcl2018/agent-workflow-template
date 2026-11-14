@@ -35,6 +35,7 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `goal_levels` | `land` | Row levels a goal lane plans from: land, or nightly for land and nightly rows. |
 | `regression_runs` | `(empty)` | Where the full regression runs: actions (a public repo) or mac (with each Mac tick: a private repo, or a public one recorded mac); setup records it from the repo's live visibility, keeps a recorded mac, and unset means it is not known (nothing is written for GitHub). |
 | `automation` | `[]` | Routines the Automation table lists: {name, does, cadence, runs: github:FILE, mac:LABEL or claude:TASK}; setup declares the three built-in ones. |
+| `topics` | `{}` | Home's Topic column: {topic: [feature pages]}; rows are grouped by topic in this order, unlisted pages sit under Other, and empty means no Topic column. |
 | `ci_levels` | `nightly` | Target of the scheduled and tag regression runs: nightly (every row) or land. |
 | `token_budget` | `0` | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
 | `test_budget_minutes` | `15` | Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite. |
@@ -54,6 +55,8 @@ In `.loop/config.json`, committed and shared. 0 for `parallel` means unlimited.
 | `full_auto` | `true` | true lets the operation session answer a worker's routine decision with its recommended option, logged; risky ones wait. |
 | `pool_size` | `20` | Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones. |
 | `silent_minutes` | `30` | Minutes a worker may send nothing before it shows under Needs you; LOOP_SESSION_QUIET (seconds) overrides it. |
+| `health_script_bytes` | `20480` | Script size health fails, in bytes (warns at 90%). |
+| `health_skill_lines` | `150` | SKILL.md line cap health fails. |
 | `feature_labels` | `false` | true makes health file and the regression workflow tag each issue feature:<Page> for its feature, and create that label; off by default, so issues carry their group or regression label only. |
 
 ## Private settings
@@ -77,4 +80,3 @@ Outside the repo, never committed: `~/.workflow-loop/flow.json` (or `$LOOP_FLOW`
 | `lane_limit` | `2` | Flow file: full regression lanes that may run at once on this machine; more wait their turn (0 is unlimited). |
 | `rules` | `[]` | Health file: your own health rules, each {name, command, fix}. |
 | `repos` | `[]` | Followed repos: one path a line in the repos file, shown on the board. |
-| `topics` | `{}` | Home's Topic column: per topic, the pages it groups, e.g. {"Quality": ["Regression"]}; a page no topic lists is under Other. |

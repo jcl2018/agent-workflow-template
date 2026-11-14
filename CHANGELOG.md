@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.28.45 - 2026-11-14
+
+- Health repo rules: .loop/health-rules.json (rules with a break, thresholds, off with a reason), setup writes it
+- Health repo rules: docs, settings reference, regression rows seen red
+- Guardrails: the Size caps are repo settings
+- Health repo rules: glue moved out of health.py (under its size warning); no repo rules leaves the report as it was
+- Health repo rules: the commands live in the skill reference and the settings table, not the Usage lines
+- Tests pages rendered
+- Merge origin/main into health-repo-rules
+- Tests page rendered
+- Merge remote-tracking branch 'origin/main' into loop/health-repo-rules
+- Repo rules rows serve HLT-2, GRD-9 and SET-1; Tests tables rendered
+- Merge origin/main into health-repo-rules
+- Tests rendered
+- Merge remote-tracking branch 'origin/main' into loop/health-repo-rules
+- Shorter setting texts (settings.py under its cap); listing names owner-words
+- The threshold row serves SET-2; Tests tables rendered
+- Merge origin/main into health-repo-rules
+- The off row serves GRD-9; Tests tables rendered
+- Wiki: update pages for health-repo-rules
+- Merge remote-tracking branch 'origin/main' into loop/health-repo-rules
+- Home settings block re-rendered with the health settings
+- Merge remote-tracking branch 'origin/main' into loop/health-repo-rules
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.44 - 2026-11-14
 
 - docs.py automation reports an unknown state when launchctl or gh is missing

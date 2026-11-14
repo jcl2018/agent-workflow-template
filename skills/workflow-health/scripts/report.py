@@ -39,13 +39,14 @@ GROUPS = (
     ("controls", "Controls", "the checker's own angle: can each rule fire?", ()),
 )
 MINE = ("mine", "Mine", "my private angle", ())
+REPO = ("repo", "Repo", "this repo's own angle", ())  # .loop/health-rules.json: a repo's own rules, beside the twelve
 MAX_GROUPS = 12
 assert len(GROUPS) == MAX_GROUPS, "exactly %d groups: retire one before adding another" % MAX_GROUPS
 
-ORDER = tuple(g[0] for g in GROUPS[:-1]) + ("mine", "controls")  # Mine reports just before Controls
-TITLE = {g[0]: g[1] for g in GROUPS + (MINE,)}
-ANGLE = {g[0]: g[2] for g in GROUPS + (MINE,)}
-RULES_OF = {g[0]: g[3] for g in GROUPS + (MINE,)}
+ORDER = tuple(g[0] for g in GROUPS[:-1]) + ("repo", "mine", "controls")  # Repo, then Mine, report just before Controls
+TITLE = {g[0]: g[1] for g in GROUPS + (MINE, REPO)}
+ANGLE = {g[0]: g[2] for g in GROUPS + (MINE, REPO)}
+RULES_OF = {g[0]: g[3] for g in GROUPS + (MINE, REPO)}
 GROUP_OF = {rule: g[0] for g in GROUPS for rule in g[3]}
 RULES = tuple(rule for g in GROUPS for rule in g[3])  # every rule; each needs a negative control (controls.py)
 ALIASES = {"criteria": "requirements", "cost": "performance"}  # older --group names, kept for one release
@@ -167,6 +168,8 @@ def groups(rows, asked):
     ran, skipped = [], []
     for name in ORDER:
         mine = [item for item in rows if item["family"] == name]
+        if name == "repo" and all(item["state"] == "INFO" for item in mine):
+            continue  # no repo rules: the header and headings read as they did before the repo layer
         if asked and name not in asked:
             skipped.append((name, "not asked"))
         elif name == "mine" and mine and all(item["state"] == "INFO" for item in mine):
@@ -179,7 +182,7 @@ def groups(rows, asked):
 def build(rows, asked=None, ran_rules=None):
     """(lines, counts, green, verdict, ran, skipped, rows) for the fixed template."""
     ran, skipped = groups(rows, asked)
-    rows = complete(rows, [name for name in ran if name != "mine"], ran_rules)
+    rows = complete(rows, [name for name in ran if name not in ("mine", "repo")], ran_rules)
     counts = {state: sum(1 for item in rows if item["state"] == state) for state in ("PASS", "WARN", "FAIL", "UNREAD")}
     green = not counts["FAIL"] and not counts["UNREAD"]
     verdict = "HEALTH: %s (%d pass, %d warn, %d fail, %d unread)" % (
