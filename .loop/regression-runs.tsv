@@ -256,10 +256,10 @@ live-board-leftouts	PASS	2026-11-12
 live-board-no-oneline	PASS	2026-11-12	
 local-row-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lock-in-report	PASS	2026-11-12	
-matrix-health-rule	PASS	2026-11-13	
-matrix-smoke-record	PASS	2026-11-13	
 ls-plist	FAIL	2026-11-13	
 mac-rows-skip-77	PASS	2026-11-13	
+matrix-health-rule	PASS	2026-11-13	
+matrix-smoke-record	PASS	2026-11-13	
 merge-base-undiffable	PASS	2026-11-11	
 merge-base-unrecorded	PASS	2026-11-11	
 merge-guard-base-head	PASS	2026-11-11	
@@ -387,7 +387,7 @@ report-held-111	PASS	2026-11-10
 report-sub-bullets	PASS	2026-11-12	
 retired-leaves-waiting	PASS	2026-11-09	
 review-dated	PASS	2026-11-12	
-review-findings-skill-lines	FAIL	2026-11-13	
+review-findings-skill-lines	FAIL	2026-11-14	
 review-owner-only	PASS	2026-11-12	
 reviewed-lock	PASS	2026-11-12	
 row-timeout-holds	PASS	2026-11-11	
