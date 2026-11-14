@@ -1,5 +1,81 @@
 # Changelog
 
+## v0.28.37 - 2026-11-14
+
+- Budget counts active step time only: held time in the pr queue, on holds, owner answers and stops counts nothing (#3878)
+- Docs: the time budget counts active step time only (#3878)
+- Review: the budget counts the live tail only while the run is running
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- Restore the reviewed Guardrails text (the owner reviewed GRD-2; the budget rule lives in Monitoring MON-4's row text instead)
+- Wiki: the held-time defect row sits on Delivery DEL-8; re-render the Tests tables
+- Lane: re-render the Tests tables
+- Fold active.py into fit.py: the package stays at its file cap
+- Active minutes: the loader in fit.py, the sum in board_log.py; fit.py back under its cap
+- Seen-red marks; re-render the Tests tables
+- Link the hold row to MON-4 and the over-budget row to DEL-8; re-render the Tests tables
+- Run record for the held-time rows; re-render the Tests tables
+- Merge origin/main into loop/held-time-budget
+- Wiki: update pages for held-time-budget
+- Merge remote-tracking branch 'origin/main' into loop/held-time-budget
+- Fixes #3878: test held-time-3878, seen failing 2026-11-14, passing
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.36 - 2026-11-14
+
+- owner-relay: owner-words record, --owner-record, SKILL.md rules, DECISIONS draft, toy test
+- Verify by hand and Tests tables: owner-relay
+- Merge remote-tracking branch 'origin/main' into loop/owner-relay
+- Merge origin/main into loop/owner-relay
+- docs: DOC-2 and MON-11 reworded as the owner approved (owner-relay)
+- Merge origin/main into loop/owner-relay
+- docs: re-review Documentation and Monitoring after the owner-relay wording
+- owner-relay: fold owner-words code into auto.py and deployments.py (package stays under the file cap); Home notes the record
+- docs: Documentation and Monitoring are current after the fold
+- Merge remote-tracking branch 'origin/main' into loop/owner-relay
+- Merge origin/main into loop/owner-relay
+- docs: Monitoring page reviewed on the owner's words (owner-relay)
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/owner-relay
+
+### How to verify
+
+1. In the operation session run `python3 skills/workflow-monitoring/scripts/sessions.py owner-words "Review DOC-1 now" --ids DOC-1`.
+   Expect: `OWNER-WORDS o1 covers DOC-1`, and a line in `.git/loop/owner-words.tsv` with the text in quotes.
+2. In a worker session run the same command with `LOOP_ROLE=worker`.
+   Expect: `REFUSED: only the operation session records the owner's words`, and no new line in the file.
+3. Run `python3 skills/workflow-docs/scripts/criteria.py review DOC-2 --user --owner-record o1 < /dev/null`.
+   Expect: `REFUSED: record o1 does not cover DOC-2`, and the page unchanged.
+4. Read DECISIONS.md under "Waiting on owner un-review".
+   Expect: the drafted DOC-2 and MON-11 wording, waiting for your typed words.
+
+## v0.28.35 - 2026-11-14
+
+- Regression issues: one open issue per row (the oldest), and no issue written without --live (#2614)
+- Regression and Automation pages: issues are written only behind --live
+- Docs: Automation metric, Tests tables re-rendered
+- Automation page: keep the reviewed text (the owner reviews pages)
+- body-file toy: the workflow's gh() runs with --live
+- Regression Runbook: a job-skipped row files no issue
+- Merge origin/main into loop/regression-issues-trust
+- Merge remote-tracking branch 'origin/main' into loop/regression-issues-trust
+- Automation page: its issues are written only behind --live
+- Revert "Automation page: its issues are written only behind --live"
+- Merge origin/main into loop/regression-issues-trust
+- Merge remote-tracking branch 'origin/main' into loop/regression-issues-trust
+- Merge origin/main into loop/regression-issues-trust
+- test-row-output: the workflow step passes --live
+- Merge origin/main into loop/regression-issues-trust
+- Merge origin/main into loop/regression-issues-trust
+- Automation: owner review for regression-issues-trust (AUT-2, AUT-5 cover the issue writer and matrix-smoke)
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.34 - 2026-11-14
 
 - health: matrix rule reads .loop/matrix-runs.tsv (WARN unproven cell, FAIL unproven V1 cell)
