@@ -70,6 +70,8 @@
   "feature_labels": false,
   "template_version": "0.27.29",
   "regression_runs": "",
+  "health_script_bytes": 20480,
+  "health_skill_lines": 150,
   "topics": {
     "Build loop": [
       "Delivery",

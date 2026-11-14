@@ -1,0 +1,5 @@
+{
+  "_comment": "rules: [{name, group (a health group or repo), feature, command (words; exit 0 pass, 2 warn, 1 fail), fix, break (a command that makes it fail)}]. off: {default rule: reason}.",
+  "rules": [],
+  "off": {}
+}

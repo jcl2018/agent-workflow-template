@@ -72,8 +72,30 @@ def setting_path():
     return os.environ.get("LOOP_HEALTH") or os.path.join(os.path.expanduser("~"), ".workflow-loop", "health.json")
 
 
-def mine_row(state, subject, detail, fix=""):
-    return {"state": state, "family": GROUP, "subject": subject, "rule": "mine", "detail": detail, "fix": fix}
+def mine_row(state, subject, detail, fix="", family=GROUP, rule="mine", **more):
+    return dict({"state": state, "family": family, "subject": subject, "rule": rule, "detail": detail, "fix": fix}, **more)
+
+
+def words(command):
+    return isinstance(command, list) and bool(command) and all(isinstance(part, str) for part in command)
+
+
+def run_rule(root, rule, name, family=GROUP, label="mine", **more):
+    """One rule's row: its command run in root (exit 0 PASS, 2 WARN, 1 FAIL, else UNREAD)."""
+    row = lambda state, detail, fix="": mine_row(state, name, detail, fix, family, label, **more)
+    command = rule.get("command") if isinstance(rule, dict) else None
+    if not words(command):
+        return row("UNREAD", "the rule has no command list", "give the rule a command as a list of words")
+    fix = str(rule.get("fix") or "run: " + " ".join(command))
+    try:
+        done = subprocess.run(command, cwd=root, capture_output=True, text=True, timeout=int(rule.get("timeout") or 120))
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        return row("UNREAD", "could not run: %s" % str(error)[:100], fix)
+    out = ((done.stdout or "").strip().splitlines() or (done.stderr or "").strip().splitlines() or [""])[-1][:100]
+    state = {0: "PASS", 1: "FAIL", 2: "WARN"}.get(done.returncode)
+    if state is None:
+        return row("UNREAD", "exited %d, not 0, 1 or 2" % done.returncode, fix)
+    return row(state, out or "exit %d" % done.returncode, "" if state == "PASS" else fix)
 
 
 def mine_rows(root):
@@ -89,24 +111,68 @@ def mine_rows(root):
     rows = []
     for number, rule in enumerate(rules, 1):
         name = rule.get("name") if isinstance(rule, dict) else None
-        command = rule.get("command") if isinstance(rule, dict) else None
-        name = str(name or "rule-%d" % number)
-        if not (isinstance(command, list) and command and all(isinstance(part, str) for part in command)):
-            rows.append(mine_row("UNREAD", name, "the rule has no command list", "give the rule a command as a list of words"))
-            continue
-        fix = str(rule.get("fix") or "run: " + " ".join(command))
-        try:
-            done = subprocess.run(command, cwd=root, capture_output=True, text=True, timeout=int(rule.get("timeout") or 120))
-        except (OSError, ValueError, subprocess.SubprocessError) as error:
-            rows.append(mine_row("UNREAD", name, "could not run: %s" % str(error)[:100], fix))
-            continue
-        out = ((done.stdout or "").strip().splitlines() or (done.stderr or "").strip().splitlines() or [""])[-1][:100]
-        state = {0: "PASS", 1: "FAIL", 2: "WARN"}.get(done.returncode)
-        if state is None:
-            rows.append(mine_row("UNREAD", name, "exited %d, not 0, 1 or 2" % done.returncode, fix))
-        else:
-            rows.append(mine_row(state, name, out or "exit %d" % done.returncode, "" if state == "PASS" else fix))
+        rows.append(run_rule(root, rule, str(name or "rule-%d" % number)))
     return rows or [mine_row("INFO", "setting", "the private file lists no rules")]
+
+
+# The repo layer: .loop/health-rules.json, committed. {"rules": [{"name", "group" (one of the twelve, or "repo"), "feature",
+# "command", "fix", "break"}], "off": {"<default rule>": "<reason>"}}. A command runs as Mine's does. "break" is a command that
+# makes it fail, which the Controls group runs on a copy of the repo. They are the repo's own commands, with the repo's own trust.
+REPO_FILE = os.path.join(".loop", "health-rules.json")
+
+
+def repo_load(root):
+    """(rules, off, problems, rows): the valid rules and the off map (empty when the file is absent or unreadable); problems
+    are refusal lines (health.py exits 2); rows are the repo group's own INFO and UNREAD rows."""
+    note = lambda state, detail, fix="": [mine_row(state, REPO_FILE, detail, fix, "repo", "repo")]
+    if not os.path.exists(os.path.join(root, REPO_FILE)):
+        return [], {}, [], []
+    try:
+        with open(os.path.join(root, REPO_FILE)) as handle:
+            data = json.load(handle)
+        rules, off = data.get("rules", []), data.get("off", {})
+        assert isinstance(rules, list) and isinstance(off, dict)
+    except (OSError, ValueError, AttributeError, AssertionError):
+        return [], {}, [], note("UNREAD", "cannot read the repo rules", "fix the file: a JSON object with a rules list and an off map")
+    import report as G
+    problems, good, seen, rows = [], [], set(G.RULES), []
+    for number, rule in enumerate(rules, 1):
+        name = str(rule.get("name") or "rule-%d" % number) if isinstance(rule, dict) else "rule-%d" % number
+        group = rule.get("group") if isinstance(rule, dict) else None
+        bad = ("is not an object" if not isinstance(rule, dict) else "repeats a name or is a default rule" if name in seen
+               else "has no known group (one of the twelve, or repo)" if group not in G.ORDER or group in ("mine", "controls")
+               else "has no break command" if not words(rule.get("break")) else "has no command list" if not words(rule.get("command")) else "")
+        seen.add(name)
+        if bad:
+            problems.append("repo rule %s %s. Fix: edit %s" % (name, bad, REPO_FILE))
+        else:
+            good.append(dict(rule, name=name))
+    for key, why in off.items():
+        if key not in G.RULES or not (isinstance(why, str) and why.strip()):
+            rows += [mine_row("UNREAD", key, "cannot be turned off: %s" % ("not a default rule" if key not in G.RULES else "it needs a reason"),
+                              "name a default rule and give a reason in off", "repo", "repo")]
+    off = {k: v.strip() for k, v in off.items() if k in G.RULES and isinstance(v, str) and v.strip()}
+    return good, off, problems, rows
+
+
+def repo_rows(root):
+    """The repo rules' rows, each in its own group with its feature, then the repo group's own rows."""
+    rules, _, _, rows = repo_load(root)
+    return [run_rule(root, rule, rule["name"], rule["group"], rule["name"], feature=str(rule.get("feature") or ""), evidence=rule["name"])
+            for rule in rules] + rows
+
+
+def repo_merge(root, rows, asked):
+    """rows without the rules the repo turned off, plus the repo's own rows in the groups asked."""
+    import report as G
+    off = {item["rule"] for item in off_rows(root)}
+    return [item for item in rows if G.rule_of(item) not in off] + [item for item in repo_rows(root) + off_rows(root) if item["family"] in asked]
+
+
+def off_rows(root):
+    """One INFO row, in its own group, for each default rule the repo turned off: the reason is printed."""
+    import report as G
+    return [mine_row("INFO", rule, "turned off: %s" % why, "", G.GROUP_OF[rule], rule) for rule, why in sorted(repo_load(root)[1].items())]
 
 
 # --- migration-check: the routine, task and check gaps, then the docs check and the published wiki (the engine is defects.py)
