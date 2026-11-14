@@ -59,6 +59,7 @@ unchanged repo print the same lines.
 | | `template-version` | VERSION isn't the newest CHANGELOG heading (WARN) |
 | | `scheduled` | the regression or health workflow is missing or has no schedule (WARN) |
 | | `no-fit` | an open `[adoption]` line in `.loop/findings.md` (setup writes one per kind): one WARN row naming its subjects and fix |
+| | `matrix` | `.loop/matrix-runs.tsv` (one dated line per `dev/toy/matrix-smoke.py` run: agent, OS, machine, commit, result; no file, no rows): a cell of agent by machine that never ran is a WARN `pending: no run recorded`; one with no pass in 7 days is a WARN `not proven`, and a FAIL for a V1-required cell (Claude Code on Windows, Claude Code on macOS, CI on Linux) that ran and failed or whose last run is older than 7 days |
 | | `agent-tools` | `agent_command` or the flow file's command grants its agent no tools (WARN), naming each setting to fix |
 | | `prompt-pointer` | an installed scheduled-task prompt (`~/.claude/scheduled-tasks/<task>/SKILL.md`, for a routine whose `runs` is `claude:` or `mac:`) holds a line other than the Runbook pointer `docs.py prompts` prints (WARN) |
 | Controls (can each rule fire?) | `control` per rule | a rule's control stays green: it cannot fire (FAIL); a fixture that can't be built is UNREAD |

@@ -15,6 +15,7 @@ usage: sessions.py <command> [options]
                             one); without it the pull request waits. merged is checked with gh. An ended goal's session
                             goes back to the pool (pool.py). Done is final (KEPT), but merged still frees the session.
   send SLUG TEXT            send a worker session the owner's answer or a follow-up (operate.py send does this)
+  owner-words TEXT --ids A,B  record the owner's exact message for the IDs it covers (auto.py); not in a worker
   list                      the sessions this repo knows, with their goals
 
 A session tool does the talking: the command in `session_command` (.loop/config.json) or $LOOP_SESSION_TOOL, called as
@@ -251,6 +252,11 @@ def cmd_assign(args):
     return 0
 
 
+def cmd_owner_words(args):
+    import auto
+    return auto.owner_words_add(args.text, args.ids)
+
+
 def cmd_bind(args):
     return worker.cmd_bind(sys.modules[__name__], args)
 
@@ -394,10 +400,13 @@ def main():
     item = sub.add_parser("send")
     item.add_argument("slug")
     item.add_argument("text")
+    item = sub.add_parser("owner-words")
+    item.add_argument("text")
+    item.add_argument("--ids", default="")
     sub.add_parser("list")
     args = parser.parse_args()
     try:
-        return globals()["cmd_" + args.cmd](args)
+        return globals()["cmd_" + args.cmd.replace("-", "_")](args)
     except PoolUnreadable as error:
         sys.exit("REFUSED: the session pool %s can't be read (%s). Fix: check it with python3 -m json.tool %s, then "
                  "repair it (moved aside, every held goal is forgotten), and run this again. Nothing was changed." % (pool_path(), error, pool_path()))

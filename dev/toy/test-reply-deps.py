@@ -45,7 +45,7 @@ with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as home
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     for slug in ("first-goal", "second-goal"):
         with open(os.path.join(runs, slug + ".json"), "w") as f:
-            json.dump({"slug": slug, "status": "running", "step": "build", "worker": "session", "pid": os.getpid(),
+            json.dump({"slug": slug, "goal": "Goal " + slug, "status": "running", "step": "build", "worker": "session", "pid": os.getpid(),
                        "updated": now, "report": {"at": now, "text": "working"}}, f)
     whole = reply("```\n== toyrepo ==\n[>] first-goal  [>] second-goal\n[ ] later-goal\n```")
     check(reply_deps.missing(whole, root) == [], "MON-14: a Dependencies section that draws every goal passes")

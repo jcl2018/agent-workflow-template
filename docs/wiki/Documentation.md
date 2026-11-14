@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=9ef7c158 N=81dd3484 M=4599a537 U=03828777 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=d93be5bd N=81dd3484 M=4599a537 U=03828777 -->
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
@@ -16,8 +16,9 @@ Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=9ef7c158 N=81dd3484 M=4599
 - DOC-1: **Reviewed 2026-11-13** PRD template <!-- reviewed 422243c4 -->
   - One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Requirements (up to the repo's limit, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes). A page has no Usage section.
   - Nothing else goes on the page except the generated, optional Deployments (DOC-14) and Runbook (DOC-16) sections.
-- DOC-2: **Reviewed 2026-11-13** The PRD is mine <!-- reviewed 39c36f13 -->
-  - I review the PRD as a whole (Problem, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that.
+- DOC-2: **Reviewed 2026-11-13** The PRD is mine <!-- reviewed 2e17a232 -->
+  - I review the PRD as a whole (Problem, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that, in my own words: typed by me, or recorded verbatim by the operation session from my own message.
+  - A recorded message counts only for the requirement IDs or pages it lists, once for a review and once for an un-review, and every use is logged with its words.
   - After it, nothing in Problem, Requirements, Non-goals or Success metrics changes unless I un-review it.
 - DOC-3: **Reviewed 2026-11-08** Tests follow on their own <!-- reviewed 2e9e1c3f -->
   - Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes.
@@ -132,6 +133,9 @@ Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=9ef7c158 N=81dd3484 M=4599
 | [prd-stamps-free](Tests#t-prd-stamps-free) | requirement | DOC-2 | Given a PRD the owner reviewed, when a requirement is reviewed or unreviewed, or the owner un-reviews and reviews the PRD again, then no lock trips. | PASS 2026-11-10 |
 | [seal-sub-bullets](Tests#t-seal-sub-bullets) | requirement | DOC-2 | Given a reviewed requirement, when one of its sub-bullets changes, then the docs check reports LOCKED. | PASS 2026-11-12 |
 | [report-sub-bullets](Tests#t-report-sub-bullets) | requirement | DOC-2 | Given a reviewed requirement whose sub-bullet changed, when the report prints, then it names it, and not once restored. | PASS 2026-11-12 |
+| [owner-record-applies](Tests#t-owner-record-applies) | requirement | DOC-2 | Given the owner's message recorded by the operation session, when a worker reviews with --owner-record, then the requirement is Reviewed and reviews.tsv names the record and the words. | not run |
+| [worker-cannot-write-owner-words](Tests#t-worker-cannot-write-owner-words) | requirement | DOC-2 | Given a worker role, when it tries to record the owner's words, then it is refused and nothing is written, while the operation role can record them. | not run |
+| [owner-record-ids-only](Tests#t-owner-record-ids-only) | requirement | DOC-2 | Given a recorded owner message, when a worker names an ID it does not list or uses it twice for one command, then it is refused with nothing changed. | not run |
 | [untested-listed](Tests#t-untested-listed) | requirement | DOC-3 | Given a Reviewed criterion with no test or a test that no longer matches, when the check runs, then it is listed. | PASS 2026-11-12 |
 | [prd-scenarios](Tests#t-prd-scenarios) | requirement | DOC-3 | Given regression rows linked to a requirement, when the Tests are rendered, then each row is a Given/When/Then scenario with its test, result and date, and a plain description is flagged. | PASS 2026-11-10 |
 | [prd-untested](Tests#t-prd-untested) | requirement | DOC-3 | Given a PRD the owner reviewed whose requirement has no test, when the docs audit runs, then it lists that requirement as UNTESTED. | PASS 2026-11-10 |

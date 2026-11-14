@@ -37,6 +37,10 @@ workflow
   counts as never, in `sync`, `run`, the wiki Tests lines and delivery's defect-test check.
 - `run` prints `PASS`, `FAIL`, `KNOWN`, `FIXED` or `UNPROVEN` (blocks). Known failures sit in
   `.loop/regression-known.tsv`. It keeps one issue per failing row; without a token it only prints `WOULD` lines.
+- `python3 dev/toy/matrix-smoke.py [--agent claude-app|claude-cli|codex|ci] [--only STEP] [--no-record]` runs the smoke set (package, adopt a toy repo
+  from it, freeze a goal, run its qa lane, health check, a routine's Runbook pointer, a goal relayed between two pods under the merge lock) and
+  appends its dated line to `.loop/matrix-runs.tsv`, which health's `matrix` rule reads. The written `regression.yml` also carries a `matrix-smoke`
+  job that runs it on Linux as `ci` and keeps the record as an artifact.
 - `workflow` writes `.github/workflows/regression.yml` (on `regression_cron`, every 4 hours by default, or only by hand
   when it is `off`, which a scheduled run reads first and then writes nothing; on `v*` tags and by hand, which still run). A failing row's issue is
   labelled `regression` and `defect`, names the feature and requirement the row guards, and, with the `feature_labels` setting on, carries that feature's

@@ -233,7 +233,7 @@ def hard_unread(item):
 def rule_functions():
     """Each rule -> the function that checks it (and that its control calls)."""
     lean, extra = sibling_module("lean"), {}
-    for name in ("defects", "rules"):
+    for name in ("defects", "rules", "report"):
         module = sibling_module(name)
         extra.update(module.FUNCTIONS if module else {})
     found = {"scripts": size_rows, "rows": criteria_rows, "proof": criteria_rows, "done": criteria_rows,

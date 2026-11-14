@@ -231,27 +231,69 @@ def restatus(top, cfg, state, head):
         module.pr_result(top, cfg.get("base", "main"), head, state["branch"], True)
 
 
-def release_statuses(top, cfg, state, branch, sha):
-    """Run the affected rows at the release PR's head and post the real result under every required check's name;
-    state["release_status"] stays failure (and is run again) until it is success."""
-    module, stop = sibling("private")
-    if stop or not sha or state.get("release_status") == "success":
-        return
+def carried(top, cfg, state, sha):
+    """True when the goal's pr lane passed (goal.py pr posted its statuses) and the release head only moves the version file
+    and the CHANGELOG over its parent: its tree is the tested one plus the bump, so the pass carries over (#3870)."""
+    if state.get("statuses") != "ok":
+        return False
+    names = sh(["git", "diff", "--name-only", sha + "^", sha], cwd=top)
+    return names.returncode == 0 and bool(names.stdout.split()) and set(names.stdout.split()) <= {cfg.get("version_file") or "VERSION", "CHANGELOG.md"}
+
+
+def lane_at(top, cfg, sha):
+    """(exit code or None, output) of the affected rows at sha in a detached copy; None when the lane could not run."""
     temp = tempfile.mkdtemp(prefix="release-status-")
-    tree, ok = os.path.join(temp, "tree"), False
+    tree, code, text = os.path.join(temp, "tree"), None, "could not check out the release head"
     try:
         if sh(["git", "worktree", "add", "-q", "--detach", tree, sha], cwd=top).returncode == 0:
             try:
-                ok = subprocess.run([sys.executable, os.path.join(SIBLING, "..", "..", "workflow-regression", "scripts", "regression.py"), "run",
-                                     cfg.get("ci_levels") or "nightly", "--reuse", "--tier", "goal", "--timeout", "900"], cwd=tree,
-                                    capture_output=True, timeout=1200).returncode == 0
-            except (OSError, subprocess.TimeoutExpired):
-                pass
+                done = subprocess.run([sys.executable, os.path.join(SIBLING, "..", "..", "workflow-regression", "scripts", "regression.py"), "run",
+                                       cfg.get("ci_levels") or "nightly", "--reuse", "--tier", "goal", "--timeout", "900"], cwd=tree,
+                                      capture_output=True, text=True, errors="replace", timeout=1200)
+                code, text = done.returncode, done.stdout + done.stderr
+            except (OSError, subprocess.TimeoutExpired) as error:
+                text = "the lane could not finish: %s" % error
     finally:
         sh(["git", "worktree", "remove", "--force", tree], cwd=top)
         shutil.rmtree(temp, ignore_errors=True)
+    return code, text
+
+
+def release_statuses(top, cfg, state, branch, sha):
+    """Post the lane's result for the release PR's head under every required check's name, never a failure the head did
+    not earn: a bump-only head carries the goal's pass; otherwise the affected rows run, and only rows that ran and failed
+    post failure. A lane that could not run posts nothing (release_status untested). state["release_status"] success is
+    final; release_status_why names the failing rows or the reason, for merge.py's refusal."""
+    module, stop = sibling("private")
+    if stop or not sha or state.get("release_status") == "success":
+        return
+    state.pop("release_status_why", None)
+    if sh(["git", "cat-file", "-e", sha + "^{commit}"], cwd=top).returncode:
+        sh(["git", "fetch", "-q", "origin", branch], cwd=top)
+    if carried(top, cfg, state, sha):
+        print("CARRIED the goal's passing lane to the release head %s (it only moves the version and changelog)" % sha[:12])
+        ok = True
+    else:
+        code, text = lane_at(top, cfg, sha)
+        rows = re.findall(r"^FAIL (\S+)", text, re.M)
+        ok = code == 0
+        if not ok and not rows:  # nothing ran and failed: posting failure would blame a head nobody tested
+            state["release_status"], state["release_status_why"] = "untested", "the lane at the release head %s produced no result: %s" % (
+                sha[:12], " ".join((text or "(no output)").split())[-160:])
+            return print("RELEASE_STATUS untested: " + state["release_status_why"])
+        if rows:
+            state["release_status_why"] = "rows %s failed at the release head %s" % (", ".join(rows[:8]) + (" +%d more" % (len(rows) - 8) * (len(rows) > 8)), sha[:12])
     posted = module.pr_result(top, cfg.get("base", "main"), sha, branch, ok)
     state["release_status"] = "success" if ok and posted else "failure"
+
+
+def status_held(state, url, number):
+    """Refuse, naming the cause, when the release PR's head has no passing status (RELEASE_STATUS_FAILED, _UNTESTED)."""
+    why = state.get("release_status_why")
+    if state.get("release_status") not in ("failure", "untested") or not why:
+        return
+    fail(state, ("the release PR %s (#%s) can't merge: %s. Nothing needs the owner's merge; fix the cause and run merge.py %s again "
+            "(%s)" % (url, number, why, state["slug"], "RELEASE_STATUS_UNTESTED" if state["release_status"] == "untested" else "RELEASE_STATUS_FAILED")))
 
 
 def create_release(top, cfg, state, version, target):
