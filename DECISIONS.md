@@ -142,3 +142,23 @@ The owner types two sentences (the session that relays them runs `criteria.py un
 
 1. Un-review: "Un-review the Delivery, Monitoring and Regression pages, and MON-15 and REG-7, so DEL-15 and the fast-merge-queue sub-bullets can be added."
 2. Review, after the goal has added them: "Review the Delivery, Monitoring and Regression pages, and DEL-15, MON-15 and REG-7 again."
+## Waiting on owner un-review (machine-local)
+
+The owner decided 2026-11-13: "some tasks in this session should only rely on things on this session, right? This machine. There are other machines proof and other things. They can be added like to do some milestones, but shouldn't be related." Built by the machine-local goal (`regression.py red ID --owed --runner R`, health WARN after 7 days, the check-in's off-machine to-do lines). Guardrails is Reviewed, so the requirement below is not applied until the owner un-reviews Guardrails and approves the wording.
+
+- Guardrails, add after GRD-10: **GRD-11: A goal depends only on what its own machine can do.** A step only another machine can do (a red proof on another platform, a smoke cell, a Mac-only check) is filed as a to-do issue on the feature's milestone and never blocks the goal, its merge or the release.
+  - A row whose red proof needs another platform is recorded owed (Regression, `red ID --owed --runner R`): it reads PENDING, opens one to-do issue labelled `other-machine` on the row's feature milestone, and its goal merges.
+  - Health warns on an owed proof older than 7 days and never fails on it (Health, Tests).
+  - The check-in lists owed off-machine items under Coming up, and the operation session never holds a goal for another pod or machine (Monitoring).
+- Regression, REG-10, add this sub-bullet: A row whose red proof needs another machine can be recorded owed (`red ID --owed --runner R`): it reads PENDING instead of UNPROVEN, one to-do issue labelled `other-machine` opens on the row's feature milestone, and neither the goal's pr lane nor the release waits for it. A real red proof clears it.
+- Health, Tests group rule on seen-red, add this sub-bullet: an owed proof (`.loop/regression-owed.tsv`) is not a seen-red failure; it warns once it is older than 7 days and never fails.
+- Monitoring, MON-5 (check-in), add this sub-bullet: The check-in lists owed off-machine to-dos under Coming up, and the operation session never holds a goal for another pod or machine.
+- Pages stale from this goal's code until the owner re-stamps them: Regression, Health, Monitoring (and Home, Documentation from the DECISIONS edit).
+
+The owner types two sentences in the operation session:
+
+1. Un-review: "Un-review the Guardrails, Regression, Health and Monitoring pages and the requirements GRD-11 (new), REG-10, HLT-2 and MON-5 so the machine-local wording can be added."
+2. Review, after the goal has added it: "Review the Guardrails, Regression, Health and Monitoring pages, GRD-11, REG-10, HLT-2 and MON-5 again."
+
+Progress 2026-11-13: the owner typed sentence 1 in the machine-local session; the pages and REG-10, HLT-2, MON-5 were un-reviewed, GRD-11 was added (Unreviewed) and the sub-bullets above were written into the pages. Applied: the owner typed sentence 2 and the pages and requirements were reviewed again.
+

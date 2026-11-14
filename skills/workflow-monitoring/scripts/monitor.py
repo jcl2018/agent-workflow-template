@@ -74,9 +74,10 @@ def record_path(slug):
 def load(slug):
     try:
         with open(record_path(slug)) as handle:
-            return json.load(handle)
+            state = json.load(handle)
     except (OSError, ValueError):
         return None
+    return state if isinstance(state, dict) else None  # a stray list or string is not a run record
 
 
 def save(state, note=None):
