@@ -257,6 +257,7 @@ lanes-trace	FAIL	2026-11-10
 lanes-trace-check	PASS	2026-11-10	
 lanes-trace-hook-173	PASS	2026-11-10	
 lanes-wide-parity	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+launchctl-missing-unknown	PASS	2026-11-14	
 link-page-passes	PASS	2026-11-13	
 link-unread-never-pass	PASS	2026-11-13	
 list-kind-filter	PASS	2026-11-10	
