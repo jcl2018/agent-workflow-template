@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.28.38 - 2026-11-14
+
+- merge.py's wiki check refuses only for pages the goal's own diff makes stale (#3941)
+- rows seen red
+- Merge origin/main into loop/merge-stale-own
+- DECISIONS: wording for DEL-5 and the success metric waits on the owner (merge-stale-own); wiki-unmapped-stale row says finding
+- Delivery: DEL-5 and the success metric reworded on owner-words record o5 (merge-stale-own)
+- Home: Delivery refuses to merge only for pages its own diff made stale
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.37 - 2026-11-14
 
 - Budget counts active step time only: held time in the pr queue, on holds, owner answers and stops counts nothing (#3878)
