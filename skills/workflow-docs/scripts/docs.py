@@ -363,7 +363,8 @@ def cmd_publish(args):
 
 
 def cmd_automation(_args):
-    return counting.live(top())
+    import audit
+    return audit.live(top())
 
 
 def cmd_prompts(_args):
