@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.28.43 - 2026-11-14
+
+- No code changes
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.42 - 2026-11-14
 
 - Home leads with a Topic column and the settings blocks list topics
