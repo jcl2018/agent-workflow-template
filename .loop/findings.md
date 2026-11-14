@@ -68,3 +68,4 @@ Open (from the issue-cleanup triage of the open non-regression issues, 2026-11-1
 - matrix-smoke: Failed 3 tries. Last: regression lane failed: settings-render-fresh
 - matrix-smoke: Failed 4 tries. Last: regression lane failed: package-caps-held, package-headroom-held
 - regression-issues-trust: Failed 4 tries. Last: regression lane failed: package-caps-held, package-headroom-held
+- health-repo-rules: Failed 3 tries. Last: regression lane failed: LANE_DIRTY at start: .loop/START.md, README.md. Fix: commit or remove them; the lane committed and pushed nothing.
