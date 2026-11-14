@@ -49,7 +49,16 @@ def pending(top, cfg, fix=False):
     base = base_of(top, cfg)
     if fix:
         release.docs_trouble(top, base, True)  # mend the goal's own mechanical trouble, scoped to its commits
-    return release.docs_trouble(top, base, whole=True)
+    lines = release.docs_trouble(top, base, whole=True)
+    # a page stale from a commit this goal's diff does not touch is main's own: a finding, not a refusal (the --own scope)
+    done = run([sys.executable, DOCS, "check", "--own"], top)
+    other = {l.split()[2].rstrip(":") for l in done.stdout.splitlines() if l.startswith("FINDING STALE ")}
+    kept = [l for l in lines if not (l.startswith("REWRITE ") and l.split()[1].rstrip(":") in other and ": STALE " in l)]
+    for l in lines:
+        if l not in kept:
+            page, why = l[len("REWRITE "):].split(": STALE ", 1)
+            print("FINDING STALE %s: %s (not touched by this goal; left for health)" % (page, why))
+    return kept
 
 
 def commit(top, cfg, slug):

@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
-Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde98a8 U=03828777 -->
+Review: **Unreviewed**
 
 ## Problem
 - I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
@@ -27,13 +27,14 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde
   - `report`, `dashboard` and "Where do things stand?" print the live board in one fixed format: Issues first (only what is open now, each with its fix in plain words); then Running goals with progress bar, time left, step flow with the current step marked and the next step; then Queued goals; then dependency arrows; then one finish time.
   - Merged work, history and totals are left out; a stuck worker stays at the top of Issues until I answer.
   - Check-ins don't print this board; MON-5 owns the check-in reply.
-- MON-5: **Reviewed 2026-11-13** Cadence and reply format <!-- reviewed eeace5fb -->
+- MON-5: **Reviewed 2026-11-13** Cadence and reply format <!-- reviewed 02876e30 -->
   - The operation session updates the board on a set cadence, 30 minutes by default and changeable, and at once whenever a worker reports something new, and each check-in prints only its reply layout, never the board.
   - Every check-in reply has the same layout: one headline line;
   - All sessions, one table of every session across my repos with what it is for, its status, progress, time left, tokens left and latest report;
   - Dependencies, a drawn graph marking what is running, holding, queued or stuck;
   - Needs you, each question numbered with its options and a recommended answer, or Nothing needs you; and last, Coming up, the next expected events and what I will need to do.
   - A hook that setup installs blocks a reply that doesn't follow this layout, saying what is missing; it never checks worker sessions or other repos, and one setting turns it off.
+  - The check-in lists owed off-machine to-dos under Coming up, and the operation session never holds a goal for another pod or machine.
 - MON-6: **Reviewed 2026-11-10** Clean up after every goal <!-- reviewed deb6802e -->
   - When a goal merges, its worker session is given the next ready goal or archived, and its worktree and branch are removed.
   - A merged report always frees the session (issue 175).
@@ -42,9 +43,10 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde
   - It starts every goal whose dependencies are met in a free or freed session, up to the slot limit, so no ready goal sits idle.
   - It merges goals that do the same thing or touch the same files for the same PRD, splits a goal that blocks others when part of it is ready, and reorders the merge line so the critical path goes first.
   - It never stops or restarts a running goal to re-plan, and every change is logged with its reason and shown in the check-in.
-- MON-11: **Reviewed 2026-11-10** Full auto mode <!-- reviewed eff5c29d -->
-  - A setting, on by default. When it is on, the operation session answers each worker decision with that decision's recommended option, logs the question, the answer and why, and lists them in the next check-in.
+- MON-11: **Reviewed 2026-11-13** Full auto mode <!-- reviewed e3b3cf48 -->
+  - A setting, on by default. When it is on, the operation session applies each routine recommendation without asking, logs the question, the answer and why, and lists them in the next check-in; only the decisions in the next bullet and those that need my own words wait under Needs you.
   - It never auto-answers a decision that is destructive (deletes data, a page, a repo or a deployment), that contradicts something I said, that spends money, or that changes a security or access setting; those wait under Needs you.
+  - When a decision needs my words, I answer in the operation session, which records my message verbatim with the IDs it covers (sessions.py owner-words) for the workers to use.
   - Turning it off takes effect at the next decision.
 
 - MON-12: **Reviewed 2026-11-10** Session pool <!-- reviewed 7a470c28 -->
@@ -55,7 +57,10 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde
 - MON-13: **Reviewed 2026-11-12** Two layers per pod: one operation session governs every repo in its pod directly and talks to each worker, with no per-repo operation session; several pods may run concurrently and independently <!-- reviewed 7dca4de6 -->
   - A claim adds the session to every repo the pod follows and keeps the other sessions already claimed; nothing refuses or warns when a second operation session runs.
 
-- MON-14: **Reviewed 2026-11-13** The check-in dependency map is grouped by repo first: one block per repo headed by the repo's name, cross-repo dependencies drawn between blocks <!-- reviewed eeac7ce2 -->
+- MON-14: **Reviewed 2026-11-13** Dependency map grouped by repo <!-- reviewed 2fa99e5b -->
+  - The check-in dependency map is grouped by repo first: one block per repo headed by the repo's name, cross-repo dependencies drawn between blocks.
+  - Each goal shows its expected time left from past runs, each repo block ends with its expected finish, and each wait is drawn as an arrow.
+  - The map lists only live goals: a record with no goal or status, a stopped goal and a goal left with release: leave are not drawn, and a worker held at pr reads holding, not stuck.
   - Each repo prints as `== name ==` within 60 characters, then a `Between repos` list for `repo/slug` dependencies, then the legend once.
   - The reply hook flags a check-in whose Dependencies section leaves out a goal on the board.
 
@@ -113,6 +118,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde
 | [guards-null-report-bind-mend](Tests#t-guards-null-report-bind-mend) | requirement | MON-2 | Given a failed or stopped goal restarted by a worker bind or by mend, when its record is written, then report is an empty record, never null. | not run |
 | [waits-first](Tests#t-waits-first) | requirement | MON-3 | Given a live board, when the board page is opened, then it shows the live board. | PASS 2026-11-09 |
 | [board-sections](Tests#t-board-sections) | requirement | MON-3 | Given a live board, when the board page is built, then it carries the live board's sections. | PASS 2026-11-09 |
+| [mon-stray-runs](Tests#t-mon-stray-runs) | requirement | MON-3 | Given a file in loop/runs that is not a run record, when report or dashboard runs, then it is skipped and the board prints. | not run |
 | [retired-leaves-waiting](Tests#t-retired-leaves-waiting) | requirement | MON-4 | Given a retired goal, when the board is shown, then it no longer shows under Issues. | PASS 2026-11-09 |
 | [stuck-stays-top](Tests#t-stuck-stays-top) | requirement | MON-4 | Given a stuck goal, when the board is shown, then it stays on top until answered. | PASS 2026-11-12 |
 | [status-order](Tests#t-status-order) | requirement | MON-4 | Given the live board, when it is printed, then it lists Issues, Running goals, Queued goals, Dependencies and Finish in that order. | PASS 2026-11-12 |
@@ -162,6 +168,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde
 | [est-recompute](Tests#t-est-recompute) | requirement | MON-4 | Given the same finished runs, when the board is shown twice, then the backtest is reused; when one more run finishes, then it is worked out again (a running goal's change also recomputes it). | not run |
 | [est-pool-unread-stall](Tests#t-est-pool-unread-stall) | requirement | MON-4 | Given the session pool can't be read and a goal's log ends in a hold entry, when the board is shown, then the goal is not listed as stalled. | not run |
 | [est-time-order-mon4](Tests#t-est-time-order-mon4) | requirement | MON-4 | Given goals that finished before, exactly when, during and after a goal started, and one with inverted stamps, when the board backtests, then each goal is predicted only from goals that finished strictly before it started and never from itself. | not run |
+| [held-time-session-hold](Tests#t-held-time-session-hold) | requirement | MON-4 | Given a goal held by a session report, when its time budget is read, then the held time counts nothing. | PASS 2026-11-14 |
 | [no-change-quiet](Tests#t-no-change-quiet) | requirement | MON-5 | Given a board field the old board lacked or gh not answering, when boards are compared, then it counts as no change. | PASS 2026-11-09 |
 | [operate-wakes-on-report](Tests#t-operate-wakes-on-report) | requirement | MON-5 | Given a worker's report, when it arrives before the cadence, then operate wakes and every pass prints the full board. | PASS 2026-11-09 |
 | [live-board-no-oneline](Tests#t-live-board-no-oneline) | requirement | MON-5 | Given an unchanged pass, when the operation session checks in, then the full check-in is printed again and there is no one-line mode. | PASS 2026-11-12 |
@@ -174,6 +181,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde
 | [reply-hook-all](Tests#t-reply-hook-all) | requirement | MON-5 | Given the reply hook's toy suite, when it runs, then every check passes. | PASS 2026-11-10 |
 | [reply-hook-mon5-wording](Tests#t-reply-hook-mon5-wording) | requirement | MON-5 | Given the Monitoring PRD, when MON-5 is read, then it carries the check-in reply layout the hook enforces. | PASS 2026-11-13 |
 | [checkin-passes-hook](Tests#t-checkin-passes-hook) | requirement | MON-5 | Given the check-in operate.py prints, when the reply hook checks it, then it passes the layout. | PASS 2026-11-10 |
+| [machine-local-checkin](Tests#t-machine-local-checkin) | requirement | MON-5 | Given proofs owed to another machine, when the check-in is written, then they are listed under Coming up as off-machine to-dos, not as blockers. | not run |
 | [mon6-merged-frees](Tests#t-mon6-merged-frees) | requirement | MON-6 | Given a goal whose pull request merged, when its worker reports merged, then its session goes back to the pool (archived above pool_size) and its worktree and branch are removed. | PASS 2026-11-10 |
 | [mon10-replan](Tests#t-mon10-replan) | requirement | MON-10 | Given ready, mergeable and splittable goals, when the operation session re-plans, then each start, merge and split is logged once with its reason, shown in the check-in, and no running goal is stopped. | PASS 2026-11-10 |
 | [mon11-full-auto](Tests#t-mon11-full-auto) | requirement | MON-11 | Given full auto on, when a worker asks a routine question, then the recommended answer is sent and logged; destructive, unlabeled, risky-word and owner-answered questions wait; turning it off applies at the next decision. | PASS 2026-11-10 |
@@ -183,6 +191,10 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde
 | [mon14-repo-blocks](Tests#t-mon14-repo-blocks) | requirement | MON-14 | Given a cross-repo dependency, when the check-in prints, then it is listed between headed repo blocks. | PASS 2026-11-12 |
 | [mon14-reply-repo-blocks](Tests#t-mon14-reply-repo-blocks) | requirement | MON-14 | Given a check-in reply whose Dependencies section has no == repo == block, when the reply hook checks it, then it flags the missing repo block. | not run |
 | [mon14-reply-deps-whole](Tests#t-mon14-reply-deps-whole) | requirement | MON-14 | Given a check-in reply whose Dependencies section leaves out a running goal of the board, when the reply hook checks it, then it names that goal, and a reply that draws every goal passes. | not run |
+| [mon14-map-finish](Tests#t-mon14-map-finish) | requirement | MON-14 | Given live goals with past runs to estimate from, when the check-in draws Dependencies, then each repo block ends with its expected finish. | not run |
+| [mon14-map-arrows](Tests#t-mon14-map-arrows) | requirement | MON-14 | Given a goal that waits on another, when the check-in draws Dependencies, then the wait is drawn as an arrow. | not run |
+| [mon14-map-live-only](Tests#t-mon14-map-live-only) | requirement | MON-14 | Given a record with no goal, a stopped goal, a left goal and a worker held at pr, when the check-in draws Dependencies, then only live goals show and the held one reads holding. | not run |
+| [mon14-map-times](Tests#t-mon14-map-times) | requirement | MON-14 | Given live goals with past runs to estimate from, when the check-in draws Dependencies, then each goal shows its time left. | not run |
 | [mon15-pod-owner](Tests#t-mon15-pod-owner) | requirement | MON-15 | Given another pod's goal, when a pod acts on it, then it is refused naming the owner and shown owned by that pod. | PASS 2026-11-12 |
 | [mon15-merge-lock](Tests#t-mon15-merge-lock) | requirement | MON-15 | Given two pods merging into one main, when they run together, then the lock serializes them. | PASS 2026-11-12 |
 | [resume-ask-prompt](Tests#t-resume-ask-prompt) | requirement | MON-15 | Given a goal set to ask and auto_merge on, when it is resumed, then its prompt asks the owner and never tells the worker to run merge.py. | not run |
@@ -193,6 +205,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=15f81fda N=9967b317 M=0fde
 | [mon8-silent-30](Tests#t-mon8-silent-30) | requirement | MON-8 | Given a worker with no report for 31 minutes, when the operation session checks in, then it shows under Needs you; at 29 minutes it does not. | PASS 2026-11-10 |
 | [mon8-silent-worker](Tests#t-mon8-silent-worker) | requirement | MON-8 | Given a running worker whose last report is 31 minutes old, when the check-in is built, then Needs you names it and a worker that reported 5 minutes ago is not named. | not run |
 | [mon9-board-fast](Tests#t-mon9-board-fast) | requirement | MON-9 | Given 12 goals with pull requests and a slow GitHub, when the board is built, then it takes under 10 seconds. | PASS 2026-11-10 |
+| [operate-toy-no-check](Tests#t-operate-toy-no-check) | defect | [#3906](https://github.com/jcl2018/agent-workflow-template/issues/3906) closed (2026-11-13) | Given test-operate.sh, when it is read, then it no longer calls the removed goal.py check command. | PASS 2026-11-13 |
 | [session-board-issue98](Tests#t-session-board-issue98) | defect | [#98](https://github.com/jcl2018/agent-workflow-template/issues/98) closed (2026-11-09) | Given a goal worked in a session, when the board is printed, then it shows its session name and step and never shows it as a failed background worker. | PASS 2026-11-12 |
 | [report-done-final](Tests#t-report-done-final) | defect | [#108](https://github.com/jcl2018/agent-workflow-template/issues/108) closed (2026-11-10) | Given a goal whose pull request is open (done), when a session report says running or failed, then the goal stays done. | PASS 2026-11-10 |
 | [guards-resume](Tests#t-guards-resume) | defect | [#149](https://github.com/jcl2018/agent-workflow-template/issues/149) closed (2026-11-11) | Given a stopped goal worked in a session, when the operation runs goal.py resume, then it runs again in that session with who and why logged, and no headless worker starts. | PASS 2026-11-12 |

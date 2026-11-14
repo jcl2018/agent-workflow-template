@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/10
 
-Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670eeeb U=03828777 -->
+Review: **Reviewed 2026-11-14** <!-- prd P=a45649a4 R=150a6df4 N=e081872e M=4670eeeb U=03828777 -->
 
 ## Problem
 - Things break between my sessions, and I only find out when I next open one; the important checks should run on their own.
@@ -13,10 +13,10 @@ Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670
 ## Requirements
 
 ### Functional
-- AUT-1: **Reviewed 2026-11-13** Routines run where they can run fully <!-- reviewed 0b1d52ef -->
-  - Health runs on my Mac for every repo. Regression runs in GitHub Actions for a public repo and on my Mac for a private one.
+- AUT-1: **Reviewed 2026-11-14** Routines run where they can run fully <!-- reviewed edac68c4 -->
+  - Health runs on my always-on machine (the Mac through its launch agent, or a Windows PC through its own scheduled task) for every repo. Regression runs in GitHub Actions for a public repo and on that machine for a private one.
   - Each routine runs on a schedule set in the repo's config (every 4 hours by default), and I can also start it by hand.
-  - A routine missed while the Mac sleeps runs once at the next wake, and the digest says it was missed.
+  - A routine missed while that machine is asleep or off runs once at the next tick, and the digest says it was missed.
   - Each run's report says whether it ran on my Mac or in GitHub Actions.
   - A long issue body or comment is passed to gh in a file (`--body-file`), never on the command line, so a routine writes the same on native Windows.
 - AUT-2: **Reviewed 2026-11-13** Regression every few hours <!-- reviewed 42284a82 -->
@@ -25,9 +25,9 @@ Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670
   - No GitHub Actions check this tool writes is needed to merge a private repo; where its ruleset requires named checks, the pull request lane posts them as commit statuses itself, success when the lane passes and failure when it fails, so a failing lane holds that merge and a passing one releases it.
   - A failing test opens or updates one issue labeled defect, tagged with the feature it guards when feature_labels is on, naming the test and the requirement; it closes by itself when the test passes again.
   - The CI suite runs in eight shards with one combined summary: each row is given the time left, the suite-time line counts the rows skipped for time (the unrun rows), and a newer run on the same ref cancels the older.
-- AUT-3: **Reviewed 2026-11-13** Health every few hours <!-- reviewed e0fc7032 -->
-  - Health never runs in GitHub Actions: it runs on my Mac on the schedule (every 4 hours by default), after the latest finished regression run, with all its rule groups; its report names that run with its commit and age, or says none finished, and says when health last ran.
-  - The repo review always runs, using my own login on the Mac, with no API key secret; when the login has expired or can't be reached, the report says which and the next round tries again.
+- AUT-3: **Reviewed 2026-11-14** Health every few hours <!-- reviewed d4aa8acb -->
+  - Health never runs in GitHub Actions: it runs on my always-on machine on the schedule (every 4 hours by default), after the latest finished regression run, with all its rule groups; its report names that run with its commit and age, or says none finished, and says when health last ran.
+  - The repo review always runs, using my own login on that machine, with no API key secret; when the login has expired or can't be reached, the report says which and the next round tries again.
   - Every finding becomes one issue tagged with its group and, when feature_labels is on, its feature, updated, closed or reopened as things change, never duplicated.
 - AUT-4: **Reviewed 2026-11-10** A digest by email <!-- reviewed f06a9042 -->
   - After each round, one email goes to the address I set: what ran and its results, then the new, still-open and fixed issues grouped by feature, each with its link and the request to give the agent to fix it.
@@ -39,8 +39,9 @@ Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670
 ### Non-functional
 - AUT-5: **Reviewed 2026-11-13** Under my control <!-- reviewed 27ec344d -->
   - Each routine can be turned off or rescheduled in one setting. It writes to GitHub only with `--live` (the scheduled workflows pass it), and without the secrets it needs a routine runs but writes nothing and says what is missing.
-- AUT-6: **Reviewed 2026-11-13** Private address <!-- reviewed a54e4796 -->
+- AUT-6: **Reviewed 2026-11-14** Private address <!-- reviewed c2048007 -->
   - The email address and the mail key live only in a local secrets file outside git, kept where the repo review cannot reach it, read only by the local runner; never in the repo, logs, issues or the digest comment, and never printed. The same holds for the GitHub token the Mac uses.
+  - The mail file is `mail.env` in the schedule home, or the file `LOOP_MAIL_ENV` names (a shared file on a synced folder); on a machine with file modes a mail.env others can read sends nothing, and on Windows, which has no modes, that check is skipped.
 - AUT-7: **Reviewed 2026-11-13** Bounded cost <!-- reviewed b5e1e5be -->
   - A round finishes within 45 minutes (the 30-minute regression budget of Regression REG-7 plus 15 for health and the digest, health starting when regression has finished, not at a fixed offset), and each report shows the round's wall time and its pass and fail counts, plus its Actions minutes when it ran in GitHub Actions, so I can slow the schedule if it costs too much.
 
@@ -62,6 +63,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670
 | [ls-public-tick](Tests#t-ls-public-tick) | requirement | AUT-1 | Given a toy repo whose regression_runs is actions, when the tick runs, then health runs, no regression runs the tick says REGRESSION: runs in GitHub Actions and the newest suite-time artifact is fetched into the git common dir. | not run |
 | [ls-missed-run](Tests#t-ls-missed-run) | requirement | AUT-1 | Given a registry whose last run is older than the interval plus an hour, when the digest is composed, then it says Last ran and MISSED, a recent last run says no MISSED, a repo whose tick started 20 minutes after another's is still due at the next fire, a run id of 12 digits not starting 20 is an Actions id, and one coalesced fire after sleep makes every overdue repo due. | not run |
 | [aut-regression-schedule-mismatch](Tests#t-aut-regression-schedule-mismatch) | requirement | AUT-1 | Given a regression schedule that differs from the config, when the routine runs, then it names the difference and the command that fixes it. | PASS 2026-11-12 |
+| [health-register-no-launchd](Tests#t-health-register-no-launchd) | requirement | AUT-1 | Given a machine that is not a Mac, when local register runs, then the repo is in the schedule registry, a second run keeps one entry, and no launch agent is written. | PASS 2026-11-14 |
 | [aut-defect-issue](Tests#t-aut-defect-issue) | requirement | AUT-2 | Given a failing test, when the scheduled regression runs, then one issue labelled defect opens, naming the test, the feature and the requirement it guards. | PASS 2026-11-12 |
 | [aut-old-issue-relabel](Tests#t-aut-old-issue-relabel) | requirement | AUT-2 | Given an open failing-test issue without the defect label, when the test fails again, then the issue gains the defect label. | PASS 2026-11-12 |
 | [aut-issue-list-fails](Tests#t-aut-issue-list-fails) | requirement | AUT-2 | Given a page of the open regression issues cannot be read, when the scheduled regression runs, then it changes no issue rather than open duplicates. | PASS 2026-11-12 |
@@ -97,6 +99,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670
 | [aut-off-push-runs](Tests#t-aut-off-push-runs) | requirement | AUT-5 | Given regression_cron off, when a release tag is pushed, then the regression run still runs the rows. | PASS 2026-11-12 |
 | [aut-off-dispatch-runs](Tests#t-aut-off-dispatch-runs) | requirement | AUT-5 | Given regression_cron off, when someone starts the regression run by hand, then it still runs the rows. | PASS 2026-11-12 |
 | [aut-email-secrets](Tests#t-aut-email-secrets) | requirement | AUT-6 | Given the mail settings in the schedule's mail.env, when the tick runs, then they reach only the mail step and never a log, the summary, an issue or the digest comment, a mail.env of the wrong mode sends nothing, and without it nothing is written and the digest says why. | PASS 2026-11-12 |
+| [health-mail-env-named](Tests#t-health-mail-env-named) | requirement | AUT-6 | Given LOOP_MAIL_ENV, when the tick looks for the mail secrets, then it reads that file, else mail.env in the schedule home. | PASS 2026-11-14 |
+| [health-mail-env-windows](Tests#t-health-mail-env-windows) | requirement | AUT-6 | Given a mail.env on Windows, when the tick runs, then it is not refused as MAIL_ENV_MODE (Windows has no file modes), while a group-readable file on a posix machine still is. | PASS 2026-11-14 |
 | [aut-email-rounds](Tests#t-aut-email-rounds) | requirement | AUT-7 | Given a round's runs, when the digest is written, then the run summary shows the round's job time and Actions minutes and flags a round over 45 minutes. | PASS 2026-11-12 |
 | [aut7-budget-agrees](Tests#t-aut7-budget-agrees) | requirement | AUT-7 | Given the regression budget, when AUT-7 is read, then it names the 45 minute round as the 30 minute regression budget plus 15 for health. | not run |
 | [digest-not-cut](Tests#t-digest-not-cut) | requirement | AUT-7 | Given a listing that reaches the issue limit, when the digest is written, then it says TRUNCATED instead of presenting cut counts as complete. | not run |

@@ -1,5 +1,5 @@
 # page<TAB>paths it describes, comma separated
-Automation	skills/workflow-health/scripts/automation.py,skills/workflow-health/scripts/rounds.py,skills/workflow-health/scripts/mail.py,skills/workflow-health/scripts/workflows.py,.github/workflows
+Automation	skills/workflow-health/scripts/automation.py,skills/workflow-health/scripts/rounds.py,skills/workflow-health/scripts/mail.py,skills/workflow-health/scripts/workflows.py,.github/workflows,:(exclude).github/workflows/regression.yml
 Delivery	skills/workflow-delivery,skills/workflow-release,:(exclude)skills/workflow-delivery/SKILL.md,:(exclude)skills/workflow-delivery/references/commands.md,:(exclude)skills/workflow-release/SKILL.md,:(exclude)skills/workflow-release/references/commands.md
 Documentation	skills/workflow-docs,skills/workflow-health/scripts/milestone.py,dev/toy/fakegh,:(exclude)skills/workflow-docs/SKILL.md,:(exclude)skills/workflow-docs/references/commands.md
 Guardrails	.loop/config.json
