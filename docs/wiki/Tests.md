@@ -702,7 +702,7 @@
 | <a id="t-backlog-adoption-warns"></a>backlog-adoption-warns | requirement | SET-17 | not run | - | local | 2026-11-13 |
 | <a id="t-matrix-health-rule"></a>matrix-health-rule | requirement | SET-6 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
 | <a id="t-matrix-smoke-record"></a>matrix-smoke-record | requirement | SET-6 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
-| <a id="t-package-caps-held"></a>package-caps-held | requirement | SET-3 | PASS 2026-11-13 FLAKY | - | local | 2026-11-13 |
+| <a id="t-package-caps-held"></a>package-caps-held | requirement | SET-3 | PASS 2026-11-14 FLAKY | - | local | 2026-11-13 |
 | <a id="t-matrix-never-run-warns"></a>matrix-never-run-warns | requirement | SET-6 | not run | - | local | 2026-11-13 |
 | <a id="t-package-headroom-held"></a>package-headroom-held | requirement | SET-3 | FAIL | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
 
