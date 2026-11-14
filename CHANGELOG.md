@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.28.32 - 2026-11-14
+
+- test-operate: drop the removed goal.py check calls; row operate-toy-no-check (#3906)
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+- Fixes #3906: test operate-toy-no-check, seen failing 2026-11-13, passing
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.31 - 2026-11-13
 
 - fix: monitor.py skips a loop/runs file that is not a run record (#3862)
