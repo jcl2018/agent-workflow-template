@@ -85,6 +85,11 @@ python3 scripts/criteria.py render [--check] [--tables]
 Run from a session with no terminal, `review` and `unreview` refuse `--user` unless `LOOP_OWNER_WORDS` holds the
 owner's own message that said to, quoted exactly; each change is logged with those words in `.git/loop/reviews.tsv`.
 
+A record in `.git/loop/owner-words.tsv` is the owner's own words too: only the operation session writes it
+(`sessions.py owner-words "TEXT" --ids A,B`), and a worker never does. Pass `--owner-record ID` with `--user` and the
+record's words are used, so don't ask the owner for them again. A record covers only the IDs and pages it lists, once for
+`review` and once for `unreview`; any other ID, or a second use, is refused with nothing changed.
+
 An argument like `DEL-3` is a requirement; any other is a page. Every argument is checked before anything is written.
 `review PAGE` locks the PRD: after it, an edit shows as `LOCKED` or `CHANGED`; `references/commands.md` (Review
 locks) has the rules and how the owner edits a reviewed requirement. Never review or unreview on a goal's own initiative.

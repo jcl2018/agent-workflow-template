@@ -1,5 +1,215 @@
 # Changelog
 
+## v0.28.39 - 2026-11-14
+
+- health: local register, LOOP_MAIL_ENV, no mail mode check on Windows
+- health-on-windows: uninstall writes no launch agent on Windows; review notes
+- Lane: re-render the Tests tables
+- health-on-windows: fold register into rounds.py (package cap), rows link AUT-1/AUT-6
+- docs: always-on machine wording on Automation and Home; render Tests
+- docs: Home and Health say the always-on machine
+- docs: render Tests
+- Merge origin/main into health-on-windows
+- Resolve the merge of origin/main (keep both DECISIONS sections)
+- docs: always-on machine wording in AUT-1, AUT-3 and AUT-6 (owner record o2)
+- docs: Home names LOOP_MAIL_ENV
+- docs: render Tests
+- Merge origin/main into health-on-windows
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.38 - 2026-11-14
+
+- merge.py's wiki check refuses only for pages the goal's own diff makes stale (#3941)
+- rows seen red
+- Merge origin/main into loop/merge-stale-own
+- DECISIONS: wording for DEL-5 and the success metric waits on the owner (merge-stale-own); wiki-unmapped-stale row says finding
+- Delivery: DEL-5 and the success metric reworded on owner-words record o5 (merge-stale-own)
+- Home: Delivery refuses to merge only for pages its own diff made stale
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.37 - 2026-11-14
+
+- Budget counts active step time only: held time in the pr queue, on holds, owner answers and stops counts nothing (#3878)
+- Docs: the time budget counts active step time only (#3878)
+- Review: the budget counts the live tail only while the run is running
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- Restore the reviewed Guardrails text (the owner reviewed GRD-2; the budget rule lives in Monitoring MON-4's row text instead)
+- Wiki: the held-time defect row sits on Delivery DEL-8; re-render the Tests tables
+- Lane: re-render the Tests tables
+- Fold active.py into fit.py: the package stays at its file cap
+- Active minutes: the loader in fit.py, the sum in board_log.py; fit.py back under its cap
+- Seen-red marks; re-render the Tests tables
+- Link the hold row to MON-4 and the over-budget row to DEL-8; re-render the Tests tables
+- Run record for the held-time rows; re-render the Tests tables
+- Merge origin/main into loop/held-time-budget
+- Wiki: update pages for held-time-budget
+- Merge remote-tracking branch 'origin/main' into loop/held-time-budget
+- Fixes #3878: test held-time-3878, seen failing 2026-11-14, passing
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.36 - 2026-11-14
+
+- owner-relay: owner-words record, --owner-record, SKILL.md rules, DECISIONS draft, toy test
+- Verify by hand and Tests tables: owner-relay
+- Merge remote-tracking branch 'origin/main' into loop/owner-relay
+- Merge origin/main into loop/owner-relay
+- docs: DOC-2 and MON-11 reworded as the owner approved (owner-relay)
+- Merge origin/main into loop/owner-relay
+- docs: re-review Documentation and Monitoring after the owner-relay wording
+- owner-relay: fold owner-words code into auto.py and deployments.py (package stays under the file cap); Home notes the record
+- docs: Documentation and Monitoring are current after the fold
+- Merge remote-tracking branch 'origin/main' into loop/owner-relay
+- Merge origin/main into loop/owner-relay
+- docs: Monitoring page reviewed on the owner's words (owner-relay)
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/owner-relay
+
+### How to verify
+
+1. In the operation session run `python3 skills/workflow-monitoring/scripts/sessions.py owner-words "Review DOC-1 now" --ids DOC-1`.
+   Expect: `OWNER-WORDS o1 covers DOC-1`, and a line in `.git/loop/owner-words.tsv` with the text in quotes.
+2. In a worker session run the same command with `LOOP_ROLE=worker`.
+   Expect: `REFUSED: only the operation session records the owner's words`, and no new line in the file.
+3. Run `python3 skills/workflow-docs/scripts/criteria.py review DOC-2 --user --owner-record o1 < /dev/null`.
+   Expect: `REFUSED: record o1 does not cover DOC-2`, and the page unchanged.
+4. Read DECISIONS.md under "Waiting on owner un-review".
+   Expect: the drafted DOC-2 and MON-11 wording, waiting for your typed words.
+
+## v0.28.35 - 2026-11-14
+
+- Regression issues: one open issue per row (the oldest), and no issue written without --live (#2614)
+- Regression and Automation pages: issues are written only behind --live
+- Docs: Automation metric, Tests tables re-rendered
+- Automation page: keep the reviewed text (the owner reviews pages)
+- body-file toy: the workflow's gh() runs with --live
+- Regression Runbook: a job-skipped row files no issue
+- Merge origin/main into loop/regression-issues-trust
+- Merge remote-tracking branch 'origin/main' into loop/regression-issues-trust
+- Automation page: its issues are written only behind --live
+- Revert "Automation page: its issues are written only behind --live"
+- Merge origin/main into loop/regression-issues-trust
+- Merge remote-tracking branch 'origin/main' into loop/regression-issues-trust
+- Merge origin/main into loop/regression-issues-trust
+- test-row-output: the workflow step passes --live
+- Merge origin/main into loop/regression-issues-trust
+- Merge origin/main into loop/regression-issues-trust
+- Automation: owner review for regression-issues-trust (AUT-2, AUT-5 cover the issue writer and matrix-smoke)
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.34 - 2026-11-14
+
+- health: matrix rule reads .loop/matrix-runs.tsv (WARN unproven cell, FAIL unproven V1 cell)
+- matrix rule moves to report.py (scripts stay under 20 KB); add dev/toy/matrix-smoke.py
+- regression workflow: matrix-smoke job for the Linux cell, written by the generator
+- matrix-smoke: rows, test and the SET-17 draft in DECISIONS.md
+- Render Tests for the matrix rows
+- Lane: re-render the Tests tables
+- Docs: matrix rule on Health, matrix-smoke job on Regression and Automation
+- Lane: re-render the Tests tables
+- Merge origin/main (v0.28.14) into loop/matrix-smoke
+- matrix rule: never-run cells are WARN pending; commands move to references; rules.py untouched
+- Merge origin/main (v0.28.19) into loop/matrix-smoke; matrix-never-run-warns row
+- Merge origin/main (v0.28.29) into matrix-smoke
+- Merge origin/main into matrix-smoke
+- docs: Health, Regression and Automation say what the matrix rule and job do
+- docs: Automation note placed outside the reviewed sections
+- docs: Automation note after the Review line
+- docs: the generated regression.yml is the Regression page's, not Automation's
+- Merge remote-tracking branch 'origin/main' into loop/matrix-smoke
+- Lane: re-render the Tests tables
+- regression: run records and the Tests page
+- docs: Home says health reads the smoke-run matrix
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/matrix-smoke
+- Lane: re-render the Tests tables
+
+### How to verify
+
+1. Run `python3 dev/toy/matrix-smoke.py --agent claude-cli`.
+   Expect: seven PASS lines (package, adopt, freeze, qa, health, runbook, relay), then `SMOKE ... pass` and `RECORDED .loop/matrix-runs.tsv`, whose new line holds today's date, your agent, OS, machine and commit.
+2. Run `python3 skills/workflow-health/scripts/health.py check --group adoption`.
+   Expect: with `.loop/matrix-runs.tsv` present, a FAIL for each V1 cell with no pass in 7 days (Claude Code on macOS, CI on Linux) and a WARN "not proven" for each other cell; none for Claude Code on Windows.
+
+## v0.28.33 - 2026-11-14
+
+- Check-in map: time left, finish, arrows, live goals only
+- Lane: re-render the Tests tables
+- Toys: runs carry a goal, as real records do
+- Home: the check-in map shows time left and waits
+- MON-14 un-reviewed by the owner; sub-bullets applied; Verify by hand
+- Monitoring page: only MON-14's un-review; the page lock holds the sub-bullets
+- Monitoring page back to its reviewed text: the page lock holds the sub-bullets; Tests re-rendered
+- Monitoring: MON-14 sub-bullets applied after the owner's unreview of the page and MON-14
+- MON-14 reviewed by the owner
+- Merge origin/main into graph-times
+- Merge origin/main into graph-times
+- Merge remote-tracking branch 'origin/main' into loop/graph-times
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 skills/workflow-monitoring/scripts/checkin.py` and read Dependencies.
+   Expect: each repo block lists only live goals, a `slug ~Xm left` line per goal, an `a -> b` line per wait, and ends with `expected finish HH:MM`; a goal held at pr shows [=].
+
+## v0.28.32 - 2026-11-14
+
+- test-operate: drop the removed goal.py check calls; row operate-toy-no-check (#3906)
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+- Fixes #3906: test operate-toy-no-check, seen failing 2026-11-13, passing
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.31 - 2026-11-13
+
+- fix: monitor.py skips a loop/runs file that is not a run record (#3862)
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/monitor-report-crash
+- Merge remote-tracking branch 'origin/main' into loop/monitor-report-crash
+- Lane: re-render the Tests tables
+
+### How to verify
+
+No manual steps were recorded.
+
+## v0.28.30 - 2026-11-13
+
+- machine-local: owed off-machine proofs become to-do issues, not blocks
+- DECISIONS: GRD-11 wording for machine-local, waiting on owner un-review
+- machine-local: Tests table, DECISIONS sub-bullets
+- machine-local: Tests tables
+- Home: the Regression row names owed proofs
+- DECISIONS: owner sentences for machine-local
+- DECISIONS: tidy the un-review sentence
+- machine-local: un-reviewed on the owner's words; GRD-11 and the REG-10, HLT-2, MON-5 wording added; Home, DECISIONS
+- machine-local: row for GRD-11
+- machine-local: Tests table
+- machine-local: reviewed again on the owner's words; DECISIONS, Home
+- Merge origin/main into loop/machine-local
+- Merge origin/main into loop/machine-local
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.29 - 2026-11-13
 
 - pr queue per repo, and a try lost to main moving has its own cap (#3877)

@@ -25,7 +25,9 @@ placeholder line, so the docs check says UNWRITTEN until real drafts replace it.
 import argparse
 import os
 import re
+import subprocess
 import sys
+import urllib.request
 
 import criteria
 
@@ -314,6 +316,34 @@ def cmd_skeleton(args):
         handle.write(skeleton(args.title, args.problem, args.requirement))
     print("WROTE " + args.path)
     return 0
+
+
+READER = "LOOP_PRD_READER"  # a command run as `COMMAND URL`; its stdout is the linked PRD (an agent's Notion connector sets it)
+
+
+def read_link(url):
+    """(text, None) of the PRD at a source (`url:<link>` or `mcp:<server>:<resource>`), or (None, why) when it cannot be
+    read: never a guess, never a cached copy. A reader command in $LOOP_PRD_READER (given the whole source) wins, and is
+    how an MCP connector is reached; else a url that is a file path or file: link or an http(s) page. An mcp source, or a
+    Notion link, needs the reader, because a script cannot sign in."""
+    try:
+        source, url = url, url[4:] if url.startswith("url:") else url
+        if os.environ.get(READER):
+            done = subprocess.run(os.environ[READER].split() + [source], capture_output=True, text=True, timeout=120)
+            return (done.stdout, None) if done.returncode == 0 and done.stdout.strip() else (None, "the reader %s printed nothing (exit %d)" % (os.environ[READER].split()[0], done.returncode))
+        if url.startswith("file:"):
+            url = urllib.request.url2pathname(url[5:].lstrip("/") if re.match(r"file:/+\w:", url) else url[5:])
+        if os.path.exists(url):
+            with open(url, encoding="utf-8") as handle:
+                return handle.read(), None
+        if source.startswith("mcp:") or re.search(r"(^|[/.])notion\.(so|site|com)/", url):
+            return None, "this source needs its MCP connector: set %s to a command that prints the document" % READER
+        if url.startswith(("http://", "https://")):
+            with urllib.request.urlopen(url, timeout=20) as page:
+                return page.read().decode("utf-8", "replace"), None
+        return None, "not a path or an http(s) link"
+    except Exception as error:  # an unreadable link is UNREAD, never a crash
+        return None, "%s: %s" % (type(error).__name__, str(error)[:80])
 
 
 def main():

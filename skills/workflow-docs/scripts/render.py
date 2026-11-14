@@ -16,7 +16,7 @@ import sys
 import counting
 import criteria
 import pageformat
-from deployments import link_of, read_link, regroup, topics_of
+from deployments import link_of, regroup, topics_of
 
 # No terminal, no waiting: a prompt from git or gh must fail, not block.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_EDITOR="true", GIT_ASKPASS="true", SSH_ASKPASS="true")
@@ -104,7 +104,8 @@ def render(args):
         parts = criteria.sections(text)
         url = link_of(text, counting.sources(root).get(os.path.basename(rel)[:-3], ""))
         if url:  # a link-form page: the ids come from the linked PRD, read now and never copied here; unreadable, leave the page
-            body, _ = read_link(url)
+            import prd
+            body, _ = prd.read_link(url)
             if body is None or not parts or parts[-1][0] != "Tests":
                 continue
             ids = [(m.group(1), m.group(4)) for n, ls in criteria.sections(body) if n == criteria.rules()["sections"][1] for _, m in criteria.criteria_of(ls) if m]

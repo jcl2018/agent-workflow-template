@@ -89,6 +89,13 @@ Titles are locked on Reviewed requirements. #410: MON-1, MON-2, MON-13, MON-14 a
 
 ## Waiting on owner un-review
 
+Drafts for the morning. Nothing below is on a page yet: the Setup page is Reviewed, so its wording changes only after you un-review it.
+
+- 2026-11-13, matrix-smoke: **proven across agents and machines.** Proposed as a new Setup requirement, SET-18 (Non-functional, Unreviewed until you review it); the alternative is a sentence each in SET-3 (a package that works on every machine) and SET-6 (adoption is proven).
+  - Draft SET-18: "The template is proven on each agent and machine. One smoke set (package, adopt a toy repo from the package, freeze a goal, run its qa lane, health check, one routine from its Runbook pointer, a goal relayed between two pods under the merge lock) runs the same on Claude Code (app session and CLI), Codex and CI, on Windows, macOS and Linux. Each run appends one dated line (agent, OS, machine, commit, result) to `.loop/matrix-runs.tsv`; health's Adoption group reads it: a cell with no passing smoke in 7 days reads \"not proven\" (WARN), and a V1-required cell with none (Claude Code on Windows, Claude Code on macOS, CI on Linux) is a FAIL."
+  - Draft Usage entry for the Setup page: "`python3 dev/toy/matrix-smoke.py [--agent claude-app|claude-cli|codex|ci] [--only STEP] [--no-record]` — Runs the smoke set on this machine and appends its dated line to `.loop/matrix-runs.tsv`; the regression workflow's `matrix-smoke` job runs it on Linux as `ci`."
+  - Why a smoke set and not the whole suite: the suite takes hours on Windows and most of its rows skip there by design (a toy test not marked `# windows: ok` exits 77); the smoke set is short and runs the same on every machine, so a cell reads proven or not on the same evidence everywhere.
+  - Decisions taken in the build, each easy to change: (1) the rule is off until `.loop/matrix-runs.tsv` exists, so a repo that never ran a smoke is not failed for it; (2) one Claude Code pass on a machine proves both the app and CLI cells of the V1 requirement, and the other of the two reads WARN only where it is not itself V1-required; (3) the Linux CI job uploads the record as an artifact, and the line reaches the repo only when a person or a goal commits it, because a workflow that pushes to main is a guardrail change that is yours to make; (4) the `runbook` step resolves a routine's Runbook pointer and checks its Steps line names something to run, and never starts the live routine, because a scheduled routine writes issues and mail; (5) until `dev/package.py` passes its own rules (it refuses on main today: 103 files over 100, `fit.py` and `lane.py` over 20 KB, `render.py` not running alone), the package step falls back to a plain ZIP of `skills/` and prints a WARN saying so.
 Proposed wording for the backlog-milestones goal (2026-11-13, the owner approved the design in the operation session). Each Reviewed requirement below stays as it is until the owner un-reviews it and types the approval sentence. DEL-14 and SET-17 are new requirements: adding one to a Reviewed page changes its review lock (LOCKED, and Setup would pass criteria_max), so they go onto the Delivery and Setup pages in the same sitting, and until then their rows guard the goal's done line (`backlog-milestones:1`). The code in this goal already behaves as the wording below says, so it merges after the owner approves it.
 
 - Backlog milestones (design): every filing has one home. Regression files only regression defects, as today. A defect is something broken against a Reviewed requirement; a backlog item is an improvement, idea, drift, weak test, size or saving. Defects are issues labelled `defect`; backlog items are issues labelled `backlog` on the milestone "Backlog: <Feature>" (one per feature page), or "Backlog: Other" when nothing fits. Backlog never blocks a release; an open defect with no goal and no owner OK does (that release check, the board counts and the per-feature triage counts are follow-up goals in workflow-release and workflow-monitoring, outside this goal's touches).
@@ -98,6 +105,13 @@ Proposed wording for the backlog-milestones goal (2026-11-13, the owner approved
 - DOC-10 (fourth bullet, new): "An existing milestone named "Backlog" is renamed "Backlog: Other", and the feature milestones that hold goals and pull requests (Delivery, Documentation, ...) are kept as they are." (`milestone.py backlog --live` does the rename once, only when "Backlog" exists and "Backlog: Other" does not.)
 - DEL-14 (new, Unreviewed): "Leftover findings are filed by kind at ship". Body: "When a goal ships, each finding it did not fix is filed once. A break of a Reviewed requirement inside the goal's touches is fixed in place; outside them it is an open issue labelled `defect`. An improvement, idea or saving is an issue labelled `backlog` on its feature's milestone "Backlog: <Feature>" ("Backlog: Other" when it fits no feature). Filing writes to GitHub only with `--live`, which the goal passes after ship is recorded, and a finding already filed is not filed again."
 - SET-17 (new, Unreviewed): "The Backlog milestones exist after adoption". Body: "Adoption creates one milestone "Backlog: <Feature>" for each feature page and "Backlog: Other", and creates none that already exists. Health's Adoption group warns for each one that is missing."
+
+## Waiting on owner un-review (graph-times)
+
+The check-in dependency map (checkin.py) showed a flat list of goal ids with no times and no arrows, and listed stray, stopped and left goals. MON-14 is Reviewed, so the added wording is proposed and stays here until the owner un-reviews it.
+
+- MON-14 (new sub-bullet): "Each goal shows its expected time left from past runs, each repo block ends with its expected finish, and each wait is drawn as an arrow."
+- MON-14 (new sub-bullet): "The map lists only live goals: a record with no goal or status, a stopped goal and a goal left with release: leave are not drawn, and a worker held at pr reads holding, not stuck."
 
 ## Waiting on owner un-review (drop-usage)
 
@@ -134,3 +148,65 @@ The owner types two sentences in the operation session (it runs `criteria.py unr
 
 1. Un-review: "Un-review the Documentation page and DOC-15 so the local-schedule sub-bullet can be added."
 2. Review, after the goal has added it: "Review the Documentation page and DOC-15 again."
+## Waiting on owner un-review (machine-local)
+
+The owner decided 2026-11-13: "some tasks in this session should only rely on things on this session, right? This machine. There are other machines proof and other things. They can be added like to do some milestones, but shouldn't be related." Built by the machine-local goal (`regression.py red ID --owed --runner R`, health WARN after 7 days, the check-in's off-machine to-do lines). Guardrails is Reviewed, so the requirement below is not applied until the owner un-reviews Guardrails and approves the wording.
+
+- Guardrails, add after GRD-10: **GRD-11: A goal depends only on what its own machine can do.** A step only another machine can do (a red proof on another platform, a smoke cell, a Mac-only check) is filed as a to-do issue on the feature's milestone and never blocks the goal, its merge or the release.
+  - A row whose red proof needs another platform is recorded owed (Regression, `red ID --owed --runner R`): it reads PENDING, opens one to-do issue labelled `other-machine` on the row's feature milestone, and its goal merges.
+  - Health warns on an owed proof older than 7 days and never fails on it (Health, Tests).
+  - The check-in lists owed off-machine items under Coming up, and the operation session never holds a goal for another pod or machine (Monitoring).
+- Regression, REG-10, add this sub-bullet: A row whose red proof needs another machine can be recorded owed (`red ID --owed --runner R`): it reads PENDING instead of UNPROVEN, one to-do issue labelled `other-machine` opens on the row's feature milestone, and neither the goal's pr lane nor the release waits for it. A real red proof clears it.
+- Health, Tests group rule on seen-red, add this sub-bullet: an owed proof (`.loop/regression-owed.tsv`) is not a seen-red failure; it warns once it is older than 7 days and never fails.
+- Monitoring, MON-5 (check-in), add this sub-bullet: The check-in lists owed off-machine to-dos under Coming up, and the operation session never holds a goal for another pod or machine.
+- Pages stale from this goal's code until the owner re-stamps them: Regression, Health, Monitoring (and Home, Documentation from the DECISIONS edit).
+
+The owner types two sentences in the operation session:
+
+1. Un-review: "Un-review the Guardrails, Regression, Health and Monitoring pages and the requirements GRD-11 (new), REG-10, HLT-2 and MON-5 so the machine-local wording can be added."
+2. Review, after the goal has added it: "Review the Guardrails, Regression, Health and Monitoring pages, GRD-11, REG-10, HLT-2 and MON-5 again."
+
+Progress 2026-11-13: the owner typed sentence 1 in the machine-local session; the pages and REG-10, HLT-2, MON-5 were un-reviewed, GRD-11 was added (Unreviewed) and the sub-bullets above were written into the pages. Applied: the owner typed sentence 2 and the pages and requirements were reviewed again.
+
+
+## Waiting on owner un-review (health-on-windows)
+
+Drafted 2026-11-14 by the health-on-windows goal; nothing below is on the pages (AUT-1, AUT-3 and AUT-6 are Reviewed). The code already works: `automation.py local register` writes the registry on any platform (no launch agent), `LOOP_MAIL_ENV` names the mail file, and a mail.env on Windows is not refused as MAIL_ENV_MODE (Windows has no mode bits to check). The owner's always-on machine is the Mac or a Windows PC, and the owner's own scheduler runs `automation.py local tick --scheduled`.
+
+- AUT-1 (replace its first bullet): "Health runs on my always-on machine (the Mac through its launch agent, or a Windows PC through its own scheduled task) for every repo. Regression runs in GitHub Actions for a public repo and on that machine for a private one."
+- AUT-1 (replace its third bullet): "A routine missed while that machine is asleep or off runs once at the next tick, and the digest says it was missed."
+- AUT-3 (replace its first bullet): "Health never runs in GitHub Actions: it runs on my always-on machine on the schedule (every 4 hours by default), after the latest finished regression run, with all its rule groups; its report names that run with its commit and age, or says none finished, and says when health last ran."
+- AUT-3 (replace its second bullet's "on the Mac"): "The repo review always runs, using my own login on that machine, with no API key secret; when the login has expired or can't be reached, the report says which and the next round tries again."
+- AUT-6 (add one bullet): "The mail file is `mail.env` in the schedule home, or the file `LOOP_MAIL_ENV` names (a shared file on a synced folder); on a machine with file modes a mail.env others can read sends nothing, and on Windows, which has no modes, that check is skipped."
+
+The owner types two sentences in the operation session:
+
+1. Un-review: "Un-review the Automation page and the requirements AUT-1, AUT-3 and AUT-6 so the always-on machine wording can be added."
+2. Review, after the goal has added it: "Review the Automation page, AUT-1, AUT-3 and AUT-6 again."
+- Review note (health-on-windows): `local status` still prints the plist and launchctl checks as FIX on Windows (informational); `register` does not refuse a worktree path as install does, so schedule the tick from the main checkout or the installed skills. Windows `tick` relies on `tasklist` and `taskkill`, which the toy does not exercise.
+
+
+## Waiting on owner un-review (owner-relay)
+
+Drafted by the owner-relay goal, 2026-11-13. These change reviewed requirements, so they wait for the owner's own typed words: un-review DOC-2 and MON-11, approve or change the wording, then the pages are edited and reviewed again. Until then `criteria.py ... --owner-record` exists but DOC-2 still says only the owner, in their own words.
+
+- DOC-2 (the PRD is mine): replace "only I can do that." with "only I can do that, in my own words: typed by me, or recorded verbatim by the operation session from my own message." and add the bullet "A recorded message counts only for the requirement IDs or pages it lists, once for a review and once for an un-review, and every use is logged with its words."
+- MON-11 (full auto mode): replace its first bullet with "A setting, on by default. When it is on, the operation session applies each routine recommendation without asking, logs the question, the answer and why, and lists them in the next check-in; only the decisions in the next bullet and those that need my own words wait under Needs you." and add the bullet "When a decision needs my words, I answer in the operation session, which records my message verbatim with the IDs it covers (sessions.py owner-words) for the workers to use."
+
+Applied 2026-11-14 on owner-words record o2 (the operation session's owner-words.tsv): the Automation page and AUT-1, AUT-3 and AUT-6 were un-reviewed, the five drafted bullets above were added exactly as written, and the page and the three requirements were reviewed again.
+
+## Waiting on owner un-review (merge-stale-own)
+
+Drafted by the merge-stale-own goal, 2026-11-14 (#3941). merge.py's wiki check now refuses only for a page the goal's own diff made stale (the scope of `docs.py check --own`); a page left stale by another goal's commit is printed as a `FINDING` and left for health. Two locked lines of the Delivery page now read stricter than that, so they wait for the owner's own typed words. Until then the page keeps its old wording, which is only more cautious than the behaviour.
+
+- Delivery, DEL-5 (Release), in its second sub-bullet: replace "refuses to merge while a page is stale" with "refuses to merge while a page its own changes made stale is still stale (a page left stale by another goal's commit is reported as a finding, and health still flags it)".
+- Delivery, Success metrics: replace "No goal merges while a wiki page is stale." with "No goal merges while a wiki page its own diff made stale is still stale."
+- Not locked, done by the goal: the `wiki-unmapped-stale` row's description now says a page no touched path maps to is a finding, not a refusal.
+
+The owner types one sentence in the operation session:
+
+"Un-review the Delivery page, the requirement DEL-5 and the Delivery success metric so the merge-stale-own wording in DECISIONS.md can be added; then review the Delivery page and DEL-5 again."
+
+After it, the goal (or the operation session) edits the two lines as drafted, and the owner's review follows with the same words. Until the owner's words are in, merge.py runs for merge-stale-own only on the operation session's turn.
+
+Applied 2026-11-14 on owner-words record o5 (the sentence above, recorded by the operation session): the Delivery page and DEL-5 were un-reviewed, DEL-5's second sub-bullet and the Delivery success metric were reworded exactly as drafted, and the Delivery page and DEL-5 were reviewed again, all with `--owner-record o5`.
