@@ -5,7 +5,10 @@
 
 Runs dev/package.py's own checks (walk, check_files, check_scripts: the 99-file cap, the 20,480-byte script cap and
 `--help` run alone with only its sibling files) on the tracked files of this checkout, in plain Python, so it
-runs on Windows too (the package-passes row skips there). The controls build a small package and show each rule fails."""
+runs on Windows too (the package-passes row skips there). The controls build a small package and show each rule fails.
+
+usage: test-package-gate.py [controls|head]   one part only, so a row's exit status is its answer and its failure prints why
+PACKAGE_GATE_ROOT names the checkout whose tracked files the head part checks (default: this one; the toy sets it for its controls)."""
 import contextlib
 import importlib.util
 import io
@@ -47,7 +50,7 @@ def put(tree, rel, text):
 
 
 OK = '"""A script that runs alone."""\nimport os\nprint(os.name)\n'
-with tempfile.TemporaryDirectory() as tmp:
+def controls(tmp):
     tree = os.path.join(tmp, "base")
     put(tree, "skills/demo/scripts/ok.py", OK)
     count, found = verdict(tree)
@@ -66,15 +69,26 @@ with tempfile.TemporaryDirectory() as tmp:
     put(alone, "skills/demo/scripts/needs.py", "import sibling_skill_helper\n")
     check(any("needs.py" in line for line in verdict(alone)[1]), "control: a script that needs a file outside its own folder fails the package")
 
+
+def head_of(tmp):
+    """The tracked files of PACKAGE_GATE_ROOT (else this checkout) copied to a new tree and put through package.py's checks."""
+    top = os.environ.get("PACKAGE_GATE_ROOT") or root
     head = os.path.join(tmp, "head")
-    names = subprocess.run(["git", "ls-files", "-z", "skills", "listing.json", "README.md", "LICENSE"], cwd=root, capture_output=True).stdout
+    names = subprocess.run(["git", "ls-files", "-z", "skills", "listing.json", "README.md", "LICENSE"], cwd=top, capture_output=True).stdout
     for rel in filter(None, names.decode("utf-8").split("\0")):
-        if os.path.isfile(os.path.join(root, rel)):
+        if os.path.isfile(os.path.join(top, rel)):
             os.makedirs(os.path.dirname(os.path.join(head, rel)) or head, exist_ok=True)
-            shutil.copyfile(os.path.join(root, rel), os.path.join(head, rel))
+            shutil.copyfile(os.path.join(top, rel), os.path.join(head, rel))
     count, found = verdict(head)
     for line in found:
         print("FAIL: head: " + line)
     check(not found, "head: this checkout's package passes the file and script checks (%d files, %d failures)" % (count, len(found)))
 
+
+part = sys.argv[1] if len(sys.argv) > 1 else "all"
+with tempfile.TemporaryDirectory() as tmp:
+    if part in ("all", "controls"):
+        controls(tmp)
+    if part in ("all", "head"):
+        head_of(tmp)
 sys.exit(1 if failed else 0)
