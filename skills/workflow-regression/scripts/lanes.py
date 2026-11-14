@@ -229,8 +229,10 @@ def walk(root, prefix, cache=None):
         return []
     if cache is not None and ("walk", prefix) in cache:
         return cache["walk", prefix]
-    found = [os.path.relpath(os.path.join(here, n), root) for here, _, names in os.walk(os.path.join(root, prefix))
-             for n in names if "__pycache__" not in here]
+    found = []
+    for here, dirs, names in os.walk(os.path.join(root, prefix)):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", "__pycache__")]  # never enter them: a worktree's node_modules is huge
+        found += [os.path.relpath(os.path.join(here, n), root) for n in names]
     return found if cache is None else cache.setdefault(("walk", prefix), found)
 
 
