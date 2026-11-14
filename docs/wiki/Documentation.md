@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/3
 
-Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=9ef7c158 N=81dd3484 M=4599a537 U=03828777 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=d93be5bd N=81dd3484 M=4599a537 U=03828777 -->
 
 ## Problem
 - I can't tell from the wiki what a feature does, how to use it, or whether its requirements are really tested.
@@ -16,8 +16,9 @@ Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=9ef7c158 N=81dd3484 M=4599
 - DOC-1: **Reviewed 2026-11-13** PRD template <!-- reviewed 422243c4 -->
   - One template defines every feature page as a short PRD: Problem (who it's for and what it solves, two or three lines); Requirements (up to the repo's limit, each with an ID); Non-goals (what the feature deliberately won't do); Success metrics (how we know it works, one to three measurable lines); Tests (for each requirement, one or more Given/When/Then scenarios, each with its test, last result and date, and not enforced when no test passes). A page has no Usage section.
   - Nothing else goes on the page except the generated, optional Deployments (DOC-14) and Runbook (DOC-16) sections.
-- DOC-2: **Reviewed 2026-11-13** The PRD is mine <!-- reviewed 39c36f13 -->
-  - I review the PRD as a whole (Problem, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that.
+- DOC-2: **Reviewed 2026-11-13** The PRD is mine <!-- reviewed 2e17a232 -->
+  - I review the PRD as a whole (Problem, Requirements, Non-goals and Success metrics) and mark it Reviewed with a date; only I can do that, in my own words: typed by me, or recorded verbatim by the operation session from my own message.
+  - A recorded message counts only for the requirement IDs or pages it lists, once for a review and once for an un-review, and every use is logged with its words.
   - After it, nothing in Problem, Requirements, Non-goals or Success metrics changes unless I un-review it.
 - DOC-3: **Reviewed 2026-11-08** Tests follow on their own <!-- reviewed 2e9e1c3f -->
   - Once I review a PRD, the loop writes Given/When/Then scenarios and tests for each requirement, links each to a regression row, and keeps them in step when a requirement changes.
@@ -116,11 +117,14 @@ Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=9ef7c158 N=81dd3484 M=4599
 | [guide-marker-refused](Tests#t-guide-marker-refused) | requirement | DOC-1 | Given a page with requirement or Review lines, when it carries the guide marker, then the docs check refuses it naming the page. | PASS 2026-11-10 |
 | [spec-decisions-wording](Tests#t-spec-decisions-wording) | requirement | DOC-1 | Given the owner's 2026-11-12 spec decisions, when the pages and SKILL.md files are read, then the loop runs only affected rows, GRD-5 names --live, the feature-label requirements say feature_labels, and the budget setting is test_budget_minutes. | PASS 2026-11-12 |
 | [spec-decisions-log](Tests#t-spec-decisions-log) | requirement | DOC-1 | Given the owner's 2026-11-12 decisions, when DECISIONS.md is read, then it holds ten dated entries and the proposed wording of each locked requirement. | PASS 2026-11-13 |
+| [link-page-passes](Tests#t-link-page-passes) | requirement | DOC-1 | Given a feature page holding a PRD line and a readable linked PRD, when the docs check runs, then it passes and the Tests table lists the linked ids without copying the PRD text. | PASS 2026-11-13 |
+| [link-unread-never-pass](Tests#t-link-unread-never-pass) | requirement | DOC-1 | Given a feature page whose PRD source cannot be read, when the docs check runs, then it reports UNREAD and exits non-zero. | PASS 2026-11-13 |
 | [stale-own-finding](Tests#t-stale-own-finding) | requirement | DOC-1 | Given main has a stale page the goal's diff doesn't map to, when docs.py check --own runs on the goal branch, then it prints the page as a FINDING line and passes. | not run |
 | [stale-own-main-reported](Tests#t-stale-own-main-reported) | requirement | DOC-1 | Given the same stale page on main, when plain docs.py check runs on main (as health and the scheduled run do), then it still prints the STALE line, so --own hides nothing from them. | not run |
 | [stale-own-goal-fails](Tests#t-stale-own-goal-fails) | requirement | DOC-1 | Given a goal whose own diff makes a mapped page stale, when docs.py check --own runs, then it still prints STALE for that page and fails. | not run |
 | [stale-own-main-own-fails](Tests#t-stale-own-main-own-fails) | requirement | DOC-1 | Given a stale page on main, when docs.py check --own runs on main itself (the scheduled run's rows), then it still prints STALE and fails. | not run |
 | [stale-own-block-kept](Tests#t-stale-own-block-kept) | requirement | DOC-1 | Given a Settings, Automation or README block that differs from a fresh render, when docs.py check --own runs, then its STALE line is kept, never moved to a FINDING. | not run |
+| [notion-app-link-unread](Tests#t-notion-app-link-unread) | requirement | DOC-1 | Given a feature page whose PRD is an app.notion.com link and no reader, when the docs check runs, then it reports UNREAD instead of reading the sign-in page. | PASS 2026-11-13 |
 | [review-dated](Tests#t-review-dated) | requirement | DOC-2 | Given a criterion, when it is reviewed, then it is marked Reviewed with the date. | PASS 2026-11-12 |
 | [review-owner-only](Tests#t-review-owner-only) | requirement | DOC-2 | Given a criterion, when a review is attempted, then it is reviewed only with the owner's words. | PASS 2026-11-12 |
 | [reviewed-lock](Tests#t-reviewed-lock) | requirement | DOC-2 | Given a reviewed criterion, when it is changed, then the check fails. | PASS 2026-11-12 |
@@ -132,10 +136,16 @@ Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=9ef7c158 N=81dd3484 M=4599
 | [prd-stamps-free](Tests#t-prd-stamps-free) | requirement | DOC-2 | Given a PRD the owner reviewed, when a requirement is reviewed or unreviewed, or the owner un-reviews and reviews the PRD again, then no lock trips. | PASS 2026-11-10 |
 | [seal-sub-bullets](Tests#t-seal-sub-bullets) | requirement | DOC-2 | Given a reviewed requirement, when one of its sub-bullets changes, then the docs check reports LOCKED. | PASS 2026-11-12 |
 | [report-sub-bullets](Tests#t-report-sub-bullets) | requirement | DOC-2 | Given a reviewed requirement whose sub-bullet changed, when the report prints, then it names it, and not once restored. | PASS 2026-11-12 |
+| [owner-record-applies](Tests#t-owner-record-applies) | requirement | DOC-2 | Given the owner's message recorded by the operation session, when a worker reviews with --owner-record, then the requirement is Reviewed and reviews.tsv names the record and the words. | not run |
+| [worker-cannot-write-owner-words](Tests#t-worker-cannot-write-owner-words) | requirement | DOC-2 | Given a worker role, when it tries to record the owner's words, then it is refused and nothing is written, while the operation role can record them. | not run |
+| [owner-record-ids-only](Tests#t-owner-record-ids-only) | requirement | DOC-2 | Given a recorded owner message, when a worker names an ID it does not list or uses it twice for one command, then it is refused with nothing changed. | not run |
 | [untested-listed](Tests#t-untested-listed) | requirement | DOC-3 | Given a Reviewed criterion with no test or a test that no longer matches, when the check runs, then it is listed. | PASS 2026-11-12 |
 | [prd-scenarios](Tests#t-prd-scenarios) | requirement | DOC-3 | Given regression rows linked to a requirement, when the Tests are rendered, then each row is a Given/When/Then scenario with its test, result and date, and a plain description is flagged. | PASS 2026-11-10 |
 | [prd-untested](Tests#t-prd-untested) | requirement | DOC-3 | Given a PRD the owner reviewed whose requirement has no test, when the docs audit runs, then it lists that requirement as UNTESTED. | PASS 2026-11-10 |
 | [format-home](Tests#t-format-home) | requirement | DOC-4 | Given a Home page with a line outside its Features table, when the docs check runs, then it fails naming Home, Features and DOC-4. | PASS 2026-11-10 |
+| [home-topic-column](Tests#t-home-topic-column) | requirement | DOC-4 | Given a topics setting, when Home is rendered, then it leads with a Topic column grouping the features and a wrong Topic cell fails the check. | PASS 2026-11-14 |
+| [home-header-both](Tests#t-home-header-both) | requirement | DOC-4 | Given Home with or without a Topic column, when the docs check runs, then both headers are accepted, and the Topic cell is checked only when the topics setting is set. | PASS 2026-11-14 |
+| [home-topic-live](Tests#t-home-topic-live) | requirement | DOC-4 | Given this repo's topics setting, when Home is read, then its table leads with a Topic column. | PASS 2026-11-14 |
 | [format-frontdoor](Tests#t-format-frontdoor) | requirement | DOC-5 | Given a README How to use table with a command in You say, when the docs check runs, then it fails naming README, the section and DOC-5. | PASS 2026-11-10 |
 | [command-reference-complete](Tests#t-command-reference-complete) | requirement | DOC-6 | Given each skill's SKILL.md Command map, when the reference is read, then every verb in the map has its syntax in the skill's SKILL.md or references/commands.md. | not run |
 | - | requirement | DOC-6 | no passing test | not enforced |

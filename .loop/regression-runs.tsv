@@ -76,6 +76,7 @@ ci-issue-backlog	PASS	2026-11-10
 ci-levels-setting	PASS	2026-11-10	
 ci-summary	PASS	2026-11-12	
 ci-target-input	PASS	2026-11-10	
+config-holds-topics	PASS	2026-11-14	
 cost-time-warn	PASS	2026-11-12	
 cost-unread-tokens	PASS	2026-11-12	
 criteria-max-config	PASS	2026-11-12	
@@ -135,7 +136,7 @@ done-line-rows-128	PASS	2026-11-12
 done-lines-warning-143	PASS	2026-11-12	
 entry-stale	PASS	2026-11-12	
 estimates-shown	PASS	2026-11-12	
-every-row-described	PASS	2026-11-13	
+every-row-described	PASS	2026-11-14	
 failed-waits-mender	PASS	2026-11-09	
 file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 fixed-closes	PASS	2026-11-12	
@@ -166,8 +167,11 @@ guards-worktree	PASS	2026-11-10
 guide-marker-refused	PASS	2026-11-10	
 health-group-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 health-lists-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+health-mail-env-named	PASS	2026-11-14	
+health-mail-env-windows	PASS	2026-11-14	
 health-not-enforced-fail	PASS	2026-11-10	
 health-not-enforced-warn	PASS	2026-11-10	
+health-register-no-launchd	PASS	2026-11-14	
 health-tests-error	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 health-timing	PASS	2026-11-11	
 health-unreviewed-warn-issue-118	PASS	2026-11-10	
@@ -178,6 +182,12 @@ held-off-flow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-shows-held	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-stale-next	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-time-115	PASS	2026-11-10	
+held-time-3878	PASS	2026-11-14	
+held-time-over-still-stops	PASS	2026-11-14	
+held-time-owner-wait	PASS	2026-11-14	
+held-time-pr-queue	PASS	2026-11-14	
+held-time-session-hold	PASS	2026-11-14	
+held-time-stopped	PASS	2026-11-14	
 hlt6-branches	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-cannot-fire	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-clean-quiet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -193,6 +203,9 @@ hlt6-worktrees	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt7-fast-check	PASS	2026-11-12	
 hlt8-triage	PASS	2026-11-10	
 hlt9-evidence-or-nothing	PASS	2026-11-10	
+home-header-both	PASS	2026-11-14	
+home-topic-column	PASS	2026-11-14	
+home-topic-live	PASS	2026-11-14	
 issue-129-docs-published	PASS	2026-11-12	
 issue-129-wiki-first-page	PASS	2026-11-12	
 issue-134-protected-release	PASS	2026-11-12	
@@ -244,7 +257,10 @@ lanes-trace	FAIL	2026-11-10
 lanes-trace-check	PASS	2026-11-10	
 lanes-trace-hook-173	PASS	2026-11-10	
 lanes-wide-parity	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+link-page-passes	PASS	2026-11-13	
+link-unread-never-pass	PASS	2026-11-13	
 list-kind-filter	PASS	2026-11-10	
+list-link-ids	PASS	2026-11-13	
 list-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 list-tsv-raw	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 live-board-arrows	PASS	2026-11-12	
@@ -258,6 +274,8 @@ local-row-env	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lock-in-report	PASS	2026-11-12	
 ls-plist	FAIL	2026-11-13	
 mac-rows-skip-77	PASS	2026-11-13	
+matrix-health-rule	PASS	2026-11-13	
+matrix-smoke-record	PASS	2026-11-13	
 merge-base-undiffable	PASS	2026-11-11	
 merge-base-unrecorded	PASS	2026-11-11	
 merge-guard-base-head	PASS	2026-11-11	
@@ -294,6 +312,7 @@ no-prompts	PASS	2026-11-12
 no-row-fail	PASS	2026-11-12	
 no-token-dry-run	PASS	2026-11-12	
 no-token-would	PASS	2026-11-12	
+notion-app-link-unread	PASS	2026-11-13	
 one-failure	PASS	2026-11-09	
 one-format-everywhere	PASS	2026-11-10	
 one-issue	PASS	2026-11-12	
@@ -301,13 +320,14 @@ one-link	PASS	2026-11-12
 one-way-to-run	PASS	2026-11-12	
 operate-10-under-load	PASS	2026-11-11	
 operate-all	PASS	2026-11-09	
+operate-toy-no-check	PASS	2026-11-13	
 operate-wakes-on-report	PASS	2026-11-09	
-package-caps-held	PASS	2026-11-13		a57143d4c3bb
+package-caps-held	PASS	2026-11-14		a3dcc03121ec
 package-hang-bound	PASS	2026-11-12	
 package-hang-no-skills-file	PASS	2026-11-12	
 package-hang-slot	PASS	2026-11-12	
 package-hang-stdin	PASS	2026-11-12	
-package-headroom-held	FAIL	2026-11-13	
+package-headroom-held	PASS	2026-11-14	
 page-shape	PASS	2026-11-12	
 parallel-unlimited	PASS	2026-11-12	
 pass3-symlink-page	PASS	2026-11-11	
@@ -385,7 +405,7 @@ report-held-111	PASS	2026-11-10
 report-sub-bullets	PASS	2026-11-12	
 retired-leaves-waiting	PASS	2026-11-09	
 review-dated	PASS	2026-11-12	
-review-findings-skill-lines	FAIL	2026-11-13	
+review-findings-skill-lines	PASS	2026-11-14	
 review-owner-only	PASS	2026-11-12	
 reviewed-lock	PASS	2026-11-12	
 row-timeout-holds	PASS	2026-11-11	
@@ -423,7 +443,7 @@ settings-publish-refresh	PASS	2026-11-12
 settings-read-fresh	PASS	2026-11-12	
 settings-reference	PASS	2026-11-12	
 settings-refresh	PASS	2026-11-12	
-settings-render-fresh	FAIL	2026-11-13	
+settings-render-fresh	PASS	2026-11-14	
 settings-stale	PASS	2026-11-12	
 settings-template-line	PASS	2026-11-12	
 setup-both-halves	PASS	2026-11-12	
@@ -472,6 +492,7 @@ summary-unknown-row	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 template-sheet	PASS	2026-11-12	
 tests-last-run	PASS	2026-11-12	
 tests-not-enforced	PASS	2026-11-12	
+tests-own-folder	PASS	2026-11-13	
 tests-page-run-link	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-page-stale	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 tests-py-missing	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -484,6 +505,7 @@ tiers-no-merge-base	PASS	2026-11-10
 tiers-record-merge-base	PASS	2026-11-10	
 tiers-rows-summary	PASS	2026-11-10	
 tiers-unmapped-qa-pr	PASS	2026-11-10	
+topics-in-reference	PASS	2026-11-13	
 toy-no-leftovers	PASS	2026-11-12	
 two-lanes-toy-435	PASS	2026-11-10	
 unproven-blocks	PASS	2026-11-12	

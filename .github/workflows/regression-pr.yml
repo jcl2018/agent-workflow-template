@@ -1,0 +1,25 @@
+# Written by workflow-regression (regression.py workflow). The rows a change reaches; the full suite runs on the schedule only.
+name: regression-pr
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - "main"
+permissions:
+  contents: read
+concurrency:
+  group: regression-pr-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  affected:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 skills/workflow-regression/scripts/regression.py run nightly --reuse --tier goal --timeout 900

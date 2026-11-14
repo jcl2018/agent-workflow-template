@@ -31,17 +31,9 @@ ASKING = ("waiting", "failed", "stopped")
 
 
 def seconds_by_step(run, at):
-    """Time each step took, from the gaps before its log entries, plus the gap since the last entry for the current step."""
-    found, log = {}, run.get("log") or []
-    for before, entry in zip(log, log[1:]):
-        word = entry.split(" ", 2)[1] if entry.count(" ") else ""
-        a, b = stamp(before), stamp(entry)
-        if word in STEPS and a and b:
-            found[word] = found.get(word, 0) + (b - a).total_seconds()
-    last = stamp(log[-1]) if log else None
-    if run.get("status") == "running" and run.get("step") in STEPS and last:
-        found[run["step"]] = found.get(run["step"], 0) + max(0, (at - last).total_seconds())
-    return found
+    """Time each step took, by the board's held-time rule (board_log.flow_seconds): time held in the pr queue, on a hold, on
+    an owner answer or after a stop counts nothing, so a budget counts only active step time (#3878)."""
+    return flow_seconds(run, at)
 
 
 def tokens_by_step(run):

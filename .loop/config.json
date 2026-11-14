@@ -69,5 +69,23 @@
   "reply_hook": true,
   "feature_labels": false,
   "template_version": "0.27.29",
-  "regression_runs": ""
+  "regression_runs": "",
+  "topics": {
+    "Build loop": [
+      "Delivery",
+      "Monitoring"
+    ],
+    "Quality": [
+      "Regression",
+      "Health",
+      "Guardrails"
+    ],
+    "Operations": [
+      "Automation",
+      "Setup"
+    ],
+    "Docs": [
+      "Documentation"
+    ]
+  }
 }
