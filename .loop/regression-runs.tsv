@@ -236,6 +236,7 @@ lane-pass-dirty	PASS	2026-11-11
 lane-pass-reused	PASS	2026-11-11	
 lane-ports-tmpdir	PASS	2026-11-11	
 lane-start-mark-once	PASS	2026-11-11	
+lane-walk-skips-node-modules	PASS	2026-11-14	
 lanes-affected	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lanes-always	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 lanes-check	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
