@@ -46,12 +46,11 @@ Review: **Reviewed 2026-11-13** <!-- prd P=14b68802 R=b2106ed4 N=f86bd012 M=d4d1
   - A reopened issue's test is marked failing until it passes again.
 
 ### Non-functional
-- REG-7: **Reviewed 2026-11-13** Fast in the loop <!-- reviewed ebb1f5c6 -->
+- REG-7: **Reviewed 2026-11-13** Fast in the loop <!-- reviewed 4841a292 -->
   - Every in-loop test run (qa, ship and the pull-request lane) stays within a time budget, a setting that defaults to 15 minutes and can't be set lower. A run that would go past it, including changes the row picker can't map such as a deleted file, runs the affected tier that fits and leaves the rest to the scheduled full suite, saying what it left; the loop never runs the full suite. The scheduled full suite finishes in under 30 minutes: the GitHub job's time limit is that same 30 minutes and the suite is sharded over several jobs so each fits it, and health flags a suite that doesn't.
   - The work before a lane's first test row (preparing, planning and waiting for a slot) has its own budget, a setting that defaults to 15 minutes and can't be set lower; a lane whose preparation reaches it stops, says which part ran long, and the goal can rerun it instead of starting over.
   - Planning computes each row's closure once per lane, not once per row, and keeps it per branch, keyed by HEAD, the row file, the planner code, `LANES_WIDE` and the loop's uncommitted bookkeeping files; a dirty tree never uses it, a plan that read an ignored file, or one outside the repo through a symlink, is not saved (a file created or ignored later is outside the key: remove the plans folder or set `LANES_NO_CACHE=1`), and `LANES_NO_CACHE=1` turns it off.
   - Issue bodies and comments are passed to gh in a file (`--body-file`), so a long failure output never meets the Windows command-line limit.
-  - A lane that runs again after main moved reuses the earlier result of a row that only main's new commits reach, and reruns a row only when the goal's own diff reaches it too.
 - REG-8: **Reviewed 2026-11-10** Controllable <!-- reviewed e39ec809 -->
   - Which levels run where, the GitHub schedule, the time limits and how many test lanes run at once are settings.
   - Lanes running side by side never share files or ports or time each other out, and a lane over its limit says so.
@@ -191,6 +190,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=14b68802 R=b2106ed4 N=f86bd012 M=d4d1
 | [budgets-agree](Tests#t-budgets-agree) | requirement | REG-7 | Given the regression budget, when the wiki and regression.yml are read, then REG-7, AUT-7 and the workflow name the same 30 minute budget and the suite is sharded to fit it. | not run |
 | [reg7-unrun-warn-cost](Tests#t-reg7-unrun-warn-cost) | requirement | REG-7 | Given a full-suite record whose unrun column is above 0, when the performance group reads it, then it WARNs with the count. | not run |
 | [reg7-unrun-warn-lean](Tests#t-reg7-unrun-warn-lean) | requirement | REG-7 | Given a full-suite record whose unrun column is above 0, when the hygiene group reads it, then it WARNs with the count. | not run |
+| [rerun-both-touched](Tests#t-rerun-both-touched) | requirement | REG-7 | Given a goal rerun after main moved, when the lane plans, then it runs only the rows touched by both the goal's diff and main's new commits. | not run |
 | [lane-ports-tmpdir](Tests#t-lane-ports-tmpdir) | requirement | REG-8 | Given two lanes running at once, when their rows run, then each has its own leased port base and TMPDIR, and with all leases held a lane says so. | PASS 2026-11-11 |
 | [lane-messages-table](Tests#t-lane-messages-table) | requirement | REG-8 | Given every message code a lane, the runner or merge.py prints, when the reference is read, then each code has a row with its exit and what to do. | PASS 2026-11-11 |
 | [goal-levels-nightly](Tests#t-goal-levels-nightly) | requirement | REG-8 | Given goal_levels nightly, when a goal lane plans, then it selects the nightly rows a change reaches as well as land rows. | PASS 2026-11-11 |

@@ -60,12 +60,10 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=1e7005de N=9967b317 M=0fde
   - Each repo prints as `== name ==` within 60 characters, then a `Between repos` list for `repo/slug` dependencies, then the legend once.
   - The reply hook flags a check-in whose Dependencies section leaves out a goal on the board.
 
-- MON-15: **Reviewed 2026-11-13** Pods coordinate through shared state <!-- reviewed e6babce9 -->
-  - Pods coordinate through shared state, not messages: every goal records its owning pod and only that pod starts, answers, merges or resumes it; other pods show it read-only as owned by that pod; merges into one repo's main are serialized across pods by a short lock
+- MON-15: **Reviewed 2026-11-12** Pods coordinate through shared state, not messages: every goal records its owning pod and only that pod starts, answers, merges or resumes it; other pods show it read-only as owned by that pod; merges into one repo's main are serialized across pods by a short lock <!-- reviewed 9f4be548 -->
   - The pod id is `LOOP_POD_ID`, else the operation session's own id; a goal with no recorded pod belongs to no one. Another pod's attempt prints one `REFUSED: goal <slug> is owned by pod <id>. Fix: ...` line, exit 2, and changes nothing.
   - `merge.py` takes `<git common dir>/loop/merge.lock` for the whole merge step; a dead holder or one older than 30 minutes is replaced.
   - A pod's watch, auto-answers and mending skip other pods' goals, and its check-in lists their questions as read-only.
-  - A goal at pr waits only for an earlier goal whose touches overlap its own; goals with disjoint touches take their pr turn at once.
 
 ### Non-functional
 - MON-7: **Reviewed 2026-11-10** Govern only <!-- reviewed da6f1852 -->
@@ -192,6 +190,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=41bfc9ae R=1e7005de N=9967b317 M=0fde
 | [mon15-merge-lock](Tests#t-mon15-merge-lock) | requirement | MON-15 | Given two pods merging into one main, when they run together, then the lock serializes them. | PASS 2026-11-12 |
 | [resume-ask-prompt](Tests#t-resume-ask-prompt) | requirement | MON-15 | Given a goal set to ask and auto_merge on, when it is resumed, then its prompt asks the owner and never tells the worker to run merge.py. | not run |
 | [pr-queue-order](Tests#t-pr-queue-order) | requirement | MON-15 | Given three goals asking for their pr turn in one repo, when they ask oldest first, then the first runs its lane and the others are told who is ahead; a goal that left the pr step, a stopped holder and a ticket older than 30 minutes each give their place to the next. | not run |
+| [pr-parallel-disjoint](Tests#t-pr-parallel-disjoint) | requirement | MON-15 | Given goals at pr, when their touches share no path, then their lanes run at once, and a goal waits only for an earlier goal whose touches overlap. | not run |
 | [mon7-govern-blocks](Tests#t-mon7-govern-blocks) | requirement | MON-7 | Given the operation session, when it tries an edit, a commit or a push, then the govern hook refuses it with the fix, while workers, other sessions and the off switch pass. | PASS 2026-11-10 |
 | [mon16-notes-pass](Tests#t-mon16-notes-pass) | requirement | MON-7 | Given the operation session, when it writes a file outside every followed repo, then the govern hook lets it through. | not run |
 | [mon16-edit-inside-refused](Tests#t-mon16-edit-inside-refused) | requirement | MON-7 | Given the operation session, when it edits a file inside a followed repo, then the govern hook refuses it. | not run |

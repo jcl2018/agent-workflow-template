@@ -129,14 +129,12 @@ The owner types two sentences in the operation session (it runs `criteria.py unr
 
 ## Waiting on owner un-review (fast-merge-queue, DEL-15)
 
-Drafted 2026-11-13 by the fast-merge-queue goal. The code, toys and rows are on the branch; none of the page text below is applied until the owner un-reviews and approves the wording. Adding DEL-15 changes the Delivery page's review lock, and the code changes leave Delivery, Monitoring and Regression stale, with no place on a reviewed page for a sentence other than a requirement's sub-bullets.
+Drafted 2026-11-13 by the fast-merge-queue goal (applied: DEL-15 on the Delivery page. Main moved the Monitoring and Regression requirements in the meantime, so the goal's rows for the parallel queue and the main-moved rerun are tied to MON-15 and REG-7 and show in those pages' Tests tables; their sub-bullets were dropped to keep main's reviewed text). The code, toys and rows are on the branch; none of the page text below is applied until the owner un-reviews and approves the wording. Adding DEL-15 changes the Delivery page's review lock, and the code changes leave Delivery, Monitoring and Regression stale, with no place on a reviewed page for a sentence other than a requirement's sub-bullets.
 
 - Delivery, new requirement after DEL-14: "DEL-15: Fast merge queue. PRs merge one after another, but each waits only as long as needed." with these sub-bullets:
   - A pr lane that runs again after main moved reruns only the rows both the goal's diff and main's new commits reach; a row only main's new commits reach keeps its earlier result.
   - Goals at pr queue behind each other only when their touches overlap; goals with disjoint touches run their lanes at once.
   - Three or four ready pull requests with disjoint touches are verified together and merged in one go, and a failing batch splits to name the culprit.
-- Monitoring, MON-15, add this sub-bullet after the last one: A goal at pr waits only for an earlier goal whose touches overlap its own; goals with disjoint touches take their pr turn at once.
-- Regression, REG-7, add this sub-bullet after the last one: A lane that runs again after main moved reuses the earlier result of a row that only main's new commits reach, and reruns a row only when the goal's own diff reaches it too.
 
 The owner types two sentences (the session that relays them runs `criteria.py unreview` and `review` with those words in `LOOP_OWNER_WORDS`):
 

@@ -138,8 +138,6 @@
 | <a id="t-backlog-leftovers-once"></a>backlog-leftovers-once | requirement | DEL-14 | not run | - | local | 2026-11-13 |
 | <a id="t-del1-new-here-main-refused"></a>del1-new-here-main-refused | defect | 3468 | not run | - | local | 2026-11-13 |
 | <a id="t-pr-moved-uncounted"></a>pr-moved-uncounted | requirement | DEL-1 | not run | - | local | 2026-11-13 |
-| <a id="t-rerun-both-touched"></a>rerun-both-touched | requirement | DEL-15 | not run | - | local | 2026-11-13 |
-| <a id="t-pr-parallel-disjoint"></a>pr-parallel-disjoint | requirement | DEL-15 | not run | - | local | 2026-11-13 |
 | <a id="t-merge-batch-split"></a>merge-batch-split | requirement | DEL-15 | not run | - | local | 2026-11-13 |
 
 ## Documentation
@@ -480,6 +478,7 @@
 | <a id="t-who-merges-report"></a>who-merges-report | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-who-merges-fallback"></a>who-merges-fallback | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-who-merges-hold-flag"></a>who-merges-hold-flag | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
+| <a id="t-pr-parallel-disjoint"></a>pr-parallel-disjoint | requirement | MON-15 | not run | - | local | 2026-11-13 |
 | <a id="t-pr-order-one-queue"></a>pr-order-one-queue | defect | [#3922](https://github.com/jcl2018/agent-workflow-template/issues/3922) state unknown | not run | - | local | 2026-11-14 |
 
 ## Regression
@@ -621,6 +620,7 @@
 | <a id="t-reg7-unrun-warn-lean"></a>reg7-unrun-warn-lean | requirement | REG-7 | not run | - | local | 2026-11-13 |
 | <a id="t-mac-rows-skip-77"></a>mac-rows-skip-77 | requirement | REG-10 | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
 | <a id="t-machine-local-owed"></a>machine-local-owed | requirement | REG-10 | not run | - | local | 2026-11-13 |
+| <a id="t-rerun-both-touched"></a>rerun-both-touched | requirement | REG-7 | not run | - | local | 2026-11-13 |
 
 ## Setup
 

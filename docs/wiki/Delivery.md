@@ -142,8 +142,6 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=319fd1aa N=9f4c33da M=f8cd
 | [backlog-leftovers-filed](Tests#t-backlog-leftovers-filed) | requirement | DEL-14 | Given a ship reply with FILE defect and FILE backlog lines, when the goal records ship with --live, then a defect is filed on no milestone, backlog items on Backlog: <Feature> or Backlog: Other, and a line holding an email is skipped. | not run |
 | [backlog-leftovers-once](Tests#t-backlog-leftovers-once) | requirement | DEL-14 | Given leftovers already filed, when ship is recorded again, then nothing is filed twice. | not run |
 | - | requirement | DEL-14 | no passing test | not enforced |
-| [rerun-both-touched](Tests#t-rerun-both-touched) | requirement | DEL-15 | Given a goal rerun after main moved, when the lane plans, then it runs only the rows touched by both the goal's diff and main's new commits. | not run |
-| [pr-parallel-disjoint](Tests#t-pr-parallel-disjoint) | requirement | DEL-15 | Given goals at pr, when their touches share no path, then their lanes run at once, and a goal waits only for an earlier goal whose touches overlap. | not run |
 | [merge-batch-split](Tests#t-merge-batch-split) | requirement | DEL-15 | Given 3 ready pull requests with disjoint touches, when wiki.py batch run verifies them on one tree, then they merge together, and a failing batch splits to name the culprit. | not run |
 | - | requirement | DEL-15 | no passing test | not enforced |
 | [scripts-no-hang](Tests#t-scripts-no-hang) | defect | [#35](https://github.com/jcl2018/agent-workflow-template/issues/35) closed (2026-11-09) | Given a script with no terminal, when it needs a prompt, then it fails with an error instead of hanging. | PASS 2026-11-12 |
