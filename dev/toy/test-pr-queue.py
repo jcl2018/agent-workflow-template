@@ -65,6 +65,7 @@ def part_queue():
         turn("a")
         old = time.time() - 4000
         os.utime(os.path.join(tmp, "loop", "pr-queue", "c"), (old, old))
+        os.utime(os.path.join(tmp, "loop", "pr-queue", "c.beat"), (old, old))  # #3922: only the heartbeat drives expiry
         run = json.load(open(os.path.join(runs, "a.json")))
         run["step"] = "checks"
         json.dump(run, open(os.path.join(runs, "a.json"), "w"))
