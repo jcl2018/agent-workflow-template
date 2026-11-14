@@ -182,3 +182,5 @@ The owner types one sentence in the operation session:
 "Un-review the Delivery page, the requirement DEL-5 and the Delivery success metric so the merge-stale-own wording in DECISIONS.md can be added; then review the Delivery page and DEL-5 again."
 
 After it, the goal (or the operation session) edits the two lines as drafted, and the owner's review follows with the same words. Until the owner's words are in, merge.py runs for merge-stale-own only on the operation session's turn.
+
+Applied 2026-11-14 on owner-words record o5 (the sentence above, recorded by the operation session): the Delivery page and DEL-5 were un-reviewed, DEL-5's second sub-bullet and the Delivery success metric were reworded exactly as drafted, and the Delivery page and DEL-5 were reviewed again, all with `--owner-record o5`.

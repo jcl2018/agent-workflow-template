@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/1
 
-Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=9cbdaa2a N=9f4c33da M=f8cd4612 U=db89d57b -->
+Review: **Reviewed 2026-11-14** <!-- prd P=7884b325 R=71183361 N=9f4c33da M=3d0857c8 U=03828777 -->
 
 ## Problem
 - I have more changes to make than time to babysit them: I want to hand over one sentence and walk away.
@@ -25,8 +25,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=9cbdaa2a N=9f4c33da M=f8cd
   - A decision for me waits under Needs you, or, where the repo allows, is auto-approved and logged.
 - DEL-4: **Reviewed 2026-11-08** The pull request <!-- reviewed 7cc0d031 -->
   - Carries the done lines, the plan, how to verify by hand, and each step's result.
-- DEL-5: **Reviewed 2026-11-13** Release <!-- reviewed 6d02eda3 -->
-  - Every goal ends with release. With auto_merge on it is fully automatic: it bumps the version, writes the release note, refuses to merge while a page is stale, runs my routines, merges, publishes the release and the wiki. With auto_merge off it makes a draft release for me to publish and merges nothing. Any failure shows under Needs you.
+- DEL-5: **Reviewed 2026-11-14** Release <!-- reviewed 696bfc11 -->
+  - Every goal ends with release. With auto_merge on it is fully automatic: it bumps the version, writes the release note, refuses to merge while a page its own changes made stale is still stale (a page left stale by another goal's commit is reported as a finding, and health still flags it), runs my routines, merges, publishes the release and the wiki. With auto_merge off it makes a draft release for me to publish and merges nothing. Any failure shows under Needs you.
 - DEL-6: **Reviewed 2026-11-13** Review depth fits the goal <!-- reviewed cb62ccd5 -->
   - Plan and review run at full depth by default (`review_depth: full`); a condensed plan and review happens only when `review_depth: condensed`, and I can override it per goal. Tests never shrink: every goal runs its test lane, the affected rows within the test budget (REG-7).
 - DEL-10: **Reviewed 2026-11-13** A goal started on another machine can be adopted <!-- reviewed 6e9abcdb -->
@@ -61,7 +61,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=9cbdaa2a N=9f4c33da M=f8cd
 ## Success metrics
 - Every merged pull request carries its done lines, plan, verify steps and step results.
 - A goal that fails three tries stops and says why.
-- No goal merges while a wiki page is stale.
+- No goal merges while a wiki page its own diff made stale is still stale.
 
 ## Tests
 
