@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/10
 
-Review: **Reviewed 2026-11-13** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670eeeb U=03828777 -->
+Review: **Reviewed 2026-11-14** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670eeeb U=03828777 -->
 
 ## Problem
 - Things break between my sessions, and I only find out when I next open one; the important checks should run on their own.
