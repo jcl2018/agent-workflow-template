@@ -162,7 +162,7 @@ Progress 2026-11-13: the owner typed sentence 1 in the machine-local session; th
 
 ## Waiting on owner un-review (machine-status)
 
-Applied 2026-11-14 on owner-words record o1: Guardrails and Monitoring un-reviewed, GRD-12, MON-16 and MON-17 added as drafted below, then reviewed again.
+Applied 2026-11-14 on owner-words records o1 (un-review) and o3 (review, the owner's full sentence): Guardrails and Monitoring un-reviewed, GRD-12, MON-16 and MON-17 added as drafted below, then reviewed again.
 
 The owner approved the machine-status goal 2026-11-13: each check-in shows this machine's status, goals start only above a memory floor, a stale main checkout is fixed by a worker, a queued goal is not silent, and a check-in lists only this machine's goals (one line for another pod). Built by the machine-status goal. Guardrails and Monitoring are Reviewed, so nothing below is applied until the owner un-reviews them and approves the wording.
 
