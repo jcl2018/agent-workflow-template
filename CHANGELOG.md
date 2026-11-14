@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.28.40 - 2026-11-14
+
+- Release head status: carry the goal's pass over a bump-only head, post failure only for rows that failed, name them in the refusal (#3870)
+- Lane: re-render the Tests tables
+- Tests: map release-head-status to DEL-5 and refresh the Tests tables
+- Tests: re-render with the recorded runs
+- Toy: write no bytecode into the skills folder
+- Toy: run in its own repo so no run record reaches the real common dir
+- Merge origin/main into loop/release-head-status
+- Merge origin/main into loop/release-head-status
+- Merge origin/main into loop/release-head-status
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.39 - 2026-11-14
 
 - health: local register, LOOP_MAIL_ENV, no mail mode check on Windows
