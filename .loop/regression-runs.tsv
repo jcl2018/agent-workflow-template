@@ -429,7 +429,7 @@ settings-publish-refresh	PASS	2026-11-12
 settings-read-fresh	PASS	2026-11-12	
 settings-reference	PASS	2026-11-12	
 settings-refresh	PASS	2026-11-12	
-settings-render-fresh	FAIL	2026-11-14	
+settings-render-fresh	PASS	2026-11-14	
 settings-stale	PASS	2026-11-12	
 settings-template-line	PASS	2026-11-12	
 setup-both-halves	PASS	2026-11-12	
