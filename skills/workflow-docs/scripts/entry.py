@@ -104,7 +104,7 @@ def reference():
 def settings(cfg):
     """[(key, value, explanation)]: every repo setting, the config's value or else its default, plus any other key held."""
     known, helps = reference(), cfg.get("_help") if isinstance(cfg.get("_help"), dict) else {}
-    keys = sorted(set(known) | {k for k in cfg if not k.startswith("_")})
+    keys = sorted((set(known) - {"topics"}) | {k for k in cfg if not k.startswith("_")})  # topics is optional: shown once the repo sets it
     return [(k, cfg[k] if k in cfg else known[k][0], helps.get(k) or known.get(k, ("", ""))[1]) for k in keys]
 
 

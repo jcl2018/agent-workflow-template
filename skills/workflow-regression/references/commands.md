@@ -11,6 +11,7 @@ add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>] [
 sync [--write]
 criteria
 red <id> --break "<command>"
+red <id> --owed --runner <name> [--live]
 red <id> --off-platform --runner <name> --commit <sha>
 run [land|nightly|<id>] [--timeout S] [--live] [--reuse [--tier goal]] [--kind requirement|workflow|defect]
 workflow
@@ -36,6 +37,10 @@ workflow
   counts as never, in `sync`, `run`, the wiki Tests lines and delivery's defect-test check.
 - `run` prints `PASS`, `FAIL`, `KNOWN`, `FIXED` or `UNPROVEN` (blocks). Known failures sit in
   `.loop/regression-known.tsv`. It keeps one issue per failing row; without a token it only prints `WOULD` lines.
+- `python3 dev/toy/matrix-smoke.py [--agent claude-app|claude-cli|codex|ci] [--only STEP] [--no-record]` runs the smoke set (package, adopt a toy repo
+  from it, freeze a goal, run its qa lane, health check, a routine's Runbook pointer, a goal relayed between two pods under the merge lock) and
+  appends its dated line to `.loop/matrix-runs.tsv`, which health's `matrix` rule reads. The written `regression.yml` also carries a `matrix-smoke`
+  job that runs it on Linux as `ci` and keeps the record as an artifact.
 - `workflow` writes `.github/workflows/regression.yml` (on `regression_cron`, every 4 hours by default, or only by hand
   when it is `off`, which a scheduled run reads first and then writes nothing; on `v*` tags and by hand, which still run). A failing row's issue is
   labelled `regression` and `defect`, names the feature and requirement the row guards, and, with the `feature_labels` setting on, carries that feature's
@@ -174,7 +179,7 @@ order, then `Other` for rows that guard none. Each test shows its name, kind (`r
 (the requirement's ID and words, or the issue or pull request link with its recorded state and date, or the finding),
 what it checks, when it runs (`both`, `nightly`, `by a person`), its last result and date, and when it was seen failing.
 Plain output has one `FEATURE <name>` line per group; `--markdown` gives one table per feature; `--tsv` gives one line
-per test for scripts. The wiki Tests lines, the health report and the GitHub run summary all use this format.
+per test for scripts. The wiki Tests lines, the health report and the GitHub run summary all use this format. For a feature page whose PRD lives at a link, the requirement ids come from that PRD.
 
 `summary --results FILE --took S` writes the GitHub run summary from a run's results (`id<TAB>state` lines, states
 `PASS`, `FAIL`, `SKIPPED`, `KNOWN`); a malformed file or run time is refused with the line to fix. `issues --write`

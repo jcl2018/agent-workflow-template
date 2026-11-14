@@ -217,7 +217,7 @@ def uninstall(root):
     with locked("registry", 10):
         data = load()
         data["repos"] = {k: e for k, e in data["repos"].items() if e["path"] != os.path.realpath(root)}
-        write_agent(data)
+        os.name == "nt" or write_agent(data)  # a Windows PC has no launch agent
         save(data)
     print("SCHEDULE removed here (%d repos left)%s" % (len(data["repos"]), "; NOTE: the agent stays loaded for them" * bool(data["repos"])))
     return 0
@@ -287,9 +287,9 @@ def tick_repo(key, entry, begin, finish):
     say("SKILLS: " + ("checkout" if skills == own else "installed"))
     for name in ("ANTHROPIC_API_KEY", "CLAUDECODE"):
         env.pop(name, None)
-    secrets, note, mail = {}, "MAIL_NOT_SET_UP", os.path.join(home(), "mail.env")
+    secrets, note, mail = {}, "MAIL_NOT_SET_UP", rounds.mail_path(home())
     if os.path.exists(mail):
-        note = "MAIL_ENV_MODE" if os.stat(mail).st_mode & 0o077 else ""
+        note = rounds.mail_mode(mail)
         for row in [] if note else open(mail):
             name, _, value = row.strip().partition("=")
             secrets.update({name: value} if name in MAIL_SECRETS else {})

@@ -20,6 +20,7 @@ import re
 import subprocess
 import sys
 
+import counting
 import criteria
 import docs
 import entry
@@ -164,3 +165,30 @@ def own_split(root, found, notes, rows, name="main"):
         else:
             keep.append(item)
     return keep, notes + moved
+
+
+def probe(cmd):
+    """The finished command, or None when the program is missing (no gh, or no launchctl off the Mac): the state is then unknown."""
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True)
+    except OSError:
+        return None
+
+
+def live(root):
+    """Print each routine's live state: a workflow's newest run, a launch agent loaded or not."""
+    for e in counting.entries(root):
+        kind, _, target = str(e.get("runs", "")).partition(":")
+        if kind == "github":
+            done = probe(["gh", "run", "list", "--workflow", target, "--limit", "1", "--json", "conclusion,createdAt",
+                          "-q", ".[0] | \"\\(.conclusion) \\(.createdAt)\""])
+            said = "unknown: gh is not installed here" if done is None else done.stdout.strip() if done.returncode == 0 and done.stdout.strip() else "no run found or gh unavailable"
+        elif kind == "mac":
+            done = probe(["launchctl", "list", target])
+            said = "unknown: launchctl is not available on this host" if done is None else "loaded" if done.returncode == 0 else "not loaded"
+        elif kind == "local":
+            said = "runs on this Mac's local schedule, not in GitHub Actions"
+        else:
+            said = "a Claude scheduled task is checked in the Claude app"
+        print("%s: %s" % (e["name"], said))
+    return 0

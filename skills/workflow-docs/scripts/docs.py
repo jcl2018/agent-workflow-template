@@ -36,7 +36,8 @@ import counting
 import criteria
 import entry
 import pageformat
-from counting import map_path, read_map, write_map  # noqa: F401
+import deployments
+from counting import map_path, read_map, sources, write_map  # noqa: F401
 
 # No terminal, no waiting.
 os.environ.update(GIT_TERMINAL_PROMPT="0", GIT_EDITOR="true")
@@ -175,7 +176,7 @@ def problems(root, base):
             continue
         with open(full) as handle:
             text = handle.read()
-        if PLACEHOLDER in text or len(text.replace(MARKER, "").split()) < 10:
+        if PLACEHOLDER in text or (len(text.replace(MARKER, "").split()) < 10 and not deployments.linked(root, page, text)):
             found.append(("UNWRITTEN", page, rel))
         seen = git("rev-list", "--no-merges", "HEAD", "--", rel, cwd=root, check=False).split()
         if not seen:
@@ -362,7 +363,8 @@ def cmd_publish(args):
 
 
 def cmd_automation(_args):
-    return counting.live(top())
+    import audit
+    return audit.live(top())
 
 
 def cmd_prompts(_args):

@@ -70,7 +70,7 @@ git switch -q main; git merge -q --no-ff --no-edit loop/w; git push -q origin ma
 FAKE_GH_PR_STATE=MERGED $merge w | grep -q PUBLISHED && ok "merge publishes the wiki" || bad "merge publish"
 wikifile Using-the-toy.md | grep -q "w function" && ok "the page is on the wiki" || bad "page not on wiki"
 
-echo "== a page no touched path maps to goes stale on the base"
+echo "== a page no touched path maps to goes stale on the base: a finding, not a refusal (#3941)"
 git switch -q main; git pull -q --no-edit origin main
 $docs add Notes --paths notes.txt >/dev/null
 printf '<!-- workflow-docs -->\n# Notes\n\nThe toy keeps its notes in notes.txt, which people read first.\n' > docs/wiki/Notes.md
@@ -87,9 +87,9 @@ PY
 git commit -qam "Verify steps for x"
 bash "$here/dev/toy/flow-done.sh" x && $goal pr x >/dev/null || bad "goal x did not reach a pull request"
 out=$($wiki prepare x 2>&1 || true); echo "$out"
-grep -q "^REWRITE Notes: STALE" <<<"$out" && ok "prepare lists the unmapped stale page" || bad "prepare unmapped"
-[ "$(grep -c '^REWRITE' <<<"$out")" = "$($docs check | grep -c '^STALE')" ] && ok "prepare lists what docs.py check calls stale" || bad "stale sets differ"
-$merge x 2>&1 | grep -q "REFUSED: stale wiki pages: .*Notes" && ok "merge refuses and names the page" || bad "merge unmapped"
+grep -q "^FINDING STALE Notes:" <<<"$out" && ! grep -q "^REWRITE Notes" <<<"$out" && ok "prepare leaves the page this goal never touched as a finding" || bad "prepare unmapped"
+[ "$(grep -c '^REWRITE' <<<"$out")" = "$($docs check --own | grep -c '^STALE')" ] && ok "prepare lists what docs.py check --own calls stale" || bad "stale sets differ"
+merged=$($merge x 2>&1 || true); grep -q "REFUSED: stale wiki pages: .*Using-the-toy" <<<"$merged" && ! grep -q "REFUSED.*Notes" <<<"$merged" && ok "merge refuses for the page its own diff made stale, and does not name Notes" || bad "merge unmapped"
 echo "The notes now say two, so the page covers both lines." >> docs/wiki/Notes.md
 echo "It also has an x function now." >> docs/wiki/Using-the-toy.md
 $wiki prepare x --commit | grep -q "WIKI CURRENT" && $docs check | grep -q "DOCS OK" && ok "refreshed page clears the check" || bad "notes still stale"

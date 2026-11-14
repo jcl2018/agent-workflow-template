@@ -54,6 +54,8 @@ It copies `HEAD` to a temporary worktree, runs the break there, then the test, a
 python3 scripts/regression.py red ID --off-platform --runner linux-session --commit <sha the red run used>
 ```
 
+**Another machine owes the proof.** A goal depends only on what its own machine can do. `regression.py red ID --owed --runner Mac [--live]` records the proof as owed in `.loop/regression-owed.tsv` and (with `--live` or a token) opens one to-do issue labelled `other-machine` on the row's feature milestone. The row reads `PENDING` (never `UNPROVEN`), the goal and its release go on, the check-in lists it under Coming up, and health warns once it is over 7 days old and never fails on it. A real red proof (`--break` or `--off-platform`) clears it; close the issue then.
+
 It sets the row's date and appends the runner and commit to `.loop/regression-red.tsv`. It refuses a Windows runner, an unknown row and a commit this repo doesn't have. The pull request lists the red commands still owed.
 
 ## `run [land|nightly|<id>] [--timeout S] [--live] [--kind requirement|workflow|defect]`
@@ -73,8 +75,8 @@ The default is `land`. `--kind` runs only that kind of test (`requirement` is ca
 | `UNPROVEN` | It's never been seen failing, so it blocks until you run `red` |
 
 Then it keeps one issue per failing row, labelled `regression`. A new failure opens one, a closed one reopens, a failure
-adds one comment a day, and a pass closes it. With no `GH_TOKEN` or `GITHUB_TOKEN` it prints `WOULD` lines and changes
-nothing. `--live` uses your `gh` login.
+adds one comment a day, and a pass closes it. A row keeps exactly one open issue, the oldest; newer open copies close as
+duplicates. Without `--live` it prints `WOULD` lines and changes nothing, token or not. `--live` uses your `gh` login.
 
 ## `run [land|nightly|<id>] --reuse`
 
@@ -141,6 +143,7 @@ Asking the agent for one of these runs exactly the routine beside it, from the s
 | `/workflow-regression add ID --level land --command "cmd" --goal DEL-1` | `python3 scripts/regression.py add ID --level land --command "cmd" --goal DEL-1` |
 | `/workflow-regression red ID --break "cmd"` | `python3 scripts/regression.py red ID --break "cmd"` |
 | `/workflow-regression red ID --off-platform --runner R --commit SHA` | `python3 scripts/regression.py red ID --off-platform --runner R --commit SHA` |
+| `/workflow-regression red ID --owed --runner R` | `python3 scripts/regression.py red ID --owed --runner R` |
 | `/workflow-regression run land` | `python3 scripts/regression.py run land` |
 | `/workflow-regression sync` | `python3 scripts/regression.py sync` |
 | `/workflow-regression workflow` | `python3 scripts/regression.py workflow` |

@@ -109,6 +109,28 @@ def tokens_text(run):
     return "%s tokens" % format(spent_tokens(run), ",") if any(isinstance(n, int) and n for n in value.values()) else "tokens unread"
 
 
+def active_minutes(state, at=None):
+    """Active step time in whole minutes (#3878): board_log's held-time rule, loaded by path; 0 when it won't load."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-monitoring", "scripts", "board_log.py")
+    try:
+        sys.path.insert(0, os.path.dirname(path))
+        spec = importlib.util.spec_from_file_location("fit_board_log", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.active_minutes(state, at)
+    except Exception:
+        return 0
+
+
+def budget_stop(slug, state, runs, cfg, at=None):
+    """Past its active-time or token budget a goal starts no new step; only goal.py set raises it."""
+    held, source = budget(view(state, runs), cfg)
+    for name, spent in (("minutes", active_minutes(state, at)), ("tokens", spent_tokens(state))):
+        if held[name] and spent >= held[name]:
+            sys.exit("REFUSED: %d %s spent, at the %s budget of %d (%s); no new step starts. Fix: goal.py set %s --budget-%s N "
+                     "--why ... from the operation session (BUDGET_%s)" % (spent, name, name.rstrip("s"), held[name], source, slug, name, name.upper()))
+
+
 def recorded(state, step):
     return str((state.get("flow") or {}).get(step, "")).startswith(("done", "skipped"))
 

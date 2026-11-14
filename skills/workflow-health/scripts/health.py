@@ -105,6 +105,11 @@ def criteria_rows(root):
             loose += 1
         elif gap and "criterion has no regression row" in gap.group(2):
             rows.append(sibling_module("enforce").row(root, gap.group(1), row))
+        elif line.startswith("PENDING "):  # owed to another machine: a warning past a week, never a failure
+            old = re.search(r"owed on (.+?) since (\d{4}-\d{2}-\d{2})", line)
+            if old and (datetime.date.today() - datetime.date.fromisoformat(old.group(2))).days > 7:
+                rows.append(row("WARN", "tests", line.split()[1].rstrip(":"), "owed-proof", "proof owed on %s since %s" % old.groups(),
+                                "regression.py red ID --off-platform"))
         elif line.startswith(("DRAFT ", "UNPROVEN ")):
             word, key = line.split()[:2]
             rows.append(row("FAIL", "requirements", key.rstrip(":"), "proof", "a draft row: no command or level yet",
@@ -223,7 +228,7 @@ def hard_unread(item):
 def rule_functions():
     """Each rule -> the function that checks it (and that its control calls)."""
     lean, extra = sibling_module("lean"), {}
-    for name in ("defects", "rules"):
+    for name in ("defects", "rules", "report"):
         module = sibling_module(name)
         extra.update(module.FUNCTIONS if module else {})
     found = {"scripts": size_rows, "rows": criteria_rows, "proof": criteria_rows, "done": criteria_rows,
