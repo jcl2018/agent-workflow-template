@@ -539,7 +539,7 @@ jobs:
                   mark = "<!-- loop-regression %s placed= -->" % row[0]
                   about = "- Feature: %s\n- Guards: %s\n- Checks: %s\n\n" % (cells[0] or "-", cells[3] or "-", cells[4] or "-")
                   body = "%s\nThe row `%s` %s.\n\n%s```\n%s\n```\n" % (mark, row[0], "fails", about,
-                                                                 shown(run, row[2], code, said))
+                                                                 shown(lambda c: run(c, ROW_SECONDS), row[2], code, said))
                   if not hit:
                       make = ["issue", "create", "--title", "Regression: " + row[0], "--label", "regression", "--label", "defect"]
                       made = gh(*make, *(["--label", label] if label else []), body=body)
@@ -944,3 +944,25 @@ jobs:
             }
             printf '\nSHARDS %s of %s reported. UNRUN %s (rows skipped for out of job time).\n' "$reported" "$SHARDS" "$unrun"
           } | tee -a "$GITHUB_STEP_SUMMARY"  # the run's log shows the counts too
+
+  matrix-smoke:
+    if: github.event_name != 'workflow_dispatch' || inputs.target == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Smoke set on Linux
+        run: |
+          if [ -f dev/toy/matrix-smoke.py ]; then python3 dev/toy/matrix-smoke.py --agent ci; else echo "no dev/toy/matrix-smoke.py in this repo; nothing to prove"; fi
+      - name: Keep the matrix record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-runs
+          path: .loop/matrix-runs.tsv
+          if-no-files-found: ignore

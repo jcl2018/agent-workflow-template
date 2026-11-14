@@ -1,5 +1,72 @@
 # Changelog
 
+## v0.28.34 - 2026-11-14
+
+- health: matrix rule reads .loop/matrix-runs.tsv (WARN unproven cell, FAIL unproven V1 cell)
+- matrix rule moves to report.py (scripts stay under 20 KB); add dev/toy/matrix-smoke.py
+- regression workflow: matrix-smoke job for the Linux cell, written by the generator
+- matrix-smoke: rows, test and the SET-17 draft in DECISIONS.md
+- Render Tests for the matrix rows
+- Lane: re-render the Tests tables
+- Docs: matrix rule on Health, matrix-smoke job on Regression and Automation
+- Lane: re-render the Tests tables
+- Merge origin/main (v0.28.14) into loop/matrix-smoke
+- matrix rule: never-run cells are WARN pending; commands move to references; rules.py untouched
+- Merge origin/main (v0.28.19) into loop/matrix-smoke; matrix-never-run-warns row
+- Merge origin/main (v0.28.29) into matrix-smoke
+- Merge origin/main into matrix-smoke
+- docs: Health, Regression and Automation say what the matrix rule and job do
+- docs: Automation note placed outside the reviewed sections
+- docs: Automation note after the Review line
+- docs: the generated regression.yml is the Regression page's, not Automation's
+- Merge remote-tracking branch 'origin/main' into loop/matrix-smoke
+- Lane: re-render the Tests tables
+- regression: run records and the Tests page
+- docs: Home says health reads the smoke-run matrix
+- Lane: re-render the Tests tables
+- Merge remote-tracking branch 'origin/main' into loop/matrix-smoke
+- Lane: re-render the Tests tables
+
+### How to verify
+
+1. Run `python3 dev/toy/matrix-smoke.py --agent claude-cli`.
+   Expect: seven PASS lines (package, adopt, freeze, qa, health, runbook, relay), then `SMOKE ... pass` and `RECORDED .loop/matrix-runs.tsv`, whose new line holds today's date, your agent, OS, machine and commit.
+2. Run `python3 skills/workflow-health/scripts/health.py check --group adoption`.
+   Expect: with `.loop/matrix-runs.tsv` present, a FAIL for each V1 cell with no pass in 7 days (Claude Code on macOS, CI on Linux) and a WARN "not proven" for each other cell; none for Claude Code on Windows.
+
+## v0.28.33 - 2026-11-14
+
+- Check-in map: time left, finish, arrows, live goals only
+- Lane: re-render the Tests tables
+- Toys: runs carry a goal, as real records do
+- Home: the check-in map shows time left and waits
+- MON-14 un-reviewed by the owner; sub-bullets applied; Verify by hand
+- Monitoring page: only MON-14's un-review; the page lock holds the sub-bullets
+- Monitoring page back to its reviewed text: the page lock holds the sub-bullets; Tests re-rendered
+- Monitoring: MON-14 sub-bullets applied after the owner's unreview of the page and MON-14
+- MON-14 reviewed by the owner
+- Merge origin/main into graph-times
+- Merge origin/main into graph-times
+- Merge remote-tracking branch 'origin/main' into loop/graph-times
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 skills/workflow-monitoring/scripts/checkin.py` and read Dependencies.
+   Expect: each repo block lists only live goals, a `slug ~Xm left` line per goal, an `a -> b` line per wait, and ends with `expected finish HH:MM`; a goal held at pr shows [=].
+
+## v0.28.32 - 2026-11-14
+
+- test-operate: drop the removed goal.py check calls; row operate-toy-no-check (#3906)
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- pr: record issue states and the lane's results
+- Fixes #3906: test operate-toy-no-check, seen failing 2026-11-13, passing
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.31 - 2026-11-13
 
 - fix: monitor.py skips a loop/runs file that is not a run record (#3862)

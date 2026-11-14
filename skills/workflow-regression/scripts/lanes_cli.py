@@ -191,6 +191,32 @@ jobs:
 OURS = "# Written by workflow-regression"
 
 
+# The Linux cell of the agent x machine matrix (health rule matrix): the same smoke set every machine runs, and its record as an artifact.
+MATRIX_JOB = """
+  matrix-smoke:
+    if: github.event_name != 'workflow_dispatch' || inputs.target == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Smoke set on Linux
+        run: |
+          if [ -f dev/toy/matrix-smoke.py ]; then python3 dev/toy/matrix-smoke.py --agent ci; else echo "no dev/toy/matrix-smoke.py in this repo; nothing to prove"; fi
+      - name: Keep the matrix record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-runs
+          path: .loop/matrix-runs.tsv
+          if-no-files-found: ignore
+"""
+
+
 def workflow(root, given, write_main):
     """regression.py workflow: where the regression runs decides what is written. A public repo gets regression.yml and
     regression-pr.yml (the affected rows on a pull request or push); a private repo or an unreadable visibility gets nothing."""
@@ -209,6 +235,9 @@ def workflow(root, given, write_main):
                 print("REMOVABLE: .github/workflows/%s is ours and a private repo's regression runs on the Mac; git rm it when you choose" % name)
         return 0
     code = write_main()
+    main_path = os.path.join(base, "regression.yml")
+    if os.path.exists(main_path) and open(main_path).read().startswith(OURS) and "  matrix-smoke:" not in open(main_path).read():
+        open(main_path, "a").write(MATRIX_JOB)
     path = os.path.join(base, "regression-pr.yml")
     if not os.path.exists(os.path.join(root, "skills", "workflow-regression", "scripts", "regression.py")):
         print("NOT WRITTEN: regression-pr.yml needs skills/workflow-regression/ in this repo (an adopting repo without it keeps the embedded runner)")
