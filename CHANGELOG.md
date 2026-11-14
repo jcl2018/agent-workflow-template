@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.28.44 - 2026-11-14
+
+- docs.py automation reports an unknown state when launchctl or gh is missing
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.43 - 2026-11-14
 
 - No code changes
