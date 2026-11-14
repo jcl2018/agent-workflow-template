@@ -203,7 +203,8 @@ hlt6-worktrees	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt7-fast-check	PASS	2026-11-12	
 hlt8-triage	PASS	2026-11-10	
 hlt9-evidence-or-nothing	PASS	2026-11-10	
-home-topic-column	PASS	2026-11-13	
+home-header-both	PASS	2026-11-14	
+home-topic-column	PASS	2026-11-14	
 issue-129-docs-published	PASS	2026-11-12	
 issue-129-wiki-first-page	PASS	2026-11-12	
 issue-134-protected-release	PASS	2026-11-12	

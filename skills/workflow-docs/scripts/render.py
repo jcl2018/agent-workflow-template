@@ -286,6 +286,8 @@ def shown(value):
 def settings_block(root):
     cfg, rows = config_of(root), []
     for name, default, meaning in reference():
+        if name == "topics" and "topics" not in cfg:  # optional: its row shows once the repo sets it
+            continue
         over = name in cfg and cfg[name] != parsed(default)
         rows.append(["`%s`" % name, meaning, 'set "%s" in .loop/config.json' % name, "`%s`" % default,
                      "**overridden:** `%s`" % shown(cfg[name]) if over else "default"])

@@ -102,7 +102,6 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `test_budget_minutes` | 15 | Minutes one in-loop test run (qa, ship, pull request) may take, 15 or more; rows past it are left to the scheduled full suite. |
 | `time_budget_minutes` | 120 |  |
 | `token_budget` | 3000000 | Tokens a goal may spend over all steps before no new step starts; 0 means no budget. |
-| `topics` | {"Build loop": ["Delivery", "Monitoring"], "Quality": ["Regression", "Health", "Guardrails"], "Operations": ["Automation", "Setup"], "Docs": ["Documentation"]} |  |
 | `version_file` | VERSION | The file that holds the version; a release bumps it and writes the changelog. |
 | `watch_interval` | 20 | Seconds between rounds of watch. |
 | `wiki_dir` | docs/wiki | The folder of wiki pages. |

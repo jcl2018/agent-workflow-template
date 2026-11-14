@@ -117,9 +117,9 @@ def unblocked(text):
 
 def home(text, features, existing, readme, repo, topics=None):
     """DOC-4: the marker, '# title', '## Features' and one table HOME, one row per feature page, nothing else. With
-    topics (the `topics` setting) the table leads with a Topic column and its rows are grouped by topic."""
+    topics (the `topics` setting) the table may lead with a Topic column, and then its rows are grouped by topic; the
+    header without Topic is accepted too, so a repo adopts the column when it sets the setting."""
     out, seen, keys, last = [], [], anchors(readme), -1
-    want_head = (("Topic",) + HOME) if topics else HOME
     text = unblocked(text)
     lines = list(enumerate(text.splitlines(), 1))
     body = [(n, x) for n, x in lines if x.strip() and x.strip() != MARKER]
@@ -129,12 +129,15 @@ def home(text, features, existing, readme, repo, topics=None):
                        "write '# <repo>', then '## Features', then the features table"))
     for number, line in other:
         out.append(bad("Home", number, "Features", 4, "a line outside the features table", short(line), "move it to the README or a feature page"))
+    with_topic = len(found) == 1 and tuple(found[0][1]) == ("Topic",) + HOME
+    want_head = ("Topic",) + HOME if with_topic else HOME
+    topics = topics if with_topic else None
     if len(found) != 1 or tuple(found[0][1]) != want_head:
         return out + [bad("Home", found[0][0] if found else 1, "Features", 4, "one table with the header | %s |" % " | ".join(want_head),
                           "%d tables%s" % (len(found), ", header " + short(" | ".join(found[0][1])) if found else ""),
                           "use exactly that header, in one table")]
     for number, row in found[0][2]:
-        topic, row = (row[0], row[1:]) if topics and len(row) == 5 else (None, row)
+        topic, row = (row[0], row[1:]) if with_topic and len(row) == 5 else (None, row)
         page = re.match(r"^\[([^\]]+)\]\(([^)]+)\)$", row[0]) if len(row) == 4 else None
         if not page or page.group(1) != page.group(2) or page.group(1) not in existing:
             out.append(bad("Home", number, "Features", 4, "the Feature cell links an existing page as [X](X)", short(row[0]),

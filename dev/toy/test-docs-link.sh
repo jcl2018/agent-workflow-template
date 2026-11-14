@@ -205,11 +205,14 @@ reset
 
 echo "== Home groups rows by topic"
 python3 -c "import json; c = json.load(open('.loop/config.json')); c['topics'] = {'Build loop': ['Delivery'], 'Quality': ['Monitoring']}; json.dump(c, open('.loop/config.json', 'w'), indent=2)"
-has "^FORMAT Home:.*one table with the header | Topic |" && ok "with topics set a Home without a Topic column fails" || bad "topic header: $(check)"
+out=$(check); grep -q "^FORMAT Home" <<<"$out" && bad "old header refused: $out" || ok "with topics set the old Home header (no Topic column) is accepted"
 $cri render >/dev/null
 grep -q "^| Topic | Feature |" $H && grep -q "^| Build loop | \[Delivery\]" $H && ok "render adds the Topic column with the page's topic" || bad "regroup: $(cat $H)"
 out=$(check); grep -q "^DOCS OK" <<<"$out" && ok "the regrouped Home passes" || bad "regrouped: $out"
 edit $H "| Build loop |" "| Quality |"; has "^FORMAT Home:.*Topic cell" && ok "a wrong Topic cell fails" || bad "wrong topic"
+python3 -c "import json; c = json.load(open('.loop/config.json')); c.pop('topics'); json.dump(c, open('.loop/config.json', 'w'), indent=2)"
+$cri render >/dev/null
+out=$(check); grep -q "^FORMAT Home" <<<"$out" && bad "topic header refused without the setting: $out" || ok "the Topic header is accepted when the setting is not set"
 reset
 echo
 [ "$fails" -eq 0 ] && { echo "ALL PASS"; exit 0; } || { echo "$fails FAILED"; exit 1; }
