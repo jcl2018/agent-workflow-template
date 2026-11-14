@@ -26,7 +26,7 @@ usage: regression.py <command> [options]
 
 Rows live in .loop/regression.tsv: id, level, command, goal, seen_red, description, category, link. Each run records its rows' last status and
 date and run (Actions URL or commit sha) in .loop/regression-runs.tsv (runs.py), which the wiki Tests tables show. Known failures live in .loop/regression-known.tsv: id, reason. A known failure never blocks. A row never seen failing does.
-Issues dry-run unless GH_TOKEN or GITHUB_TOKEN is set, or you pass --live. It runs git, gh and your test
+Issues dry-run unless you pass --live; a token in the environment writes nothing. It runs git, gh and your test
 commands, and nothing else.
 """
 import argparse
@@ -306,8 +306,7 @@ def cmd_run(args):
         print("UNPROVEN %s: never seen failing. Fix: python3 %s red %s --break \"<a command that breaks it>\"" % (
             key, os.path.abspath(__file__), key))
     if not args.reuse:
-        live = args.live or bool(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
-        runs.sync_issues(results, live, today())
+        runs.sync_issues(results, args.live, today())  # a token in the environment writes nothing (GRD-5)
     failed = [item["id"] for item in results if item["state"] == "FAIL"]
     kept = [old["rows"][key]["status"] for key in reused]  # a reused known failure still counts as known
     passed = sum(item["state"] == "PASS" for item in results) + kept.count("PASS")

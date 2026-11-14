@@ -62,7 +62,7 @@ _s.run, _s.Popen = _fake, _popen
 """
 with tempfile.TemporaryDirectory() as tmp:
     text = actions.render("17 */4 * * *")
-    block = text.split("python3 - <<'PY'\n", 1)[1].split("\n          PY\n", 1)[0]
+    block = text.split("python3 - --live <<'PY'\n", 1)[1].split("\n          PY\n", 1)[0]
     block = "\n".join(line[10:] for line in block.split("\n"))
     marker = "sys.exit(1 if red"
     assert marker in block
@@ -70,7 +70,7 @@ with tempfile.TemporaryDirectory() as tmp:
     with open(os.path.join(tmp, ".loop", "regression.tsv"), "w") as handle:
         handle.write("loud\tland\t%s\tMON-1\n" % LOUD)
     code = STUB + block.replace(marker, "open('bodies.txt', 'w').write('=====SPLIT'.join(SEEN)); " + marker)
-    done = subprocess.run([sys.executable, "-c", code], cwd=tmp, env=dict(os.environ, REGRESSION_TARGET="land"),
+    done = subprocess.run([sys.executable, "-c", code, "--live"], cwd=tmp, env=dict(os.environ, REGRESSION_TARGET="land"),
                           capture_output=True, text=True)
     path = os.path.join(tmp, "bodies.txt")
     bodies = open(path).read().split("=====SPLIT") if os.path.exists(path) else []
