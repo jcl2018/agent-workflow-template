@@ -162,6 +162,8 @@ Progress 2026-11-13: the owner typed sentence 1 in the machine-local session; th
 
 ## Waiting on owner un-review (machine-status)
 
+Applied 2026-11-14 on owner-words record o1: Guardrails and Monitoring un-reviewed, GRD-12, MON-16 and MON-17 added as drafted below, then reviewed again.
+
 The owner approved the machine-status goal 2026-11-13: each check-in shows this machine's status, goals start only above a memory floor, a stale main checkout is fixed by a worker, a queued goal is not silent, and a check-in lists only this machine's goals (one line for another pod). Built by the machine-status goal. Guardrails and Monitoring are Reviewed, so nothing below is applied until the owner un-reviews them and approves the wording.
 
 - Guardrails, add after GRD-11: **GRD-12: The machine's status is read every round, and no goal starts under the memory floor.** Each check-in reads free RAM, free commit memory, CPU and the number of claude and node processes (Monitoring, MON-16). A goal starts only while free commit memory is at or above `min_free_memory_gb` (default 3.5, in `.loop/config.json`; 0 turns the floor off). The pool creates no session and the board holds every ready goal as "memory low" until memory frees up. A figure that can't be read never blocks a start.
