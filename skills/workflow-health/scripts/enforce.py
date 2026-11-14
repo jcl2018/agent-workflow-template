@@ -196,6 +196,78 @@ def docs_gaps(root, g):
         g("MIG_RUNBOOK" if "Runbook: DOC-16" in detail else "MIG_FORMAT", clean(page), clean(what), clean(fix) or tool("workflow-docs", "docs.py", "audit"))
 
 
+def carries(name, skill, text, *places):
+    """True when the installed template names the feature (test-only: LOOP_TEST=1 with LOOP_TEMPLATE_HAS decides)."""
+    if os.environ.get("LOOP_TEST") == "1" and "LOOP_TEMPLATE_HAS" in os.environ:
+        return name in os.environ["LOOP_TEMPLATE_HAS"].split(",")
+    for place in places or ("scripts/*.py", "references/*.md"):
+        for path in glob.glob(os.path.join(SKILLS, skill, place)):
+            if os.path.basename(path) != "enforce.py" and text in read(path):  # it names them itself
+                return True
+    return False
+
+
+def format_gaps(root, cfg, g, steps):
+    """Format changes, judged only when the template carries them."""
+    if not carries("usage-kept", "workflow-docs", "usage_section", "references/template.md"):
+        for page in sorted(glob.glob(os.path.join(root, "docs", "wiki", "*.md"))):
+            if re.search(r"^## Usage\s*$", read(page), re.M):
+                g("MIG_USAGE", os.path.basename(page), "still has a Usage section", "delete the section, then " + tool("workflow-docs", "docs.py", "audit"))
+    if carries("health-rules", "workflow-health", "health-rules.json") and not os.path.exists(os.path.join(root, ".loop", "health-rules.json")):
+        g("MIG_RULES", ".loop/health-rules.json", "missing", "run workflow-setup (setup.py), which writes it")
+    if carries("backlog", "workflow-health", "Backlog", "scripts/milestone.py"):
+        steps.append(("milestones", "Backlog", "approve the Backlog milestones, then run " + tool("workflow-health", "milestone.py", "backlog --live")))
+
+
+def hook_gaps(root, g, steps):
+    """Each hook once in .claude/settings.local.json (twice: a gap; none: an owner step)."""
+    if carries("prompt-pointer", "workflow-health", "def prompt_pointer", "scripts/rules.py", "scripts/report.py"):  # a scheduled prompt beyond the Runbook pointer
+        for r in mod("workflow-health", "rules").prompt_pointer(root):
+            g("MIG_ROUTINES", clean(r["subject"]), clean(r["detail"]), clean(r["fix"]))
+    text = read(os.path.join(root, ".claude", "settings.local.json"))
+    for name in ("reply_hook.py", "govern_hook.py"):
+        count = text.count(name)
+        if count > 1:
+            g("MIG_HOOKS", name, "is installed %d times" % count, "remove the duplicate entry")
+        elif not count:
+            steps.append(("hook", name, "in the operation repo run " + tool("workflow-setup", "setup.py", "--reply-hook") + " (both hooks)"))
+
+
+def owner_steps(root, steps):
+    """What only the owner can do."""
+    done = shutil.which("gh") and subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    if not done or done.returncode:
+        steps.append(("gh", "sign-in", "install gh, then sign in: gh auth login --web"))
+    plat = {"darwin": "mac", "win32": "windows"}.get(sys.platform, "linux")
+    for r in table(root):
+        if r["id"] == "smoke-" + plat:
+            steps.append(("smoke", r["id"], "run the %s smoke cell: %s" % (plat, tool("workflow-regression", "regression.py", "run --id " + r["id"]))))
+    toolchain_steps(root, steps)
+
+
+def toolchain_steps(root, steps):
+    """node and python as the repo asks (engines, .nvmrc, .tool-versions, requires-python)."""
+    get = lambda rel: read(os.path.join(root, rel))
+    try:
+        eng = json.loads(get("package.json") or "{}")["engines"]["node"]
+    except (ValueError, KeyError, TypeError):
+        eng = ""
+    tv = dict(l.split()[:2] for l in get(".tool-versions").splitlines() if len(l.split()) > 1)
+    py = re.search(r'requires-python\s*=\s*"([^"]*)"', get("pyproject.toml"))
+    plat = (os.environ.get("LOOP_SCHEDULE_PLATFORM") if os.environ.get("LOOP_TEST") == "1" else "") or sys.platform
+    ask = {"node": (str(eng or get(".nvmrc") or tv.get("nodejs", "")), "node", ("winget install OpenJS.NodeJS.LTS", "brew install node@%s", "nvm install %s")),
+           "python": ((py and py[1]) or tv.get("python", ""), "python3", ("winget install Python.Python.%s", "brew install python@%s", "install python %s"))}
+    for name, (spec, exe, cmds) in ask.items():
+        m = re.search(r"(\d+)(?:\.(\d+))?", spec)
+        if m:
+            need = (int(m[1]),) if name == "node" else (int(m[1]), int(m[2] or 0))
+            path = shutil.which(exe) or shutil.which(name)
+            got = tuple(int(x) for x in re.findall(r"\d+", subprocess.run([path, "--version"], capture_output=True, text=True).stdout if path else "")[:len(need)])
+            if not got or got < need:
+                ver, cmd = ".".join(map(str, need)), cmds[0 if plat == "win32" else 1 if plat == "darwin" else 2]
+                steps.append(("toolchain", name, "needs %s %s (%s here): %s" % (name, ver, ".".join(map(str, got)) or "none", cmd % ver if "%s" in cmd else cmd)))
+
+
 def wiki_gaps(root, g, info):
     """The published wiki against docs/wiki: one shallow clone in a private temp dir (30 s, a short list of transports), removed after.
     A page there with no source page is an orphan; a source page whose published text differs is stale. Nothing is written or deleted."""
