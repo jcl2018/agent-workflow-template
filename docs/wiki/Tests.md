@@ -842,3 +842,6 @@
 | <a id="t-stale-net-diff-revert"></a>stale-net-diff-revert | requirement | done line stale-net-diff:1 | not run | - | local | 2026-11-13 |
 | <a id="t-no-usage-section"></a>no-usage-section | requirement | done line drop-usage:1 | not run | - | local | 2026-11-13 |
 | <a id="t-pr-queue-goal"></a>pr-queue-goal | requirement | done line pr-queue:1 | not run | - | local | 2026-11-13 |
+| <a id="t-health-register-no-launchd"></a>health-register-no-launchd | requirement | - | not run | - | local | 2026-11-14 |
+| <a id="t-health-mail-env-named"></a>health-mail-env-named | requirement | - | not run | - | local | 2026-11-14 |
+| <a id="t-health-mail-env-windows"></a>health-mail-env-windows | requirement | - | not run | - | local | 2026-11-14 |
