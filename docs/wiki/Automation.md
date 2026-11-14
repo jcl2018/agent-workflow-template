@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/10
 
-Review: **Reviewed 2026-11-14** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670eeeb U=03828777 -->
+Review: **Reviewed 2026-11-14** <!-- prd P=a45649a4 R=150a6df4 N=e081872e M=4670eeeb U=03828777 -->
 
 ## Problem
 - Things break between my sessions, and I only find out when I next open one; the important checks should run on their own.
@@ -13,10 +13,10 @@ Review: **Reviewed 2026-11-14** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670
 ## Requirements
 
 ### Functional
-- AUT-1: **Reviewed 2026-11-13** Routines run where they can run fully <!-- reviewed 0b1d52ef -->
-  - Health runs on my Mac for every repo. Regression runs in GitHub Actions for a public repo and on my Mac for a private one.
+- AUT-1: **Reviewed 2026-11-14** Routines run where they can run fully <!-- reviewed edac68c4 -->
+  - Health runs on my always-on machine (the Mac through its launch agent, or a Windows PC through its own scheduled task) for every repo. Regression runs in GitHub Actions for a public repo and on that machine for a private one.
   - Each routine runs on a schedule set in the repo's config (every 4 hours by default), and I can also start it by hand.
-  - A routine missed while the Mac sleeps runs once at the next wake, and the digest says it was missed.
+  - A routine missed while that machine is asleep or off runs once at the next tick, and the digest says it was missed.
   - Each run's report says whether it ran on my Mac or in GitHub Actions.
   - A long issue body or comment is passed to gh in a file (`--body-file`), never on the command line, so a routine writes the same on native Windows.
 - AUT-2: **Reviewed 2026-11-13** Regression every few hours <!-- reviewed 42284a82 -->
@@ -25,9 +25,9 @@ Review: **Reviewed 2026-11-14** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670
   - No GitHub Actions check this tool writes is needed to merge a private repo; where its ruleset requires named checks, the pull request lane posts them as commit statuses itself, success when the lane passes and failure when it fails, so a failing lane holds that merge and a passing one releases it.
   - A failing test opens or updates one issue labeled defect, tagged with the feature it guards when feature_labels is on, naming the test and the requirement; it closes by itself when the test passes again.
   - The CI suite runs in eight shards with one combined summary: each row is given the time left, the suite-time line counts the rows skipped for time (the unrun rows), and a newer run on the same ref cancels the older.
-- AUT-3: **Reviewed 2026-11-13** Health every few hours <!-- reviewed e0fc7032 -->
-  - Health never runs in GitHub Actions: it runs on my Mac on the schedule (every 4 hours by default), after the latest finished regression run, with all its rule groups; its report names that run with its commit and age, or says none finished, and says when health last ran.
-  - The repo review always runs, using my own login on the Mac, with no API key secret; when the login has expired or can't be reached, the report says which and the next round tries again.
+- AUT-3: **Reviewed 2026-11-14** Health every few hours <!-- reviewed d4aa8acb -->
+  - Health never runs in GitHub Actions: it runs on my always-on machine on the schedule (every 4 hours by default), after the latest finished regression run, with all its rule groups; its report names that run with its commit and age, or says none finished, and says when health last ran.
+  - The repo review always runs, using my own login on that machine, with no API key secret; when the login has expired or can't be reached, the report says which and the next round tries again.
   - Every finding becomes one issue tagged with its group and, when feature_labels is on, its feature, updated, closed or reopened as things change, never duplicated.
 - AUT-4: **Reviewed 2026-11-10** A digest by email <!-- reviewed f06a9042 -->
   - After each round, one email goes to the address I set: what ran and its results, then the new, still-open and fixed issues grouped by feature, each with its link and the request to give the agent to fix it.
@@ -39,8 +39,9 @@ Review: **Reviewed 2026-11-14** <!-- prd P=a45649a4 R=badc0753 N=e081872e M=4670
 ### Non-functional
 - AUT-5: **Reviewed 2026-11-13** Under my control <!-- reviewed 27ec344d -->
   - Each routine can be turned off or rescheduled in one setting. It writes to GitHub only with `--live` (the scheduled workflows pass it), and without the secrets it needs a routine runs but writes nothing and says what is missing.
-- AUT-6: **Reviewed 2026-11-13** Private address <!-- reviewed a54e4796 -->
+- AUT-6: **Reviewed 2026-11-14** Private address <!-- reviewed c2048007 -->
   - The email address and the mail key live only in a local secrets file outside git, kept where the repo review cannot reach it, read only by the local runner; never in the repo, logs, issues or the digest comment, and never printed. The same holds for the GitHub token the Mac uses.
+  - The mail file is `mail.env` in the schedule home, or the file `LOOP_MAIL_ENV` names (a shared file on a synced folder); on a machine with file modes a mail.env others can read sends nothing, and on Windows, which has no modes, that check is skipped.
 - AUT-7: **Reviewed 2026-11-13** Bounded cost <!-- reviewed b5e1e5be -->
   - A round finishes within 45 minutes (the 30-minute regression budget of Regression REG-7 plus 15 for health and the digest, health starting when regression has finished, not at a fixed offset), and each report shows the round's wall time and its pass and fail counts, plus its Actions minutes when it ran in GitHub Actions, so I can slow the schedule if it costs too much.
 
