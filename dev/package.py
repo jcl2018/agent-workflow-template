@@ -148,8 +148,28 @@ def fail(rule, text):
     print("FAIL %s: %s" % (rule, text), flush=True)  # flushed, so a stopped run keeps the failures it found
 
 
+def tracked(root):
+    """The files git tracks under SHIPPED when root is the top of a git checkout, else None (a loose folder)."""
+    try:
+        top = subprocess.run(["git", "-C", root, "rev-parse", "--show-prefix"], capture_output=True, timeout=60)
+        names = subprocess.run(["git", "-C", root, "ls-files", "-z", "--"] + SHIPPED, capture_output=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if top.returncode or top.stdout.strip() or names.returncode:
+        return None
+    return [n for n in names.stdout.decode("utf-8", "replace").split("\0") if n and os.path.lexists(os.path.join(root, n))]
+
+
 def walk(root):
-    out = []
+    """The shipped files: the tracked ones in a git checkout (not __pycache__, lane output or any other loose file), else the folder's."""
+    out, listed = [], tracked(root)
+    if listed is not None:
+        for rel in listed:
+            parts = rel.split("/")
+            bad = [i for i, name in enumerate(parts[:-1]) if name in BAD_DIRS]
+            out += ["/".join(parts[:bad[0] + 1]) + "/"] if bad else []  # a tracked forbidden folder still fails the package
+            out.append(rel)
+        return sorted(set(out))
     for base in SHIPPED:
         path = os.path.join(root, base)
         wait_on("the walk of " + path)

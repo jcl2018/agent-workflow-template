@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 # windows: ok
-# reads: skills/workflow-health/scripts/rules.py skills/workflow-health/scripts/report.py skills/workflow-delivery/scripts/lane.py skills/workflow-delivery/scripts/goal.py skills/workflow-regression/scripts/actions.py
-"""Headroom under dev/package.py's caps: five scripts at 19,000 bytes or less, and no more than 98 shipped files."""
+# reads: dev/package.py skills/workflow-health/scripts/rules.py skills/workflow-health/scripts/report.py skills/workflow-delivery/scripts/lane.py skills/workflow-delivery/scripts/goal.py skills/workflow-regression/scripts/actions.py
+"""Headroom under dev/package.py's caps: five scripts at 19,000 bytes or less, and no more than 98 shipped files.
+
+The files are counted the way package.py counts them: the ones git tracks, never __pycache__ or other loose files."""
+import importlib.util
 import os
 
 root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -14,8 +17,10 @@ for name in FIVE:
     ok = size <= 19000
     print("%s: %s is %d bytes (at most 19,000)" % ("PASS" if ok else "FAIL", name, size))
     fails += not ok
-files = sum(len(names) for _, _, names in os.walk(os.path.join(root, "skills"))) + sum(
-    os.path.isfile(os.path.join(root, extra)) for extra in ("listing.json", "README.md", "LICENSE"))
+spec = importlib.util.spec_from_file_location("package", os.path.join(root, "dev", "package.py"))
+package = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(package)
+files = len(package.walk(root))
 print("%s: the package holds %d files (at most 98)" % ("PASS" if files <= 98 else "FAIL", files))
 fails += files > 98
 raise SystemExit(1 if fails else 0)
