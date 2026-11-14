@@ -218,7 +218,7 @@ def uninstall(root):
     with locked("registry", 10):
         data = load()
         data["repos"] = {k: e for k, e in data["repos"].items() if e["path"] != os.path.realpath(root)}
-        write_agent(data)
+        os.name == "nt" or write_agent(data)  # a Windows PC has no launch agent
         save(data)
     print("SCHEDULE removed here (%d repos left)%s" % (len(data["repos"]), "; NOTE: the agent stays loaded for them" * bool(data["repos"])))
     return 0

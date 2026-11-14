@@ -175,3 +175,4 @@ The owner types two sentences in the operation session:
 
 1. Un-review: "Un-review the Automation page and the requirements AUT-1, AUT-3 and AUT-6 so the always-on machine wording can be added."
 2. Review, after the goal has added it: "Review the Automation page, AUT-1, AUT-3 and AUT-6 again."
+- Review note (health-on-windows): `local status` still prints the plist and launchctl checks as FIX on Windows (informational); `register` does not refuse a worktree path as install does, so schedule the tick from the main checkout or the installed skills. Windows `tick` relies on `tasklist` and `taskkill`, which the toy does not exercise.

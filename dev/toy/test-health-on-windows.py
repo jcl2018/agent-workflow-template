@@ -42,6 +42,15 @@ with tempfile.TemporaryDirectory() as tmp:
     refused = subprocess.run([sys.executable, AUT, "local", "register", "--root", bare], capture_output=True, text=True, env=env)
     check(refused.returncode != 0 and "SCHEDULE_NO_ORIGIN" in refused.stdout + refused.stderr, "a repo with no origin is refused")
 
+    other = os.path.join(tmp, "other")
+    os.makedirs(other)
+    for cmd in (["init", "-q"], ["remote", "add", "origin", "https://github.com/o/other.git"]):
+        subprocess.run(["git"] + cmd, cwd=other, check=True)
+    subprocess.run([sys.executable, AUT, "local", "register", "--root", other], capture_output=True, env=env)
+    subprocess.run([sys.executable, AUT, "local", "uninstall", "--root", repo], capture_output=True, env=env)
+    left = len(json.load(open(os.path.join(home, "repos.json")))["repos"])
+    check(left == 1 and (os.name != "nt" or not os.path.exists(agents)), "uninstall on Windows removes the repo and writes no launch agent")
+
     sys.path.insert(0, SCRIPTS)
     import register
     for name in ("LOOP_MAIL_ENV",):
