@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.28.35 - 2026-11-14
+
+- Regression issues: one open issue per row (the oldest), and no issue written without --live (#2614)
+- Regression and Automation pages: issues are written only behind --live
+- Docs: Automation metric, Tests tables re-rendered
+- Automation page: keep the reviewed text (the owner reviews pages)
+- body-file toy: the workflow's gh() runs with --live
+- Regression Runbook: a job-skipped row files no issue
+- Merge origin/main into loop/regression-issues-trust
+- Merge remote-tracking branch 'origin/main' into loop/regression-issues-trust
+- Automation page: its issues are written only behind --live
+- Revert "Automation page: its issues are written only behind --live"
+- Merge origin/main into loop/regression-issues-trust
+- Merge remote-tracking branch 'origin/main' into loop/regression-issues-trust
+- Merge origin/main into loop/regression-issues-trust
+- test-row-output: the workflow step passes --live
+- Merge origin/main into loop/regression-issues-trust
+- Merge origin/main into loop/regression-issues-trust
+- Automation: owner review for regression-issues-trust (AUT-2, AUT-5 cover the issue writer and matrix-smoke)
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.34 - 2026-11-14
 
 - health: matrix rule reads .loop/matrix-runs.tsv (WARN unproven cell, FAIL unproven V1 cell)
