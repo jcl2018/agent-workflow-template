@@ -135,7 +135,7 @@ done-line-rows-128	PASS	2026-11-12
 done-lines-warning-143	PASS	2026-11-12	
 entry-stale	PASS	2026-11-12	
 estimates-shown	PASS	2026-11-12	
-every-row-described	PASS	2026-11-13	
+every-row-described	PASS	2026-11-14	
 failed-waits-mender	PASS	2026-11-09	
 file-one-group	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 fixed-closes	PASS	2026-11-12	
@@ -178,6 +178,12 @@ held-off-flow	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-shows-held	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-stale-next	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 held-time-115	PASS	2026-11-10	
+held-time-3878	PASS	2026-11-14	
+held-time-over-still-stops	PASS	2026-11-14	
+held-time-owner-wait	PASS	2026-11-14	
+held-time-pr-queue	PASS	2026-11-14	
+held-time-session-hold	PASS	2026-11-14	
+held-time-stopped	PASS	2026-11-14	
 hlt6-branches	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-cannot-fire	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 hlt6-clean-quiet	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
@@ -310,7 +316,7 @@ package-hang-bound	PASS	2026-11-12
 package-hang-no-skills-file	PASS	2026-11-12	
 package-hang-slot	PASS	2026-11-12	
 package-hang-stdin	PASS	2026-11-12	
-package-headroom-held	FAIL	2026-11-13	
+package-headroom-held	FAIL	2026-11-14	
 page-shape	PASS	2026-11-12	
 parallel-unlimited	PASS	2026-11-12	
 pass3-symlink-page	PASS	2026-11-11	
@@ -426,6 +432,7 @@ settings-publish-refresh	PASS	2026-11-12
 settings-read-fresh	PASS	2026-11-12	
 settings-reference	PASS	2026-11-12	
 settings-refresh	PASS	2026-11-12	
+settings-render-fresh	FAIL	2026-11-14	
 settings-render-fresh	PASS	2026-11-14	
 settings-stale	PASS	2026-11-12	
 settings-template-line	PASS	2026-11-12	
