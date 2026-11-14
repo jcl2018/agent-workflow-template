@@ -29,7 +29,6 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import register  # noqa: E402
 import rounds  # noqa: E402
 from issues import NO_FEATURE, feature_group, features  # noqa: E402
 import workflows  # noqa: E402
@@ -77,7 +76,7 @@ def cmd_local(args):
     if args.action == "status":
         return local_status(args.json)
     if args.action == "register":
-        return register.add(workflows, args.root, config(args.root))
+        return rounds.register_repo(workflows, args.root, config(args.root))
     if args.action == "plist":
         print(workflows.agent_text(workflows.load()), end="")
         return 0

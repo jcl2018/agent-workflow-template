@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # windows: ok
-# reads: skills/workflow-health/scripts/automation.py skills/workflow-health/scripts/register.py skills/workflow-health/scripts/workflows.py
+# reads: skills/workflow-health/scripts/automation.py skills/workflow-health/scripts/rounds.py skills/workflow-health/scripts/workflows.py
 """health-on-windows: local register writes the registry with no launch agent, LOOP_MAIL_ENV names the mail file, and a mail.env is not refused on Windows."""
 import json
 import os
@@ -52,7 +52,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check(left == 1 and (os.name != "nt" or not os.path.exists(agents)), "uninstall on Windows removes the repo and writes no launch agent")
 
     sys.path.insert(0, SCRIPTS)
-    import register
+    import rounds as register
     for name in ("LOOP_MAIL_ENV",):
         os.environ.pop(name, None)
     check(register.mail_path(home) == os.path.join(home, "mail.env"), "the mail file defaults to mail.env in the schedule home")
@@ -68,6 +68,6 @@ with tempfile.TemporaryDirectory() as tmp:
         os.chmod(mail, 0o600)
         check(register.mail_mode(mail) == "", "on a posix machine a 0600 mail.env is read")
     src = open(os.path.join(SCRIPTS, "workflows.py")).read()
-    check("register.mail_path(home())" in src and "register.mail_mode(mail)" in src, "the tick reads the mail file through register")
+    check("rounds.mail_path(home())" in src and "rounds.mail_mode(mail)" in src, "the tick reads the mail file through rounds")
 
 sys.exit(1 if fails else 0)

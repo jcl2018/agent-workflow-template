@@ -16,7 +16,6 @@ import sys
 import tempfile
 import time
 
-import register
 import rounds
 
 LABEL = "com.workflow-loop.schedule"
@@ -288,9 +287,9 @@ def tick_repo(key, entry, begin, finish):
     say("SKILLS: " + ("checkout" if skills == own else "installed"))
     for name in ("ANTHROPIC_API_KEY", "CLAUDECODE"):
         env.pop(name, None)
-    secrets, note, mail = {}, "MAIL_NOT_SET_UP", register.mail_path(home())
+    secrets, note, mail = {}, "MAIL_NOT_SET_UP", rounds.mail_path(home())
     if os.path.exists(mail):
-        note = register.mail_mode(mail)
+        note = rounds.mail_mode(mail)
         for row in [] if note else open(mail):
             name, _, value = row.strip().partition("=")
             secrets.update({name: value} if name in MAIL_SECRETS else {})
