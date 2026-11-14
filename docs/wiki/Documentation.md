@@ -145,7 +145,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=63d54ff2 R=d93be5bd N=81dd3484 M=4599
 | [format-home](Tests#t-format-home) | requirement | DOC-4 | Given a Home page with a line outside its Features table, when the docs check runs, then it fails naming Home, Features and DOC-4. | PASS 2026-11-10 |
 | [home-topic-column](Tests#t-home-topic-column) | requirement | DOC-4 | Given a topics setting, when Home is rendered, then it leads with a Topic column grouping the features and a wrong Topic cell fails the check. | PASS 2026-11-14 |
 | [home-header-both](Tests#t-home-header-both) | requirement | DOC-4 | Given Home with or without a Topic column, when the docs check runs, then both headers are accepted, and the Topic cell is checked only when the topics setting is set. | PASS 2026-11-14 |
-| [home-topic-live](Tests#t-home-topic-live) | requirement | DOC-4 | Given this repo's topics setting, when Home is read, then its table leads with a Topic column and the settings show topics held in the repo config. | PASS 2026-11-14 |
+| [home-topic-live](Tests#t-home-topic-live) | requirement | DOC-4 | Given this repo's topics setting, when Home is read, then its table leads with a Topic column. | PASS 2026-11-14 |
 | [format-frontdoor](Tests#t-format-frontdoor) | requirement | DOC-5 | Given a README How to use table with a command in You say, when the docs check runs, then it fails naming README, the section and DOC-5. | PASS 2026-11-10 |
 | [command-reference-complete](Tests#t-command-reference-complete) | requirement | DOC-6 | Given each skill's SKILL.md Command map, when the reference is read, then every verb in the map has its syntax in the skill's SKILL.md or references/commands.md. | not run |
 | - | requirement | DOC-6 | no passing test | not enforced |
