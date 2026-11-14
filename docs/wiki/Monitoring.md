@@ -43,9 +43,10 @@ Review: **Unreviewed**
   - It starts every goal whose dependencies are met in a free or freed session, up to the slot limit, so no ready goal sits idle.
   - It merges goals that do the same thing or touch the same files for the same PRD, splits a goal that blocks others when part of it is ready, and reorders the merge line so the critical path goes first.
   - It never stops or restarts a running goal to re-plan, and every change is logged with its reason and shown in the check-in.
-- MON-11: **Reviewed 2026-11-10** Full auto mode <!-- reviewed eff5c29d -->
-  - A setting, on by default. When it is on, the operation session answers each worker decision with that decision's recommended option, logs the question, the answer and why, and lists them in the next check-in.
+- MON-11: **Reviewed 2026-11-13** Full auto mode <!-- reviewed e3b3cf48 -->
+  - A setting, on by default. When it is on, the operation session applies each routine recommendation without asking, logs the question, the answer and why, and lists them in the next check-in; only the decisions in the next bullet and those that need my own words wait under Needs you.
   - It never auto-answers a decision that is destructive (deletes data, a page, a repo or a deployment), that contradicts something I said, that spends money, or that changes a security or access setting; those wait under Needs you.
+  - When a decision needs my words, I answer in the operation session, which records my message verbatim with the IDs it covers (sessions.py owner-words) for the workers to use.
   - Turning it off takes effect at the next decision.
 
 - MON-12: **Reviewed 2026-11-10** Session pool <!-- reviewed 7a470c28 -->
