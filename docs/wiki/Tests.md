@@ -140,7 +140,7 @@
 | <a id="t-backlog-leftovers-filed"></a>backlog-leftovers-filed | requirement | DEL-14 | not run | - | local | 2026-11-13 |
 | <a id="t-backlog-leftovers-once"></a>backlog-leftovers-once | requirement | DEL-14 | not run | - | local | 2026-11-13 |
 | <a id="t-del1-new-here-main-refused"></a>del1-new-here-main-refused | defect | 3468 | not run | - | local | 2026-11-13 |
-| <a id="t-release-head-status"></a>release-head-status | defect | [#3870](https://github.com/jcl2018/agent-workflow-template/issues/3870) state unknown | not run | - | local | 2026-11-13 |
+| <a id="t-release-head-status"></a>release-head-status | defect | [#3870](https://github.com/jcl2018/agent-workflow-template/issues/3870) open (2026-11-14) | not run | - | local | 2026-11-13 |
 | <a id="t-pr-moved-uncounted"></a>pr-moved-uncounted | requirement | DEL-1 | not run | - | local | 2026-11-13 |
 | <a id="t-held-time-over-still-stops"></a>held-time-over-still-stops | requirement | DEL-8 | PASS | 2026-11-14 | [CI 2026-11-14](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-14) | 2026-11-14 |
 | <a id="t-held-time-3878"></a>held-time-3878 | defect | [#3878](https://github.com/jcl2018/agent-workflow-template/issues/3878) open (2026-11-13) | PASS | 2026-11-14 | [CI 2026-11-14](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-14) | 2026-11-14 |
