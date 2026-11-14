@@ -168,3 +168,19 @@ Drafted by the owner-relay goal, 2026-11-13. These change reviewed requirements,
 
 - DOC-2 (the PRD is mine): replace "only I can do that." with "only I can do that, in my own words: typed by me, or recorded verbatim by the operation session from my own message." and add the bullet "A recorded message counts only for the requirement IDs or pages it lists, once for a review and once for an un-review, and every use is logged with its words."
 - MON-11 (full auto mode): replace its first bullet with "A setting, on by default. When it is on, the operation session applies each routine recommendation without asking, logs the question, the answer and why, and lists them in the next check-in; only the decisions in the next bullet and those that need my own words wait under Needs you." and add the bullet "When a decision needs my words, I answer in the operation session, which records my message verbatim with the IDs it covers (sessions.py owner-words) for the workers to use."
+
+## Waiting on owner un-review (merge-stale-own)
+
+Drafted by the merge-stale-own goal, 2026-11-14 (#3941). merge.py's wiki check now refuses only for a page the goal's own diff made stale (the scope of `docs.py check --own`); a page left stale by another goal's commit is printed as a `FINDING` and left for health. Two locked lines of the Delivery page now read stricter than that, so they wait for the owner's own typed words. Until then the page keeps its old wording, which is only more cautious than the behaviour.
+
+- Delivery, DEL-5 (Release), in its second sub-bullet: replace "refuses to merge while a page is stale" with "refuses to merge while a page its own changes made stale is still stale (a page left stale by another goal's commit is reported as a finding, and health still flags it)".
+- Delivery, Success metrics: replace "No goal merges while a wiki page is stale." with "No goal merges while a wiki page its own diff made stale is still stale."
+- Not locked, done by the goal: the `wiki-unmapped-stale` row's description now says a page no touched path maps to is a finding, not a refusal.
+
+The owner types one sentence in the operation session:
+
+"Un-review the Delivery page, the requirement DEL-5 and the Delivery success metric so the merge-stale-own wording in DECISIONS.md can be added; then review the Delivery page and DEL-5 again."
+
+After it, the goal (or the operation session) edits the two lines as drafted, and the owner's review follows with the same words. Until the owner's words are in, merge.py runs for merge-stale-own only on the operation session's turn.
+
+Applied 2026-11-14 on owner-words record o5 (the sentence above, recorded by the operation session): the Delivery page and DEL-5 were un-reviewed, DEL-5's second sub-bullet and the Delivery success metric were reworded exactly as drafted, and the Delivery page and DEL-5 were reviewed again, all with `--owner-record o5`.
