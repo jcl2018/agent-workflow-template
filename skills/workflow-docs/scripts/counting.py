@@ -173,18 +173,29 @@ def read_map(root):
             for line in handle:
                 if line.strip() and not line.startswith("#"):
                     page, _, paths = line.rstrip("\n").partition("\t")
+                    paths = paths.partition("\t")[0]
                     rows[page] = [item.strip() for item in paths.split(",") if item.strip()]
     except OSError:
         pass
     return rows
 
 
+def sources(root):
+    """The optional third column of docs.tsv: a page's PRD source (`url:<link>`, `mcp:<server>:<resource>`, or `page`)."""
+    try:
+        rows = [x.rstrip("\n").split("\t") for x in open(map_path(root)) if x.strip() and x[0] != "#"]
+    except OSError:
+        return {}
+    return {r[0]: r[2].strip() for r in rows if len(r) > 2 and r[2].strip()}
+
+
 def write_map(root, rows):
+    held = sources(root)
     os.makedirs(os.path.dirname(map_path(root)), exist_ok=True)
     with open(map_path(root), "w") as handle:
         handle.write("# page<TAB>paths it describes, comma separated\n")
         for page in sorted(rows):
-            handle.write("%s\t%s\n" % (page, ",".join(rows[page])))
+            handle.write("\t".join([page, ",".join(rows[page])] + ([held[page]] if page in held else [])) + "\n")
 
 
 BLOCK = re.compile(r"<!-- (settings|automation|template):begin -->\n.*?<!-- \1:end -->\n", re.S)  # render.py's blocks

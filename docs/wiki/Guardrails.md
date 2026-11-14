@@ -81,7 +81,7 @@ None
 | Test | Kind | Guards | Checks | Last result |
 |---|---|---|---|---|
 | [grd1-guardrail-list](Tests#t-grd1-guardrail-list) | requirement | GRD-1 | Given the Guardrails page, when it is read, then it lists every guardrail with its protection, owner, setting and health check (not built: the page is a definition only). | not run |
-| - | requirement | GRD-1 | no passing test | not enforced |
+| [config-holds-topics](Tests#t-config-holds-topics) | requirement | GRD-1 | Given the repo's config without a topics setting, when the settings are shown, then topics shows its default, so the column stays optional. | PASS 2026-11-14 |
 | [reg7-budget-leaves](Tests#t-reg7-budget-leaves) | requirement | GRD-2 | Given rows that would run past the test budget, when a loop test run happens, then it runs the rows that fit, stops at the budget and lists every row it left. | not run |
 | [del8-step-stops](Tests#t-del8-step-stops) | requirement | GRD-2 | Given a review or ship step that reaches its limit, when it is stopped, then it is recorded done with what it left and the goal goes on without a failed try. | not run |
 | [grd2-step-budget](Tests#t-grd2-step-budget) | requirement | GRD-2 | Given a review or ship step that reaches step_budget_minutes, when it is stopped, then it records done with what it left and costs no failed try. | not run |
