@@ -44,19 +44,29 @@ def cell(text, size=48):
     return lb.plain(text, size).replace("|", "/") or "-"
 
 
+def shown(run):
+    """A goal the check-in draws: a real record (goal and status), not stopped, not left (release: leave) (graph-times)."""
+    return bool(run.get("goal") and run.get("status")) and run["status"] != "stopped" and run.get("release") != "leave"
+
+
+def mood(run, state):
+    """A worker told to hold at pr reads silent: the map calls it holding, not stuck."""
+    return "held" if state == "silent" and run.get("step") == "pr" else state
+
+
 def gather(root, at, stamp=None):
     """One repo's state, read from its own .loop: name, root, cfg, folder, runs, found, why, taken, states, live, queue."""
     folder, cfg = lb.loop_dir(root), bs.read_json(os.path.join(root, ".loop", "config.json")) or {}
     runs = lb.load(root)
     found, why = graph.read_pool(os.path.join(folder, "session-pool.json"))
     taken = graph.assigned(found)
-    states = {r["slug"]: graph.classify(r, taken, at, cfg) for r in runs}
-    live = [r for r in runs if states[r["slug"]] not in ("merged", "retired")]
+    states = {r["slug"]: mood(r, graph.classify(r, taken, at, cfg)) for r in runs}
+    live = [r for r in runs if states[r["slug"]] not in ("merged", "retired") and shown(r)]
     return dict(name=os.path.basename(root), root=root, cfg=cfg, folder=folder, runs=runs, found=found, why=why, taken=taken,
                 states=states, live=live, queue=bs.queued(root, runs))
 
 
-def grouped(blocks):
+def grouped(blocks, at=None):
     """The Dependencies section: [(repo name, items)] as one `== name ==` block per repo (MON-14), then `Between repos`
     for each `repo/slug` dependency, then the legend once. Every line is wrapped at board_lines.WIDTH."""
     out, edges, marks = [], [], {}
@@ -66,6 +76,10 @@ def grouped(blocks):
         local = [dict(item, depends=[d for d in item.get("depends") or [] if "/" not in d]) for item in items]
         out += ["== %s ==" % (name if len(name) <= 54 else name[:51] + "...")]
         out += board_lines.render(local)[:-2] if items else ["- (none)"]
+        out += ["%s -> %s" % (dep, item["slug"]) for item in local for dep in item["depends"]]
+        out += ["%s ~%s left" % (item["slug"], board_page.span(item["left"])) for item in items if item.get("left")]
+        left = [item["left"] for item in items if item.get("left")]
+        out += ["expected finish %s (about %s)" % ((at + datetime.timedelta(seconds=max(left))).astimezone().strftime("%H:%M"), board_page.span(max(left)))] if left and at else []
         edges += [(name, item["slug"], dep.partition("/")[0], dep.partition("/")[2]) for item in items
                   for dep in item.get("depends") or [] if "/" in dep]
     if edges:
@@ -144,9 +158,10 @@ def render(root=None, at=None, stamp=None):
     blocks = []
     for g in pod:
         items = [dict(slug=r["slug"], mark=g["states"][r["slug"]] if g["states"][r["slug"]] != "done" else "awaiting merge",
-                      depends=[d for d in r.get("waits_on") or []], owner=graph.foreign(r)) for r in g["live"]]
+                      depends=[d for d in r.get("waits_on") or []], owner=graph.foreign(r),
+                      left=bs.left_time(r, g["runs"], at)) for r in g["live"]]
         blocks.append((g["name"], items + [dict(slug=q["slug"], mark="queued", depends=q["depends"]) for q in g["queue"]]))
-    out += ["", "Dependencies"] + grouped(blocks) + ["", "Needs you"]
+    out += ["", "Dependencies"] + grouped(blocks, at) + ["", "Needs you"]
     needs, readonly = [], []
     for run in live:
         state, ask = states[run["slug"]], run.get("waiting") or {}
