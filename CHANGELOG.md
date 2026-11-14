@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.28.36 - 2026-11-14
+
+- owner-relay: owner-words record, --owner-record, SKILL.md rules, DECISIONS draft, toy test
+- Verify by hand and Tests tables: owner-relay
+- Merge remote-tracking branch 'origin/main' into loop/owner-relay
+- Merge origin/main into loop/owner-relay
+- docs: DOC-2 and MON-11 reworded as the owner approved (owner-relay)
+- Merge origin/main into loop/owner-relay
+- docs: re-review Documentation and Monitoring after the owner-relay wording
+- owner-relay: fold owner-words code into auto.py and deployments.py (package stays under the file cap); Home notes the record
+- docs: Documentation and Monitoring are current after the fold
+- Merge remote-tracking branch 'origin/main' into loop/owner-relay
+- Merge origin/main into loop/owner-relay
+- docs: Monitoring page reviewed on the owner's words (owner-relay)
+- Lane: re-render the Tests tables
+- Merge origin/main into loop/owner-relay
+
+### How to verify
+
+1. In the operation session run `python3 skills/workflow-monitoring/scripts/sessions.py owner-words "Review DOC-1 now" --ids DOC-1`.
+   Expect: `OWNER-WORDS o1 covers DOC-1`, and a line in `.git/loop/owner-words.tsv` with the text in quotes.
+2. In a worker session run the same command with `LOOP_ROLE=worker`.
+   Expect: `REFUSED: only the operation session records the owner's words`, and no new line in the file.
+3. Run `python3 skills/workflow-docs/scripts/criteria.py review DOC-2 --user --owner-record o1 < /dev/null`.
+   Expect: `REFUSED: record o1 does not cover DOC-2`, and the page unchanged.
+4. Read DECISIONS.md under "Waiting on owner un-review".
+   Expect: the drafted DOC-2 and MON-11 wording, waiting for your typed words.
+
 ## v0.28.35 - 2026-11-14
 
 - Regression issues: one open issue per row (the oldest), and no issue written without --live (#2614)
