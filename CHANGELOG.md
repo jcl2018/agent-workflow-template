@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.28.39 - 2026-11-14
+
+- health: local register, LOOP_MAIL_ENV, no mail mode check on Windows
+- health-on-windows: uninstall writes no launch agent on Windows; review notes
+- Lane: re-render the Tests tables
+- health-on-windows: fold register into rounds.py (package cap), rows link AUT-1/AUT-6
+- docs: always-on machine wording on Automation and Home; render Tests
+- docs: Home and Health say the always-on machine
+- docs: render Tests
+- Merge origin/main into health-on-windows
+- Resolve the merge of origin/main (keep both DECISIONS sections)
+- docs: always-on machine wording in AUT-1, AUT-3 and AUT-6 (owner record o2)
+- docs: Home names LOOP_MAIL_ENV
+- docs: render Tests
+- Merge origin/main into health-on-windows
+- pr: record issue states and the lane's results
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.38 - 2026-11-14
 
 - merge.py's wiki check refuses only for pages the goal's own diff makes stale (#3941)
