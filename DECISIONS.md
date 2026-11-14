@@ -161,7 +161,6 @@ The owner types two sentences in the operation session:
 Progress 2026-11-13: the owner typed sentence 1 in the machine-local session; the pages and REG-10, HLT-2, MON-5 were un-reviewed, GRD-11 was added (Unreviewed) and the sub-bullets above were written into the pages. Applied: the owner typed sentence 2 and the pages and requirements were reviewed again.
 
 
-<<<<<<< HEAD
 ## Waiting on owner un-review (health-on-windows)
 
 Drafted 2026-11-14 by the health-on-windows goal; nothing below is on the pages (AUT-1, AUT-3 and AUT-6 are Reviewed). The code already works: `automation.py local register` writes the registry on any platform (no launch agent), `LOOP_MAIL_ENV` names the mail file, and a mail.env on Windows is not refused as MAIL_ENV_MODE (Windows has no mode bits to check). The owner's always-on machine is the Mac or a Windows PC, and the owner's own scheduler runs `automation.py local tick --scheduled`.
@@ -177,7 +176,7 @@ The owner types two sentences in the operation session:
 1. Un-review: "Un-review the Automation page and the requirements AUT-1, AUT-3 and AUT-6 so the always-on machine wording can be added."
 2. Review, after the goal has added it: "Review the Automation page, AUT-1, AUT-3 and AUT-6 again."
 - Review note (health-on-windows): `local status` still prints the plist and launchctl checks as FIX on Windows (informational); `register` does not refuse a worktree path as install does, so schedule the tick from the main checkout or the installed skills. Windows `tick` relies on `tasklist` and `taskkill`, which the toy does not exercise.
-=======
+
 
 ## Waiting on owner un-review (owner-relay)
 
@@ -185,4 +184,3 @@ Drafted by the owner-relay goal, 2026-11-13. These change reviewed requirements,
 
 - DOC-2 (the PRD is mine): replace "only I can do that." with "only I can do that, in my own words: typed by me, or recorded verbatim by the operation session from my own message." and add the bullet "A recorded message counts only for the requirement IDs or pages it lists, once for a review and once for an un-review, and every use is logged with its words."
 - MON-11 (full auto mode): replace its first bullet with "A setting, on by default. When it is on, the operation session applies each routine recommendation without asking, logs the question, the answer and why, and lists them in the next check-in; only the decisions in the next bullet and those that need my own words wait under Needs you." and add the bullet "When a decision needs my words, I answer in the operation session, which records my message verbatim with the IDs it covers (sessions.py owner-words) for the workers to use."
->>>>>>> origin/main
