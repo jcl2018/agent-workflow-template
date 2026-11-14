@@ -129,6 +129,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=7884b325 R=9cbdaa2a N=9f4c33da M=f8cd
 | [del8-goal-budget](Tests#t-del8-goal-budget) | requirement | DEL-8 | Given a repo with a time and token budget, when a goal is frozen, then the goal carries both budgets. | not run |
 | [del8-board-over](Tests#t-del8-board-over) | requirement | DEL-8 | Given a running goal past its time and token budget, when the live board prints, then the goal's budget line says OVER time and OVER tokens. | not run |
 | [del8-session-tokens](Tests#t-del8-session-tokens) | requirement | DEL-8 | Given a goal past token_budget whose steps run in a session, when the next step starts, then it is refused (not built: only headless goals are refused today). | not run |
+| [held-time-over-still-stops](Tests#t-held-time-over-still-stops) | requirement | DEL-8 | Given a goal whose steps ran past its time budget, when a new step starts, then it is refused with BUDGET_MINUTES. | not run |
 | - | requirement | DEL-8 | no passing test | not enforced |
 | [del9-merge-refuses](Tests#t-del9-merge-refuses) | requirement | DEL-9 | Given a pull request whose branch holds a private name, when merge.py runs, then nothing is merged. | PASS 2026-11-12 |
 | [del9-scan-sites](Tests#t-del9-scan-sites) | requirement | DEL-9 | Given the delivery, release and monitoring scripts, when any function pushes or writes to GitHub, then it calls the private-name scan first. | not run |
