@@ -110,34 +110,25 @@ def tokens_text(run):
 
 
 def active_minutes(state, at=None):
-    """Whole minutes of active step time (#3878): the board's held-time rule (workflow-monitoring's board_log.flow_seconds,
-    loaded by path), so time in the pr queue, on a hold, on an owner answer or after a stop counts nothing. Wall-clock
-    since the first log entry when board_log can't be loaded."""
-    import datetime
-    at = at or datetime.datetime.now(datetime.timezone.utc)
+    """Active step time in whole minutes (#3878): board_log's held-time rule, loaded by path; 0 when it won't load."""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "workflow-monitoring", "scripts", "board_log.py")
     try:
         sys.path.insert(0, os.path.dirname(path))
         spec = importlib.util.spec_from_file_location("fit_board_log", path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        return int(sum(module.flow_seconds(state, at).values()) // 60)
+        return module.active_minutes(state, at)
     except Exception:
-        began = (state.get("log") or [""])[0].split(" ", 1)[0]
-        try:
-            return int((at - datetime.datetime.strptime(began, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)).total_seconds() // 60)
-        except ValueError:
-            return 0
+        return 0
 
 
 def budget_stop(slug, state, runs, cfg, at=None):
-    """Past its time (active minutes) or token budget a goal starts no new step; only goal.py set raises it."""
+    """Past its active-time or token budget a goal starts no new step; only goal.py set raises it."""
     held, source = budget(view(state, runs), cfg)
     for name, spent in (("minutes", active_minutes(state, at)), ("tokens", spent_tokens(state))):
         if held[name] and spent >= held[name]:
             sys.exit("REFUSED: %d %s spent, at the %s budget of %d (%s); no new step starts. Fix: goal.py set %s --budget-%s N "
-                     "--why ... from the operation session (BUDGET_%s)" % (spent, name, name[:-1] if name == "minutes" else name,
-                                                                         held[name], source, slug, name, name.upper()))
+                     "--why ... from the operation session (BUDGET_%s)" % (spent, name, name.rstrip("s"), held[name], source, slug, name, name.upper()))
 
 
 def recorded(state, step):

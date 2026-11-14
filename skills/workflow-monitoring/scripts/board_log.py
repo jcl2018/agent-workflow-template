@@ -123,6 +123,11 @@ def flow_seconds(run, at, held=None):
     return found
 
 
+def active_minutes(run, at=None):
+    """Whole minutes of active step time: flow_seconds summed, up to now when at is not given (the budget gate, #3878)."""
+    return int(sum(flow_seconds(run, at or datetime.datetime.now(datetime.timezone.utc)).values()) // 60)
+
+
 def goal_file(run, root):
     """The goal file's text: in the run's worktree when it is one under <common>/loop/worktrees, else under root."""
     slug = run.get("slug") or ""
