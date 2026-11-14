@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.28.33 - 2026-11-14
+
+- Check-in map: time left, finish, arrows, live goals only
+- Lane: re-render the Tests tables
+- Toys: runs carry a goal, as real records do
+- Home: the check-in map shows time left and waits
+- MON-14 un-reviewed by the owner; sub-bullets applied; Verify by hand
+- Monitoring page: only MON-14's un-review; the page lock holds the sub-bullets
+- Monitoring page back to its reviewed text: the page lock holds the sub-bullets; Tests re-rendered
+- Monitoring: MON-14 sub-bullets applied after the owner's unreview of the page and MON-14
+- MON-14 reviewed by the owner
+- Merge origin/main into graph-times
+- Merge origin/main into graph-times
+- Merge remote-tracking branch 'origin/main' into loop/graph-times
+- pr: record issue states and the lane's results
+
+### How to verify
+
+1. Run `python3 skills/workflow-monitoring/scripts/checkin.py` and read Dependencies.
+   Expect: each repo block lists only live goals, a `slug ~Xm left` line per goal, an `a -> b` line per wait, and ends with `expected finish HH:MM`; a goal held at pr shows [=].
+
 ## v0.28.32 - 2026-11-14
 
 - test-operate: drop the removed goal.py check calls; row operate-toy-no-check (#3906)
