@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.28.46 - 2026-11-14
+
+- The lane's file walk skips node_modules and __pycache__ (#3939, #3943)
+- Merge remote-tracking branch 'origin/main' into loop/lane-skips-node-modules
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.45 - 2026-11-14
 
 - Health repo rules: .loop/health-rules.json (rules with a break, thresholds, off with a reason), setup writes it
