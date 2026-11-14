@@ -476,6 +476,7 @@
 | <a id="t-who-merges-report"></a>who-merges-report | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-who-merges-fallback"></a>who-merges-fallback | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-who-merges-hold-flag"></a>who-merges-hold-flag | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
+| <a id="t-pr-order-one-queue"></a>pr-order-one-queue | defect | [#3922](https://github.com/jcl2018/agent-workflow-template/issues/3922) state unknown | not run | - | local | no |
 
 ## Regression
 
