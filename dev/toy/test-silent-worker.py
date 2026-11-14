@@ -49,7 +49,7 @@ with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as home
     runs = os.path.join(tmp, ".git", "loop", "runs")
     os.makedirs(runs)
     for slug, minutes in (("quietone", 31), ("freshone", 5)):
-        run = {"slug": slug, "status": "running", "step": "build", "worker": "session", "branch": "loop/" + slug,
+        run = {"slug": slug, "goal": "Goal " + slug, "status": "running", "step": "build", "worker": "session", "branch": "loop/" + slug,
                "pid": os.getpid(), "updated": stamp(minutes), "report": {"at": stamp(minutes), "text": "working"}}
         with open(os.path.join(runs, slug + ".json"), "w") as f:
             json.dump(run, f)

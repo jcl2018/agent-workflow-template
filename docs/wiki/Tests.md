@@ -472,12 +472,16 @@
 | <a id="t-operation-checkout-ff"></a>operation-checkout-ff | requirement | MON-13 | not run | - | local | 2026-11-13 |
 | <a id="t-mon14-reply-deps-whole"></a>mon14-reply-deps-whole | requirement | MON-14 | not run | - | local | 2026-11-13 |
 | <a id="t-mon-stray-runs"></a>mon-stray-runs | requirement | MON-3 | not run | - | local | 2026-11-13 |
+| <a id="t-mon14-map-finish"></a>mon14-map-finish | requirement | MON-14 | not run | - | local | 2026-11-13 |
+| <a id="t-mon14-map-arrows"></a>mon14-map-arrows | requirement | MON-14 | not run | - | local | 2026-11-13 |
+| <a id="t-mon14-map-live-only"></a>mon14-map-live-only | requirement | MON-14 | not run | - | local | 2026-11-13 |
+| <a id="t-mon14-map-times"></a>mon14-map-times | requirement | MON-14 | not run | - | local | 2026-11-13 |
 | <a id="t-machine-local-checkin"></a>machine-local-checkin | requirement | MON-5 | not run | - | local | 2026-11-13 |
 | <a id="t-pr-queue-order"></a>pr-queue-order | requirement | MON-15 | not run | - | local | 2026-11-13 |
 | <a id="t-who-merges-report"></a>who-merges-report | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-who-merges-fallback"></a>who-merges-fallback | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
 | <a id="t-who-merges-hold-flag"></a>who-merges-hold-flag | defect | [#3868](https://github.com/jcl2018/agent-workflow-template/issues/3868) closed (2026-11-13) | not run | - | local | 2026-11-13 |
-| <a id="t-operate-toy-no-check"></a>operate-toy-no-check | defect | [#3906](https://github.com/jcl2018/agent-workflow-template/issues/3906) open (2026-11-13) | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
+| <a id="t-operate-toy-no-check"></a>operate-toy-no-check | defect | [#3906](https://github.com/jcl2018/agent-workflow-template/issues/3906) closed (2026-11-13) | PASS | 2026-11-13 | [CI 2026-11-13](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-13) | 2026-11-13 |
 
 ## Regression
 
