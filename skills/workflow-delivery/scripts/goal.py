@@ -344,9 +344,12 @@ def cmd_pr(args):
     left = [step for step in FLOW if not str(state.get("flow", {}).get(step, "")).startswith(("done", "skipped"))]
     if left:
         no("the flow hasn't finished: %s. Fix: run flow.py %s %s." % (", ".join(left), args.slug, left[0]))
+    waited = (state.get("log") or [""])[-1].split(" ", 1)[-1].startswith("waiting: pr queue")
     if ahead := queue("turn", args.slug):
+        waited or save(state, "waiting: pr queue, behind " + ahead)  # held time: the budget counts none of it (#3878)
         print("WAITING pr queue: %s first; run pr again" % ahead)
         return 0
+    waited and save(state, "pr queue: its turn")
     what, detail = role.sync(base)
     if what == "conflict":
         why, fix = "merging %s conflicts in: %s" % (base, detail), "merge %s yourself, resolve the conflicts, commit, then pr" % base

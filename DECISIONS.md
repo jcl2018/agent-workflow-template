@@ -174,3 +174,11 @@ The owner types two sentences in the operation session:
 
 Progress 2026-11-13: the owner typed sentence 1 in the machine-local session; the pages and REG-10, HLT-2, MON-5 were un-reviewed, GRD-11 was added (Unreviewed) and the sub-bullets above were written into the pages. Applied: the owner typed sentence 2 and the pages and requirements were reviewed again.
 
+
+
+## Waiting on owner un-review (owner-relay)
+
+Drafted by the owner-relay goal, 2026-11-13. These change reviewed requirements, so they wait for the owner's own typed words: un-review DOC-2 and MON-11, approve or change the wording, then the pages are edited and reviewed again. Until then `criteria.py ... --owner-record` exists but DOC-2 still says only the owner, in their own words.
+
+- DOC-2 (the PRD is mine): replace "only I can do that." with "only I can do that, in my own words: typed by me, or recorded verbatim by the operation session from my own message." and add the bullet "A recorded message counts only for the requirement IDs or pages it lists, once for a review and once for an un-review, and every use is logged with its words."
+- MON-11 (full auto mode): replace its first bullet with "A setting, on by default. When it is on, the operation session applies each routine recommendation without asking, logs the question, the answer and why, and lists them in the next check-in; only the decisions in the next bullet and those that need my own words wait under Needs you." and add the bullet "When a decision needs my words, I answer in the operation session, which records my message verbatim with the IDs it covers (sessions.py owner-words) for the workers to use."
