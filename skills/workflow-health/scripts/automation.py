@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Post one digest comment per round, and run the local schedule that makes the rounds.
 
-usage: automation.py local install [--load] | uninstall | status [--json] | plist | tick [--scheduled] [--dry-run] [--repo P]
+usage: automation.py local install [--load] | register | uninstall | status [--json] | plist | tick [--scheduled] [--dry-run] [--repo P]
                                          the one launch agent on this Mac (workflows.py); install registers this repo and writes
                                          the agent, printing the launchctl line that loads it (--load runs it); the tick runs
                                          health with the judge for every repo and the full regression for a private repo
@@ -29,6 +29,7 @@ if not sys.stdin or not sys.stdin.isatty():
     os.dup2(os.open(os.devnull, os.O_RDONLY), 0)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import register  # noqa: E402
 import rounds  # noqa: E402
 from issues import NO_FEATURE, feature_group, features  # noqa: E402
 import workflows  # noqa: E402
@@ -75,6 +76,8 @@ def cmd_local(args):
         return workflows.tick(args.scheduled, args.dry_run, args.repo)
     if args.action == "status":
         return local_status(args.json)
+    if args.action == "register":
+        return register.add(workflows, args.root, config(args.root))
     if args.action == "plist":
         print(workflows.agent_text(workflows.load()), end="")
         return 0
@@ -279,7 +282,7 @@ def main():
     item.add_argument("--check", action="store_true")
     item.set_defaults(func=cmd_workflow)
     item = sub.add_parser("local")
-    item.add_argument("action", choices=("install", "uninstall", "status", "plist", "tick"))
+    item.add_argument("action", choices=("install", "register", "uninstall", "status", "plist", "tick"))
     item.add_argument("--load", action="store_true")
     item.add_argument("--json", action="store_true")
     item.add_argument("--scheduled", action="store_true")
