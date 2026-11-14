@@ -166,8 +166,11 @@ guards-worktree	PASS	2026-11-10
 guide-marker-refused	PASS	2026-11-10	
 health-group-no-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 health-lists-tests	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
+health-mail-env-named	PASS	2026-11-14	
+health-mail-env-windows	PASS	2026-11-14	
 health-not-enforced-fail	PASS	2026-11-10	
 health-not-enforced-warn	PASS	2026-11-10	
+health-register-no-launchd	PASS	2026-11-14	
 health-tests-error	PASS	2026-11-10	60def83dfbc8727d0307a13b77f5aad43479da6a
 health-timing	PASS	2026-11-11	
 health-unreviewed-warn-issue-118	PASS	2026-11-10	
@@ -316,7 +319,7 @@ package-hang-bound	PASS	2026-11-12
 package-hang-no-skills-file	PASS	2026-11-12	
 package-hang-slot	PASS	2026-11-12	
 package-hang-stdin	PASS	2026-11-12	
-package-headroom-held	FAIL	2026-11-14	
+package-headroom-held	PASS	2026-11-14	
 page-shape	PASS	2026-11-12	
 parallel-unlimited	PASS	2026-11-12	
 pass3-symlink-page	PASS	2026-11-11	
@@ -432,7 +435,6 @@ settings-publish-refresh	PASS	2026-11-12
 settings-read-fresh	PASS	2026-11-12	
 settings-reference	PASS	2026-11-12	
 settings-refresh	PASS	2026-11-12	
-settings-render-fresh	FAIL	2026-11-14	
 settings-render-fresh	PASS	2026-11-14	
 settings-stale	PASS	2026-11-12	
 settings-template-line	PASS	2026-11-12	

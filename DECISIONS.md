@@ -161,6 +161,22 @@ The owner types two sentences in the operation session:
 Progress 2026-11-13: the owner typed sentence 1 in the machine-local session; the pages and REG-10, HLT-2, MON-5 were un-reviewed, GRD-11 was added (Unreviewed) and the sub-bullets above were written into the pages. Applied: the owner typed sentence 2 and the pages and requirements were reviewed again.
 
 
+## Waiting on owner un-review (health-on-windows)
+
+Drafted 2026-11-14 by the health-on-windows goal; nothing below is on the pages (AUT-1, AUT-3 and AUT-6 are Reviewed). The code already works: `automation.py local register` writes the registry on any platform (no launch agent), `LOOP_MAIL_ENV` names the mail file, and a mail.env on Windows is not refused as MAIL_ENV_MODE (Windows has no mode bits to check). The owner's always-on machine is the Mac or a Windows PC, and the owner's own scheduler runs `automation.py local tick --scheduled`.
+
+- AUT-1 (replace its first bullet): "Health runs on my always-on machine (the Mac through its launch agent, or a Windows PC through its own scheduled task) for every repo. Regression runs in GitHub Actions for a public repo and on that machine for a private one."
+- AUT-1 (replace its third bullet): "A routine missed while that machine is asleep or off runs once at the next tick, and the digest says it was missed."
+- AUT-3 (replace its first bullet): "Health never runs in GitHub Actions: it runs on my always-on machine on the schedule (every 4 hours by default), after the latest finished regression run, with all its rule groups; its report names that run with its commit and age, or says none finished, and says when health last ran."
+- AUT-3 (replace its second bullet's "on the Mac"): "The repo review always runs, using my own login on that machine, with no API key secret; when the login has expired or can't be reached, the report says which and the next round tries again."
+- AUT-6 (add one bullet): "The mail file is `mail.env` in the schedule home, or the file `LOOP_MAIL_ENV` names (a shared file on a synced folder); on a machine with file modes a mail.env others can read sends nothing, and on Windows, which has no modes, that check is skipped."
+
+The owner types two sentences in the operation session:
+
+1. Un-review: "Un-review the Automation page and the requirements AUT-1, AUT-3 and AUT-6 so the always-on machine wording can be added."
+2. Review, after the goal has added it: "Review the Automation page, AUT-1, AUT-3 and AUT-6 again."
+- Review note (health-on-windows): `local status` still prints the plist and launchctl checks as FIX on Windows (informational); `register` does not refuse a worktree path as install does, so schedule the tick from the main checkout or the installed skills. Windows `tick` relies on `tasklist` and `taskkill`, which the toy does not exercise.
+
 
 ## Waiting on owner un-review (owner-relay)
 
@@ -168,6 +184,8 @@ Drafted by the owner-relay goal, 2026-11-13. These change reviewed requirements,
 
 - DOC-2 (the PRD is mine): replace "only I can do that." with "only I can do that, in my own words: typed by me, or recorded verbatim by the operation session from my own message." and add the bullet "A recorded message counts only for the requirement IDs or pages it lists, once for a review and once for an un-review, and every use is logged with its words."
 - MON-11 (full auto mode): replace its first bullet with "A setting, on by default. When it is on, the operation session applies each routine recommendation without asking, logs the question, the answer and why, and lists them in the next check-in; only the decisions in the next bullet and those that need my own words wait under Needs you." and add the bullet "When a decision needs my words, I answer in the operation session, which records my message verbatim with the IDs it covers (sessions.py owner-words) for the workers to use."
+
+Applied 2026-11-14 on owner-words record o2 (the operation session's owner-words.tsv): the Automation page and AUT-1, AUT-3 and AUT-6 were un-reviewed, the five drafted bullets above were added exactly as written, and the page and the three requirements were reviewed again.
 
 ## Waiting on owner un-review (merge-stale-own)
 
