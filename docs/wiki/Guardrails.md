@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/11
 
-Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=a0f1201a N=e6bf17f7 M=5109e571 U=03828777 -->
+Review: **Reviewed 2026-11-14** <!-- prd P=506dd70a R=a0fae74d N=e6bf17f7 M=5109e571 U=03828777 -->
 
 ## Problem
 
@@ -60,6 +60,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=506dd70a R=a0f1201a N=e6bf17f7 M=5109
   - A step only another machine can do (a red proof on another platform, a smoke cell, a Mac-only check) is filed as a to-do issue on the feature's milestone and never blocks the goal, its merge or the release.
   - A row whose red proof needs another platform is recorded owed (Regression, `red ID --owed --runner R`): it reads PENDING, opens one `other-machine` to-do on its feature milestone, and its goal merges.
   - Health warns on an owed proof older than 7 days and never fails on it (Health); the check-in lists owed items under Coming up, and the operation session never holds a goal for another pod or machine (Monitoring).
+- GRD-12: **Reviewed 2026-11-14** The machine's status is read every round, and no goal starts under the memory floor. <!-- reviewed 0b68aa9f -->
+  - Each check-in reads free RAM, free commit memory, CPU and the number of claude and node processes (Monitoring, MON-16). A goal starts only while free commit memory is at or above `min_free_memory_gb` (default 3.5, in `.loop/config.json`; 0 turns the floor off). The pool creates no session and the board holds every ready goal as "memory low" until memory frees up. A figure that can't be read never blocks a start.
 
 ### Non-functional
 
@@ -116,4 +118,5 @@ None
 | - | requirement | GRD-10 | no passing test | not enforced |
 | [machine-local-guardrail](Tests#t-machine-local-guardrail) | requirement | GRD-11 | Given a row whose red proof needs another machine and is recorded owed, when sync runs, then it reads PENDING and no longer blocks as UNPROVEN. | not run |
 | - | requirement | GRD-11 | no passing test | not enforced |
+| - | requirement | GRD-12 | no passing test | not enforced |
 | [stop-tree-step-limit](Tests#t-stop-tree-step-limit) | defect | [#1396](https://github.com/jcl2018/agent-workflow-template/issues/1396) closed (2026-11-12) | Given a step or lane past its time limit, when it is stopped on any platform, then its whole process tree goes with it. | not run |

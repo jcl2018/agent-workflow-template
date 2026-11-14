@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/6
 
-Review: **Unreviewed**
+Review: **Reviewed 2026-11-14** <!-- prd P=41bfc9ae R=ba03c08b N=9967b317 M=0fde98a8 U=03828777 -->
 
 ## Problem
 - I run many goals at once, and opening each session to see which are running, stuck or waiting on me doesn't scale; without the same check-in every time, a stuck goal can sit unnoticed for hours.
@@ -68,6 +68,10 @@ Review: **Unreviewed**
   - The pod id is `LOOP_POD_ID`, else the operation session's own id; a goal with no recorded pod belongs to no one. Another pod's attempt prints one `REFUSED: goal <slug> is owned by pod <id>. Fix: ...` line, exit 2, and changes nothing.
   - `merge.py` takes `<git common dir>/loop/merge.lock` for the whole merge step; a dead holder or one older than 30 minutes is replaced.
   - A pod's watch, auto-answers and mending skip other pods' goals, and its check-in lists their questions as read-only.
+- MON-16: **Reviewed 2026-11-14** Fill every free slot at once; speed comes before tokens, within the guardrails. <!-- reviewed 01b9c4fe -->
+  - When goals are ready and slots, sessions and memory are free, every one starts in the same pass; token and time budgets (Guardrails) still hold. The check-in's Machine line says how many goal starts memory allows. Each pass checks that the main checkout is current with origin/main; when it is behind, the check-in asks a free worker to fast-forward it, because the operation session's govern hook blocks the pull itself. A goal waiting in the pr queue with a fresh queue file reads alive, never silent.
+- MON-17: **Reviewed 2026-11-14** A check-in lists only this machine's goals. <!-- reviewed d4cc2e30 -->
+  - Goals of another pod are not listed; each other pod gets one line, "<pod>: N goals, last activity HH:MM" (the owner's decision), and never a question for this pod.
 
 ### Non-functional
 - MON-7: **Reviewed 2026-11-10** Govern only <!-- reviewed da6f1852 -->
@@ -199,6 +203,8 @@ Review: **Unreviewed**
 | [mon15-merge-lock](Tests#t-mon15-merge-lock) | requirement | MON-15 | Given two pods merging into one main, when they run together, then the lock serializes them. | PASS 2026-11-12 |
 | [resume-ask-prompt](Tests#t-resume-ask-prompt) | requirement | MON-15 | Given a goal set to ask and auto_merge on, when it is resumed, then its prompt asks the owner and never tells the worker to run merge.py. | not run |
 | [pr-queue-order](Tests#t-pr-queue-order) | requirement | MON-15 | Given three goals asking for their pr turn in one repo, when they ask oldest first, then the first runs its lane and the others are told who is ahead; a goal that left the pr step, a stopped holder and a ticket older than 30 minutes each give their place to the next. | not run |
+| - | requirement | MON-16 | no passing test | not enforced |
+| - | requirement | MON-17 | no passing test | not enforced |
 | [mon7-govern-blocks](Tests#t-mon7-govern-blocks) | requirement | MON-7 | Given the operation session, when it tries an edit, a commit or a push, then the govern hook refuses it with the fix, while workers, other sessions and the off switch pass. | PASS 2026-11-10 |
 | [mon16-notes-pass](Tests#t-mon16-notes-pass) | requirement | MON-7 | Given the operation session, when it writes a file outside every followed repo, then the govern hook lets it through. | not run |
 | [mon16-edit-inside-refused](Tests#t-mon16-edit-inside-refused) | requirement | MON-7 | Given the operation session, when it edits a file inside a followed repo, then the govern hook refuses it. | not run |

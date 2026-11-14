@@ -126,6 +126,15 @@ def pool_fix(why):
             "nothing was started" % why)
 
 
+def memory_room():
+    """Goals free memory lets start (board_status.allowed); None: unknown or no floor."""
+    try:
+        import board_status
+        return board_status.allowed()
+    except Exception:
+        return None
+
+
 def ready(goals, records, limit, taken=None, why=""):
     """Split queued goals into (start, held). held is [(goal, reason)]; start never exceeds the free worker slots (limit 0: no limit).
     taken (from assigned) adds one slot per goal a session holds with no run yet, and holds that goal: its session freezes it.
@@ -136,7 +145,7 @@ def ready(goals, records, limit, taken=None, why=""):
     taken = taken or {}
     used = sum(1 for run in records.values() if run.get("status") in LIVE and holds_slot(run, taken))
     used += sum(1 for slug in taken if slug not in records)
-    start, held = [], []
+    start, held, room = [], [], memory_room() if goals else None
     for goal in goals:
         if goal["slug"] in records:
             continue
@@ -147,6 +156,8 @@ def ready(goals, records, limit, taken=None, why=""):
             held.append((goal, "waits on " + ", ".join(why for _, why in waits)))
         elif limit and used >= limit:
             held.append((goal, "slots full (%d of %d)" % (used, limit)))
+        elif room is not None and len(start) >= room:
+            held.append((goal, "memory low: free commit is under min_free_memory_gb"))
         else:
             start.append(goal)
             used += 1
@@ -241,7 +252,7 @@ def freezing(taken, on_disk):
 
 def last_spoke(run):
     """The newest of the worker's latest report, its bind and the run's last change."""
-    times = [parse_at(run.get("updated")), parse_at(run.get("bound_at")), parse_at((run.get("report") or {}).get("at"))]
+    times = [parse_at(run.get("updated")), parse_at(run.get("bound_at")), parse_at((run.get("report") or {}).get("at")), parse_at(run.get("queue_at"))]
     reports = run.get("reports") if isinstance(run.get("reports"), list) else []
     if reports and isinstance(reports[-1], dict):
         times.append(parse_at(reports[-1].get("at")))
@@ -268,6 +279,10 @@ def with_held(runs, folder):
     for run in runs:
         if isinstance(found, dict) and found.get(run.get("slug")) and not run.get("held_at"):
             run["held_at"] = found[run["slug"]]
+        try:  # a goal waiting in the pr queue keeps its file fresh: alive
+            run["queue_at"] = iso(datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(folder, "pr-queue", run["slug"])), datetime.timezone.utc))
+        except (OSError, KeyError, TypeError):
+            pass
     return runs
 
 

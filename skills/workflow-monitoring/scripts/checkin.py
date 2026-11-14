@@ -62,7 +62,14 @@ def gather(root, at, stamp=None):
     taken = graph.assigned(found)
     states = {r["slug"]: mood(r, graph.classify(r, taken, at, cfg)) for r in runs}
     live = [r for r in runs if states[r["slug"]] not in ("merged", "retired") and shown(r)]
-    return dict(name=os.path.basename(root), root=root, cfg=cfg, folder=folder, runs=runs, found=found, why=why, taken=taken,
+    away = {}  # another pod's goals are not this machine's: one line per pod, "<pod>: N goals, last activity HH:MM"
+    for r in live:
+        if graph.foreign(r):
+            count, last = away.get(graph.foreign(r), (0, None))
+            spoke = graph.last_spoke(r)
+            away[graph.foreign(r)] = (count + 1, max([t for t in (last, spoke) if t] or [None]) if (last or spoke) else None)
+    live = [r for r in live if not graph.foreign(r)]
+    return dict(away=away, name=os.path.basename(root), root=root, cfg=cfg, folder=folder, runs=runs, found=found, why=why, taken=taken,
                 states=states, live=live, queue=bs.queued(root, runs))
 
 
@@ -130,7 +137,12 @@ def render(root=None, at=None, stamp=None):
     counts = lambda *names: sum(g["states"][r["slug"]] in names for g in pod for r in g["live"] if not graph.foreign(r))
     pool_line = pl.status_line(found or {}, cfg) if found is not None else "pool: unreadable"
     out = ["%d running, %d waiting on you, %d queued; %s" % (counts("running", "held", "silent"),
-                                                            counts("waiting", "failed", "stopped"), sum(len(g["queue"]) for g in pod), pool_line), "",
+                                                            counts("waiting", "failed", "stopped"), sum(len(g["queue"]) for g in pod), pool_line),
+           bs.machine_line(cfg)]
+    for g in pod:
+        out += ["%s: %d goal%s, last activity %s" % (name, n, "" if n == 1 else "s", last.astimezone().strftime("%H:%M") if last else "unknown")
+                for name, (n, last) in sorted(g["away"].items())]
+    out += ["",
            "All sessions", "| session | repo | for | status | progress | left | latest |", "|---|---|---|---|---|---|---|"]
     for g in pod:
         for run in g["live"]:
@@ -207,6 +219,10 @@ def render(root=None, at=None, stamp=None):
                 needs.append("%s/%s asks: %s; options: %s" % (g["name"], run["slug"], lb.plain(ask.get("ask"), 160),
                                                               " / ".join('"%s"' % w for w in ask.get("words") or ["go on"])))
     needs += ["%s: can't be read (%s); the other repos are shown" % item for item in broken]
+    try:  # operate.py behind_ask: the main checkout is behind origin/main and a free worker must fast-forward it
+        needs += [line for line in open(os.path.join(folder, "checkout-behind.txt")).read().splitlines()[:1] if line]
+    except OSError:
+        pass
     out += ["%d. %s" % (i, text) for i, text in enumerate(needs, 1)] or ["Nothing needs you"]
     out += readonly
     out += ["", "Coming up"]

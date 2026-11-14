@@ -5,12 +5,12 @@ usage: reply_hook.py              the Stop hook: reads the hook's JSON on stdin
        reply_hook.py check FILE|-  print what a reply is missing (exit 0 clean, 1 with problems, 2 unreadable)
        reply_hook.py status        say whether the hook is installed and on in this repo, and its recent let-throughs
 
-A check-in reply passes with one headline line, then the sections All sessions (a table), Dependencies (a graph with a
+A check-in reply passes with one headline line (a Machine line and one line per other pod may follow it), then the sections All sessions (a table), Dependencies (a graph with a
 `== repo ==` block per repo naming every goal on the board, MON-14), Needs you (numbered questions with options and a
 recommended answer, or "Nothing needs you") and, last, Coming up, each heading on its own line with something under it.
 
-The hook checks only the operation session: one named in <git common dir>/loop/operation.id, or whose transcript ran
-'operate.py run|claim' without a refusal, as its latest signal. A worker is never checked: a session that ran a flow step
+The hook checks only the operation session: one named in <common>/loop/operation.id, or whose transcript ran
+'operate.py run|claim' without a refusal as its latest signal. A worker is never checked: a session that ran a flow step
 ('flow.py', 'goal.py step|record|pr') after that, or whose cwd is in <git common dir>/loop/worktrees/ before any signal.
 A session in another repo, or in a repo with no .loop/config.json, is never checked. Each stop reads only the new bytes.
 "reply_hook": false in .loop/config.json, or LOOP_REPLY_HOOK=0, turns it off. A failing reply is blocked with a reason
@@ -57,7 +57,7 @@ def git(cwd, *args):
 
 
 def repo_of(cwd):
-    """(top, common dir, config) of the repo at cwd, both paths absolute, or None outside a repo with a .loop config."""
+    """(top, common dir, config) of the repo at cwd, or None outside a repo with a .loop config."""
     if not cwd or not os.path.isdir(cwd):
         return None
     top = git(cwd, "rev-parse", "--show-toplevel")
@@ -80,7 +80,7 @@ def folder(common):
 
 
 def log(common, text):
-    """Append one line; trim to the last KEEP lines once it passes twice that."""
+    """Append one line; keep the last KEEP lines."""
     path = os.path.join(folder(common), "log")
     line = "%s %s\n" % (time.strftime("%Y-%m-%dT%H:%M:%S"), " ".join(str(text).split())[:400])
     fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
@@ -100,7 +100,7 @@ def write(path, text):
 
 
 def claimed(common):
-    """Session ids in <common>/loop/operation.id: the operation session even when it never runs operate.py run."""
+    """Session ids in <common>/loop/operation.id."""
     try:
         with open(os.path.join(common, "loop", "operation.id")) as handle:
             return {line.strip() for line in handle if line.strip()}
@@ -191,7 +191,7 @@ def words_of(line):
 
 
 def runner(part, i):
-    """Whether part[i], a .py word, is run as a script: by python (only its own flags between), by uv run, or as ./x.py."""
+    """Whether part[i], a .py word, is run as a script: by python, by uv run, or as ./x.py."""
     if i == 0 and (part[i].startswith("./") or "/" in part[i]):
         return True
     before = part[:i]
@@ -205,7 +205,7 @@ def runner(part, i):
 
 
 def calls(command, depth=0):
-    """(script basename, subcommand) for each python script a shell command runs; sh -c / bash -c strings are opened."""
+    """(script basename, subcommand) for each python script a shell command runs."""
     found = []
     for line in command.splitlines():
         try:
@@ -282,7 +282,7 @@ def bare(line):
 
 
 def heading(line):
-    """A line as a heading: Markdown marks, a trailing colon and a trailing count like (2) dropped, case ignored."""
+    """A line as a heading: marks, a trailing colon and a count like (2) dropped, case ignored."""
     return COUNT.sub("", bare(line).rstrip(":").strip()).rstrip(":").strip().lower()
 
 
@@ -304,13 +304,13 @@ def problems(text):
             spots[name] = at = spot
     if not spots:
         return ["it is not in the check-in layout; missing all five parts: the headline line, All sessions, Dependencies, "
-                "Needs you and Coming up (a one-line reply is never a check-in, issue 321)"]
+                "Needs you and Coming up (issue 321)"]
     found = ["missing section %s%s" % (name, " (or it is out of order)" if any(heading(l) == name.lower() for l in lines) else "")
              for name in SECTIONS if name not in spots]
     first = min(spots.values())
     if first == 0:
         found.append("no headline line before the first section")
-    elif first > 1:
+    elif len([l for l in lines[:first] if not l.startswith("Machine:") and ", last activity " not in l]) > 1:
         found.append("more than one line before the first section; the headline is one line")
     names = [n for n in SECTIONS if n in spots]
     for name, after in zip(names, names[1:] + [None]):

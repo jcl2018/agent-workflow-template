@@ -76,6 +76,8 @@ def need(found, cfg, ready):
     every missing session (pool_size - total) is created in one step. K never takes the total past pool_size."""
     free, _, total = counts(found)
     k = max(size_of(cfg) - total, 0) if free < ready else 0
+    if k and graph.memory_room() == 0:  # under min_free_memory_gb of free commit memory no session is created: nothing starts
+        k = 0
     side = se.read(side_path(), {})
     declined = side.get("declined")
     if k == 0 and declined is not None:

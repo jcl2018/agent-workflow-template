@@ -80,6 +80,7 @@ Every repo setting, its value and its one-line explanation is in the Settings ta
 | `max_tries` | 3 | Failed tries a goal gets before it stops and files a finding. |
 | `mend` | true | true lets watch start a fresh agent for a failed goal. |
 | `mend_wait` | 120 | Seconds a failed goal waits before a mender starts. |
+| `min_free_memory_gb` | 3.5 |  |
 | `parallel` | 0 | Workers running at once; 0 means unlimited. |
 | `pool_size` | 20 | Idle worker sessions the session pool keeps; when it runs low the operation session asks you to create the missing ones. |
 | `pr_bumps_version` | false | true moves the last number of the version file once on a goal's branch. |

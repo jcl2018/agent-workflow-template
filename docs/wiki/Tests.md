@@ -852,6 +852,11 @@
 | <a id="t-stale-net-diff-revert"></a>stale-net-diff-revert | requirement | done line stale-net-diff:1 | not run | - | local | 2026-11-13 |
 | <a id="t-no-usage-section"></a>no-usage-section | requirement | done line drop-usage:1 | not run | - | local | 2026-11-13 |
 | <a id="t-pr-queue-goal"></a>pr-queue-goal | requirement | done line pr-queue:1 | not run | - | local | 2026-11-13 |
+| <a id="t-machine-status-line"></a>machine-status-line | requirement | done line machine-status:1 | not run | - | local | 2026-11-13 |
+| <a id="t-machine-status-floor"></a>machine-status-floor | requirement | done line machine-status:1 | not run | - | local | 2026-11-13 |
+| <a id="t-machine-status-checkout"></a>machine-status-checkout | requirement | done line machine-status:1 | not run | - | local | 2026-11-13 |
+| <a id="t-machine-status-alive"></a>machine-status-alive | requirement | done line machine-status:1 | not run | - | local | 2026-11-13 |
+| <a id="t-machine-status-pod"></a>machine-status-pod | requirement | done line machine-status:1 | not run | - | local | 2026-11-13 |
 | <a id="t-held-time-pr-queue"></a>held-time-pr-queue | requirement | done line held-time-budget:1 | PASS | 2026-11-14 | [CI 2026-11-14](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-14) | 2026-11-13 |
 | <a id="t-held-time-owner-wait"></a>held-time-owner-wait | requirement | done line held-time-budget:1 | PASS | 2026-11-14 | [CI 2026-11-14](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-14) | 2026-11-13 |
 | <a id="t-held-time-stopped"></a>held-time-stopped | requirement | done line held-time-budget:1 | PASS | 2026-11-14 | [CI 2026-11-14](https://github.com/jcl2018/agent-workflow-template/actions/workflows/regression.yml?query=created%3A2026-11-14) | 2026-11-13 |

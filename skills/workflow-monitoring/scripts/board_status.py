@@ -113,6 +113,84 @@ def wiki_check(root):
     return sorted(item for item in found if item[0] != "LAG")  # a repo behind the installed skills shows as template_lag
 
 
+# The machine this pod runs on (machine-status): the check-in's Machine line, and the memory floor that holds a goal back from starting.
+GB, NAMES = 2 ** 30, ("ram", "commit", "cpu", "claude", "node")
+
+
+def memory():
+    """(free RAM, free commit) in GB, or (None, None). LOOP_MACHINE="ram,commit,cpu,claude,node" stands in for the machine (toys)."""
+    fake = os.environ.get("LOOP_MACHINE")
+    if fake:
+        got = [float(x) if x.strip() else None for x in (fake.split(",") + [""] * 5)[:5]]
+        return got[0], got[1]
+    try:
+        if os.name == "nt":
+            import ctypes
+
+            class Status(ctypes.Structure):
+                _fields_ = [("size", ctypes.c_ulong), ("load", ctypes.c_ulong)] + [(n, ctypes.c_ulonglong) for n in ("tp", "ap", "tc", "ac", "tv", "av", "ae")]
+            one = Status(size=ctypes.sizeof(Status))
+            ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(one))
+            return one.ap / GB, one.ac / GB
+        if os.path.exists("/proc/meminfo"):
+            info = {k: int(v.split()[0]) for k, v in (l.split(":", 1) for l in open("/proc/meminfo") if ":" in l)}
+            return info["MemAvailable"] / 2 ** 20, (info["CommitLimit"] - info["Committed_AS"]) / 2 ** 20
+        pages = {k: int(v.strip(" .")) for k, v in (l.split(":", 1) for l in subprocess.run(["vm_stat"], capture_output=True, text=True).stdout.splitlines()[1:] if ":" in l)}
+        free = (pages["Pages free"] + pages["Pages inactive"] + pages.get("Pages purgeable", 0)) * 16384 / GB  # macOS has no commit limit: reclaimable RAM
+        return free, free
+    except Exception:
+        return None, None
+
+
+def allowed(cfg=None):
+    """Goals memory lets start now: None when it can't be read or the floor is 0, 0 under min_free_memory_gb of free commit
+    (default 3.5), else one plus one per 1.5 GB above the floor."""
+    cfg = cfg if cfg is not None else read_json(os.path.join(git("rev-parse", "--show-toplevel") or ".", ".loop", "config.json")) or {}
+    try:
+        floor, each = float(cfg.get("min_free_memory_gb", 3.5)), 1.5  # a goal's worker needs about 1.5 GB
+    except (TypeError, ValueError):
+        return None
+    commit = memory()[1]
+    return None if commit is None or floor <= 0 else 0 if commit < floor else 1 + int((commit - floor) / each)
+
+
+def machine_line(cfg):
+    """Machine: free RAM and commit memory, CPU, the claude and node processes, and the goal slots memory allows."""
+    ram, commit = memory()
+    cpu, count = None, {"claude": None, "node": None}
+    fake = os.environ.get("LOOP_MACHINE")
+    if fake:
+        got = [float(x) if x.strip() else None for x in (fake.split(",") + [""] * 5)[:5]]
+        cpu, count = got[2], {"claude": got[3], "node": got[4]}
+    else:
+        try:
+            if os.name == "nt":
+                seen = subprocess.run(["tasklist", "/fo", "csv", "/nh"], capture_output=True, text=True, timeout=20).stdout.lower().splitlines()
+                names = [l.split('","')[0].strip('"').replace(".exe", "") for l in seen]
+                import ctypes
+                import time
+                tick = [ctypes.c_ulonglong() for _ in range(3)]
+                snap = lambda: (ctypes.windll.kernel32.GetSystemTimes(*map(ctypes.byref, tick)), [x.value for x in tick])[1]
+                one = snap()
+                time.sleep(0.2)
+                two = snap()
+                busy = (two[1] - one[1]) + (two[2] - one[2])  # kernel time includes idle
+                cpu = 100 * (1 - (two[0] - one[0]) / busy) if busy else None
+            else:
+                names = [os.path.basename(l.strip()) for l in subprocess.run(["ps", "-A", "-o", "comm="], capture_output=True, text=True, timeout=20).stdout.splitlines()]
+                cpu = os.getloadavg()[0] / (os.cpu_count() or 1) * 100
+            count = {k: sum(n == k for n in names) for k in count}
+        except Exception:
+            pass
+    show = lambda v, unit="": "unreadable" if v is None else "%.1f%s" % (v, unit)
+    room = allowed(cfg)
+    return "Machine: RAM %s, commit %s free, CPU %s, %s claude, %s node; memory allows %s" % (
+        show(ram, " GB"), show(commit, " GB"), "unreadable" if cpu is None else "%d%%" % cpu,
+        "?" if count["claude"] is None else int(count["claude"]), "?" if count["node"] is None else int(count["node"]),
+        "any number of goals" if room is None else "no new goal (under the %s GB floor)" % cfg.get("min_free_memory_gb", 3.5) if room == 0
+        else "%d goal start%s" % (room, "" if room == 1 else "s"))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--html", action="store_true")
