@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.28.37 - 2026-11-14
+
+- Budget counts active step time only: held time in the pr queue, on holds, owner answers and stops counts nothing (#3878)
+- Docs: the time budget counts active step time only (#3878)
+- Review: the budget counts the live tail only while the run is running
+- Lane: re-render the Tests tables
+- Lane: re-render the Tests tables
+- Restore the reviewed Guardrails text (the owner reviewed GRD-2; the budget rule lives in Monitoring MON-4's row text instead)
+- Wiki: the held-time defect row sits on Delivery DEL-8; re-render the Tests tables
+- Lane: re-render the Tests tables
+- Fold active.py into fit.py: the package stays at its file cap
+- Active minutes: the loader in fit.py, the sum in board_log.py; fit.py back under its cap
+- Seen-red marks; re-render the Tests tables
+- Link the hold row to MON-4 and the over-budget row to DEL-8; re-render the Tests tables
+- Run record for the held-time rows; re-render the Tests tables
+- Merge origin/main into loop/held-time-budget
+- Wiki: update pages for held-time-budget
+- Merge remote-tracking branch 'origin/main' into loop/held-time-budget
+- Fixes #3878: test held-time-3878, seen failing 2026-11-14, passing
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.36 - 2026-11-14
 
 - owner-relay: owner-words record, --owner-record, SKILL.md rules, DECISIONS draft, toy test
