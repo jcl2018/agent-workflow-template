@@ -11,6 +11,7 @@ add <id> --level <level> --command "<command>" [--goal <criterion>|<slug>:<n>] [
 sync [--write]
 criteria
 red <id> --break "<command>"
+red <id> --owed --runner <name> [--live]
 red <id> --off-platform --runner <name> --commit <sha>
 run [land|nightly|<id>] [--timeout S] [--live] [--reuse [--tier goal]] [--kind requirement|workflow|defect]
 workflow

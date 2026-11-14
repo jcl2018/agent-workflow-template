@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/4
 
-Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=4bb528ed N=e89b4f3b M=39cf9800 U=03828777 -->
+Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=e469ca09 N=e89b4f3b M=39cf9800 U=03828777 -->
 
 ## Problem
 - My rules, requirements and standards are spread across many pages and sometimes conflict, and I can't see where the repo falls short of its own PRDs.
@@ -24,7 +24,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=4bb528ed N=e89b4f3b M=39cf
 ## Requirements
 
 ### Functional
-- HLT-2: **Reviewed 2026-11-13** The rules <!-- reviewed 4c8e3124 -->
+- HLT-2: **Reviewed 2026-11-13** The rules <!-- reviewed 4008d2ac -->
   - Health checks exactly these groups, each with the angle its tests take:
   - Requirements (my angle: is every promise I approved proven?): every Reviewed requirement has a test seen failing and passing now; done lines have tests; none stays not enforced over 7 days.
   - Traceability (an auditor's angle: can I follow any work end to end?): requirement to test to last run; issue to feature; pull request to goal to done lines; release to the issues it fixed.
@@ -40,6 +40,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=4bb528ed N=e89b4f3b M=39cf
   - Controls (the checker's own angle: can each rule fire?): every rule has a negative control run against a deliberately broken copy.
   - Mine (my private angle): rules I add in a private setting.
   - At most 12 groups plus Mine; adding one means retiring one or raising the cap on purpose.
+  - An owed proof (`.loop/regression-owed.tsv`) is not a seen-red failure; it warns once it is older than 7 days and never fails.
 - HLT-3: **Reviewed 2026-11-10** Formal report <!-- reviewed a5cc0046 -->
   - A header listing every group it ran (and any skipped), then each group with every rule marked pass, warn, fail or unread with its fix, then one verdict. A rule that can't read its data is never shown as passing.
 - HLT-4: **Reviewed 2026-11-13** Findings become issues tagged with their group, and their feature when feature_labels is on <!-- reviewed 283dffa7 -->
@@ -95,6 +96,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=b4d391e0 R=4bb528ed N=e89b4f3b M=39cf
 | [health-not-enforced-fail](Tests#t-health-not-enforced-fail) | requirement | HLT-2 | Given a Reviewed requirement with no test for 8 days, when health runs, then it fails. | PASS 2026-11-10 |
 | [hlt2-defect-exempt-health](Tests#t-hlt2-defect-exempt-health) | requirement | HLT-2 | Given a closed issue labelled health or backlog, when Traceability checks defect tests, then it is exempt; a closed bug without a defect test still fails. | not run |
 | [aut-prompt-warns](Tests#t-aut-prompt-warns) | requirement | HLT-2 | Given an installed scheduled-task prompt that holds steps beyond the Runbook pointer, when health checks the Adoption group, then it warns. | not run |
+| [machine-local-health-warn](Tests#t-machine-local-health-warn) | requirement | HLT-2 | Given a red proof owed to another machine for 9 days, when health checks, then it warns and never fails. | not run |
 | [unread-not-green](Tests#t-unread-not-green) | requirement | HLT-3 | Given a health rule that cannot be read, when health runs, then it is never shown green. | PASS 2026-11-12 |
 | [report-header](Tests#t-report-header) | requirement | HLT-3 | Given a repo with findings in several groups, when health check runs, then the report header names every group it ran and the one it skipped. | PASS 2026-11-10 |
 | [no-token-would](Tests#t-no-token-would) | requirement | HLT-4 | Given no token and no --live flag, when health previews its findings, then it prints only WOULD lines and writes nothing. | PASS 2026-11-12 |
