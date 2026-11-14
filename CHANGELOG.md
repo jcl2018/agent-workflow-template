@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.28.42 - 2026-11-14
+
+- Home leads with a Topic column and the settings blocks list topics
+- Rows: Home's Topic column and the topics setting are live
+
+### How to verify
+
+No manual steps were recorded.
+
 ## v0.28.41 - 2026-11-14
 
 - docs: a feature's PRD can live at a page, url or mcp source; Home groups features by a Topic column
