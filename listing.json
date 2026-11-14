@@ -94,6 +94,7 @@
     "send",
     "assign",
     "bind",
+    "owner-words",
     "touches",
     "free",
     "triage",
