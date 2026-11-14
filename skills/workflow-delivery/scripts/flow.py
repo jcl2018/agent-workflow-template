@@ -22,7 +22,6 @@ import subprocess
 import sys
 import time
 
-import active
 import fit
 import lanekit
 import proctree
@@ -213,7 +212,7 @@ def start(args, runs, reply, job):
     command = step_command(spec, args.step)
     cfg = repo_config()
     state = role.goal_state(runs, args.slug)
-    active.budget_stop(args.slug, state, runs, cfg, fit)  # active minutes and tokens (#3878)
+    fit.budget_stop(args.slug, state, runs, cfg)  # active minutes and tokens (#3878)
     if not shutil.which(command[0]):
         sys.exit("REFUSED: the flow's command %s isn't on this machine." % command[0])
     top = git("rev-parse", "--show-toplevel")

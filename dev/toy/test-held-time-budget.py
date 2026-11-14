@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # windows: ok
-# reads: skills/workflow-delivery/scripts/active.py skills/workflow-delivery/scripts/fit.py skills/workflow-monitoring/scripts/board_log.py skills/workflow-monitoring/scripts/board_status.py
+# reads: skills/workflow-delivery/scripts/fit.py skills/workflow-monitoring/scripts/board_log.py skills/workflow-monitoring/scripts/board_status.py
 """held-time-budget (#3878): a goal's time budget counts only active step time. A goal held 10 hours in the pr queue, on a
 session hold, on an owner answer or after a stop, then run 20 minutes, reads 20 minutes spent; a goal that truly runs past its
-budget is still stopped. Calls the real active.minutes / active.budget_stop (delivery) and board_status.seconds_by_step."""
+budget is still stopped. Calls the real fit.active_minutes / fit.budget_stop (delivery) and board_status.seconds_by_step."""
 import datetime
 import importlib.util
 import os
@@ -12,7 +12,6 @@ import sys
 root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 for part in ("workflow-delivery", "workflow-monitoring"):
     sys.path.insert(0, os.path.join(root, "skills", part, "scripts"))
-import active  # noqa: E402
 import board_status  # noqa: E402
 import fit  # noqa: E402
 
@@ -38,15 +37,15 @@ TEN_HOURS = 600
 
 def spent(*entries, **kw):
     state, at = run(*entries, **kw)
-    return active.minutes(state, at), state, at
+    return fit.active_minutes(state, at), state, at
 
 
 m, state, at = spent(*FIVE, (20, "waiting: pr queue, behind other"), (20 + TEN_HOURS, "pr queue: its turn"), (20 + TEN_HOURS, "pr"))
 check("held 10 hours in the pr queue, run 20 minutes, reads 20 minutes spent", m == 20)
 m, _, _ = spent(*FIVE, (20, "waiting: pr queue, behind other"))
-check("still waiting in the pr queue, nothing more is spent", m == 20 and active.minutes(state, at + datetime.timedelta(hours=9)) >= 20)
+check("still waiting in the pr queue, nothing more is spent", m == 20 and fit.active_minutes(state, at + datetime.timedelta(hours=9)) >= 20)
 live, now = run(*FIVE, (20, "waiting: pr queue, behind other"))
-check("the live tail of a goal waiting in the pr queue counts nothing", active.minutes(live, now + datetime.timedelta(hours=10)) == 20)
+check("the live tail of a goal waiting in the pr queue counts nothing", fit.active_minutes(live, now + datetime.timedelta(hours=10)) == 20)
 m, _, _ = spent(*FIVE, (20, "session report: held at qa"), (20 + TEN_HOURS, "qa done"))
 check("a session hold (sessions.py report --hold) counts nothing", m == 20)
 m, _, _ = spent(*FIVE, (20, "qa waits for the owner (no try used): ask"), (20 + TEN_HOURS, "answered"), (25 + TEN_HOURS, "qa done"))
@@ -62,7 +61,7 @@ cfg = {"time_budget_minutes": 300, "token_budget": 0}
 
 def stopped(state, at, cfg=cfg):
     try:
-        active.budget_stop("g", state, "/none", cfg, fit, at)
+        fit.budget_stop("g", state, "/none", cfg, at)
     except SystemExit as exit:
         return str(exit.code)
     return ""

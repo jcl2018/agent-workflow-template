@@ -307,7 +307,7 @@ package-hang-bound	PASS	2026-11-12
 package-hang-no-skills-file	PASS	2026-11-12	
 package-hang-slot	PASS	2026-11-12	
 package-hang-stdin	PASS	2026-11-12	
-package-headroom-held	FAIL	2026-11-13	
+package-headroom-held	FAIL	2026-11-14	
 page-shape	PASS	2026-11-12	
 parallel-unlimited	PASS	2026-11-12	
 pass3-symlink-page	PASS	2026-11-11	
