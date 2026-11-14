@@ -12,6 +12,8 @@ usage: regression.py <command> [options]
                                 failing; --write drafts rows (a criterion's row has its id as id or goal)
   criteria                      run each wiki criterion's row; print one UNMET line for each missing, draft or failing
   red ID --break CMD            copy HEAD, run CMD to break it, and record that the test fails there
+  red ID --owed --runner R [--live]
+                                machine R owes the proof: a to-do issue on the row's milestone; the goal goes on (PENDING)
   red ID --off-platform --runner R --commit SHA
                                 a row this platform skips (exit 77) was seen failing on runner R at commit SHA: record it
                                 (runs.py). A Windows runner is refused; a skip never sets seen red
@@ -174,7 +176,7 @@ def cmd_sync(args):
     drafts = [row["id"] for row in rows.values() if row["level"] == "draft"]
     for key in drafts:
         print("DRAFT %s: not run until it has a command and level" % key)
-    never = [row["id"] for row in rows.values() if row["level"] in ("land", "nightly") and not SEEN.match(row["seen_red"])]
+    never = runs.unproven(root, [row for row in rows.values() if row["level"] in ("land", "nightly")], SEEN)
     for key in never:
         print("UNPROVEN %s: never seen failing. Run red." % key)
     bare = [row["id"] for row in rows.values() if row["level"] != "covered" and not row["description"]]
@@ -208,6 +210,8 @@ def cmd_criteria(_args):
 
 def cmd_red(args):
     root = top()
+    if args.owed:
+        return runs.owed_record(root, args, today, read_rows)
     if args.off_platform:
         return runs.off_record(root, args.id, args.runner, args.commit, today, read_rows, edit_rows)
     if not args.break_it:
@@ -237,6 +241,7 @@ def cmd_red(args):
         return 1
     edit_rows(root, lambda current: current[args.id].update(seen_red=today()) if args.id in current else None)
     print("SEEN RED %s on %s" % (args.id, today()))
+    runs.owed_clear(root, args.id)
     return 0
 
 
@@ -296,7 +301,7 @@ def cmd_run(args):
                    results + [{"id": key, "state": "LEFT", "seconds": 0} for key in cut],
                    head, datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                    fresh=bool(args.reuse and why), base=tiers.BASE)
-    never = [row["id"] for row in picked if not SEEN.match(row["seen_red"])]
+    never = runs.unproven(root, picked, SEEN)
     for key in never:
         print("UNPROVEN %s: never seen failing. Fix: python3 %s red %s --break \"<a command that breaks it>\"" % (
             key, os.path.abspath(__file__), key))
@@ -335,7 +340,9 @@ def main():
     item = sub.add_parser("red")
     item.add_argument("id")
     item.add_argument("--break", dest="break_it")
-    item.add_argument("--off-platform", action="store_true", help="record a red proven on another runner")
+    item.add_argument("--off-platform", action="store_true", help="a red proven on another runner")
+    item.add_argument("--owed", action="store_true")
+    item.add_argument("--live", action="store_true")
     item.add_argument("--runner")
     item.add_argument("--commit")
     item.add_argument("--timeout", type=int, default=900)
@@ -343,14 +350,14 @@ def main():
     item = sub.add_parser("run")
     item.add_argument("target", nargs="?", default="land")
     item.add_argument("--timeout", type=int, default=900)
-    item.add_argument("--reuse", action="store_true", help="reuse this branch's last run; run only the rows a change can affect")
+    item.add_argument("--reuse", action="store_true", help="reuse the last run; run the rows a change affects")
     item.add_argument("--live", action="store_true")
-    item.add_argument("--tier", choices=("goal",), help="a goal lane: the rows the branch's change reaches, in tier order, within the time budget (tiers.py)")
+    item.add_argument("--tier", choices=("goal",), help="a goal lane (tiers.py)")
     item.add_argument("--kind", choices=tuple(tiers.KINDS))
-    item.add_argument("--budget", type=int, default=0, help="seconds a --reuse run may take (default: test_budget_minutes)")
+    item.add_argument("--budget", type=int, default=0, help="seconds a --reuse run may take")
     item.set_defaults(func=cmd_run)
     item = sub.add_parser("workflow")
-    item.add_argument("--visibility", choices=("public", "private"), help="skip the probe (the regression_runs setting says it too)")
+    item.add_argument("--visibility", choices=("public", "private"), help="skip the probe")
     item.set_defaults(func=cmd_workflow)
     item = sub.add_parser("reads")
     item.add_argument("id")

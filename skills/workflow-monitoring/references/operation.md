@@ -84,7 +84,7 @@ gap between check-ins, or an hour when nothing runs or waits:
    progress, time left, tokens left, latest); **Dependencies**, the drawn top-to-bottom graph, marking each goal `[>]`
    running, `[=]` holding or paused, `[ ]` queued or `[!]` stuck; **Needs you**, each open question numbered with what it is
    about, its options and a recommended answer, or `Nothing needs you`; and last, **Coming up**, the next expected events
-   with rough times and `you:` heads-ups on what the owner will need to do. There is no separate Issues list: those
+   with rough times and `you:` heads-ups on what the owner will need to do. A step only another pod or machine can do (a red proof on another platform, a Mac-only check) is never a reason to hold a goal: it is an owed to-do (`regression.py red ID --owed`), listed in the check-in here as `off-machine to-do`, and the goal merges. There is no separate Issues list: those
    belong in Needs you. Where setup installed the reply hook (`setup.py --reply-hook`), a reply in any other layout is
    blocked and told what is missing (below).
 6. Wait `NEXT_DELAY` seconds, then go to step 1. `none` means the owner turned the loop off: stop and say so.

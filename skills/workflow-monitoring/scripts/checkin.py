@@ -200,6 +200,11 @@ def render(root=None, at=None, stamp=None):
             out.append("- %s: its pull request waits for merge (you: review %s)" % (run["slug"], run.get("pr") or "it"))
         elif states[run["slug"]] in ("running", "silent", "held"):
             out.append("- %s: %s" % (run["slug"], lb.next_line(run)))
+    try:  # proofs another machine owes (regression.py red --owed): coming up for that machine, never a blocker here
+        owed = [line.split("	") + [""] * 4 for line in open(os.path.join(root, ".loop", "regression-owed.tsv")) if line.strip()]
+    except OSError:
+        owed = []
+    out += ["- off-machine to-do: %s red proof owed on %s since %s %s" % (c[0], c[2], c[1], c[3].strip()) for c in owed]
     paused = board_lines.paused(live)
     out.append("- " + (paused or "next check-in in %s minutes" % (cfg.get("cadence") or 30)))
     return lb.fit(out, 100)

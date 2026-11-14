@@ -3,7 +3,7 @@
 
 Milestone: https://github.com/jcl2018/agent-workflow-template/milestone/7
 
-Review: **Reviewed 2026-11-13** <!-- prd P=14b68802 R=9a8691a0 N=f86bd012 M=d4d1a48b U=86b4bcbd -->
+Review: **Reviewed 2026-11-13** <!-- prd P=14b68802 R=b2106ed4 N=f86bd012 M=d4d1a48b U=03828777 -->
 
 ## Problem
 - I can't trust a requirement or a fix unless a test proves it, and every fix I've ever shipped should stay fixed without me re-checking it.
@@ -57,7 +57,8 @@ Review: **Reviewed 2026-11-13** <!-- prd P=14b68802 R=9a8691a0 N=f86bd012 M=d4d1
 - REG-9: **Reviewed 2026-11-10** Honest results <!-- reviewed 194b357d -->
   - Every test has been seen failing once, or shows as unproven.
   - A test that fails then passes on the same commit is marked flaky, never silently retried.
-- REG-10: **Reviewed 2026-11-13** Red proof for rows a platform can't run <!-- reviewed a64ea265 -->
+- REG-10: **Reviewed 2026-11-13** Red proof for rows a platform can't run <!-- reviewed fe76007f -->
+  - A row whose red proof needs another machine can be recorded owed (`red ID --owed --runner R`): it reads PENDING instead of UNPROVEN, one to-do issue labelled `other-machine` opens on the row's feature milestone, and neither the goal's pr lane nor the release waits for it. A real red proof clears it.
   - A row the local platform can't run (the bash toy rows on native Windows exit 77) is skipped with its reason and is never counted as seen failing: a skip, on any platform, never sets the seen-failing date.
   - Its red proof runs on a capable runner (Linux or macOS, in CI or a session), and the result is written back to the row with the runner and the commit it ran on; a Windows runner can't be named.
   - A pull request that adds such a row lists the exact red commands still owed, so the proof is run and written back before the row counts as proven.
@@ -208,6 +209,7 @@ Review: **Reviewed 2026-11-13** <!-- prd P=14b68802 R=9a8691a0 N=f86bd012 M=d4d1
 | [pr-waits-owed](Tests#t-pr-waits-owed) | requirement | REG-10 | Given a pr lane that failed only on skipped, unproven rows, when goal.py pr sees it, then it waits for the off-platform proof and spends no try. | PASS 2026-11-13 |
 | [pr-real-fail-costs-try](Tests#t-pr-real-fail-costs-try) | requirement | REG-10 | Given a pr lane with a real FAIL or an unproven row that ran, when goal.py pr sees it, then it is a failed try. | PASS 2026-11-13 |
 | [mac-rows-skip-77](Tests#t-mac-rows-skip-77) | requirement | REG-10 | Given the macOS-only local-schedule toy, when it runs on a host that is not macOS, then it exits 77 with its reason, so its rows are SKIPPED and open no issue. | PASS 2026-11-13 |
+| [machine-local-owed](Tests#t-machine-local-owed) | requirement | REG-10 | Given a row whose red proof needs another platform, when it is recorded owed, then it reads PENDING not UNPROVEN, a to-do issue is planned on its milestone, and a real red proof clears it. | not run |
 | [workflow-goal-to-release](Tests#t-workflow-goal-to-release) | workflow | REG-1 | Given a toy goal that fixes an issue, when it runs from goal.py new through its flow, its defect row seen failing, goal.py pr, merge.py and the automatic release, then the published release note and the CHANGELOG list Fixes #N with its defect test. | PASS 2026-11-10 |
 | [summary-only-real-rows](Tests#t-summary-only-real-rows) | defect | [#92](https://github.com/jcl2018/agent-workflow-template/issues/92) closed (2026-11-10) | Given a row that writes to the run summary, env or outputs like a toy test, when the GitHub run runs it, then nothing it writes reaches the real summary, env or outputs. | PASS 2026-11-10 |
 | [toy-no-leftovers](Tests#t-toy-no-leftovers) | defect | [#100](https://github.com/jcl2018/agent-workflow-template/issues/100) closed (2026-11-11) | Given a toy test that starts stand-in agents, when it passes, fails, is interrupted or its pipe closes, then no process it started is left running. | PASS 2026-11-12 |

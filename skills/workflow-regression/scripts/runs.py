@@ -299,4 +299,76 @@ def off_record(root, row_id, runner, commit, today, read_rows, edit_rows):
     with open(path, "w", newline="\n") as out:
         out.write("\n".join(kept + ["\t".join((row_id, day, runner, commit))]) + "\n")
     print("SEEN RED %s on %s (proved on %s at %s)" % (row_id, day, runner, commit))
+    owed_clear(root, row_id)
+    return 0
+
+
+OWED, OWED_LABEL = "regression-owed.tsv", "other-machine"  # red --owed: id, date, runner, issue; a proof another machine owes never blocks
+
+
+def owed_read(root):
+    file = os.path.join(root, ".loop", OWED)
+    cells = [(line.rstrip("\n").split("\t") + [""] * 4)[:4] for line in (open(file) if os.path.exists(file) else []) if line.strip()]
+    return {c[0]: c for c in cells}
+
+
+def owed_clear(root, row_id):
+    held = owed_read(root)
+    if held.pop(row_id, None):
+        with open(os.path.join(root, ".loop", OWED), "w", newline="\n") as out:
+            out.write("".join("\t".join(c) + "\n" for c in held.values()))
+        print("OWED CLEARED %s: close its issue" % row_id)
+
+
+def unproven(root, rows, seen):
+    """ids never seen failing and not owed; a PENDING line each for the owed."""
+    held, out = owed_read(root), []
+    for row in rows:
+        mine = held.get(row["id"])
+        if mine and not seen.match(row["seen_red"]):
+            print("PENDING %s: red proof owed on %s since %s (to-do %s); never blocks" % (row["id"], mine[2], mine[1], mine[3] or "-"))
+        elif not seen.match(row["seen_red"]):
+            out.append(row["id"])
+    return out
+
+
+def owed_issue(root, row_id, runner, live):
+    stone = ""
+    for page in sorted(glob.glob(os.path.join(root, "docs", "wiki", "*.md"))):
+        text = open(page, encoding="utf-8").read()
+        found = re.search(r"^Milestone:\s*\S*/milestone/(\d+)", text, re.M)
+        if found and "(Tests#t-%s)" % row_id in text:
+            stone = found.group(1)
+            break
+    if not live:
+        print("WOULD open a to-do issue (milestone %s) for %s" % (stone or "none", row_id))
+        return ""
+    mark = "<!-- loop-owed %s -->" % row_id
+    listed = gh("issue", "list", "--label", OWED_LABEL, "--state", "open", "--limit", str(ISSUE_LIMIT), "--json", "url,body")
+    for item in [] if listed.returncode else json.loads(listed.stdout or "[]"):
+        if mark in item.get("body", ""):
+            return item["url"]
+    title = gh("api", "repos/{owner}/{repo}/milestones/" + stone, "--jq", ".title").stdout.strip() if stone else ""
+    gh("label", "create", OWED_LABEL, "--force", "--description", "A step only another machine can do")
+    body = "%s\nRow `%s` skips here: its red proof is owed from %s. There run `regression.py red %s --off-platform --runner %s --commit SHA`, " \
+           "then close this. It never blocks a goal or release.\n" % (mark, row_id, runner, row_id, runner)
+    made = gh("issue", "create", "--title", "To do on %s: prove %s fails" % (runner, row_id), "--label", OWED_LABEL,
+              *(("--milestone", title) if title else ()), body=body)
+    return made.stdout.strip().splitlines()[-1] if made.returncode == 0 and made.stdout.strip() else ""
+
+
+def owed_record(root, args, today, read_rows):
+    rows, runner, row_id = read_rows(root), (args.runner or "").strip(), args.id
+    live = args.live or bool(os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN"))
+    if row_id not in rows:
+        sys.exit("REFUSED: no row %s. Fix: add it first." % row_id)
+    if not runner or "\t" in runner or "\n" in runner:
+        sys.exit("REFUSED: --runner names the machine that owes the proof. Fix: pass --runner NAME.")
+    if re.match(r"\d{4}-\d{2}-\d{2}$", rows[row_id]["seen_red"]):
+        sys.exit("REFUSED: %s is already seen failing, so nothing is owed." % row_id)
+    if row_id not in owed_read(root):
+        issue = owed_issue(root, row_id, runner, live)
+        with open(os.path.join(root, ".loop", OWED), "a", newline="\n") as out:
+            out.write("\t".join((row_id, today(), runner, issue)) + "\n")
+        print("OWED %s: red proof owed on %s (to-do %s). The goal goes on." % (row_id, runner, issue or "not opened"))
     return 0
